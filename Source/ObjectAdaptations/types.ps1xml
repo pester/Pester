@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<Types> 
+    <Type> 
+        <Name>System.Object</Name> 
+        <Members> 
+            <ScriptProperty> 
+                <Name>should</Name> 
+                <GetScriptBlock>
+                    $value = $this
+                    $object = New-Object Object |
+                    Add-Member ScriptMethod be {
+                            param($expected)
+                            return ($expected -eq $this.actual)
+                            } -PassThru |
+                    Add-Member NoteProperty -Name actual -Value $null -PassThru |
+                    Add-Member ScriptProperty -Name ThisValue -Value { $this.actual } `
+                            {
+                                param($newactual)
+                                $this.actual = $newactual
+                            } -PassThru
+                    $object.ThisValue = $value
+                            
+                    return $object
+                </GetScriptBlock> 
+            </ScriptProperty> 
+        </Members> 
+    </Type> 
+</Types> 
