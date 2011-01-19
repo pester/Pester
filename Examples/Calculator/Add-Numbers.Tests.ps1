@@ -1,12 +1,12 @@
 $pwd = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$pwd\Add-Numbers.ps1"
-. "$pwd\..\..\Source\Pester.ps1"
+. "$pwd\..\..\Pester.ps1"
 
 Describe "Add-Numbers" {
 
     It "adds positive numbers" {
         $sum = Add-Numbers 2 3
-        $sum.should.be(4)
+        $sum.should.be(5)
     }
 
     It "adds negative numbers" {
