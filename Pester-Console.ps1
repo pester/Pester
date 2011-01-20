@@ -9,7 +9,7 @@ $fixtures_path = Resolve-Path $relative_path
 Write-Host Executing all tests in $fixtures_path
 
 Get-ChildItem $fixtures_path -Recurse |
-    ? { $_.Name -match ".Tests." } |
+    ? { $_.Name -match "\.Tests\." } |
     % { & $_.PSPath }
 
 Write-TestReport
