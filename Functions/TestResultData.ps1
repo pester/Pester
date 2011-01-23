@@ -9,7 +9,7 @@ function Create-TestResultData()
         }
 
         function GetDescriptions() {
-            return [array] $description_data.keys
+            return $description_data.keys
         }
 
         Export-ModuleMember -Variable * -Function *

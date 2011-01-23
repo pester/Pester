@@ -12,6 +12,15 @@
                             param($expected)
                             return ($expected -eq $this.actual)
                             } -PassThru |
+                    Add-Member ScriptMethod have_count_of {
+                        param($expected_count)
+
+                        $count = 0
+                        $this.actual | % { $count += 1 }
+
+                        return ($expected_count -eq $count)
+
+                    } -PassThru |
                     Add-Member NoteProperty -Name actual -Value $null -PassThru |
                     Add-Member ScriptProperty -Name ThisValue -Value { $this.actual } `
                             {

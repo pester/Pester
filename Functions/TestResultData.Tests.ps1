@@ -8,7 +8,17 @@ Describe "Test-Report" {
 
         $sut.AddDescription("Description")
 
-        $sut.GetDescriptions().should.be("Description")
+        $sut.GetDescriptions().should.have_count_of(1)
     }
+
+    It "Keeps a record of multiple fixture descriptions" {
+        $sut = Create-TestResultData
+
+        $sut.AddDescription("Description1")
+        $sut.AddDescription("Description2")
+
+        $sut.GetDescriptions().should.have_count_of(2)
+    }
+    
 }
 
