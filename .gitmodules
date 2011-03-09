@@ -1,0 +1,3 @@
+[submodule "PowerYaml"]
+	path = PowerYaml
+	url = git://github.com/scottmuc/PowerYaml.git
