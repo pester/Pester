@@ -20,7 +20,10 @@
 
                         return ($expected_count -eq $count)
 
-                    } -PassThru |
+                        } -PassThru |
+                        Add-Member ScriptMethod exist {
+                            return Test-Path $this.actual
+                        } -PassThru |
                     Add-Member NoteProperty -Name actual -Value $null -PassThru |
                     Add-Member ScriptProperty -Name ThisValue -Value { $this.actual } `
                             {
