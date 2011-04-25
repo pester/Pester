@@ -1,5 +1,27 @@
 param($path, $name)
 
+function Write-Usage {
+    "invalid usage, please specify (path, name)" | Write-Host
+    "eg: .\Create-Fixture -Path Foo -Name Bar" | Write-Host
+    "creates .\Foo\Bar.ps1 and .\Foo.Bar.Tests.ps1" | Write-Host
+}
+
+function Create-File($file_path, $contents = "") {
+
+    if (-not (Test-Path $file_path)) {
+        $contents | Out-File $file_path
+        "Creating" | Write-Host -Fore Green -NoNewLine
+    } else {
+        "Skipping" | Write-Host -Fore Yellow -NoNewLine
+    }
+    " => $file_path" | Write-Host
+}
+
+if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
+    Write-Usage
+    exit 1
+}
+
 $script:dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$($script:dir)\Functions\Get-RelativePath"
 
@@ -11,7 +33,8 @@ if (-not (Test-Path $path)) {
 }
 
 $template = "`$pwd = Split-Path -Parent `$MyInvocation.MyCommand.Path
-. `"`$pwd\$name.ps1`"
+`$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
+. `"`$pwd\`$sut`"
 . `"`$pwd\$rel_path_to_pester`"
 
 Describe `"$name`" {
@@ -21,9 +44,5 @@ Describe `"$name`" {
     }
 }"
 
-$code_file = "$path\$name.ps1"
-$test_file = "$path\$name.Tests.ps1"
-
-"" | Out-File $code_file
-$template | Out-File $test_file
-Write-Host $template
+Create-File "$path\$name.ps1" 
+Create-File "$path\$name.Tests.ps1" $template 
