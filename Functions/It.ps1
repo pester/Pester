@@ -1,7 +1,7 @@
 function It($name, [ScriptBlock] $test) 
 {
     $results = Get-GlobalTestResults
-    $martin = " " * $results.TestDepth
+    $margin = " " * $results.TestDepth
     $results.TestCount += 1
 
     $output = " $margin$name"
