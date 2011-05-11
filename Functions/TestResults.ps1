@@ -7,6 +7,7 @@ function Get-GlobalTestResults()
     $testResults = @{}
     $testResults.FailedTests = @()
     $testResults.TestCount = 0
+    $testResults.TestDepth = 0
 
     $Global:TestResults = $testResults
     return $Global:TestResults
@@ -18,8 +19,6 @@ function Write-TestReport()
 
     Write-Host Tests completed
     Write-Host Passed: $($results.TestCount - $results.FailedTests.length) Failed: $($results.FailedTests.length)
-
-    
 }
 
 function Exit-WithCode()
