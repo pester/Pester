@@ -1,15 +1,17 @@
 function It($name, [ScriptBlock] $test) 
 {
     $results = Get-GlobalTestResults
+    $margin = " " * $results.TestDepth
     $results.TestCount += 1
+
+    $output = " $margin$name"
 
     $test_result = & $test
 
     if ($test_result) {
-        $name | Write-Host -ForegroundColor green
+        $output | Write-Host -ForegroundColor green
     } else {
         $results.FailedTests += $name
-        $name | Write-Host -ForegroundColor red
+        $output | Write-Host -ForegroundColor red
     }
 }
-
