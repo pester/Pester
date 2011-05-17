@@ -2,16 +2,35 @@ function It($name, [ScriptBlock] $test)
 {
     $results = Get-GlobalTestResults
     $margin = " " * $results.TestDepth
+    $error_margin = $margin * 2
     $results.TestCount += 1
 
     $output = " $margin$name"
 
-    $test_result = & $test
+    $start_line_position = $test.StartPosition.StartLine
+    $test_file = $test.File
+    $line_count = -1
 
-    if ($test_result) {
-        $output | Write-Host -ForegroundColor green
-    } else {
-        $results.FailedTests += $name
-        $output | Write-Host -ForegroundColor red
+    $test_result = $true
+
+    foreach ( $line in $test.ToString().Split("`n;") ) {
+        $line_count++
+        $line=$line.trim()
+        if($line){
+            $test_result = Invoke-Expression $line 
+            if ($test_result -eq $false) {
+                $results.FailedTests += $name
+                $output | Write-Host -ForegroundColor red
+                Write-Host -ForegroundColor red $error_margin"Failure at line: $($start_line_position + $line_count) in  $test_file"
+                Write-Host -ForegroundColor red $error_margin$error_margin$line
+                $__expected__ = Invoke-Expression $line.split(".")[0]
+                $__observed__ = Invoke-Expression $line.Split("(")[1].Replace(")","")
+                Write-Host -ForegroundColor red $error_margin"Expected: $__expected__"
+                Write-Host -ForegroundColor red $error_margin"But was : $__observed__"
+                
+            }
+        }
     }
+    
+    if($test_result) {$output | Write-Host -ForegroundColor green;}
 }

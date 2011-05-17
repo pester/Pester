@@ -23,16 +23,16 @@
                     Add-Member ScriptMethod exist {
                         return Test-Path $this.actual
                     } -PassThru |
-					Add-Member ScriptMethod match {
-						param($expected_match)
-						$matches = ($this.actual) |? { $_ -match $expected_match }
-						return (@($matches).count -gt 0)
-					} -PassThru |
-					Add-Member ScriptMethod be_like {
-						param($expected_like)
-						$matches = ($this.actual) |? { $_ -like $expected_like }
-						return (@($matches).count -gt 0)
-					} -PassThru |
+                    Add-Member ScriptMethod match {
+                        param($expected_match)
+                        $matches = ($this.actual) |? { $_ -match $expected_match }
+                        return (@($matches).count -gt 0)
+                    } -PassThru |
+                    Add-Member ScriptMethod be_like {
+                        param($expected_like)
+                        $matches = ($this.actual) |? { $_ -like $expected_like }
+                        return (@($matches).count -gt 0)
+                    } -PassThru |
                     Add-Member NoteProperty -Name actual -Value $null -PassThru |
                     Add-Member ScriptProperty -Name ThisValue -Value { $this.actual } `
                             {
