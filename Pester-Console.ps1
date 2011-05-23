@@ -1,6 +1,9 @@
 param($relative_path = ".")
 
 $script_dir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+. "$script_dir\ObjectAdaptations\PesterFailure.ps1"
+
 Update-TypeData -pre "$script_dir\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
 
 . "$script_dir\Functions\TestResults.ps1"

@@ -10,27 +10,27 @@ function It($name, [ScriptBlock] $test)
     $start_line_position = $test.StartPosition.StartLine
     $test_file = $test.File
     $line_count = -1
-
+    $failures = 0
     $test_result = $true
 
     foreach ( $line in $test.ToString().Split("`n;") ) {
         $line_count++
         $line=$line.trim()
         if($line){
-            $test_result = Invoke-Expression $line 
-            if ($test_result -eq $false) {
+            $test_result = Invoke-Expression $line
+            if ($test_result -and $test_result.GetType().FullName -eq "PesterFailure") {
+                $failures += 1
                 $results.FailedTests += $name
                 $output | Write-Host -ForegroundColor red
                 Write-Host -ForegroundColor red $error_margin"Failure at line: $($start_line_position + $line_count) in  $test_file"
                 Write-Host -ForegroundColor red $error_margin$error_margin$line
-                $__expected__ = Invoke-Expression $line.split(".")[0]
-                $__observed__ = Invoke-Expression $line.Split("(")[1].Replace(")","")
-                Write-Host -ForegroundColor red $error_margin"Expected: $__expected__"
-                Write-Host -ForegroundColor red $error_margin"But was : $__observed__"
-                
+                $expected = $test_result.Expected
+                $observed = $test_result.Observed
+                Write-Host -ForegroundColor red $error_margin"Expected: $expected"
+                Write-Host -ForegroundColor red $error_margin"But was : $observed"
             }
         }
     }
     
-    if($test_result) {$output | Write-Host -ForegroundColor green;}
+    if($failures -eq 0) {$output | Write-Host -ForegroundColor green;}
 }
