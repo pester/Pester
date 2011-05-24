@@ -32,7 +32,11 @@ if (-not (Test-Path $path)) {
     & md $path | Out-Null
 }
 
-$template = "`$pwd = Split-Path -Parent `$MyInvocation.MyCommand.Path
+$test_code = "function $name {
+
+}"
+
+$fixture_code = "`$pwd = Split-Path -Parent `$MyInvocation.MyCommand.Path
 `$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
 . `"`$pwd\`$sut`"
 . `"`$pwd\$rel_path_to_pester`"
@@ -44,5 +48,5 @@ Describe `"$name`" {
     }
 }"
 
-Create-File "$path\$name.ps1" 
-Create-File "$path\$name.Tests.ps1" $template 
+Create-File "$path\$name.ps1" $test_code
+Create-File "$path\$name.Tests.ps1" $fixture_code
