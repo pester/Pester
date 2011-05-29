@@ -9,7 +9,7 @@ function Write-Usage {
 function Create-File($file_path, $contents = "") {
 
     if (-not (Test-Path $file_path)) {
-        $contents | Out-File $file_path
+        $contents | Out-File $file_path -Encoding ASCII
         "Creating" | Write-Host -Fore Green -NoNewLine
     } else {
         "Skipping" | Write-Host -Fore Yellow -NoNewLine
@@ -21,6 +21,10 @@ if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
     Write-Usage
     exit 1
 }
+
+# TODO clean up $path cleanup
+$path = $path.TrimStart(".")
+$path = $path.TrimStart("\")
 
 $script:dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$($script:dir)\Functions\Get-RelativePath"
