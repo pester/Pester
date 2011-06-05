@@ -2,8 +2,7 @@ $pwd = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$pwd\Setup.ps1"
 . "$pwd\..\Pester.ps1"
 
-Describe "Contains a helper to obtain test drive" {
-    Setup
+Describe "Setup" {
 
     It "returns a location that is in a temp area" {
         $result = $TestDrive

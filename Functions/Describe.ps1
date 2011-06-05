@@ -1,4 +1,5 @@
 function Describe($name, [ScriptBlock] $fixture) {
+    Setup
 
     $results = Get-GlobalTestResults
 	$margin = " " * $results.TestDepth

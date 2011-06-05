@@ -10,4 +10,8 @@ Describe "In" {
         In "$TestDrive" -Execute { "" | Out-File "test_file" }
         "$TestDrive\test_file".should.exist() 
     }
+
+    It "MAKE THIS WORK! - updates the `$pwd variable when executed" {
+        In "$TestDrive" -Execute { Write-Host $pwd }
+    }
 }
