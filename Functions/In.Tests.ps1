@@ -11,8 +11,9 @@ Describe "the In statement" {
         "$TestDrive\test_file".should.exist() 
     }
 
-    It "MAKE THIS WORK! - updates the `$pwd variable when executed" {
-        In "$TestDrive" -Execute { Write-Host $pwd }
+    It "updates the `$pwd variable when executed" {
+        In "$TestDrive\test_path" -Execute { Write-Host $pwd }
+        $(Get-ConsoleText).should.match("test_path")
     }
 
     It "will still allow the It {} block to transcribe the console" {
