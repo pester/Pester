@@ -1,6 +1,6 @@
-$pwd = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$pwd\Add-Numbers.ps1"
-. "$pwd\..\..\Pester.ps1"
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here\Add-Numbers.ps1"
+. "$here\..\..\Pester.ps1"
 
 Describe "Add-Numbers" {
 

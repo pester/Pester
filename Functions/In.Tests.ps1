@@ -1,7 +1,7 @@
-$pwd = Split-Path -Parent $MyInvocation.MyCommand.Path
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-. "$pwd\$sut"
-. "$pwd\..\Pester.ps1"
+. "$here\$sut"
+. "$here\..\Pester.ps1"
 
 Describe "the In statement" {
     Setup -Dir "test_path"

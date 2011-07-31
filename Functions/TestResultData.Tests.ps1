@@ -1,5 +1,5 @@
-$pwd = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$pwd\..\Pester.ps1"
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here\..\Pester.ps1"
 
 Describe "Test-Report" {
 
