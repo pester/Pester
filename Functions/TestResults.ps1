@@ -1,5 +1,4 @@
-function Get-GlobalTestResults() 
-{
+function Get-GlobalTestResults {
     if ($Global:TestResults -ne $null) {
         return $Global:TestResults
     }
@@ -13,16 +12,18 @@ function Get-GlobalTestResults()
     return $Global:TestResults
 }
 
-function Write-TestReport()
-{
+function Reset-GlobalTestResults {
+    $global:TestResults = $null
+}
+
+function Write-TestReport {
     $results = $Global:TestResults
 
     Write-Host Tests completed
     Write-Host Passed: $($results.TestCount - $results.FailedTests.length) Failed: $($results.FailedTests.length)
 }
 
-function Exit-WithCode()
-{
+function Exit-WithCode {
     $failedTestCount = $Global:TestResults.FailedTests.Length
     $Global:TestResults = $null
 

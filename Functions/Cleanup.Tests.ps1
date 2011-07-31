@@ -1,6 +1,5 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Cleanup.ps1"
-. "$here\..\Pester.ps1"
 
 Describe "Cleanup" {
     Setup -Dir "foo"

@@ -1,6 +1,5 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Add-Numbers.ps1"
-. "$here\..\..\Pester.ps1"
 
 Describe "Add-Numbers" {
 

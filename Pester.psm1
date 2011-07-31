@@ -1,11 +1,12 @@
+Resolve-Path $PSScriptRoot\Functions\*.ps1 | 
+    ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
+    % { . $_.ProviderPath }
 
 function Invoke-Pester($relative_path = ".") {
 
+    Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
-
     Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
-
-    . "$PSScriptRoot\Functions\TestResults.ps1"
 
     $fixtures_path = Resolve-Path $relative_path
     Write-Host Executing all tests in $fixtures_path
@@ -15,7 +16,7 @@ function Invoke-Pester($relative_path = ".") {
         % { & $_.PSPath }
 
     Write-TestReport
-    Exit-WithCode
+#    Exit-WithCode
 }
 
 function Write-UsageForCreateFixture {
@@ -35,7 +36,7 @@ function Create-File($file_path, $contents = "") {
     " => $file_path" | Write-Host
 }
 
-function Create-Fixture($path, $name) {
+function New-Fixture($path, $name) {
 
     if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
         Write-UsageForCreateFixture
@@ -45,11 +46,6 @@ function Create-Fixture($path, $name) {
     # TODO clean up $path cleanup
     $path = $path.TrimStart(".")
     $path = $path.TrimStart("\")
-
-    . "$PSScriptRoot\Functions\Get-RelativePath"
-
-    $pester_path = gci -Recurse -Include Pester.ps1
-    $rel_path_to_pester = Get-RelativePath "$pwd\$path" $pester_path 
 
     if (-not (Test-Path $path)) {
         & md $path | Out-Null
@@ -62,7 +58,6 @@ function Create-Fixture($path, $name) {
     $fixture_code = "`$here = Split-Path -Parent `$MyInvocation.MyCommand.Path
     `$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
     . `"`$here\`$sut`"
-    . `"`$here\$rel_path_to_pester`"
 
     Describe `"$name`" {
 
@@ -75,4 +70,5 @@ function Create-Fixture($path, $name) {
     Create-File "$path\$name.Tests.ps1" $fixture_code
 }
 
-Export-ModuleMember Invoke-Pester, Create-Fixture
+Export-ModuleMember Describe, Context, It, In
+Export-ModuleMember Invoke-Pester, New-Fixture
