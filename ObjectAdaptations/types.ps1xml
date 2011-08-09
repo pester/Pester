@@ -10,7 +10,7 @@
                     $object = New-Object Object |
                     Add-Member ScriptMethod be {
                         param($expected)
-                        if ($expected -ne $this.actual) { return New-Object PesterFailure($expected,$this.actual)}
+                        if ($expected -ne $this.actual) {throw New-Object PesterFailure($expected,$this.actual)}
                     } -PassThru |
                     Add-Member ScriptMethod have_count_of {
                         param($expected_count)
@@ -18,21 +18,21 @@
                         $count = 0
                         $this.actual | % { $count += 1 }
 
-                        if ($expected_count -ne $count) { return New-Object PesterFailure($expected_count,$count)}
+                        if ($expected_count -ne $count) { throw New-Object PesterFailure($expected_count,$count)}
                     } -PassThru |
                     Add-Member ScriptMethod exist {
-                        if (-not (Test-Path $this.actual)) { return New-Object PesterFailure("$($this.actual) should exist","$($this.actual) not found")}
+                        if (-not (Test-Path $this.actual)) { throw New-Object PesterFailure("$($this.actual) should exist","$($this.actual) not found")}
                     } -PassThru |
                     Add-Member ScriptMethod match {
                         param($expected_match)
                         $matches = ($this.actual) |? { $_ -match $expected_match }
-                        if (-not $matches) { return New-Object PesterFailure("$expected_match should match $($this.actual)",
+                        if (-not $matches) { throw New-Object PesterFailure("$expected_match should match $($this.actual)",
                                                                         "$expected_match did not match $($this.actual)") }
                     } -PassThru |
                     Add-Member ScriptMethod be_like {
                         param($expected_like)
                         $matches = ($this.actual) |? { $_ -like $expected_like }
-                        if (-not $matches) { return New-Object PesterFailure("$expected_like should be like $($this.actual)",
+                        if (-not $matches) { throw New-Object PesterFailure("$expected_like should be like $($this.actual)",
                                                                              "$expected_like was not like $($this.actual)") }
                     } -PassThru |
                     Add-Member NoteProperty -Name actual -Value $null -PassThru |

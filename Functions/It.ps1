@@ -9,32 +9,27 @@ function It($name, [ScriptBlock] $test)
 
     $start_line_position = $test.StartPosition.StartLine
     $test_file = $test.File
-    $line_count = -1
-    $failures = 0 
-    $test_result = $true
+
+    Setup-TestFunction
+    . $TestDrive\temp.ps1
 
     Start-PesterConsoleTranscript
+    try{
+        temp
+        $output | Write-Host -ForegroundColor green;
+    } catch {
+        $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
+        $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
+        $failure_line_number = $start_line_position + $temp_line_number
 
-    foreach ( $line in $test.ToString().Split("`n;") ) {
-        $line_count++
-        $line=$line.trim()
-        if($line){
-            $test_result = Invoke-Expression $line
-            if ($test_result -and $test_result.GetType().FullName -eq "PesterFailure") {
-                $failures += 1
-                $results.FailedTests += $name
-                $output | Write-Host -ForegroundColor red
-                Write-Host -ForegroundColor red $error_margin"Failure at line: $($start_line_position + $line_count) in  $test_file"
-                Write-Host -ForegroundColor red $error_margin$error_margin$line
-                $expected = $test_result.Expected
-                $observed = $test_result.Observed
-                Write-Host -ForegroundColor red $error_margin"Expected: $expected"
-                Write-Host -ForegroundColor red $error_margin"But was : $observed"
-            }
-        }
+        $results.FailedTests += $name
+        $output | Write-Host -ForegroundColor red
+
+        Write-Host -ForegroundColor red $error_margin$failure_message
+        Write-Host -ForegroundColor red $error_margin$error_margin"at line: $failure_line_number in  $test_file"
     }
+
     Stop-PesterConsoleTranscript
-    if($failures -eq 0) {$output | Write-Host -ForegroundColor green;}
 }
 
 function Start-PesterConsoleTranscript {
@@ -50,4 +45,10 @@ function Stop-PesterConsoleTranscript {
 
 function Get-ConsoleText {
     return (Get-Content "$TestDrive\transcripts\console.out")
+}
+
+function Setup-TestFunction {
+    "function temp {" | out-file $TestDrive\temp.ps1
+    $test | out-file -append $TestDrive\temp.ps1
+    "}" | out-file -append $TestDrive\temp.ps1
 }
