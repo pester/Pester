@@ -11,7 +11,7 @@ function Invoke-Pester($relative_path = ".") {
     $fixtures_path = Resolve-Path $relative_path
     Write-Host Executing all tests in $fixtures_path
 
-    Get-ChildItem $fixtures_path -Recurse |
+    Get-ChildItem $fixtures_path -Include "*.ps1" -Recurse |
         ? { $_.Name -match "\.Tests\." } |
         % { & $_.PSPath }
 
