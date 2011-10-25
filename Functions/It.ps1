@@ -16,14 +16,14 @@ function It($name, [ScriptBlock] $test)
     Start-PesterConsoleTranscript
     try{
         temp
-        $output | Write-Host -ForegroundColor green;
+        "[+] $output " | Write-Host -ForegroundColor green;
     } catch {
         $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
         $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
         $failure_line_number = $start_line_position + $temp_line_number
 
         $results.FailedTests += $name
-        $output | Write-Host -ForegroundColor red
+        "[-] $output" | Write-Host -ForegroundColor red
 
         Write-Host -ForegroundColor red $error_margin$failure_message
         Write-Host -ForegroundColor red $error_margin$error_margin"at line: $failure_line_number in  $test_file"
@@ -48,7 +48,9 @@ function Get-ConsoleText {
 }
 
 function Setup-TestFunction {
-    "function temp {" | out-file $TestDrive\temp.ps1
-    $test | out-file -append $TestDrive\temp.ps1
-    "}" | out-file -append $TestDrive\temp.ps1
+@"
+function temp {
+$test
+}
+"@ | out-file $TestDrive\temp.ps1
 }
