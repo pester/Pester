@@ -48,7 +48,9 @@ function Get-ConsoleText {
 }
 
 function Setup-TestFunction {
-    "function temp {" | out-file $TestDrive\temp.ps1
-    $test | out-file -append $TestDrive\temp.ps1
-    "}" | out-file -append $TestDrive\temp.ps1
+@"
+function temp {
+$test
+}
+"@ | out-file $TestDrive\temp.ps1
 }
