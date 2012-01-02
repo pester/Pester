@@ -16,7 +16,7 @@ function Invoke-Pester($relative_path = ".") {
         % { & $_.PSPath }
 
     Write-TestReport
-#    Exit-WithCode
+    Exit-WithCode
 }
 
 function Write-UsageForCreateFixture {
