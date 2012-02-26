@@ -25,9 +25,6 @@ function Write-TestReport {
 
 function Exit-WithCode {
     $failedTestCount = $Global:TestResults.FailedTests.Length
-    $Global:TestResults = $null
-
-    #$host.SetShouldExit($failedTestCount)
-    exit $failedTestCount
+    $host.SetShouldExit($failedTestCount)
 }
 

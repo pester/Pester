@@ -2,8 +2,7 @@ Resolve-Path $PSScriptRoot\Functions\*.ps1 |
     ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
     % { . $_.ProviderPath }
 
-function Invoke-Pester($relative_path = ".") {
-
+function Invoke-Pester($relative_path = ".", [switch] $EnableExit) {
     Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
     Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
@@ -16,7 +15,7 @@ function Invoke-Pester($relative_path = ".") {
         % { & $_.PSPath }
 
     Write-TestReport
-    Exit-WithCode
+    if ($EnableExit) { Exit-WithCode }
 }
 
 function Write-UsageForCreateFixture {
