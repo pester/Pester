@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Pester</id>
+    <version>$version$</version>
+    <title>Pester</title>
+    <description>A BDD style testing tool for Powershell</description>
+    <tags>powershell testing bdd</tags>
+    <authors>Scott Muc</authors>
+    <projectUrl>https://github.com/scottmuc/Pester</projectUrl>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
+  </metadata>
+  <files>
+    <file src="test.ps1" target="tools" />
+    <file src="..\*.*" target="tools" />
+    <file src="..\*" target="tools" />
+    <file src="..\Examples\**\*.*" target="tools\Examples" />
+    <file src="..\Functions\**\*.*" target="tools\Functions" />
+    <file src="..\ObjectAdaptations\**\*.*" target="tools\ObjectAdaptations" />
+  </files>
+</package>
