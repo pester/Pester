@@ -8,7 +8,7 @@ if '%1'=='/help' goto usage
 if '%1'=='help' goto usage
 if '%1'=='new-fixture' goto newfixture
 
-@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command "& Import-Module '%DIR%..\Pester.psm1'; & { Invoke-Pester -EnableExit; exit $LastExitCode}"
+@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command "& Import-Module '%DIR%..\Pester.psm1'; & { Invoke-Pester -EnableExit %*; exit $LastExitCode}"
 
 goto finish
 :newfixture
