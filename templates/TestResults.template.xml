@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results name="Pester" total="@@total@@" errors="0" failures="@@failures@@" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="@@rundate@@" time="@@runtime@@">
+  	@@results@@
+</test-results>
