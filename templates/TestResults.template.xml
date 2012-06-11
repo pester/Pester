@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<test-results name="Pester" total="@@total@@" errors="0" failures="@@failures@@" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="@@rundate@@" time="@@runtime@@">
-  	@@results@@
+<test-results  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="@@total@@" errors="0" failures="@@failures@@" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="@@rundate@@" time="@@runtime@@">
+	<environment nunit-version="2.5.8.0" clr-version="2.0.50727.1433" os-version="@@osVersion@@" platform="@@platform@@" cwd="@@runPath@@" machine-name="@@machineName@@" user="@@userName@@" user-domain="" />
+  	<culture-info current-culture="en-US" current-uiculture="en-US" />
+	<test-suite type="Powershell" name="Pester" executed="True" result="@@resultMessage@@" success="@@success@@" time="@@totalTime@@" asserts="0">
+        <results>
+  			@@testCases@@
+  		</results>
+  	</test-suite>
 </test-results>
