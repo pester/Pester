@@ -21,7 +21,9 @@ function It($name, [ScriptBlock] $test)
         stackTrace = ""
         success = $false
     };
+
     Start-PesterConsoleTranscript
+
     $testTime = Measure-Command {
         try{
             temp
@@ -40,6 +42,7 @@ function It($name, [ScriptBlock] $test)
             Write-Host -ForegroundColor red $error_margin$error_margin"at line: $failure_line_number in  $test_file"
         }
     }
+    
     $testResult.time = $testTime.TotalSeconds
     $results.Tests += $testResult;
 

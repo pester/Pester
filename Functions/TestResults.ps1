@@ -8,8 +8,7 @@ function Get-GlobalTestResults {
     $testResults.FailedTests = @();
     $testResults.TestCount = 0
     $testResults.TestDepth = 0
-    $testResults.runDate =  (Get-Date -format "dd-mm-yyyy")
-    $testResults.runTime =  (Get-Date -format "hh:mm:ss")
+
 
     $Global:TestResults = $testResults
     return $Global:TestResults
@@ -21,42 +20,74 @@ function Reset-GlobalTestResults {
 
 function Write-TestReport {
     $results = $Global:TestResults
-    Write-NunitTestReport $results
     Write-Host Tests completed
     Write-Host Passed: $($results.TestCount - $results.FailedTests.length) Failed: $($results.FailedTests.length)
 }
 
-function Write-NunitTestReport($results, $outputFile = "TestResults.xml") {
-    $results.total = $results.Tests.length
-    $results.failures = $results.FailedTests.length
-
-    $thisScript = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent    
-    $successemplate = Get-Content '$thisScript\..\templates\TestCaseSuccess.template.xml'
-    $failureTemplate = Get-Content '$thisScript\..\templates\TestCaseFailure.template.xml'
-    
-    $testCaseXmls = $results.Tests | %{ 
-        $result = $_
-        $replace_args = ($result.keys | %{
-            "-replace '@@$_@@', '$($result.$_)'"
-        }) -join " "
-        if($result.success) {
-            $expr = "`$successemplate $replace_args"
-        }
-        else {
-            $expr = "`$failureTemplate $replace_args"
-        }
-        
-        iex $expr
+function Write-NunitTestReport($results, $outputFile) {
+    if($results -eq $null) {
+        return;
+    }
+    $report = @{
+        runDate = (Get-Date -format "yyyy-MM-dd")
+        runTime = (Get-Date -format "HH:mm:ss")
+        total = 0;
+        failuers = 0;        
+        success = "True"
+        resultMessage = "Success"
+        totalTime = "0.0"
     }
 
-    $resultTemplate = (Get-Content '$thisScript\..\templates\TestResults.template.xml');
-    $replacements = @("total", "failures", "rundate", "runtime")
-    $replace_args = ($results.keys | ?{ $replacements -contains $_} | %{
-        "-replace '@@$_@@', '$($results.$_)'"
-    }) -join " "
-    $replace_args += " -replace '@@results@@', '$testCaseXmls'"
-    $expr = "`$resultTemplate $replace_args"    
-    iex $expr  | Set-Content $outputFile -force
+    $report.total = $results.Tests.length
+    if($results.FailedTests) {
+        $report.failures = $results.FailedTests.length
+        $report.success = "False"
+        $report.resultMessage = "Failure"
+    }
+    $report.testCases = (Get-TestResults $results.Tests)  
+    $report.totalTime = (Get-TotalTestTime $results.Tests)
+
+    $resultTemplate = (Get-Content 'templates\TestResults.template.xml');
+    $xmlResult = Invoke-Template $resultTemplate $report
+    $xmlResult | Set-Content $outputFile -force
+}
+
+function Get-TotalTestTime($tests) {
+    $totalTime = 0;
+    $tests | %{
+        $totalTime += $_.time
+    }
+    return $totalTime;
+}
+
+function Get-TestResults($tests) {
+    $successemplate = Get-Content 'templates\TestCaseSuccess.template.xml'
+    $failureTemplate = Get-Content 'templates\TestCaseFailure.template.xml'
+    $testCaseXmls = $tests | %{ 
+        $result = $_
+        if($result.success) {
+            Invoke-Template $successemplate $result
+        }
+        else {
+            Invoke-Template $failureTemplate $result
+        }
+    }
+    return $testCaseXmls
+}
+
+function Get-ReplacementArgs($template, $data) {
+   $replacements = ($data.keys | %{
+            if($template -match "@@$_@@") {
+                "-replace '@@$_@@', '$($data.$_)'"
+            }
+        })
+   $replacements -join " "
+   return $replacements
+}
+
+function Invoke-Template($template, $data) {
+    $replacments = Get-ReplacementArgs $template $data
+    return Invoke-Expression "`$template $replacments"
 }
 
 function Exit-WithCode {
