@@ -17,6 +17,7 @@ function Invoke-Pester($relative_path = ".", [switch] $EnableExit, $OutputXml = 
     Write-TestReport
 
     if($OutputXml) {
+        $Global:ModulePath = $PSScriptRoot
         Write-NunitTestReport (Get-GlobalTestResults) $OutputXml 
     }
     if ($EnableExit) { Exit-WithCode }

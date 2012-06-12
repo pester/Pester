@@ -1,6 +1,21 @@
+Describe "Replacing strings" {
+    It "should escape powershell backtick when replacing strings" {
+        $replacments = Get-ReplacementArgs "@@test@@" @{ test = "This is a test don``t do this" }
+        $replacments.should.be("-replace '@@test@@', 'This is a test dont do this'")
+
+    }
+
+    It "should escape single quote when replacing strings" {
+        $replacments = Get-ReplacementArgs "@@test@@" @{ test = "This is a test don't do this" }
+        $replacments.should.be("-replace '@@test@@', 'This is a test dont do this'")
+    }
+}
+
 Describe "Write nunit test results" {
     Setup -Dir "Results"
     $nunitSchema = (Convert-Path ".\nunit_schema_2.5.xsd")
+
+
     It "should write a successful test result" {
         $testResults = @{}
         $testResults.Tests = @(
@@ -87,27 +102,16 @@ Describe "Write nunit test results" {
         $xmlTestResult.time.Should.Be(2.1)
     }
 
-    
-    # it "should write the environment information" {
-    #     $testResults = @{}
-    #     $testResults.Tests = @( "" );
-    #     $testResults.Environment = @{
-    #         osVersion = "Windows 7";
-    #         platform = "Windows"
-    #         runPath = "C:\workspace\Pester\"
-    #         machineName = "Computer1"
-    #         userName = "foo"
-    #     };
-    #     $testFile = "$TestDrive\Results\Tests.xml"
-    #     Write-NunitTestReport $testResults $testFile
-    #     $xmlResult = [xml] (Get-Content $testFile)
+    it "should write the environment information" {
+        $testResults = @{}
+        $testResults.Tests = @( "" );
+        $testFile = "$TestDrive\Results\Tests.xml"
+        Write-NunitTestReport $testResults $testFile
+        $xmlResult = [xml] (Get-Content $testFile)
 
-    #     $xmlEnvironment = $xmlResult.'test-results'.'environment'
-    #     $xmlEnvironment.'os-Version'.Should.Be("Windows 7")
-    #     $xmlEnvironment.platform.Should.Be("Windows")
-    #     $xmlEnvironment.runPath.Should.Be("C:\workspace\Pester\")
-    #     $xmlEnvironment.machineName.Should.Be("Computer1")
-    #     $xmlEnvironment.userName.Should.Be("foo")
-    # }
+        $xmlEnvironment = $xmlResult.'test-results'.'environment'
+        $xmlEnvironment.'os-Version'.Should.Be($true) #check if exists
+        $xmlEnvironment.platform.Should.Be($true)
+    }
 }
 
