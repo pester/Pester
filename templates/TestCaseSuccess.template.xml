@@ -1,3 +1,1 @@
-	<test-case name="@@name@@" executed="True" result="Success" success="True" time="@@time@@" asserts="0">
-	</test-case>
-	
+<test-case name="@@name@@" executed="True" result="Success" success="True" time="@@time@@" asserts="0" />	

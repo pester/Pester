@@ -1,3 +1,4 @@
+$scriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
 function Get-GlobalTestResults {
     if ($Global:TestResults -ne $null) {
         return $Global:TestResults
@@ -32,7 +33,7 @@ function Write-NunitTestReport($results, $outputFile) {
         runDate = (Get-Date -format "yyyy-MM-dd")
         runTime = (Get-Date -format "HH:mm:ss")
         total = 0;
-        failuers = 0;        
+        failures = 0;        
         success = "True"
         resultMessage = "Success"
         totalTime = "0.0"
@@ -44,12 +45,11 @@ function Write-NunitTestReport($results, $outputFile) {
         $report.success = "False"
         $report.resultMessage = "Failure"
     }
+
     $report.testCases = (Get-TestResults $results.Tests)  
     $report.totalTime = (Get-TotalTestTime $results.Tests)
-
-    $resultTemplate = (Get-Content 'templates\TestResults.template.xml');
-    $xmlResult = Invoke-Template $resultTemplate $report
-    $xmlResult | Set-Content $outputFile -force
+    $report.Environment = (Get-RunTimeEnvironment)
+    Invoke-Template 'TestResults.template.xml' $report | Set-Content $outputFile -force
 }
 
 function Get-TotalTestTime($tests) {
@@ -60,32 +60,54 @@ function Get-TotalTestTime($tests) {
     return $totalTime;
 }
 
+function Get-Template($fileName) {
+    $path = '.\templates'
+    if($Global:ModulePath) {
+        $path = $global:ModulePath + '\templates'
+    }    
+    return Get-Content ("$path\$filename")
+}
+
 function Get-TestResults($tests) {
-    $successemplate = Get-Content 'templates\TestCaseSuccess.template.xml'
-    $failureTemplate = Get-Content 'templates\TestCaseFailure.template.xml'
     $testCaseXmls = $tests | %{ 
         $result = $_
         if($result.success) {
-            Invoke-Template $successemplate $result
+            Invoke-Template 'TestCaseSuccess.template.xml' $result
         }
         else {
-            Invoke-Template $failureTemplate $result
+            Invoke-Template  'TestCaseFailure.template.xml' $result
         }
     }
     return $testCaseXmls
 }
 
+function Get-RunTimeEnvironment() {
+    $osSystemInformation = (Get-WmiObject -computer 'localhost' -cl Win32_OperatingSystem)
+    $currentCulture = ([System.Threading.Thread]::CurrentThread.CurrentCulture).Name
+    $data = @{
+        osVersion = $osSystemInformation.Version
+        platform = $osSystemInformation.Name
+        runPath = (Get-Location).Path
+        machineName = $env:ComputerName
+        userName = $env:Username
+        userDomain = $env:userDomain
+        currentCulture = $currentCulture
+    }
+    return Invoke-Template 'TestEnvironment.template.xml' $data
+}
+
 function Get-ReplacementArgs($template, $data) {
    $replacements = ($data.keys | %{
             if($template -match "@@$_@@") {
-                "-replace '@@$_@@', '$($data.$_)'"
+                $value = $data.$_ -replace "``", "" -replace "`'", ""
+                "-replace '@@$_@@', '$value'"
             }
         })
-   $replacements -join " "
    return $replacements
 }
 
-function Invoke-Template($template, $data) {
+function Invoke-Template($templatName, $data) {
+    $template = Get-Template $templatName
     $replacments = Get-ReplacementArgs $template $data
     return Invoke-Expression "`$template $replacments"
 }
