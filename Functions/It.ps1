@@ -14,7 +14,6 @@ function It($name, [ScriptBlock] $test)
     . $TestDrive\temp.ps1
 
     $testResult = @{
-        testNumber = $results.TestCount
         name = $name
         time = 0
         failureMessage = ""
@@ -34,7 +33,7 @@ function It($name, [ScriptBlock] $test)
             $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
             $failure_line_number = $start_line_position + $temp_line_number
 
-            $results.FailedTests += $name
+            $results.FailedTestsCount += 1
             "[-] $output" | Write-Host -ForegroundColor red
             $testResult.failureMessage = $failure_message
             $testResult.stackTrace = "at line: $failure_line_number in  $test_file"
@@ -44,7 +43,7 @@ function It($name, [ScriptBlock] $test)
     }
     
     $testResult.time = $testTime.TotalSeconds
-    $results.Tests += $testResult;
+    $results.CurrentCategory.Tests += $testResult;
 
     Stop-PesterConsoleTranscript
 }

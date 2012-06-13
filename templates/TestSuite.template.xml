@@ -1,0 +1,5 @@
+<test-suite type="Powershell" name="@@name@@" executed="True" result="@@resultMessage@@" success="@@success@@" time="@@totalTime@@" asserts="0">
+<results>
+		@@testCases@@
+	</results>
+</test-suite>
