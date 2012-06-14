@@ -4,7 +4,7 @@ function Describe($name, [ScriptBlock] $fixture) {
     $results = Get-GlobalTestResults
 	$margin = " " * $results.TestDepth
     $results.TestDepth += 1
-    $results.CurrentCategory = @{
+    $results.CurrentDescribe = @{
         name = $name
         Tests = @()
     }
@@ -15,6 +15,6 @@ function Describe($name, [ScriptBlock] $fixture) {
     Write-Host -fore yellow $output
     & $fixture
     Cleanup
-	$results.Categories += $results.CurrentCategory
+	$results.Describes += $results.CurrentDescribe
     $results.TestDepth -= 1
 }

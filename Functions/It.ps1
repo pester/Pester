@@ -43,7 +43,7 @@ function It($name, [ScriptBlock] $test)
     }
     
     $testResult.time = $testTime.TotalSeconds
-    $results.CurrentCategory.Tests += $testResult;
+    $results.CurrentDescribe.Tests += $testResult;
 
     Stop-PesterConsoleTranscript
 }

@@ -5,8 +5,8 @@ function Get-GlobalTestResults {
     }
 
     $testResults = @{}
-    $testResults.Categories = @();
-    $testResults.CurrentCategory = @{ name = ''; Tests = @() }
+    $testResults.Describes = @();
+    $testResults.CurrentDescribe = @{ name = ''; Tests = @() }
     $testResults.TestCount = 0
     $testResults.FailedTestCount = 0
     $testResults.TestDepth = 0
@@ -39,16 +39,15 @@ function Write-NunitTestReport($results, $outputFile) {
 
     $report.total = $results.TestCount
     $report.failures = $results.FailedTestCount
-    $report.TestSuites = (Get-TestSuites $results.Categories)
+    $report.TestSuites = (Get-TestSuites $results.Describes)
     $report.testCases = (Get-TestResults $results.Tests)  
     $report.Environment = (Get-RunTimeEnvironment)
     Invoke-Template 'TestResults.template.xml' $report | Set-Content $outputFile -force
 }
 
-function Get-TestSuites($categories) {
-    $testSuites = ( $categories | %{
+function Get-TestSuites($describes) {
+    $testSuites = ( $describes | %{
         $suite = @{  
-            success = "True"
             resultMessage = "Failure"
             totalTime = "0.0"
             name = $_.name
@@ -76,20 +75,11 @@ function Get-TestTime($tests) {
 function Get-TestSuccess($tests) {
     $success = "True"
     $tests | %{
-        if($_.sucess -eq $false) {
+        if($_.success -eq $false) {
             $success = "False"
         }
     }
     return $success;
-}
-
-
-function Get-Template($fileName) {
-    $path = '.\templates'
-    if($Global:ModulePath) {
-        $path = $global:ModulePath + '\templates'
-    }    
-    return Get-Content ("$path\$filename")
 }
 
 function Get-TestResults($tests) {
@@ -106,7 +96,7 @@ function Get-TestResults($tests) {
 }
 
 function Get-RunTimeEnvironment() {
-    $osSystemInformation = (Get-WmiObject -computer 'localhost' -cl Win32_OperatingSystem)
+    $osSystemInformation = (Get-WmiObject Win32_OperatingSystem)
     $currentCulture = ([System.Threading.Thread]::CurrentThread.CurrentCulture).Name
     $data = @{
         osVersion = $osSystemInformation.Version
@@ -120,21 +110,7 @@ function Get-RunTimeEnvironment() {
     return Invoke-Template 'TestEnvironment.template.xml' $data
 }
 
-function Get-ReplacementArgs($template, $data) {
-   $replacements = ($data.keys | %{
-            if($template -match "@@$_@@") {
-                $value = $data.$_ -replace "``", "" -replace "`'", ""
-                "-replace '@@$_@@', '$value'"
-            }
-        })
-   return $replacements
-}
 
-function Invoke-Template($templatName, $data) {
-    $template = Get-Template $templatName
-    $replacments = Get-ReplacementArgs $template $data
-    return Invoke-Expression "`$template $replacments"
-}
 
 function Exit-WithCode {
     $failedTestCount = $Global:TestResults.FailedTests.Length
