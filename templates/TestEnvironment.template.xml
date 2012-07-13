@@ -1,0 +1,2 @@
+<environment nunit-version="2.5.8.0" clr-version="2.0.50727.1433" os-version="@@osVersion@@" platform="@@platform@@" cwd="@@runPath@@" machine-name="@@machineName@@" user="@@userName@@" user-domain="@@userDomain@@" />
+<culture-info current-culture="@@currentCulture@@" current-uiculture="@@currentCulture@@" />

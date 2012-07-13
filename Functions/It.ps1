@@ -13,22 +13,43 @@ function It($name, [ScriptBlock] $test)
     Setup-TestFunction
     . $TestDrive\temp.ps1
 
+    $testResult = @{
+        name = $name
+        time = 0
+        failureMessage = ""
+        stackTrace = ""
+        success = $false
+    };
+
     Start-PesterConsoleTranscript
-    try{
-        temp
-        "[+] $output " | Write-Host -ForegroundColor green;
-    } catch {
-        $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
-        $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
-        $failure_line_number = $start_line_position + $temp_line_number
 
-        $results.FailedTests += $name
-        "[-] $output" | Write-Host -ForegroundColor red
-
-        Write-Host -ForegroundColor red $error_margin$failure_message
-        Write-Host -ForegroundColor red $error_margin$error_margin"at line: $failure_line_number in  $test_file"
+    $testTime = Measure-Command {
+        try{
+            temp
+            $testResult.success = $true
+        } catch {
+            $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
+            $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
+            $failure_line_number = $start_line_position + $temp_line_number
+            $results.FailedTestsCount += 1
+            $testResult.failureMessage = $failure_message
+            $testResult.stackTrace = "at line: $failure_line_number in  $test_file"
+        }
+    }
+    
+    $testResult.time = $testTime.TotalSeconds
+    $humanSeconds = Get-HumanTime $testTime.TotalSeconds
+    if($testResult.success) {
+        "[+] $output ($humanSeconds)" | Write-Host -ForegroundColor green;
+    }
+    else {
+        "[-] $output ($humanSeconds)" | Write-Host -ForegroundColor red
+         Write-Host -ForegroundColor red $error_margin$($testResult.failureMessage)
+         Write-Host -ForegroundColor red $error_margin$($testResult.stackTrace)
     }
 
+    $results.CurrentDescribe.Tests += $testResult;
+    $results.TotalTime += $testTime.TotalSeconds;
     Stop-PesterConsoleTranscript
 }
 

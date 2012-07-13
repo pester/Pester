@@ -1,0 +1,6 @@
+<test-case name="@@name@@" executed="True" result="Failure" success="False" time="@@time@@" asserts="0">
+	<failure>
+		<message>@@failureMessage@@</message>
+		<stack-trace>@@stackTrace@@</stack-trace>
+	</failure>
+</test-case>
