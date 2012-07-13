@@ -19,3 +19,6 @@ Some further reading:
 
 * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
 * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)
+
+Added NUnit xml creation:
+* Invoke-Pester -OutputXML results.xml to write a nunit 2.5 results xml.
