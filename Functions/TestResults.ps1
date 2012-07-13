@@ -10,6 +10,7 @@ function Get-GlobalTestResults {
     $testResults.TestCount = 0
     $testResults.FailedTestCount = 0
     $testResults.TestDepth = 0
+    $testResults.TotalTime = 0;
 
 
     $Global:TestResults = $testResults
@@ -22,8 +23,20 @@ function Reset-GlobalTestResults {
 
 function Write-TestReport {
     $results = $Global:TestResults
-    Write-Host Tests completed
+    Write-Host Tests completed in (Get-HumanTime $results.TotalTime)
     Write-Host Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)
+}
+
+function Get-HumanTime($seconds) {
+    if($seconds -gt 0.99) {
+        $time = [math]::Round($seconds, 2)
+        $unit = "s"
+    }
+    else {
+        $time = [math]::Floor($seconds * 1000)
+        $unit = "ms"
+    }
+    return "$time$unit"
 }
 
 function Write-NunitTestReport($results, $outputFile) {
@@ -34,7 +47,7 @@ function Write-NunitTestReport($results, $outputFile) {
         runDate = (Get-Date -format "yyyy-MM-dd")
         runTime = (Get-Date -format "HH:mm:ss")
         total = 0;
-        failures = 0;        
+        failures = 0;
     }
 
     $report.total = $results.TestCount

@@ -26,25 +26,30 @@ function It($name, [ScriptBlock] $test)
     $testTime = Measure-Command {
         try{
             temp
-            "[+] $output " | Write-Host -ForegroundColor green;
             $testResult.success = $true
         } catch {
             $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
             $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
             $failure_line_number = $start_line_position + $temp_line_number
-
             $results.FailedTestsCount += 1
-            "[-] $output" | Write-Host -ForegroundColor red
             $testResult.failureMessage = $failure_message
             $testResult.stackTrace = "at line: $failure_line_number in  $test_file"
-            Write-Host -ForegroundColor red $error_margin$failure_message
-            Write-Host -ForegroundColor red $error_margin$error_margin"at line: $failure_line_number in  $test_file"
         }
     }
     
     $testResult.time = $testTime.TotalSeconds
-    $results.CurrentDescribe.Tests += $testResult;
+    $humanSeconds = Get-HumanTime $testTime.TotalSeconds
+    if($testResult.success) {
+        "[+] $output ($humanSeconds)" | Write-Host -ForegroundColor green;
+    }
+    else {
+        "[-] $output ($humanSeconds)" | Write-Host -ForegroundColor red
+         Write-Host -ForegroundColor red $error_margin$($testResult.failureMessage)
+         Write-Host -ForegroundColor red $error_margin$($testResult.stackTrace)
+    }
 
+    $results.CurrentDescribe.Tests += $testResult;
+    $results.TotalTime += $testTime.TotalSeconds;
     Stop-PesterConsoleTranscript
 }
 
