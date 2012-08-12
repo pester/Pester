@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Pester</id>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <title>Pester</title>
     <description>A BDD style testing tool for Powershell</description>
     <tags>powershell testing bdd</tags>
@@ -15,6 +15,7 @@
     <file src="Pester.psm1" target="tools" />
     <file src="Examples\**\*.*" target="tools\Examples" />
     <file src="Functions\**\*.*" target="tools\Functions" />
+    <file src="templates\**\*.*" target="tools\templates" />
     <file src="ObjectAdaptations\**\*.*" target="tools\ObjectAdaptations" />
   </files>
 </package>
