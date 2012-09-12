@@ -23,8 +23,8 @@ function Reset-GlobalTestResults {
 
 function Write-TestReport {
     $results = $Global:TestResults
-    Write-Host Tests completed in (Get-HumanTime $results.TotalTime)
-    Write-Host Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)
+    Write-Host "Tests completed in $(Get-HumanTime $results.TotalTime)"
+    Write-Host "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
 }
 
 function Get-HumanTime($seconds) {
@@ -126,7 +126,7 @@ function Get-RunTimeEnvironment() {
 
 
 function Exit-WithCode {
-    $failedTestCount = $Global:TestResults.FailedTests.Length
+    $failedTestCount = $Global:TestResults.FailedTestsCount
     $host.SetShouldExit($failedTestCount)
 }
 
