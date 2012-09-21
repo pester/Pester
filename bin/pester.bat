@@ -1,8 +1,7 @@
 @echo off
 SET DIR=%~dp0%
 SET ARGS=%*
-SET ARGS=%ARGS:"=\"%
-
+if NOT '%1'=='' SET ARGS=%ARGS:"=\"%
 if '%1'=='/?' goto usage
 if '%1'=='-?' goto usage
 if '%1'=='?' goto usage

@@ -11,7 +11,7 @@ function Invoke-Pester {
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit, 
         [Parameter(Position=3,Mandatory=0)]
-        [string]$OutputXml = $null
+        [string]$OutputXml = ''
     )
     Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
