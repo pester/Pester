@@ -1,6 +1,5 @@
 function It($name, [ScriptBlock] $test) 
 {
-    if($test_name -ne $Null -and $test_name.ToLower() -ne $name) {return}
     $results = Get-GlobalTestResults
     $margin = " " * $results.TestDepth
     $error_margin = $margin * 2

@@ -1,4 +1,5 @@
 function Describe($name, [ScriptBlock] $fixture) {
+    if($testName -ne $Null -and $testName.ToLower() -ne $name.ToLower()) {return}
     Setup
 
     $results = Get-GlobalTestResults

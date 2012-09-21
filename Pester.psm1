@@ -2,7 +2,17 @@ Resolve-Path $PSScriptRoot\Functions\*.ps1 |
     ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
     % { . $_.ProviderPath }
 
-function Invoke-Pester($relative_path = ".", $test_name = $null, [switch] $EnableExit) {
+function Invoke-Pester {
+    param(
+        [Parameter(Position=0,Mandatory=0)]
+        [string]$relative_path = ".",
+        [Parameter(Position=1,Mandatory=0)]
+        [string]$testName = $null, 
+        [Parameter(Position=2,Mandatory=0)]
+        [switch]$EnableExit, 
+        [Parameter(Position=3,Mandatory=0)]
+        [string]$OutputXml = $null
+    )
     Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
     Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
