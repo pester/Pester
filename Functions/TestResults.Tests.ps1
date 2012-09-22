@@ -1,3 +1,6 @@
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. $here\Validate-Xml.ps1
+
 Describe "Write nunit test results" {
     Setup -Dir "Results"
     
@@ -148,41 +151,36 @@ Describe "Write nunit test results" {
         $xmlEnvironment.'machine-name'.Should.Be($env:ComputerName)
     }
 
-    $pscx =  Import-Module Pscx -AsCustomObject -ErrorAction SilentlyContinue
-    if($pscx) {
-        it "Should validate test results against the nunit 2.5 schema" {
-            $testResults = @{}
-            $testResults.Describes = @( 
-                @{
-                    name = 'Describe #1'
-                    Tests =  @(@{
-                        name = "Successful testcase"
-                        time = "1.0"
-                        success = $true
-                    },
-                    @{
-                        name = "Failed testcase"
-                        time = "1.0"
-                        success = $true
-                    });
+    it "Should validate test results against the nunit 2.5 schema" {
+        $testResults = @{}
+        $testResults.Describes = @( 
+            @{
+                name = 'Describe #1'
+                Tests =  @(@{
+                    name = "Successful testcase"
+                    time = "1.0"
+                    success = $true
                 },
                 @{
-                    name = 'Describe #2'
-                    Tests = @{
-                        name = "Failed testcase"
-                        time = "2.0"
-                        success = $false
-                    }
+                    name = "Failed testcase"
+                    time = "1.0"
+                    success = $true
+                });
+            },
+            @{
+                name = 'Describe #2'
+                Tests = @{
+                    name = "Failed testcase"
+                    time = "2.0"
+                    success = $false
                 }
-            );
-            $testFile = "$TestDrive\Results\Tests.xml"
-            Write-NunitTestReport $testResults $testFile
-            $valid = Test-Xml $testFile -SchemaPath '.\nunit_schema_2.5.xsd' -Verbose
-            $valid.Should.Be($true)
-        }
-    }
-    else {
-        Write-Host "PowerShell Community Extensions not found, unable to validate nunit xml against schema. To run this test download http://pscx.codeplex.com"
+            }
+        );
+        $testFile = "$TestDrive\Results\Tests.xml"
+        Write-NunitTestReport $testResults $testFile
+        [xml]$xml = gc $testFile 
+        $valid = Validate-Xml $xml '.\nunit_schema_2.5.xsd'
+        $valid.Should.Be($true)
     }
 }
 
