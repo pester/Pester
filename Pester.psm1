@@ -88,5 +88,5 @@ function New-Fixture($path, $name) {
     Create-File "$path\$name.Tests.ps1" $fixture_code
 }
 
-Export-ModuleMember Describe, Context, It, In
+Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks
 Export-ModuleMember Invoke-Pester, New-Fixture
