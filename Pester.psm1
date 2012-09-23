@@ -1,3 +1,7 @@
+# Pester
+# Version: 1.0.6.8
+# Changeset: 9523bdd0e3db29f96f340d603ba37b4def4a2a7c
+
 Resolve-Path $PSScriptRoot\Functions\*.ps1 | 
     ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
     % { . $_.ProviderPath }
