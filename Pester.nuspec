@@ -7,7 +7,7 @@
     <description>A BDD style testing tool for Powershell</description>
     <tags>powershell testing bdd</tags>
     <authors>Scott Muc</authors>
-    <icontUrl>https://github.com/Pester/Pester/blob/master/pester.png</projectUrl>
+    <icontUrl>https://raw.github.com/pester/Pester/master/Pester.png</projectUrl>
     <projectUrl>https://github.com/Pester/Pester</projectUrl>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
   </metadata>
