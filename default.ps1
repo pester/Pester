@@ -5,28 +5,47 @@ properties {
     $baseDir = Split-Path -parent $Invocation.MyCommand.Definition | split-path -parent | split-path -parent | split-path -parent | split-path -parent
     echo $baseDir
     $version = git describe --abbrev=0 --tags
-    $version = $version + '.' + (git log $($version + '..') --pretty=oneline | measure-object).Count
-    $nugetDir = "$baseDir\.NuGet"
+    $buildNumber = '-alpha-' + (git log $($version + '..') --pretty=oneline | measure-object).Count
+    $nugetExe = "$baseDir\vendor\tools\nuget"
 }
 
-Task default -depends Test, Package
+Task default -depends Build
+Task Build -depends Test, Package
+Task Package -depends Version-Module, Pack-Nuget, Unversion-Module
+Task Release -depends Strip-BuildNumber, Build, Push-Nuget
 
 Task Test {
     CD "$baseDir"
     ."$baseDir\bin\Pester.bat"
     CD $currentDir
 }
+
+Task Strip-BuildNumber {
+    $buildNumber = ""
+}
+
 Task Version-Module{
     $v = git describe --abbrev=0 --tags
     $changeset=(git log -1 $($v + '..') --pretty=format:%H)
-    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "# Version: [0-9]+(\.([0-9]+|\*)){1,3}", "# Version: $version" } | % {$_ -replace "# Changeset: ([a-f0-9]{40})?", "# Changeset: $changeset" } | Set-Content "$baseDir\Pester.psm1"
+    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "\`$version\`$", "$version$buildNumber" } | % {$_ -replace "\`$sha\`$", "$changeset" } | Set-Content "$baseDir\Pester.psm1"
 }
 
-Task Package -depends Version-Module {
+Task Unversion-Module{
+    $v = git describe --abbrev=0 --tags
+    $changeset=(git log -1 $($v + '..') --pretty=format:%H)
+    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "$version$buildNumber", "`$version`$" } | % {$_ -replace "$changeset", "`$sha`$" } | Set-Content "$baseDir\Pester.psm1"
+}
+
+Task Pack-Nuget {
     if (Test-Path "$baseDir\build") {
       Remove-Item "$baseDir\build" -Recurse -Force
     }
 
     mkdir "$baseDir\build"
-    exec { ."$baseDir\vendor\tools\nuget" pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" -NoPackageAnalysis -version $version }
+    exec { .$nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" -NoPackageAnalysis -version $version$buildNumber }
+}
+
+Task Push-Nuget {
+    $pkg = Get-Item -path $baseDir\build\Pester.1.*.*.nupkg
+    exec { .$nugetExe push $pkg.FullName }
 }
