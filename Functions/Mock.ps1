@@ -1,8 +1,9 @@
 function Mock ([string]$function, [ScriptBlock]$mockWith, [switch]$verifiable, [HashTable]$parameterFilters = @{})
 {
     # If verifiable, add to a verifiable hashtable
-    # Rename existing function
-    # Create New Function to invoke Script Block
+    if(!(Test-Path Function:\$function)){ Throw "Could not find function $function"}
+    Rename-Item Function:\$function script:PesterIsMocking_$function
+    Set-Item Function:\script:$function -value $mockWith
     # Mocked function should redirect to real function if param filters are not met
     # param filters are met, mark in the verifiable table
 }
