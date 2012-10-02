@@ -1,9 +1,9 @@
-Add-Type -language CSharpVersion3 @'
+Add-Type -language CSharp @'
 public class PesterFailure
 {
     public string Expected;
     public string Observed;
-    
+
     public PesterFailure(string Expected,string Observed){
         this.Expected = Expected;
         this.Observed = Observed;
