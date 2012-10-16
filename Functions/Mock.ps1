@@ -40,10 +40,10 @@ function MockPrototype {
     $mock=$mockTable.$functionName
     $idx=$mock.blocks.Length
     while(--$idx -ge 0) {
-        if(Microsoft.PowerShell.Core\Invoke-Command $mock.blocks[$idx].Filter) { 
-            Microsoft.PowerShell.Core\Invoke-Command $mockTable.$functionName.blocks.mock
+        if(&($mock.blocks[$idx].Filter)) { 
+            &($mockTable.$functionName.blocks.mock) @PSBoundParameters
             return
         }
     }
-    &($mock.OriginalCommand)
+    &($mock.OriginalCommand) @PSBoundParameters
 }

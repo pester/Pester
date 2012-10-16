@@ -7,9 +7,9 @@ function FunctionUnderTest ([string]$param1=""){
 }
 
 Describe "When calling Mock on existing function" {
-    Mock FunctionUnderTest {return "I am the mock test"}
+    Mock FunctionUnderTest {return "I am the mock test that was passed $param1"}
 
-    $result=FunctionUnderTest
+    $result=FunctionUnderTest "yoyo"
 
     It "Should rename function under test" {
         $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
@@ -17,7 +17,7 @@ Describe "When calling Mock on existing function" {
     }
 
     It "Should Invoke the mocked script" {
-        $result.should.be("I am the mock test")
+        $result.should.be("I am the mock test that was passed yoyo")
     }
     Clear-Mocks
 }
@@ -32,17 +32,6 @@ Describe "When calling Mock on existing cmdlet" {
     }
     Clear-Mocks
 }
-
-Describe "When calling Mock on cmdlet Used by Mock" {
-    Mock Invoke-Command {return "I am not Invoke-Command"}
-    $result = Invoke-Command {return "yes I am"}
-
-    It "Should Invoke the mocked script" {
-        $result.should.be("I am not Invoke-Command")
-    }
-    Clear-Mocks
-}
-
 
 Describe "When calling Mock on non-existing function" {
     try{
@@ -75,6 +64,33 @@ Describe "When calling Mock on existing function with matching params" {
 
     It "Should return mocked result" {
         $result.should.be("fake results")
+    }
+    Clear-Mocks
+}
+
+Describe "When calling Mock on cmdlet Used by Mock" {
+    Mock Invoke-Command {return "I am not Invoke-Command"}
+
+    $result = Invoke-Command {return "yes I am"}
+
+    It "Should Invoke the mocked script" {
+        $result.should.be("I am not Invoke-Command")
+    }
+    Clear-Mocks
+}
+
+Describe "When calling Mock on More than one command" {
+    Mock Invoke-Command {return "I am not Invoke-Command"}
+    Mock FunctionUnderTest {return "I am the mock test"}
+
+    $result = Invoke-Command {return "yes I am"}
+    $result2=FunctionUnderTest
+
+    It "Should Invoke the mocked script for the first Mock" {
+        $result.should.be("I am not Invoke-Command")
+    }
+    It "Should Invoke the mocked script for the second Mock" {
+        $result2.should.be("I am the mock test")
     }
     Clear-Mocks
 }
