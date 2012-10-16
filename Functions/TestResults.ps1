@@ -8,7 +8,7 @@ function Get-GlobalTestResults {
     $testResults.Describes = @();
     $testResults.CurrentDescribe = @{ name = ''; Tests = @() }
     $testResults.TestCount = 0
-    $testResults.FailedTestCount = 0
+    $testResults.FailedTestsCount = 0
     $testResults.TestDepth = 0
     $testResults.TotalTime = 0;
 
@@ -51,7 +51,7 @@ function Write-NunitTestReport($results, $outputFile) {
     }
 
     $report.total = $results.TestCount
-    $report.failures = $results.FailedTestCount
+    $report.failures = $results.FailedTestsCount
     $report.TestSuites = (Get-TestSuites $results.Describes)
     $report.testCases = (Get-TestResults $results.Tests)  
     $report.Environment = (Get-RunTimeEnvironment)
@@ -126,7 +126,7 @@ function Get-RunTimeEnvironment() {
 
 
 function Exit-WithCode {
-    $failedTestCount = $Global:TestResults.FailedTestsCount
-    $host.SetShouldExit($failedTestCount)
+    $failedTestsCount = $Global:TestResults.FailedTestsCount
+    $host.SetShouldExit($failedTestsCount)
 }
 
