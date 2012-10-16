@@ -1,10 +1,24 @@
-function Mock ([string]$function, [ScriptBlock]$mockWith, [switch]$verifiable, [HashTable]$parameterFilters = @{})
+$mockTable = @{}
+
+function Mock ([string]$commandName, [ScriptBlock]$mockWith, [switch]$verifiable, [ScriptBlock]$parameterFilter = {$True})
 {
     # If verifiable, add to a verifiable hashtable
-    if(!(Test-Path Function:\$function)){ Throw "Could not find function $function"}
-    Rename-Item Function:\$function script:PesterIsMocking_$function
-    Set-Item Function:\script:$function -value $mockWith
-    # Mocked function should redirect to real function if param filters are not met
+    $origCommand = (Get-Command $commandName -ErrorAction SilentlyContinue)
+    if(!$origCommand){ Throw "Could not find Command $commandName"}
+    $blocks = @{Mock=$mockWith; Filter=$parameterFilter}
+    $mock = $mockTable.$commandName
+    if(!$mock) {
+        if($origCommand.CommandType -eq "Function") {
+            Rename-Item Function:\$commandName script:PesterIsMocking_$commandName
+        }
+        $metadata=New-Object System.Management.Automation.CommandMetaData $origCommand
+        $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
+        $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+        $newContent=Get-Content function:\MockPrototype
+        Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params ) `r`n$newContent"
+        $mock=@{OriginalCommand=$origCommand;blocks=@($blocks)}
+    } else {$mock.blocks += $blocks}
+    $mockTable.$commandName = $mock
     # param filters are met, mark in the verifiable table
 }
 
@@ -16,5 +30,20 @@ function Assert-VerifiableMocks {
 function Clear-Mocks {
     # Called at the end of Describe
     # Clears the Verifiable table
-    # Renames all renamed mocks back to original names
+    $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
+    $script:mockTable = @{}
+    Microsoft.PowerShell.Management\Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Microsoft.PowerShell.Management\Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
+}
+
+function MockPrototype {
+    $functionName = $MyInvocation.MyCommand.Name
+    $mock=$mockTable.$functionName
+    $idx=$mock.blocks.Length
+    while(--$idx -ge 0) {
+        if(Microsoft.PowerShell.Core\Invoke-Command $mock.blocks[$idx].Filter) { 
+            Microsoft.PowerShell.Core\Invoke-Command $mockTable.$functionName.blocks.mock
+            return
+        }
+    }
+    &($mock.OriginalCommand)
 }
