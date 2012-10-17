@@ -19,7 +19,6 @@ Describe "When calling Mock on existing function" {
     It "Should Invoke the mocked script" {
         $result.should.be("I am the mock test that was passed yoyo")
     }
-    Clear-Mocks
 }
 
 Describe "When calling Mock on existing cmdlet" {
@@ -30,7 +29,6 @@ Describe "When calling Mock on existing cmdlet" {
     It "Should Invoke the mocked script" {
         $result.should.be("I am not Get-Process")
     }
-    Clear-Mocks
 }
 
 Describe "When calling Mock on non-existing function" {
@@ -43,7 +41,6 @@ Describe "When calling Mock on non-existing function" {
     It "Should throw correct error" {
         $result.Exception.Message.should.be("Could not find command NotFunctionUnderTest")
     }
-    Clear-Mocks
 }
 
 Describe "When calling Mock on existing function without matching params" {
@@ -54,7 +51,6 @@ Describe "When calling Mock on existing function without matching params" {
     It "Should redirect to real function" {
         $result.should.be("I am a real world test")
     }
-    Clear-Mocks
 }
 
 Describe "When calling Mock on existing function with matching params" {
@@ -65,7 +61,6 @@ Describe "When calling Mock on existing function with matching params" {
     It "Should return mocked result" {
         $result.should.be("fake results")
     }
-    Clear-Mocks
 }
 
 Describe "When calling Mock on cmdlet Used by Mock" {
@@ -76,7 +71,6 @@ Describe "When calling Mock on cmdlet Used by Mock" {
     It "Should Invoke the mocked script" {
         $result.should.be("I am not Invoke-Command")
     }
-    Clear-Mocks
 }
 
 Describe "When calling Mock on More than one command" {
@@ -92,5 +86,77 @@ Describe "When calling Mock on More than one command" {
     It "Should Invoke the mocked script for the second Mock" {
         $result2.should.be("I am the mock test")
     }
-    Clear-Mocks
+}
+
+Describe "When Applying multiple Mocks on a single command" {
+    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
+    Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
+
+    $result = FunctionUnderTest "one"
+    $result2= FunctionUnderTest "two"
+
+    It "Should Invoke the mocked script for the first Mock" {
+        $result.should.be("I am the first mock test")
+    }
+    It "Should Invoke the mocked script for the second Mock" {
+        $result2.should.be("I am the Second mock test")
+    }
+}
+
+Describe "When Applying multiple Mocks with filters on a single command where both qualify" {
+    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1.Length -gt 0 }
+    Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -gt 1 }
+
+    $result = FunctionUnderTest "one"
+
+    It "The last Mock should win" {
+        $result.should.be("I am the Second mock test")
+    }
+}
+
+Describe "When Applying multiple Mocks on a single command where one has no filter" {
+    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
+    Mock FunctionUnderTest {return "I am the paramless mock test"}
+    Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
+
+    $result = FunctionUnderTest "one"
+    $result2= FunctionUnderTest "three"
+
+    It "The parameterless mock is evaluated last" {
+        $result.should.be("I am the first mock test")
+    }
+
+    It "The parameterless mock will be applied if no other wins" {
+        $result2.should.be("I am the paramless mock test")
+    }
+}
+
+Describe "When Creaing a Verifiable Mock that is not called" {
+    Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+    FunctionUnderTest "three"
+    
+    try {
+        Assert-VerifiableMocks
+    } Catch {
+        $result=$_
+    }
+
+    It "Should throw" {
+        $result.Exception.Message.should.be("`r`n Expected FunctionUnderTest to be called with `$param1 -eq `"one`"")
+    }
+}
+
+Describe "When Creaing a Verifiable Mock that is called" {
+    Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+    FunctionUnderTest "one"
+    
+    try {
+        Assert-VerifiableMocks
+    } Catch {
+        $result=$_
+    }
+
+    It "Should not throw" {
+        $result -eq $null
+    }
 }

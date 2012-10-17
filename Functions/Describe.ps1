@@ -18,4 +18,5 @@ function Describe($name, [ScriptBlock] $fixture) {
     Cleanup
 	$results.Describes += $results.CurrentDescribe
     $results.TestDepth -= 1
+    Clear-Mocks
 }
