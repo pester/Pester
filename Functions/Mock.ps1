@@ -105,6 +105,8 @@ param(
 
     $origCommand = (Get-Command $commandName -ErrorAction SilentlyContinue)
     if(!$origCommand){ Throw "Could not find Command $commandName"}
+    $filterTest=&($parameterFilter)
+    if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
     $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable}
     $mock = $mockTable.$commandName
     if(!$mock) {

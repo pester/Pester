@@ -149,6 +149,7 @@ Describe "When Creaing a Verifiable Mock that is not called" {
 Describe "When Creaing a Verifiable Mock that is called" {
     Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "one"
+    $result=""
     
     try {
         Assert-VerifiableMocks
@@ -157,6 +158,20 @@ Describe "When Creaing a Verifiable Mock that is called" {
     }
 
     It "Should not throw" {
-        $result -eq $null
+        $result.should.be("")
+    }
+}
+
+Describe "When Creaing a Verifiable Mock with a filter that does not return a boolean" {
+    $result=""
+
+    try{
+        Mock FunctionUnderTest {return "I am a verifiable test"} -parameterFilter {"one"}
+    } Catch {
+        $result=$_
+    }
+
+    It "Should throw" {
+        $result.should.be("The Parameter Filter must return a boolean")
     }
 }
