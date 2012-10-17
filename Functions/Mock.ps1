@@ -103,7 +103,7 @@ param(
     [ScriptBlock]$parameterFilter = {$True}    
 )
 
-    $origCommand = (Get-Command $commandName -ErrorAction SilentlyContinue)
+    $origCommand = (Microsoft.PowerShell.Core\Get-Command $commandName -ErrorAction SilentlyContinue)
     if(!$origCommand){ Throw "Could not find Command $commandName"}
     $filterTest=&($parameterFilter)
     if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
@@ -111,13 +111,13 @@ param(
     $mock = $mockTable.$commandName
     if(!$mock) {
         if($origCommand.CommandType -eq "Function") {
-            Rename-Item Function:\$commandName script:PesterIsMocking_$commandName
+            Microsoft.PowerShell.Management\Rename-Item Function:\$commandName script:PesterIsMocking_$commandName
         }
-        $metadata=New-Object System.Management.Automation.CommandMetaData $origCommand
+        $metadata=Microsoft.PowerShell.Utility\New-Object System.Management.Automation.CommandMetaData $origCommand
         $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
-        $newContent=Get-Content function:\MockPrototype
-        Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params ) `r`n$newContent"
+        $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
+        Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params ) `r`n$newContent"
         $mock=@{OriginalCommand=$origCommand;blocks=@($blocks)}
     } else {
         if($blocks.Filter.ToString() -eq "`$True") {$mock.blocks = ,$blocks + $mock.blocks} else { $mock.blocks += $blocks }

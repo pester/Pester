@@ -64,12 +64,13 @@ Describe "When calling Mock on existing function with matching params" {
 }
 
 Describe "When calling Mock on cmdlet Used by Mock" {
-    Mock Invoke-Command {return "I am not Invoke-Command"}
+    Mock Set-Item {return "I am not Set-Item"}
+    Mock Set-Item {return "I am not Set-Item"}
 
-    $result = Invoke-Command {return "yes I am"}
+    $result = Set-Item "mypath" -value "value"
 
     It "Should Invoke the mocked script" {
-        $result.should.be("I am not Invoke-Command")
+        $result.should.be("I am not Set-Item")
     }
 }
 
