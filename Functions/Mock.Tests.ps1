@@ -158,7 +158,7 @@ Describe "When Creaing a Verifiable Mock that is called" {
         $result=$_
     }
 
-    It "Should not throw" {
+    It "Assert-VerifiableMocks Should not throw" {
         $result.should.be("")
     }
 }
@@ -174,5 +174,20 @@ Describe "When Creaing a Verifiable Mock with a filter that does not return a bo
 
     It "Should throw" {
         $result.should.be("The Parameter Filter must return a boolean")
+    }
+}
+
+Describe "When Calling a filterless mock once with params" {
+    Mock FunctionUnderTest {}
+    FunctionUnderTest "one"
+    
+    try {
+        Assert-MockCalled FunctionUnderTest 0
+    } Catch {
+        $result=$_
+    }
+
+    It "Assert-MockCalled 0 Should throw" {
+        $result.Exception.Message.should.be("Expected FunctionUnderTest to be called 0 times")
     }
 }

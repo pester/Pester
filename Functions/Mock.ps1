@@ -1,4 +1,5 @@
 $script:mockTable = @{}
+$script:callHistory = @()
 
 function Mock {
 
@@ -170,14 +171,26 @@ This will not throw an exception because the mock was invoked.
     }
 }
 
+function Assert-MockCalled {
+param(
+    [string]$commandName,
+    [switch]$Exactly,
+    [int]$times=1,
+    [ScriptBlock]$parameterFilter = {$True}    
+)
+
+}
+
 function Clear-Mocks {
     $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
     $mockTable.Clear()
+    $callHistory.Clear()
     Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
 }
 
 function MockPrototype {
     $functionName = $MyInvocation.MyCommand.Name
+    $callHistory += @{CommandName=$functionName;Params=$PSBoundParameters}
     $mock=$mockTable.$functionName
     $idx=$mock.blocks.Length
     while(--$idx -ge 0) {
