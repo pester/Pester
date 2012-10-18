@@ -1,4 +1,4 @@
-$mockTable = @{}
+$script:mockTable = @{}
 
 function Mock {
 
@@ -172,7 +172,7 @@ This will not throw an exception because the mock was invoked.
 
 function Clear-Mocks {
     $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
-    $script:mockTable = @{}
+    $mockTable.Clear()
     Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
 }
 
