@@ -177,7 +177,7 @@ Describe "When Creaing a Verifiable Mock with a filter that does not return a bo
     }
 }
 
-Describe "When Calling a filterless mock once with params" {
+Describe "When Calling Assert-MockCalled 0 without exactly" {
     Mock FunctionUnderTest {}
     FunctionUnderTest "one"
     
@@ -187,7 +187,52 @@ Describe "When Calling a filterless mock once with params" {
         $result=$_
     }
 
-    It "Assert-MockCalled 0 Should throw" {
-        $result.Exception.Message.should.be("Expected FunctionUnderTest to be called 0 times")
+    It "Should throw if mock was called" {
+        $result.Exception.Message.should.be("Expected FunctionUnderTest to be called 0 times exactly but was called 1 times")
     }
+    It "Should not throw if mock was not called" {
+        Assert-MockCalled FunctionUnderTest 0 { $param1 -eq "stupid" }
+    }
+}
+
+Describe "When Calling Assert-MockCalled with exactly" {
+    Mock FunctionUnderTest {}
+    FunctionUnderTest "one"
+    FunctionUnderTest "one"
+    
+    try {
+        Assert-MockCalled FunctionUnderTest -exactly 3
+    } Catch {
+        $result=$_
+    }
+
+    It "Should throw if mock was not called the number of times specified" {
+        $result.Exception.Message.should.be("Expected FunctionUnderTest to be called 3 times exactly but was called 2 times")
+    }
+    It "Should not throw if mock was called the number of times specified" {
+        Assert-MockCalled FunctionUnderTest -exactly 2 { $param1 -eq "one" }
+    }
+}
+
+Describe "When Calling Assert-MockCalled without exactly" {
+    Mock FunctionUnderTest {}
+    FunctionUnderTest "one"
+    FunctionUnderTest "one"
+    
+    try {
+        Assert-MockCalled FunctionUnderTest 3
+    } Catch {
+        $result=$_
+    }
+
+    It "Should throw if mock was not called atleast the number of times specified" {
+        $result.Exception.Message.should.be("Expected FunctionUnderTest to be called at least 3 times but was called 2 times")
+    }
+    It "Should not throw if mock was called at least the number of times specified" {
+        Assert-MockCalled FunctionUnderTest 
+    }
+    It "Should not throw if mock was called at exactly the number of times specified" {
+        Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
+    }
+
 }

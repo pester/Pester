@@ -1,5 +1,5 @@
 $script:mockTable = @{}
-$script:callHistory = @()
+$script:mockCallHistory = @()
 
 function Mock {
 
@@ -119,7 +119,7 @@ param(
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
         Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params ) `r`n$newContent"
-        $mock=@{OriginalCommand=$origCommand;blocks=@($blocks)}
+        $mock=@{OriginalCommand=$origCommand;blocks=@($blocks);CmdLet=$cmdLetBinding;Params=$params}
     } else {
         if($blocks.Filter.ToString() -eq "`$True") {$mock.blocks = ,$blocks + $mock.blocks} else { $mock.blocks += $blocks }
     }
@@ -178,19 +178,30 @@ param(
     [int]$times=1,
     [ScriptBlock]$parameterFilter = {$True}    
 )
-
+    $mock = $script:mockTable.$commandName
+    Microsoft.PowerShell.Management\Set-Item Function:\Pester_TempParamTest -value "$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter"
+    $cmd=(Microsoft.PowerShell.Core\Get-Command Pester_TempParamTest)
+    $qualifiedCalls = ($script:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.params;&($cmd) @p} )
+    Microsoft.PowerShell.Management\Remove-Item Function:\Pester_TempParamTest
+    if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
+        throw "Expected $commandName to be called $times times exactly but was called $($qualifiedCalls.Length) times"
+    } elseif($qualifiedCalls.Length -lt $times) {
+        throw "Expected $commandName to be called at least $times times but was called $($qualifiedCalls.Length) times"
+    }
 }
 
 function Clear-Mocks {
-    $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
-    $mockTable.Clear()
-    $callHistory.Clear()
-    Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
+    if($mockTable){
+        $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
+        $mockTable.Clear()
+        if($mockCallHistory) {$mockCallHistory.Clear()}
+        Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
+    }
 }
 
 function MockPrototype {
     $functionName = $MyInvocation.MyCommand.Name
-    $callHistory += @{CommandName=$functionName;Params=$PSBoundParameters}
+    $script:mockCallHistory += @{CommandName=$functionName;Params=$PSBoundParameters}
     $mock=$mockTable.$functionName
     $idx=$mock.blocks.Length
     while(--$idx -ge 0) {
