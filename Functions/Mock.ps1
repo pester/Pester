@@ -1,5 +1,5 @@
-$script:mockTable = @{}
-$script:mockCallHistory = @()
+$global:mockTable = @{}
+$global:mockCallHistory = @()
 
 function Mock {
 
@@ -112,7 +112,7 @@ param(
     $mock = $mockTable.$commandName
     if(!$mock) {
         if($origCommand.CommandType -eq "Function") {
-            Microsoft.PowerShell.Management\Rename-Item Function:\$commandName script:PesterIsMocking_$commandName
+            Microsoft.PowerShell.Management\Rename-Item Function:\$commandName global:PesterIsMocking_$commandName
         }
         $metadata=Microsoft.PowerShell.Utility\New-Object System.Management.Automation.CommandMetaData $origCommand
         $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
@@ -178,10 +178,10 @@ param(
     [int]$times=1,
     [ScriptBlock]$parameterFilter = {$True}    
 )
-    $mock = $script:mockTable.$commandName
+    $mock = $global:mockTable.$commandName
     Microsoft.PowerShell.Management\Set-Item Function:\Pester_TempParamTest -value "$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter"
     $cmd=(Microsoft.PowerShell.Core\Get-Command Pester_TempParamTest)
-    $qualifiedCalls = ($script:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.params;&($cmd) @p} )
+    $qualifiedCalls = ($global:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.params;&($cmd) @p} )
     Microsoft.PowerShell.Management\Remove-Item Function:\Pester_TempParamTest
     if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
         throw "Expected $commandName to be called $times times exactly but was called $($qualifiedCalls.Length) times"
@@ -201,7 +201,7 @@ function Clear-Mocks {
 
 function MockPrototype {
     $functionName = $MyInvocation.MyCommand.Name
-    $script:mockCallHistory += @{CommandName=$functionName;Params=$PSBoundParameters}
+    $global:mockCallHistory += @{CommandName=$functionName;Params=$PSBoundParameters}
     $mock=$mockTable.$functionName
     $idx=$mock.blocks.Length
     while(--$idx -ge 0) {
