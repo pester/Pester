@@ -23,8 +23,10 @@ function Reset-GlobalTestResults {
 
 function Write-TestReport {
     $results = $Global:TestResults
-    Write-Host "Tests completed in $(Get-HumanTime $results.TotalTime)"
-    Write-Host "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
+    $out = "Tests completed in $(Get-HumanTime $results.TotalTime)"
+    Write-Host "$out"
+    $out = "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
+    Write-Host "$out"
 }
 
 function Get-HumanTime($seconds) {

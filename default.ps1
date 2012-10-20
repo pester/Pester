@@ -2,7 +2,7 @@ $psake.use_exit_on_error = $true
 properties {
     $currentDir = resolve-path .
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value
-    $baseDir = Split-Path -parent $Invocation.MyCommand.Definition | split-path -parent | split-path -parent | split-path -parent | split-path -parent
+    $baseDir = $psake.build_script_dir
     echo $baseDir
     $version = git describe --abbrev=0 --tags
     $buildNumber = '-alpha-' + (git log $($version + '..') --pretty=oneline | measure-object).Count
@@ -15,9 +15,7 @@ Task Package -depends Version-Module, Pack-Nuget, Unversion-Module
 Task Release -depends Strip-BuildNumber, Build, Push-Nuget
 
 Task Test {
-    CD "$baseDir"
-    ."$baseDir\bin\Pester.bat"
-    CD $currentDir
+    "$baseDir\bin\Pester.bat"
 }
 
 Task Strip-BuildNumber {
