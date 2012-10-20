@@ -185,6 +185,23 @@ been called. If you include the Exactly switch, the number of times
 that the command has been called must mach exactly with the number of 
 times specified on this command.
 
+.PARAMETER CommandName
+The name of the command to check for mock calls.
+
+.PARAMETER Times
+The number of times that the mock must be called to avoid an exception 
+from throwing.
+
+.PARAMETER Exactly
+If this switch is present, the number specifid in Times must match 
+exactly the number of times the mock has been called. Otherwise it 
+must match "at least" the number of times specified.
+
+.PARAMETER ParameterFilter
+An optional filter to qualify wich calls should be counted. Only those 
+calls to the mock whose parameters cause this filter to return true 
+will be counted.
+
 .EXAMPLE
 C:\PS>Mock Set-Content {}
 

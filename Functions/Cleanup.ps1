@@ -3,4 +3,5 @@ function Cleanup() {
         Remove-Item $TestDrive -Recurse -Force
         Remove-PSDrive -Name TestDrive -Scope Global -Force
     }
+    Clear-Mocks
 }
