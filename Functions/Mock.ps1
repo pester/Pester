@@ -104,7 +104,7 @@ param(
     [ScriptBlock]$parameterFilter = {$True}    
 )
 
-    $origCommand = Validate-Command
+    $origCommand = Validate-Command $commandName
     $filterTest=&($parameterFilter)
     if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
     $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable}
@@ -258,10 +258,11 @@ param(
     if(!$mock) { Throw "You did not declare a mock of the $commandName Command."}
     Microsoft.PowerShell.Management\Set-Item Function:\Pester_TempParamTest -value "$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter"
     $cmd=(Microsoft.PowerShell.Core\Get-Command Pester_TempParamTest)
-    $qualifiedCalls = ($global:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.params;&($cmd) @p} )
+    $qualifiedCalls = @()
+    $global:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.params;&($cmd) @p} | %{ $qualifiedCalls += $_}
     Microsoft.PowerShell.Management\Remove-Item Function:\Pester_TempParamTest
     if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
-        throw "Expected $commandName to be called $times times exactly but was called $($qualifiedCalls.Length) times"
+        throw "Expected $commandName to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
     } elseif($qualifiedCalls.Length -lt $times) {
         throw "Expected $commandName to be called at least $times times but was called $($qualifiedCalls.Length) times"
     }
@@ -271,7 +272,7 @@ function Clear-Mocks {
     if($mockTable){
         $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
         $mockTable.Clear()
-        if($mockCallHistory) {$mockCallHistory.Clear()}
+        $global:mockCallHistory = @()
         Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
     }
 }
