@@ -1,10 +1,10 @@
 Pester
 =======
-Pester provides a framework for **running Unit Tests to execute and validate PowerShell commands inside of PoerShell**. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
+Pester provides a framework for **running Unit Tests to execute and validate PowerShell commands inside of PowerShell**. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
 
 Pester tests can execute any command or script that is accesible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or **it can be integrated into the Build scripts of a Continuous Integration system**.
 
-**Pester also contains a powerful set of Mocking Functions** that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested. See about_Mocking.
+**Pester also contains a powerful set of Mocking Functions** that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested.
 
 A Pester Test
 -------------
@@ -17,11 +17,11 @@ BuildChanges.ps1
 		return $nextVersion
 	}
 
-	$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+BuildChanges.Tests.ps1
+
+    $here = Split-Path -Parent $MyInvocation.MyCommand.Path
     $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
     . "$here\$sut"
-
-BuildChanges.Tests.ps1
 
     Describe "BuildIfChanged" {
     	Context "Wnen there are Changes" {
@@ -69,6 +69,8 @@ Pester integrates well with almost any build automation solution. You could crea
 This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test 	results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, TeamCity, TFS or Jenkins.
 
 Some further reading and resources:
+-----------------------------------
 
 * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
 * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)
+* ````C:\PS> Import-Module ./pester.psm1; Get-Help about_pester
