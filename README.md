@@ -1,5 +1,70 @@
 Pester
-======
+=======
+Pester provides a framework for running Unit Tests to execute and validate Powershell commands. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
+
+Pester tests can execute any command or script that is accesible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.
+
+Pester also contains a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested. See about_Mocking.
+
+A Pester Test
+-------------
+BuildChanges.ps1
+	function BuildIfChanged {
+		$thisVersion=Get-Version
+		$nextVersion=Get-NextVersion
+		if($thisVersion -ne $nextVersion) {Build $nextVersion}
+		return $nextVersion
+	}
+
+	$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    . "$here\$sut"
+
+BuildChanges.Tests.ps1
+    Describe "BuildIfChanged" {
+    	Context "Wnen there are Changes" {
+    		Mock Get-Version {return 1.1}
+    		Mock Get-NextVersion {return 1.2}
+    		Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
+
+    		$result = BuildIfChanged
+
+	        It "Builds the next version" {
+	            Assert-VerifiableMocks
+	        }
+	        It "returns the next version number" {
+	            $result.Should.Be(1.2)
+	        }
+        }
+    	Context "Wnen there are no Changes" {
+    		Mock Get-Version -MockWith {return 1.1}
+    		Mock Get-NextVersion -MockWith {return 1.1}
+    		Mock Build {}
+
+    		$result = BuildIfChanged
+
+	        It "Should not build the next version" {
+	            Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
+	        }
+        }
+    }
+
+Running Tests
+-------------
+    C:\PS>./bin/pester.bat
+
+This will run all tests inside of files containing *.Tests.* recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+
+Continuous Integration with Pester
+-----------------------------------
+
+Pester integrates well with almost any build automation solution. You could create a MSBuild target that calls Pester's convenience Batch file:
+
+    <Target Name="Tests">
+    <Exec Command="cmd /c $(baseDir)pester\bin\pester.bat" />
+    </Target>
+
+This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test 	results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, TeamCity, TFS or Jenkins.
 
 Objective
 ---------
