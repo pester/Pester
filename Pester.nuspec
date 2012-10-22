@@ -18,5 +18,6 @@
     <file src="Functions\**\*.*" target="tools\Functions" />
     <file src="templates\**\*.*" target="tools\templates" />
     <file src="ObjectAdaptations\**\*.*" target="tools\ObjectAdaptations" />
+    <file src="en-US\*.*" target="tools\en-US" />    
   </files>
 </package>
