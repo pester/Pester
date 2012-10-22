@@ -20,11 +20,18 @@ SHIFT
 
 goto finish
 :usage
+if NOT '%2'=='' goto help
+
 echo To run pester for tests, just call pester or runtests with no arguments
 echo Example: pester
 echo To create an auomated test, call pester new-fixture with path and name
 echo Example: pester new-fixture [-Path relativePath] -Name nameOfTestFile
+echo For Detailed help information, call pester help with a help topic. See help topic about_Pester for a list of all topics at the end
+echo Example: pester help about_Pester
+goto finish
 
+:help
+@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command "& Import-Module '%DIR%..\Pester.psm1'; & { Get-Help %2}"
 
 :finish
 exit /B %errorlevel%
