@@ -4,15 +4,14 @@ properties {
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value
     $baseDir = Split-Path -parent $Invocation.MyCommand.Definition | split-path -parent | split-path -parent | split-path -parent | split-path -parent
     echo $baseDir
-    $version = git describe --abbrev=0 --tags
-    $buildNumber = '-alpha-' + (git log $($version + '..') --pretty=oneline | measure-object).Count
+    $version = '1.7'
     $nugetExe = "$baseDir\vendor\tools\nuget"
 }
 
 Task default -depends Build
 Task Build -depends Test, Package
 Task Package -depends Version-Module, Pack-Nuget, Unversion-Module
-Task Release -depends Strip-BuildNumber, Build, Push-Nuget
+Task Release -depends Build, Push-Nuget
 
 Task Test {
     CD "$baseDir"
@@ -20,20 +19,16 @@ Task Test {
     CD $currentDir
 }
 
-Task Strip-BuildNumber {
-    $buildNumber = ""
-}
-
 Task Version-Module{
     $v = git describe --abbrev=0 --tags
     $changeset=(git log -1 $($v + '..') --pretty=format:%H)
-    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "\`$version\`$", "$version$buildNumber" } | % {$_ -replace "\`$sha\`$", "$changeset" } | Set-Content "$baseDir\Pester.psm1"
+    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "\`$version\`$", "$version" } | % {$_ -replace "\`$sha\`$", "$changeset" } | Set-Content "$baseDir\Pester.psm1"
 }
 
 Task Unversion-Module{
     $v = git describe --abbrev=0 --tags
     $changeset=(git log -1 $($v + '..') --pretty=format:%H)
-    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "$version$buildNumber", "`$version`$" } | % {$_ -replace "$changeset", "`$sha`$" } | Set-Content "$baseDir\Pester.psm1"
+    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "$version", "`$version`$" } | % {$_ -replace "$changeset", "`$sha`$" } | Set-Content "$baseDir\Pester.psm1"
 }
 
 Task Pack-Nuget {
@@ -42,7 +37,7 @@ Task Pack-Nuget {
     }
 
     mkdir "$baseDir\build"
-    exec { .$nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" -NoPackageAnalysis -version $version$buildNumber }
+    exec { .$nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" -NoPackageAnalysis -version $version }
 }
 
 Task Push-Nuget {
