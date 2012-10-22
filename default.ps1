@@ -2,8 +2,7 @@ $psake.use_exit_on_error = $true
 properties {
     $currentDir = resolve-path .
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value
-    $baseDir = Split-Path -parent $Invocation.MyCommand.Definition | split-path -parent | split-path -parent | split-path -parent | split-path -parent
-    echo $baseDir
+    $baseDir = $psake.build_script_dir
     $version = '1.7'
     $nugetExe = "$baseDir\vendor\tools\nuget"
 }
