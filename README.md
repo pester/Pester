@@ -73,4 +73,4 @@ Some further reading and resources:
 
 * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
 * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)
-* ````C:\PS> Import-Module ./pester.psm1; Get-Help about_pester
+* `C:\PS> Import-Module ./pester.psm1; Get-Help about_pester`

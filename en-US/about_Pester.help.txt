@@ -20,7 +20,7 @@ DESCRIPTION
 	mimic and mock the functionality of any command inside of a piece of 
 	powershell code being tested. See about_Mocking.
 
-CREATING PESTER TEST WITH
+CREATING A PESTER TEST
 	To start using Pester, You may use the Add-Fixture function to scaffold both 
 	a new implemntation function and a test function.
 

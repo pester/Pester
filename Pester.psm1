@@ -62,6 +62,7 @@ This runs all tests from the current directory downwards and writes the results 
 
 .LINK
 Describe
+about_pester
 
 #>
     param(
@@ -146,7 +147,10 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 .LINK
 Describe
+Context
 It
+about_Pester
+about_Should
 #>
 param(
     $path, 

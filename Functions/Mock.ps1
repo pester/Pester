@@ -95,6 +95,8 @@ Get-ChildItem $env:temp\me
 
 Here, B_File.TXT will be returned. Even though the filterless mock was created last. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
 
+.LINK
+about_Mocking
 #>
 
 param(
