@@ -1,14 +1,15 @@
 Pester
 =======
-Pester provides a framework for running Unit Tests to execute and validate Powershell commands. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
+Pester provides a framework for **running Unit Tests to execute and validate PowerShell commands inside of PoerShell**. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
 
-Pester tests can execute any command or script that is accesible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.
+Pester tests can execute any command or script that is accesible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or **it can be integrated into the Build scripts of a Continuous Integration system**.
 
-Pester also contains a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested. See about_Mocking.
+**Pester also contains a powerful set of Mocking Functions** that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested. See about_Mocking.
 
 A Pester Test
 -------------
 BuildChanges.ps1
+
 	function BuildIfChanged {
 		$thisVersion=Get-Version
 		$nextVersion=Get-NextVersion
@@ -21,6 +22,7 @@ BuildChanges.ps1
     . "$here\$sut"
 
 BuildChanges.Tests.ps1
+
     Describe "BuildIfChanged" {
     	Context "Wnen there are Changes" {
     		Mock Get-Version {return 1.1}
@@ -66,24 +68,7 @@ Pester integrates well with almost any build automation solution. You could crea
 
 This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test 	results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, TeamCity, TFS or Jenkins.
 
-Objective
----------
-
-I wanted to make a convention based Powershell Unit testing framework that didn't require the following:
-
-* Installer of any sort
-* Changing a users Profile script
-
-The things I wanted it to do is:
-
-* Find all tests by some sort of convention
-* Emulate RSpec assertions and fixture setup
-* Create NUnit XML reports
-
-Some further reading:
+Some further reading and resources:
 
 * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
 * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)
-
-Added NUnit xml creation:
-* Invoke-Pester -OutputXML results.xml to write a nunit 2.5 results xml.
