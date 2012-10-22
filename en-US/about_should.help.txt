@@ -1,29 +1,44 @@
-NAME
+TOPIC
 	Should
 
 SYNOPSIS
-	Provides assertion convenience methods for comapring objects and throwing test failures when test expectations fail.
+	Provides assertion convenience methods for comapring objects and throwing 
+	test failures when test expectations fail.
 
 DESCRIPTION
-	Should is an Extension of System.Object and can be used as a native type inside Describe blocks. The various Should member methods can be invoked directly from an object being compared. It is typically used in individual It blocks to verify the results of an expectation. The Should method is typically called from the "actual" object being compared and takes the "expected" object as a parameter. Should includes several members that perform various comparisons of objects and will throw a PesterFailure when the objects do not evaluate to be comparable.
+	Should is an Extension of System.Object and can be used as a native type 
+	inside Describe blocks. The various Should member methods can be invoked 
+	directly from an object being compared. It is typically used in individual 
+	It blocks to verify the results of an expectation. The Should method is 
+	typically called from the "actual" object being compared and takes the 
+	"expected" object as a parameter. Should includes several members that 
+	perform various comparisons of objects and will throw a PesterFailure when 
+	the objects do not evaluate to be comparable.
 
 SHOULD MEMBERS
 
 	Be
-		Compares one object with another for equality and throws if the two objects are not the same.
+		Compares one object with another for equality and throws if the two 
+		objects are not the same.
 
 		C:\PS>$actual="actual value"
 		C:\PS>$actual.Should.Be("actual value") #Nothing happens
 		C:\PS>$actual.Should.Be("not actual value") #A Pester Failure is thrown
 
 	Have_Count_Of
-		Intended for comparing IEnumerables for the number of elements. However, if both objects being compared do not implement IEnumerable then the comparison will pass since both objects will be treated as though they have a count of 1. As of Powershell version 3, a $null object compared to a non null object will fail. They will pass in version 2.0.
+		Intended for comparing IEnumerables for the number of elements. However, 
+		if both objects being compared do not implement IEnumerable then the 
+		comparison will pass since both objects will be treated as though they 
+		have a count of 1. As of Powershell version 3, a $null object compared 
+		to a non null object will fail. They will pass in version 2.0.
 
 		C:\PS>$actual=@(1,2,3)
 		C:\PS>$actual.Should.Have_Count_Of(@(3,2)) #Will fail
 
 	Exist
-		Does not perform any comparison but checks if the object calling Exist is presnt in a PS Provider. The object must have valid path syntax. It essentially must pass a Test-Path call.
+		Does not perform any comparison but checks if the object calling Exist 
+		is presnt in a PS Provider. The object must have valid path syntax. It 
+		essentially must pass a Test-Path call.
 
 		C:\PS>$actual=(Dir . )[0].FullName
 		C:\PS>Remove-Item $actual

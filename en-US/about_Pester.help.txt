@@ -5,14 +5,24 @@ SYNOPSIS
 	Pester is a BDD based test runner for PowerShell.
 
 DESCRIPTION
-	Pester provides a framework for running Unit Tests to execute and validate Powershell commands. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
+	Pester provides a framework for running Unit Tests to execute and validate 
+	Powershell commands. Pester follows a file naming convention for naming 
+	tests to be discovered by pester at test time and a simple set of 
+	functions that expose a Testing DSL for isolating, running, evaluating and 
+	reporting the results of Powershell commands.
 
-	Pester tests can execute any command or script that is accesible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.
+	Pester tests can execute any command or script that is accesible to a 
+	pester test file. This can include functions, Cmdlets, Modules and scripts. 
+	Pester can be run in ad hoc style in a console or it can be integrated into 
+	the Build scripts of a Continuous Integration system.
 
-	Pester also contains a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested. See about_Mocking.
+	Pester also contains a powerful set of Mocking Functions that allow tests to 
+	mimic and mock the functionality of any command inside of a piece of 
+	powershell code being tested. See about_Mocking.
 
 CREATING PESTER TEST WITH
-	To start using Pester, You may use the Add-Fixture function to scaffold both a new implemntation function and a test function.
+	To start using Pester, You may use the Add-Fixture function to scaffold both 
+	a new implemntation function and a test function.
 
 	C:\PS>New-Fixture deploy Clean
 
@@ -22,10 +32,10 @@ CREATING PESTER TEST WITH
 
 	}
 
-	./deploy/clean.Tests.ps1
-	$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-	    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-	    . "$here\$sut"
+    ./deploy/clean.Tests.ps1
+    $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    . "$here\$sut"
 
     Describe "clean" {
 
@@ -34,28 +44,88 @@ CREATING PESTER TEST WITH
         }
     }
 
-    Now you have a skeleton of a clean function with a failing test. Pester considers all files containing *.Tests.* to be a test file (see Invoke-Pester) and by default it will look for these files and run all Describe blocks inside the file (See Describe). The Describe block can contain several behavior validations expressed in It blocks (see It). Each It block should test one thing and throw an exception if the test fails. Pester will consider any It block that throws an exception to be a failed test. Pester provides a set of extensions that can perform various comparisons between the values emited or altered by a test and an expected value (see about_Should). 
+    Now you have a skeleton of a clean function with a failing test. Pester 
+    considers all files containing *.Tests.* to be a test file (see 
+    nvoke-Pester) and by default it will look for these files and run all 
+    Describe blocks inside the file (See Describe). The Describe block can 
+    contain several behavior validations expressed in It blocks (see It). 
+    Each It block should test one thing and throw an exception if the test 
+    fails. Pester will consider any It block that throws an exception to be a 
+    failed test. Pester provides a set of extensions that can perform various 
+    comparisons between the values emited or altered by a test and an expected 
+    value (see about_Should). 
 
 RUNNNING A PESTER TEST
-	Once you have some logic that you are ready to test, use the Invoke-Pester command to run the tests. You can zero in on just one test (Describe block) or an entire tree of directories.
+	Once you have some logic that you are ready to test, use the Invoke-Pester 
+	command to run the tests. You can zero in on just one test (Describe block) 
+	or an entire tree of directories.
+
+	function BuildIfChanged {
+		$thisVersion=Get-Version
+		$nextVersion=Get-NextVersion
+		if($thisVersion -ne $nextVersion) {Build $nextVersion}
+		return $nextVersion
+	}
+
+	$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    . "$here\$sut"
+
+    Describe "BuildIfChanged" {
+    	Context "Wnen there are Changes" {
+    		Mock Get-Version {return 1.1}
+    		Mock Get-NextVersion {return 1.2}
+    		Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
+
+    		$result = BuildIfChanged
+
+	        It "Builds the next version" {
+	            Assert-VerifiableMocks
+	        }
+	        It "returns the next version number" {
+	            $result.Should.Be(1.2)
+	        }
+        }
+    	Context "Wnen there are no Changes" {
+    		Mock Get-Version -MockWith {return 1.1}
+    		Mock Get-NextVersion -MockWith {return 1.1}
+    		Mock Build {}
+
+    		$result = BuildIfChanged
+
+	        It "Should not build the next version" {
+	            Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
+	        }
+        }
+    }
 
 	C:\PS>Invoke-Pester
 
-	This will run all tests recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+	This will run all tests recursively from the current directory downwards 
+	and print a report of all failing and passing tests to the console.
 
 PESTER AND CONTINUOUS INTEGRATION
-	Pester integrates well with almost any build automation solution. You could create a MSBuild target that calls Pester's convenience Batch file:
+	Pester integrates well with almost any build automation solution. You 
+	could create a MSBuild target that calls Pester's convenience Batch file:
 
 	<Target Name="Tests">
 	<Exec Command="cmd /c $(baseDir)pester\bin\pester.bat" />
 	</Target>
 
-	This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, TeamCity, TFS or Jenkins.
-	
+	This will start a powershell session, import the Pester Module and call 
+	invoke pester within the current directory. If any test fails, it will 
+	return an exit code equal to the number of failed tests and all test 
+	results will be saved to Test.xml using NUnit's Schema allowing you to 
+	plug these results nicely into most Build systems like CruiseControl, 
+	TeamCity, TFS or Jenkins.
+
 OTHER EXAMPLES
-	Pester's own tests. See all files in the Pester Functions folder containing *.Tests.*
+	Pester's own tests. See all files in the Pester Functions folder 
+	containing *.Tests.*
 	
-	Chocolatey tests. Chocolatey is a popular powershell based Windowspackage management system. It uses Pester tests to validate its own functionality.
+	Chocolatey tests. Chocolatey is a popular powershell based Windows 
+	package management system. It uses Pester tests to validate its own 
+	functionality.
 
 SEE ALSO
 	about_Mocking
