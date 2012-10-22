@@ -7,9 +7,9 @@ function FunctionUnderTest ([string]$param1=""){
 }
 
 Describe "When calling Mock on existing function" {
-    Mock FunctionUnderTest {return "I am the mock test that was passed $param1"}
+    Mock FunctionUnderTest {return "I am the mock test that was passed $param1 $($args[0])"}
 
-    $result=FunctionUnderTest "yoyo"
+    $result=FunctionUnderTest "boundArg" "unboundArg"
 
     It "Should rename function under test" {
         $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
@@ -17,7 +17,7 @@ Describe "When calling Mock on existing function" {
     }
 
     It "Should Invoke the mocked script" {
-        $result.should.be("I am the mock test that was passed yoyo")
+        $result.should.be("I am the mock test that was passed boundArg unboundArg")
     }
 }
 
@@ -43,7 +43,7 @@ Describe "When calling Mock on non-existing function" {
     }
 }
 
-Describe "When calling Mock on existing function without matching params" {
+Describe "When calling Mock on existing function without matching bound params" {
     Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "test"}
 
     $result=FunctionUnderTest "badTest"
@@ -53,10 +53,31 @@ Describe "When calling Mock on existing function without matching params" {
     }
 }
 
-Describe "When calling Mock on existing function with matching params" {
+Describe "When calling Mock on existing function with matching bound params" {
     Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "badTest"}
 
     $result=FunctionUnderTest "badTest"
+
+    It "Should return mocked result" {
+        $result.should.be("fake results")
+    }
+}
+
+
+Describe "When calling Mock on existing function without matching unbound arguments" {
+    Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "test" -and $args[0] -eq 'notArg0'}
+
+    $result=FunctionUnderTest -param1 "test" "arg0"
+
+    It "Should redirect to real function" {
+        $result.should.be("I am a real world test")
+    }
+}
+
+Describe "When calling Mock on existing function with matching unbound arguments" {
+    Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "badTest" -and $args[0] -eq 'arg0'}
+    
+    $result=FunctionUnderTest "badTest" "arg0"
 
     It "Should return mocked result" {
         $result.should.be("fake results")
