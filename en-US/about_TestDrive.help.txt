@@ -1,0 +1,31 @@
+TOPIC
+	TestDrive
+
+SYNOPSIS
+	A PSDrive for file activity limited to the scope of a singe Describe or Context block.
+
+DESCRIPTION	
+	A test may need to work with file operations and validate certain tyes of file activities. It is usually desirable not to perform file activity tests that will produce side effects outside of an individual test. Pester creates a PSDrive inside the user's temporary drive that is accesible via a names PSDrive TestDrive:. Pester will remove this drive afterthe test completes. You may use this drive to isolate the file operations of your test to a temporary store.
+
+EXAMPLE
+	function Add-Footer($path, $footer) {
+	    Add-Content $path -Value $footer
+	}
+
+	Describe "Add-Footer" {
+		$testPath=TestDrive:\test.txt
+		Set-Item $testPath -value "my test text."
+		Add-Footer TestDrive:\test.txt "-Footer"
+		$result = Get-Content $testPath
+
+	    It "adds a footer" {
+	        $result.Should.Be("my test text.-Footer")
+	    }
+	}
+
+	When this test completes, the contents of the TestDrive PSDrive will be removed.
+
+SEE ALSO
+	Describe
+	It
+	about_Should
