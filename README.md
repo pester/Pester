@@ -66,11 +66,12 @@ Pester integrates well with almost any build automation solution. You could crea
     <Exec Command="cmd /c $(baseDir)pester\bin\pester.bat" />
     </Target>
 
-This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test 	results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, TeamCity, TFS or Jenkins.
+This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test 	results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, [TeamCity](https://github.com/pester/Pester/wiki/Showing-Test-Results-in-TeamCity), TFS or Jenkins.
 
 Some further reading and resources:
 -----------------------------------
 
 * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
 * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)
+* [The Wiki](https://github.com/pester/Pester/wiki)
 * `C:\PS> Import-Module ./pester.psm1; Get-Help about_pester`
