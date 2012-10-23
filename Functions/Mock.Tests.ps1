@@ -155,7 +155,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 
 Describe "When Creaing a Verifiable Mock that is not called" {
     Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
-    FunctionUnderTest "three"
+    FunctionUnderTest "three" | Out-Null
     
     try {
         Assert-VerifiableMocks
@@ -169,7 +169,7 @@ Describe "When Creaing a Verifiable Mock that is not called" {
 }
 
 Describe "When Creaing a Verifiable Mock that is called" {
-    Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+    Mock FunctionUnderTest {} -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "one"
     $result=""
     
