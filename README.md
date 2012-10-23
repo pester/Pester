@@ -24,7 +24,7 @@ BuildChanges.Tests.ps1
     . "$here\$sut"
 
     Describe "BuildIfChanged" {
-    	Context "Wnen there are Changes" {
+    	Context "When there are Changes" {
     		Mock Get-Version {return 1.1}
     		Mock Get-NextVersion {return 1.2}
     		Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
@@ -38,7 +38,7 @@ BuildChanges.Tests.ps1
 	            $result.Should.Be(1.2)
 	        }
         }
-    	Context "Wnen there are no Changes" {
+    	Context "When there are no Changes" {
     		Mock Get-Version -MockWith {return 1.1}
     		Mock Get-NextVersion -MockWith {return 1.1}
     		Mock Build {}
