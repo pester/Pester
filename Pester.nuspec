@@ -10,6 +10,7 @@
     <iconUrl>https://raw.github.com/pester/Pester/master/Pester.png</iconUrl>
     <projectUrl>https://github.com/Pester/Pester</projectUrl>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
+    <tags>Unit Testing TDD PowerShell BDD Mocking</tags>
   </metadata>
   <files>
     <file src="bin\*.*" target="tools\bin" />
