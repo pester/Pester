@@ -11,12 +11,8 @@ Describe "the In statement" {
     }
 
     It "updates the `$pwd variable when executed" {
-        In "$TestDrive\test_path" -Execute { Write-Host $pwd }
-        $(Get-ConsoleText).should.match("test_path")
-    }
-
-    It "will still allow the It {} block to transcribe the console" {
-        In "$TestDrive" -Execute { Write-Host "The bird is the word" }
-        $(Get-ConsoleText).should.match("The bird is the word")
+        In "$TestDrive\test_path" -Execute { $env:Pester_Test=$pwd }
+        $env:Pester_Test.should.match("test_path")
+        $env:Pester_Test=""
     }
 }

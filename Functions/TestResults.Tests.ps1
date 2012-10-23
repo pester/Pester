@@ -147,7 +147,7 @@ Describe "Write nunit test results" {
         $xmlEnvironment.'os-Version'.Should.Be($true) #check if exists
         $xmlEnvironment.platform.Should.Be($true)
         $xmlEnvironment.cwd.Should.Be((Get-Location).Path)
-        $xmlEnvironment.user.Should.Be($env:Username)
+        if($env:Username){$xmlEnvironment.user.Should.Be($env:Username)}
         $xmlEnvironment.'machine-name'.Should.Be($env:ComputerName)
     }
 

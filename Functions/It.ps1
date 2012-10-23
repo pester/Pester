@@ -85,8 +85,6 @@ param(
         success = $false
     };
 
-    Start-PesterConsoleTranscript
-
     $testTime = Measure-Command {
         try{
             temp
@@ -114,22 +112,6 @@ param(
 
     $results.CurrentDescribe.Tests += $testResult;
     $results.TotalTime += $testTime.TotalSeconds;
-    Stop-PesterConsoleTranscript
-}
-
-function Start-PesterConsoleTranscript {
-    if (-not (Test-Path $TestDrive\transcripts)) {
-        md $TestDrive\transcripts | Out-Null
-    }
-    Start-Transcript -Path "$TestDrive\transcripts\console.out" | Out-Null
-}
-
-function Stop-PesterConsoleTranscript {
-    Stop-Transcript | Out-Null
-}
-
-function Get-ConsoleText {
-    return (Get-Content "$TestDrive\transcripts\console.out")
 }
 
 function Setup-TestFunction {
