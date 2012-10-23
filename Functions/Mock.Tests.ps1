@@ -169,7 +169,7 @@ Describe "When Creaing a Verifiable Mock that is not called" {
 }
 
 Describe "When Creaing a Verifiable Mock that is called" {
-    Mock FunctionUnderTest {} -Verifiable -parameterFilter {$param1 -eq "one"}
+    Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "one"
     $result=""
     

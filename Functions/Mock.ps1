@@ -36,6 +36,7 @@ The name of the command to be mocked.
 
 .PARAMETER MockWith
 A ScriptBlock specifying the behvior that will be used to mock CommandName.
+The default is an empty ScriptBlock.
 
 .PARAMETER Verifiable
 When this is set, the mock will be checked when using Assert-VerifiableMocks 
@@ -60,7 +61,7 @@ Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -PrameterFilter {$Path.Star
 This Mock will only be applied to Get-ChildItem calls within the user's temp directory.
 
 .EXAMPLE
-Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
+Mock Set-Content -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
 
 When this mock is used, if the Mock is never invoked and Assert-VerifiableMocks is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
@@ -101,7 +102,7 @@ about_Mocking
 
 param(
     [string]$commandName, 
-    [ScriptBlock]$mockWith, 
+    [ScriptBlock]$mockWith={}, 
     [switch]$verifiable, 
     [ScriptBlock]$parameterFilter = {$True}    
 )
