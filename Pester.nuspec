@@ -5,12 +5,11 @@
     <version>$version$</version>
     <title>Pester</title>
     <description>A BDD style testing tool for Powershell</description>
-    <tags>powershell testing bdd</tags>
+    <tags>powershell unit testing bdd tdd mocking</tags>
     <authors>Scott Muc</authors>
     <iconUrl>https://raw.github.com/pester/Pester/master/Pester.png</iconUrl>
     <projectUrl>https://github.com/Pester/Pester</projectUrl>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
-    <tags>Unit Testing TDD PowerShell BDD Mocking</tags>
   </metadata>
   <files>
     <file src="bin\*.*" target="tools\bin" />
