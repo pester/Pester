@@ -304,5 +304,5 @@ function MockPrototype {
             return
         }
     }
-    &($mock.OriginalCommand) $args @PSBoundParameters
+    &($mock.OriginalCommand) @args @PSBoundParameters
 }
