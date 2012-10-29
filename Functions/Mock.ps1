@@ -262,7 +262,7 @@ param(
     Microsoft.PowerShell.Management\Set-Item Function:\Pester_TempParamTest -value "$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter"
     $cmd=(Microsoft.PowerShell.Core\Get-Command Pester_TempParamTest)
     $qualifiedCalls = @()
-    $global:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.BoundParams;$a=$_.Args;&($cmd) $a @p} | %{ $qualifiedCalls += $_}
+    $global:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.BoundParams;$a=$_.Args;&($cmd) @a @p} | %{ $qualifiedCalls += $_}
     Microsoft.PowerShell.Management\Remove-Item Function:\Pester_TempParamTest
     if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
         throw "Expected $commandName to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
@@ -292,9 +292,9 @@ function MockPrototype {
     $mock=$mockTable.$functionName
     $idx=$mock.blocks.Length
     while(--$idx -ge 0) {
-        if(&($mock.blocks[$idx].Filter) $args @PSBoundParameters) { 
+        if(&($mock.blocks[$idx].Filter) @args @PSBoundParameters) { 
             $mock.blocks[$idx].Verifiable=$false
-            &($mockTable.$functionName.blocks[$idx].mock)  $args @PSBoundParameters
+            &($mockTable.$functionName.blocks[$idx].mock) @args @PSBoundParameters
             return
         }
     }

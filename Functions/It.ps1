@@ -90,10 +90,10 @@ param(
             temp
             $testResult.success = $true
         } catch {
-            $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
-            $temp_line_number =  $_.InvocationInfo.ScriptLineNumber - 2
-            $failure_line_number = $start_line_position + $temp_line_number
             $results.FailedTestsCount += 1
+            $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
+            $temp_line_number =  Get-LineNumber($_.ScriptStackTrace)
+            $failure_line_number = $start_line_position + $temp_line_number
             $testResult.failureMessage = $failure_message
             $testResult.stackTrace = "at line: $failure_line_number in  $test_file"
         }
@@ -120,4 +120,12 @@ function temp {
 $test
 }
 "@ | out-file $TestDrive\temp.ps1
+}
+
+function Get-LineNumber($stackTrace) {
+    $find="pester\temp.ps1: line "
+    $idx = $stackTrace.IndexOf($find)
+    $idx2 = $stackTrace.IndexOf("`r`n", $idx)
+    $start = $idx + $find.Length
+    return $stackTrace.Substring($start, $idx2-$start)-2
 }
