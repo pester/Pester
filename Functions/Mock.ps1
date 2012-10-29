@@ -31,6 +31,12 @@ used to check if all Verifiable mocks were actually called. If any
 verifiable mock is not called, Assert-VerifiableMocks will throw an 
 exception and indicate all mocks not called.
 
+The SUT (code being tested) that calls the actual commands that you have 
+mocked must not be executing from inside a module. Otherwise, the mocked 
+commands will not be invoked and the real commands will run. The SUT must 
+be in the same Script scope as the test. So it must be either dot sourced, 
+in the same file, or in a script file.
+
 .PARAMETER CommandName
 The name of the command to be mocked.
 
