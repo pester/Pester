@@ -123,6 +123,14 @@ param(
             Microsoft.PowerShell.Management\Rename-Item Function:\$commandName global:PesterIsMocking_$commandName
         }
         $metadata=Microsoft.PowerShell.Utility\New-Object System.Management.Automation.CommandMetaData $origCommand
+        $metadata.Parameters.Remove("Verbose") | out-null
+        $metadata.Parameters.Remove("Debug") | out-null
+        $metadata.Parameters.Remove("ErrorAction") | out-null
+        $metadata.Parameters.Remove("WarningAction") | out-null
+        $metadata.Parameters.Remove("ErrorVariable") | out-null
+        $metadata.Parameters.Remove("WarningVariable") | out-null
+        $metadata.Parameters.Remove("OutVariable") | out-null
+        $metadata.Parameters.Remove("OutBuffer") | out-null
         $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype

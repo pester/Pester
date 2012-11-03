@@ -9,6 +9,26 @@ function FunctionUnderTest (  [Parameter(Mandatory=$false)][string] $param1){
 function FunctionUnderTestWithoutParams([string]$param1) {
     return "I am a real world test with no params"
 }
+function CommonParamFunction (  
+    [string] ${Uncommon},
+    [switch] 
+    ${Verbose}, 
+    [switch]  
+    ${Debug},
+    [System.Management.Automation.ActionPreference]
+    ${ErrorAction},
+    [System.Management.Automation.ActionPreference]
+    ${WarningAction},
+    [System.String]
+    ${ErrorVariable},
+    [System.String]
+    ${WarningVariable},
+    [System.String]
+    ${OutVariable},
+    [System.Int32]
+    ${OutBuffer} ){
+    return "Please strip me of my common parameters. They are far too common."
+}
 
 Describe "When calling Mock on existing function" {
     Mock FunctionUnderTest {return "I am the mock test that was passed $param1"}
@@ -32,6 +52,40 @@ Describe "When calling Mock on existing cmdlet" {
 
     It "Should Invoke the mocked script" {
         $result.should.be("I am not Get-Process")
+    }
+}
+
+Describe "When calling Mock on existing cmdlet with Common params" {
+    Mock CommonParamFunction 
+
+    $result=[string](Get-Content function:\CommonParamFunction)
+
+    It "Should strip verbose" {
+        $result.contains("`${Verbose}").should.be($false)
+    }
+    It "Should strip Debug" {
+        $result.contains("`${Debug}").should.be($false)
+    }
+    It "Should strip ErrorAction" {
+        $result.contains("`${ErrorAction}").should.be($false)
+    }
+    It "Should strip WarningAction" {
+        $result.contains("`${WarningAction}").should.be($false)
+    }
+    It "Should strip ErrorVariable" {
+        $result.contains("`${ErrorVariable}").should.be($false)
+    }
+    It "Should strip WarningVariable" {
+        $result.contains("`${WarningVariable}").should.be($false)
+    }
+    It "Should strip OutVariable" {
+        $result.contains("`${OutVariable}").should.be($false)
+    }
+    It "Should strip OutBuffer" {
+        $result.contains("`${OutBuffer}").should.be($false)
+    }
+    It "Should not strip an Uncommon param" {
+        $result.contains("`${Uncommon}").should.be($true)
     }
 }
 
