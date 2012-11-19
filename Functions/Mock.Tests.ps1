@@ -55,6 +55,23 @@ Describe "When calling Mock on existing cmdlet" {
     }
 }
 
+Describe "When calling Mock on existing cmdlet to handle pipelined input" {
+    Mock Get-ChildItem {
+      if($_ -eq 'a'){
+        return "AA"
+      } 
+      if($_ -eq 'b'){
+        return "BB"
+      }
+    }
+
+    "a", "b" | Get-ChildItem | % { $result += $_ }
+
+    It "Should process the pipeline in the mocked script" {
+        $result.should.be("AABB")
+    }
+}
+
 Describe "When calling Mock on existing cmdlet with Common params" {
     Mock CommonParamFunction 
 

@@ -134,7 +134,7 @@ param(
         $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
-        Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params ) `r`n$newContent"
+        Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params )Process{ `r`n$newContent}"
         $mock=@{OriginalCommand=$origCommand;blocks=@($blocks);CmdLet=$cmdLetBinding;Params=$params}
     } else {
         if($blocks.Filter.ToString() -eq "`$True") {$mock.blocks = ,$blocks + $mock.blocks} else { $mock.blocks += $blocks }
