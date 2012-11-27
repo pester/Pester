@@ -73,13 +73,17 @@ about_pester
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit, 
         [Parameter(Position=3,Mandatory=0)]
-        [string]$OutputXml = ''
+        [string]$OutputXml = '',
+        [Parameter(Position=4,Mandatory=0)]
+        [string]$Tags = $null
     )
     Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
     Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
 
     $fixtures_path = Resolve-Path $relative_path
+    $arr_testTags=$Tags.Split(' ')
+
     Write-Host Executing all tests in $fixtures_path
 
     Get-ChildItem $fixtures_path -Include "*.ps1" -Recurse |

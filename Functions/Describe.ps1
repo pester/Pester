@@ -50,11 +50,20 @@ Invoke-Pester
 about_TestDrive
 
 #>
+
 param(
-        $name, 
+
+        [Parameter(Mandatory = $true, Position = 0)] $name,
+
+        $tags=@(),
+
+        [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $fixture
 )
+
     if($testName -ne '' -and $testName.ToLower() -ne $name.ToLower()) {return}
+    if($arr_testTags -ne '' -and @(Compare-Object $tags $arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+
     Setup
 
     $results = Get-GlobalTestResults
