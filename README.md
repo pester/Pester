@@ -10,46 +10,50 @@ A Pester Test
 -------------
 BuildChanges.ps1
 
-	function BuildIfChanged {
-		$thisVersion=Get-Version
-		$nextVersion=Get-NextVersion
-		if($thisVersion -ne $nextVersion) {Build $nextVersion}
-		return $nextVersion
-	}
+```powershell
+function BuildIfChanged {
+  $thisVersion=Get-Version
+  $nextVersion=Get-NextVersion
+  if($thisVersion -ne $nextVersion) {Build $nextVersion}
+  return $nextVersion
+}
+```
 
 BuildChanges.Tests.ps1
 
-    $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-    . "$here\$sut"
+```powershell
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+. "$here\$sut"
 
-    Describe "BuildIfChanged" {
-    	Context "When there are Changes" {
-    		Mock Get-Version {return 1.1}
-    		Mock Get-NextVersion {return 1.2}
-    		Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
+Describe "BuildIfChanged" {
+  Context "When there are Changes" {
+    Mock Get-Version {return 1.1}
+    Mock Get-NextVersion {return 1.2}
+    Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
 
-    		$result = BuildIfChanged
+    $result = BuildIfChanged
 
-	        It "Builds the next version" {
-	            Assert-VerifiableMocks
-	        }
-	        It "returns the next version number" {
-	            $result.Should.Be(1.2)
-	        }
-        }
-    	Context "When there are no Changes" {
-    		Mock Get-Version -MockWith {return 1.1}
-    		Mock Get-NextVersion -MockWith {return 1.1}
-    		Mock Build {}
-
-    		$result = BuildIfChanged
-
-	        It "Should not build the next version" {
-	            Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
-	        }
-        }
+      It "Builds the next version" {
+          Assert-VerifiableMocks
+      }
+      It "returns the next version number" {
+          $result.Should.Be(1.2)
+      }
     }
+  Context "When there are no Changes" {
+    Mock Get-Version -MockWith {return 1.1}
+    Mock Get-NextVersion -MockWith {return 1.1}
+    Mock Build {}
+
+    $result = BuildIfChanged
+
+      It "Should not build the next version" {
+          Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
+      }
+    }
+}
+```
 
 Running Tests
 -------------
