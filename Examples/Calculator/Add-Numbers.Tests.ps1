@@ -22,5 +22,9 @@ Describe "Add-Numbers" {
         $sum = Add-Numbers two three
         $sum.should.be("twothree")
     }
-
+    
+    It "should not be 0" {
+        $sum = Add-Numbers 2 3
+        $sum.should.not_be(0)
+    }
 }
