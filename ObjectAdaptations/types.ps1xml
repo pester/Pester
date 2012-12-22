@@ -12,6 +12,10 @@
                         param($expected)
                         if ($expected -ne $this.actual) {throw New-Object PesterFailure($expected,$this.actual)}
                     } -PassThru |
+                    Add-Member ScriptMethod not_be {
+                        param($expected)
+                        if ($expected -eq $this.actual) {throw New-Object PesterFailure($expected,$this.actual)}
+                    } -PassThru |
                     Add-Member ScriptMethod have_count_of {
                         param($expected_count)
 
@@ -22,6 +26,9 @@
                     } -PassThru |
                     Add-Member ScriptMethod exist {
                         if (-not (Test-Path $this.actual)) { throw New-Object PesterFailure("$($this.actual) should exist","$($this.actual) not found")}
+                    } -PassThru |
+                    Add-Member ScriptMethod not_exist {
+                        if (Test-Path $this.actual) { throw New-Object PesterFailure("$($this.actual) should not exist","$($this.actual) exists")}
                     } -PassThru |
                     Add-Member ScriptMethod match {
                         param($expected_match)
