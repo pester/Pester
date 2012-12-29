@@ -179,7 +179,7 @@ Describe "Write nunit test results" {
         $testFile = "$TestDrive\Results\Tests.xml"
         Write-NunitTestReport $testResults $testFile
         [xml]$xml = gc $testFile 
-        $valid = Validate-Xml $xml '.\nunit_schema_2.5.xsd'
+        $valid = Validate-Xml $xml '.\Templates\nunit_schema_2.5.xsd'
         $valid.Should.Be($true)
     }
 }
