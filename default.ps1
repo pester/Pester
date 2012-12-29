@@ -21,13 +21,19 @@ Task Test {
 Task Version-Module{
     $v = git describe --abbrev=0 --tags
     $changeset=(git log -1 $($v + '..') --pretty=format:%H)
-    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "\`$version\`$", "$version" } | % {$_ -replace "\`$sha\`$", "$changeset" } | Set-Content "$baseDir\Pester.psm1"
+    (Get-Content "$baseDir\Pester.psm1") `
+      | % {$_ -replace "\`$version\`$", "$version" } `
+      | % {$_ -replace "\`$sha\`$", "$changeset" } `
+      | Set-Content "$baseDir\Pester.psm1"
 }
 
 Task Unversion-Module{
     $v = git describe --abbrev=0 --tags
     $changeset=(git log -1 $($v + '..') --pretty=format:%H)
-    (Get-Content "$baseDir\Pester.psm1") | % {$_ -replace "$version", "`$version`$" } | % {$_ -replace "$changeset", "`$sha`$" } | Set-Content "$baseDir\Pester.psm1"
+    (Get-Content "$baseDir\Pester.psm1") `
+      | % {$_ -replace "$version", "`$version`$" } `
+      | % {$_ -replace "$changeset", "`$sha`$" } `
+      | Set-Content "$baseDir\Pester.psm1"
 }
 
 Task Pack-Nuget {
@@ -36,10 +42,14 @@ Task Pack-Nuget {
     }
 
     mkdir "$baseDir\build"
-    exec { .$nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" -NoPackageAnalysis -version $version }
+    exec {
+      . $nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" `
+      -NoPackageAnalysis -version $version
+    }
 }
 
 Task Push-Nuget {
     $pkg = Get-Item -path $baseDir\build\Pester.1.*.*.nupkg
     exec { .$nugetExe push $pkg.FullName }
 }
+

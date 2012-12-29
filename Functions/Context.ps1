@@ -34,21 +34,21 @@ about_TestDrive
 
 #>
 param(
-    $name, 
+    $name,
     [ScriptBlock] $fixture
 )
 
     Setup
 
     $results = Get-GlobalTestResults
-	$margin = " " * $results.TestDepth
+    $margin = " " * $results.TestDepth
     $results.TestDepth += 1
 
-	Write-Host -fore yellow $margin $name
+    Write-Host -fore yellow $margin $name
     & $fixture
 
     Cleanup
 
-	$results.TestDepth -= 1
+    $results.TestDepth -= 1
 }
 

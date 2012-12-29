@@ -31,7 +31,8 @@ echo Example: pester help about_Pester
 goto finish
 
 :help
-@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command "& Import-Module '%DIR%..\Pester.psm1'; & { Get-Help %2}"
+@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command ^
+  "& Import-Module '%DIR%..\Pester.psm1'; & { Get-Help %2}"
 
 :finish
 exit /B %errorlevel%

@@ -12,7 +12,7 @@ function Get-Template($fileName) {
     $path = '.\templates'
     if($Global:ModulePath) {
         $path = $global:ModulePath + '\templates'
-    }    
+    }
     return Get-Content ("$path\$filename")
 }
 
