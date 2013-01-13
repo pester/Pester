@@ -1,28 +1,26 @@
 $scriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
 function Get-GlobalTestResults {
-    if ($Global:TestResults -ne $null) {
-        return $Global:TestResults
+    if ($pester.testResults -ne $null) {
+        return $pester.testResults
     }
 
-    $testResults = @{}
-    $testResults.Describes = @();
-    $testResults.CurrentDescribe = @{ name = ''; Tests = @() }
-    $testResults.TestCount = 0
-    $testResults.FailedTestsCount = 0
-    $testResults.TestDepth = 0
-    $testResults.TotalTime = 0;
+    $pester.testResults = @{}
+    $pester.testResults.Describes = @();
+    $pester.testResults.CurrentDescribe = @{ name = ''; Tests = @() }
+    $pester.testResults.TestCount = 0
+    $pester.testResults.FailedTestsCount = 0
+    $pester.testResults.TestDepth = 0
+    $pester.testResults.TotalTime = 0;
 
-
-    $Global:TestResults = $testResults
-    return $Global:TestResults
+    return $pester.testResults
 }
 
 function Reset-GlobalTestResults {
-    $global:TestResults = $null
+    $pester.testResults = $null
 }
 
 function Write-TestReport {
-    $results = $Global:TestResults
+    $results = $pester.testResults
     Write-Host "Tests completed in $(Get-HumanTime $results.TotalTime)"
     Write-Host "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
 }
@@ -53,7 +51,7 @@ function Write-NunitTestReport($results, $outputFile) {
     $report.total = $results.TestCount
     $report.failures = $results.FailedTestsCount
     $report.TestSuites = (Get-TestSuites $results.Describes)
-    $report.testCases = (Get-TestResults $results.Tests)  
+    $report.testCases = (Get-TestResults $results.Tests)
     $report.Environment = (Get-RunTimeEnvironment)
     Invoke-Template 'TestResults.template.xml' $report | Set-Content $outputFile -force
 }
