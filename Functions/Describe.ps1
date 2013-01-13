@@ -59,7 +59,7 @@ param(
 )
 
     if($testName -ne '' -and $testName.ToLower() -ne $name.ToLower()) {return}
-    if($arr_testTags -ne '' -and @(Compare-Object $tags $arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+    if($pester.arr_testTags -ne '' -and @(Compare-Object $tags $pester.arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
     Setup
 

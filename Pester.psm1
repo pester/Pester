@@ -2,6 +2,16 @@
 # Version: $version$
 # Changeset: $sha$
 
+function Get-VariableAsHash {
+    $hash = @{}
+    Get-Variable | ForEach-Object {
+      $key = $_.Name
+      $hash.$key = ""
+    }
+
+    return $hash
+}
+
 Resolve-Path $PSScriptRoot\Functions\*.ps1 | 
     ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
     % { . $_.ProviderPath }
@@ -78,17 +88,17 @@ about_pester
         [string]$Tags = $null
     )
     $pester = @{}
-    $pester.globals_count = (Get-Variable).Count
+    $pester.starting_variables = Get-VariableAsHash
     Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
     Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
 
-    $fixtures_path = Resolve-Path $relative_path
-    $arr_testTags=$Tags.Split(' ')
+    $pester.fixtures_path = Resolve-Path $relative_path
+    $pester.arr_testTags  = $Tags.Split(' ')
 
-    Write-Host Executing all tests in $fixtures_path
+    Write-Host Executing all tests in $($pester.fixtures_path)
 
-    Get-ChildItem $fixtures_path -Include "*.ps1" -Recurse |
+    Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
         ? { $_.Name -match "\.Tests\." } |
         % { & $_.PSPath }
 
