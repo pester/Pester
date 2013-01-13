@@ -1,7 +1,7 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Add-Numbers.ps1"
 
-Describe "Add-Numbers" {
+Describe -Tags "Example" "Add-Numbers" {
 
     It "adds positive numbers" {
         $sum = Add-Numbers 2 3
@@ -22,9 +22,10 @@ Describe "Add-Numbers" {
         $sum = Add-Numbers two three
         $sum.should.be("twothree")
     }
-    
+
     It "should not be 0" {
         $sum = Add-Numbers 2 3
         $sum.should.not_be(0)
     }
 }
+
