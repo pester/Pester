@@ -1,3 +1,7 @@
+## Latest unreleased (Jan 12, 2012)
+
+  - Ability to tag describes [GH-35]
+
 ## 1.1.1 (Dec 29, 2012)
 
   - Add should.not_be [GH-38]
