@@ -77,6 +77,8 @@ about_pester
         [Parameter(Position=4,Mandatory=0)]
         [string]$Tags = $null
     )
+    $pester = @{}
+    $pester.globals_count = (Get-Variable).Count
     Reset-GlobalTestResults
     . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
     Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue

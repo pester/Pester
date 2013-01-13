@@ -64,20 +64,20 @@ param(
     $name, 
     [ScriptBlock] $test
 )
-    $results = Get-GlobalTestResults
-    $margin = " " * $results.TestDepth
-    $error_margin = $margin * 2
-    $results.TestCount += 1
+    $pester.results = Get-GlobalTestResults
+    $pester.margin = " " * $pester.results.TestDepth
+    $pester.error_margin = $pester.margin * 2
+    $pester.results.TestCount += 1
 
-    $output = " $margin$name"
+    $pester.output = " $($pester.margin)$name"
 
-    $start_line_position = $test.StartPosition.StartLine
-    $test_file = $test.File
+    $pester.start_line_position = $test.StartPosition.StartLine
+    $pester.test_file = $test.File
 
     Setup-TestFunction
     . $TestDrive\temp.ps1
 
-    $testResult = @{
+    $pester.testResult = @{
         name = $name
         time = 0
         failureMessage = ""
@@ -85,33 +85,33 @@ param(
         success = $false
     };
 
-    $testTime = Measure-Command {
+    $pester.testTime = Measure-Command {
         try{
             temp
-            $testResult.success = $true
+            $pester.testResult.success = $true
         } catch {
-            $results.FailedTestsCount += 1
-            $failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
-            $temp_line_number =  $_.InvocationInfo.ScriptLineNumber-2
-            $failure_line_number = $start_line_position + $temp_line_number
-            $testResult.failureMessage = $failure_message
-            $testResult.stackTrace = "at line: $failure_line_number in  $test_file"
+            $pester.results.FailedTestsCount += 1
+            $pester.failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
+            $pester.temp_line_number =  $_.InvocationInfo.ScriptLineNumber-2
+            $pester.failure_line_number = $pester.start_line_position + $pester.temp_line_number
+            $pester.testResult.failureMessage = $pester.failure_message
+            $pester.testResult.stackTrace = "at line: $($pester.failure_line_number) in $($pester.test_file)"
         }
     }
-    
-    $testResult.time = $testTime.TotalSeconds
-    $humanSeconds = Get-HumanTime $testTime.TotalSeconds
-    if($testResult.success) {
-        "[+] $output ($humanSeconds)" | Write-Host -ForegroundColor green;
+
+    $pester.testResult.time = $pester.testTime.TotalSeconds
+    $pester.humanSeconds = Get-HumanTime $pester.testTime.TotalSeconds
+    if($pester.testResult.success) {
+        "[+] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor green;
     }
     else {
-        "[-] $output ($humanSeconds)" | Write-Host -ForegroundColor red
-         Write-Host -ForegroundColor red $error_margin$($testResult.failureMessage)
-         Write-Host -ForegroundColor red $error_margin$($testResult.stackTrace)
+        "[-] $($output.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor red
+         Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.failureMessage)
+         Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.stackTrace)
     }
 
-    $results.CurrentDescribe.Tests += $testResult;
-    $results.TotalTime += $testTime.TotalSeconds;
+    $pester.results.CurrentDescribe.Tests += $pester.testResult;
+    $pester.results.TotalTime += $pester.testTime.TotalSeconds;
 }
 
 function Setup-TestFunction {

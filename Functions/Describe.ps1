@@ -63,20 +63,19 @@ param(
 
     Setup
 
-    $results = Get-GlobalTestResults
-    $margin = " " * $results.TestDepth
-    $results.TestDepth += 1
-    $results.CurrentDescribe = @{
+    $pester.results = Get-GlobalTestResults
+    $pester.margin = " " * $pester.results.TestDepth
+    $pester.results.TestDepth += 1
+    $pester.results.CurrentDescribe = @{
         name = $name
         Tests = @()
     }
 
-    $output = $margin + "Describing " + $name
-
-    Write-Host -fore yellow $output
+    $pester.output = $pester.margin + "Describing " + $name
+    Write-Host -fore yellow $($pester.output)
     & $fixture
     Cleanup
-    $results.Describes += $results.CurrentDescribe
-    $results.TestDepth -= 1
+    $pester.results.Describes += $pester.results.CurrentDescribe
+    $pester.results.TestDepth -= 1
 }
 

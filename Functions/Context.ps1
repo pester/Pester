@@ -40,15 +40,15 @@ param(
 
     Setup
 
-    $results = Get-GlobalTestResults
-    $margin = " " * $results.TestDepth
-    $results.TestDepth += 1
+    $pester.results = Get-GlobalTestResults
+    $pester.margin = " " * $pester.results.TestDepth
+    $pester.results.TestDepth += 1
 
-    Write-Host -fore yellow $margin $name
+    Write-Host -fore yellow $pester.margin $name
     & $fixture
 
     Cleanup
 
-    $results.TestDepth -= 1
+    $pester.results.TestDepth -= 1
 }
 
