@@ -16,7 +16,8 @@ Describe -Tags "It" "It" {
 
     It "does not pollute the global namespace" {
       $extra_keys = List-ExtraKeys $pester.starting_variables $(Get-VariableAsHash)
-      $extra_keys | Write-Host
+      $expected_keys = "here", "name", "test", "Matches", "fixture"
+      $extra_keys.should.have_count_of($extra_keys.Count)
     }
 
 }

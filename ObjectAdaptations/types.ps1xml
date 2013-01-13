@@ -49,7 +49,7 @@
                                 $this.actual = $newactual
                             } -PassThru
                     $object.ThisValue = $value
-                            
+
                     return $object
                 </GetScriptBlock> 
             </ScriptProperty> 
