@@ -14,19 +14,7 @@ function Should-NotBeNullOrEmpty {
 
 Describe "Should-NotBeNullOrEmpty" {
 
-  It "throws a PesterFailure when the variable has not got a value" {
-      $string = ""
-
-      try {
-       Should-NotBeNullOrEmpty $string
-        $failure_thrown = $false
-      } catch {
-        $failure_thrown = $true
-      }
-
-      $failure_thrown.should.be($true)
-    }
-
+Context("when dealing with an array") {
     It "throws a PesterFailure when the variable is empty array" {
       $nonNullArray = @()
 
@@ -38,19 +26,6 @@ Describe "Should-NotBeNullOrEmpty" {
       }
 
       $failure_thrown.should.be($true)
-    }
-
-    It "passes the test when the string is has a value" {
-        $string = "this string has a value"
-
-      try {
-       Should-NotBeNullOrEmpty $string
-        $failure_thrown = $false
-      } catch {
-        $failure_thrown = $true
-      }
-
-      $failure_thrown.should.be($false)
     }
 
     It "passes the test when the array has an element" {
@@ -65,6 +40,33 @@ Describe "Should-NotBeNullOrEmpty" {
 
       $failure_thrown.should.be($false)
     }
+}
 
-    
+Context("when dealing with strings") {
+    It "throws a PesterFailure when the variable has not got a value" {
+          $string = ""
+
+          try {
+           Should-NotBeNullOrEmpty $string
+            $failure_thrown = $false
+          } catch {
+            $failure_thrown = $true
+          }
+
+          $failure_thrown.should.be($true)
+        }
+
+        It "passes the test when the string is has a value" {
+            $string = "this string has a value"
+
+          try {
+           Should-NotBeNullOrEmpty $string
+            $failure_thrown = $false
+          } catch {
+            $failure_thrown = $true
+          }
+
+          $failure_thrown.should.be($false)
+        }
+    }   
 }
