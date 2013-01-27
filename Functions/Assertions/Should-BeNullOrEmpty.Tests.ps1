@@ -7,7 +7,7 @@ function Should-BeNullOrEmpty {
     $value
   )             
 
-  if (($value -ne $null) -and ($value -ne "")) {
+  if (($value -ne $null) -and ($value -ne "") -and ($value -gt 0)) {
     throw New-Object PesterFailure("Expected the value to be null or empty", "Got $value")
   }
 }
