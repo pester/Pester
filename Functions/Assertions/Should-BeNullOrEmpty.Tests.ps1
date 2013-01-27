@@ -1,4 +1,3 @@
-
 function Should-BeNullOrEmpty {
 
   [CmdletBinding()]
@@ -58,8 +57,6 @@ It "throws a PesterFailure when the variable has a string value" {
       $failure_thrown.should.be($true)
     }
 
-   
-
     It "passes the test when the string is empty" {
         $string = ""
 
@@ -72,9 +69,5 @@ It "throws a PesterFailure when the variable has a string value" {
 
       $failure_thrown.should.be($false)
     }
-}
-
-  
-
-    
+}  
 }
