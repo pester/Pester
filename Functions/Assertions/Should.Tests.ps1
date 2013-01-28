@@ -19,7 +19,8 @@ function Should {
     $expected_value
   )
 
-  $testFailed = -not (& (gci "function:Pester$testMethod") $expected_value $value)
+  $assertionFunction = "Pester$testMethod"
+  $testFailed = -not (& $assertionFunction $expected_value $value)
 
   if ($testFailed) {
     throw New-Object PesterFailure($expected_value, $value)
@@ -30,7 +31,7 @@ Describe "Should" {
 
   Context("when comparing equal values") {
     It "does not return any errors" {
-      1 | Should Be 1
+      1 | Should Be (2 - 1)
     }
   }
 
