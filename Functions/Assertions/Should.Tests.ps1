@@ -1,9 +1,9 @@
 
-function PesterEqual($expected, $value) {
+function PesterBe($expected, $value) {
   return ($expected -eq $value)
 }
 
-function PesterNotEqual($expected, $value) {
+function PesterNotBe($expected, $value) {
   return ($expected -ne $value)
 }
 
@@ -19,8 +19,7 @@ function Should {
     $expected_value
   )
 
-  $pesterTestMethod = "Pester$testMethod"
-  $testFailed = -not (Invoke-Expression -Command "$pesterTestMethod $expected_value $value")
+  $testFailed = -not (& (gci "function:Pester$testMethod") $expected_value $value)
 
   if ($testFailed) {
     throw New-Object PesterFailure($expected_value, $value)
@@ -31,14 +30,14 @@ Describe "Should" {
 
   Context("when comparing equal values") {
     It "does not return any errors" {
-      1 | Should Equal 1
+      1 | Should Be 1
     }
   }
 
   Context("when comparing unueqal values") {
     It "throws a PesterFailure" {
       try {
-        2 | Should Equal 1
+        2 | Should Be 1
         $failure_thrown = $false
       } catch {
         $failure_thrown = $true
@@ -47,20 +46,17 @@ Describe "Should" {
       $failure_thrown.should.be($true)
     }
   }
-}
-
-Describe "Should-Not" {
 
   Context("when comparing unequal values") {
     It "does not return any errors" {
-      2 | Should NotEqual 1
+      2 | Should NotBe 1
     }
   }
 
   Context("when comparing equal values") {
     It "throws a PesterFailure" {
       try {
-        1 | Should NotEqual 1
+        1 | Should NotBe 1
         $failure_thrown = $false
       } catch {
         $failure_thrown = $true
@@ -70,3 +66,4 @@ Describe "Should-Not" {
     }
   }
 }
+
