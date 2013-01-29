@@ -1,28 +1,51 @@
 
-function Should {
+function Parse-ShouldArgs([array] $shouldArgs) {
+    $parsedArgs = @{ PositiveAssertion = $true }
 
-  process {
-    $value = $_
+    $assertionMethodIndex = 0
+    $expectedValueIndex   = 1
 
-    if ($args[0] -eq "Not") {
-      $testMethod = $args[1]
-      $expected_value = $args[2]
-      $assertionFunction = "$testMethod"
-      $testFailed = (& $assertionFunction $expected_value $value)
-      if ($testFailed) {
-        $errorMessage = (& "Not$($assertionFunction)ErrorMessage" $expected_value $value)
-        throw $errorMessage
-      }
-    } else {
-      $testMethod = $args[0]
-      $expected_value = $args[1]
-      $assertionFunction = "$testMethod"
-      $testFailed = -not (& $assertionFunction $expected_value $value)
-      if ($testFailed) {
-        $errorMessage = (& "$($assertionFunction)ErrorMessage" $expected_value $value)
-        throw $errorMessage
-      }
+    if ($shouldArgs[0].ToLower() -eq "not") {
+        $parsedArgs.PositiveAssertion = $false
+        $assertionMethodIndex += 1
+        $expectedValueIndex   += 1
     }
-  }
+
+    $parsedArgs.AssertionMethod = $shouldArgs[$assertionMethodIndex]
+    $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
+
+    return $parsedArgs
+}
+
+function Get-TestResult($shouldArgs, $value) {
+    $testResult = (& $shouldArgs.AssertionMethod $shouldArgs.ExpectedValue $value)
+
+    if ($shouldArgs.PositiveAssertion) {
+        return -not $testResult
+    }
+
+    return $testResult
+}
+
+function Get-FailureMessage($shouldArgs, $value) {
+    $errorMessageFunction = "$($shouldArgs.AssertionMethod)ErrorMessage"
+    if (-not $shouldArgs.PositiveAssertion) {
+        $errorMessageFunction = "Not$errorMessageFunction"
+    }
+
+    return (& $errorMessageFunction $shouldArgs.ExpectedValue $value)
+}
+
+function Should {
+    process {
+        $value = $_
+
+        $parsedArgs = Parse-ShouldArgs $args
+        $testFailed = Get-TestResult   $parsedArgs $value
+
+        if ($testFailed) {
+            throw (Get-FailureMessage $parsedArgs $value)
+        }
+    }
 }
 
