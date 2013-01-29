@@ -105,7 +105,7 @@ param(
         "[+] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor green;
     }
     else {
-        "[-] $($output.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor red
+        "[-] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor red
          Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.failureMessage)
          Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.stackTrace)
     }
