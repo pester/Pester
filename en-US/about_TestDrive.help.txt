@@ -20,16 +20,16 @@ EXAMPLE
 	}
 
 	Describe "Add-Footer" {
-		$testPath=TestDrive:\test.txt
-		Set-Item $testPath -value "my test text."
-		Add-Footer TestDrive:\test.txt "-Footer"
-		$result = Get-Content $testPath
+	    $testPath="TestDrive:\test.txt"
+	    Set-Content $testPath -value "my test text."
+	    Add-Footer $testPath "-Footer"
+	    $result = Get-Content $testPath
 
 	    It "adds a footer" {
-	        $result.Should.Be("my test text.-Footer")
+	        (-join $result).Should.Be("my test text.-Footer")
 	    }
 	}
-
+	
 	When this test completes, the contents of the TestDrive PSDrive will 
 	be removed.
 
