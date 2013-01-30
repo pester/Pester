@@ -5,11 +5,11 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Describe "Be" {
 
     It "returns true if the 2 arguments are equal" {
-        (Be 1 1) | Should Be $true
+        Be 1 1 | Should Be $true
     }
 
     It "returns false if the 2 arguments are not equal" {
-        (Be 1 2) | Should Be $false
+        Be 1 2 | Should Be $false
     }
 
     It "has an error message defined" {

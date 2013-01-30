@@ -1,5 +1,6 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Be.ps1"
+. "$here\BeNullOrEmpty.ps1"
 . "$here\Should.ps1"
 
 Describe "Parse-ShouldArgs" {
@@ -80,5 +81,23 @@ Describe "Get-FailureMessage" {
         }
     }
 
+}
+
+
+Describe -Tag "Acceptance" "Should" {
+
+    It "can use the Be assertion" {
+        1 | Should Be 1
+    }
+
+    It "can use the Not Be assertion" {
+        1 | Should Not Be 2
+    }
+
+    It "can use the BeNullOrEmpty assertion" {
+        $null | Should BeNullOrEmpty
+        @()   | Should BeNullOrEmpty
+        ""    | Should BeNullOrEmpty
+    }
 }
 
