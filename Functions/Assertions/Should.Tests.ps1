@@ -2,6 +2,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Be.ps1"
 . "$here\BeNullOrEmpty.ps1"
 . "$here\Should.ps1"
+. "$here\PesterThrow.ps1"
 
 Describe "Parse-ShouldArgs" {
 
@@ -37,6 +38,16 @@ Describe "Parse-ShouldArgs" {
         It "marks the args as a negative assertion" {
             $ParsedArgs.PositiveAssertion | Should Be $false
         }
+    }
+
+    Context "for the throw assertion" {
+
+        $parsedArgs = Parse-ShouldArgs Throw, 1
+
+        It "translates the Throw assertion to PesterThrow" {
+            $ParsedArgs.AssertionMethod | Should Be PesterThrow
+        }
+
     }
 }
 
@@ -98,6 +109,14 @@ Describe -Tag "Acceptance" "Should" {
         $null | Should BeNullOrEmpty
         @()   | Should BeNullOrEmpty
         ""    | Should BeNullOrEmpty
+    }
+
+    It "can handle exception thrown assertions" {
+        { foo } | Should Throw
+    }
+
+    It "can handle exception should not be thrown assertions" {
+        { $foo = 1 } | Should Not Throw
     }
 }
 

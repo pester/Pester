@@ -10,15 +10,18 @@ function Parse-ShouldArgs([array] $shouldArgs) {
         $assertionMethodIndex += 1
         $expectedValueIndex   += 1
     }
-
-    $parsedArgs.AssertionMethod = $shouldArgs[$assertionMethodIndex]
     $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
+    $parsedArgs.AssertionMethod = $shouldArgs[$assertionMethodIndex]
+
+    if ($parsedArgs.AssertionMethod.ToLower() -eq "throw") {
+        $parsedArgs.AssertionMethod = "PesterThrow"
+    }
 
     return $parsedArgs
 }
 
 function Get-TestResult($shouldArgs, $value) {
-    $testResult = (& $shouldArgs.AssertionMethod $shouldArgs.ExpectedValue $value)
+    $testResult = (& $shouldArgs.AssertionMethod $value $shouldArgs.ExpectedValue)
 
     if ($shouldArgs.PositiveAssertion) {
         return -not $testResult
