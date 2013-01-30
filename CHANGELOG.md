@@ -1,7 +1,11 @@
-## Latest unreleased (Jan 12, 2012)
+## Latest unreleased (Jan 30, 2012)
 
   - Fixing many of the scoping issues [GH-9]
   - Ability to tag describes [GH-35]
+  - Added new assertion syntax (eg: 1 | Should Be 1)
+  - Added 'Should Throw' assertion [GH-37]
+  - Added 'Should BeNullOrEmpty' assertion [GH-39]
+  - Added negative assertions with the 'Not' keyword
 
 ## 1.1.1 (Dec 29, 2012)
 

@@ -12,9 +12,12 @@ function Get-VariableAsHash {
     return $hash
 }
 
-Resolve-Path $PSScriptRoot\Functions\*.ps1 | 
-    ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
-    % { . $_.ProviderPath }
+@("$PSScriptRoot\Functions\*.ps1",
+  "$PSScriptRoot\Functions\Assertions\*.ps1"
+ ) | Resolve-Path |
+  ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
+  % { . $_.ProviderPath }
+
 
 function Invoke-Pester {
 <#

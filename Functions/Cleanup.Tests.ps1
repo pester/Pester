@@ -17,3 +17,4 @@ Describe "Cleanup" {
         $test_drive_existence.should.be($false)
     }
 }
+
