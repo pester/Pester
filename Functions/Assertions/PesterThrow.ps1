@@ -1,6 +1,5 @@
 
-# Calling this PesterThrow to not conflict with throw keyword
-# Also, because this is a script block, the user will have to
+# because this is a script block, the user will have to
 # wrap the code they want to assert on in { }
 function PesterThrow([scriptblock] $script) {
     $itThrew = $false

@@ -1,6 +1,7 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Be.ps1"
 . "$here\BeNullOrEmpty.ps1"
+. "$here\Exist.ps1"
 . "$here\Should.ps1"
 . "$here\PesterThrow.ps1"
 
@@ -116,12 +117,17 @@ Describe -Tag "Acceptance" "Should" {
         { $foo = 1 } | Should Not Throw
     }
 
+    It "can handle Exist assertion" {
+        $TestDrive | Should Exist
+    }
+
     It "ensures all assertion functions provide failure messages" {
-        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty")
+        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist")
         $assertionFunctions | % {
-            Test-Path "function:$($_)FailureMessage" | Should Be $true
-            Test-Path "function:Not$($_)FailureMessage" | Should Be $true
+            "function:$($_)FailureMessage" | Should Exist
+            "function:Not$($_)FailureMessage" | Should Exist
         }
     }
+
 }
 
