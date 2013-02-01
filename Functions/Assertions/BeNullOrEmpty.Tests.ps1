@@ -6,24 +6,15 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Describe "BeNullOrEmpty" {
 
     It "should return true if null" {
-        BeNullOrEmpty $null | Should Be $true
+        PesterBeNullOrEmpty $null | Should Be $true
     }
 
     It "should return true if empty string" {
-        BeNullOrEmpty "" | Should Be $true
+        PesterBeNullOrEmpty "" | Should Be $true
     }
 
     It "should return true if empty array" {
-        BeNullOrEmpty @() | Should Be $true
+        PesterBeNullOrEmpty @() | Should Be $true
     }
-
-    It "has an error message defined" {
-        Test-Path "function:BeNullOrEmptyErrorMessage" | Should Be $true
-    }
-
-    It "has a not error messages defined" {
-        Test-Path "function:NotBeNullOrEmptyErrorMessage" | Should Be $true
-    }
-
 }
 

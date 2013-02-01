@@ -10,12 +10,9 @@ function Parse-ShouldArgs([array] $shouldArgs) {
         $assertionMethodIndex += 1
         $expectedValueIndex   += 1
     }
-    $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
-    $parsedArgs.AssertionMethod = $shouldArgs[$assertionMethodIndex]
 
-    if ($parsedArgs.AssertionMethod.ToLower() -eq "throw") {
-        $parsedArgs.AssertionMethod = "PesterThrow"
-    }
+    $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
+    $parsedArgs.AssertionMethod = "Pester$($shouldArgs[$assertionMethodIndex])"
 
     return $parsedArgs
 }
@@ -31,12 +28,12 @@ function Get-TestResult($shouldArgs, $value) {
 }
 
 function Get-FailureMessage($shouldArgs, $value) {
-    $errorMessageFunction = "$($shouldArgs.AssertionMethod)ErrorMessage"
+    $failureMessageFunction = "$($shouldArgs.AssertionMethod)FailureMessage"
     if (-not $shouldArgs.PositiveAssertion) {
-        $errorMessageFunction = "Not$errorMessageFunction"
+        $failureMessageFunction = "Not$failureMessageFunction"
     }
 
-    return (& $errorMessageFunction $shouldArgs.ExpectedValue $value)
+    return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
 
 function Should {

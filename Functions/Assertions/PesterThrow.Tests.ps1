@@ -14,13 +14,5 @@ Describe "PesterThrow" {
     It "returns false if the statement does not throw an exception" {
         PesterThrow { 1 + 1 } | Should Be $false
     }
-
-    It "has an error message defined" {
-        Test-Path "function:PesterThrowErrorMessage" | Should Be $true
-    }
-
-    It "has a not error messages defined" {
-        Test-Path "function:NotPesterThrowErrorMessage" | Should Be $true
-    }
 }
 

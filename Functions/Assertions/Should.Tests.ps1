@@ -6,13 +6,14 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Describe "Parse-ShouldArgs" {
 
+    It "sanitizes assertions functions" {
+        $parsedArgs = Parse-ShouldArgs TestFunction
+        $parsedArgs.AssertionMethod | Should Be PesterTestFunction
+    }
+
     Context "for positive assertions" {
 
         $parsedArgs = Parse-ShouldArgs testMethod, 1
-
-        It "gets the assertion method from the first argument" {
-            $ParsedArgs.AssertionMethod | Should Be testMethod
-        }
 
         It "gets the expected value from the 2nd argument" {
             $ParsedArgs.ExpectedValue | Should Be 1
@@ -27,10 +28,6 @@ Describe "Parse-ShouldArgs" {
 
         $parsedArgs = Parse-ShouldArgs Not, testMethod, 1
 
-        It "gets the assertion method from the second argument" {
-            $ParsedArgs.AssertionMethod | Should Be testMethod
-        }
-
         It "gets the expected value from the third argument" {
             $ParsedArgs.ExpectedValue | Should Be 1
         }
@@ -42,7 +39,7 @@ Describe "Parse-ShouldArgs" {
 
     Context "for the throw assertion" {
 
-        $parsedArgs = Parse-ShouldArgs Throw, 1
+        $parsedArgs = Parse-ShouldArgs Throw
 
         It "translates the Throw assertion to PesterThrow" {
             $ParsedArgs.AssertionMethod | Should Be PesterThrow
@@ -54,7 +51,7 @@ Describe "Parse-ShouldArgs" {
 Describe "Get-TestResult" {
 
     Context "for positive assertions" {
-        function Test { return $true }
+        function PesterTest { return $true }
         $shouldArgs = Parse-ShouldArgs Test
 
         It "returns false if the test returns true" {
@@ -63,7 +60,7 @@ Describe "Get-TestResult" {
     }
 
     Context "for negative assertions" {
-        function Test { return $false }
+        function PesterTest { return $false }
         $shouldArgs = Parse-ShouldArgs Not, Test
 
         It "returns false if the test returns false" {
@@ -75,7 +72,7 @@ Describe "Get-TestResult" {
 Describe "Get-FailureMessage" {
 
     Context "for positive assertions" {
-        function TestErrorMessage($e, $v) { return "slime $e $v" }
+        function PesterTestFailureMessage($v, $e) { return "slime $e $v" }
         $shouldArgs = Parse-ShouldArgs Test, 1
 
         It "should return the postive assertion failure message" {
@@ -84,11 +81,11 @@ Describe "Get-FailureMessage" {
     }
 
     Context "for negative assertions" {
-        function NotTestErrorMessage($e, $v) { return "not slime $e $v" }
+        function NotPesterTestFailureMessage($v, $e) { return "not slime $e $v" }
         $shouldArgs = Parse-ShouldArgs Not, Test, 1
 
         It "should return the negative assertion failure message" {
-            Get-FailureMessage $shouldArgs 2 | Should Be "not slime 1 2"
+          Get-FailureMessage $shouldArgs 2 | Should Be "not slime 1 2"
         }
     }
 
@@ -117,6 +114,14 @@ Describe -Tag "Acceptance" "Should" {
 
     It "can handle exception should not be thrown assertions" {
         { $foo = 1 } | Should Not Throw
+    }
+
+    It "ensures all assertion functions provide failure messages" {
+        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty")
+        $assertionFunctions | % {
+            Test-Path "function:$($_)FailureMessage" | Should Be $true
+            Test-Path "function:Not$($_)FailureMessage" | Should Be $true
+        }
     }
 }
 

@@ -15,11 +15,11 @@ function PesterThrow([scriptblock] $script) {
     return $itThrew
 }
 
-function PesterThrowErrorMessage($expected, $value) {
+function PesterThrowFailureMessage($expected, $value) {
     return "Expected: the expression to throw an exception"
 }
 
-function NotPesterThrowErrorMessage($expected, $value) {
+function NotPesterThrowFailureMessage($expected, $value) {
     return "Expected: the expression to not throw an exception"
 }
 
