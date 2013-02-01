@@ -4,12 +4,11 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Describe "Setup" {
 
     It "returns a location that is in a temp area" {
-        $result = $TestDrive
-        $result.should.be("$env:Temp\pester")
+        $TestDrive | Should Be "$env:Temp\pester"
     }
 
     It "creates a drive location called TestDrive:" {
-        "TestDrive:\".should.exist()
+        "TestDrive:\" | Should Exist
     }
 }
 
@@ -19,13 +18,13 @@ Describe "Create filesystem with directories" {
     Setup -Dir "dir2"
 
     It "creates directory when called with no file content" {
-        "TestDrive:\dir1".should.exist()
+        "TestDrive:\dir1" | Should Exist
     }
 
     It "creates another directory when called with no file content and doesnt remove first directory" {
         $result = Test-Path "TestDrive:\dir2"
         $result = $result -and (Test-Path "TestDrive:\dir1")
-        $result.should.be($true)
+        $result | Should Be $true
     }
 }
 
@@ -34,11 +33,11 @@ Describe "Create nested directory structure" {
     Setup -Dir "parent/child"
 
     It "creates parent directory" {
-        "TestDrive:\parent".should.exist()
+        "TestDrive:\parent" | Should Exist
     }
 
     It "creates child directory underneath parent" {
-        "TestDrive:\parent\child".should.exist()
+        "TestDrive:\parent\child" | Should Exist
     }
 }
 
@@ -47,13 +46,11 @@ Describe "Create a file with no content" {
     Setup -File "file"
 
     It "creates file" {
-        "TestDrive:\file".should.exist()
+        "TestDrive:\file" | Should Exist
     }
 
     It "also has no content" {
-        $result = Get-Content "TestDrive:\file"
-        $result = ($result -eq $null)
-        $result.should.be($true)
+        Get-Content "TestDrive:\file" | Should BeNullOrEmpty
     }
 }
 
@@ -62,12 +59,11 @@ Describe "Create a file with content" {
     Setup -File "file" "file contents"
 
     It "creates file" {
-        "TestDrive:\file".should.exist()
+        "TestDrive:\file" | Should Exist
     }
 
     It "adds content to the file" {
-        $result = Get-Content "TestDrive:\file"
-        $result.should.be("file contents")
+        Get-Content "TestDrive:\file" | Should Be "file contents"
     }
 }
 

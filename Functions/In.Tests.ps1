@@ -7,7 +7,7 @@ Describe "the In statement" {
 
     It "executes a command in that directory" {
         In "$TestDrive" -Execute { "" | Out-File "test_file" }
-        "$TestDrive\test_file".should.exist() 
+        "$TestDrive\test_file" | Should Exist
     }
 
     It "updates the `$pwd variable when executed" {

@@ -1,13 +1,13 @@
 Describe "Replacing strings" {
     It "should remove powershell backtick when replacing strings" {
         $replacments = Get-ReplacementArgs "@@test@@" @{ test = "This is a test don``t do this" }
-        $replacments.should.be("-replace '@@test@@', 'This is a test dont do this'")
+        $replacments | Should Be "-replace '@@test@@', 'This is a test dont do this'"
 
     }
 
     It "should remove single quote when replacing strings" {
         $replacments = Get-ReplacementArgs "@@test@@" @{ test = "This is a test don't do this" }
-        $replacments.should.be("-replace '@@test@@', 'This is a test dont do this'")
+        $replacments | Should Be "-replace '@@test@@', 'This is a test dont do this'"
     }
 }
 
