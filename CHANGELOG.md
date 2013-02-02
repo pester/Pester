@@ -1,3 +1,8 @@
+## 2.0.0 (Feb 2, 2012)
+
+  - Functioanlity equivalent to 1.2.0 except legacy assertions disabled by
+    default. This is a breaking change for anyone who is already using Pester
+
 ## 1.2.0 (Feb 2, 2012)
 
   - Fixing many of the scoping issues [GH-9]

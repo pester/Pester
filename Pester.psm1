@@ -89,17 +89,15 @@ about_pester
         [string]$OutputXml = '',
         [Parameter(Position=4,Mandatory=0)]
         [string]$Tags = $null,
-        [switch]$DisableOldStyleAssertions = $false
+        [switch]$EnableLegacyAssertions = $false
 
     )
     $pester = @{}
     $pester.starting_variables = Get-VariableAsHash
     Reset-GlobalTestResults
 
-    if ($DisableOldStyleAssertions) {
-        "Disabling old dot style based assertions" | Write-Host
-    } else {
-        "Including old style dot based assertions" | Write-Host
+    if ($EnableLegacyAssertions) {
+        "Legacy assertion style enabled" | Write-Host
         . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
         Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
     }
