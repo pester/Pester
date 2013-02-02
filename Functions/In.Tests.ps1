@@ -12,7 +12,8 @@ Describe "the In statement" {
 
     It "updates the `$pwd variable when executed" {
         In "$TestDrive\test_path" -Execute { $env:Pester_Test=$pwd }
-        $env:Pester_Test.should.match("test_path")
+        $env:Pester_Test | Should Match "test_path"
         $env:Pester_Test=""
     }
 }
+

@@ -121,8 +121,12 @@ Describe -Tag "Acceptance" "Should" {
         $TestDrive | Should Exist
     }
 
+    It "can handle the Match assertion" {
+        "abcd1234" | Should Match "d1"
+    }
+
     It "ensures all assertion functions provide failure messages" {
-        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist")
+        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist", "PesterMatch")
         $assertionFunctions | % {
             "function:$($_)FailureMessage" | Should Exist
             "function:Not$($_)FailureMessage" | Should Exist

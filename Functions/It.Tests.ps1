@@ -12,7 +12,7 @@ function List-ExtraKeys($baseHash, $otherHash) {
     return $extra_keys
 }
 
-Describe -Tags "It" "It" {
+Describe "It" {
 
     It "does not pollute the global namespace" {
       $extra_keys = List-ExtraKeys $pester.starting_variables $(Get-VariableAsHash)

@@ -14,10 +14,10 @@ Describe "Replacing strings" {
 Describe "Templating" {
     it "Should get a template from the template folder" {
         $template = Get-Template "TestCaseSuccess.template.xml"
-        $template.Should.Match('test-case name="@@name@@"')
+        $template | Should Match 'test-case name="@@name@@"'
     }
     it "Should replace strings in template with the according value" {     
         $template = Invoke-Template "TestCaseSuccess.template.xml" @{ name = "Template Test" }
-        $template.Should.Match('test-case name="Template Test"')
+        $template | Should Match 'test-case name="Template Test"'
     }
 }
