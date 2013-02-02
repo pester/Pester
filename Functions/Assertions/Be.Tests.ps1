@@ -1,15 +1,15 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$here\Should.ps1"
+. "$here\Test-Assertion.ps1"
 . "$here\Be.ps1"
 
-Describe "Be" {
+Describe "PesterBe" {
 
     It "returns true if the 2 arguments are equal" {
-        PesterBe 1 1 | Should Be $true
+        Test-PositiveAssertion (PesterBe 1 1)
     }
 
     It "returns false if the 2 arguments are not equal" {
-        PesterBe 1 2 | Should Be $false
+        Test-NegativeAssertion (PesterBe 1 2)
     }
 }
 

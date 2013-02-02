@@ -1,16 +1,15 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$here\Should.ps1"
+. "$here\Test-Assertion.ps1"
 . "$here\Exist.ps1"
 
-Describe "Exist" {
+Describe "PesterExist" {
 
     It "returns true for paths that exist" {
-        PesterExist $TestDrive | Should Be $true
+        Test-PositiveAssertion (PesterExist $TestDrive)
     }
 
     It "returns false for paths do not exist" {
-        PesterExist "$TestDrive\nonexistant" | Should Be $false
+        Test-NegativeAssertion (PesterExist "$TestDrive\nonexistant")
     }
-
 }
 

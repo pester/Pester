@@ -1,20 +1,19 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here\Test-Assertion.ps1"
 . "$here\BeNullOrEmpty.ps1"
-. "$here\Should.ps1"
-. "$here\Be.ps1"
 
-Describe "BeNullOrEmpty" {
+Describe "PesterBeNullOrEmpty" {
 
     It "should return true if null" {
-        PesterBeNullOrEmpty $null | Should Be $true
+        Test-PositiveAssertion (PesterBeNullOrEmpty $null)
     }
 
     It "should return true if empty string" {
-        PesterBeNullOrEmpty "" | Should Be $true
+        Test-PositiveAssertion (PesterBeNullOrEmpty "")
     }
 
     It "should return true if empty array" {
-        PesterBeNullOrEmpty @() | Should Be $true
+        Test-PositiveAssertion (PesterBeNullOrEmpty @())
     }
 }
 
