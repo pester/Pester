@@ -78,31 +78,31 @@ Describe "When calling Mock on existing cmdlet with Common params" {
     $result=[string](Get-Content function:\CommonParamFunction)
 
     It "Should strip verbose" {
-        $result.contains("`${Verbose}").should.be($false)
+        $result.contains("`${Verbose}") | Should Be $false
     }
     It "Should strip Debug" {
-        $result.contains("`${Debug}").should.be($false)
+        $result.contains("`${Debug}") | Should Be $false
     }
     It "Should strip ErrorAction" {
-        $result.contains("`${ErrorAction}").should.be($false)
+        $result.contains("`${ErrorAction}") | Should Be $false
     }
     It "Should strip WarningAction" {
-        $result.contains("`${WarningAction}").should.be($false)
+        $result.contains("`${WarningAction}") | Should Be $false
     }
     It "Should strip ErrorVariable" {
-        $result.contains("`${ErrorVariable}").should.be($false)
+        $result.contains("`${ErrorVariable}") | Should Be $false
     }
     It "Should strip WarningVariable" {
-        $result.contains("`${WarningVariable}").should.be($false)
+        $result.contains("`${WarningVariable}") | Should Be $false
     }
     It "Should strip OutVariable" {
-        $result.contains("`${OutVariable}").should.be($false)
+        $result.contains("`${OutVariable}") | Should Be $false
     }
     It "Should strip OutBuffer" {
-        $result.contains("`${OutBuffer}").should.be($false)
+        $result.contains("`${OutBuffer}") | Should Be $false
     }
     It "Should not strip an Uncommon param" {
-        $result.contains("`${Uncommon}").should.be($true)
+        $result.contains("`${Uncommon}") | Should Be $true
     }
 }
 
