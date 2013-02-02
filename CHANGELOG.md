@@ -8,6 +8,7 @@
   - Added negative assertions with the 'Not' keyword
   - Added 'Match' asserion
   - Added -DisableOldStyleAssertions [GH-19] and [GH-27]
+  - Added Contain assertion which tests file contents [GH-13]
 
 ## 1.1.1 (Dec 29, 2012)
 

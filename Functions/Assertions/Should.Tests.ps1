@@ -125,8 +125,14 @@ Describe -Tag "Acceptance" "Should" {
         "abcd1234" | Should Match "d1"
     }
 
+    It "can test for file contents" {
+        Setup -File "test.foo" "expected text"
+        "$TestDrive\test.foo" | Should Contain "expected text"
+    }
+
     It "ensures all assertion functions provide failure messages" {
-        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist", "PesterMatch")
+        $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
+            "PesterMatch", "PesterContain")
         $assertionFunctions | % {
             "function:$($_)FailureMessage" | Should Exist
             "function:Not$($_)FailureMessage" | Should Exist
