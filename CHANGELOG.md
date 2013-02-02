@@ -1,4 +1,4 @@
-## Latest unreleased (Jan 30, 2012)
+## 1.2.0 (Feb 2, 2012)
 
   - Fixing many of the scoping issues [GH-9]
   - Ability to tag describes [GH-35]
