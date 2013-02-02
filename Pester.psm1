@@ -88,13 +88,21 @@ about_pester
         [Parameter(Position=3,Mandatory=0)]
         [string]$OutputXml = '',
         [Parameter(Position=4,Mandatory=0)]
-        [string]$Tags = $null
+        [string]$Tags = $null,
+        [switch]$DisableOldStyleAssertions = $false
+
     )
     $pester = @{}
     $pester.starting_variables = Get-VariableAsHash
     Reset-GlobalTestResults
-    . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
-    Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
+
+    if ($DisableOldStyleAssertions) {
+        "Disabling old dot style based assertions" | Write-Host
+    } else {
+        "Including old style dot based assertions" | Write-Host
+        . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
+        Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
+    }
 
     $pester.fixtures_path = Resolve-Path $relative_path
     $pester.arr_testTags  = $Tags.Split(' ')
