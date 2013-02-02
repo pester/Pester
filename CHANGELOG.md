@@ -6,6 +6,8 @@
   - Added 'Should Throw' assertion [GH-37]
   - Added 'Should BeNullOrEmpty' assertion [GH-39]
   - Added negative assertions with the 'Not' keyword
+  - Added 'Match' asserion
+  - Added -DisableOldStyleAssertions [GH-19] and [GH-27]
 
 ## 1.1.1 (Dec 29, 2012)
 
