@@ -89,15 +89,15 @@ about_pester
         [string]$OutputXml = '',
         [Parameter(Position=4,Mandatory=0)]
         [string]$Tags = $null,
-        [switch]$EnableLegacyAssertions = $false
+        [switch]$EnableLegacyExpectations = $false
 
     )
     $pester = @{}
     $pester.starting_variables = Get-VariableAsHash
     Reset-GlobalTestResults
 
-    if ($EnableLegacyAssertions) {
-        "Legacy assertion style enabled" | Write-Host
+    if ($EnableLegacyExpectations) {
+        "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow
         . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
         Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
     }

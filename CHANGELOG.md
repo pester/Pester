@@ -1,3 +1,7 @@
+## 2.0.1 (Feb 3, 2012)
+
+  - Renamed -EnableLegacyAssertions to -EnableLegacyExpectations
+
 ## 2.0.0 (Feb 2, 2012)
 
   - Functioanlity equivalent to 1.2.0 except legacy assertions disabled by
