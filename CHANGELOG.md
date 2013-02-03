@@ -1,3 +1,6 @@
+## 1.2.1 (Feb 3, 2012)
+  - Changed -DisableOldStyleAssertions to -DisableLegacyExpectations
+
 ## 1.2.0 (Feb 2, 2012)
 
   - Fixing many of the scoping issues [GH-9]
