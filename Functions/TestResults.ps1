@@ -124,7 +124,7 @@ function Get-RunTimeEnvironment() {
 
 
 function Exit-WithCode {
-    $failedTestsCount = $Global:TestResults.FailedTestsCount
+    $failedTestsCount = $Pester.TestResults.FailedTestsCount
     $host.SetShouldExit($failedTestsCount)
 }
 
