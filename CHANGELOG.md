@@ -1,3 +1,7 @@
+## 2.0.2 (Feb 28, 2012)
+
+  - Fixed exit code bug that was introduced in version 2.0.0
+
 ## 2.0.1 (Feb 3, 2012)
 
   - Renamed -EnableLegacyAssertions to -EnableLegacyExpectations
