@@ -118,6 +118,8 @@ about_pester
         Write-NunitTestReport (Get-GlobalTestResults) $OutputXml 
     }
     if ($EnableExit) { Exit-WithCode }
+	
+	return $Pester.TestResults.FailedTestsCount
 }
 
 function Write-UsageForCreateFixture {
