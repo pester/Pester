@@ -65,41 +65,38 @@ param(
     [ScriptBlock] $test
 )
     $pester.results = Get-GlobalTestResults
-    $pester.margin = " " * $pester.results.TestDepth
-    $pester.error_margin = $pester.margin * 2
     $pester.results.TestCount += 1
-
-    $pester.output = " $($pester.margin)$name"
-
-    $pester.start_line_position = $test.StartPosition.StartLine
-    $pester.test_file = $test.File
 
     Setup-TestFunction
     . $TestDrive\temp.ps1
 
-    $pester.testResult = @{
-        name = $name
-        time = 0
-        failureMessage = ""
-        stackTrace = ""
-        success = $false
-    };
-
     $pester.testTime = Measure-Command {
         try{
             temp
-            $pester.testResult.success = $true
         } catch {
             $pester.results.FailedTestsCount += 1
-            $pester.failure_message = $_.toString() -replace "Exception calling", "Assert failed on"
-            $pester.temp_line_number =  $_.InvocationInfo.ScriptLineNumber-2
-            $pester.failure_line_number = $pester.start_line_position + $pester.temp_line_number
-            $pester.testResult.failureMessage = $pester.failure_message
-            $pester.testResult.stackTrace = "at line: $($pester.failure_line_number) in $($pester.test_file)"
+            $exception = $_
         }
     }
 
-    $pester.testResult.time = $pester.testTime.TotalSeconds
+    $pester.testResult = Get-PesterResult $test $exception
+    $pester.results.CurrentDescribe.Tests += $pester.testResult
+    $pester.results.TotalTime += $pester.testTime.TotalSeconds
+    Write-PesterResult
+}
+
+function Setup-TestFunction {
+@"
+function temp {
+$test
+}
+"@ | out-file $TestDrive\temp.ps1
+}
+
+function write-PesterResult{
+    $pester.margin = " " * $pester.results.TestDepth
+    $pester.error_margin = $pester.margin * 2
+    $pester.output = " $($pester.margin)$name"
     $pester.humanSeconds = Get-HumanTime $pester.testTime.TotalSeconds
     if($pester.testResult.success) {
         "[+] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor green;
@@ -109,15 +106,29 @@ param(
          Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.failureMessage)
          Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.stackTrace)
     }
-
-    $pester.results.CurrentDescribe.Tests += $pester.testResult;
-    $pester.results.TotalTime += $pester.testTime.TotalSeconds;
 }
 
-function Setup-TestFunction {
-@"
-function temp {
-$test
-}
-"@ | out-file $TestDrive\temp.ps1
+function Get-PesterResult{
+    param([ScriptBlock] $test, $exception)
+    $testResult = @{
+        name = $name
+        time = 0
+        failureMessage = ""
+        stackTrace = ""
+        success = $false
+    };
+
+    if(!$exception){$testResult.success = $true}
+    else {
+        $testResult.failureMessage = $Exception.toString() -replace "Exception calling", "Assert failed on"
+        if($Exception.ScriptStackTrace -match "\\pester\\temp.ps1: line (?<line>[\d]+)") {
+            $line=$matches['line']
+        }
+        else {
+            $line=$exception.InvocationInfo.ScriptLineNumber
+        }
+        $failureLine = $test.StartPosition.StartLine + ($line-2)
+        $testResult.stackTrace = "at line: $failureLine in $($test.File)"
+    }
+    return $testResult
 }
