@@ -14,7 +14,7 @@ Task Release -depends Build, Push-Nuget
 
 Task Test {
     CD "$baseDir"
-    ."$baseDir\bin\Pester.bat"
+    exec {."$baseDir\bin\Pester.bat"}
     CD $currentDir
 }
 
