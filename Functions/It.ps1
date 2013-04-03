@@ -121,8 +121,9 @@ function Get-PesterResult{
     if(!$exception){$testResult.success = $true}
     else {
         $testResult.failureMessage = $Exception.toString() -replace "Exception calling", "Assert failed on"
-        if($Exception.ScriptStackTrace -match "\\pester\\temp.ps1: line (?<line>[\d]+)") {
-            $line=$matches['line']
+        if($pester.ShouldExceptionLine) {
+            $line=$pester.ShouldExceptionLine
+            $pester.ShouldExceptionLine=$null
         }
         else {
             $line=$exception.InvocationInfo.ScriptLineNumber

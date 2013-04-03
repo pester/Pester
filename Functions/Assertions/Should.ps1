@@ -44,6 +44,7 @@ function Should {
         $testFailed = Get-TestResult   $parsedArgs $value
 
         if ($testFailed) {
+            $pester.ShouldExceptionLine = $MyInvocation.ScriptLineNumber
             throw (Get-FailureMessage $parsedArgs $value)
         }
     }
