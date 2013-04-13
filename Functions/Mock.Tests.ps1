@@ -330,19 +330,21 @@ Describe "Using Contexts" {
     Mock FunctionUnderTest {return "I am the paramless mock test"}
 
     Context "When in the first context" {
-        $result = FunctionUnderTest
-
-        It "should mock Describe scoped mock" {
-            $result | should be "I am the paramless mock test"
+        It "should mock Describe scoped paramles mock" {
+            FunctionUnderTest | should be "I am the paramless mock test"
         }
+        It "should mock Describe scoped single param mock" {
+            FunctionUnderTest "one" | should be "I am the first mock test"
+        }        
     }
 
     Context "When in the second context" {
-        $result = FunctionUnderTest
-
-        It "should mock Describe scoped mock again" {
-            $result | should be "I am the paramless mock test"
+        It "should mock Describe scoped paramles mock again" {
+            FunctionUnderTest | should be "I am the paramless mock test"
         }
+        It "should mock Describe scoped single param mock again" {
+            FunctionUnderTest "one" | should be "I am the first mock test"
+        }        
     }
 
     Context "When using mocks in both scopes" {
@@ -358,19 +360,22 @@ Describe "Using Contexts" {
 
     Context "When context hides a describe mock" {
         Mock FunctionUnderTest {return "I am the context mock"}
+        Mock FunctionUnderTest {return "I am the parameterized context mock"} -parameterFilter {$param1 -eq "one"}
 
-        $result = FunctionUnderTest
-
-        It "should use the context mock" {
-            $result | should be "I am the context mock"
+        It "should use the context paramles mock" {
+            FunctionUnderTest | should be "I am the context mock"
+        }
+        It "should use the context parameterized mock" {
+            FunctionUnderTest "one" | should be "I am the parameterized context mock"
         }
     }
 
     Context "When context no longer hides a describe mock" {
-        $result = FunctionUnderTest
-
-        It "should use the context mock" {
-            $result | should be "I am the paramless mock test"
+        It "should use the describe mock" {
+            FunctionUnderTest | should be "I am the paramless mock test"
         }
+        It "should use the describe parameterized mock" {
+            FunctionUnderTest "one" | should be "I am the first mock test"
+        }        
     }
 }
