@@ -302,7 +302,11 @@ param(
 function Clear-Mocks {
     if($mockTable){
         $mocksToRemove=@()
-        $mockTable.Keys | % { $mockTable[$_].blocks = $mockTable[$_].blocks | ? {$_.Scope -ne $pester.Scope} }
+        $mockTable.Keys | % { 
+            $otherScopeBlocks = @()
+            $mockTable[$_].blocks | ? {$_.Scope -ne $pester.Scope} | % { $otherScopeBlocks += $_ }
+            $mockTable[$_].blocks = $otherScopeBlocks
+        }
         $mockTable.values | ? { $_.blocks.Length -eq 0} | % { 
             $mocksToRemove += $_.CommandName
             Microsoft.PowerShell.Management\Remove-Item function:\$($_.CommandName)
