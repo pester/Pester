@@ -37,7 +37,7 @@ param(
     $name,
     [ScriptBlock] $fixture
 )
-
+    $pester.Scope = "Context"
     Setup
 
     $pester.results = Get-GlobalTestResults

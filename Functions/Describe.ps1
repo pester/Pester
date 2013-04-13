@@ -57,7 +57,7 @@ param(
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $fixture
 )
-
+    $pester.Scope = "Describe"
     if($testName -ne '' -and $testName.ToLower() -ne $name.ToLower()) {return}
     if($pester.arr_testTags -ne '' -and @(Compare-Object $tags $pester.arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
@@ -74,6 +74,8 @@ param(
     $pester.output = $pester.margin + "Describing " + $name
     Write-Host -fore yellow $($pester.output)
     & $fixture
+
+    $pester.Scope = "Describe" #may have been switched to context
     Cleanup
     $pester.results.Describes += $pester.results.CurrentDescribe
     $pester.results.TestDepth -= 1

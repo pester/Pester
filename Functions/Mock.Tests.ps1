@@ -323,6 +323,54 @@ Describe "When Calling Assert-MockCalled without exactly" {
     It "Should not throw if mock was called at exactly the number of times specified" {
         Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
     }
-
 }
 
+Describe "Using Contexts" {
+    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
+    Mock FunctionUnderTest {return "I am the paramless mock test"}
+
+    Context "When in the first context" {
+        $result = FunctionUnderTest
+
+        It "should mock Describe scoped mock" {
+            $result | should be "I am the paramless mock test"
+        }
+    }
+
+    Context "When in the second context" {
+        $result = FunctionUnderTest
+
+        It "should mock Describe scoped mock again" {
+            $result | should be "I am the paramless mock test"
+        }
+    }
+
+    Context "When using mocks in both scopes" {
+        Mock FunctionUnderTestWithoutParams {return "I am the other function"}
+
+        It "should mock Describe scoped mock." {
+            FunctionUnderTest | should be "I am the paramless mock test"
+        }
+        It "should mock Context scoped mock." {
+            FunctionUnderTestWithoutParams | should be "I am the other function"
+        }
+    }
+
+    Context "When context hides a describe mock" {
+        Mock FunctionUnderTest {return "I am the context mock"}
+
+        $result = FunctionUnderTest
+
+        It "should use the context mock" {
+            $result | should be "I am the context mock"
+        }
+    }
+
+    Context "When context no longer hides a describe mock" {
+        $result = FunctionUnderTest
+
+        It "should use the context mock" {
+            $result | should be "I am the paramless mock test"
+        }
+    }
+}

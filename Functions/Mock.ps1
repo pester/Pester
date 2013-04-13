@@ -116,7 +116,7 @@ param(
     $origCommand = Validate-Command $commandName
     $filterTest=&($parameterFilter)
     if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
-    $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable}
+    $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable; Scope=$pester.Scope}
     $mock = $mockTable.$commandName
     if(!$mock) {
         if($origCommand.CommandType -eq "Function") {
@@ -135,9 +135,23 @@ param(
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
         Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params )Process{ `r`n$newContent}"
-        $mock=@{OriginalCommand=$origCommand;blocks=@($blocks);CmdLet=$cmdLetBinding;Params=$params}
-    } else {
-        if($blocks.Filter.ToString() -eq "`$True") {$mock.blocks = ,$blocks + $mock.blocks} else { $mock.blocks += $blocks }
+        $mock=@{OriginalCommand=$origCommand;blocks=@($blocks);CmdLet=$cmdLetBinding;Params=$params;CommandName=$CommandName}
+    } 
+    else {
+        if($blocks.Filter.ToString() -eq "`$True") {
+            if($mock.blocks[0].Filter.ToString() -eq "`$True") {
+                $noParams=@()
+                $noParams += $mock.blocks | ? { $_.Filter.ToString() -eq "`$True" }
+                $noParams += $blocks
+                $mock.blocks = $noParams + $mock.blocks[($noParams.Length-1)..($mock.blocks.Length-1)]
+            }
+            else {
+                $mock.blocks = ,$blocks + $mock.blocks
+            }
+        } 
+        else { 
+            $mock.blocks += $blocks 
+        }
     }
     $mockTable.$commandName = $mock
 }
@@ -287,10 +301,17 @@ param(
 
 function Clear-Mocks {
     if($mockTable){
-        $mockTable.Keys | % { Microsoft.PowerShell.Management\Remove-Item function:\$_ }
-        $mockTable.Clear()
+        $mocksToRemove=@()
+        $mockTable.Keys | % { $mockTable[$_].blocks = $mockTable[$_].blocks | ? {$_.Scope -ne $pester.Scope} }
+        $mockTable.values | ? { $_.blocks.Length -eq 0} | % { 
+            $mocksToRemove += $_.CommandName
+            Microsoft.PowerShell.Management\Remove-Item function:\$($_.CommandName)
+            if(Test-Path Function:\PesterIsMocking_$($_.CommandName) ){
+                Rename-Item Function:\PesterIsMocking_$($_.CommandName) "script:$($_.CommandName)"
+            }
+        }
+        $mocksToRemove | % { $mockTable.Remove($_) }
         $global:mockCallHistory = @()
-        Get-ChildItem Function: | ? { $_.Name.StartsWith("PesterIsMocking_") } | % {Rename-Item Function:\$_ "script:$($_.Name.Replace('PesterIsMocking_', ''))"}
     }
 }
 
