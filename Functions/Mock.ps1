@@ -143,7 +143,12 @@ param(
                 $noParams=@()
                 $noParams += $mock.blocks | ? { $_.Filter.ToString() -eq "`$True" }
                 $noParams += $blocks
-                $mock.blocks = $noParams + $mock.blocks[($noParams.Length-1)..($mock.blocks.Length-1)]
+                if($mock.blocks.Length -gt 1){
+                    $mock.blocks = $noParams + $mock.blocks[($noParams.Length-1)..($mock.blocks.Length-1)]
+                }
+                else {
+                    $mock.blocks = $noParams
+                }
             }
             else {
                 $mock.blocks = ,$blocks + $mock.blocks

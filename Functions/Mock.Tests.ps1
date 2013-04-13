@@ -379,3 +379,15 @@ Describe "Using Contexts" {
         }        
     }
 }
+
+Describe "Using a single no param Describe" {
+    Mock FunctionUnderTest {return "I am the describe mock test"}
+
+    Context "With a context mocking the same function with no params"{
+        Mock FunctionUnderTest {return "I am the context mock test"}
+        It "Should use the context mock" {
+            FunctionUnderTest | should be "I am the context mock test"
+        }
+    }
+}
+
