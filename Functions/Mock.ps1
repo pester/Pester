@@ -102,6 +102,13 @@ Get-ChildItem $env:temp\me
 
 Here, B_File.TXT will be returned. Even though the filterless mock was created last. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
 
+.NOTES
+Notice how 'Mock Get-Version {return 1.1}' is declared within the 
+Describe block. This allows all context blocks inside the describe to 
+use this Mock. If a context scoped mock, mocks Get-Version, that mock 
+will override the describe scoped mock within that contex tif both mocks 
+apply to the parameters passed to Get-Version.
+
 .LINK
 about_Mocking
 #>
