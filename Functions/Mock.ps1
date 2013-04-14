@@ -102,12 +102,39 @@ Get-ChildItem $env:temp\me
 
 Here, B_File.TXT will be returned. Even though the filterless mock was created last. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
 
-.NOTES
-Notice how 'Mock Get-Version {return 1.1}' is declared within the 
-Describe block. This allows all context blocks inside the describe to 
-use this Mock. If a context scoped mock, mocks Get-Version, that mock 
-will override the describe scoped mock within that contex tif both mocks 
-apply to the parameters passed to Get-Version.
+.EXAMPLE
+    Describe "BuildIfChanged" {
+        Mock Get-Version {return 1.1}
+        Context "Wnen there are Changes" {
+            Mock Get-NextVersion {return 1.2}
+            Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
+
+            $result = BuildIfChanged
+
+            It "Builds the next version" {
+                Assert-VerifiableMocks
+            }
+            It "returns the next version number" {
+                $result.Should.Be(1.2)
+            }
+        }
+        Context "Wnen there are no Changes" {
+            Mock Get-NextVersion -MockWith {return 1.1}
+            Mock Build -MockWith {}
+
+            $result = BuildIfChanged
+
+            It "Should not build the next version" {
+                Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
+            }
+        }
+    }
+
+    Notice how 'Mock Get-Version {return 1.1}' is declared within the 
+    Describe block. This allows all context blocks inside the describe to 
+    use this Mock. If a context scoped mock, mocks Get-Version, that mock 
+    will override the describe scoped mock within that contex tif both mocks 
+    apply to the parameters passed to Get-Version.
 
 .LINK
 about_Mocking
