@@ -1,3 +1,9 @@
+## Current
+
+  - Fixed line number reported in pester failure when using new pipelined 
+    should assertions [GH-40]
+  - Added describe/context scoping for mocks [GH-42]
+
 ## 2.0.2 (Feb 28, 2012)
 
   - Fixed exit code bug that was introduced in version 2.0.0
