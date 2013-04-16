@@ -1,23 +1,23 @@
-## Current
+## 2.0.3 (Apr 16, 2013)
 
   - Fixed line number reported in pester failure when using new pipelined 
     should assertions [GH-40]
   - Added describe/context scoping for mocks [GH-42]
 
-## 2.0.2 (Feb 28, 2012)
+## 2.0.2 (Feb 28, 2013)
 
   - Fixed exit code bug that was introduced in version 2.0.0
 
-## 2.0.1 (Feb 3, 2012)
+## 2.0.1 (Feb 3, 2013)
 
   - Renamed -EnableLegacyAssertions to -EnableLegacyExpectations
 
-## 2.0.0 (Feb 2, 2012)
+## 2.0.0 (Feb 2, 2013)
 
   - Functioanlity equivalent to 1.2.0 except legacy assertions disabled by
     default. This is a breaking change for anyone who is already using Pester
 
-## 1.2.0 (Feb 2, 2012)
+## 1.2.0 (Feb 2, 2013)
 
   - Fixing many of the scoping issues [GH-9]
   - Ability to tag describes [GH-35]
