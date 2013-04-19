@@ -14,7 +14,13 @@ function List-ExtraKeys($baseHash, $otherHash) {
 
 Describe "It" {
     [ScriptBlock]$script={"something"}
+    $test="something"
+    It "records the correct stack line number of failed tests" {
+        try{"something" | should be "nothing"}catch{ $ex=$_} #line 1
+        $result = Get-PesterResult $script $ex
+        $result.Stacktrace | should match "at line: $($script.startPosition.StartLine+1) in "
         $test="something"
+    }
 
     It "should pass if assertions pass" {
         $test | should be "something"
