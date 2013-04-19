@@ -70,16 +70,23 @@ param(
     Setup-TestFunction
     . $TestDrive\temp.ps1
 
+    $pester.ThisTest=$test
+    try{
+        [object]$test=(get-variable -name test -scope 1 -errorAction Stop).value
+    }
+    catch { 
+        #throws if there is no parent test var
+    }
     $pester.testTime = Measure-Command {
         try{
             temp
         } catch {
             $pester.results.FailedTestsCount += 1
-            $exception = $_
+            $PesterException = $_
         }
     }
 
-    $pester.testResult = Get-PesterResult $test $exception
+    $pester.testResult = Get-PesterResult $pester.ThisTest $PesterException
     $pester.results.CurrentDescribe.Tests += $pester.testResult
     $pester.results.TotalTime += $pester.testTime.TotalSeconds
     Write-PesterResult
