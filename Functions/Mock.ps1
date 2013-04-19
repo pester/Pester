@@ -62,7 +62,7 @@ Using this Mock, all calls to Get-ChildItem will return an object with a
 FullName property returning "A_File.TXT"
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -PrameterFilter {$Path.StartsWith($env:temp)}
+Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp)}
 
 This Mock will only be applied to Get-ChildItem calls within the user's temp directory.
 
@@ -72,22 +72,22 @@ Mock Set-Content -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value
 When this mock is used, if the Mock is never invoked and Assert-VerifiableMocks is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
-c:\PS>Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -PrameterFilter {$Path.StartsWith($env:temp\1)}
-c:\PS>Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -PrameterFilter {$Path.StartsWith($env:temp\2)}
-c:\PS>Mock Get-ChildItem {return @{FullName="C_File.TXT"}} -PrameterFilter {$Path.StartsWith($env:temp\3)}
+c:\PS>Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp\1)}
+c:\PS>Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp\2)}
+c:\PS>Mock Get-ChildItem {return @{FullName="C_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp\3)}
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -PrameterFilter {$Path -eq "$env:temp\me"}
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -PrameterFilter {$Path.StartsWith($env:temp)}
+Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path -eq "$env:temp\me"}
+Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp)}
 
 Get-ChildItem $env:temp\me
 
 Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the last Mock created.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -PrameterFilter {$Path -eq "$env:temp\me"}
+Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path -eq "$env:temp\me"}
 Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
 
 Get-ChildItem c:\windows
@@ -95,7 +95,7 @@ Get-ChildItem c:\windows
 Here, A_File.TXT will be returned. Since no filterwas specified, it will apply to any call to Get-ChildItem that does not pass another filter.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -PrameterFilter {$Path -eq "$env:temp\me"}
+Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path -eq "$env:temp\me"}
 Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
 
 Get-ChildItem $env:temp\me
