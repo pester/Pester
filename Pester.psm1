@@ -120,9 +120,9 @@ about_pester
     if ($EnableExit) { Exit-WithCode }
 }
 
-function Write-UsageForCreateFixture {
+function Write-UsageForNewFixture {
     "invalid usage, please specify (path, name)" | Write-Host
-    "eg: .\Create-Fixture -Path Foo -Name Bar" | Write-Host
+    "eg: .\New-Fixture -Path Foo -Name Bar" | Write-Host
     "creates .\Foo\Bar.ps1 and .\Foo.Bar.Tests.ps1" | Write-Host
 }
 
@@ -140,7 +140,9 @@ function Create-File($file_path, $contents = "") {
 function New-Fixture {
 <#
 .SYNOPSIS
-Generates scaffolding for two files: One that defines a function and another one that contains its tests.
+Generates scaffolding for two files: One that defines a function
+and another one that contains its tests. Yes, Pester does take
+an opinionated approach and puts the test right beside your code.
 
 .DESCRIPTION
 Thic command generates two files located in a directory 
@@ -156,19 +158,19 @@ Creates two files:
 ./deploy/Clean.ps1
 function clean {
 
-    }
+}
 
 ./deploy/clean.Tests.ps1
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-    . "$here\$sut"
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+. "$here\$sut"
 
-    Describe "clean" {
+Describe "clean" {
 
-        It "does something useful" {
-            $true.should.be($false)
-        }
+    It "does something useful" {
+        $true | Should Be $false
     }
+}
 
 .LINK
 Describe
@@ -178,12 +180,12 @@ about_Pester
 about_Should
 #>
 param(
-    $path, 
+    $path,
     $name
 )
 
     if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
-        Write-UsageForCreateFixture
+        Write-UsageForNewFixture
         return
     }
 
@@ -198,21 +200,23 @@ param(
 
     $test_code = "function $name {
 
-    }"
+}
+"
 
     $fixture_code = "`$here = Split-Path -Parent `$MyInvocation.MyCommand.Path
-    `$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
-    . `"`$here\`$sut`"
+`$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
+. `"`$here\`$sut`"
 
-    Describe `"$name`" {
+Describe `"$name`" {
 
-        It `"does something useful`" {
-            `$true.should.be(`$false)
-        }
-    }"
+    It `"does something useful`" {
+        `$true | Should Be `$false
+    }
+}
+"
 
-    Create-File "$path\$name.ps1" $test_code
-    Create-File "$path\$name.Tests.ps1" $fixture_code
+    Create-File "$path\$name.ps1" $test_code -Encoding ASCII
+    Create-File "$path\$name.Tests.ps1" $fixture_code -Encoding ASCII
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
