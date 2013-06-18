@@ -104,9 +104,13 @@ Describe -Tag "Acceptance" "Should" {
     }
 
     It "can use the BeNullOrEmpty assertion" {
+        function ReturnNothing {}
+
         $null | Should BeNullOrEmpty
         @()   | Should BeNullOrEmpty
         ""    | Should BeNullOrEmpty
+
+        { $(ReturnNothing) | Should Not BeNullOrEmpty } | Should Throw
     }
 
     It "can handle exception thrown assertions" {
