@@ -139,5 +139,11 @@ Describe -Tag "Acceptance" "Should" {
         }
     }
 
+    It "can process functions with empty output as input" {
+        function ReturnNothing {}
+
+        { $(ReturnNothing) | Should Not BeNullOrEmpty } | Should Throw
+    }
+
 }
 

@@ -37,16 +37,22 @@ function Get-FailureMessage($shouldArgs, $value) {
 }
 
 function Should {
-    process {
-        $value = $_
-
+    begin {
         $parsedArgs = Parse-ShouldArgs $args
-        $testFailed = Get-TestResult   $parsedArgs $value
+    }
 
-        if ($testFailed) {
-            $pester.ShouldExceptionLine = $MyInvocation.ScriptLineNumber
-            throw (Get-FailureMessage $parsedArgs $value)
-        }
+    end {
+        do {
+            $input.MoveNext()
+            $value = $input.Current
+
+            $testFailed = Get-TestResult $parsedArgs $value
+
+            if ($testFailed) {
+                $pester.ShouldExceptionLine = $MyInvocation.ScriptLineNumber
+                throw (Get-FailureMessage $parsedArgs $value)
+            }
+        } until ($input.MoveNext() -eq $false)
     }
 }
 
