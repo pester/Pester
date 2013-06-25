@@ -104,13 +104,9 @@ Describe -Tag "Acceptance" "Should" {
     }
 
     It "can use the BeNullOrEmpty assertion" {
-        function ReturnNothing {}
-
         $null | Should BeNullOrEmpty
         @()   | Should BeNullOrEmpty
         ""    | Should BeNullOrEmpty
-
-        { $(ReturnNothing) | Should Not BeNullOrEmpty } | Should Throw
     }
 
     It "can handle exception thrown assertions" {
@@ -141,6 +137,12 @@ Describe -Tag "Acceptance" "Should" {
             "function:$($_)FailureMessage" | Should Exist
             "function:Not$($_)FailureMessage" | Should Exist
         }
+    }
+
+    It "can process functions with empty output as input" {
+        function ReturnNothing {}
+
+        { $(ReturnNothing) | Should Not BeNullOrEmpty } | Should Throw
     }
 
 }
