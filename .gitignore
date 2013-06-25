@@ -1,3 +1,6 @@
 build/
 Test.xml
 vendor/packages/
+
+# vim on windows backup file
+*~
