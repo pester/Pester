@@ -6,6 +6,18 @@ Pester tests can execute any command or script that is accesible to a pester tes
 
 **Pester also contains a powerful set of Mocking Functions** that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested.
 
+## Install Pester
+
+1. Verify execution of scripts is allowed with `Get-ExecutionPolicy` (should be `Unrestricted`). If scripts are not enabled, run PowerShell as Administrator and call `Set-ExecutionPolicy Unrestricted -Scope CurrentUser -Confirm`.
+
+
+2. Get the code: Either use git to clone the repository OR download and extract a zip of the project to a permanent location on disk
+
+3. From a powershel prompt, run the install script
+
+  `.\install.ps1`  <-- this addes some code to your `$PROFILE` that loads the Pester module.
+
+
 A Pester Test
 -------------
 BuildChanges.ps1
