@@ -1,6 +1,11 @@
+## 2.0.4 (unreleased)
+
+  - Fixed assertions on empty functions [GH-50]
+  - Fixed New-Fixture so it creates proper syntax in tests [GH-49]
+
 ## 2.0.3 (Apr 16, 2013)
 
-  - Fixed line number reported in pester failure when using new pipelined 
+  - Fixed line number reported in pester failure when using new pipelined
     should assertions [GH-40]
   - Added describe/context scoping for mocks [GH-42]
 
