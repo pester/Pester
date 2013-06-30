@@ -228,7 +228,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
     }
 }
 
-Describe "When Creaing a Verifiable Mock that is not called" {
+Describe "When Creating a Verifiable Mock that is not called" {
     Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "three" | Out-Null
     
@@ -243,16 +243,15 @@ Describe "When Creaing a Verifiable Mock that is not called" {
     }
 }
 
-Describe "When Creaing a Verifiable Mock that is called" {
+Describe "When Creating a Verifiable Mock that is called" {
     Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "one"
-
     It "Assert-VerifiableMocks Should not throw" {
-        Assert-VerifiableMocks | Should Not Throw
+        { Assert-VerifiableMocks } | Should Not Throw
     }
 }
 
-Describe "When Creaing a Verifiable Mock with a filter that does not return a boolean" {
+Describe "When Creating a Verifiable Mock with a filter that does not return a boolean" {
     $result=""
 
     try{
