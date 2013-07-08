@@ -38,7 +38,7 @@ Describe "BuildIfChanged" {
           Assert-VerifiableMocks
       }
       It "returns the next version number" {
-          $result.Should.Be(1.2)
+          $result | Should Be 1.2
       }
     }
   Context "When there are no Changes" {
