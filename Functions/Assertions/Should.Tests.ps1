@@ -109,6 +109,14 @@ Describe -Tag "Acceptance" "Should" {
         ""    | Should BeNullOrEmpty
     }
 
+    It "can use the Not BeNullOrEmpty assertion" {
+        @("foo") | Should Not BeNullOrEmpty
+        "foo"    | Should Not BeNullOrEmpty
+        $item1 = New-Object PSObject -Property @{Id=1; Name="foo"}
+        $item2 = New-Object PSObject -Property @{Id=2; Name="bar"}
+        @($item1, $item2) | Should Not BeNullOrEmpty
+    }
+
     It "can handle exception thrown assertions" {
         { foo } | Should Throw
     }
