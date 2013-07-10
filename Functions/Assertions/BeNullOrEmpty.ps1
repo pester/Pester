@@ -2,13 +2,14 @@
 function PesterBeNullOrEmpty($value) {
     if ($null -eq $value) {
         return $true
-    } elseif ($null -eq $value.Count) {
-        return $false
-    } elseif ([String] -eq $value.GetType()) {
-        return $value.Length -lt 1
-    } else {
+    }
+    if ([String] -eq $value.GetType()) {
+        return [String]::IsNullOrEmpty($value)
+    }
+    if ($null -ne $value.Count) {
         return $value.Count -lt 1
     }
+    return $false
 }
 
 function PesterBeNullOrEmptyFailureMessage($value) {
