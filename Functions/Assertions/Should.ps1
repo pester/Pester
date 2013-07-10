@@ -42,8 +42,8 @@ function Should {
     }
 
     end {
+        $input.MoveNext()
         do {
-            $input.MoveNext()
             $value = $input.Current
 
             $testFailed = Get-TestResult $parsedArgs $value
