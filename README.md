@@ -11,6 +11,11 @@ A Pester Test
 BuildChanges.ps1
 
 ```powershell
+
+function Build ($version) {
+  write-host "a build was run for version: $version"
+}
+
 function BuildIfChanged {
   $thisVersion=Get-Version
   $nextVersion=Get-NextVersion
