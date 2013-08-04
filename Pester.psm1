@@ -168,7 +168,9 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 Describe "clean" {
 
     It "does something useful" {
-        $true | Should Be $false
+        $expectedValue = $true
+        $returnedValue = $false
+        $returnedValue | Should Be $expectedValue
     }
 }
 
@@ -210,7 +212,9 @@ param(
 Describe `"$name`" {
 
     It `"does something useful`" {
-        `$true | Should Be `$false
+        `$expectedValue = `$true
+        `$returnedValue = `$false
+        `$returnedValue | Should Be `$expectedValue
     }
 }
 "
