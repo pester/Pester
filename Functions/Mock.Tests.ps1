@@ -378,7 +378,6 @@ Describe "Using Contexts" {
     }
 }
 
-
 Describe "Using a single no param Describe" {
     Mock FunctionUnderTest {return "I am the describe mock test"}
 
@@ -390,33 +389,45 @@ Describe "Using a single no param Describe" {
     }
 }
 
-Describe "Mocking functions inside modules" {
-	$global:TestContext = $true
+Describe "Mocking functions used in modules" {
 	if(Get-Module FunctionUnderTestInModule) {
 		Remove-Module FunctionUnderTestInModule
 	}
 	Import-Module ".\FunctionUnderTestInModule.psm1" -Global -DisableNameChecking
 	
-	Context "when I have mocked a function that is called inside a module" {
-		$expected = "I am the mocked module function"
-		Mock InternalModuleFunction {return $expected} -scope global
+	$fake_value = "I am returning a fake value"
+	
+	Context "when I have globally mocked a function used in a module" {
+		Mock InternalModuleFunction {return $fake_value} -scope global
 		
 		$actual = FunctionUnderTestInModule
 		
-		It "should return the mocked function's value" {
-			$actual | Should Be $expected
-		}
-		
-		It "should call the mocked function" {
-			Assert-MockCalled InternalModuleFunction 1 -Exactly
+		It "should use the mock" {
+			$actual | Should Be $fake_value
 		}
 	}
 	
-	Context "when the next context uses the previously mocked function without mocking it" {
+	Context "when the context is no longer mocking the function" {
 		
-		It "should not throw an exception" {
-			{FunctionUnderTestInModule} | Should Not Throw
+		$actual = FunctionUnderTestInModule
+		
+		It "should use the real function" {
+			$actual | Should Not Be $fake_value
 		}
+	}
+	
+	Context "when I have globally mocked a function using a parameter filter" {
+		Mock InternalModuleFunctionWithParams {return $fake_value} {$Param1 -eq "should match"} -scope global
+		
+		It "should use the real function when the filter doesn't match" {
+			FunctionUnderTestInModuleCallsFunctionWithParams "should not match" | Should Not Be $fake_value
+		}
+
+		It "should use the mock if the filter matches" {
+			FunctionUnderTestInModuleCallsFunctionWithParams "should match" | Should Be $fake_value
+		}
+		
+
 	}
 }
 

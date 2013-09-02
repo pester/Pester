@@ -389,5 +389,7 @@ function MockPrototype {
             return
         }
     }
-    &($mock.OriginalCommand) @args @PSBoundParameters
+
+	$real_command = Validate-Command PesterIsMocking_$functionName
+	& $real_command @args @PSBoundParameters
 }
