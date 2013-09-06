@@ -114,7 +114,7 @@ Describe "When calling Mock on non-existing function" {
     }
 
     It "Should throw correct error" {
-        $result.Exception.Message | Should Be "Could not find command NotFunctionUnderTest"
+        $result.Exception.Message | Should Be "Could not find command 'NotFunctionUnderTest'"
     }
 }
 
@@ -393,7 +393,7 @@ Describe "Mocking functions used in modules" {
 	if(Get-Module FunctionUnderTestInModule) {
 		Remove-Module FunctionUnderTestInModule
 	}
-	Import-Module ".\FunctionUnderTestInModule.psm1" -Global -DisableNameChecking
+	Import-Module ".\Functions\FunctionUnderTestInModule.psm1" -Global -DisableNameChecking
 	
 	$fake_value = "I am returning a fake value"
 	
