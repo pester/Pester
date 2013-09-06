@@ -9,6 +9,13 @@ function FunctionUnderTestInModuleCallsFunctionWithParams {
     return InternalModuleFunctionWithParams $Param1
 }
 
+function FunctionThatCallsRemoveItemInModule {
+	param(
+		[String]$Path
+	)
+	Remove-Item $Path
+}
+
 function Global:InternalModuleFunctionWithParams {
 	param(
 		[String]$Param1
@@ -19,5 +26,6 @@ function Global:InternalModuleFunctionWithParams {
 function Global:InternalModuleFunction {
 	return "I am the real module function"
 }
+
 
 Export-ModuleMember -Function *

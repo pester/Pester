@@ -148,12 +148,12 @@ param(
     [ScriptBlock]$mockWith={}, 
     [switch]$verifiable, 
     [ScriptBlock]$parameterFilter = {$True},
-	[string]$scope
+	[Switch]$module
 )
 
     $origCommand = Validate-Command $commandName
-	if($scope) {
-		$command = "{0}:{1}" -f $scope, $commandName
+	if($module) {
+		$command = "global:{0}" -f $commandName
 	} else {
 		$command = $commandName
 	}
@@ -178,7 +178,7 @@ param(
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
 		
-		if(-not $scope) {
+		if(-not $module) {
 			$command = "script:{0}" -f $commandName
 		}
 		
@@ -360,10 +360,10 @@ function Clear-Mocks {
             $mockTable[$_].blocks = $otherScopeBlocks
         }
         $mockTable.values | ? { $_.blocks.Length -eq 0} | % { 
-            $mocksToRemove += $_.CommandName
+            $mocksToRemove += $_.CommandName		
             Microsoft.PowerShell.Management\Remove-Item function:\$($_.CommandName)
-            if(Test-Path Function:\PesterIsMocking_$($_.CommandName) ){
-				Rename-Item Function:\PesterIsMocking_$($_.CommandName) "global:$($_.CommandName)"
+            if(Test-Path Function:\PesterIsMocking_$($_.CommandName) ){	
+				Rename-Item  Function:\PesterIsMocking_$($_.CommandName) "global:$($_.CommandName)"
             }
         }
         $mocksToRemove | % { $mockTable.Remove($_) }
@@ -372,9 +372,12 @@ function Clear-Mocks {
 }
 
 function Validate-Command([string]$commandName) {
-    $origCommand = (Microsoft.PowerShell.Core\Get-Command $commandName -ErrorAction SilentlyContinue)
-    if(!$origCommand){ Throw "Could not find Command $commandName"}
-    return $origCommand
+    $command = (Microsoft.PowerShell.Core\Get-Command $commandName -ErrorAction SilentlyContinue)
+    
+	if($command){ 
+		return $command
+	}
+    throw "Could not find Command '$commandName'"
 }
 
 function MockPrototype {

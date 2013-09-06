@@ -398,7 +398,7 @@ Describe "Mocking functions used in modules" {
 	$fake_value = "I am returning a fake value"
 	
 	Context "when I have globally mocked a function used in a module" {
-		Mock InternalModuleFunction {return $fake_value} -scope global
+		Mock InternalModuleFunction {return $fake_value} -Module
 		
 		$actual = FunctionUnderTestInModule
 		
@@ -407,7 +407,7 @@ Describe "Mocking functions used in modules" {
 		}
 	}
 	
-	Context "when the context is no longer mocking the function" {
+	Context "when the next context is no longer hiding the function" {
 		
 		$actual = FunctionUnderTestInModule
 		
@@ -417,7 +417,7 @@ Describe "Mocking functions used in modules" {
 	}
 	
 	Context "when I have globally mocked a function using a parameter filter" {
-		Mock InternalModuleFunctionWithParams {return $fake_value} {$Param1 -eq "should match"} -scope global
+		Mock InternalModuleFunctionWithParams {return $fake_value} {$Param1 -eq "should match"} -Module
 		
 		It "should use the real function when the filter doesn't match" {
 			FunctionUnderTestInModuleCallsFunctionWithParams "should not match" | Should Not Be $fake_value
@@ -428,6 +428,27 @@ Describe "Mocking functions used in modules" {
 		}
 		
 
+	}
+	
+	Context "when I have mocked Remove-Item" {
+		Mock Remove-Item {} -Module
+		Setup -File "test.txt"
+		
+		It "should not remove the item" {
+			FunctionThatCallsRemoveItemInModule $(Join-Path $TestDrive "test.txt")
+			
+			$(Join-Path $TestDrive "test.txt") | Should Exist
+		}
+	}
+	
+	Context "when the next context is no longer hiding Remove-Item" {		
+		Setup -File "test.txt"
+		
+		It "should use the real Remove-Item" {
+			FunctionThatCallsRemoveItemInModule $(Join-Path $TestDrive "test.txt")
+			
+			$(Join-Path $TestDrive "test.txt") | Should Not Exist
+		}
 	}
 }
 
