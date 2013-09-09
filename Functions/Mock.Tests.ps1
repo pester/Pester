@@ -114,7 +114,7 @@ Describe "When calling Mock on non-existing function" {
     }
 
     It "Should throw correct error" {
-        $result.Exception.Message | Should Be "Could not find command NotFunctionUnderTest"
+        $result.Exception.Message | Should Be "Could not find command 'NotFunctionUnderTest'"
     }
 }
 
@@ -137,7 +137,6 @@ Describe "When calling Mock on existing function with matching bound params" {
         $result | Should Be "fake results"
     }
 }
-
 
 Describe "When calling Mock on existing function without matching unbound arguments" {
     Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "test" -and $args[0] -eq 'notArg0'}
@@ -388,5 +387,68 @@ Describe "Using a single no param Describe" {
             FunctionUnderTest | should be "I am the context mock test"
         }
     }
+}
+
+Describe "Mocking functions used in modules" {
+	if(Get-Module FunctionUnderTestInModule) {
+		Remove-Module FunctionUnderTestInModule
+	}
+	Import-Module ".\Functions\FunctionUnderTestInModule.psm1" -Global -DisableNameChecking
+	
+	$fake_value = "I am returning a fake value"
+	
+	Context "when I have globally mocked a function used in a module" {
+		Mock InternalModuleFunction {return $fake_value} -Module
+		
+		$actual = FunctionUnderTestInModule
+		
+		It "should use the mock" {
+			$actual | Should Be $fake_value
+		}
+	}
+	
+	Context "when the next context is no longer hiding the function" {
+		
+		$actual = FunctionUnderTestInModule
+		
+		It "should use the real function" {
+			$actual | Should Not Be $fake_value
+		}
+	}
+	
+	Context "when I have globally mocked a function using a parameter filter" {
+		Mock InternalModuleFunctionWithParams {return $fake_value} {$Param1 -eq "should match"} -Module
+		
+		It "should use the real function when the filter doesn't match" {
+			FunctionUnderTestInModuleCallsFunctionWithParams "should not match" | Should Not Be $fake_value
+		}
+
+		It "should use the mock if the filter matches" {
+			FunctionUnderTestInModuleCallsFunctionWithParams "should match" | Should Be $fake_value
+		}
+		
+
+	}
+	
+	Context "when I have mocked Remove-Item" {
+		Mock Remove-Item {} -Module
+		Setup -File "test.txt"
+		
+		It "should not remove the item" {
+			FunctionThatCallsRemoveItemInModule $(Join-Path $TestDrive "test.txt")
+			
+			$(Join-Path $TestDrive "test.txt") | Should Exist
+		}
+	}
+	
+	Context "when the next context is no longer hiding Remove-Item" {		
+		Setup -File "test.txt"
+		
+		It "should use the real Remove-Item" {
+			FunctionThatCallsRemoveItemInModule $(Join-Path $TestDrive "test.txt")
+			
+			$(Join-Path $TestDrive "test.txt") | Should Not Exist
+		}
+	}
 }
 

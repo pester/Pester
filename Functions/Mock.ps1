@@ -53,6 +53,9 @@ An optional filter to limit mocking behavior only to usages of
 CommandName where the values of the parameters passed to the command 
 pass the filter.
 
+.PARAMETER Scope
+An optional parameter to be used when mocking global functions (as with modules).
+
 This ScriptBlock must return a boolean value. See examples for usage.
 
 .EXAMPLE
@@ -144,17 +147,23 @@ param(
     [string]$commandName, 
     [ScriptBlock]$mockWith={}, 
     [switch]$verifiable, 
-    [ScriptBlock]$parameterFilter = {$True}    
+    [ScriptBlock]$parameterFilter = {$True},
+	[Switch]$module
 )
 
     $origCommand = Validate-Command $commandName
+	if($module) {
+		$command = "global:{0}" -f $commandName
+	} else {
+		$command = $commandName
+	}
     $filterTest=&($parameterFilter)
     if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
     $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable; Scope=$pester.Scope}
     $mock = $mockTable.$commandName
     if(!$mock) {
         if($origCommand.CommandType -eq "Function") {
-            Microsoft.PowerShell.Management\Rename-Item Function:\$commandName global:PesterIsMocking_$commandName
+            Microsoft.PowerShell.Management\Rename-Item function:\$command global:PesterIsMocking_$commandName
         }
         $metadata=Microsoft.PowerShell.Utility\New-Object System.Management.Automation.CommandMetaData $origCommand
         $metadata.Parameters.Remove("Verbose") | out-null
@@ -168,7 +177,12 @@ param(
         $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
-        Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params )Process{ `r`n$newContent}"
+		
+		if(-not $module) {
+			$command = "script:{0}" -f $commandName
+		}
+		
+        Microsoft.PowerShell.Management\Set-Item function:\$command -value "$cmdLetBinding `r`n param ( $params )Process{ `r`n$newContent}"
         $mock=@{OriginalCommand=$origCommand;blocks=@($blocks);CmdLet=$cmdLetBinding;Params=$params;CommandName=$CommandName}
     } 
     else {
@@ -194,7 +208,6 @@ param(
     }
     $mockTable.$commandName = $mock
 }
-
 
 function Assert-VerifiableMocks {
 <#
@@ -347,10 +360,10 @@ function Clear-Mocks {
             $mockTable[$_].blocks = $otherScopeBlocks
         }
         $mockTable.values | ? { $_.blocks.Length -eq 0} | % { 
-            $mocksToRemove += $_.CommandName
+            $mocksToRemove += $_.CommandName		
             Microsoft.PowerShell.Management\Remove-Item function:\$($_.CommandName)
-            if(Test-Path Function:\PesterIsMocking_$($_.CommandName) ){
-                Rename-Item Function:\PesterIsMocking_$($_.CommandName) "script:$($_.CommandName)"
+            if(Test-Path Function:\PesterIsMocking_$($_.CommandName) ){	
+				Rename-Item  Function:\PesterIsMocking_$($_.CommandName) "global:$($_.CommandName)"
             }
         }
         $mocksToRemove | % { $mockTable.Remove($_) }
@@ -359,9 +372,12 @@ function Clear-Mocks {
 }
 
 function Validate-Command([string]$commandName) {
-    $origCommand = (Microsoft.PowerShell.Core\Get-Command $commandName -ErrorAction SilentlyContinue)
-    if(!$origCommand){ Throw "Could not find Command $commandName"}
-    return $origCommand
+    $command = (Microsoft.PowerShell.Core\Get-Command $commandName -ErrorAction SilentlyContinue)
+    
+	if($command){ 
+		return $command
+	}
+    throw "Could not find Command '$commandName'"
 }
 
 function MockPrototype {
@@ -376,5 +392,7 @@ function MockPrototype {
             return
         }
     }
-    &($mock.OriginalCommand) @args @PSBoundParameters
+
+	$real_command = Validate-Command PesterIsMocking_$functionName
+	& $real_command @args @PSBoundParameters
 }
