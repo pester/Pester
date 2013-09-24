@@ -55,6 +55,15 @@ Describe "When calling Mock on existing cmdlet" {
     }
 }
 
+Describe "When calling Mock in the Describe block" {
+    Mock Out-File {return "I am not Out-File"}
+
+    It "Should mock Out-File successfully" {
+        $outfile = "test" | Out-File "..\testfile.txt"
+        $outfile | Should Be "I am not Out-File"
+    }
+}
+
 Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     Mock Get-ChildItem {
       if($_ -eq 'a'){
