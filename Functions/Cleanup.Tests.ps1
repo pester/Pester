@@ -13,6 +13,25 @@ Describe "Cleanup" {
 
     It "should also remove the TestDrive:" {
         Test-Path "TestDrive:\foo" | Should Not Exist
-    }
+    }	
+
+}
+
+Describe "Cleanup when Remove-Item is mocked" {
+	
+	Mock Remove-Item {}
+	
+	Context "add a temp directory" {
+		Setup -Dir "foo"
+	}
+	
+	Context "next context" {
+	
+		It "should have removed the temp folder" {
+			"$TestDrive\foo" | Should Not Exist
+		}
+		
+	}
+
 }
 
