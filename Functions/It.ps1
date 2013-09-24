@@ -97,7 +97,6 @@ function Setup-TestFunction {
 function temp {
 $test
 }
-#"@ | out-file $TestDrive\temp.ps1
 "@ | Microsoft.Powershell.Utility\Out-File $TestDrive\temp.ps1
 }
 
