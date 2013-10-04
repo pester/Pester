@@ -3,6 +3,7 @@
 # wrap the code they want to assert on in { }
 function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
     $itThrew = $false
+	$pester.ActualExceptionMessage = $null
     try {
         # Piping to Out-Null so results of script exeution
         # does not remain on the pipeline
