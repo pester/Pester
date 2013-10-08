@@ -23,7 +23,7 @@ function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
 
 function PesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-      return "Expected: the expression to throw an exception with message {0}, But message was {1}" -f $expected, $pester.ActualExceptionMessage
+      return "Expected: the expression to throw an exception with message {{{0}}}, But message was {{{1}}}" -f $expected, $pester.ActualExceptionMessage
     } else {
       return "Expected: the expression to throw an exception"
     }
@@ -31,9 +31,9 @@ function PesterThrowFailureMessage($value, $expected) {
 
 function NotPesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-        return "Expected: the expression to not throw an exception with message {0}, But message was {1}" -f $expected, $pester.ActualExceptionMessage
+        return "Expected: the expression to not throw an exception with message {{{0}}}, But message was {{{1}}}" -f $expected, $pester.ActualExceptionMessage
     } else {
-        return "Expected: the expression to not throw an exception. Message was {0}" -f $pester.ActualExceptionMessage
+        return "Expected: the expression to not throw an exception. Message was {{{0}}}" -f $pester.ActualExceptionMessage
     }
 }
 
