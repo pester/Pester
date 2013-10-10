@@ -17,6 +17,10 @@ Describe "PesterThrow" {
         Test-PositiveAssertion (PesterThrow { throw "expected error"} "expected error")
     }    
 
+    It "returns false if the statement throws an exception and the actual error does not match the case of the expected error text" {
+        Test-NegativeAssertion (PesterThrow { throw "expected error"} "EXPECTED ERROR")
+    }     
+    
     It "returns true if the statement throws an exception and the actual error text matches the expected error pattern" {
         Test-PositiveAssertion (PesterThrow { throw "expected error"} "expected*")
     }     
