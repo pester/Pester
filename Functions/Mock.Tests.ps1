@@ -68,7 +68,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     Mock Get-ChildItem {
       if($_ -eq 'a'){
         return "AA"
-      } 
+      }
       if($_ -eq 'b'){
         return "BB"
       }
@@ -160,7 +160,7 @@ Describe "When calling Mock on existing function without matching unbound argume
 
 Describe "When calling Mock on existing function with matching unbound arguments" {
     Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "badTest" -and $args[0] -eq 'arg0'}
-    
+
     $result=FunctionUnderTestWithoutParams "badTest" "arg0"
 
     It "Should return mocked result" {
@@ -240,7 +240,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 Describe "When Creating a Verifiable Mock that is not called" {
     Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "three" | Out-Null
-    
+
     try {
         Assert-VerifiableMocks
     } Catch {
@@ -326,7 +326,7 @@ Describe "When Calling Assert-MockCalled without exactly" {
         $result.Exception.Message | Should Be "Expected FunctionUnderTest to be called at least 3 times but was called 2 times"
     }
     It "Should not throw if mock was called at least the number of times specified" {
-        Assert-MockCalled FunctionUnderTest 
+        Assert-MockCalled FunctionUnderTest
     }
     It "Should not throw if mock was called at exactly the number of times specified" {
         Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
@@ -343,7 +343,7 @@ Describe "Using Contexts" {
         }
         It "should mock Describe scoped single param mock" {
             FunctionUnderTest "one" | should be "I am the first mock test"
-        }        
+        }
     }
 
     Context "When in the second context" {
@@ -352,7 +352,7 @@ Describe "Using Contexts" {
         }
         It "should mock Describe scoped single param mock again" {
             FunctionUnderTest "one" | should be "I am the first mock test"
-        }        
+        }
     }
 
     Context "When using mocks in both scopes" {
@@ -384,7 +384,7 @@ Describe "Using Contexts" {
         }
         It "should use the describe parameterized mock" {
             FunctionUnderTest "one" | should be "I am the first mock test"
-        }        
+        }
     }
 }
 
