@@ -67,3 +67,21 @@ Describe "Create a file with content" {
     }
 }
 
+Describe "Create file with passthru" {
+	$thefile = Setup -File "thefile" -PassThru
+	
+	It "returns the file from the temp location" {
+		$thefile.Directory.Name | Should Be "pester"
+		$thefile.Exists | Should Be $true
+	}
+}
+
+Describe "Create directory with passthru" {
+	$thedir = Setup -Dir "thedir" -PassThru
+	
+	It "returns the directory from the temp location" {
+		$thedir.Parent.Name | Should Be "pester"
+		$thedir.Exists | Should Be $true
+	}
+}
+
