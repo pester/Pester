@@ -1,5 +1,6 @@
 ## 2.0.4 (unreleased)
 
+  - Fixed bug where mocking Remove-Item caused cleanup to break [GH-68]
   - Added -Passthu to Setup to obtain file system object references [GH-69]
   - Can assert on exception messages from Throw asserions [GH-58]
   - Fixed assertions on empty functions [GH-50]
