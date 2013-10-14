@@ -9,13 +9,13 @@ function Initialize-Setup {
 }
 
 function Setup {
-	param(
-		[switch]$Dir, 
-		[switch]$File, 
-		$Path, 
-		$Content = "",
-		[switch]$PassThru
-	)
+    param(
+    [switch]$Dir,
+    [switch]$File,
+    $Path,
+    $Content = "",
+    [switch]$PassThru
+    )
     Initialize-Setup
 
     if ($Dir) {
@@ -23,8 +23,8 @@ function Setup {
     } elseif ($File) {
         $item = $Content | New-Item -Name $Path -Path TestDrive: -Type File -Force
     }
-	
-	if($PassThru) {
-		return $item
-	}
+
+    if($PassThru) {
+        return $item
+    }
 }

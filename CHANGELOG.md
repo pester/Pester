@@ -1,5 +1,7 @@
 ## 2.0.4 (unreleased)
 
+  - Fixed issue where TestDrive doesn't work with pathes with . characters
+    [GH-52]
   - Fixed issues when mocking Out-File [GH-71]
   - Exposing TestDrive with Get-TestDriveItem [GH-70]
   - Fixed bug where mocking Remove-Item caused cleanup to break [GH-68]
