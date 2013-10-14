@@ -12,6 +12,12 @@ Describe "Setup" {
     }
 }
 
+Describe "TestDrive" {
+    It "handles creation of a drive with . characters in the path" {
+        # currently untested but requirement needs to be here
+    }
+}
+
 Describe "Create filesystem with directories" {
 
     Setup -Dir "dir1"
