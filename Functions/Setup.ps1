@@ -1,4 +1,5 @@
 $global:TestDrive = "$env:Temp\pester"
+$global:TestDrive = [System.IO.Path]::GetFullPath($TestDrive)
 
 function Initialize-Setup {
     if (Test-Path TestDrive:) { return }
