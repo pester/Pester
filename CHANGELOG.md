@@ -1,5 +1,6 @@
 ## 2.0.4 (unreleased)
 
+  - Exposing TestDrive with Get-TestDriveItem [GH-70]
   - Fixed bug where mocking Remove-Item caused cleanup to break [GH-68]
   - Added -Passthu to Setup to obtain file system object references [GH-69]
   - Can assert on exception messages from Throw asserions [GH-58]

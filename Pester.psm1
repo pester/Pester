@@ -220,12 +220,9 @@ Describe `"$name`" {
 }
 
 function Get-TestDriveItem {
-	param(
-		[string]$Path
-	)
-	$result = Get-Item $(Join-Path $TestDrive $Path )
+    param( [string]$Path )
+    $result = Get-Item $(Join-Path $TestDrive $Path )
     return $result
-
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
