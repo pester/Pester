@@ -1,7 +1,8 @@
-function Cleanup() {
-    if (Test-Path $TestDrive) {
-        Remove-Item $TestDrive -Recurse -Force
+function Cleanup {    
+	Clear-Mocks
+	
+	if (Test-Path $TestDrive) {
+        Microsoft.PowerShell.Management\Remove-Item $TestDrive -Recurse -Force
         Remove-PSDrive -Name TestDrive -Scope Global -Force
-    }
-    Clear-Mocks
+    }    	
 }
