@@ -4,7 +4,7 @@ function Context {
 Provides syntactic sugar for logiclly grouping It blocks within a single Describe block.
 
 .PARAMETER Name
-The name of the Context. This is a phsae describing a set of tests within a describe.
+The name of the Context. This is a phrase describing a set of tests within a describe.
 
 .PARAMETER Fixture
 Script that is executed. This may include setup specific to the context and one or more It blocks that validate the expected outcomes.
