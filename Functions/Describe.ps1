@@ -72,7 +72,7 @@ param(
     }
 
     $pester.output = $pester.margin + "Describing " + $name
-    Write-Host -fore yellow $($pester.output)
+    Write-Host -ForegroundColor Magenta $($pester.output)
     & $fixture
 
     $pester.Scope = "Describe" #may have been switched to context
