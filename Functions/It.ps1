@@ -62,7 +62,7 @@ about_should
 #>
 param(
     $name, 
-    [ScriptBlock] $test
+    [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
     $pester.results = Get-GlobalTestResults
     $pester.results.TestCount += 1

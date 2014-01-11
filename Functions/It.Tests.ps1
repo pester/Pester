@@ -32,5 +32,13 @@ Describe "It" {
       $extra_keys | ? { !($expected_keys -contains $_) } | Should BeNullOrEmpty
     }
 
+    It "throws if no test block given" {
+        { It "no test block" } | Should Throw
+    }
+
+    It "won't throw if success test block given" {
+        { It "test block" {} } | Should Not Throw
+    }
+
 }
 
