@@ -189,10 +189,19 @@ param(
         return
     }
 
-    # TODO clean up $path cleanup
-    $path = $path.TrimStart(".")
-    $path = $path.TrimStart("\")
-    $path = $path.TrimStart("/")
+    if ($path -eq ".") {
+        $path = (pwd).path
+    }
+    else {
+        # TODO clean up $path cleanup
+        $path = $path.TrimStart(".")
+        $path = $path.TrimStart("\")
+        $path = $path.TrimStart("/")
+    
+        if (-not (Test-Path $path)) {
+            & md $path | Out-Null
+        } 
+    }
 
     if (-not (Test-Path $path)) {
         & md $path | Out-Null
