@@ -1,4 +1,4 @@
-# Pester
+﻿# Pester
 # Version: $version$
 # Changeset: $sha$
 
@@ -120,113 +120,6 @@ about_pester
     if ($EnableExit) { Exit-WithCode }
 }
 
-function Write-UsageForNewFixture {
-    "invalid usage, please specify (path, name)" | Write-Host
-    "eg: .\New-Fixture -Path Foo -Name Bar" | Write-Host
-    "creates .\Foo\Bar.ps1 and .\Foo.Bar.Tests.ps1" | Write-Host
-}
-
-function Create-File($file_path, $contents = "") {
-
-    if (-not (Test-Path $file_path)) {
-        $contents | Out-File $file_path -Encoding ASCII
-        "Creating" | Write-Host -Fore DarkGreen -NoNewLine
-    } else {
-        "Skipping" | Write-Host -Fore Magenta -NoNewLine
-    }
-    " => $file_path" | Write-Host
-}
-
-function New-Fixture {
-<#
-.SYNOPSIS
-Generates scaffolding for two files: One that defines a function
-and another one that contains its tests. Yes, Pester does take
-an opinionated approach and puts the test right beside your code.
-
-.DESCRIPTION
-Thic command generates two files located in a directory 
-specified in the path parameter. If this directory does 
-not exist, it will be created. A file containing a function 
-signiture named after the name parameter(ie name.ps1) and 
-a test file containing a scaffolded describe and it blocks.
-
-.EXAMPLE
-New-Fixture deploy Clean
-
-Creates two files:
-./deploy/Clean.ps1
-function clean {
-
-}
-
-./deploy/clean.Tests.ps1
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-. "$here\$sut"
-
-Describe "clean" {
-
-    It "does something useful" {
-        $true | Should Be $false
-    }
-}
-
-.LINK
-Describe
-Context
-It
-about_Pester
-about_Should
-#>
-param(
-    $path,
-    $name
-)
-
-    if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
-        Write-UsageForNewFixture
-        return
-    }
-
-    if ($path -eq ".") {
-        $path = (pwd).path
-    }
-    else {
-        # TODO clean up $path cleanup
-        $path = $path.TrimStart(".")
-        $path = $path.TrimStart("\")
-        $path = $path.TrimStart("/")
-    
-        if (-not (Test-Path $path)) {
-            & md $path | Out-Null
-        } 
-    }
-
-    if (-not (Test-Path $path)) {
-        & md $path | Out-Null
-    }
-
-    $test_code = "function $name {
-
-}
-"
-
-    $fixture_code = "`$here = Split-Path -Parent `$MyInvocation.MyCommand.Path
-`$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
-. `"`$here\`$sut`"
-
-Describe `"$name`" {
-
-    It `"does something useful`" {
-        `$true | Should Be `$false
-    }
-}
-"
-
-    Create-File "$path\$name.ps1" $test_code -Encoding ASCII
-    Create-File "$path\$name.Tests.ps1" $fixture_code -Encoding ASCII
-}
 
 function Get-TestDriveItem {
     param( [string]$Path )
