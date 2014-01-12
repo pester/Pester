@@ -11,6 +11,8 @@
   - Fixed New-Fixture so it creates proper syntax in tests [GH-49]
   - Fixed assertions on Object arrays [GH-61]
   - Fixed issue where curly brace misalignment would cause issues [GH-90]
+  - Better contrasting output colours [GH-92]
+  - New-Fixture handles "." properly [GH-86]
 
 ## 2.0.3 (Apr 16, 2013)
 
