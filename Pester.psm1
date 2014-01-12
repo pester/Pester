@@ -97,7 +97,7 @@ about_pester
     Reset-GlobalTestResults
 
     if ($EnableLegacyExpectations) {
-        "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow
+        "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
         . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
         Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
     }
@@ -130,9 +130,9 @@ function Create-File($file_path, $contents = "") {
 
     if (-not (Test-Path $file_path)) {
         $contents | Out-File $file_path -Encoding ASCII
-        "Creating" | Write-Host -Fore Green -NoNewLine
+        "Creating" | Write-Host -Fore DarkGreen -NoNewLine
     } else {
-        "Skipping" | Write-Host -Fore Yellow -NoNewLine
+        "Skipping" | Write-Host -Fore Magenta -NoNewLine
     }
     " => $file_path" | Write-Host
 }

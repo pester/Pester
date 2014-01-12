@@ -106,7 +106,7 @@ function write-PesterResult{
     $pester.output = " $($pester.margin)$name"
     $pester.humanSeconds = Get-HumanTime $pester.testTime.TotalSeconds
     if($pester.testResult.success) {
-        "[+] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor green;
+        "[+] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor DarkGreen;
     }
     else {
         "[-] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor red

@@ -44,7 +44,7 @@ param(
     $pester.margin = " " * $pester.results.TestDepth
     $pester.results.TestDepth += 1
 
-    Write-Host -fore yellow $pester.margin $name
+    Write-Host -ForegroundColor Magenta $pester.margin $name
     & $fixture
 
     Cleanup
