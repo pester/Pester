@@ -22,7 +22,7 @@ DESCRIPTION
 
 CREATING A PESTER TEST
 	To start using Pester, You may use the Add-Fixture function to scaffold both 
-	a new implemntation function and a test function.
+	a new implementation function and a test function.
 
 	C:\PS>New-Fixture deploy Clean
 
