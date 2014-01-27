@@ -1,4 +1,4 @@
-function Context {
+﻿function Context {
 <#
 .SYNOPSIS
 Provides syntactic sugar for logiclly grouping It blocks within a single Describe block.
@@ -38,7 +38,7 @@ param(
     [ScriptBlock] $fixture
 )
     $pester.Scope = "Context"
-    Setup
+    $TestDriveContent = Get-TestDriveChildItem
 
     $pester.results = Get-GlobalTestResults
     $pester.margin = " " * $pester.results.TestDepth
@@ -46,8 +46,8 @@ param(
 
     Write-Host -ForegroundColor Magenta $pester.margin $name
     & $fixture
-
-    Cleanup
+	Clear-TestDrive -Exclude ($TestDriveContent).FullName
+   	Clear-Mocks
 
     $pester.results.TestDepth -= 1
 }

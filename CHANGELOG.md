@@ -13,6 +13,7 @@
   - Fixed issue where curly brace misalignment would cause issues [GH-90]
   - Better contrasting output colours [GH-92]
   - New-Fixture handles "." properly [GH-86]
+  - Fixed mix scoping of It and Context [GH-98] and [GH-99]
 
 ## 2.0.3 (Apr 16, 2013)
 
