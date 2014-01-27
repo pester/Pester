@@ -1,5 +1,5 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$here\Setup.ps1"
+. "$here\TestDrive.ps1"
 
 Describe "Setup" {
 
@@ -89,5 +89,59 @@ Describe "Create directory with passthru" {
 		$thedir.Parent.Name | Should Be "pester"
 		$thedir.Exists | Should Be $true
 	}
+}
+
+Describe "TestDrive scoping" {
+	$describe = Setup -File 'Describe' -PassThru
+	Context "Describe file is available in context" {
+		It "Finds the file" {
+			$describe | Should Exist
+		}
+		#create file for the next test
+		Setup -File 'Context'
+	}
+
+	It "Context file are removed when returning to Describe" {
+		
+		"TestDrive:\Context" | Should Not Exist
+	}
+	
+	It "Describe file is still available in Describe" {
+		$describe | Should Exist
+	}
+}
+
+Describe "Cleanup" {
+    Setup -Dir "foo"
+}
+
+Describe "Cleanup" {
+
+    It "should have removed the temp folder from the previous fixture" {
+        Test-Path "$TestDrive\foo" | Should Not Exist
+    }
+
+    It "should also remove the TestDrive:" {
+        Test-Path "TestDrive:\foo" | Should Not Exist
+    }
+
+}
+
+Describe "Cleanup when Remove-Item is mocked" {
+
+    Mock Remove-Item {}
+
+    Context "add a temp directory" {
+        Setup -Dir "foo"
+    }
+
+    Context "next context" {
+
+        It "should have removed the temp folder" {
+            "$TestDrive\foo" | Should Not Exist
+        }
+
+    }
+
 }
 
