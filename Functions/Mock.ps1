@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 $global:mockTable = @{}
 $global:mockCallHistory = @()
 
@@ -151,7 +153,16 @@ param(
     $filterTest=&($parameterFilter)
     if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
     $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable; Scope=$pester.Scope}
-    $mock = $mockTable.$commandName
+
+#artbear Set-StrictMode
+    try { 
+    	$mock = $mockTable.$commandName
+    } catch {
+    	$mock = $false
+    }
+    #$mock = $mockTable.$commandName
+#end
+
     if(!$mock) {
         if($origCommand.CommandType -eq "Function") {
             Microsoft.PowerShell.Management\Rename-Item Function:\$commandName global:PesterIsMocking_$commandName
