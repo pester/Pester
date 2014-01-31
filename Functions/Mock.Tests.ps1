@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
@@ -65,6 +67,7 @@ Describe "When calling Mock in the Describe block" {
 }
 
 Describe "When calling Mock on existing cmdlet to handle pipelined input" {
+	$result = '' #artbear
     Mock Get-ChildItem {
       if($_ -eq 'a'){
         return "AA"
