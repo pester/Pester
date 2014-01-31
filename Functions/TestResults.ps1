@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 $scriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
 function Get-GlobalTestResults {
     if ($pester.testResults -ne $null) {

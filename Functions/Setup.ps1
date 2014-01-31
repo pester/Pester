@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 $global:TestDrive = "$env:Temp\pester"
 $global:TestDrive = [System.IO.Path]::GetFullPath($TestDrive)
 
