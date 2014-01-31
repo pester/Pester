@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 function Context {
 <#
 .SYNOPSIS
