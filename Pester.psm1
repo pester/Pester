@@ -109,9 +109,29 @@ about_pester
 
     Write-Host Executing all tests in $($pester.fixtures_path)
 
-    Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
-        ? { $_.Name -match "\.Tests\." } |
-        % { & $_.PSPath }
+    $pesterTestFiles = Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
+        Where-Object { $_.Name -match "\.Tests\." }
+
+    $pesterTestFilesCount = $pesterTestFiles.count
+    $pesterTestFilesProgress = 0
+    foreach ($testFile in $pesterTestFiles)
+    {
+        $progressCurrentResults = Get-GlobalTestResults
+        if ($progressCurrentResults.FailedTestsCount -eq 0)
+        {
+            $progressStatus = 'Okay'
+        }
+        else
+        {
+            $progressStatus = "{0} tests have failed." -f $progressCurrentResults.FailedTestsCount
+        }
+
+        Write-Progress -Activity Pester -Status $progressStatus -CurrentOperation $testFile.Name -PercentComplete (($pesterTestFilesProgress++/$pesterTestFilesCount)*100)
+        
+        & $testFile.PSPath
+    }
+
+    Write-Progress -Activity Pester -Completed
 
     Write-TestReport
 
