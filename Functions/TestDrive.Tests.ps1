@@ -1,10 +1,10 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\TestDrive.ps1"
 
 Describe "Setup" {
 
     It "returns a location that is in a temp area" {
-        $TestDrive | Should Be "$env:Temp\pester"
+        $TestDrive -like "${$env:temp}*" | Should Be $true
     }
 
     It "creates a drive location called TestDrive:" {
@@ -77,7 +77,7 @@ Describe "Create file with passthru" {
 	$thefile = Setup -File "thefile" -PassThru
 	
 	It "returns the file from the temp location" {
-		$thefile.Directory.Name | Should Be "pester"
+		$thefile.FullName -like "${env:TEMP}*" | Should Be $true
 		$thefile.Exists | Should Be $true
 	}
 }
@@ -86,7 +86,7 @@ Describe "Create directory with passthru" {
 	$thedir = Setup -Dir "thedir" -PassThru
 	
 	It "returns the directory from the temp location" {
-		$thedir.Parent.Name | Should Be "pester"
+		$thedir.FullName -like "${env:TEMP}*" | Should Be $true
 		$thedir.Exists | Should Be $true
 	}
 }
@@ -143,5 +143,18 @@ Describe "Cleanup when Remove-Item is mocked" {
 
     }
 
+}
+
+Describe "New-RandomTempDirectory" {
+	It "creates randomly named directory" {
+		$first = New-RandomTempDirectory 
+		$second = New-RandomTempDirectory
+		
+		$first | Remove-Item -Force 
+		$second | Remove-Item -Force 
+		
+		$first.name | Should Not Be $second.name
+		
+	}
 }
 

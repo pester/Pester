@@ -14,6 +14,7 @@
   - Better contrasting output colours [GH-92]
   - New-Fixture handles "." properly [GH-86]
   - Fixed mix scoping of It and Context [GH-98] and [GH-99]
+  - Test Drives are randomly generated, which should allow concurrent Pester processes [GH-100] and [GH-94] 
 
 ## 2.0.3 (Apr 16, 2013)
 
