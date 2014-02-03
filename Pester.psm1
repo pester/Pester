@@ -107,7 +107,8 @@ about_pester
     $pester.fixtures_path = Resolve-Path $relative_path
     $pester.arr_testTags  = $Tags.Split(' ')
 
-    Write-Host Executing all tests in $($pester.fixtures_path)
+    #Write-Host Executing all tests in $($pester.fixtures_path)
+    Write-Verbose "Executing all tests in $($pester.fixtures_path)"
 
     $pesterTestFiles = Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
         Where-Object { $_.Name -match "\.Tests\." }
