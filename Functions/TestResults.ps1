@@ -21,8 +21,10 @@ function Reset-GlobalTestResults {
 
 function Write-TestReport {
     $results = $pester.testResults
-    Write-Host "Tests completed in $(Get-HumanTime $results.TotalTime)"
-    Write-Host "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
+    Write-Verbose "Tests completed in $(Get-HumanTime $results.TotalTime)"
+    Write-Verbose "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
+    #Write-Host "Tests completed in $(Get-HumanTime $results.TotalTime)"
+    #Write-Host "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
 }
 
 function Get-HumanTime($seconds) {

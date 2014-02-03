@@ -78,6 +78,7 @@ Describe
 about_pester
 
 #>
+    [CmdletBinding()]
     param(
         [Parameter(Position=0,Mandatory=0)]
         [string]$relative_path = ".",
@@ -89,7 +90,8 @@ about_pester
         [string]$OutputXml = '',
         [Parameter(Position=4,Mandatory=0)]
         [string]$Tags = $null,
-        [switch]$EnableLegacyExpectations = $false
+        [switch]$EnableLegacyExpectations = $false,
+        [switch]$PassThru
 
     )
     $pester = @{}
@@ -105,11 +107,32 @@ about_pester
     $pester.fixtures_path = Resolve-Path $relative_path
     $pester.arr_testTags  = $Tags.Split(' ')
 
-    Write-Host Executing all tests in $($pester.fixtures_path)
+    #Write-Host Executing all tests in $($pester.fixtures_path)
+    Write-Verbose "Executing all tests in $($pester.fixtures_path)"
 
-    Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
-        ? { $_.Name -match "\.Tests\." } |
-        % { & $_.PSPath }
+    $pesterTestFiles = Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
+        Where-Object { $_.Name -match "\.Tests\." }
+
+    $pesterTestFilesCount = $pesterTestFiles.count
+    $pesterTestFilesProgress = 0
+    foreach ($testFile in $pesterTestFiles)
+    {
+        $progressCurrentResults = Get-GlobalTestResults
+        if ($progressCurrentResults.FailedTestsCount -eq 0)
+        {
+            $progressStatus = 'Okay'
+        }
+        else
+        {
+            $progressStatus = "{0} tests have failed." -f $progressCurrentResults.FailedTestsCount
+        }
+
+        Write-Progress -Activity Pester -Status $progressStatus -CurrentOperation $testFile.Name -PercentComplete (($pesterTestFilesProgress++/$pesterTestFilesCount)*100)
+        
+        & $testFile.PSPath
+    }
+
+    Write-Progress -Activity Pester -Completed
 
     Write-TestReport
 
@@ -117,6 +140,11 @@ about_pester
         $Global:ModulePath = $PSScriptRoot
         Write-NunitTestReport (Get-GlobalTestResults) $OutputXml 
     }
+
+    if($PassThru) {
+        Write-Output (Get-GlobalTestResults)
+    }
+
     if ($EnableExit) { Exit-WithCode }
 }
 
