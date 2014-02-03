@@ -1,4 +1,4 @@
-function It {
+﻿function It {
 <#
 .SYNOPSIS
 Validates the results of a test inside of a Describe block.
@@ -67,9 +67,6 @@ param(
     $pester.results = Get-GlobalTestResults
     $pester.results.TestCount += 1
 
-    Setup-TestFunction
-    . $TestDrive\temp.ps1
-
     $pester.ThisTest=$test
     try{
         [object]$test=(get-variable -name test -scope 1 -errorAction Stop).value
@@ -79,7 +76,7 @@ param(
     }
     $pester.testTime = Measure-Command {
         try{
-            temp
+            &{ &$pester.ThisTest }
         } catch {
             $pester.results.FailedTestsCount += 1
             $PesterException = $_
@@ -90,14 +87,6 @@ param(
     $pester.results.CurrentDescribe.Tests += $pester.testResult
     $pester.results.TotalTime += $pester.testTime.TotalSeconds
     Write-PesterResult
-}
-
-function Setup-TestFunction {
-@"
-function temp {
-$test
-}
-"@ | Microsoft.Powershell.Utility\Out-File $TestDrive\temp.ps1
 }
 
 function write-PesterResult{
@@ -135,8 +124,7 @@ function Get-PesterResult{
         else {
             $line=$exception.InvocationInfo.ScriptLineNumber
         }
-        $failureLine = $test.StartPosition.StartLine + ($line-2)
-        $testResult.stackTrace = "at line: $failureLine in $($test.File)"
+        $testResult.stackTrace = "at line: $Line in $($test.File)"
     }
     return $testResult
 }

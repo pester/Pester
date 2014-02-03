@@ -1,4 +1,4 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$here\Describe.ps1"
 
 function List-ExtraKeys($baseHash, $otherHash) {
@@ -13,16 +13,16 @@ function List-ExtraKeys($baseHash, $otherHash) {
 }
 
 Describe "It" {
-    [ScriptBlock]$script={"something"}
-    $test="something"
     It "records the correct stack line number of failed tests" {
-        try{"something" | should be "nothing"}catch{ $ex=$_} #line 1
+		#the $script scriptblock below is used as a position marker to determine 
+		#on which line the test failed.
+        try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
         $result = Get-PesterResult $script $ex
-        $result.Stacktrace | should match "at line: $($script.startPosition.StartLine+1) in "
-        $test="something"
+        $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
     }
 
     It "should pass if assertions pass" {
+		$test = 'something'
         $test | should be "something"
     }
 
