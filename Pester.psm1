@@ -78,6 +78,7 @@ Describe
 about_pester
 
 #>
+    [CmdletBinding()]
     param(
         [Parameter(Position=0,Mandatory=0)]
         [string]$relative_path = ".",
@@ -89,7 +90,8 @@ about_pester
         [string]$OutputXml = '',
         [Parameter(Position=4,Mandatory=0)]
         [string]$Tags = $null,
-        [switch]$EnableLegacyExpectations = $false
+        [switch]$EnableLegacyExpectations = $false,
+        [switch]$PassThru
 
     )
     $pester = @{}
@@ -117,6 +119,11 @@ about_pester
         $Global:ModulePath = $PSScriptRoot
         Write-NunitTestReport (Get-GlobalTestResults) $OutputXml 
     }
+
+    if($PassThru) {
+        Write-Output (Get-GlobalTestResults)
+    }
+
     if ($EnableExit) { Exit-WithCode }
 }
 
