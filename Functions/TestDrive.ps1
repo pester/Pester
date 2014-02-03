@@ -1,8 +1,8 @@
 ﻿#
 function New-TestDrive ([Switch]$PassThru) {
-
+	
     
-	$Path = "$env:TEMP\Pester"
+	$Path = New-RandomTempDirectory
 	$DriveName = "TestDrive"
 	
 	if (-not (Test-Path -Path $Path))
@@ -36,6 +36,15 @@ function Clear-TestDrive ([String[]]$Exclude) {
 			where { $Exclude -NotContains $_.FullName } |
 			Microsoft.PowerShell.Management\Remove-Item -Force -Recurse
 	}
+}
+
+function New-RandomTempDirectory {
+    do 
+    {
+        $Path = Join-Path -Path $env:TEMP -ChildPath ([Guid]::NewGuid())
+	} until (-not ( Test-Path -Path $Path ))
+    
+    New-Item -ItemType Container -Path $Path
 }
 
 function Get-TestDriveItem {
