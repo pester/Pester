@@ -107,16 +107,14 @@ about_pester
     $pester.fixtures_path = Resolve-Path $relative_path
     $pester.arr_testTags  = $Tags.Split(' ')
 
-    #Write-Host Executing all tests in $($pester.fixtures_path)
     Write-Verbose "Executing all tests in $($pester.fixtures_path)"
 
-    $pesterTestFiles = Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
+    $pester.test_files = Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
         Where-Object { $_.Name -match "\.Tests\." }
 
-    $pesterTestFilesCount = $pesterTestFiles.count
-    $pesterTestFilesProgress = 0
-    foreach ($testFile in $pesterTestFiles)
-    {
+    
+    $pester.progress = 0
+    $pester.test_files | ForEach-Object  {
         $progressCurrentResults = Get-GlobalTestResults
         if ($progressCurrentResults.FailedTestsCount -eq 0)
         {
@@ -127,9 +125,9 @@ about_pester
             $progressStatus = "{0} tests have failed." -f $progressCurrentResults.FailedTestsCount
         }
 
-        Write-Progress -Activity Pester -Status $progressStatus -CurrentOperation $testFile.Name -PercentComplete (($pesterTestFilesProgress++/$pesterTestFilesCount)*100)
+        Write-Progress -Activity Pester -Status $progressStatus -CurrentOperation $testFile.Name -PercentComplete (($pester.progress++/$pester.test_files.count)*100)
         
-        & $testFile.PSPath
+        & $PSItem.PSPath
     }
 
     Write-Progress -Activity Pester -Completed
