@@ -14,7 +14,11 @@ Task Release -depends Build, Push-Nuget
 
 Task Test {
     CD "$baseDir"
-    exec {."$baseDir\bin\Pester.bat"}
+    $testResults = Invoke-Pester -PassThru
+    if ($testResults.FailedTestsCount -ne 0)
+    {
+        Throw "Unit Tests Failed"
+    }
     CD $currentDir
 }
 
@@ -41,7 +45,7 @@ Task Pack-Nuget {
       Remove-Item "$baseDir\build" -Recurse -Force
     }
 
-    mkdir "$baseDir\build"
+    $newDir = mkdir "$baseDir\build"
     exec {
       . $nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" `
       -NoPackageAnalysis -version $version
