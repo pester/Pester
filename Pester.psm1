@@ -112,20 +112,11 @@ about_pester
     $pester.test_files = Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
         Where-Object { $_.Name -match "\.Tests\." }
 
-    
+    $globalGarbage = "delete me"
     $pester.progress = 0
     $pester.test_files | ForEach-Object  {
-        $progressCurrentResults = Get-GlobalTestResults
-        if ($progressCurrentResults.FailedTestsCount -eq 0)
-        {
-            $progressStatus = 'Okay'
-        }
-        else
-        {
-            $progressStatus = "{0} tests have failed." -f $progressCurrentResults.FailedTestsCount
-        }
 
-        Write-Progress -Activity Pester -Status $progressStatus -CurrentOperation $testFile.Name -PercentComplete (($pester.progress++/$pester.test_files.count)*100)
+        Write-Progress -Activity Pester -Status ("{0} tests have failed." -f (Get-GlobalTestResults).FailedTestsCount) -CurrentOperation $PSItem.Name -PercentComplete (($pester.progress++/$pester.test_files.count)*100)
         
         & $PSItem.PSPath
     }
@@ -260,5 +251,65 @@ function Get-TestDriveItem {
     return $result
 }
 
+<#
+.Synopsis
+   Format the nested hashtable returned by Invoke-Pester
+.DESCRIPTION
+   This will take the nested hashtable output of Pester and format it into a table friendly structure.
+.EXAMPLE
+   PS C:\GitHub\Pester> $tests = Invoke-Pester -PassThru
+   PS C:\GitHub\Pester> $tests | Format-PesterResults | Format-Table -Wrap
+
+Fixture                      Test                         FailureMessage                                       Time StackTrace                  
+----                         ----                         --------------                                       ---- ----------                  
+Add-Numbers                  adds positive numbers                                                                0                             
+Add-Numbers                  adds negative numbers                                                                0                             
+Add-Numbers                  adds one negative number to                                                          0                             
+                             positive number                                                                                                    
+Add-Numbers                  concatenates strings if                                                              0                             
+                             given strings                                                                                  
+#>
+function Format-PesterResults
+{
+    [CmdletBinding()]
+    [OutputType([PSObject])]
+    Param
+    (
+        # The Results of Invoke-Pester -PassThru
+        [Parameter(Mandatory=$true,
+                   ValueFromPipeline=$true,
+                   Position=0)]
+        $InputObject
+    )
+
+    Begin
+    {
+        $describes = @()
+    }
+    Process
+    {
+        foreach ($describe in $InputObject.Describes)
+        {
+            $describes += $describe
+        }
+    }
+    End
+    {
+        foreach ($describe in $describes)
+        {
+            
+            foreach ($test in $describe.Tests)
+            {
+                [pscustomobject]@{Fixture = $describe.name
+                                 Test = $test.name
+                                 FailureMessage = $test.failureMessage
+                                 Time = $test.time
+                                 StackTrace = $test.stackTrace} | 
+                Write-Output
+            }
+        }
+    }
+}
+
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
-Export-ModuleMember Invoke-Pester, New-Fixture, Get-TestDriveItem
+Export-ModuleMember Invoke-Pester, New-Fixture, Get-TestDriveItem, Format-PesterResults
