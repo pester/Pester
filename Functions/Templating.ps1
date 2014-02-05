@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 function Get-ReplacementArgs($template, $data) {
    $replacements = ($data.keys | %{
             if($template -match "@@$_@@") {

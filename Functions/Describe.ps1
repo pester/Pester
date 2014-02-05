@@ -1,4 +1,6 @@
-﻿function Describe {
+Set-StrictMode -version 2.0
+
+function Describe {
 <#
 .SYNOPSIS
 Defines the context bounds of a test. One may use this block to 
