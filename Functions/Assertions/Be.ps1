@@ -1,6 +1,6 @@
 
 function PesterBe($value, $expected) {
-    return ($expected -eq $value)
+    return ($expected -ceq $value)
 }
 
 function PesterBeFailureMessage($value, $expected) {
