@@ -9,8 +9,17 @@ Describe "Match" {
     }
 
     It "returns false for things that do not match" {
-        PesterExist "foobar" "slime" | Should Be $false
+        PesterMatch "foobar" "slime" | Should Be $false
     }
+	
+	It "passes for strings with different case" {
+		PesterMatch "foobar" "FOOBAR" | Should Be $true
+	}
+	
+	It "uses regular expressions" {
+		PesterMatch "foobar" "\S{6}" | Should Be $true
+	}
+	
 
 
 }
