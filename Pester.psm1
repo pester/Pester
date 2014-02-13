@@ -228,11 +228,5 @@ Describe `"$name`" {
     Create-File "$path\$name.Tests.ps1" $fixture_code -Encoding ASCII
 }
 
-function Get-TestDriveItem {
-    param( [string]$Path )
-    $result = Get-Item $(Join-Path $TestDrive $Path )
-    return $result
-}
-
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember Invoke-Pester, New-Fixture, Get-TestDriveItem

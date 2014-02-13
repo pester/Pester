@@ -1,4 +1,4 @@
-function Describe {
+﻿function Describe {
 <#
 .SYNOPSIS
 Defines the context bounds of a test. One may use this block to 
@@ -61,8 +61,6 @@ param(
     if($testName -ne '' -and $testName.ToLower() -ne $name.ToLower()) {return}
     if($pester.arr_testTags -ne '' -and @(Compare-Object $tags $pester.arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
-    Setup
-
     $pester.results = Get-GlobalTestResults
     $pester.margin = " " * $pester.results.TestDepth
     $pester.results.TestDepth += 1
@@ -73,10 +71,13 @@ param(
 
     $pester.output = $pester.margin + "Describing " + $name
     Write-Host -ForegroundColor Magenta $($pester.output)
-    & $fixture
+	New-TestDrive
+	& $fixture
+	Remove-TestDrive
 
     $pester.Scope = "Describe" #may have been switched to context
-    Cleanup
+	Clear-Mocks
+		
     $pester.results.Describes += $pester.results.CurrentDescribe
     $pester.results.TestDepth -= 1
 }

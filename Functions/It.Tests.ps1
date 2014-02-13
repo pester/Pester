@@ -28,7 +28,7 @@ Describe "It" {
 
     It "does not pollute the global namespace" {
       $extra_keys = List-ExtraKeys $pester.starting_variables $(Get-VariableAsHash)
-      $expected_keys = "here", "name", "test", "Matches", "fixture", "script", "_", "psitem"
+	  $expected_keys = "here", "name", "test", "Matches", "fixture", "script", "_", "psitem", "TestDrive"
       $extra_keys | ? { !($expected_keys -contains $_) } | Should BeNullOrEmpty
     }
 

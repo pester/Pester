@@ -1,10 +1,10 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$here\Setup.ps1"
+﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here\TestDrive.ps1"
 
 Describe "Setup" {
 
     It "returns a location that is in a temp area" {
-        $TestDrive | Should Be "$env:Temp\pester"
+        $TestDrive -like "${$env:temp}*" | Should Be $true
     }
 
     It "creates a drive location called TestDrive:" {
@@ -77,7 +77,7 @@ Describe "Create file with passthru" {
 	$thefile = Setup -File "thefile" -PassThru
 	
 	It "returns the file from the temp location" {
-		$thefile.Directory.Name | Should Be "pester"
+		$thefile.FullName -like "${env:TEMP}*" | Should Be $true
 		$thefile.Exists | Should Be $true
 	}
 }
@@ -86,8 +86,75 @@ Describe "Create directory with passthru" {
 	$thedir = Setup -Dir "thedir" -PassThru
 	
 	It "returns the directory from the temp location" {
-		$thedir.Parent.Name | Should Be "pester"
+		$thedir.FullName -like "${env:TEMP}*" | Should Be $true
 		$thedir.Exists | Should Be $true
+	}
+}
+
+Describe "TestDrive scoping" {
+	$describe = Setup -File 'Describe' -PassThru
+	Context "Describe file is available in context" {
+		It "Finds the file" {
+			$describe | Should Exist
+		}
+		#create file for the next test
+		Setup -File 'Context'
+	}
+
+	It "Context file are removed when returning to Describe" {
+		
+		"TestDrive:\Context" | Should Not Exist
+	}
+	
+	It "Describe file is still available in Describe" {
+		$describe | Should Exist
+	}
+}
+
+Describe "Cleanup" {
+    Setup -Dir "foo"
+}
+
+Describe "Cleanup" {
+
+    It "should have removed the temp folder from the previous fixture" {
+        Test-Path "$TestDrive\foo" | Should Not Exist
+    }
+
+    It "should also remove the TestDrive:" {
+        Test-Path "TestDrive:\foo" | Should Not Exist
+    }
+
+}
+
+Describe "Cleanup when Remove-Item is mocked" {
+
+    Mock Remove-Item {}
+
+    Context "add a temp directory" {
+        Setup -Dir "foo"
+    }
+
+    Context "next context" {
+
+        It "should have removed the temp folder" {
+            "$TestDrive\foo" | Should Not Exist
+        }
+
+    }
+
+}
+
+Describe "New-RandomTempDirectory" {
+	It "creates randomly named directory" {
+		$first = New-RandomTempDirectory 
+		$second = New-RandomTempDirectory
+		
+		$first | Remove-Item -Force 
+		$second | Remove-Item -Force 
+		
+		$first.name | Should Not Be $second.name
+		
 	}
 }
 
