@@ -80,7 +80,7 @@ function Get-TestTime($tests) {
     $tests | %{
         $totalTime += $_.time
     }
-    return $totalTime;
+    return [string]$totalTime;
 }
 
 function Get-TestSuccess($tests) {
