@@ -1,4 +1,6 @@
-﻿function Context {
+Set-StrictMode -version 2.0
+
+function Context {
 <#
 .SYNOPSIS
 Provides syntactic sugar for logiclly grouping It blocks within a single Describe block.

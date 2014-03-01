@@ -1,3 +1,5 @@
+Set-StrictMode -version 2.0
+
 function It {
 <#
 .SYNOPSIS
@@ -77,6 +79,7 @@ param(
     catch { 
         #throws if there is no parent test var
     }
+    $PesterException = $false
     $pester.testTime = Measure-Command {
         try{
             temp
