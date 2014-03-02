@@ -64,32 +64,20 @@ param(
     $name, 
     [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
-    $pester.results = Get-GlobalTestResults
-    $pester.results.TestCount += 1
-
-    Setup-TestFunction
+		Setup-TestFunction
     . $TestDrive\temp.ps1
-
-    $pester.ThisTest=$test
-    try{
-        [object]$test=(get-variable -name test -scope 1 -errorAction Stop).value
-    }
-    catch { 
-        #throws if there is no parent test var
-    }
-    $pester.testTime = Measure-Command {
+		
+    $Time = Measure-Command {
         try{
-            temp
+           temp
         } catch {
-            $pester.results.FailedTestsCount += 1
             $PesterException = $_
         }
     }
 
-    $pester.testResult = Get-PesterResult $pester.ThisTest $PesterException
-    $pester.results.CurrentDescribe.Tests += $pester.testResult
-    $pester.results.TotalTime += $pester.testTime.TotalSeconds
-    Write-PesterResult
+    $Result = Get-PesterResult -Test $Test -Time $time -Exception $PesterException
+    $Pester.AddTestResult($Result.name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace ) 
+    $Pester.testresult[-1] | Write-PesterResult
 }
 
 function Setup-TestFunction {
@@ -100,43 +88,34 @@ $test
 "@ | Microsoft.Powershell.Utility\Out-File $TestDrive\temp.ps1
 }
 
-function write-PesterResult{
-    $pester.margin = " " * $pester.results.TestDepth
-    $pester.error_margin = $pester.margin * 2
-    $pester.output = " $($pester.margin)$name"
-    $pester.humanSeconds = Get-HumanTime $pester.testTime.TotalSeconds
-    if($pester.testResult.success) {
-        "[+] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor DarkGreen;
-    }
-    else {
-        "[-] $($pester.output) $($pester.humanSeconds)" | Write-Host -ForegroundColor red
-         Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.failureMessage)
-         Write-Host -ForegroundColor red $($pester.error_margin)$($pester.testResult.stackTrace)
-    }
-}
-
-function Get-PesterResult{
-    param([ScriptBlock] $test, $exception)
+function Get-PesterResult {
+    param([ScriptBlock] $Test, $Time, $Exception)
     $testResult = @{
         name = $name
-        time = 0
+        time = $time
         failureMessage = ""
         stackTrace = ""
         success = $false
     };
 
-    if(!$exception){$testResult.success = $true}
-    else {
-        $testResult.failureMessage = $Exception.toString() -replace "Exception calling", "Assert failed on"
-        if($pester.ShouldExceptionLine) {
-            $line=$pester.ShouldExceptionLine
-            $pester.ShouldExceptionLine=$null
+    if(-not $exception)
+    {
+        $testResult.success = $true
+    }
+    else 
+    {
+        if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+        {
+            $failureMessage = $exception.exception.message
+            $line = if ( $exception.ErrorDetails.message -match "\d+$" )  { $matches[0] }
         }
         else {
-            $line=$exception.InvocationInfo.ScriptLineNumber
+            $failureMessage = $exception.ToString()
+            $line= $exception.InvocationInfo.ScriptLineNumber
         }
-        $failureLine = $test.StartPosition.StartLine + ($line-2)
-        $testResult.stackTrace = "at line: $failureLine in $($test.File)"
+        
+        $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
+        $testResult.stackTrace = "at line: $line in $($test.File)"
     }
     return $testResult
 }

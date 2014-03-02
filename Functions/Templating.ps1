@@ -1,18 +1,23 @@
 function Get-ReplacementArgs($template, $data) {
-   $replacements = ($data.keys | %{
-            if($template -match "@@$_@@") {
-                $value = $data.$_ -replace "``", "" -replace "`'", ""
-                "-replace '@@$_@@', '$value'"
-            }
-        })
-   return $replacements
+  if ( $data -is [PsObject] ) 
+	{
+		$data = $data.PsObject.Properties | foreach { $hash=@{}} { $hash.($_.Name) = $_.Value } { $hash } 
+	}
+	$data.keys | %{
+      $name = $_
+			$value = $data.$_ -replace "``", "" -replace "`'", ""
+			if($template -match "@@$name@@") {
+          "-replace '@@$name@@', '$value'"
+      }
+  }
 }
 
 function Get-Template($fileName) {
-    $path = '.\templates'
-    if($Global:ModulePath) {
-        $path = $global:ModulePath + '\templates'
-    }
+  	#TODO removed the external dependency on $Global:ModulePath here, but is the following line the best way to determine the path?
+		$modulePath = ( Get-Module -Name Pester ).Path | Split-Path
+		
+		$path = $ModulePath + '\templates'
+    
     return Get-Content ("$path\$filename")
 }
 

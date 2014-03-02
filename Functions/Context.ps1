@@ -37,18 +37,14 @@ param(
     $name,
     [ScriptBlock] $fixture
 )
-    $pester.Scope = "Context"
+    $Pester.EnterContext($name)
     $TestDriveContent = Get-TestDriveChildItem
-
-    $pester.results = Get-GlobalTestResults
-    $pester.margin = " " * $pester.results.TestDepth
-    $pester.results.TestDepth += 1
-
-    Write-Host -ForegroundColor Magenta $pester.margin $name
-    & $fixture
+	
+    $Pester.CurrentContext | Write-Context
+	& $fixture
+	
 	Clear-TestDrive -Exclude ($TestDriveContent).FullName
    	Clear-Mocks
-
-    $pester.results.TestDepth -= 1
+    $Pester.LeaveContext()
 }
 

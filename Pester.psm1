@@ -44,8 +44,8 @@ parameter.
 .PARAMETER relative_path
 The path where Invoke-Pester begins to search for test files. The default is the current directory.
 
-.PARAMETER testName
-Informs Inoke-Pester to only run Describe blocks that match this name.
+.PARAMETER TestName
+Informs Invoke-Pester to only run Describe blocks that match this name.
 
 .PARAMETER EnableExit
 Will cause Invoke-Pester to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
@@ -82,7 +82,7 @@ about_pester
         [Parameter(Position=0,Mandatory=0)]
         [string]$relative_path = ".",
         [Parameter(Position=1,Mandatory=0)]
-        [string]$testName = $null, 
+        [string]$TestName = $null, 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit, 
         [Parameter(Position=3,Mandatory=0)]
@@ -90,34 +90,34 @@ about_pester
         [Parameter(Position=4,Mandatory=0)]
         [string]$Tags = $null,
         [switch]$EnableLegacyExpectations = $false
-
     )
-    $pester = @{}
-    $pester.starting_variables = Get-VariableAsHash
-    Reset-GlobalTestResults
+	
+	$pester = New-PesterState -Path (Resolve-Path $relative_path) -TestNameFilter $testName -TagFilter ($Tags -split "\s") 
+    
+	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
+    
 
-    if ($EnableLegacyExpectations) {
-        "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
-        . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
-        Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
-    }
+  if ($EnableLegacyExpectations) {
+      "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
+      . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
+      Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
+  }
 
-    $pester.fixtures_path = Resolve-Path $relative_path
-    $pester.arr_testTags  = $Tags.Split(' ')
+  Write-Host Executing all tests in $($pester.Path)
 
-    Write-Host Executing all tests in $($pester.fixtures_path)
+  Get-ChildItem $pester.Path -Filter "*.tests.ps1" -Recurse |
+  foreach { & $_.PSPath }
 
-    Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
-        ? { $_.Name -match "\.Tests\." } |
-        % { & $_.PSPath }
+  $pester | Write-PesterReport
 
-    Write-TestReport
-
-    if($OutputXml) {
-        $Global:ModulePath = $PSScriptRoot
-        Write-NunitTestReport (Get-GlobalTestResults) $OutputXml 
-    }
-    if ($EnableExit) { Exit-WithCode }
+  if($OutputXml) {
+      #TODO make this legacy option and move the nUnit report out of invoke-pester
+			#TODO add warning message that informs the user how to use the nunit output properly
+			Export-NunitReport $pester $OutputXml 
+  }
+	
+  if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
+	
 }
 
 function Write-UsageForNewFixture {

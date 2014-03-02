@@ -57,28 +57,23 @@ param(
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $fixture
 )
-    $pester.Scope = "Describe"
-    if($testName -ne '' -and $testName.ToLower() -ne $name.ToLower()) {return}
-    if($pester.arr_testTags -ne '' -and @(Compare-Object $tags $pester.arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-
-    $pester.results = Get-GlobalTestResults
-    $pester.margin = " " * $pester.results.TestDepth
-    $pester.results.TestDepth += 1
-    $pester.results.CurrentDescribe = @{
-        name = $name
-        Tests = @()
+ 	if($Pester.TestNameFilter -and ($Pester.TestNameFilter -notlike $Name)) 
+    { 
+        #skip this test
+        return 
     }
+	
+	#TODO add test to test tags functionality
+	if($pester.TagsFilter -and @(Compare-Object $tags $pester.TagsFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
-    $pester.output = $pester.margin + "Describing " + $name
-    Write-Host -ForegroundColor Magenta $($pester.output)
+	$Pester.EnterDescribe($Name)
+    $Pester.CurrentDescribe | Write-Describe
 	New-TestDrive
+	
 	& $fixture
+	
 	Remove-TestDrive
-
-    $pester.Scope = "Describe" #may have been switched to context
-	Clear-Mocks
-		
-    $pester.results.Describes += $pester.results.CurrentDescribe
-    $pester.results.TestDepth -= 1
+	Clear-Mocks 
+	$Pester.LeaveDescribe()
 }
 

@@ -17,7 +17,10 @@
   - Test Drives are randomly generated, which should allow concurrent Pester processes [GH-100] and [GH-94] 
   - Fixed nUnit test failing on non-US computers [GH-109]
   - Add case sensitive Be, Contain and Match assertions [GH-107]
-
+  - Fix Pester template self-tests [GH-113]
+  - Time is output to the XML report [GH-95]
+  - Internal fixes to remove unnecessary dependencies among functions
+  
 ## 2.0.3 (Apr 16, 2013)
 
   - Fixed line number reported in pester failure when using new pipelined
