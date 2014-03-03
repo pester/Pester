@@ -21,6 +21,7 @@
   - Time is output to the XML report [GH-95]
   - Internal fixes to remove unnecessary dependencies among functions
   - Cleaned up Invoke-Pester interface
+  - Make output better structured
   
 ## 2.0.3 (Apr 16, 2013)
 

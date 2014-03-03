@@ -128,10 +128,10 @@ function Write-PesterResult {
 	    $output = $TestResult.name
 	    $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 	    if($TestResult.Passed) {
-	        "[+]$margin $output $humanTime" | Write-Host -ForegroundColor DarkGreen
+	        "$margin[+] $output $humanTime" | Write-Host -ForegroundColor DarkGreen
 	    }
 	    else {
-	        "[-]$margin $output $humanTime" | Write-Host -ForegroundColor red
+	        "$margin[-] $output $humanTime" | Write-Host -ForegroundColor red
 	         Write-Host -ForegroundColor red $error_margin$($TestResult.failureMessage)
 	         Write-Host -ForegroundColor red $error_margin$($TestResult.stackTrace)
 	    }
