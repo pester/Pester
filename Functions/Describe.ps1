@@ -64,7 +64,7 @@ param(
     }
 	
 	#TODO add test to test tags functionality
-	if($pester.TagsFilter -and @(Compare-Object $tags $pester.TagsFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+	if($pester.TagFilter -and @(Compare-Object $tags $pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
 	$Pester.EnterDescribe($Name)
     $Pester.CurrentDescribe | Write-Describe
