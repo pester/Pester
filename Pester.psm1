@@ -41,8 +41,8 @@ if the OutputXml parameter is provided. In these cases, Invoke-Pester
 will write the result log to the path provided in the OutputXml 
 parameter.
 
-.PARAMETER relative_path
-The path where Invoke-Pester begins to search for test files. The default is the current directory.
+.PARAMETER Path
+The path where Invoke-Pester begins to search for test files. The default is the current directory. Aliased 'relative_path' for backwards compatibility.
 
 .PARAMETER TestName
 Informs Invoke-Pester to only run Describe blocks that match this name.
@@ -52,6 +52,9 @@ Will cause Invoke-Pester to exit with a exit code equal to the number of failed 
 
 .PARAMETER OutputXml
 The path where Invoke-Pester will save a NUnit formatted test results log file. If this path is not provided, no log will be generated.
+
+.PARAMETER Tag 
+Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
 
 .Example
 Invoke-Pester
@@ -80,19 +83,21 @@ about_pester
 #>
     param(
         [Parameter(Position=0,Mandatory=0)]
-        [string]$relative_path = ".",
+        [Alias('relative_path')]
+        [string]$Path = ".",
         [Parameter(Position=1,Mandatory=0)]
-        [string]$TestName = $null, 
+        [string]$TestName, 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit, 
         [Parameter(Position=3,Mandatory=0)]
-        [string]$OutputXml = '',
+        [string]$OutputXml,
         [Parameter(Position=4,Mandatory=0)]
-        [string]$Tags = $null,
-        [switch]$EnableLegacyExpectations = $false
+        [Alias('Tags')]
+		[string]$Tag,
+        [switch]$EnableLegacyExpectations
     )
 	
-	$pester = New-PesterState -Path (Resolve-Path $relative_path) -TestNameFilter $testName -TagFilter ($Tags -split "\s") 
+	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") 
     
 	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
     

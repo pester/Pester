@@ -20,6 +20,7 @@
   - Fix Pester template self-tests [GH-113]
   - Time is output to the XML report [GH-95]
   - Internal fixes to remove unnecessary dependencies among functions
+  - Cleaned up Invoke-Pester interface
   
 ## 2.0.3 (Apr 16, 2013)
 
