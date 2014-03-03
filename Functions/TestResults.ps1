@@ -13,7 +13,7 @@ function Get-HumanTime($Seconds) {
 function ConvertTo-NUnitReport {
   param (
     [parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [PSObject[]]$InputObject
+    [PSObject]$InputObject
   )
 	#TODO clean this mess up
 	$results = $InputObject
@@ -35,7 +35,7 @@ function ConvertTo-NUnitReport {
 function Export-NUnitReport {
   param (
     [parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [PSObject[]]$InputObject,
+    [PSObject]$InputObject,
 		[parameter(Mandatory=$true)]
     [String]$Path
 	)

@@ -1,5 +1,5 @@
 function Get-ReplacementArgs($template, $data) {
-  if ( $data -is [PsObject] ) 
+  if ( $data.GetType().Name -ne 'HashTable' ) 
 	{
 		$data = $data.PsObject.Properties | foreach { $hash=@{}} { $hash.($_.Name) = $_.Value } { $hash } 
 	}
