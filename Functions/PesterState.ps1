@@ -87,7 +87,7 @@
 	} -ArgumentList $Path, $TagFilter, $TestNameFilter | Add-Member -MemberType ScriptProperty -Name TotalCount -Value { @($this.TestResult).Count } -PassThru |
     Add-Member -MemberType ScriptProperty -Name PassedCount -Value { @( $this.TestResult | where { $_.Passed }).count } -PassThru |
     Add-Member -MemberType ScriptProperty -Name FailedCount -Value { @( $this.TestResult | where { -not $_.Passed } ).count } -PassThru | 
-    Add-Member -MemberType ScriptProperty -Name Time -Value { $this.TestResult | foreach { $total=0 } { $total = $total + ($_.time) } { [timespan]$total} } -PassThru |
+    Add-Member -MemberType ScriptProperty -Name Time -Value { $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ($_.time) } { [timespan]$total} } -PassThru |
     Add-Member -MemberType ScriptProperty -Name Scope -Value { if ($this.CurrentDescribe) { if ($this.CurrentContext) { "Context" } else { "Describe" } } else { $null } } -PassThru
     
 }

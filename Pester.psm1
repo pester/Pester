@@ -56,6 +56,9 @@ The path where Invoke-Pester will save a NUnit formatted test results log file. 
 .PARAMETER Tag 
 Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
 
+.PARAMETER PassThru
+Returns a Pester result object containing the information about the whole test run, and each test.
+
 .Example
 Invoke-Pester
 
@@ -94,7 +97,8 @@ about_pester
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
 		[string]$Tag,
-        [switch]$EnableLegacyExpectations
+        [switch]$EnableLegacyExpectations,
+		[switch]$PassThru
     )
 	
 	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") 
@@ -121,6 +125,10 @@ about_pester
 			Export-NunitReport $pester $OutputXml 
   }
 	
+	if ($PassThru) { 
+		#remove all runtime properties like current* and Scope
+		$pester | Select -Property "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+	}
   if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
 	
 }

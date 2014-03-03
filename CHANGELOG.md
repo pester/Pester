@@ -22,6 +22,7 @@
   - Internal fixes to remove unnecessary dependencies among functions
   - Cleaned up Invoke-Pester interface
   - Make output better structured
+  - Add -PassThru to Invoke-Pester [GH-102], [GH-84] and [GH-46]
   
 ## 2.0.3 (Apr 16, 2013)
 
