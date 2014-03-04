@@ -180,8 +180,8 @@ about_Pester
 about_Should
 #>
 param(
-    $path,
-    $name
+    [String] $path,
+    [String] $name
 )
 
     if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
