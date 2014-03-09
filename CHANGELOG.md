@@ -23,6 +23,7 @@
   - Cleaned up Invoke-Pester interface
   - Make output better structured
   - Add -PassThru to Invoke-Pester [GH-102], [GH-84] and [GH-46]
+  - Makes New-Fixture -Path option more resilient [GH-114]
   
 ## 2.0.3 (Apr 16, 2013)
 
