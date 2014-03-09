@@ -139,106 +139,110 @@ function Write-UsageForNewFixture {
     "creates .\Foo\Bar.ps1 and .\Foo.Bar.Tests.ps1" | Write-Host
 }
 
-function Create-File($file_path, $contents = "") {
-
-    if (-not (Test-Path $file_path)) {
-        $contents | Out-File $file_path -Encoding ASCII
-        "Creating" | Write-Host -Fore DarkGreen -NoNewLine
-    } else {
-        "Skipping" | Write-Host -Fore Magenta -NoNewLine
+function Create-File ($Path,$Name,$Content) {
+    if (-not (Test-Path -Path $Path)) {
+        New-Item -ItemType Directory -Path $Path | Out-Null 
     }
-    " => $file_path" | Write-Host
+    
+    $FullPath = Join-Path -Path $Path -ChildPath $Name
+    if (-not (Test-Path -Path $FullPath)) {
+        Set-Content -Path  $FullPath -Value $Content -Encoding UTF8
+        Get-Item -Path $FullPath
+    }
+    else 
+    {
+        Write-Warning "Skipping the file '$FullPath', because it already exists."
+    }
 }
 
 function New-Fixture {
-<#
-.SYNOPSIS
-Generates scaffolding for two files: One that defines a function
-and another one that contains its tests. Yes, Pester does take
-an opinionated approach and puts the test right beside your code.
+    <#
+    .SYNOPSIS
+    This function generates two scripts, one that defines a function
+    and another one that contains its tests.
 
-.DESCRIPTION
-Thic command generates two files located in a directory 
-specified in the path parameter. If this directory does 
-not exist, it will be created. A file containing a function 
-signiture named after the name parameter(ie name.ps1) and 
-a test file containing a scaffolded describe and it blocks.
+    .DESCRIPTION
+    This function generates two scripts, one that defines a function
+    and another one that contains its tests. The files are by default 
+    placed in the current directory and are called and populated as such:
+    
+    
+    The script defining the funciton: .\Clean.ps1:
+    
+    function Clean { 
+	
+	}
+    
+    The script containg the example test .\Clean.Tests.ps1:
+    
+    $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    . "$here\$sut"
 
-.EXAMPLE
-New-Fixture deploy Clean
+    Describe "Clean" {
 
-Creates two files:
-./deploy/Clean.ps1
-function clean {
+        It "does something useful" {
+            $false | Should Be $true
+        }
+    } 
+    
+    
+    .PARAMETER Name
+    Defines the name of the function and the name of the test to be created.
+    
+    .PARAMETER Path
+    Defines path where the test and the function should be created, you can use full or relative path.
+    If the parameter is not specified the scripts are created in the current directory.
 
-}
+    .EXAMPLE 
+    New-Fixture -Name Clean
+    
+    Creates the scripts in the current directory.
+    
+    .EXAMPLE 
+    New-Fixture C:\Projects\Cleaner Clean
+    
+    Creates the scripts in the C:\Projects\Cleaner directory.
+    
+    .EXAMPLE
+    New-Fixture Cleaner Clean
+    
+    Creates a new folder named Cleaner in the current directory and creates the scripts in it.
+    
+    .LINK
+    Describe
+    Context
+    It
+    about_Pester
+    about_Should
+    #>
+    
+    param (    
+        [String]$Path = $PWD,
+        [Parameter(Mandatory=$true)]
+        [String]$Name
+    )
+	#region File contents 
+	#keep this formatted as is. the forma is output to the file as is, including indentation
+	$scriptCode = "function $name {`r`n`r`n}"
 
-./deploy/clean.Tests.ps1
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+	$testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
-Describe "clean" {
+Describe "#name#" {
 
-    It "does something useful" {
-        $true | Should Be $false
-    }
-}
-
-.LINK
-Describe
-Context
-It
-about_Pester
-about_Should
-#>
-param(
-    [String] $path,
-    [String] $name
-)
-
-    if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
-        Write-UsageForNewFixture
-        return
-    }
-
-    if ($path -eq ".") {
-        $path = (pwd).path
-    }
-    else {
-        # TODO clean up $path cleanup
-        $path = $path.TrimStart(".")
-        $path = $path.TrimStart("\")
-        $path = $path.TrimStart("/")
+		It "does something useful" {
+		$true | Should Be $false
+	}
+}' -replace "name",$name
+	
+	#endregion
     
-        if (-not (Test-Path $path)) {
-            & md $path | Out-Null
-        } 
-    }
-
-    if (-not (Test-Path $path)) {
-        & md $path | Out-Null
-    }
-
-    $test_code = "function $name {
-
-}
-"
-
-    $fixture_code = "`$here = Split-Path -Parent `$MyInvocation.MyCommand.Path
-`$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
-. `"`$here\`$sut`"
-
-Describe `"$name`" {
-
-    It `"does something useful`" {
-        `$true | Should Be `$false
-    }
-}
-"
-
-    Create-File "$path\$name.ps1" $test_code -Encoding ASCII
-    Create-File "$path\$name.Tests.ps1" $fixture_code -Encoding ASCII
+    $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    
+    Create-File -Path $Path -Name "$Name.ps1" -Content $scriptCode
+    Create-File -Path $Path -Name "$Name.Tests.ps1" -Content $testCode
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
