@@ -1,4 +1,6 @@
-## 2.0.4 (unreleased)
+## Unreleased
+
+## 2.0.4 (March 9, 2014)
 
   - Fixed issue where TestDrive doesn't work with pathes with . characters
     [GH-52]
@@ -6,7 +8,7 @@
   - Exposing TestDrive with Get-TestDriveItem [GH-70]
   - Fixed bug where mocking Remove-Item caused cleanup to break [GH-68]
   - Added -Passthu to Setup to obtain file system object references [GH-69]
-  - Can assert on exception messages from Throw asserions [GH-58]
+  - Can assert on exception messages from Throw assertions [GH-58]
   - Fixed assertions on empty functions [GH-50]
   - Fixed New-Fixture so it creates proper syntax in tests [GH-49]
   - Fixed assertions on Object arrays [GH-61]
