@@ -78,7 +78,7 @@ Describe "#name#" {
 		It "does something useful" {
 		$true | Should Be $false
 	}
-}' -replace "name",$name
+}' -replace "#name#",$name
 	
 	#endregion
     
