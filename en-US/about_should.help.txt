@@ -2,7 +2,7 @@ TOPIC
 	Should
 
 SYNOPSIS
-	Provides assertion convenience methods for comapring objects and throwing 
+	Provides assertion convenience methods for comparing objects and throwing 
 	test failures when test expectations fail.
 
 DESCRIPTION
@@ -22,8 +22,8 @@ SHOULD MEMBERS
 		objects are not the same.
 
 		C:\PS>$actual="actual value"
-		C:\PS>$actual.Should.Be("actual value") #Nothing happens
-		C:\PS>$actual.Should.Be("not actual value") #A Pester Failure is thrown
+		C:\PS>$actual | Should Be "actual value" #Nothing happens
+		C:\PS>$actual | Should Be "not actual value" #A Pester Failure is thrown
 
 	Have_Count_Of
 		Intended for comparing IEnumerables for the number of elements. However, 
@@ -33,7 +33,7 @@ SHOULD MEMBERS
 		to a non null object will fail. They will pass in version 2.0.
 
 		C:\PS>$actual=@(1,2,3)
-		C:\PS>$actual.Should.Have_Count_Of(@(3,2)) #Will fail
+		C:\PS>$actual | Should Have_Count_Of @(3,2)  #Will fail
 
 	Exist
 		Does not perform any comparison but checks if the object calling Exist 
@@ -42,20 +42,20 @@ SHOULD MEMBERS
 
 		C:\PS>$actual=(Dir . )[0].FullName
 		C:\PS>Remove-Item $actual
-		C:\PS>$actual.Should.Exist #Will fail
+		C:\PS>$actual | Should Exist #Will fail
 
 	Match
 		Uses a regular expression to compare two objects.
 
-		C:\PS>"I am a value".Should.Match("I am") #Passes
-		C:\PS>"I am a value".Should.Match("I am a bad person") #will fail
+		C:\PS>"I am a value" | Should Match "I am" #Passes
+		C:\PS>"I am a value" | Should Match "I am a bad person" #will fail
 
 	Like
 
 		Performs a wildcard based comparison.
 
-		C:\PS>"I am a value".Should.Match("I am*") #Passes
-		C:\PS>"I am a value".Should.Match("*I am") #will fail
+		C:\PS>"I am a value" | Should Match "I am*" #Passes
+		C:\PS>"I am a value" | Should Match "*I am" #will fail
 
 USING SHOULD IN A TEST
 
@@ -67,7 +67,7 @@ USING SHOULD IN A TEST
 
 	    It "adds positive numbers" {
 	        $sum = Add-Numbers 2 3
-	        $sum.should.be(3)
+	        $sum | should be 3
 	    }
 	}
 

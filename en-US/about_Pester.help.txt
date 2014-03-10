@@ -40,7 +40,7 @@ CREATING A PESTER TEST
     Describe "clean" {
 
         It "does something useful" {
-            $true.should.be($false)
+            $true | should be $false
         }
     }
 
@@ -83,7 +83,7 @@ RUNNNING A PESTER TEST
 	            Assert-VerifiableMocks
 	        }
 	        It "returns the next version number" {
-	            $result.Should.Be(1.2)
+	            $result | Should Be 1.2
 	        }
         }
     	Context "When there are no Changes" {
