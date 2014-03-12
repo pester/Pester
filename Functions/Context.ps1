@@ -46,7 +46,12 @@ param(
 
     Write-Host -ForegroundColor Magenta $pester.margin $name
     & $fixture
-	Clear-TestDrive -Exclude ($TestDriveContent).FullName
+
+    # If TestDrive empty, no cleanup needs to be done
+    If ( $TestDriveContent ) {
+	    Clear-TestDrive -Exclude ($TestDriveContent).FullName
+    }
+
    	Clear-Mocks
 
     $pester.results.TestDepth -= 1
