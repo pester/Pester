@@ -37,14 +37,23 @@ param(
     $name,
     [ScriptBlock] $fixture
 )
-    $Pester.EnterContext($name)
+    $pester.Scope = "Context"
     $TestDriveContent = Get-TestDriveChildItem
-	
-    $Pester.CurrentContext | Write-Context
-	& $fixture
-	
-	Clear-TestDrive -Exclude ($TestDriveContent).FullName
+
+    $pester.results = Get-GlobalTestResults
+    $pester.margin = " " * $pester.results.TestDepth
+    $pester.results.TestDepth += 1
+
+    Write-Host -ForegroundColor Magenta $pester.margin $name
+    & $fixture
+
+    # If TestDrive empty, no cleanup needs to be done
+    If ( $TestDriveContent ) {
+	    Clear-TestDrive -Exclude ($TestDriveContent).FullName
+    }
+
    	Clear-Mocks
-    $Pester.LeaveContext()
+
+    $pester.results.TestDepth -= 1
 }
 

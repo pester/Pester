@@ -41,23 +41,17 @@ if the OutputXml parameter is provided. In these cases, Invoke-Pester
 will write the result log to the path provided in the OutputXml 
 parameter.
 
-.PARAMETER Path
-The path where Invoke-Pester begins to search for test files. The default is the current directory. Aliased 'relative_path' for backwards compatibility.
+.PARAMETER relative_path
+The path where Invoke-Pester begins to search for test files. The default is the current directory.
 
-.PARAMETER TestName
-Informs Invoke-Pester to only run Describe blocks that match this name.
+.PARAMETER testName
+Informs Inoke-Pester to only run Describe blocks that match this name.
 
 .PARAMETER EnableExit
 Will cause Invoke-Pester to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
 .PARAMETER OutputXml
 The path where Invoke-Pester will save a NUnit formatted test results log file. If this path is not provided, no log will be generated.
-
-.PARAMETER Tag 
-Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
-
-.PARAMETER PassThru
-Returns a Pester result object containing the information about the whole test run, and each test.
 
 .Example
 Invoke-Pester
@@ -86,51 +80,152 @@ about_pester
 #>
     param(
         [Parameter(Position=0,Mandatory=0)]
-        [Alias('relative_path')]
-        [string]$Path = ".",
+        [string]$relative_path = ".",
         [Parameter(Position=1,Mandatory=0)]
-        [string]$TestName, 
+        [string]$testName = $null, 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit, 
         [Parameter(Position=3,Mandatory=0)]
-        [string]$OutputXml,
+        [string]$OutputXml = '',
         [Parameter(Position=4,Mandatory=0)]
-        [Alias('Tags')]
-		[string]$Tag,
-        [switch]$EnableLegacyExpectations,
-		[switch]$PassThru
+        [string]$Tags = $null,
+        [switch]$EnableLegacyExpectations = $false
+
     )
-	
-	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") 
+    $pester = @{}
+    $pester.starting_variables = Get-VariableAsHash
+    Reset-GlobalTestResults
+
+    if ($EnableLegacyExpectations) {
+        "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
+        . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
+        Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
+    }
+
+    $pester.fixtures_path = Resolve-Path $relative_path
+    $pester.arr_testTags  = $Tags.Split(' ')
+
+    Write-Host Executing all tests in $($pester.fixtures_path)
+
+    Get-ChildItem $pester.fixtures_path -Include "*.ps1" -Recurse |
+        ? { $_.Name -match "\.Tests\." } |
+        % { & $_.PSPath }
+
+    Write-TestReport
+
+    if($OutputXml) {
+        $Global:ModulePath = $PSScriptRoot
+        Write-NunitTestReport (Get-GlobalTestResults) $OutputXml 
+    }
+    if ($EnableExit) { Exit-WithCode }
+}
+
+function Write-UsageForNewFixture {
+    "invalid usage, please specify (path, name)" | Write-Host
+    "eg: .\New-Fixture -Path Foo -Name Bar" | Write-Host
+    "creates .\Foo\Bar.ps1 and .\Foo.Bar.Tests.ps1" | Write-Host
+}
+
+function Create-File($file_path, $contents = "") {
+
+    if (-not (Test-Path $file_path)) {
+        $contents | Out-File $file_path -Encoding ASCII
+        "Creating" | Write-Host -Fore DarkGreen -NoNewLine
+    } else {
+        "Skipping" | Write-Host -Fore Magenta -NoNewLine
+    }
+    " => $file_path" | Write-Host
+}
+
+function New-Fixture {
+<#
+.SYNOPSIS
+Generates scaffolding for two files: One that defines a function
+and another one that contains its tests. Yes, Pester does take
+an opinionated approach and puts the test right beside your code.
+
+.DESCRIPTION
+Thic command generates two files located in a directory 
+specified in the path parameter. If this directory does 
+not exist, it will be created. A file containing a function 
+signiture named after the name parameter(ie name.ps1) and 
+a test file containing a scaffolded describe and it blocks.
+
+.EXAMPLE
+New-Fixture deploy Clean
+
+Creates two files:
+./deploy/Clean.ps1
+function clean {
+
+}
+
+./deploy/clean.Tests.ps1
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+. "$here\$sut"
+
+Describe "clean" {
+
+    It "does something useful" {
+        $true | Should Be $false
+    }
+}
+
+.LINK
+Describe
+Context
+It
+about_Pester
+about_Should
+#>
+param(
+    [String] $path,
+    [String] $name
+)
+
+    if ([String]::IsNullOrEmpty($path) -or [String]::IsNullOrEmpty($name)) {
+        Write-UsageForNewFixture
+        return
+    }
+
+    if ($path -eq ".") {
+        $path = (pwd).path
+    }
+    else {
+        # TODO clean up $path cleanup
+        $path = $path.TrimStart(".")
+        $path = $path.TrimStart("\")
+        $path = $path.TrimStart("/")
     
-	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
-    
+        if (-not (Test-Path $path)) {
+            & md $path | Out-Null
+        } 
+    }
 
-  if ($EnableLegacyExpectations) {
-      "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
-      . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
-      Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
-  }
+    if (-not (Test-Path $path)) {
+        & md $path | Out-Null
+    }
 
-  Write-Host Executing all tests in $($pester.Path)
+    $test_code = "function $name {
 
-  Get-ChildItem $pester.Path -Filter "*.tests.ps1" -Recurse |
-  foreach { & $_.PSPath }
+}
+"
 
-  $pester | Write-PesterReport
+    $fixture_code = "`$here = Split-Path -Parent `$MyInvocation.MyCommand.Path
+`$sut = (Split-Path -Leaf `$MyInvocation.MyCommand.Path).Replace(`".Tests.`", `".`")
+. `"`$here\`$sut`"
 
-  if($OutputXml) {
-      #TODO make this legacy option and move the nUnit report out of invoke-pester
-			#TODO add warning message that informs the user how to use the nunit output properly
-			Export-NunitReport $pester $OutputXml 
-  }
-	
-	if ($PassThru) { 
-		#remove all runtime properties like current* and Scope
-		$pester | Select -Property "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
-	}
-  if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
-	
+Describe `"$name`" {
+
+    It `"does something useful`" {
+        `$true | Should Be `$false
+    }
+}
+"
+
+    Create-File "$path\$name.ps1" $test_code -Encoding ASCII
+    Create-File "$path\$name.Tests.ps1" $fixture_code -Encoding ASCII
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
