@@ -13,8 +13,8 @@
     The script defining the funciton: .\Clean.ps1:
     
     function Clean { 
-	
-	}
+    
+    }
     
     The script containg the example test .\Clean.Tests.ps1:
     
@@ -60,27 +60,35 @@
     about_Should
     #>
     
-    param (    
-        [String]$Path = $PWD,
+    param (
         [Parameter(Mandatory=$true)]
-        [String]$Name
+        [String]$Name,
+        [String]$Path = $PWD
     )
-	#region File contents 
-	#keep this formatted as is. the forma is output to the file as is, including indentation
-	$scriptCode = "function $name {`r`n`r`n}"
+    #region File contents 
+    #keep this formatted as is. the forma is output to the file as is, including indentation
+    $scriptCode = @"
+function $name {
+    
+    [CmdletBinding()]
+    Param()
+}
+"@
 
-	$testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
 Describe "#name#" {
 
-		It "does something useful" {
-		$true | Should Be $false
-	}
+    It "does something useful" {
+        $expectedValue = $true
+        $returnedValue = $false
+        $returnedValue | Should Be $expectedValue
+    }
 }' -replace "#name#",$name
-	
-	#endregion
+    
+    #endregion
     
     $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
     
