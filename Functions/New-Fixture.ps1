@@ -83,8 +83,9 @@ Describe "#name#" {
 
     It "does something useful" {
         $expectedValue = $true
-        $returnedValue = $false
-        $returnedValue | Should Be $expectedValue
+        $actualValue = $false
+        
+        $actualValue | Should Be $expectedValue
     }
 }' -replace "#name#",$name
     
