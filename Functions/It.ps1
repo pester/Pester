@@ -68,6 +68,7 @@ param(
     . $TestDrive\temp.ps1
 		
     $Time = Measure-Command {
+        $PesterException = $null
         try{
            temp
         } catch {

@@ -53,3 +53,13 @@ Describe "It" {
 
 }
 
+Set-StrictMode -version 2.0
+
+Describe "It with StrictMode" {
+
+    It "works under strictmode -version 2.0" {
+        try{ $true | Should Be $true } 
+        catch { Throw "Did not pass under StrictMode -version 2.0" }
+        finally { Set-StrictMode -Off }
+    }
+}
