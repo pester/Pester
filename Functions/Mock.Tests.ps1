@@ -55,6 +55,84 @@ Describe "When calling Mock on existing cmdlet" {
     }
 }
 
+Describe "When calling Mock on existing cmdlet using fully qualified command name" {
+    Mock Microsoft.PowerShell.Management\Get-Process {return "I am not Microsoft.PowerShell.Management\Get-Process"}
+
+    $result=Get-Process
+
+    It "Should Invoke the mocked script" {
+        $result | Should Be "I am not Microsoft.PowerShell.Management\Get-Process"
+    }
+}
+
+Describe "When calling Mock on an alias" {
+    Mock ps {return "I am not ps"}
+
+    $result = ps
+
+    It "Should Invoke the mocked script" {
+        $result | Should Be "I am not ps"
+    }
+}
+
+Describe "When calling Mock on a filter" {
+    Mock more {return "I am not more"}
+
+    $result = 'Yes I am' | more
+
+    It "Should Invoke the mocked script" {
+        $result | Should Be "I am not more"
+    }
+}
+
+Describe "When calling Mock on an external script" {
+
+    # add %temp% folder to path, so Get-Command will find the external script
+    $paths = $env:Path -split ';'
+    if ($removePath = $paths -notcontains $env:TMP)
+    {
+        $paths += $env:TMP
+        $env:Path = $paths -join ';'
+    }
+
+    try
+    {
+        $ps1File = New-Item $env:TMP -Name 'tempExternalScript.ps1' -ItemType File
+        $ps1File | Set-Content -Value "function foo { 'I am tempExternalScript.ps1' } foo"
+
+        Mock tempExternalScript.ps1 {return "I am not tempExternalScript.ps1"}
+
+        $result = tempExternalScript.ps1
+
+        It "Should Invoke the mocked script" {
+            $result | Should Be "I am not tempExternalScript.ps1"
+        }
+    }
+    finally
+    {
+        if ($removePath)
+        {
+            $paths = $env:Path -split ';' | select -First ($paths.Count - 1)
+            $env:Path = $paths -join ';'
+
+        }
+        if ($ps1File)
+        {
+            Remove-Item $ps1File -Force -ErrorAction Ignore
+        }
+    }
+}
+
+Describe "When calling Mock on an application command" {
+    Mock schtasks.exe {return "I am not schtasks.exe"}
+
+    $result = schtasks.exe
+
+    It "Should Invoke the mocked script" {
+        $result | Should Be "I am not schtasks.exe"
+    }
+}
+
 Describe "When calling Mock in the Describe block" {
     Mock Out-File {return "I am not Out-File"}
 
@@ -191,6 +269,54 @@ Describe "When calling Mock on More than one command" {
     }
     It "Should Invoke the mocked script for the second Mock" {
         $result2 | Should Be "I am the mock test"
+    }
+}
+
+Describe 'When calling Mock on a module-internal function.' {
+    # Import the module PSDesiredStateConfiguration only if it is not already loaded
+    $unload = $false
+    $fqRootModule   = @{ ModuleName='PSDesiredStateConfiguration'; Guid='{ced422f3-86a4-4841-9f80-a713eac9522a}'; ModuleVersion='1.0' }
+    $fqNestedModule = @{ ModuleName='PSDesiredStateConfiguration'; Guid='{00000000-0000-0000-0000-000000000000}'; ModuleVersion='0.0' }
+    $nestedModule = Microsoft.PowerShell.Core\Get-Module -FullyQualifiedName $fqNestedModule -All
+
+    try
+    {
+        if (-not $nestedModule)
+        {
+            $rootModule = Import-Module $fqRootModule.ModuleName -Force -Global -PassThru -ErrorAction Stop
+            $unload = $true
+            $nestedModule = Microsoft.PowerShell.Core\Get-Module -FullyQualifiedName $fqNestedModule -All
+            if (-not $nestedModule -or (Get-Item Function:\GetPatterns -ErrorAction Ignore))
+            {
+                throw
+            }
+        }
+    }
+    catch
+    {
+        throw [InvalidOperationException] 'BAD UNIT TEST. Module PSDesiredStateConfiguration failed to load.'
+    }
+
+    try
+    {
+        $result = & $nestedModule { GetPatterns 'abc*xyz' | foreach { $_.ToWql() } }    
+        It 'Should call the actual internal module function' {
+            $result | Should Be 'abc%xyz'
+        }
+
+        Mock GetPatterns {return 'I am not GetPatterns'} -moduleName PSDesiredStateConfiguration
+        $result = & $nestedModule { GetPatterns abc* } {return 'yes I am'}
+
+        It 'Should Invoke the mocked script for the internal module function' {
+            $result | Should Be 'I am not GetPatterns'
+        }
+    }
+    finally
+    {
+        if ($fqRootModule -and $unload)
+        {
+            Remove-Module $fqRootModule.ModuleName -Force -ErrorAction Ignore
+        }
     }
 }
 
