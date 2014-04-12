@@ -30,6 +30,7 @@
   - Make the New-Fixture input accept any path and output objects
   - Move New-Fixture to separate script
   - Remove Write-UsageForNewFixture
+  - Fix Should Throw filtering by exception message [GH-125]
   
 ## 2.0.3 (Apr 16, 2013)
 

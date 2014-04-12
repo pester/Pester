@@ -27,7 +27,6 @@ Describe "PesterThrow" {
     It "returns true if the statement throws an exception and the actual error text matches the expected error pattern" {
         Test-PositiveAssertion (PesterThrow { throw "expected error"} "error")
     }
-
 }
 
 Describe "Get-DoMessagesMatch" {
@@ -57,6 +56,36 @@ Describe "Get-DoMessagesMatch" {
         $result = Get-DoMessagesMatch $actualErrorMesage $expectedText
         $result | Should Be $True
     }
-
 }
 
+Describe 'PesterThrowFailureMessage' {
+    It 'returns false if the actual message is not the same as the expected message' {
+        $unexpectedErrorMessage = 'unexpected'
+        $expectedErrorMessage = 'some expected message'
+        PesterThrow { throw $unexpectedErrorMessage } $expectedErrorMessage > $null
+        $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
+        $result | Should Be "Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}"
+    }
+
+    It 'returns true if the actual message is the same as the expected message' {
+        PesterThrow { } > $null
+        $result = PesterThrowFailureMessage 'error message'
+        $result | Should Be 'Expected: the expression to throw an exception'
+    }
+}
+
+Describe 'NotPesterThrowFailureMessage' {
+    It 'returns false if the actual message is not the same as the expected message' {
+        $unexpectedErrorMessage = 'unexpected'
+        $expectedErrorMessage = 'some expected message'
+        PesterThrow { throw $unexpectedErrorMessage } $expectedErrorMessage > $null
+        $result = NotPesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
+        $result | Should Be "Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}"
+    }
+
+    It 'returns true if the actual message is the same as the expected message' {
+        PesterThrow { throw 'error message' } > $null
+        $result = NotPesterThrowFailureMessage 'error message'
+        $result | Should Be 'Expected: the expression not to throw an exception. Message was {error message}'
+    }
+}
