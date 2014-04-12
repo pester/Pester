@@ -1,8 +1,9 @@
 ## Unreleased
+  - Process It blocks in memory [GH-123]
 
 ## 2.0.4 (March 9, 2014)
 
-  - Fixed issue where TestDrive doesn't work with pathes with . characters
+  - Fixed issue where TestDrive doesn't work with paths with . characters
     [GH-52]
   - Fixed issues when mocking Out-File [GH-71]
   - Exposing TestDrive with Get-TestDriveItem [GH-70]
@@ -46,7 +47,7 @@
 
 ## 2.0.0 (Feb 2, 2013)
 
-  - Functioanlity equivalent to 1.2.0 except legacy assertions disabled by
+  - Functionality equivalent to 1.2.0 except legacy assertions disabled by
     default. This is a breaking change for anyone who is already using Pester
 
 ## 1.2.0 (Feb 2, 2013)
@@ -57,7 +58,7 @@
   - Added 'Should Throw' assertion [GH-37]
   - Added 'Should BeNullOrEmpty' assertion [GH-39]
   - Added negative assertions with the 'Not' keyword
-  - Added 'Match' asserion
+  - Added 'Match' assertion
   - Added -DisableOldStyleAssertions [GH-19] and [GH-27]
   - Added Contain assertion which tests file contents [GH-13]
 

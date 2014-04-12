@@ -64,12 +64,11 @@ param(
     $name, 
     [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
-		Setup-TestFunction
-    . $TestDrive\temp.ps1
-		
+
+	
     $Time = Measure-Command {
         try{
-           temp
+           &{ &$test }
         } catch {
             $PesterException = $_
         }
@@ -78,14 +77,6 @@ param(
     $Result = Get-PesterResult -Test $Test -Time $time -Exception $PesterException
     $Pester.AddTestResult($Result.name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace ) 
     $Pester.testresult[-1] | Write-PesterResult
-}
-
-function Setup-TestFunction {
-@"
-function temp {
-$test
-}
-"@ | Microsoft.Powershell.Utility\Out-File $TestDrive\temp.ps1
 }
 
 function Get-PesterResult {
