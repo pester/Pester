@@ -9,17 +9,15 @@ function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
     $Script:ActualExceptionWasThrown = $false
 
     try {
-        # Piping to Out-Null so results of script exeution
-        # does not remain on the pipeline
-        & $script | Out-Null
+        # Redirect to $null so script output does not enter the pipeline
+        & $script > $null
     } catch {
         $Script:ActualExceptionWasThrown = $true
         $Script:ActualExceptionMessage = $_.Exception.Message
     }
 
     if ($ActualExceptionWasThrown) {
-        $match = (Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage)
-        return $match
+        return Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage
     }
     return $false
 }
