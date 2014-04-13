@@ -9,6 +9,9 @@ function FunctionUnderTest (  [Parameter(Mandatory=$false)][string] $param1){
 function FunctionUnderTestWithoutParams([string]$param1) {
     return "I am a real world test with no params"
 }
+
+filter FilterUnderTest { $_ }
+
 function CommonParamFunction (  
     [string] ${Uncommon},
     [switch] 
@@ -52,6 +55,118 @@ Describe "When calling Mock on existing cmdlet" {
 
     It "Should Invoke the mocked script" {
         $result | Should Be "I am not Get-Process"
+    }
+}
+
+Describe 'When calling Mock on existing cmdlet using fully qualified command name' {
+    Mock Microsoft.PowerShell.Management\Get-Process {return 'I am not Microsoft.PowerShell.Management\Get-Process'}
+
+    <#
+        # Mocking a module-qualified cmdlet is not supported
+         
+        $result = Microsoft.PowerShell.Management\Get-Process
+
+        It 'Should Invoke the mocked script using its module-qualified name' {
+            $result | Should Be 'I am not Microsoft.PowerShell.Management\Get-Process'
+        }
+    #>
+
+    $result = Get-Process
+
+    It 'Should Invoke the mocked script' {
+        $result | Should Be 'I am not Microsoft.PowerShell.Management\Get-Process'
+    }
+}
+
+Describe 'When calling Mock on an alias' {
+    Mock ps {return 'I am not ps'}
+
+    $result = ps
+
+    It 'Should Invoke the mocked script' {
+        $result | Should Be 'I am not ps'
+    }
+}
+
+Describe 'When calling Mock on a filter' {
+    Mock FilterUnderTest {return 'I am not FilterUnderTest'}
+
+    $result = 'Yes I am' | FilterUnderTest
+
+    It 'Should Invoke the mocked script' {
+        $result | Should Be 'I am not FilterUnderTest'
+    }
+}
+
+Describe 'When calling Mock on an external script' {
+    $ps1File = New-Item 'TestDrive:\tempExternalScript.ps1' -ItemType File -Force
+    $ps1File | Set-Content -Value "'I am tempExternalScript.ps1'"
+
+    Mock 'TestDrive:\tempExternalScript.ps1' {return 'I am not tempExternalScript.ps1'}
+    
+    <#
+        # Invoking the script using its absolute path is not supported
+    
+        $result = TestDrive:\tempExternalScript.ps1
+        It 'Should Invoke the absolute-path-qualified mocked script using just the script name' {
+            $result | Should Be 'I am not tempExternalScript.ps1'
+        }
+     
+        $result = & TestDrive:\tempExternalScript.ps1
+        It 'Should Invoke the absolute-path-qualified mocked script using the command-invocation operator (&)' {
+            $result | Should Be 'I am not tempExternalScript.ps1'
+        }
+    
+        $result = . TestDrive:\tempExternalScript.ps1
+        It 'Should Invoke the absolute-path-qualified mocked script using dot source notation' {
+            $result | Should Be 'I am not tempExternalScript.ps1'
+        }
+    #>
+    
+    Push-Location TestDrive:\
+
+    try
+    {
+        $result = tempExternalScript.ps1
+        It 'Should Invoke the mocked script using just the script name' {
+            $result | Should Be 'I am not tempExternalScript.ps1'
+        }
+
+        $result = & tempExternalScript.ps1
+        It 'Should Invoke the mocked script using the command-invocation operator (&)' {
+            $result | Should Be 'I am not tempExternalScript.ps1'
+        }
+
+        $result = . tempExternalScript.ps1
+        It 'Should Invoke the mocked script using dot source notation' {
+            $result | Should Be 'I am not tempExternalScript.ps1'
+        }
+
+        <#
+            # Invoking the script using only its relative path is not supported
+
+            $result = .\tempExternalScript.ps1
+            It 'Should Invoke the relative-path-qualified mocked script' {
+                $result | Should Be 'I am not tempExternalScript.ps1'
+            }
+        #>
+
+    }
+    finally
+    {
+        Pop-Location
+    }
+
+    Remove-Item $ps1File -Force -ErrorAction Ignore
+}
+
+Describe 'When calling Mock on an application command' {
+    Mock schtasks.exe {return 'I am not schtasks.exe'}
+
+    $result = schtasks.exe
+
+    It 'Should Invoke the mocked script' {
+        $result | Should Be 'I am not schtasks.exe'
     }
 }
 
@@ -192,6 +307,34 @@ Describe "When calling Mock on More than one command" {
     It "Should Invoke the mocked script for the second Mock" {
         $result2 | Should Be "I am the mock test"
     }
+}
+
+Describe 'When calling Mock on a module-internal function.' {
+    New-Module -Name TestModule {
+        function InternalFunction { 'I am the internal function' }
+        function PublicFunction   { InternalFunction }
+        Export-ModuleMember -Function PublicFunction
+    } | Import-Module -Force
+
+    It 'Should fail to call the internal module function' {
+        { InternalFuncTion } | Should Throw
+    }
+
+    It 'Should call the actual internal module function' {
+        PublicFunction | Should Be 'I am the internal function'
+    }
+
+    It 'Should call the mocked function using only the function name' {
+        Mock InternalFunction { 'I am the mock test' } -moduleName TestModule
+        PublicFunction | Should Be 'I am the mock test'
+    }
+
+    It 'Should call the mocked function using its fully qualified name' {
+        Mock InternalFunction { 'I am the mock test' } -moduleName TestModule
+        TestModule\PublicFunction | Should Be 'I am the mock test'
+    }
+
+    Remove-Module TestModule -Force
 }
 
 Describe "When Applying multiple Mocks on a single command" {
