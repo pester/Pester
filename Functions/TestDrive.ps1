@@ -33,6 +33,7 @@ function Clear-TestDrive ([String[]]$Exclude) {
 	{
 		#Get-ChildItem -Exclude did not seem to work with full paths
 		Get-ChildItem -Recurse -Path $Path |
+			Sort-Object -Descending  -Property "FullName" |
 			where { $Exclude -NotContains $_.FullName } |
 			Microsoft.PowerShell.Management\Remove-Item -Force -Recurse
 	}
