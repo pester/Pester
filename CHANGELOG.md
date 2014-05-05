@@ -1,5 +1,6 @@
 ## Unreleased
   - Process It blocks in memory [GH-123]
+  - Fixed -ExecutionPolicy in pester.bat [GH-130]
 
 ## 2.0.4 (March 9, 2014)
 
