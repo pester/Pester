@@ -54,8 +54,8 @@ about_TestDrive
 param(
         [Parameter(Mandatory = $true, Position = 0)] $name,
         $tags=@(),
-        [Parameter(Mandatory = $true, Position = 1)]
-        [ScriptBlock] $fixture
+        [Parameter(Position = 1)]
+        [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
  	if($Pester.TestNameFilter -and ($Pester.TestNameFilter -notlike $Name)) 
     { 
