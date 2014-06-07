@@ -1,4 +1,4 @@
-$global:mockTable = @{}
+﻿$global:mockTable = @{}
 $global:mockCallHistory = @()
 
 function Mock {
@@ -144,33 +144,61 @@ param(
     [string]$commandName, 
     [ScriptBlock]$mockWith={}, 
     [switch]$verifiable, 
-    [ScriptBlock]$parameterFilter = {$True}    
+    [ScriptBlock]$parameterFilter = {$True},
+    [string]$moduleName
 )
 
-    $origCommand = Validate-Command $commandName
-    $filterTest=&($parameterFilter)
-    if($filterTest -ne $True -and $filterTest -ne $False){ throw "The Parameter Filter must return a boolean"}
-    $blocks = @{Mock=$mockWith; Filter=$parameterFilter; Verifiable=$verifiable; Scope=$pester.Scope}
-    $mock = $mockTable.$commandName
-    if(!$mock) {
-        if($origCommand.CommandType -eq "Function") {
-            Microsoft.PowerShell.Management\Rename-Item Function:\$commandName global:PesterIsMocking_$commandName
+    $contextInfo = Validate-Command $commandName $moduleName
+    $commandName = $contextInfo.Command.Name
+    $filterTest = &($parameterFilter)
+    if ($filterTest -isnot [bool]) { throw [System.Management.Automation.PSArgumentException] 'The Parameter Filter must return a boolean' }
+
+    $blocks = @{
+        Mock       = $mockWith
+        Filter     = $parameterFilter
+        Verifiable = $verifiable
+        Scope      = $pester.Scope
+    }
+
+    $mock = $mockTable[$contextInfo.Command.Name]
+    if (-not $mock) {
+        if ($contextInfo.Command.CommandType -eq 'Function') {
+            $contextInfo.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Rename("Function:\$args", "global:PesterIsMocking_$args", $true) }, $contextInfo.Command.Name) > $null
         }
-        $metadata=Microsoft.PowerShell.Utility\New-Object System.Management.Automation.CommandMetaData $origCommand
-        $metadata.Parameters.Remove("Verbose") | out-null
-        $metadata.Parameters.Remove("Debug") | out-null
-        $metadata.Parameters.Remove("ErrorAction") | out-null
-        $metadata.Parameters.Remove("WarningAction") | out-null
-        $metadata.Parameters.Remove("ErrorVariable") | out-null
-        $metadata.Parameters.Remove("WarningVariable") | out-null
-        $metadata.Parameters.Remove("OutVariable") | out-null
-        $metadata.Parameters.Remove("OutBuffer") | out-null
-        $cmdLetBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
-        $params = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
-        $newContent=Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
-        Microsoft.PowerShell.Management\Set-Item Function:\script:$commandName -value "$cmdLetBinding `r`n param ( $params )Process{ `r`n$newContent}"
-        $mock=@{OriginalCommand=$origCommand;blocks=@($blocks);CmdLet=$cmdLetBinding;Params=$params;CommandName=$CommandName}
-    } 
+
+        $cmdletBinding = ''
+        $paramBlock    = ''
+
+        if ($contextInfo.Command.psobject.Properties['ScriptBlock'] -or $contextInfo.Command.CommandType -eq 'Cmdlet')
+        {
+            $metadata = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+            $metadata.Parameters.Remove('Verbose')         > $null
+            $metadata.Parameters.Remove('Debug')           > $null
+            $metadata.Parameters.Remove('ErrorAction')     > $null
+            $metadata.Parameters.Remove('WarningAction')   > $null
+            $metadata.Parameters.Remove('ErrorVariable')   > $null
+            $metadata.Parameters.Remove('WarningVariable') > $null
+            $metadata.Parameters.Remove('OutVariable')     > $null
+            $metadata.Parameters.Remove('OutBuffer')       > $null
+
+            $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
+            $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+        }
+
+        $newContent = Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
+        $mockScript = "$cmdletBinding`r`n    param( $paramBlock )`r`n`r`n    process{`r`n$newContent}"
+
+        $contextInfo.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }, $contextInfo.Command.Name, $mockScript) > $null
+
+        $mock = @{
+            OriginalCommand = $contextInfo.Command
+            Session         = $contextInfo.Session
+            blocks          = @($blocks)
+            Cmdlet          = $cmdletBinding
+            Params          = $paramBlock
+            CommandName     = $contextInfo.Command.Name
+        }
+    }
     else {
         if($blocks.Filter.ToString() -eq "`$True") {
             if($mock.blocks[0].Filter.ToString() -eq "`$True") {
@@ -348,9 +376,9 @@ function Clear-Mocks {
         }
         $mockTable.values | ? { $_.blocks.Length -eq 0} | % { 
             $mocksToRemove += $_.CommandName
-            Microsoft.PowerShell.Management\Remove-Item function:\$($_.CommandName)
-            if(Test-Path Function:\PesterIsMocking_$($_.CommandName) ){
-                Rename-Item Function:\PesterIsMocking_$($_.CommandName) "script:$($_.CommandName)"
+            $_.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Remove("Function:\$args", $false, $true, $true) }, $_.CommandName)
+            if ($_.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$args", $true, $true) }, $_.CommandName)) {
+                $_.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$args", "script:$($args[0])", $true) }, $_.CommandName) > $null
             }
         }
         $mocksToRemove | % { $mockTable.Remove($_) }
@@ -358,10 +386,48 @@ function Clear-Mocks {
     }
 }
 
-function Validate-Command([string]$commandName) {
-    $origCommand = (Microsoft.PowerShell.Core\Get-Command $commandName -ErrorAction SilentlyContinue)
-    if(!$origCommand){ Throw "Could not find Command $commandName"}
-    return $origCommand
+function Validate-Command([string]$commandName, [string]$moduleName) {
+    # Assume $commandName is module-qualified
+    $module = $null
+    $origCommand = $null
+    $fqCommandName = $commandName
+    $fqCommandModuleName = $fqCommandName | Split-Path
+
+    # Give preference to fq command's module name
+    if ($fqCommandModuleName) {
+        $commandName = $commandName | Split-Path -Leaf
+        $module = Microsoft.PowerShell.Core\Get-Module $fqCommandModuleName -All
+    }
+    
+    # Otherwise, try the $moduleName param
+    if (-not $module -and $moduleName) {
+        $module = Microsoft.PowerShell.Core\Get-Module $moduleName -All
+    }
+    
+    # Use the context of the module (if available) to get the command
+    if ($module) {
+        $module = $module | sort ModuleType | where { ($origCommand = & $_ { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') } $commandName) } | select -First 1
+    }
+    
+    $session = $ExecutionContext.SessionState
+    if (-not $origCommand) {
+        $origCommand = $session.InvokeCommand.GetCommand($fqCommandName, 'All')
+    }
+
+    if ($origCommand -and $origCommand.CommandType -eq [System.Management.Automation.CommandTypes]::Alias) {
+        $origCommand = $origCommand.ResolvedCommand
+    }
+
+    if (-not $origCommand) {
+        throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $commandName")
+    }
+    
+    # If there is no 'ScriptBlock', the module is irrelevant.
+    if ($module -and $origCommand.psobject.Properties['ScriptBlock'] -and $module[0].ExportedCommands -notcontains $origCommand.Name) {
+        $session = & $module[0] { $ExecutionContext.SessionState }
+    }
+
+    @{Command = $origCommand; Session = $session}
 }
 
 function MockPrototype {
