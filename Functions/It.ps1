@@ -65,7 +65,8 @@ param(
     [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
 
-	
+    $PesterException = $null
+    
     $Time = Measure-Command {
         try{
            &{ &$test }
