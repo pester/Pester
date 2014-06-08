@@ -133,7 +133,10 @@ Describe 'When calling Mock on an external script' {
         }
 
         $result = & tempExternalScript.ps1
-        It 'Should Invoke the mocked script using the command-invocation operator (&)' {
+        It 'Should Invoke the mocked script using the command-invocation operator' {
+			#the command invocation operator is (&). Moved this to comment because it breaks the contionuous builds.
+			#there is issue for this on GH
+
             $result | Should Be 'I am not tempExternalScript.ps1'
         }
 
