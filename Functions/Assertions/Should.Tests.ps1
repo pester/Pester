@@ -12,6 +12,11 @@ Describe "Parse-ShouldArgs" {
         $parsedArgs.AssertionMethod | Should Be PesterTestFunction
     }
 
+    It "works with strict mode when using 'switch' style tests" {
+        Set-StrictMode -Version Latest
+        { throw 'Test' } | Should Throw
+    }
+
     Context "for positive assertions" {
 
         $parsedArgs = Parse-ShouldArgs testMethod, 1
