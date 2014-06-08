@@ -38,11 +38,11 @@
         
     function EnterContext ($Name) {
 			if ( -not $CurrentDescribe ) {  
-				throw New-Object InvalidOperationException "Cannot enter Context before entering Describe"
+				throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
 			}
       
       if ( $CurrentContext ) {  
-				throw New-Object InvalidOperationException "You already are in Context, you cannot enter Context twice"
+				throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in Context, you cannot enter Context twice"
 			}
 			
       $Script:CurrentContext = $Name
@@ -110,7 +110,7 @@ function Write-Context {
 	)
 	process {
 		$margin = "   "
-		Write-Host ${margin}Context $Name -ForegroundColor Magenta
+		Microsoft.PowerShell.Utility\Write-Host ${margin}Context $Name -ForegroundColor Magenta
 	}
 }
 function Write-PesterResult {
@@ -128,12 +128,12 @@ function Write-PesterResult {
 	    $output = $TestResult.name
 	    $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 	    if($TestResult.Passed) {
-	        "$margin[+] $output $humanTime" | Write-Host -ForegroundColor DarkGreen
+	        "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
 	    }
 	    else {
-	        "$margin[-] $output $humanTime" | Write-Host -ForegroundColor red
-	         Write-Host -ForegroundColor red $error_margin$($TestResult.failureMessage)
-	         Write-Host -ForegroundColor red $error_margin$($TestResult.stackTrace)
+	        "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
+	         Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $error_margin$($TestResult.failureMessage)
+	         Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $error_margin$($TestResult.stackTrace)
 	    }
 	}
 }
