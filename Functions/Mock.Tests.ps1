@@ -160,7 +160,7 @@ Describe 'When calling Mock on an external script' {
         Pop-Location
     }
 
-    Remove-Item $ps1File -Force -ErrorAction Ignore
+    Remove-Item $ps1File -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'When calling Mock on an application command' {

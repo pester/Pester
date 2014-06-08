@@ -423,8 +423,8 @@ function Validate-Command([string]$commandName, [string]$moduleName) {
     }
     
     # If there is no 'ScriptBlock', the module is irrelevant.
-    if ($module -and $origCommand.psobject.Properties['ScriptBlock'] -and $module[0].ExportedCommands -notcontains $origCommand.Name) {
-        $session = & $module[0] { $ExecutionContext.SessionState }
+    if ($module -and $origCommand.psobject.Properties['ScriptBlock'] -and @($module)[0].ExportedCommands -notcontains $origCommand.Name) {
+        $session = & @($module)[0] { $ExecutionContext.SessionState }
     }
 
     @{Command = $origCommand; Session = $session}
