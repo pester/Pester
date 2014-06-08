@@ -4,6 +4,8 @@
   - Add support for mocking internal module functions, aliases, exe and filters. [GH-126]
   - Fix TestDrive clean up [GH-129]
   - Fix ShouldArgs in Strict-Mode [GH-134]
+  - Fix initialize $PesterException [GH-136]
+  - Validate Should Assertion methods [GH-135]
 
 ## 2.0.4 (March 9, 2014)
 

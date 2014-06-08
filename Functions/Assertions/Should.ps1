@@ -34,7 +34,16 @@ function Parse-ShouldArgs([array] $shouldArgs) {
 }
 
 function Get-TestResult($shouldArgs, $value) {
-    $testResult = (& $shouldArgs.AssertionMethod $value $shouldArgs.ExpectedValue)
+    $assertionMethod = $shouldArgs.AssertionMethod
+    $command = Get-Command $assertionMethod -ErrorAction SilentlyContinue
+
+    if ($null -eq $command)
+    {
+        $assertionMethod = $assertionMethod -replace '^Pester'
+        throw "'$assertionMethod' is not a valid Should operator."
+    }
+
+    $testResult = (& $assertionMethod $value $shouldArgs.ExpectedValue)
 
     if ($shouldArgs.PositiveAssertion) {
         return -not $testResult
