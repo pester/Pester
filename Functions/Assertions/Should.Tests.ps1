@@ -55,6 +55,13 @@ Describe "Parse-ShouldArgs" {
 }
 
 Describe "Get-TestResult" {
+    Context "for assertion name validity checking" {
+        $testShouldArgs = Parse-ShouldArgs BogusAssertionMethod
+
+        It "throws a descriptive error message if invalid assertion method is passed" {
+            { Get-TestResult $testShouldArgs } | Should Throw "'BogusAssertionMethod' is not a valid Should operator."
+        }
+    }
 
     Context "for positive assertions" {
         function PesterTest { return $true }
