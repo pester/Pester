@@ -421,11 +421,11 @@ function Validate-Command([string]$commandName, [string]$moduleName) {
     $module = $null
     $origCommand = $null
     $fqCommandName = $commandName
-    $fqCommandModuleName = $fqCommandName | Split-Path
+    $fqCommandModuleName = $fqCommandName | Microsoft.PowerShell.Management\Split-Path
 
     # Give preference to fq command's module name
     if ($fqCommandModuleName) {
-        $commandName = $commandName | Split-Path -Leaf
+        $commandName = $commandName | Microsoft.PowerShell.Management\Split-Path -Leaf
         $module = Microsoft.PowerShell.Core\Get-Module $fqCommandModuleName -All
     }
     
@@ -436,7 +436,10 @@ function Validate-Command([string]$commandName, [string]$moduleName) {
     
     # Use the context of the module (if available) to get the command
     if ($module) {
-        $module = $module | sort ModuleType | where { ($origCommand = & $_ { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') } $commandName) } | select -First 1
+        $module = $module |
+        Microsoft.PowerShell.Utility\Sort-Object ModuleType |
+        Microsoft.PowerShell.Core\Where-Object { ($origCommand = & $_ { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') } $commandName) } |
+        Microsoft.PowerShell.Utility\Select-Object -First 1
     }
     
     $session = $ExecutionContext.SessionState

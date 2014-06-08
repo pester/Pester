@@ -28,13 +28,13 @@ function New-TestDrive ([Switch]$PassThru) {
 
 function Clear-TestDrive ([String[]]$Exclude) {
     
-    $Path = (Get-PSDrive -Name TestDrive).Root
-	if (Test-Path -Path $Path )
+    $Path = (Microsoft.PowerShell.Management\Get-PSDrive -Name TestDrive).Root
+	if (Microsoft.PowerShell.Management\Test-Path -Path $Path )
 	{
 		#Get-ChildItem -Exclude did not seem to work with full paths
-		Get-ChildItem -Recurse -Path $Path |
-			Sort-Object -Descending  -Property "FullName" |
-			where { $Exclude -NotContains $_.FullName } |
+		Microsoft.PowerShell.Management\Get-ChildItem -Recurse -Path $Path |
+			Microsoft.PowerShell.Utility\Sort-Object -Descending  -Property "FullName" |
+			Microsoft.PowerShell.Core\Where-Object { $Exclude -NotContains $_.FullName } |
 			Microsoft.PowerShell.Management\Remove-Item -Force -Recurse
 	}
 }
@@ -56,10 +56,10 @@ function Get-TestDriveItem {
 }
 
 function Get-TestDriveChildItem {
-	$Path = (Get-PSDrive -Name TestDrive).Root
-	if (Test-Path -Path $Path )
+	$Path = (Microsoft.PowerShell.Management\Get-PSDrive -Name TestDrive).Root
+	if (Microsoft.PowerShell.Management\Test-Path -Path $Path )
 	{
-		Get-ChildItem -Recurse -Path $Path
+		Microsoft.PowerShell.Management\Get-ChildItem -Recurse -Path $Path
 	}
 }
 
