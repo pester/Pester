@@ -1,18 +1,34 @@
 
 function Parse-ShouldArgs([array] $shouldArgs) {
-    $parsedArgs = @{ PositiveAssertion = $true }
+    if ($null -eq $shouldArgs) { $shouldArgs = @() }
+
+    $parsedArgs = @{
+        PositiveAssertion = $true
+        ExpectedValue = $null
+    }
 
     $assertionMethodIndex = 0
     $expectedValueIndex   = 1
 
-    if ($shouldArgs[0].ToLower() -eq "not") {
+    if ($shouldArgs.Count -gt 0 -and $shouldArgs[0].ToLower() -eq "not") {
         $parsedArgs.PositiveAssertion = $false
         $assertionMethodIndex += 1
         $expectedValueIndex   += 1
     }
 
-    $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
-    $parsedArgs.AssertionMethod = "Pester$($shouldArgs[$assertionMethodIndex])"
+    if ($assertionMethodIndex -lt $shouldArgs.Count)
+    {
+        $parsedArgs.AssertionMethod = "Pester$($shouldArgs[$assertionMethodIndex])"
+    }
+    else
+    {
+        throw 'You cannot call Should without specifying an assertion method.'
+    }
+
+    if ($expectedValueIndex -lt $shouldArgs.Count)
+    {
+        $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
+    }
 
     return $parsedArgs
 }
