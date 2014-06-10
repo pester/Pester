@@ -3,20 +3,26 @@
 		[Parameter(Mandatory=$true)]
 		[String]$Path,
 		[String[]]$TagFilter,
-		[String[]]$TestNameFilter
+		[String[]]$TestNameFilter,
+        [System.Management.Automation.SessionState] $SessionState
 	)
+    
+    if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
+
 	New-Module -Name Pester -AsCustomObject -ScriptBlock {
 		param ( 
 			[String]$_path,
 			[String[]]$_tagFilter,
-			[String[]]$_testNameFilter
+			[String[]]$_testNameFilter,
+            [System.Management.Automation.SessionState] $_sessionState
 		)
 		
 		#public read-only
 		$Path = $_path
 		$TagFilter = $_tagFilter
 		$TestNameFilter = $_testNameFilter
-        
+
+        $script:SessionState = $_sessionState
 		$script:CurrentContext = "" 
 		$script:CurrentDescribe = ""
 		
@@ -74,7 +80,8 @@
 			"TestNameFilter", 
 			"TestResult", 
 			"CurrentContext", 
-			"CurrentDescribe"
+			"CurrentDescribe",
+            "SessionState"
             
 		
 		$ExportedFunctions = "EnterContext", 
@@ -84,7 +91,7 @@
 			"AddTestResult"
 		
 		Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-	} -ArgumentList $Path, $TagFilter, $TestNameFilter | Add-Member -MemberType ScriptProperty -Name TotalCount -Value { @($this.TestResult).Count } -PassThru |
+	} -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState | Add-Member -MemberType ScriptProperty -Name TotalCount -Value { @($this.TestResult).Count } -PassThru |
     Add-Member -MemberType ScriptProperty -Name PassedCount -Value { @( $this.TestResult | where { $_.Passed }).count } -PassThru |
     Add-Member -MemberType ScriptProperty -Name FailedCount -Value { @( $this.TestResult | where { -not $_.Passed } ).count } -PassThru | 
     Add-Member -MemberType ScriptProperty -Name Time -Value { $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ($_.time) } { [timespan]$total} } -PassThru |

@@ -75,7 +75,6 @@ EXAMPLE
     will override the describe scoped mock within that contex tif both mocks 
     apply to the parameters passed to Get-Version.
 
-
 SEE ALSO
 	Mock
 	Assert-VerifiableMocks

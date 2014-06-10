@@ -45,8 +45,8 @@ CREATING A PESTER TEST
     }
 
     Now you have a skeleton of a clean function with a failing test. Pester 
-    considers all files containing *.Tests.* to be a test file (see 
-    nvoke-Pester) and by default it will look for these files and run all 
+    considers all files containing *Tests.ps1 to be a test file (see 
+    Invoke-Pester) and by default it will look for these files and run all 
     Describe blocks inside the file (See Describe). The Describe block can 
     contain several behavior validations expressed in It blocks (see It). 
     Each It block should test one thing and throw an exception if the test 
@@ -56,9 +56,12 @@ CREATING A PESTER TEST
     value (see about_Should). 
 
 RUNNNING A PESTER TEST
-	Once you have some logic that you are ready to test, use the Invoke-Pester 
-	command to run the tests. You can zero in on just one test (Describe block) 
-	or an entire tree of directories.
+	Once you have some logic that you are ready to test, run the Tests file directly, 
+	usually by pressing F5 in your ISE. 
+	
+	To run multiple test files, get summary for the test run, to get nUnit compatible XML
+	report or to get PesterResult object use the Invoke-Pester command. You can zero in on 
+	just one test (Describe block) or an entire tree of directories.
 
 	function BuildIfChanged {
 		$thisVersion=Get-Version
@@ -121,7 +124,7 @@ PESTER AND CONTINUOUS INTEGRATION
 
 OTHER EXAMPLES
 	Pester's own tests. See all files in the Pester Functions folder 
-	containing *.Tests.*
+	containing *Tests.ps1
 	
 	Chocolatey tests. Chocolatey is a popular powershell based Windows 
 	package management system. It uses Pester tests to validate its own 

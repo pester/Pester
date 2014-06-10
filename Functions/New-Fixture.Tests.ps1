@@ -1,9 +1,4 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-#the function is exported by the Pester module, dot-sourcing would override it
-#. "$here\$sut"
-
-Describe "New-Fixture" {
+﻿Describe "New-Fixture" {
     It "Name parameter is mandatory:" {
         (get-command New-Fixture ).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should Be $true
     }
@@ -80,23 +75,9 @@ Describe "New-Fixture" {
             
 			#Create the same files twice
 	        New-Fixture -Name $name -Path $path | Out-Null
-					
-			#TODO find a better way to test this
-			#weird way to test this, but I can't redirect the Warning easily without breaking PowerShell v2 compatibility 
-			$message = &{
-				try 
-				{ 
-					
-					$ErrorActionPreference = 'SilentlyContinue'
-					$WarningPreference = 'Stop'
-					New-Fixture -Name $name -Path $path | Out-Null
-				} 
-				catch 
-				{ 
-					"$_"
-				}
-			}
-			$message | Should Match 'WarningPreference'
+            New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
+
+            ($warnings.Count -gt 0) | Should Be $true
         }
 		
     }

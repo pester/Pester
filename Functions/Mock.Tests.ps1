@@ -1,8 +1,12 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-. "$here\$sut"
-
-function FunctionUnderTest (  [Parameter(Mandatory=$false)][string] $param1){
+function FunctionUnderTest
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false)]
+        [string]
+        $param1
+    )
+    
     return "I am a real world test"
 }
 
@@ -36,7 +40,7 @@ function CommonParamFunction (
 Describe "When calling Mock on existing function" {
     Mock FunctionUnderTest {return "I am the mock test that was passed $param1"}
 
-    $result=FunctionUnderTest "boundArg"
+    $result = FunctionUnderTest "boundArg"
 
     It "Should rename function under test" {
         $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
@@ -70,26 +74,6 @@ Describe "When calling Mock on existing cmdlet" {
 
     It "Should Invoke the mocked script" {
         $result | Should Be "I am not Get-Process"
-    }
-}
-
-Describe 'When calling Mock on existing cmdlet using fully qualified command name' {
-    Mock Microsoft.PowerShell.Management\Get-Process {return 'I am not Microsoft.PowerShell.Management\Get-Process'}
-
-    <#
-        # Mocking a module-qualified cmdlet is not supported
-         
-        $result = Microsoft.PowerShell.Management\Get-Process
-
-        It 'Should Invoke the mocked script using its module-qualified name' {
-            $result | Should Be 'I am not Microsoft.PowerShell.Management\Get-Process'
-        }
-    #>
-
-    $result = Get-Process
-
-    It 'Should Invoke the mocked script' {
-        $result | Should Be 'I am not Microsoft.PowerShell.Management\Get-Process'
     }
 }
 
@@ -192,7 +176,7 @@ Describe "When calling Mock in the Describe block" {
     Mock Out-File {return "I am not Out-File"}
 
     It "Should mock Out-File successfully" {
-        $outfile = "test" | Out-File "..\testfile.txt"
+        $outfile = "test" | Out-File "TestDrive:\testfile.txt"
         $outfile | Should Be "I am not Out-File"
     }
 }
@@ -206,7 +190,8 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
         return "BB"
       }
     }
-
+    
+    $result = ''
     "a", "b" | Get-ChildItem | % { $result += $_ }
 
     It "Should process the pipeline in the mocked script" {
@@ -317,7 +302,7 @@ Describe "When calling Mock on More than one command" {
     Mock FunctionUnderTest {return "I am the mock test"}
 
     $result = Invoke-Command {return "yes I am"}
-    $result2=FunctionUnderTest
+    $result2 = FunctionUnderTest
 
     It "Should Invoke the mocked script for the first Mock" {
         $result | Should Be "I am not Invoke-Command"
@@ -331,26 +316,55 @@ Describe 'When calling Mock on a module-internal function.' {
     New-Module -Name TestModule {
         function InternalFunction { 'I am the internal function' }
         function PublicFunction   { InternalFunction }
-        Export-ModuleMember -Function PublicFunction
+        function PublicFunctionThatCallsExternalCommand { Start-Sleep 0 }
+        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand
     } | Import-Module -Force
 
     It 'Should fail to call the internal module function' {
         { InternalFuncTion } | Should Throw
     }
 
-    It 'Should call the actual internal module function' {
+    It 'Should call the actual internal module function from the public function' {
         PublicFunction | Should Be 'I am the internal function'
     }
 
-    It 'Should call the mocked function using only the function name' {
-        Mock InternalFunction { 'I am the mock test' } -moduleName TestModule
-        PublicFunction | Should Be 'I am the mock test'
+    Context 'Using Mock -ModuleName "ModuleName" "CommandName" syntax' {
+        Mock -ModuleName TestModule InternalFunction { 'I am the mock test' }
+        
+        It 'Should call the mocked function' {
+            PublicFunction | Should Be 'I am the mock test'
+        }
+
+        Mock -ModuleName TestModule Start-Sleep { }
+    
+        It 'Should mock calls to external functions from inside the module' {
+            PublicFunctionThatCallsExternalCommand
+
+            Assert-MockCalled Start-Sleep -Exactly 1
+        }
     }
 
-    It 'Should call the mocked function using its fully qualified name' {
-        Mock InternalFunction { 'I am the mock test' } -moduleName TestModule
-        TestModule\PublicFunction | Should Be 'I am the mock test'
+    # I propose that we do not include this syntax, for reasons
+    # outlined in the Validate-Command function of Mock.ps1 (where
+    # the code that implemented this syntax is also commented out.)
+
+    <#
+    Context 'Using Mock "ModuleName\CommandName" syntax' {
+        Mock TestModule\InternalFunction { 'I am the mock test' }
+        
+        It 'Should call the mocked function' {
+            PublicFunction | Should Be 'I am the mock test'
+        }
+    
+        Mock TestModule\Start-Sleep { }
+        
+        It 'Should mock calls to external functions from inside the module' {
+            TestModule\PublicFunctionThatCallsExternalCommand
+    
+            Assert-MockCalled Start-Sleep -Exactly 1
+        }
     }
+    #>
 
     Remove-Module TestModule -Force
 }
@@ -559,4 +573,3 @@ Describe "Using a single no param Describe" {
         }
     }
 }
-
