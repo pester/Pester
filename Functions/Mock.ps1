@@ -1,7 +1,4 @@
-﻿$global:mockTable = @{}
-$global:mockCallHistory = @()
-
-function Mock {
+﻿function Mock {
 
 <#
 .SYNOPSIS
@@ -246,6 +243,7 @@ about_Mocking
             Params          = $paramBlock
             CommandName     = $CommandName
             SessionState    = $contextInfo.Session
+            Scope           = $pester.Scope
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
@@ -443,8 +441,7 @@ function Clear-Mocks {
 
         foreach ($mock in $mockTable.Values)
         {
-            $blocksToRemove = $mock.Blocks | Where {$_.Scope -eq $pester.Scope}
-            $mock.Blocks = $mock.Blocks | Where {$_.Scope -ne $pester.Scope}
+            $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $pester.Scope})
         }
 
         $scriptBlock =
@@ -466,7 +463,7 @@ function Clear-Mocks {
             $mockTable.Remove($mockKey)
         }
 
-        $global:mockCallHistory = @()
+        $global:mockCallHistory = @($mockCallHistory | Where { $_.Scope -ne $pester.Scope })
     }
 }
 
@@ -543,7 +540,7 @@ function MockPrototype {
 
     $mock = $mockTable["$moduleName||$functionName"]
     
-    $global:mockCallHistory += @{CommandName = "$moduleName||$functionName"; BoundParams = $PSBoundParameters; Args = $args}
+    $global:mockCallHistory += @{CommandName = "$moduleName||$functionName"; BoundParams = $PSBoundParameters; Args = $args; Scope = $mock.Scope}
 
     for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
     {

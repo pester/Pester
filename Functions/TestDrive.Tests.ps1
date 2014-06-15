@@ -96,6 +96,15 @@ Describe "TestDrive scoping" {
 		}
 		#create file for the next test
 		Setup -File 'Context'
+        
+        It "Creates It-scoped contents" {
+            Setup -File 'It'
+            'TestDrive:\It' | Should Exist
+        }
+        
+        It "Clears It-scoped contents on exit" {
+            'TestDrive:\It' | Should Not Exist
+        }
 	}
 
 	It "Context file are removed when returning to Describe" {
