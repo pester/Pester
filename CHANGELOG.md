@@ -1,4 +1,6 @@
 ## Unreleased
+
+## 2.1.0 (June 15, 2014)
   - Process It blocks in memory [GH-123]
   - Fixed -ExecutionPolicy in pester.bat [GH-130]
   - Add support for mocking internal module functions, aliases, exe and filters. [GH-126]
