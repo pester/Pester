@@ -624,6 +624,57 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
     }
 }
 
+Describe "Testing mock history behavior from each scope" {
+    function MockHistoryChecker { 'I am the original function' }
+    Mock MockHistoryChecker { 'I am the Describe-scoped mock.' }
+
+    $null = MockHistoryChecker
+    $null = MockHistoryChecker
+    $null = MockHistoryChecker
+
+    It "Reports the correct invocation count for the first calls to Describe-scoped mock." {
+        Assert-MockCalled MockHistoryChecker -Exactly 3
+    }
+
+    Context "Testing context-scoped mock" {
+        Mock MockHistoryChecker { 'I am the Context-scoped mock.' }
+
+        It "Reports no calls have been made (default scope)" {
+            Assert-MockCalled MockHistoryChecker -Exactly 0
+        }
+
+        It "Reports one call has been made (explicit Describe scope)" {
+            Assert-MockCalled -Scope Describe MockHistoryChecker -Exactly 1
+        }
+
+        $null = MockHistoryChecker
+        $null = MockHistoryChecker
+
+        It "Reports the Context-Scoped calls" {
+            Assert-MockCalled MockHistoryChecker -Exactly 2
+        }
+
+        It "Reports zero calls made to It-scoped mock" {
+            Mock MockHistoryChecker { 'I am an It-scoped mock.' }
+            Assert-MockCalled MockHistoryChecker -Exactly 0
+        }
+
+        It "Reports one call made to It-scoped mock" {
+            Mock MockHistoryChecker { 'I am an It-scoped mock.' }
+            $null = MockHistoryChecker
+            Assert-MockCalled MockHistoryChecker -Exactly 1
+        }
+
+        It "Reverts to reporting two calls for the Context-scoped mock." {
+            Assert-MockCalled MockHistoryChecker -Exactly 2
+        }
+    }
+
+    It "Reverts to reporting three calls for the Describe-scoped mock," {
+        Assert-MockCalled MockHistoryChecker -Exactly 3
+    }
+}
+
 Describe "Using a single no param Describe" {
     Mock FunctionUnderTest {return "I am the describe mock test"}
 
