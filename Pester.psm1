@@ -100,8 +100,8 @@ about_pester
 		[switch]$PassThru
     )
 
-    $global:mockTable = @{}
-    $global:mockCallHistory = @()
+    $script:mockTable = @{}
+    $script:mockCallHistory = @()
 
     # $PSCmdlet.SessionState is the caller's session state.  We use that scope to invoke the test scripts, and also assign it to the $pester.SessionState
     # property so mocking can happen in the correct scope later on.
@@ -168,4 +168,4 @@ function Set-ScriptBlockScope
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
-Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope
+Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
