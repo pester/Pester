@@ -348,7 +348,7 @@ Describe 'When calling Mock on a module-internal function.' {
         It 'Should mock calls to external functions from inside the module' {
             PublicFunctionThatCallsExternalCommand
 
-            Assert-MockCalled Start-Sleep -Exactly 1
+            Assert-MockCalled -ModuleName TestModule Start-Sleep -Exactly 1
         }
 
         Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } {
@@ -438,17 +438,40 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 }
 
 Describe "When Creating a Verifiable Mock that is not called" {
-    Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
-    FunctionUnderTest "three" | Out-Null
+    Context "In the test script's scope" {
+        Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        FunctionUnderTest "three" | Out-Null
 
-    try {
-        Assert-VerifiableMocks
-    } Catch {
-        $result=$_
+        try {
+            Assert-VerifiableMocks
+        } Catch {
+            $result=$_
+        }
+
+        It "Should throw" {
+            $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+        }
     }
 
-    It "Should throw" {
-        $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+    Context "In a module's scope" {
+        New-Module -Name TestModule -ScriptBlock {
+            function FunctionUnderTest { return 'I am the function under test in a module' }
+        } | Import-Module -Force
+
+        Mock -ModuleName TestModule FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        TestModule\FunctionUnderTest "three" | Out-Null
+
+        try {
+            Assert-VerifiableMocks
+        } Catch {
+            $result=$_
+        }
+
+        It "Should throw" {
+            $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+        }
+
+        Remove-Module TestModule -Force
     }
 }
 
