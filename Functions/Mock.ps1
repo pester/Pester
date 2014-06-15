@@ -203,8 +203,11 @@ about_Mocking
         $ModuleName = ''
     }
     
+    $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+    Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+
     $block = @{
-        Mock            = $MockWith
+        Mock            = $mockWithCopy
         Filter          = $ParameterFilter
         Verifiable      = $Verifiable
         Scope           = $pester.Scope

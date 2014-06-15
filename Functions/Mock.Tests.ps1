@@ -320,19 +320,27 @@ Describe 'When calling Mock on a module-internal function.' {
         Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand
     } | Import-Module -Force
 
+    New-Module -Name TestModule2 {
+        function InternalFunction { 'I am the second module internal function' }
+        function InternalFunction2 { 'I am the second module, second function' }
+        function PublicFunction   { InternalFunction }
+        function PublicFunction2 { InternalFunction2 }
+        Export-ModuleMember -Function PublicFunction, PublicFunction2
+    } | Import-Module -Force
+
     It 'Should fail to call the internal module function' {
-        { InternalFuncTion } | Should Throw
+        { TestModule\InternalFuncTion } | Should Throw
     }
 
     It 'Should call the actual internal module function from the public function' {
-        PublicFunction | Should Be 'I am the internal function'
+        TestModule\PublicFunction | Should Be 'I am the internal function'
     }
 
     Context 'Using Mock -ModuleName "ModuleName" "CommandName" syntax' {
         Mock -ModuleName TestModule InternalFunction { 'I am the mock test' }
         
         It 'Should call the mocked function' {
-            PublicFunction | Should Be 'I am the mock test'
+            TestModule\PublicFunction | Should Be 'I am the mock test'
         }
 
         Mock -ModuleName TestModule Start-Sleep { }
@@ -341,6 +349,22 @@ Describe 'When calling Mock on a module-internal function.' {
             PublicFunctionThatCallsExternalCommand
 
             Assert-MockCalled Start-Sleep -Exactly 1
+        }
+
+        Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } {
+            "I'm the mock who's been passed parameter Test"
+        }
+
+        It 'Should only call mocks within the same module' {
+            TestModule2\PublicFunction | Should Be 'I am the second module internal function'
+        }
+
+        Mock -ModuleName TestModule2 InternalFunction2 {
+            InternalFunction 'Test'
+        }
+
+        It 'Should call mocks from inside another mock' {
+            TestModule2\PublicFunction2 | Should Be "I'm the mock who's been passed parameter Test"
         }
     }
 
@@ -367,6 +391,7 @@ Describe 'When calling Mock on a module-internal function.' {
     #>
 
     Remove-Module TestModule -Force
+    Remove-Module TestModule2 -Force
 }
 
 Describe "When Applying multiple Mocks on a single command" {
