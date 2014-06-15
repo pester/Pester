@@ -637,18 +637,23 @@ Describe "Testing mock history behavior from each scope" {
     }
 
     Context "Testing context-scoped mock" {
-        Mock MockHistoryChecker { 'I am the Context-scoped mock.' }
+        Mock MockHistoryChecker { 'I am the Context-scoped mock.' } -ParameterFilter { $args[0] -eq 'Context' }
 
         It "Reports no calls have been made (default scope)" {
             Assert-MockCalled MockHistoryChecker -Exactly 0
         }
 
         It "Reports one call has been made (explicit Describe scope)" {
-            Assert-MockCalled -Scope Describe MockHistoryChecker -Exactly 1
+            Assert-MockCalled -Scope Describe MockHistoryChecker -Exactly 3
         }
 
-        $null = MockHistoryChecker
-        $null = MockHistoryChecker
+        It "Assigns calls to the Describe mock properly" {
+            $null = MockHistoryChecker
+            Assert-MockCalled -Scope Describe MockHistoryChecker -Exactly 4
+        }
+
+        $null = MockHistoryChecker 'Context'
+        $null = MockHistoryChecker 'Context'
 
         It "Reports the Context-Scoped calls" {
             Assert-MockCalled MockHistoryChecker -Exactly 2
@@ -670,8 +675,8 @@ Describe "Testing mock history behavior from each scope" {
         }
     }
 
-    It "Reverts to reporting three calls for the Describe-scoped mock," {
-        Assert-MockCalled MockHistoryChecker -Exactly 3
+    It "Reverts to reporting four calls for the Describe-scoped mock," {
+        Assert-MockCalled MockHistoryChecker -Exactly 4
     }
 }
 
