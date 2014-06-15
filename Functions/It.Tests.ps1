@@ -21,22 +21,34 @@ Describe "It - Caller scoped tests" {
       $extra_keys | ? { !($expected_keys -contains $_) } | Should BeNullOrEmpty
     }
 	#>
+
+    $result = $null
+    try
+    {
+        It "no test block"
+    }
+    catch
+    {
+        $result = $_
+    }
+
     It "throws if no test block given" {
-        { It "no test block" } | Should Throw
+        $result | Should Not Be $null
+    }
+
+    $result = $null
+    try
+    {
+        It "empty test block" { }
+    }
+    catch
+    {
+        $result = $_
     }
 
     It "won't throw if success test block given" {
-        { It "test block" {} } | Should Not Throw
-    }
-    
-    it "Does not rewrite Test variable" {
-        it "tests" { $true | should be $true }
-        $test = "rewrite"
-    }
-    
-    it "does not override the pester variable" {
-        $pester = 0 
-    }
+        $result | Should Be $null
+    }    
 }
 
 InModuleScope Pester {

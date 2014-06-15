@@ -556,7 +556,7 @@ Describe "When Calling Assert-MockCalled without exactly" {
     }
 }
 
-Describe "Using Contexts" {
+Describe "Using Pester Scopes (Describe,Context,It)" {
     Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
     Mock FunctionUnderTest {return "I am the paramless mock test"}
 
@@ -607,6 +607,19 @@ Describe "Using Contexts" {
         }
         It "should use the describe parameterized mock" {
             FunctionUnderTest "one" | should be "I am the first mock test"
+        }
+    }
+
+    Context "Testing It-scoped mocks" {
+        Mock FunctionUnderTest { return "I am the context mock" }
+
+        It "Should call the It mock" {
+            Mock FunctionUnderTest { return "I am the It mock" }
+            FunctionUnderTest | Should Be "I am the It mock"
+        }
+
+        It "Should revert to calling the Context mock in the next test" {
+            FunctionUnderTest | Should Be "I am the context mock"
         }
     }
 }

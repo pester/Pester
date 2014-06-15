@@ -60,17 +60,20 @@ Describe
 Context
 about_should
 #>
-param(
-    $name, 
-    [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
-)
+    param(
+        $name, 
+        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+    )
 
+    $Pester.EnterTest($name)
+    $TestDriveContent = Get-TestDriveChildItem
+    
     $PesterException = $null
    
     $Time = Microsoft.PowerShell.Utility\Measure-Command {
 
         try{
-           &{ &$test }
+            &{ &$test }
         } catch {
             $PesterException = $_
         }
@@ -79,6 +82,10 @@ param(
     $Result = Get-PesterResult -Test $Test -Time $time -Exception $PesterException
     $Pester.AddTestResult($Result.name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace ) 
     $Pester.testresult[-1] | Write-PesterResult
+
+    Clear-TestDrive -Exclude ($TestDriveContent).FullName
+    Clear-Mocks
+    $Pester.LeaveTest()
 }
 
 function Get-PesterResult {

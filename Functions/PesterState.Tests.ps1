@@ -78,6 +78,38 @@
             }   
         }
     
+        context "Entering It from Describe" {
+            $p.EnterDescribe('Describe')
+            
+            It "Enters It successfully" {
+                { $p.EnterTest("It") } | Should Not Throw
+            }
+
+            It "Reports scope correctly" {
+                $p.Scope | Should Be 'It'
+            }
+
+            It "Cannot enter It after already entered" {
+                { $p.EnterTest("It") } | Should Throw
+            }
+
+            It "Cannot enter Context from inside It" {
+                { $p.EnterContext("Context") } | Should Throw
+            }
+        }
+
+        context "Leaving It from Describe" {
+            It "Leaves It to Describe" {
+                { $p.LeaveTest() } | Should Not Throw
+            }
+
+            It "Reports scope correctly" {
+                $p.Scope | Should Be 'Describe'
+            }
+
+            $p.LeaveDescribe()
+        }
+
         Context "entering Context" {
             it "Cannot enter Context before Describe" { 
                 { $p.EnterContext("context") } | should throw
@@ -96,6 +128,7 @@
                 $p.Scope | should be "Context"
             }   
         }
+
         Context "leaving context" {
             it "cannot leave describe before leaving context" {
                 { $p.LeaveDescribe() } | should throw
@@ -106,10 +139,44 @@
             }
             It "Returns from context to describe" { 
                 $p.Scope | should be "Describe"
-            }   
+            }
+
+            $p.LeaveDescribe()
         }
-    
+
+        context "Entering It from Context" {
+            $p.EnterDescribe('Describe')
+            $p.EnterContext('Context')
+
+            It "Enters It successfully" {
+                { $p.EnterTest("It") } | Should Not Throw
+            }
+
+            It "Reports scope correctly" {
+                $p.Scope | Should Be 'It'
+            }
+
+            It "Cannot enter It after already entered" {
+                { $p.EnterTest("It") } | Should Throw
+            }
+        }
+
+        context "Leaving It from Context" {
+            It "Leaves It to Context" {
+                { $p.LeaveTest() } | Should Not Throw
+            }
+
+            It "Reports scope correctly" {
+                $p.Scope | Should Be 'Context'
+            }
+
+            $p.LeaveContext()
+            $p.LeaveDescribe()
+        }
+        
         context "adding test result" {
+            $p.EnterDescribe('Describe')
+
             it "adds passed test" {
                 $p.AddTestResult("result",$true, 100)
                 $result = $p.TestResult[-1] 

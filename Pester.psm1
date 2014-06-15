@@ -100,6 +100,9 @@ about_pester
 		[switch]$PassThru
     )
 
+    $global:mockTable = @{}
+    $global:mockCallHistory = @()
+
     # $PSCmdlet.SessionState is the caller's session state.  We use that scope to invoke the test scripts, and also assign it to the $pester.SessionState
     # property so mocking can happen in the correct scope later on.
 
