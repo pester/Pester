@@ -7,6 +7,7 @@
   - Fix initialize $PesterException [GH-136]
   - Validate Should Assertion methods [GH-135]
   - Fix using commands without fully qualified names [GH-137]
+  - Enable latest strict mode when running Pester tests using Pester.bat
 
 ## 2.0.4 (March 9, 2014)
 
