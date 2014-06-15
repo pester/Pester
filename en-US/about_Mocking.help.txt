@@ -75,12 +75,6 @@ EXAMPLE
     will override the describe scoped mock within that contex tif both mocks 
     apply to the parameters passed to Get-Version.
 
-LIMITATIONS
-	The SUT (code being tested) that calls the actual commands that you have 
-	mocked must not be executing from inside a module. Otherwise, the mocked 
-	commands will not be invoked and the real commands will run. The SUT must 
-	be in the same Script scope as the test. So it must be either dot sourced, 
-	in the same file, or in a script file.
 
 SEE ALSO
 	Mock

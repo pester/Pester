@@ -55,6 +55,9 @@ pass the filter.
 
 This ScriptBlock must return a boolean value. See examples for usage.
 
+.PARAMETER ModuleName
+Provide name of imported Powershell Module to Mock its internal function.
+
 .EXAMPLE
 Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
 
@@ -136,6 +139,33 @@ Here, B_File.TXT will be returned. Even though the filterless mock was created l
     will override the describe scoped mock within that contex tif both mocks 
     apply to the parameters passed to Get-Version.
 
+.EXAMPLE
+Mock internal module function with Mock.
+
+Get-Module -Name ModuleMockExample | Remove-Module 
+New-Module -Name ModuleMockExample  -ScriptBlock {
+	function Hidden {"Hidden"}
+	function Exported { Hidden }
+	
+	Export-ModuleMember -Function Exported
+} | Import-Module -Force
+
+Describe "ModuleMockExample" {
+
+	It "Hidden function is not directly accessible outside the module" {
+		{ ModuleMockExample\Hidden } | Should Throw
+	}
+	
+	It "Original Hidden function is called" {
+		Exported | Should Be "Hidden"
+	}
+	
+	It "Hidden is replaced with our implementation" {
+		Mock Hidden { "mocked" } -ModuleName ModuleMockExample
+		Exported | Should Be "mocked"
+	}
+}
+	
 .LINK
 about_Mocking
 #>
