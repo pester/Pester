@@ -6,6 +6,7 @@
   - Fix ShouldArgs in Strict-Mode [GH-134]
   - Fix initialize $PesterException [GH-136]
   - Validate Should Assertion methods [GH-135]
+  - Fix using commands without fully qualified names [GH-137]
 
 ## 2.0.4 (March 9, 2014)
 

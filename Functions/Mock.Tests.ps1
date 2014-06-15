@@ -48,6 +48,21 @@ Describe "When calling Mock on existing function" {
     }
 }
 
+Describe "When the caller mocks a command Pester uses internally" {
+    Mock Write-Host { }
+
+    Context "Context run when Write-Host is mocked" {
+        It "does not make extra calls to the mocked command" {
+            Write-Host 'Some String'
+            Assert-MockCalled 'Write-Host' -Exactly 1
+        }
+
+        It "retains the correct mock count after the first test completes" {
+            Assert-MockCalled 'Write-Host' -Exactly 1
+        }
+    }
+}
+
 Describe "When calling Mock on existing cmdlet" {
     Mock Get-Process {return "I am not Get-Process"}
 

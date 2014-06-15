@@ -66,8 +66,9 @@ param(
 )
 
     $PesterException = $null
-    
-    $Time = Measure-Command {
+   
+    $Time = Microsoft.PowerShell.Utility\Measure-Command {
+
         try{
            &{ &$test }
         } catch {
