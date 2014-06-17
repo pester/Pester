@@ -355,6 +355,67 @@ Describe 'When calling Mock on a module-internal function.' {
     Remove-Module TestModule -Force
 }
 
+Describe 'When calling Mock on a module-public function called by a standalone function' {
+
+    New-Module -Name TestModule {
+        function PublicFunction { 'I am the public function' }
+        Export-ModuleMember -Function PublicFunction
+    } | Import-Module -Force
+
+    function StandaloneFunction {
+        PublicFunction
+    }
+
+    It 'Should call the public module function' {
+        PublicFunction | Should Be 'I am the public function'
+        StandaloneFunction | Should Be 'I am the public function'
+    }
+
+    It 'Should call the mocked function' {
+        Mock PublicFunction { 'I am the mock test' } -moduleName TestModule
+        StandaloneFunction | Should Be 'I am the mock test'
+    }
+
+    Remove-Module TestModule -Force
+}
+
+
+Describe 'When calling Mock on a module-public function called by another module function' {
+
+    New-Module -Name SlaveTestModule {
+        function SlavePublicFunction { 'I am the public function' }
+        Export-ModuleMember -Function SlavePublicFunction
+    } | Import-Module -Force
+
+    New-Module -Name MasterTestModule {
+        function MasterPublicFunction {
+            SlavePublicFunction
+        }
+        Export-ModuleMember -Function MasterPublicFunction
+    } | Import-Module -Force
+
+    It 'Should call the public slave module function' {
+        SlavePublicFunction | Should Be 'I am the public function'
+    }
+
+    It 'Should call the public master module function' {
+        MasterPublicFunction | Should Be 'I am the public function'
+    }
+
+    It 'Should call the mocked function using only the function name' {
+        Mock SlavePublicFunction { 'I am the mock test' } -moduleName SlaveTestModule
+        MasterPublicFunction | Should Be 'I am the mock test'
+    }
+
+    It 'Should call the mocked function using its fully qualified name' {
+        Mock SlavePublicFunction { 'I am the mock test' } -moduleName SlaveTestModule
+        TestModule\MasterPublicFunction | Should Be 'I am the mock test'
+    }
+
+    Remove-Module SlaveTestModule -Force
+    Remove-Module MasterTestModule -Force
+}
+
 Describe "When Applying multiple Mocks on a single command" {
     Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
     Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
