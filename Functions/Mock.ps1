@@ -492,7 +492,7 @@ function Clear-Mocks {
             }
         }
 
-        $mocksToRemove = $mockTable.Keys | Where { $mockTable[$_].Blocks.Length -eq 0 }
+        $mocksToRemove = @($mockTable.Keys | Where { $mockTable[$_].Blocks.Length -eq 0 } )
         
         foreach ($mockKey in $mocksToRemove) {
             $mock = $mockTable[$mockKey]
