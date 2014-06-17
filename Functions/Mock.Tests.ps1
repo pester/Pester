@@ -371,9 +371,14 @@ Describe 'When calling Mock on a module-public function called by a standalone f
         StandaloneFunction | Should Be 'I am the public function'
     }
 
-    It 'Should call the mocked function' {
-        Mock PublicFunction { 'I am the mock test' } -moduleName TestModule
+    It 'Should call the mocked function using only the function name' {
+        Mock PublicFunction { 'I am the mock test' }
         StandaloneFunction | Should Be 'I am the mock test'
+    }
+
+    It 'Should call the mocked function using its fully qualified name' {
+        Mock PublicFunction { 'I am the mock test' } -moduleName TestModule
+        TestModule\StandaloneFunction | Should Be 'I am the mock test'
     }
 
     Remove-Module TestModule -Force
@@ -403,13 +408,13 @@ Describe 'When calling Mock on a module-public function called by another module
     }
 
     It 'Should call the mocked function using only the function name' {
-        Mock SlavePublicFunction { 'I am the mock test' } -moduleName SlaveTestModule
+        Mock SlavePublicFunction { 'I am the mock test' }
         MasterPublicFunction | Should Be 'I am the mock test'
     }
 
     It 'Should call the mocked function using its fully qualified name' {
         Mock SlavePublicFunction { 'I am the mock test' } -moduleName SlaveTestModule
-        TestModule\MasterPublicFunction | Should Be 'I am the mock test'
+        MasterPublicFunction | Should Be 'I am the mock test'
     }
 
     Remove-Module SlaveTestModule -Force
