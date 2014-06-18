@@ -457,11 +457,11 @@ Describe "When Creating a Verifiable Mock that is not called" {
 
     Context "In a module's scope" {
         New-Module -Name TestModule -ScriptBlock {
-            function FunctionUnderTest { return 'I am the function under test in a module' }
+            function ModuleFunctionUnderTest { return 'I am the function under test in a module' }
         } | Import-Module -Force
 
-        Mock -ModuleName TestModule FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
-        TestModule\FunctionUnderTest "three" | Out-Null
+        Mock -ModuleName TestModule ModuleFunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
         try {
             Assert-VerifiableMocks
@@ -470,7 +470,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+            $result.Exception.Message | Should Be "`r`n Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
         }
 
         Remove-Module TestModule -Force
