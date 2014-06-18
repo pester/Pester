@@ -43,7 +43,7 @@ param(
     $Pester.CurrentContext | Write-Context
 	& $fixture
 	
-	Clear-TestDrive -Exclude ($TestDriveContent).FullName
+	Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
    	Clear-Mocks
     $Pester.LeaveContext()
 }
