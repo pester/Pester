@@ -83,7 +83,7 @@ about_should
     $Pester.AddTestResult($Result.name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace ) 
     $Pester.testresult[-1] | Write-PesterResult
 
-    Clear-TestDrive -Exclude ($TestDriveContent).FullName
+    Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
     Clear-Mocks
     $Pester.LeaveTest()
 }
