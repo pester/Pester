@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 Describe "Module scope separation" {
     Context "When users define variables with the same name as Pester parameters" {
         $test = "This is a test."

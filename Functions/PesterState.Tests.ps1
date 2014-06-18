@@ -1,4 +1,6 @@
-﻿InModuleScope Pester {
+﻿Set-StrictMode -Version Latest
+
+InModuleScope Pester {
     Describe "New-PesterState" {
         it "Path is mandatory parameter" {
             (get-command New-PesterState ).Parameters.Path.ParameterSets.__AllParameterSets.IsMandatory | Should Be $true

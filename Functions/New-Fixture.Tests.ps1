@@ -1,4 +1,6 @@
-﻿Describe "New-Fixture" {
+﻿Set-StrictMode -Version Latest
+
+Describe "New-Fixture" {
     It "Name parameter is mandatory:" {
         (get-command New-Fixture ).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should Be $true
     }

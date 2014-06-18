@@ -1,4 +1,6 @@
-﻿Describe "Setup" {
+﻿Set-StrictMode -Version Latest
+
+Describe "Setup" {
 
     It "returns a location that is in a temp area" {
         $TestDrive -like "${$env:temp}*" | Should Be $true

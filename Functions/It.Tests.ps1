@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 function List-ExtraKeys($baseHash, $otherHash) {
     $extra_keys = @()
     $otherHash.Keys | ForEach-Object {
