@@ -73,11 +73,13 @@
             $name = "Warning-Fixture"
             $path = "TestDrive:\"
             
+            Mock -Verifiable -ModuleName Pester Write-Warning { }
+
 			#Create the same files twice
 	        New-Fixture -Name $name -Path $path | Out-Null
             New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
 
-            ($warnings.Count -gt 0) | Should Be $true
+            Assert-VerifiableMocks
         }
 		
     }
