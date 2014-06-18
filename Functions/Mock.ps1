@@ -666,9 +666,6 @@ function Test-ParameterFilter
     if ($null -eq $CmdletBinding)   { $CmdletBinding = '' }
     if ($null -eq $ParamBlock)      { $ParamBlock = '' }
 
-    # This is for StrictMode compatibility; parameter filters typically refer to variables defined in the mocked command's param block,
-    # but PowerShell doesn't know that.  We have to reproduce the param block before calling the filter.
-
     $cmd = [scriptblock]::Create("$CmdletBinding `r`n param ( $ParamBlock ) `r`n$ScriptBlock")
 
     & $cmd @BoundParameters @ArgumentList
