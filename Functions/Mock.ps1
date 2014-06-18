@@ -185,7 +185,8 @@ about_Mocking
         [string]$ModuleName
     )
     
-    $filterTest = &($ParameterFilter)
+    $filterTest = Test-ParameterFilter -ScriptBlock $ParameterFilter
+
     if ($filterTest -isnot [bool]) { throw [System.Management.Automation.PSArgumentException] 'The Parameter Filter must return a boolean' }
 
     $contextInfo = Validate-Command $CommandName $ModuleName
@@ -437,12 +438,9 @@ param(
     $qualifiedCalls = @(
         $mockCallHistory |
         Where-Object {
-            $p = $_.BoundParams
-            $a = $_.Args
-
             $_.CommandName -eq "$ModuleName||$commandName" -and
             $_.Scope -eq $Scope -and
-            (& $cmd @a @p)
+            (Test-ParameterFilter -ScriptBlock $ParameterFilter -BoundParameters $_.BoundParams -ArgumentList $_.Args -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
         }
     )
 
@@ -602,7 +600,7 @@ function Invoke-Mock {
     {
         $block = $mock.Blocks[$idx - 1]
 
-        if (& $block.Filter @ArgumentList @BoundParameters)
+        if (Test-ParameterFilter -ScriptBlock $block.Filter -BoundParameters $BoundParameters -ArgumentList $ArgumentList -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
         { 
             $block.Verifiable = $false
             & $block.Mock @ArgumentList @BoundParameters
@@ -640,4 +638,38 @@ function Invoke-InMockScope
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $SessionState
         & $ScriptBlock @ArgumentList
     }
+}
+
+function Test-ParameterFilter
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock,
+
+        [System.Collections.IDictionary]
+        $BoundParameters,
+
+        [object[]]
+        $ArgumentList,
+
+        [string]
+        $CmdletBinding,
+
+        [string]
+        $ParamBlock
+    )
+
+    if ($null -eq $BoundParameters) { $BoundParameters = @{} }
+    if ($null -eq $ArgumentList)    { $ArgumentList = @() }
+    if ($null -eq $CmdletBinding)   { $CmdletBinding = '' }
+    if ($null -eq $ParamBlock)      { $ParamBlock = '' }
+
+    # This is for StrictMode compatibility; parameter filters typically refer to variables defined in the mocked command's param block,
+    # but PowerShell doesn't know that.  We have to reproduce the param block before calling the filter.
+
+    $cmd = [scriptblock]::Create("$CmdletBinding `r`n param ( $ParamBlock ) `r`n$ScriptBlock")
+
+    & $cmd @BoundParameters @ArgumentList
 }

@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 InModuleScope Pester {
     Describe "PesterExist" {
 

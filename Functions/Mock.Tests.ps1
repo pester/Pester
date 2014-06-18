@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 function FunctionUnderTest
 {
     [CmdletBinding()]
@@ -38,7 +40,7 @@ function CommonParamFunction (
 }
 
 Describe "When calling Mock on existing function" {
-    Mock FunctionUnderTest {return "I am the mock test that was passed $param1"}
+    Mock FunctionUnderTest { return "I am the mock test that was passed $param1"}
 
     $result = FunctionUnderTest "boundArg"
 

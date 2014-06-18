@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 InModuleScope Pester {
     Describe "Replacing strings" {
         It "should remove powershell backtick when replacing strings" {

@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 InModuleScope Pester {
     Describe "BeExactly" {
         It "passes if letter case matches" {
