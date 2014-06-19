@@ -116,7 +116,10 @@ about_pester
       Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
   }
 
-  Write-Host Executing all tests in $($pester.Path)
+  $message = "Executing all tests in '$($pester.Path)'"
+  if ($TestName) { $message += " matching test name '$TestName'" }
+  
+  Write-Host $message
 
   $scriptBlock = { & $args[0] }
   Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
