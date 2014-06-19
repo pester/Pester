@@ -58,13 +58,11 @@ param(
         [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
 
-    if ($null -eq $Pester)
+    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction SilentlyContinue))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
-        
         $script:mockTable = @{}
-        $script:mockCallHistory = @()
     }
 
  	if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter)) 

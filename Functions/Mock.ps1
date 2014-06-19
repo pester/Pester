@@ -245,6 +245,7 @@ about_Mocking
             CommandName     = $CommandName
             SessionState    = $contextInfo.Session
             Scope           = $pester.Scope
+            CallHistory     = @()
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
@@ -430,16 +431,15 @@ param(
 
     if (-not $Scope)
     {
-        $Scope = Get-DeepestMockScope -Mock $mock
+        $Scope = $pester.Scope
     }
 
     $cmd = [scriptblock]::Create("$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter")
 
     $qualifiedCalls = @(
-        $mockCallHistory |
+        $mock.CallHistory |
         Where-Object {
-            $_.CommandName -eq "$ModuleName||$commandName" -and
-            $_.Scope -eq $Scope -and
+            (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and
             (Test-ParameterFilter -ScriptBlock $ParameterFilter -BoundParameters $_.BoundParams -ArgumentList $_.Args -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
         }
     )
@@ -451,33 +451,24 @@ param(
     }
 }
 
-function Get-DeepestMockScope
+function Test-MockCallScope
 {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
-        $Mock
+        [string] $CallScope,
+        [string] $DesiredScope
     )
 
-    $scopes = $mock.Blocks | ForEach-Object { $_.Scope } | Select-Object -Unique
+    # It would probably be cleaner to replace all of these scope strings with an enumerated type at some point.
+    $scopes = 'Describe', 'Context', 'It'
 
-    foreach ($possibleScope in 'It', 'Context', 'Describe')
-    {
-        if ($Scopes -contains $possibleScope)
-        {
-            return $possibleScope
-        }
-    }
+    return ([array]::IndexOf($scopes, $CallScope) -ge [array]::IndexOf($scopes, $DesiredScope))
 }
 
 function Clear-Mocks {
     if($mockTable){
-        $mocksToRemove=@()
-
-        foreach ($mock in $mockTable.Values)
-        {
-            $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $pester.Scope})
-        }
+        $currentScope = $pester.Scope
+        $parentScope = $pester.ParentScope
 
         $scriptBlock =
         {
@@ -490,15 +481,26 @@ function Clear-Mocks {
             }
         }
 
-        $mocksToRemove = @($mockTable.Keys | Where { $mockTable[$_].Blocks.Length -eq 0 } )
-        
-        foreach ($mockKey in $mocksToRemove) {
-            $mock = $mockTable[$mockKey]
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
-            $mockTable.Remove($mockKey)
-        }
+        $mockKeys = [string[]]$mockTable.Keys
 
-        $script:mockCallHistory = @($mockCallHistory | Where { $_.Scope -ne $pester.Scope })
+        foreach ($mockKey in $mockKeys)
+        {
+            $mock = $mockTable[$mockKey]
+            $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $pester.Scope})
+
+            if ($mock.Blocks.Count -eq 0)
+            {
+                $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
+                $mockTable.Remove($mockKey)
+            }
+            else
+            {
+                foreach ($historyEntry in $mock.CallHistory)
+                {
+                    if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
+                }
+            }
+        }
     }
 }
 
@@ -596,20 +598,30 @@ function Invoke-Mock {
 
     $mock = $mockTable["$ModuleName||$CommandName"]
 
-    for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
+    if ($null -ne $mock)
     {
-        $block = $mock.Blocks[$idx - 1]
+        for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
+        {
+            $block = $mock.Blocks[$idx - 1]
 
-        if (Test-ParameterFilter -ScriptBlock $block.Filter -BoundParameters $BoundParameters -ArgumentList $ArgumentList -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
-        { 
-            $block.Verifiable = $false
-            & $block.Mock @ArgumentList @BoundParameters
-            $script:mockCallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $block.Scope }
-            return
+            if (Test-ParameterFilter -ScriptBlock $block.Filter -BoundParameters $BoundParameters -ArgumentList $ArgumentList -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
+            {
+                $block.Verifiable = $false
+                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+
+                & $block.Mock @ArgumentList @BoundParameters
+
+                return
+            }
         }
-    }
 
-    & $mock.OriginalCommand @ArgumentList @BoundParameters
+        & $mock.OriginalCommand @ArgumentList @BoundParameters
+    }
+    else
+    {
+        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
+        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
+    }
 }
 
 function Invoke-InMockScope

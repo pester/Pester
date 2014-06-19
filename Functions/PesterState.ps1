@@ -131,6 +131,22 @@
         elseif ($this.CurrentContext)  { 'Context'  }
         elseif ($this.CurrentDescribe) { 'Describe' }
         else                           { $null      }
+    } |
+    Add-Member -PassThru -MemberType ScriptProperty -Name ParentScope -Value {
+        $parentScope = $null
+        $scope = $this.Scope
+
+        if ($scope -eq 'It' -and $this.CurrentContext)
+        {
+            $parentScope = 'Context'
+        }
+
+        if ($null -eq $parentScope -and $scope -ne 'Describe' -and $this.CurrentDescribe) 
+        {
+            $parentScope = 'Describe'
+        }
+
+        return $parentScope
     }
     
 }
