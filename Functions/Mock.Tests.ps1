@@ -370,28 +370,6 @@ Describe 'When calling Mock on a module-internal function.' {
         }
     }
 
-    # I propose that we do not include this syntax, for reasons
-    # outlined in the Validate-Command function of Mock.ps1 (where
-    # the code that implemented this syntax is also commented out.)
-
-    <#
-    Context 'Using Mock "ModuleName\CommandName" syntax' {
-        Mock TestModule\InternalFunction { 'I am the mock test' }
-        
-        It 'Should call the mocked function' {
-            PublicFunction | Should Be 'I am the mock test'
-        }
-    
-        Mock TestModule\Start-Sleep { }
-        
-        It 'Should mock calls to external functions from inside the module' {
-            TestModule\PublicFunctionThatCallsExternalCommand
-    
-            Assert-MockCalled Start-Sleep -Exactly 1
-        }
-    }
-    #>
-
     Remove-Module TestModule -Force
     Remove-Module TestModule2 -Force
 }
