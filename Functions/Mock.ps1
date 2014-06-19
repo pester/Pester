@@ -488,7 +488,7 @@ function Clear-Mocks {
             $mock = $mockTable[$mockKey]
             $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $pester.Scope})
 
-            if ($mock.Blocks.Count -eq 0)
+            if ($null -eq $parentScope)
             {
                 $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
                 $mockTable.Remove($mockKey)
