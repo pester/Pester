@@ -135,14 +135,14 @@ will return an object with a FullName property returning "A_File.TXT"
             $result = BuildIfChanged
 
             It "Should not build the next version" {
-                Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
+                Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1} -Scope Context
             }
         }
     }
 
     Notice how 'Mock Get-Version {return 1.1}' is declared within the 
-    Describe block. This allows all context blocks inside the describe to 
-    use this Mock. If a context scoped mock, mocks Get-Version, that mock 
+    Describe block. This allows all Context and It blocks inside the describe 
+    to use this Mock. If a context scoped mock, mocks Get-Version, that mock 
     will override the describe scoped mock within that contex tif both mocks 
     apply to the parameters passed to Get-Version.
 
@@ -319,7 +319,7 @@ This will not throw an exception because the mock was invoked.
             $function = $array[1]
             $module = $array[0]
 
-            $message += "`r`n Expected $function "
+            $message = "`r`n Expected $function "
             if ($module) { $message += "in module $module " }
             $message += "to be called with $($unVerified[$mock].Filter)"
         }
@@ -334,16 +334,20 @@ Checks if a Mocked command has been called a certain number of times
 and throws an exception if it has not.
 
 .DESCRIPTION
-This command checks the call history of the specified Command since 
-the Mock was declared. If it had been called less than the number of 
-times specified (1 is the default), then an exception is thrown. You 
-may specify 0 times if you want to make sure that the mock has NOT 
-been called. If you include the Exactly switch, the number of times 
+This command checks the call history of the specified Command, in the
+specified Pester scope (or any child scopes). If it had been called less
+than the number of  times specified (1 is the default), then an exception
+is thrown. You  may specify 0 times if you want to make sure that the mock
+has NOT  been called. If you include the Exactly switch, the number of times 
 that the command has been called must mach exactly with the number of 
 times specified on this command.
 
 .PARAMETER CommandName
 The name of the command to check for mock calls.
+
+.PARAMETER ModuleName
+The module where the mock being checked was injected.  This is optional,
+and must match the ModuleName that was used when setting up the Mock.
 
 .PARAMETER Times
 The number of times that the mock must be called to avoid an exception 
@@ -358,6 +362,15 @@ must match "at least" the number of times specified.
 An optional filter to qualify wich calls should be counted. Only those 
 calls to the mock whose parameters cause this filter to return true 
 will be counted.
+
+
+.PARAMETER Scope
+An optional parameter specifying the Pester scope in which to check for
+calls to the mocked command.  Defaults to whatever scope is current when
+Assert-MockCalled is executed.  Valid values are Describe, Context and It.
+If you use a scope of Describe or Context, the command will identify all
+calls to the mocked command in the current Describe / Context block, as well
+as all child scopes of that block.
 
 .EXAMPLE
 C:\PS>Mock Set-Content {}
@@ -395,13 +408,37 @@ C:\PS>Assert-MockCalled Set-Content -Exactly 2
 
 This will throw an exception if some code does not call Set-Content Exactly two times.
 
+.EXAMPLE
+Describe 'Describe' {
+    Mock Set-Content { }
+
+    {... Some Code ...}
+
+    It 'Calls Set-Content at least once in the Describe block' {
+        Assert-MockCalled -Scope Describe Set-Content
+    }
+}
+
+Checks for calls to the mocked command outside of the current ("It") pester scope.
+
+.EXAMPLE
+Describe 'Describe' {
+    Mock -ModuleName SomeModule Set-Content { }
+    
+    {... Some Code ...}
+
+    It 'Calls Set-Content at least once in the Describe block' {
+        Assert-MockCalled -ModuleName SomeModule -Scope Describe Set-Content
+    }
+}
+
+Like the last example, except the mock is injected into a Script Module named SomeModule.  Both the Mock
+and the Assert-MockCalled commands use the same ModuleName, in order for this arrangement to work.
+
 .NOTES
-While Mock will only mock commands if the Parameter Filter
-matches the Parameters passed to the command, Assert-MockCalled 
-will count calls to a command whether they are mocked or not. 
-The Command must be declared as a mock but the parameter 
-filter in its mock declaration do not need to include the 
-parameter Filter specified by Assert-MockCalled.
+The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
+(if any) which was used to create the Mock.  Assert-MockCalled will find any entry in the command history
+which matches its parameter filter, regardless of how the Mock was created.
 
 #>
 
@@ -508,41 +545,13 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
     
-    # NOTE: If we use the qualified module name syntax as in the original code which I've commented out here,
-    # it's confusing.  We can't actually mock fully-qualified calls to a command, because those won't resolve
-    # to our Mock function.  Instead, the old Validate-Command would treat a command name of TestModule\Get-ChildItem
-    # as a mock for the Get-ChildItem command, for calls that come from the TestModule function.  It just looks weird,
-    # since TestModule\Get-ChildItem makes it look like TestModule should be exporting a Get-ChildItem command, and that
-    # we would be mocking that.
-
-    # Also, if we ever do manage to find a way to mock calls to fully-qualified comands, that syntax would conflict with
-    # the fact that it was already used here.  For that reason, I've revised Validate-Command to only use -ModuleName,
-    # and not try to pull module information out of the CommandName argument.
-
-    <#
-    # Assume $CommandName is module-qualified
-    
-    $fqCommandName = $CommandName
-    $fqCommandModuleName = $fqCommandName | Split-Path
-    
-    # Give preference to fq command's module name
-    if ($fqCommandModuleName) {
-        $CommandName = $CommandName | Split-Path -Leaf
-        $module = Microsoft.PowerShell.Core\Get-Module $fqCommandModuleName -All
-    }
-    
-    Otherwise, try the $moduleName param
-    #>
-
-    if (-not $module -and $ModuleName) {
-        $module = Microsoft.PowerShell.Core\Get-Module $ModuleName -All
-    }
-    
     $scriptBlock = { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') }
 
-    # Use the context of the module (if available) to get the command
-    if ($module) {
-        $module = $module | sort ModuleType | where { ($origCommand = & $_ $scriptBlock $commandName) } | select -First 1
+    if ($ModuleName) {
+        $module = Microsoft.PowerShell.Core\Get-Module $ModuleName -All |
+                  Sort ModuleType |
+                  Where { ($origCommand = & $_ $scriptBlock $commandName) } |
+                  Select -First 1
     }
     
     $session = $pester.SessionState
