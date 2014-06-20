@@ -135,7 +135,7 @@ will return an object with a FullName property returning "A_File.TXT"
             $result = BuildIfChanged
 
             It "Should not build the next version" {
-                Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1} -Scope Context
+                Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
             }
         }
     }
@@ -366,11 +366,12 @@ will be counted.
 
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
-calls to the mocked command.  Defaults to whatever scope is current when
-Assert-MockCalled is executed.  Valid values are Describe, Context and It.
-If you use a scope of Describe or Context, the command will identify all
-calls to the mocked command in the current Describe / Context block, as well
-as all child scopes of that block.
+calls to the mocked command.  By default, Assert-MockCalled will find
+all calls to the mocked command, regardless of scope. Valid values are
+Describe (the default), Context and It. If you use a scope of Describe
+or Context, the command will identify all calls to the mocked command
+in the current Describe / Context block, as well as all child scopes of
+that block.
 
 .EXAMPLE
 C:\PS>Mock Set-Content {}
@@ -415,11 +416,11 @@ Describe 'Describe' {
     {... Some Code ...}
 
     It 'Calls Set-Content at least once in the Describe block' {
-        Assert-MockCalled -Scope Describe Set-Content
+        Assert-MockCalled Set-Content -Exactly 0 -Scope It
     }
 }
 
-Checks for calls to the mocked command outside of the current ("It") pester scope.
+Checks for calls only within the current It block
 
 .EXAMPLE
 Describe 'Describe' {
@@ -428,12 +429,12 @@ Describe 'Describe' {
     {... Some Code ...}
 
     It 'Calls Set-Content at least once in the Describe block' {
-        Assert-MockCalled -ModuleName SomeModule -Scope Describe Set-Content
+        Assert-MockCalled -ModuleName SomeModule Set-Content
     }
 }
 
-Like the last example, except the mock is injected into a Script Module named SomeModule.  Both the Mock
-and the Assert-MockCalled commands use the same ModuleName, in order for this arrangement to work.
+Checks for calls to the mock within the SomeModule module.  Note that both the Mock
+and Assert-MockCalled commands use the same module name.
 
 .NOTES
 The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
@@ -451,7 +452,7 @@ param(
     [string] $ModuleName,
 
     [ValidateSet('Describe','Context','It')]
-    [string] $Scope
+    [string] $Scope = 'Describe'
 )
     $mock = $script:mockTable["$ModuleName||$commandName"]
 

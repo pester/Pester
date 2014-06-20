@@ -64,7 +64,7 @@ Describe "When the caller mocks a command Pester uses internally" {
         }
 
         It "retains the correct mock count after the first test completes" {
-            Assert-MockCalled 'Write-Host' -Exactly 1 -Scope Context
+            Assert-MockCalled 'Write-Host' -Exactly 1
         }
     }
 }
@@ -492,7 +492,7 @@ Describe "When Calling Assert-MockCalled 0 without exactly" {
     }
 
     It "Should not throw if mock was not called" {
-        Assert-MockCalled FunctionUnderTest 0 { $param1 -eq "stupid" } -Scope Describe
+        Assert-MockCalled FunctionUnderTest 0 { $param1 -eq "stupid" }
     }
 }
 
@@ -502,7 +502,7 @@ Describe "When Calling Assert-MockCalled with exactly" {
     FunctionUnderTest "one"
 
     try {
-        Assert-MockCalled FunctionUnderTest -exactly 3 -Scope Describe
+        Assert-MockCalled FunctionUnderTest -exactly 3
     } Catch {
         $result=$_
     }
@@ -512,7 +512,7 @@ Describe "When Calling Assert-MockCalled with exactly" {
     }
 
     It "Should not throw if mock was called the number of times specified" {
-        Assert-MockCalled FunctionUnderTest -exactly 2 { $param1 -eq "one" } -Scope Describe
+        Assert-MockCalled FunctionUnderTest -exactly 2 { $param1 -eq "one" }
     }
 }
 
@@ -532,11 +532,11 @@ Describe "When Calling Assert-MockCalled without exactly" {
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
-        Assert-MockCalled FunctionUnderTest -Scope Describe
+        Assert-MockCalled FunctionUnderTest
     }
 
     It "Should not throw if mock was called at exactly the number of times specified" {
-        Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" } -Scope Describe
+        Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
     }
 }
 
@@ -614,7 +614,7 @@ Describe 'Testing mock history behavior from each scope' {
 
     Context 'Without overriding the mock in lower scopes' {
         It "Reports that zero calls have been made to in the describe scope" {
-            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope Describe
+            Assert-MockCalled MockHistoryChecker -Exactly 0
         }
 
         It 'Calls the describe mock' {
@@ -622,7 +622,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It "Reports that zero calls have been made in an It block, after a context-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 0
+            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope It
         }
 
         It "Reports one Context-scoped call" {
@@ -630,7 +630,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It "Reports one Describe-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Describe
+            Assert-MockCalled MockHistoryChecker -Exactly 1
         }
     }
 
@@ -640,7 +640,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports one describe-scoped call from the previous context' {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Describe
+            Assert-MockCalled MockHistoryChecker -Exactly 1
         }
     }
 
@@ -656,7 +656,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports two describe-scoped calls, even when one is an override mock in a lower scope' {
-            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Describe
+            Assert-MockCalled MockHistoryChecker -Exactly 2
         }
 
         It 'Calls an It-scoped mock' {
@@ -669,7 +669,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports 3 describe-scoped calls' {
-            Assert-MockCalled MockHistoryChecker -Exactly 3 -Scope Describe
+            Assert-MockCalled MockHistoryChecker -Exactly 3
         }
     }
 }
