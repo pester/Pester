@@ -26,6 +26,8 @@
 		$script:CurrentContext = "" 
 		$script:CurrentDescribe = ""
         $script:CurrentTest = ""
+        $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        $script:MostRecentTimestamp = 0
 		
 		$script:TestResult = @()
 		
@@ -87,12 +89,20 @@
             $script:CurrentTest = $null
         }
 
-        function AddTestResult ( [string]$Name, [bool]$Passed, [TimeSpan]$Time, [string]$FailureMessage, [String]$StackTrace ) {
+        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace ) {
             if ( -not $CurrentDescribe ) 
             {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot add test result before entering Describe"
             }
             
+            $previousTime = $script:MostRecentTimestamp
+            $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
+
+            if ($null -eq $Time)
+            {
+                $Time = $script:MostRecentTimestamp - $previousTime
+            }
+
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
                 Describe       = $CurrentDescribe
                 Context        = $CurrentContext

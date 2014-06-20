@@ -70,17 +70,14 @@ about_should
     
     $PesterException = $null
    
-    $Time = Microsoft.PowerShell.Utility\Measure-Command {
-
-        try{
-            &{ &$test }
-        } catch {
-            $PesterException = $_
-        }
+    try{
+        $null = & $test
+    } catch {
+        $PesterException = $_
     }
 
-    $Result = Get-PesterResult -Test $Test -Time $time -Exception $PesterException
-    $Pester.AddTestResult($Result.name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace ) 
+    $Result = Get-PesterResult -Test $Test -Exception $PesterException
+    $Pester.AddTestResult($Result.name, $Result.Success, $null, $result.failuremessage, $result.StackTrace ) 
     $Pester.testresult[-1] | Write-PesterResult
 
     Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
