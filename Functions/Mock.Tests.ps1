@@ -80,12 +80,12 @@ Describe "When calling Mock on existing cmdlet" {
 }
 
 Describe 'When calling Mock on an alias' {
-    Mock ps {return 'I am not ps'}
+    Mock dir {return 'I am not dir'}
 
-    $result = ps
+    $result = dir
 
     It 'Should Invoke the mocked script' {
-        $result | Should Be 'I am not ps'
+        $result | Should Be 'I am not dir'
     }
 }
 
