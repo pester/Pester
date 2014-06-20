@@ -64,7 +64,7 @@ EXAMPLE
     		$result = BuildIfChanged
 
 	        It "Should not build the next version" {
-	            Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1} -Scope Context
+	            Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
 	        }
         }
     }
@@ -74,11 +74,6 @@ EXAMPLE
     use this Mock. If a context scoped mock, mocks Get-Version, that mock 
     will override the describe scoped mock within that context if both mocks 
     apply to the parameters passed to Get-Version.
-
-    Also note that the calls to BuildIfChanged took place out in the Context blocks.
-    When calling Assert-MockCalled from inside the It block, it was necessary to pass
-    in "-Scope Context" to the Assert-MockCalled command.  Otherwise, it would only
-    check for calls made from inside the current "It" block, by default.
 
 SEE ALSO
 	Mock
