@@ -18,18 +18,17 @@ function Get-VariableAsHash {
   ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
   % { . $_.ProviderPath }
 
-
 function Invoke-Pester {
 <#
 .SYNOPSIS
-Invokes Pester to run all tests (files containing .Tests.) recursively under the relative_path
+Invokes Pester to run all tests (files containing *Tests.ps1) recursively under the Path
 
 .DESCRIPTION
 Upon calling Invoke-Pester. All files that have a name containing 
-".Tests." will have there tests defined in their Describe blocks 
-executed. Invoke-Pester begins at the location of relative_path and 
+"*Tests.ps1" will have there tests defined in their Describe blocks 
+executed. Invoke-Pester begins at the location of Path and 
 runs recursively through each sub directory looking for 
-*.Tests.* files for tests to run. If a TestName is provided, 
+*Tests.ps1 files for tests to run. If a TestName is provided, 
 Invoke-Pester will only run tests that have a describe block with a 
 matching name. By default, Invoke-Pester will end the test run with a 
 simple report of the number of tests passed and failed output to the 
@@ -62,7 +61,7 @@ Returns a Pester result object containing the information about the whole test r
 .Example
 Invoke-Pester
 
-This will find all *.tests.* files and run their tests. No exit code will be returned and no log file will be saved.
+This will find all *Tests.ps1 files and run their tests. No exit code will be returned and no log file will be saved.
 
 .Example
 Invoke-Pester ./tests/Utils*
@@ -100,8 +99,13 @@ about_pester
         [switch]$EnableLegacyExpectations,
 		[switch]$PassThru
     )
-	
-	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") 
+
+    $script:mockTable = @{}
+
+    # $PSCmdlet.SessionState is the caller's session state.  We use that scope to invoke the test scripts, and also assign it to the $pester.SessionState
+    # property so mocking can happen in the correct scope later on.
+
+	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
     
 	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
     
@@ -112,10 +116,17 @@ about_pester
       Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
   }
 
-  Write-Host Executing all tests in $($pester.Path)
+  $message = "Executing all tests in '$($pester.Path)'"
+  if ($TestName) { $message += " matching test name '$TestName'" }
+  
+  Write-Host $message
 
-  Get-ChildItem $pester.Path -Filter "*.tests.ps1" -Recurse |
-  foreach { & $_.PSPath }
+  $scriptBlock = { & $args[0] }
+  Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
+  
+  Get-ChildItem $pester.Path -Filter "*Tests.ps1" -Recurse |
+  where { -not $_.PSIsContainer } |
+  foreach { & $scriptBlock $_.PSPath }
 
   $pester | Write-PesterReport
 
@@ -133,5 +144,30 @@ about_pester
 	
 }
 
+function Set-ScriptBlockScope
+{
+    <#
+        Pester now executes test scripts in the scope of the caller, wherever possible.  This utility function is the work horse for that separation, binding
+        an instance of [scriptblock] to a particular session state before invoking it.
+
+        This is used in several places in Mock.ps1, as well as Invoke-Pester, Describe, and InModuleScope.
+    #>
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock,
+
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.SessionState]
+        $SessionState
+    )
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $sessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($scriptBlock, $sessionStateInternal, $null)
+}
+
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
-Export-ModuleMember Invoke-Pester, New-Fixture, Get-TestDriveItem
+Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock

@@ -1,5 +1,4 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$here\TestDrive.ps1"
+﻿Set-StrictMode -Version Latest
 
 Describe "Setup" {
 
@@ -99,6 +98,15 @@ Describe "TestDrive scoping" {
 		}
 		#create file for the next test
 		Setup -File 'Context'
+        
+        It "Creates It-scoped contents" {
+            Setup -File 'It'
+            'TestDrive:\It' | Should Exist
+        }
+        
+        It "Clears It-scoped contents on exit" {
+            'TestDrive:\It' | Should Not Exist
+        }
 	}
 
 	It "Context file are removed when returning to Describe" {
@@ -145,16 +153,18 @@ Describe "Cleanup when Remove-Item is mocked" {
 
 }
 
-Describe "New-RandomTempDirectory" {
-	It "creates randomly named directory" {
-		$first = New-RandomTempDirectory 
-		$second = New-RandomTempDirectory
+InModuleScope Pester {
+    Describe "New-RandomTempDirectory" {
+	    It "creates randomly named directory" {
+		    $first = New-RandomTempDirectory 
+		    $second = New-RandomTempDirectory
 		
-		$first | Remove-Item -Force 
-		$second | Remove-Item -Force 
+		    $first | Remove-Item -Force 
+		    $second | Remove-Item -Force 
 		
-		$first.name | Should Not Be $second.name
+		    $first.name | Should Not Be $second.name
 		
-	}
-}
+	    }
+    }
 
+}

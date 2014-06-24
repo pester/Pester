@@ -1,8 +1,14 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-. "$here\$sut"
+Set-StrictMode -Version Latest
 
-function FunctionUnderTest (  [Parameter(Mandatory=$false)][string] $param1){
+function FunctionUnderTest
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false)]
+        [string]
+        $param1
+    )
+    
     return "I am a real world test"
 }
 
@@ -34,9 +40,9 @@ function CommonParamFunction (
 }
 
 Describe "When calling Mock on existing function" {
-    Mock FunctionUnderTest {return "I am the mock test that was passed $param1"}
+    Mock FunctionUnderTest { return "I am the mock test that was passed $param1"}
 
-    $result=FunctionUnderTest "boundArg"
+    $result = FunctionUnderTest "boundArg"
 
     It "Should rename function under test" {
         $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
@@ -73,33 +79,13 @@ Describe "When calling Mock on existing cmdlet" {
     }
 }
 
-Describe 'When calling Mock on existing cmdlet using fully qualified command name' {
-    Mock Microsoft.PowerShell.Management\Get-Process {return 'I am not Microsoft.PowerShell.Management\Get-Process'}
-
-    <#
-        # Mocking a module-qualified cmdlet is not supported
-         
-        $result = Microsoft.PowerShell.Management\Get-Process
-
-        It 'Should Invoke the mocked script using its module-qualified name' {
-            $result | Should Be 'I am not Microsoft.PowerShell.Management\Get-Process'
-        }
-    #>
-
-    $result = Get-Process
-
-    It 'Should Invoke the mocked script' {
-        $result | Should Be 'I am not Microsoft.PowerShell.Management\Get-Process'
-    }
-}
-
 Describe 'When calling Mock on an alias' {
-    Mock ps {return 'I am not ps'}
+    Mock dir {return 'I am not dir'}
 
-    $result = ps
+    $result = dir
 
     It 'Should Invoke the mocked script' {
-        $result | Should Be 'I am not ps'
+        $result | Should Be 'I am not dir'
     }
 }
 
@@ -192,7 +178,7 @@ Describe "When calling Mock in the Describe block" {
     Mock Out-File {return "I am not Out-File"}
 
     It "Should mock Out-File successfully" {
-        $outfile = "test" | Out-File "..\testfile.txt"
+        $outfile = "test" | Out-File "TestDrive:\testfile.txt"
         $outfile | Should Be "I am not Out-File"
     }
 }
@@ -206,7 +192,8 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
         return "BB"
       }
     }
-
+    
+    $result = ''
     "a", "b" | Get-ChildItem | % { $result += $_ }
 
     It "Should process the pipeline in the mocked script" {
@@ -317,7 +304,7 @@ Describe "When calling Mock on More than one command" {
     Mock FunctionUnderTest {return "I am the mock test"}
 
     $result = Invoke-Command {return "yes I am"}
-    $result2=FunctionUnderTest
+    $result2 = FunctionUnderTest
 
     It "Should Invoke the mocked script for the first Mock" {
         $result | Should Be "I am not Invoke-Command"
@@ -331,28 +318,60 @@ Describe 'When calling Mock on a module-internal function.' {
     New-Module -Name TestModule {
         function InternalFunction { 'I am the internal function' }
         function PublicFunction   { InternalFunction }
-        Export-ModuleMember -Function PublicFunction
+        function PublicFunctionThatCallsExternalCommand { Start-Sleep 0 }
+        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand
+    } | Import-Module -Force
+
+    New-Module -Name TestModule2 {
+        function InternalFunction { 'I am the second module internal function' }
+        function InternalFunction2 { 'I am the second module, second function' }
+        function PublicFunction   { InternalFunction }
+        function PublicFunction2 { InternalFunction2 }
+        Export-ModuleMember -Function PublicFunction, PublicFunction2
     } | Import-Module -Force
 
     It 'Should fail to call the internal module function' {
-        { InternalFuncTion } | Should Throw
+        { TestModule\InternalFuncTion } | Should Throw
     }
 
-    It 'Should call the actual internal module function' {
-        PublicFunction | Should Be 'I am the internal function'
+    It 'Should call the actual internal module function from the public function' {
+        TestModule\PublicFunction | Should Be 'I am the internal function'
     }
 
-    It 'Should call the mocked function using only the function name' {
-        Mock InternalFunction { 'I am the mock test' } -moduleName TestModule
-        PublicFunction | Should Be 'I am the mock test'
-    }
+    Context 'Using Mock -ModuleName "ModuleName" "CommandName" syntax' {
+        Mock -ModuleName TestModule InternalFunction { 'I am the mock test' }
+        
+        It 'Should call the mocked function' {
+            TestModule\PublicFunction | Should Be 'I am the mock test'
+        }
 
-    It 'Should call the mocked function using its fully qualified name' {
-        Mock InternalFunction { 'I am the mock test' } -moduleName TestModule
-        TestModule\PublicFunction | Should Be 'I am the mock test'
+        Mock -ModuleName TestModule Start-Sleep { }
+    
+        It 'Should mock calls to external functions from inside the module' {
+            PublicFunctionThatCallsExternalCommand
+
+            Assert-MockCalled -ModuleName TestModule Start-Sleep -Exactly 1
+        }
+
+        Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } {
+            "I'm the mock who's been passed parameter Test"
+        }
+
+        It 'Should only call mocks within the same module' {
+            TestModule2\PublicFunction | Should Be 'I am the second module internal function'
+        }
+
+        Mock -ModuleName TestModule2 InternalFunction2 {
+            InternalFunction 'Test'
+        }
+
+        It 'Should call mocks from inside another mock' {
+            TestModule2\PublicFunction2 | Should Be "I'm the mock who's been passed parameter Test"
+        }
     }
 
     Remove-Module TestModule -Force
+    Remove-Module TestModule2 -Force
 }
 
 Describe "When Applying multiple Mocks on a single command" {
@@ -399,17 +418,40 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 }
 
 Describe "When Creating a Verifiable Mock that is not called" {
-    Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
-    FunctionUnderTest "three" | Out-Null
+    Context "In the test script's scope" {
+        Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        FunctionUnderTest "three" | Out-Null
 
-    try {
-        Assert-VerifiableMocks
-    } Catch {
-        $result=$_
+        try {
+            Assert-VerifiableMocks
+        } Catch {
+            $result=$_
+        }
+
+        It "Should throw" {
+            $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+        }
     }
 
-    It "Should throw" {
-        $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+    Context "In a module's scope" {
+        New-Module -Name TestModule -ScriptBlock {
+            function ModuleFunctionUnderTest { return 'I am the function under test in a module' }
+        } | Import-Module -Force
+
+        Mock -ModuleName TestModule ModuleFunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        TestModule\ModuleFunctionUnderTest "three" | Out-Null
+
+        try {
+            Assert-VerifiableMocks
+        } Catch {
+            $result=$_
+        }
+
+        It "Should throw" {
+            $result.Exception.Message | Should Be "`r`n Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+        }
+
+        Remove-Module TestModule -Force
     }
 }
 
@@ -448,6 +490,7 @@ Describe "When Calling Assert-MockCalled 0 without exactly" {
     It "Should throw if mock was called" {
         $result.Exception.Message | Should Be "Expected FunctionUnderTest to be called 0 times exactly but was called 1 times"
     }
+
     It "Should not throw if mock was not called" {
         Assert-MockCalled FunctionUnderTest 0 { $param1 -eq "stupid" }
     }
@@ -467,6 +510,7 @@ Describe "When Calling Assert-MockCalled with exactly" {
     It "Should throw if mock was not called the number of times specified" {
         $result.Exception.Message | Should Be "Expected FunctionUnderTest to be called 3 times exactly but was called 2 times"
     }
+
     It "Should not throw if mock was called the number of times specified" {
         Assert-MockCalled FunctionUnderTest -exactly 2 { $param1 -eq "one" }
     }
@@ -486,15 +530,17 @@ Describe "When Calling Assert-MockCalled without exactly" {
     It "Should throw if mock was not called atleast the number of times specified" {
         $result.Exception.Message | Should Be "Expected FunctionUnderTest to be called at least 3 times but was called 2 times"
     }
+
     It "Should not throw if mock was called at least the number of times specified" {
         Assert-MockCalled FunctionUnderTest
     }
+
     It "Should not throw if mock was called at exactly the number of times specified" {
         Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
     }
 }
 
-Describe "Using Contexts" {
+Describe "Using Pester Scopes (Describe,Context,It)" {
     Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
     Mock FunctionUnderTest {return "I am the paramless mock test"}
 
@@ -547,6 +593,85 @@ Describe "Using Contexts" {
             FunctionUnderTest "one" | should be "I am the first mock test"
         }
     }
+
+    Context "Testing It-scoped mocks" {
+        Mock FunctionUnderTest { return "I am the context mock" }
+
+        It "Should call the It mock" {
+            Mock FunctionUnderTest { return "I am the It mock" }
+            FunctionUnderTest | Should Be "I am the It mock"
+        }
+
+        It "Should revert to calling the Context mock in the next test" {
+            FunctionUnderTest | Should Be "I am the context mock"
+        }
+    }
+}
+
+Describe 'Testing mock history behavior from each scope' {
+    function MockHistoryChecker { }
+    Mock MockHistoryChecker { 'I am the describe mock.' }
+
+    Context 'Without overriding the mock in lower scopes' {
+        It "Reports that zero calls have been made to in the describe scope" {
+            Assert-MockCalled MockHistoryChecker -Exactly 0
+        }
+
+        It 'Calls the describe mock' {
+            MockHistoryChecker | Should Be 'I am the describe mock.'
+        }
+
+        It "Reports that zero calls have been made in an It block, after a context-scoped call" {
+            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope It
+        }
+
+        It "Reports one Context-scoped call" {
+            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
+        }
+
+        It "Reports one Describe-scoped call" {
+            Assert-MockCalled MockHistoryChecker -Exactly 1
+        }
+    }
+
+    Context 'After exiting the previous context' {
+        It 'Reports zero context-scoped calls in the new context.' {
+            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope Context
+        }
+
+        It 'Reports one describe-scoped call from the previous context' {
+            Assert-MockCalled MockHistoryChecker -Exactly 1
+        }
+    }
+
+    Context 'While overriding mocks in lower scopes' {
+        Mock MockHistoryChecker { 'I am the context mock.' }
+
+        It 'Calls the context mock' {
+            MockHistoryChecker | Should Be 'I am the context mock.'
+        }
+
+        It 'Reports one context-scoped call' {
+            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
+        }
+
+        It 'Reports two describe-scoped calls, even when one is an override mock in a lower scope' {
+            Assert-MockCalled MockHistoryChecker -Exactly 2
+        }
+
+        It 'Calls an It-scoped mock' {
+            Mock MockHistoryChecker { 'I am the It mock.' }
+            MockHistoryChecker | Should Be 'I am the It mock.'
+        }
+
+        It 'Reports 2 context-scoped calls' {
+            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Context
+        }
+
+        It 'Reports 3 describe-scoped calls' {
+            Assert-MockCalled MockHistoryChecker -Exactly 3
+        }
+    }
 }
 
 Describe "Using a single no param Describe" {
@@ -559,4 +684,3 @@ Describe "Using a single no param Describe" {
         }
     }
 }
-

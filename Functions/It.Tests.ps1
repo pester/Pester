@@ -1,5 +1,4 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$here\Describe.ps1"
+Set-StrictMode -Version Latest
 
 function List-ExtraKeys($baseHash, $otherHash) {
     $extra_keys = @()
@@ -12,15 +11,7 @@ function List-ExtraKeys($baseHash, $otherHash) {
     return $extra_keys
 }
 
-Describe "It" {
-	It "records the correct stack line number of failed tests" {
-		#the $script scriptblock below is used as a position marker to determine 
-		#on which line the test failed.
-        try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
-        $result = Get-PesterResult $script 0 $ex
-        $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
-    }
-
+Describe "It - Caller scoped tests" {
     It "should pass if assertions pass" {
 		$test = 'something'
         $test | should be "something"
@@ -32,24 +23,44 @@ Describe "It" {
       $extra_keys | ? { !($expected_keys -contains $_) } | Should BeNullOrEmpty
     }
 	#>
+
+    $result = $null
+    try
+    {
+        It "no test block"
+    }
+    catch
+    {
+        $result = $_
+    }
+
     It "throws if no test block given" {
-        { It "no test block" } | Should Throw
+        $result | Should Not Be $null
+    }
+
+    $result = $null
+    try
+    {
+        It "empty test block" { }
+    }
+    catch
+    {
+        $result = $_
     }
 
     It "won't throw if success test block given" {
-        { It "test block" {} } | Should Not Throw
-    }
-    
-    it "Does not rewrite Test variable" {
-        it "tests" { $true | should be $true }
-        $test = "rewrite"
-    }
-    
-    it "does not override the pester variable" {
-        $pester = 0 
-        #you can replace the $pester variable by going few scopes above 
-        #Set-Variable -name pester -Value $null -Scope 6
-    }
-
+        $result | Should Be $null
+    }    
 }
 
+InModuleScope Pester {
+    Describe "It - Module scoped tests" {
+	    It "records the correct stack line number of failed tests" {
+		    #the $script scriptblock below is used as a position marker to determine 
+		    #on which line the test failed.
+            try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
+            $result = Get-PesterResult $script 0 $ex
+            $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
+        }
+    }
+}

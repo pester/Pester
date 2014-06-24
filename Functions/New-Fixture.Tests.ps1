@@ -1,7 +1,4 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-#the function is exported by the Pester module, dot-sourcing would override it
-#. "$here\$sut"
+﻿Set-StrictMode -Version Latest
 
 Describe "New-Fixture" {
     It "Name parameter is mandatory:" {
@@ -78,25 +75,13 @@ Describe "New-Fixture" {
             $name = "Warning-Fixture"
             $path = "TestDrive:\"
             
+            Mock -Verifiable -ModuleName Pester Write-Warning { }
+
 			#Create the same files twice
 	        New-Fixture -Name $name -Path $path | Out-Null
-					
-			#TODO find a better way to test this
-			#weird way to test this, but I can't redirect the Warning easily without breaking PowerShell v2 compatibility 
-			$message = &{
-				try 
-				{ 
-					
-					$ErrorActionPreference = 'SilentlyContinue'
-					$WarningPreference = 'Stop'
-					New-Fixture -Name $name -Path $path | Out-Null
-				} 
-				catch 
-				{ 
-					"$_"
-				}
-			}
-			$message | Should Match 'WarningPreference'
+            New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
+
+            Assert-VerifiableMocks
         }
 		
     }

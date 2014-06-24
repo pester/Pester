@@ -1,7 +1,4 @@
-﻿$global:mockTable = @{}
-$global:mockCallHistory = @()
-
-function Mock {
+﻿function Mock {
 
 <#
 .SYNOPSIS
@@ -31,11 +28,12 @@ used to check if all Verifiable mocks were actually called. If any
 verifiable mock is not called, Assert-VerifiableMocks will throw an 
 exception and indicate all mocks not called.
 
-The SUT (code being tested) that calls the actual commands that you have 
-mocked must not be executing from inside a module. Otherwise, the mocked 
-commands will not be invoked and the real commands will run. The SUT must 
-be in the same Script scope as the test. So it must be either dot sourced, 
-in the same file, or in a script file.
+You can mock commands on behalf of different calling scopes by using the
+-ModuleName parameter.  If you do not specify a ModuleName, the command
+is mocked in the scope of the test script.  If the mocked command needs
+to be called from inside a module, Mock it with the -ModuleName parameter
+instead.  You may mock the same command multiple times, in multiple scopes,
+as necessary.
 
 .PARAMETER CommandName
 The name of the command to be mocked.
@@ -56,7 +54,10 @@ pass the filter.
 This ScriptBlock must return a boolean value. See examples for usage.
 
 .PARAMETER ModuleName
-Provide name of imported Powershell Module to Mock its internal function.
+Optional string specifying the name of the module where this command
+is to be mocked.  This should be a module that _calls_ the mocked
+command; it doesn't necessarily have to be the same module which
+originally implemented the command.
 
 .EXAMPLE
 Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
@@ -106,6 +107,12 @@ Get-ChildItem $env:temp\me
 Here, B_File.TXT will be returned. Even though the filterless mock was created last. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
 
 .EXAMPLE
+Mock -ModuleName MyTestModule Get-ChildItem {return @{FullName="A_File.TXT"}}
+
+Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
+will return an object with a FullName property returning "A_File.TXT"
+
+.EXAMPLE
     Describe "BuildIfChanged" {
         Mock Get-Version {return 1.1}
         Context "Wnen there are Changes" {
@@ -134,8 +141,8 @@ Here, B_File.TXT will be returned. Even though the filterless mock was created l
     }
 
     Notice how 'Mock Get-Version {return 1.1}' is declared within the 
-    Describe block. This allows all context blocks inside the describe to 
-    use this Mock. If a context scoped mock, mocks Get-Version, that mock 
+    Describe block. This allows all Context and It blocks inside the describe 
+    to use this Mock. If a context scoped mock, mocks Get-Version, that mock 
     will override the describe scoped mock within that contex tif both mocks 
     apply to the parameters passed to Get-Version.
 
@@ -170,32 +177,44 @@ Describe "ModuleMockExample" {
 about_Mocking
 #>
 
-param(
-    [string]$commandName, 
-    [ScriptBlock]$mockWith={}, 
-    [switch]$verifiable, 
-    [ScriptBlock]$parameterFilter = {$True},
-    [string]$moduleName
-)
+    param(
+        [string]$CommandName, 
+        [ScriptBlock]$MockWith={}, 
+        [switch]$Verifiable, 
+        [ScriptBlock]$ParameterFilter = {$True},
+        [string]$ModuleName
+    )
+    
+    $filterTest = Test-ParameterFilter -ScriptBlock $ParameterFilter
 
-    $contextInfo = Validate-Command $commandName $moduleName
-    $commandName = $contextInfo.Command.Name
-    $filterTest = &($parameterFilter)
     if ($filterTest -isnot [bool]) { throw [System.Management.Automation.PSArgumentException] 'The Parameter Filter must return a boolean' }
 
-    $blocks = @{
-        Mock       = $mockWith
-        Filter     = $parameterFilter
-        Verifiable = $verifiable
+    $contextInfo = Validate-Command $CommandName $ModuleName
+    $CommandName = $contextInfo.Command.Name
+    
+    if ($contextInfo.Session.Module -and $contextInfo.Session.Module.Name)
+    {
+        $ModuleName = $contextInfo.Session.Module.Name
+    }
+    else
+    {
+        $ModuleName = ''
+    }
+    
+    $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+    Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+
+    $block = @{
+        Mock       = $mockWithCopy
+        Filter     = $ParameterFilter
+        Verifiable = $Verifiable
         Scope      = $pester.Scope
     }
 
-    $mock = $mockTable[$contextInfo.Command.Name]
-    if (-not $mock) {
-        if ($contextInfo.Command.CommandType -eq 'Function') {
-            $contextInfo.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Rename("Function:\$args", "global:PesterIsMocking_$args", $true) }, $contextInfo.Command.Name) > $null
-        }
+    $mock = $mockTable["$ModuleName||$CommandName"]
 
+    if (-not $mock)
+    {
         $cmdletBinding = ''
         $paramBlock    = ''
 
@@ -218,39 +237,43 @@ param(
         $newContent = Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
         $mockScript = "$cmdletBinding`r`n    param( $paramBlock )`r`n`r`n    process{`r`n$newContent}"
 
-        $contextInfo.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }, $contextInfo.Command.Name, $mockScript) > $null
-
         $mock = @{
             OriginalCommand = $contextInfo.Command
-            Session         = $contextInfo.Session
-            blocks          = @($blocks)
+            Blocks          = @()
             Cmdlet          = $cmdletBinding
             Params          = $paramBlock
-            CommandName     = $contextInfo.Command.Name
+            CommandName     = $CommandName
+            SessionState    = $contextInfo.Session
+            Scope           = $pester.Scope
+            CallHistory     = @()
         }
-    }
-    else {
-        if($blocks.Filter.ToString() -eq "`$True") {
-            if($mock.blocks[0].Filter.ToString() -eq "`$True") {
-                $noParams=@()
-                $noParams += $mock.blocks | ? { $_.Filter.ToString() -eq "`$True" }
-                $noParams += $blocks
-                if($mock.blocks.Length -gt 1){
-                    $mock.blocks = $noParams + $mock.blocks[($noParams.Length-1)..($mock.blocks.Length-1)]
-                }
-                else {
-                    $mock.blocks = $noParams
+
+        $mockTable["$ModuleName||$CommandName"] = $mock
+
+        if ($contextInfo.Command.CommandType -eq 'Function')
+        {
+            $scriptBlock =
+            {
+                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$args"))
+                {
+                    $ExecutionContext.InvokeProvider.Item.Rename("Function:\$args", "script:PesterIsMocking_$args", $true)
                 }
             }
-            else {
-                $mock.blocks = ,$blocks + $mock.blocks
-            }
-        } 
-        else { 
-            $mock.blocks += $blocks 
+
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName
         }
+        
+        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
+        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mockScript
     }
-    $mockTable.$commandName = $mock
+
+    $mock.Blocks = @(
+        $mock.Blocks | Where-Object { $_.Filter.ToString() -eq '$True' }
+        if ($block.Filter.ToString() -eq '$True') { $block }
+
+        $mock.Blocks | Where-Object { $_.Filter.ToString() -ne '$True' }
+        if ($block.Filter.ToString() -ne '$True') { $block }
+    )
 }
 
 
@@ -292,7 +315,13 @@ This will not throw an exception because the mock was invoked.
     }
     if($unVerified.Count -gt 0) {
         foreach($mock in $unVerified.Keys){
-            $message += "`r`n Expected $mock to be called with $($unVerified[$mock].Filter)"
+            $array = $mock -split '\|\|'
+            $function = $array[1]
+            $module = $array[0]
+
+            $message = "`r`n Expected $function "
+            if ($module) { $message += "in module $module " }
+            $message += "to be called with $($unVerified[$mock].Filter)"
         }
         throw $message
     }
@@ -305,16 +334,20 @@ Checks if a Mocked command has been called a certain number of times
 and throws an exception if it has not.
 
 .DESCRIPTION
-This command checks the call history of the specified Command since 
-the Mock was declared. If it had been called less than the number of 
-times specified (1 is the default), then an exception is thrown. You 
-may specify 0 times if you want to make sure that the mock has NOT 
-been called. If you include the Exactly switch, the number of times 
+This command checks the call history of the specified Command, in the
+specified Pester scope (or any child scopes). If it had been called less
+than the number of  times specified (1 is the default), then an exception
+is thrown. You  may specify 0 times if you want to make sure that the mock
+has NOT  been called. If you include the Exactly switch, the number of times 
 that the command has been called must mach exactly with the number of 
 times specified on this command.
 
 .PARAMETER CommandName
 The name of the command to check for mock calls.
+
+.PARAMETER ModuleName
+The module where the mock being checked was injected.  This is optional,
+and must match the ModuleName that was used when setting up the Mock.
 
 .PARAMETER Times
 The number of times that the mock must be called to avoid an exception 
@@ -329,6 +362,16 @@ must match "at least" the number of times specified.
 An optional filter to qualify wich calls should be counted. Only those 
 calls to the mock whose parameters cause this filter to return true 
 will be counted.
+
+
+.PARAMETER Scope
+An optional parameter specifying the Pester scope in which to check for
+calls to the mocked command.  By default, Assert-MockCalled will find
+all calls to the mocked command, regardless of scope. Valid values are
+Describe (the default), Context and It. If you use a scope of Describe
+or Context, the command will identify all calls to the mocked command
+in the current Describe / Context block, as well as all child scopes of
+that block.
 
 .EXAMPLE
 C:\PS>Mock Set-Content {}
@@ -366,85 +409,157 @@ C:\PS>Assert-MockCalled Set-Content -Exactly 2
 
 This will throw an exception if some code does not call Set-Content Exactly two times.
 
+.EXAMPLE
+Describe 'Describe' {
+    Mock Set-Content { }
+
+    {... Some Code ...}
+
+    It 'Calls Set-Content at least once in the Describe block' {
+        Assert-MockCalled Set-Content -Exactly 0 -Scope It
+    }
+}
+
+Checks for calls only within the current It block
+
+.EXAMPLE
+Describe 'Describe' {
+    Mock -ModuleName SomeModule Set-Content { }
+    
+    {... Some Code ...}
+
+    It 'Calls Set-Content at least once in the Describe block' {
+        Assert-MockCalled -ModuleName SomeModule Set-Content
+    }
+}
+
+Checks for calls to the mock within the SomeModule module.  Note that both the Mock
+and Assert-MockCalled commands use the same module name.
+
 .NOTES
-While Mock will only mock commands if the Parameter Filter
-matches the Parameters passed to the command, Assert-MockCalled 
-will count calls to a command whether they are mocked or not. 
-The Command must be declared as a mock but the parameter 
-filter in its mock declaration do not need to include the 
-parameter Filter specified by Assert-MockCalled.
+The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
+(if any) which was used to create the Mock.  Assert-MockCalled will find any entry in the command history
+which matches its parameter filter, regardless of how the Mock was created.
 
 #>
 
+[CmdletBinding()]
 param(
-    [string]$commandName,
+    [string]$CommandName,
     [switch]$Exactly,
-    [int]$times=1,
-    [ScriptBlock]$parameterFilter = {$True}    
+    [int]$Times=1,
+    [ScriptBlock]$ParameterFilter = {$True},
+    [string] $ModuleName,
+
+    [ValidateSet('Describe','Context','It')]
+    [string] $Scope = 'Describe'
 )
-    $mock = $global:mockTable.$commandName
-    if(!$mock) { Throw "You did not declare a mock of the $commandName Command."}
-    Microsoft.PowerShell.Management\Set-Item Function:\Pester_TempParamTest -value "$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter"
-    $cmd=(Microsoft.PowerShell.Core\Get-Command Pester_TempParamTest)
-    $qualifiedCalls = @()
-    $global:mockCallHistory | ? {$_.CommandName -eq $commandName} | ? {$p=$_.BoundParams;$a=$_.Args;&($cmd) @a @p} | %{ $qualifiedCalls += $_}
-    Microsoft.PowerShell.Management\Remove-Item Function:\Pester_TempParamTest
-    if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
-        throw "Expected $commandName to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
-    } elseif($qualifiedCalls.Length -lt $times) {
-        throw "Expected $commandName to be called at least $times times but was called $($qualifiedCalls.Length) times"
+    $mock = $script:mockTable["$ModuleName||$commandName"]
+
+    $moduleMessage = ''
+    if ($ModuleName)
+    {
+        $moduleMessage = " in module $ModuleName"
     }
+
+    if (-not $mock)
+    {
+        throw "You did not declare a mock of the $commandName Command${moduleMessage}."
+    }
+
+    if (-not $Scope)
+    {
+        $Scope = $pester.Scope
+    }
+
+    $cmd = [scriptblock]::Create("$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter")
+
+    $qualifiedCalls = @(
+        $mock.CallHistory |
+        Where-Object {
+            (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and
+            (Test-ParameterFilter -ScriptBlock $ParameterFilter -BoundParameters $_.BoundParams -ArgumentList $_.Args -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
+        }
+    )
+
+    if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
+        throw "Expected ${commandName}${$moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
+    } elseif($qualifiedCalls.Length -lt $times) {
+        throw "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($qualifiedCalls.Length) times"
+    }
+}
+
+function Test-MockCallScope
+{
+    [CmdletBinding()]
+    param (
+        [string] $CallScope,
+        [string] $DesiredScope
+    )
+
+    # It would probably be cleaner to replace all of these scope strings with an enumerated type at some point.
+    $scopes = 'Describe', 'Context', 'It'
+
+    return ([array]::IndexOf($scopes, $CallScope) -ge [array]::IndexOf($scopes, $DesiredScope))
 }
 
 function Clear-Mocks {
     if($mockTable){
-        $mocksToRemove=@()
-        $mockTable.Keys | % { 
-            $otherScopeBlocks = @()
-            $mockTable[$_].blocks | ? {$_.Scope -ne $pester.Scope} | % { $otherScopeBlocks += $_ }
-            $mockTable[$_].blocks = $otherScopeBlocks
-        }
-        $mockTable.values | ? { $_.blocks.Length -eq 0} | % { 
-            $mocksToRemove += $_.CommandName
-            $_.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Remove("Function:\$args", $false, $true, $true) }, $_.CommandName)
-            if ($_.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$args", $true, $true) }, $_.CommandName)) {
-                $_.Session.Module.Invoke({ $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$args", "script:$($args[0])", $true) }, $_.CommandName) > $null
+        $currentScope = $pester.Scope
+        $parentScope = $pester.ParentScope
+
+        $scriptBlock =
+        {
+            param ([string] $CommandName)
+
+            $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
+            if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
+            {
+                $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "script:$CommandName", $true)
             }
         }
-        $mocksToRemove | % { $mockTable.Remove($_) }
-        $global:mockCallHistory = @()
+
+        $mockKeys = [string[]]$mockTable.Keys
+
+        foreach ($mockKey in $mockKeys)
+        {
+            $mock = $mockTable[$mockKey]
+            $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $pester.Scope})
+
+            if ($null -eq $parentScope)
+            {
+                $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
+                $mockTable.Remove($mockKey)
+            }
+            else
+            {
+                foreach ($historyEntry in $mock.CallHistory)
+                {
+                    if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
+                }
+            }
+        }
     }
 }
 
-function Validate-Command([string]$commandName, [string]$moduleName) {
-    # Assume $commandName is module-qualified
+function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
-    $fqCommandName = $commandName
-    $fqCommandModuleName = $fqCommandName | Microsoft.PowerShell.Management\Split-Path
+    
+    $scriptBlock = { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') }
 
-    # Give preference to fq command's module name
-    if ($fqCommandModuleName) {
-        $commandName = $commandName | Microsoft.PowerShell.Management\Split-Path -Leaf
-        $module = Microsoft.PowerShell.Core\Get-Module $fqCommandModuleName -All
+    if ($ModuleName) {
+        $module = Microsoft.PowerShell.Core\Get-Module $ModuleName -All |
+                  Sort ModuleType |
+                  Where { ($origCommand = & $_ $scriptBlock $commandName) } |
+                  Select -First 1
     }
     
-    # Otherwise, try the $moduleName param
-    if (-not $module -and $moduleName) {
-        $module = Microsoft.PowerShell.Core\Get-Module $moduleName -All
-    }
-    
-    # Use the context of the module (if available) to get the command
-    if ($module) {
-        $module = $module |
-        Microsoft.PowerShell.Utility\Sort-Object ModuleType |
-        Microsoft.PowerShell.Core\Where-Object { ($origCommand = & $_ { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') } $commandName) } |
-        Microsoft.PowerShell.Utility\Select-Object -First 1
-    }
-    
-    $session = $ExecutionContext.SessionState
+    $session = $pester.SessionState
+
     if (-not $origCommand) {
-        $origCommand = $session.InvokeCommand.GetCommand($fqCommandName, 'All')
+        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $session
+        $origCommand = & $scriptBlock $commandName
     }
 
     if ($origCommand -and $origCommand.CommandType -eq [System.Management.Automation.CommandTypes]::Alias) {
@@ -455,8 +570,7 @@ function Validate-Command([string]$commandName, [string]$moduleName) {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $commandName")
     }
     
-    # If there is no 'ScriptBlock', the module is irrelevant.
-    if ($module -and $origCommand.psobject.Properties['ScriptBlock'] -and @($module)[0].ExportedCommands -notcontains $origCommand.Name) {
+    if ($module) {
         $session = & @($module)[0] { $ExecutionContext.SessionState }
     }
 
@@ -465,15 +579,116 @@ function Validate-Command([string]$commandName, [string]$moduleName) {
 
 function MockPrototype {
     $functionName = $MyInvocation.MyCommand.Name
-    $global:mockCallHistory += @{CommandName=$functionName;BoundParams=$PSBoundParameters; Args=$args}
-    $mock=$mockTable.$functionName
-    $idx=$mock.blocks.Length
-    while(--$idx -ge 0) {
-        if(&($mock.blocks[$idx].Filter) @args @PSBoundParameters) { 
-            $mock.blocks[$idx].Verifiable=$false
-            &($mockTable.$functionName.blocks[$idx].mock) @args @PSBoundParameters
-            return
-        }
+    
+    $moduleName = ''
+    if ($ExecutionContext.SessionState.Module)
+    {
+        $moduleName = $ExecutionContext.SessionState.Module.Name
     }
-    &($mock.OriginalCommand) @args @PSBoundParameters
+
+    Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $args
+}
+
+function Invoke-Mock {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $CommandName,
+
+        [string]
+        $ModuleName,
+
+        [hashtable]
+        $BoundParameters = @{},
+
+        [object[]]
+        $ArgumentList = @()
+    )
+
+    $mock = $mockTable["$ModuleName||$CommandName"]
+
+    if ($null -ne $mock)
+    {
+        for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
+        {
+            $block = $mock.Blocks[$idx - 1]
+
+            if (Test-ParameterFilter -ScriptBlock $block.Filter -BoundParameters $BoundParameters -ArgumentList $ArgumentList -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
+            {
+                $block.Verifiable = $false
+                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+
+                & $block.Mock @ArgumentList @BoundParameters
+
+                return
+            }
+        }
+
+        & $mock.OriginalCommand @ArgumentList @BoundParameters
+    }
+    else
+    {
+        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
+        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
+    }
+}
+
+function Invoke-InMockScope
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.SessionState]
+        $SessionState,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock,
+
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]]
+        $ArgumentList = @()
+    )
+
+    if ($SessionState.Module)
+    {
+        $SessionState.Module.Invoke($ScriptBlock, $ArgumentList)
+    }
+    else
+    {
+        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $SessionState
+        & $ScriptBlock @ArgumentList
+    }
+}
+
+function Test-ParameterFilter
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock,
+
+        [System.Collections.IDictionary]
+        $BoundParameters,
+
+        [object[]]
+        $ArgumentList,
+
+        [string]
+        $CmdletBinding,
+
+        [string]
+        $ParamBlock
+    )
+
+    if ($null -eq $BoundParameters) { $BoundParameters = @{} }
+    if ($null -eq $ArgumentList)    { $ArgumentList = @() }
+    if ($null -eq $CmdletBinding)   { $CmdletBinding = '' }
+    if ($null -eq $ParamBlock)      { $ParamBlock = '' }
+
+    $cmd = [scriptblock]::Create("$CmdletBinding `r`n param ( $ParamBlock ) `r`n$ScriptBlock")
+
+    & $cmd @BoundParameters @ArgumentList
 }
