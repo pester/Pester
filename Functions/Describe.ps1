@@ -57,7 +57,7 @@ param(
         [Parameter(Position = 1)]
         [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
- 	if($Pester.TestNameFilter -and ($Pester.TestNameFilter -notlike $Name)) 
+ 	if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter)) 
     { 
         #skip this test
         return 
