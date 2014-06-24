@@ -1,6 +1,15 @@
 ## Unreleased
   - Fix TestName 
 
+## 3.0.0-beta (June 24, 2014)
+  - Add full support for module mocking
+  - Isolate Pester internals from tested code
+  - Tests.ps1 files can be run directly
+  - Add It scope to TestDrive
+  - Add It scope to Mock
+  - Add Scope parameter to Assert-MockCalled
+  - Measure test time more precisely
+  
 ## 2.1.0 (June 15, 2014)
   - Process It blocks in memory [GH-123]
   - Fixed -ExecutionPolicy in pester.bat [GH-130]

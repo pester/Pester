@@ -65,6 +65,7 @@ param(
         $script:mockTable = @{}
     }
 
+
  	if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter)) 
     { 
         #skip this test
