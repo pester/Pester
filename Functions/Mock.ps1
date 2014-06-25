@@ -694,8 +694,9 @@ function Test-ParameterFilter
     if ($null -eq $ArgumentList)    { $ArgumentList = @() }
     if ($null -eq $CmdletBinding)   { $CmdletBinding = '' }
     if ($null -eq $ParamBlock)      { $ParamBlock = '' }
-
-    $cmd = [scriptblock]::Create("$CmdletBinding `r`n param ( $ParamBlock ) `r`n$ScriptBlock")
-
+    
+    $cmd = [scriptblock]::Create("$CmdletBinding param ( $ParamBlock ) Set-StrictMode -Off; $ScriptBlock")
+    Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
+    
     & $cmd @BoundParameters @ArgumentList
 }

@@ -247,6 +247,34 @@ Describe "When calling Mock on non-existing function" {
     }
 }
 
+Describe 'When calling Mock, StrictMode is enabled, and variables are used in the ParameterFilter' {
+    Set-StrictMode -Version Latest
+    
+    $result = $null
+    $testValue = 'test'
+    
+    try 
+    {
+        Mock FunctionUnderTest { 'I am the mock' } -ParameterFilter { $param1 -eq $testValue }
+    }
+    catch
+    {
+        $result = $_
+    }
+    
+    It 'Does not throw an error when testing the parameter filter' {
+        $result | Should Be $null
+    }
+    
+    It 'Calls the mock properly' {
+        FunctionUnderTest $testValue | Should Be 'I am the mock'
+    }
+    
+    It 'Properly asserts the mock was called when there is a variable in the parameter filter' {
+        Assert-MockCalled FunctionUnderTest -Exactly 1 -ParameterFilter { $param1 -eq $testValue }
+    }
+}
+
 Describe "When calling Mock on existing function without matching bound params" {
     Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "test"}
 
