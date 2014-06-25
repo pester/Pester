@@ -1,3 +1,17 @@
+***This is a prerelease version of Pester. The following changes are included in this version:***
+###### 3.0.0-beta (June 24, 2014)
+  - Add full support for module mocking
+  - Isolate Pester internals from tested code
+  - Tests.ps1 files can be run directly
+  - Add It scope to TestDrive
+  - Add It scope to Mock
+  - Add Scope parameter to Assert-MockCalled
+  - Measure test time more precisely
+
+Please let us know of any bugs you find. Big thanks to @dlwyatt for his contributions. 
+
+---
+
 Pester
 =======
 Pester provides a framework for **running Unit Tests to execute and validate PowerShell commands inside of PowerShell**. Pester follows a file naming convention for naming tests to be discovered by pester at test time and a simple set of functions that expose a Testing DSL for isolating, running, evaluating and reporting the results of Powershell commands.
