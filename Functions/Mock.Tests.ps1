@@ -267,7 +267,6 @@ Describe "When calling Mock on existing function with matching bound params" {
     }
 }
 
-
 Describe "When calling Mock on existing function without matching unbound arguments" {
     Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "test" -and $args[0] -eq 'notArg0'}
 
@@ -682,5 +681,23 @@ Describe "Using a single no param Describe" {
         It "Should use the context mock" {
             FunctionUnderTest | should be "I am the context mock test"
         }
+    }
+}
+
+Describe 'Dot Source Test' {
+    # This test is only meaningful if this test file is dot-sourced in the global scope.  If it's executed without
+    # dot-sourcing or run by Invoke-Pester, there's no problem.
+    
+    function TestFunction { Test-Path -Path 'Test' }
+    Mock Test-Path { }
+
+    $null = TestFunction
+
+    It "Calls the mock with parameter 'Test'" {
+        Assert-MockCalled Test-Path -Exactly 1 -ParameterFilter { $Path -eq 'Test' }
+    }
+
+    It "Doesn't call the mock with any other parameters" {
+        Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
     }
 }

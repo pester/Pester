@@ -620,11 +620,18 @@ function Invoke-Mock {
                 $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
 
                 & $block.Mock @ArgumentList @BoundParameters
-
                 return
             }
         }
 
+        & $mock.OriginalCommand @ArgumentList @BoundParameters
+    }
+    elseif ($mock = $mockTable["||$CommandName"])
+    {
+        # This situation can happen if the test script is dot-sourced in the global scope.  Under these conditions,
+        # a module can wind up executing Invoke-Mock when that was not the intent of the test.  Try to recover from
+        # this by executing the original command.
+        
         & $mock.OriginalCommand @ArgumentList @BoundParameters
     }
     else
