@@ -62,7 +62,7 @@ InModuleScope Pester {
             $expectedErrorMessage = 'some expected message'
             PesterThrow { throw $unexpectedErrorMessage } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Be "Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from line:\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
@@ -78,13 +78,13 @@ InModuleScope Pester {
             $expectedErrorMessage = 'some expected message'
             PesterThrow { throw $unexpectedErrorMessage } $expectedErrorMessage > $null
             $result = NotPesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Be "Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}"
+        $result | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from line:\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
             PesterThrow { throw 'error message' } > $null
             $result = NotPesterThrowFailureMessage 'error message'
-            $result | Should Be 'Expected: the expression not to throw an exception. Message was {error message}'
+        $result | Should Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from line:\d+ char:\d+"
         }
     }
 }
