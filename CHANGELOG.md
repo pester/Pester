@@ -1,6 +1,7 @@
 ## Unreleased
   - Fix TestName 
-  - Fix direct execution of tests when the script is dot-sourced to global scope
+  - Fix direct execution of tests when the script is dot-sourced to global scope [GH-144]
+  - Fix mock parameter filter in strict mode [GH-143]
 
 ## 3.0.0-beta (June 24, 2014)
   - Add full support for module mocking
