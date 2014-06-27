@@ -37,11 +37,16 @@ param(
     $name,
     [ScriptBlock] $fixture
 )
+    Suspend-CoverageAnalysis
+
     $Pester.EnterContext($name)
     $TestDriveContent = Get-TestDriveChildItem
 	
     $Pester.CurrentContext | Write-Context
+
+    Resume-CoverageAnalysis
 	& $fixture
+    Suspend-CoverageAnalysis
 	
 	Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
    	Clear-Mocks

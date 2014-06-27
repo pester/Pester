@@ -97,7 +97,9 @@ about_pester
         [Alias('Tags')]
 		[string]$Tag,
         [switch]$EnableLegacyExpectations,
-		[switch]$PassThru
+		[switch]$PassThru,
+
+        [string[]] $CoveragePath = @()
     )
 
     $script:mockTable = @{}
@@ -106,7 +108,8 @@ about_pester
     # property so mocking can happen in the correct scope later on.
 
 	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
-    
+    Enter-CoverageAnalysis -Path $CoveragePath
+
 	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
     
 
@@ -129,6 +132,8 @@ about_pester
   foreach { & $scriptBlock $_.PSPath }
 
   $pester | Write-PesterReport
+  Show-CoverageReport
+  Exit-CoverageAnalysis
 
   if($OutputXml) {
       #TODO make this legacy option and move the nUnit report out of invoke-pester
