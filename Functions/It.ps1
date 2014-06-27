@@ -65,20 +65,16 @@ about_should
         [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    Suspend-CoverageAnalysis
-
     $Pester.EnterTest($name)
     $TestDriveContent = Get-TestDriveChildItem
     
     $PesterException = $null
     
-    Resume-CoverageAnalysis
     try{
         $null = & $test
     } catch {
         $PesterException = $_
     }
-    Suspend-CoverageAnalysis
 
     $Result = Get-PesterResult -Test $Test -Exception $PesterException
     $Pester.AddTestResult($Result.name, $Result.Success, $null, $result.failuremessage, $result.StackTrace ) 

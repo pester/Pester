@@ -64,8 +64,6 @@ param(
         $script:mockTable = @{}
     }
 
-    Suspend-CoverageAnalysis
-
  	if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter)) 
     { 
         #skip this test
@@ -79,9 +77,7 @@ param(
     $Pester.CurrentDescribe | Write-Describe
 	New-TestDrive
 	
-    Resume-CoverageAnalysis
 	& $fixture
-    Suspend-CoverageAnalysis
 	
 	Remove-TestDrive
 	Clear-Mocks 

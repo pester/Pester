@@ -2,8 +2,6 @@ if ($PSVersionTable.PSVersion.Major -le 2)
 {
     function Enter-CoverageAnalysis { Write-Error 'Code coverage analysis requires PowerShell 3.0 or later.' }
     function Exit-CoverageAnalysis { }
-    function Suspend-CoverageAnalysis { }
-    function Resume-CoverageAnalysis { }
     function Show-CoverageReport { }
     function Get-CoverageMissedCommands { }
 
@@ -43,7 +41,7 @@ function Enter-CoverageAnalysis
                     Column = $command.Extent.StartColumnNumber
                     Action = { }
                 }
-                $breakpoint = Set-PSBreakpoint @params | Disable-PSBreakpoint -PassThru
+                $breakpoint = Set-PSBreakpoint @params
 
                 [pscustomobject] @{
                     File       = $command.Extent.File
@@ -58,28 +56,12 @@ function Enter-CoverageAnalysis
 
 function Exit-CoverageAnalysis
 {
-    $breakpoints = @($pester.CommandCoverage | Select-Object -ExpandProperty Breakpoint)
-    if ($breakpoints.Count -gt 0)
-    {
-        $breakpoints | Remove-PSBreakpoint
-    }
-}
+    Set-StrictMode -Off
 
-function Suspend-CoverageAnalysis
-{
-    $breakpoints = @($pester.CommandCoverage | Select-Object -ExpandProperty Breakpoint)
+    $breakpoints = @($pester.CommandCoverage.Breakpoint)
     if ($breakpoints.Count -gt 0)
     {
-        $breakpoints | Disable-PSBreakpoint
-    }
-}
-
-function Resume-CoverageAnalysis
-{
-    $breakpoints = @($pester.CommandCoverage | Select-Object -ExpandProperty Breakpoint)
-    if ($breakpoints.Count -gt 0)
-    {
-        $breakpoints | Enable-PSBreakpoint
+        Remove-PSBreakpoint -Breakpoint $breakpoints
     }
 }
 
