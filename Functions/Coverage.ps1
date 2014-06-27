@@ -46,12 +46,48 @@ function Enter-CoverageAnalysis
                 [pscustomobject] @{
                     File       = $command.Extent.File
                     Line       = $command.Extent.StartLineNumber
-                    Command    = $command.Extent.Text
+                    Command    = Get-CoverageCommandText -Ast $command
                     Breakpoint = $breakpoint
                 }
             }
         }
     )
+}
+
+function Get-CoverageCommandText
+{
+    param ([System.Management.Automation.Language.Ast] $Ast)
+
+    $reportParentExtentTypes = @(
+        [System.Management.Automation.Language.ReturnStatementAst]
+        [System.Management.Automation.Language.ThrowStatementAst]
+    )
+
+    $parent = Get-ParentNonPipelineAst -Ast $Ast
+
+    if ($null -ne $parent -and $reportParentExtentTypes -contains $parent.GetType())
+    {
+        return $parent.Extent.Text
+    }
+    else
+    {
+        return $Ast.Extent.Text
+    }
+}
+
+function Get-ParentNonPipelineAst
+{
+    param ([System.Management.Automation.Language.Ast] $Ast)
+
+    $parent = $null
+    if ($null -ne $Ast) { $parent = $Ast.Parent }
+
+    while ($parent -is [System.Management.Automation.Language.PipelineAst])
+    {
+        $parent = $parent.Parent
+    }
+
+    return $parent
 }
 
 function Exit-CoverageAnalysis
