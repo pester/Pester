@@ -14,6 +14,7 @@ function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
     } catch {
         $Script:ActualExceptionWasThrown = $true
         $Script:ActualExceptionMessage = $_.Exception.Message
+        $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
     }
 
     if ($ActualExceptionWasThrown) {
@@ -27,10 +28,15 @@ function Get-DoMessagesMatch($value, $expected) {
     return $value.Contains($expected)
 }
 
+function Get-ExceptionLineInfo($info) {
+    return ($info.PositionMessage -replace "^At ","from ")
+
+}
+
 function PesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-      return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}" -f
-              $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown])
+      return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
+              $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
     } else {
       return "Expected: the expression to throw an exception"
     }
@@ -38,10 +44,9 @@ function PesterThrowFailureMessage($value, $expected) {
 
 function NotPesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-        return "Expected: the expression not to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}" -f
-              $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown])
+        return "Expected: the expression not to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
+              $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
     } else {
-        return "Expected: the expression not to throw an exception. Message was {{{0}}}" -f $ActualExceptionMessage
+        return "Expected: the expression not to throw an exception. Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage,($ActualExceptionLine  -replace "`n","`n    ")
     }
 }
-
