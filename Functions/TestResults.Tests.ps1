@@ -14,24 +14,24 @@ InModuleScope Pester {
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
-            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-case'
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name     | Should Be "Successful testcase"
             $xmlTestCase.result   | Should Be "Success"
             $xmlTestCase.time     | Should Be "1"
         }
 
         It "should write a failed test result" {
-				    #create state
-				    $TestResults = New-PesterState -Path TestDrive:\
-				    $testResults.EnterDescribe('Mocked Describe')
-				    $time = [TimeSpan]25000000 #2.5 seconds
-				    $TestResults.AddTestResult("Failed testcase",$false,$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
-				
-				    #export and validate the file
+		    #create state
+		    $TestResults = New-PesterState -Path TestDrive:\
+		    $testResults.EnterDescribe('Mocked Describe')
+		    $time = [TimeSpan]25000000 #2.5 seconds
+		    $TestResults.AddTestResult("Failed testcase",$false,$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
+		
+		    #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
-            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-case'
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name                   | Should Be "Failed testcase"
             $xmlTestCase.result                 | Should Be "Failure"
             $xmlTestCase.time                   | Should Be "2.5"
@@ -41,12 +41,12 @@ InModuleScope Pester {
         }
 
          It "should write the test summary" {
-				    #create state
-				    $TestResults = New-PesterState -Path TestDrive:\
-				    $testResults.EnterDescribe('Mocked Describe')
-				    $TestResults.AddTestResult("Testcase",$true,(New-TimeSpan -Seconds 1))
-				
-				    #export and validate the file
+		    #create state
+		    $TestResults = New-PesterState -Path TestDrive:\
+		    $testResults.EnterDescribe('Mocked Describe')
+		    $TestResults.AddTestResult("Testcase",$true,(New-TimeSpan -Seconds 1))
+		
+		    #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -58,18 +58,18 @@ InModuleScope Pester {
         }
 
         it "should write the test-suite information" {
-				    #create state
-				    $TestResults = New-PesterState -Path TestDrive:\
-				    $testResults.EnterDescribe('Mocked Describe')
-				    $TestResults.AddTestResult("Successful testcase",$true,[timespan]10000000) #1.0 seconds
-				    $TestResults.AddTestResult("Successful testcase",$true,[timespan]11000000) #1.1 seconds
-				
-				    #export and validate the file
+		    #create state
+		    $TestResults = New-PesterState -Path TestDrive:\
+		    $testResults.EnterDescribe('Mocked Describe')
+		    $TestResults.AddTestResult("Successful testcase",$true,[timespan]10000000) #1.0 seconds
+		    $TestResults.AddTestResult("Successful testcase",$true,[timespan]11000000) #1.1 seconds
+		
+		    #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
-            $xmlTestResult = $xmlResult.'test-results'.'test-suite'
+            $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
             $xmlTestResult.type     | Should Be "Powershell"
             $xmlTestResult.name     | Should Be "Mocked Describe"
             $xmlTestResult.result   | Should Be "Success"
@@ -78,25 +78,25 @@ InModuleScope Pester {
         }
 
         it "should write two test-suite elements for two describes" {
-				    #create state
-				    $TestResults = New-PesterState -Path TestDrive:\
-				    $testResults.EnterDescribe('Describe #1')
-				    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
-				    $TestResults.LeaveDescribe()
-				    $testResults.EnterDescribe('Describe #2')
-				    $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
-				
-				    #export and validate the file
+		    #create state
+		    $TestResults = New-PesterState -Path TestDrive:\
+		    $testResults.EnterDescribe('Describe #1')
+		    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+		    $TestResults.LeaveDescribe()
+		    $testResults.EnterDescribe('Describe #2')
+		    $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
+		
+		    #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
-            $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'[0]
+            $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
             $xmlTestSuite1.name     | Should Be "Describe #1"
             $xmlTestSuite1.result   | Should Be "Success"
             $xmlTestSuite1.success  | Should Be "True"
             $xmlTestSuite1.time     | Should Be 1.0
-            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'[1]
+            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
             $xmlTestSuite2.name     | Should Be "Describe #2"
             $xmlTestSuite2.result   | Should Be "Failure"
             $xmlTestSuite2.success  | Should Be "False"
@@ -104,10 +104,9 @@ InModuleScope Pester {
         }
 
         it "should write the environment information" {
-            $testResults = @{}
-            $testResults.Tests = @( "" );
+            $state = New-PesterState "."
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport $state $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
@@ -121,41 +120,39 @@ InModuleScope Pester {
         }
 
         it "Should validate test results against the nunit 2.5 schema" {
-				    $testResults = @{}
-            $testResults.Describes = @( 
-                @{
-                    name = 'Describe #1'
-                    Tests =  @(@{
-                        name = "Successful testcase"
-                        time = "1.0"
-                        success = $true
-                    },
-                    @{
-                        name = "Failed testcase"
-                        time = "1.0"
-                        success = $true
-                    });
-                },
-                @{
-                    name = 'Describe #2'
-                    Tests = @{
-                        name = "Failed testcase"
-                        time = "2.0"
-                        success = $false
-                    }
-                }
-            );
+			#create state
+		    $TestResults = New-PesterState -Path TestDrive:\
+		    $testResults.EnterDescribe('Describe #1')
+		    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+		    $TestResults.LeaveDescribe()
+		    $testResults.EnterDescribe('Describe #2')
+		    $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
+				
+			#export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
-            [xml]$xml = gc $testFile 
-            # This has been failing for a while! It was previous checking a boolean
-            # but it was actually a list of validation errors
-            # TODO fix validation errors. Ignoring test because it didn't have
-            # value in the first place
-            return
-            $validationErrors = Validate-Xml $xml '.\Templates\nunit_schema_2.5.xsd'
-            $validationErrors | % { Write-Host $_ }
-            $validationErrors.Count | Should Be 0
+            $xml = [xml] (Get-Content $testFile)
+			
+			$schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+            $xml.Schemas.Add($null,$schemePath) > $null
+			{ $xml.Validate({throw $args.Exception }) } | Should Not Throw
+        }
+		
+		it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+			#create state
+		    $TestResults = New-PesterState -Path TestDrive:\
+		    $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
+		    $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",$true,(New-TimeSpan -Seconds 1))
+		    $TestResults.LeaveDescribe()
+
+			#export and validate the file
+            $testFile = "$TestDrive\Results\Tests.xml"
+            Export-NunitReport $testResults $testFile
+            $xml = [xml] (Get-Content $testFile)
+			
+			$schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+            $xml.Schemas.Add($null,$schemePath) > $null
+			{ $xml.Validate({throw $args.Exception }) } | Should Not Throw
         }
     }
 
