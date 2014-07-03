@@ -69,10 +69,11 @@ function Get-CoverageInfoFromUserInput
 
 function New-CoverageInfo
 {
-    param ([string] $Path, [int] $StartLine = 0, [int] $EndLine = 0)
+    param ([string] $Path, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0)
 
     return [pscustomobject]@{
         Path = $Path
+        Function = $Function
         StartLine = $StartLine
         EndLine = $EndLine
     }
@@ -82,7 +83,7 @@ function Get-CoverageInfoFromDictionary
 {
     param ([System.Collections.IDictionary] $Dictionary)
 
-    [string] $path = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Path', 'p', 'FilePath', 'File', 'f'
+    [string] $path = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Path', 'p'
     if ([string]::IsNullOrEmpty($path))
     {
         throw "Coverage value '$Dictionary' is missing required Path key."
@@ -90,11 +91,12 @@ function Get-CoverageInfoFromDictionary
 
     $startLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'StartLine', 'Start', 's'
     $endLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'EndLine', 'End', 'e'
+    [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
 
-    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine
+    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Function $function
 }
 
 function Get-DictionaryValueFromFirstKeyFound
@@ -143,11 +145,17 @@ function Resolve-CoverageInfo
         Write-Error "Coverage path '$path' resolved to non-FileSystem path '$($_.Path)'; skipping this path."
     }
     
-    $fileSystemPaths = $resolvedPaths | Where-Object { $_.Provider.Name -eq 'FileSystem' }
+    $params = @{
+        StartLine = $UnresolvedCoverageInfo.StartLine
+        EndLine = $UnresolvedCoverageInfo.EndLine
+        Function = $UnresolvedCoverageInfo.Function
+    }
 
+    $fileSystemPaths = $resolvedPaths | Where-Object { $_.Provider.Name -eq 'FileSystem' }
     foreach ($fileSystemPath in $fileSystemPaths)
     {
-        New-CoverageInfo -Path $fileSystemPath -StartLine $UnresolvedCoverageInfo.StartLine -EndLine $UnresolvedCoverageInfo.EndLine
+        $params['Path'] = $fileSystemPath
+        New-CoverageInfo @params
     }
 }
 
@@ -179,6 +187,37 @@ function Get-CoverageBreakpoints
 }
 
 function Test-CoverageOverlapsCommand
+{
+    param ([object] $CoverageInfo, [System.Management.Automation.Language.Ast] $Command)
+
+    if ($CoverageInfo.Function)
+    {
+        Test-CommandInsideFunction -Command $Command -Function $CoverageInfo.Function
+    }
+    else
+    {
+        Test-CoverageOverlapsCommandByLineNumber @PSBoundParameters
+    }
+
+}
+
+function Test-CommandInsideFunction
+{
+    param ([System.Management.Automation.Language.Ast] $Command, [string] $Function)
+
+    for ($ast = $Command; $null -ne $ast; $ast = $ast.Parent)
+    {
+        $functionAst = $ast -as [System.Management.Automation.Language.FunctionDefinitionAst]
+        if ($null -ne $functionAst -and $functionAst.Name -like $Function)
+        {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Test-CoverageOverlapsCommandByLineNumber
 {
     param ([object] $CoverageInfo, [System.Management.Automation.Language.Ast] $Command)
 
