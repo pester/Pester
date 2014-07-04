@@ -1,19 +1,20 @@
 if ($PSVersionTable.PSVersion.Major -le 2)
 {
-    function Enter-CoverageAnalysis { Write-Error 'Code coverage analysis requires PowerShell 3.0 or later.' }
     function Exit-CoverageAnalysis { }
+    function Get-CoverageReport { }
     function Show-CoverageReport { }
+    function Enter-CoverageAnalysis {
+        param ( $CodeCoverage )
+
+        if ($CodeCoverage) { Write-Error 'Code coverage analysis requires PowerShell 3.0 or later.' }
+    }
 
     return
 }
 
 function Enter-CoverageAnalysis
 {
-    [CmdletBinding()]
-    param (
-        [object[]]
-        $CodeCoverage
-    )
+    param ([object[]] $CodeCoverage, [object] $PesterState)
 
     $coverageInfo =
     foreach ($object in $CodeCoverage)
@@ -21,14 +22,16 @@ function Enter-CoverageAnalysis
         Get-CoverageInfoFromUserInput -InputObject $object
     }
 
-    $Pester.CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
+    $PesterState.CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
 }
 
 function Exit-CoverageAnalysis
 {
+    param ([object] $PesterState)
+
     Set-StrictMode -Off
 
-    $breakpoints = @($pester.CommandCoverage.Breakpoint) -ne $null
+    $breakpoints = @($PesterState.CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0)
     {
         Remove-PSBreakpoint -Breakpoint $breakpoints
@@ -296,22 +299,43 @@ function Get-ParentNonPipelineAst
 
 function Get-CoverageMissedCommands
 {
-    $pester.CommandCoverage | Where-Object { $_.Breakpoint.HitCount -eq 0 }
+    param ([object[]] $CommandCoverage)
+    $CommandCoverage | Where-Object { $_.Breakpoint.HitCount -eq 0 }
+}
+
+function Get-CoverageReport
+{
+    param ([object] $PesterState)
+
+    $totalCommandCount = $PesterState.CommandCoverage.Count
+
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Command)
+    $analyzedFiles = @($PesterState.CommandCoverage | Select-Object -ExpandProperty File -Unique)
+    $fileCount = $analyzedFiles.Count
+
+    $executedCommandCount = $totalCommandCount - $missedCommands.Count
+
+    [pscustomobject] @{
+        NumberOfCommandsAnalyzed = $totalCommandCount
+        NumberOfFilesAnalyzed    = $fileCount
+        NumberOfCommandsExecuted = $executedCommandCount
+        NumberOfCommandsMissed   = $missedCommands.Count
+        MissedCommands           = $missedCommands
+    }
 }
 
 function Show-CoverageReport
 {
-    param ([switch] $Passthru)
+    param ([object] $CoverageReport)
 
-    $totalCommandCount = $pester.CommandCoverage.Count
-    if ($totalCommandCount -eq 0) { return }
+    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
+    {
+        return
+    }
 
-    $missedCommands = @(Get-CoverageMissedCommands | Select-Object File, Line, Command)
-    $analyzedFiles = @($pester.CommandCoverage | Select-Object -ExpandProperty File -Unique)
-    $fileCount = $analyzedFiles.Count
-
-    $executedCommandCount = $totalCommandCount - $missedCommands.Count
-    $executedPercent = ($executedCommandCount / $totalCommandCount).ToString("P2")
+    $totalCommandCount = $CoverageReport.NumberOfCommandsAnalyzed
+    $fileCount = $CoverageReport.NumberOfFilesAnalyzed
+    $executedPercent = ($CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed).ToString("P2")
 
     $commandPlural = $filePlural = ''
     if ($totalCommandCount -gt 1) { $commandPlural = 's' }
@@ -321,21 +345,10 @@ function Show-CoverageReport
     Write-Host 'Code coverage report:'
     Write-Host "Covered $executedPercent of $totalCommandCount analyzed command$commandPlural in $fileCount file$filePlural."
 
-    if ($missedCommands.Count -gt 0)
+    if ($CoverageReport.MissedCommands.Count -gt 0)
     {
         Write-Host ''
         Write-Host 'Missed commands:'
-        $missedCommands | Format-Table -AutoSize | Out-Host
-    }
-
-    if ($Passthru)
-    {
-        [pscustomobject] @{
-            NumberOfCommandsAnalyzed = $totalCommandCount
-            NumberOfFilesAnalyzed    = $fileCount
-            NumberOfCommandsExecuted = $executedCommandCount
-            NumberOfCommandsMissed   = $missedCommands.Count
-            MissedCommands           = $missedCommands
-        }
+        $CoverageReport.MissedCommands | Format-Table -AutoSize | Out-Host
     }
 }

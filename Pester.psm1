@@ -134,11 +134,10 @@ about_pester
     $script:mockTable = @{}
 
 	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
-    Enter-CoverageAnalysis -CodeCoverage $CodeCoverage
+    Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
 	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
     
-
   if ($EnableLegacyExpectations) {
       "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
       . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
@@ -158,8 +157,9 @@ about_pester
   foreach { & $scriptBlock $_.PSPath }
 
   $pester | Write-PesterReport
-  $coverageReport = Show-CoverageReport -Passthru:$PassThru
-  Exit-CoverageAnalysis
+  $coverageReport = Get-CoverageReport -PesterState $pester
+  Show-CoverageReport -CoverageReport $coverageReport
+  Exit-CoverageAnalysis -PesterState $pester
 
   if($OutputXml) {
       #TODO make this legacy option and move the nUnit report out of invoke-pester
