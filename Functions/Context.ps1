@@ -41,6 +41,7 @@ param(
     $TestDriveContent = Get-TestDriveChildItem
 	
     $Pester.CurrentContext | Write-Context
+
 	& $fixture
 	
 	Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
