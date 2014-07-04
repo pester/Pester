@@ -40,6 +40,10 @@ if the OutputXml parameter is provided. In these cases, Invoke-Pester
 will write the result log to the path provided in the OutputXml 
 parameter.
 
+Optionally, Pester can generate a report of how much code is covered
+by the tests, and information about any commands which were not
+executed.
+
 .PARAMETER Path
 The path where Invoke-Pester begins to search for test files. The default is the current directory. Aliased 'relative_path' for backwards compatibility.
 
@@ -57,6 +61,16 @@ Informs Invoke-Pester to only run Describe blocks tagged with the tags specified
 
 .PARAMETER PassThru
 Returns a Pester result object containing the information about the whole test run, and each test.
+
+.PARAMETER CodeCoverage
+Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
+If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
+By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
+Hashtables must contain a Path key (which can be abbreviated to just "P"), and may contain Function (or "F"), StartLine (or "S"), and EndLine ("E") keys to narrow down the commands to be analyzed.
+If Function is specified, StartLine and EndLine are ignored.
+If only StartLine is defined, the entire script file starting with StartLine is analyzed.
+If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
+Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
 
 .Example
 Invoke-Pester
@@ -77,6 +91,21 @@ This will only run the Describe block named "Add Numbers"
 Invoke-Pester -EnableExit -OutputXml "./artifacts/TestResults.xml"
 
 This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifatcs/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+
+.EXAMPLE
+Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
+
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
+
+.EXAMPLE
+Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
+
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
+
+.EXAMPLE
+Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
+
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
 
 .LINK
 Describe
@@ -103,9 +132,6 @@ about_pester
     )
 
     $script:mockTable = @{}
-
-    # $PSCmdlet.SessionState is the caller's session state.  We use that scope to invoke the test scripts, and also assign it to the $pester.SessionState
-    # property so mocking can happen in the correct scope later on.
 
 	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage
@@ -151,13 +177,6 @@ about_pester
 
 function Set-ScriptBlockScope
 {
-    <#
-        Pester now executes test scripts in the scope of the caller, wherever possible.  This utility function is the work horse for that separation, binding
-        an instance of [scriptblock] to a particular session state before invoking it.
-
-        This is used in several places in Mock.ps1, as well as Invoke-Pester, Describe, and InModuleScope.
-    #>
-
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
