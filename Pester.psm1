@@ -158,7 +158,7 @@ about_pester
   foreach { & $scriptBlock $_.PSPath }
 
   $pester | Write-PesterReport
-  Show-CoverageReport
+  $coverageReport = Show-CoverageReport -Passthru:$PassThru
   Exit-CoverageAnalysis
 
   if($OutputXml) {
@@ -167,9 +167,18 @@ about_pester
 			Export-NunitReport $pester $OutputXml 
   }
 	
-	if ($PassThru) { 
+	if ($PassThru) {
 		#remove all runtime properties like current* and Scope
-		$pester | Select -Property "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+        $properties = @(
+            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+            
+            if ($CodeCoverage)
+            {
+                @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+            }
+        )
+
+		$pester | Select -Property $properties
 	}
   if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
 	

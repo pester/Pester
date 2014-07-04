@@ -301,10 +301,12 @@ function Get-CoverageMissedCommands
 
 function Show-CoverageReport
 {
+    param ([switch] $Passthru)
+
     $totalCommandCount = $pester.CommandCoverage.Count
     if ($totalCommandCount -eq 0) { return }
 
-    $missedCommands = @(Get-CoverageMissedCommands)
+    $missedCommands = @(Get-CoverageMissedCommands | Select-Object File, Line, Command)
     $analyzedFiles = @($pester.CommandCoverage | Select-Object -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
@@ -323,6 +325,17 @@ function Show-CoverageReport
     {
         Write-Host ''
         Write-Host 'Missed commands:'
-        $missedCommands | Format-Table File, Line, Command -AutoSize | Out-Host
+        $missedCommands | Format-Table -AutoSize | Out-Host
+    }
+
+    if ($Passthru)
+    {
+        [pscustomobject] @{
+            NumberOfCommandsAnalyzed = $totalCommandCount
+            NumberOfFilesAnalyzed    = $fileCount
+            NumberOfCommandsExecuted = $executedCommandCount
+            NumberOfCommandsMissed   = $missedCommands.Count
+            MissedCommands           = $missedCommands
+        }
     }
 }
