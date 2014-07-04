@@ -14,7 +14,11 @@ if ($PSVersionTable.PSVersion.Major -le 2)
 
 function Enter-CoverageAnalysis
 {
-    param ([object[]] $CodeCoverage, [object] $PesterState)
+    [CmdletBinding()]
+    param (
+        [object[]] $CodeCoverage,
+        [object] $PesterState
+    )
 
     $coverageInfo =
     foreach ($object in $CodeCoverage)
@@ -159,23 +163,35 @@ function Resolve-CoverageInfo
 
 function Get-CoverageBreakpoints
 {
-    param ([object[]] $CoverageInfo)
+    [CmdletBinding()]
+    param (
+        [object[]] $CoverageInfo
+    )
     
     $fileGroups = @($CoverageInfo | Group-Object -Property Path)
     foreach ($fileGroup in $fileGroups)
     {
+        Write-Verbose "Initializing code coverage analysis for file '$($fileGroup.Name)'"
+        $totalCommands = 0
+        $analyzedCommands = 0
+
         :commandLoop
         foreach ($command in Get-CommandsInFile -Path $fileGroup.Name)
         {
+            $totalCommands++
+
             foreach ($coverageInfoObject in $fileGroup.Group)
             {
                 if (Test-CoverageOverlapsCommand -CoverageInfo $coverageInfoObject -Command $command)
                 {
+                    $analyzedCommands++
                     New-CoverageBreakpoint -Command $command
                     continue commandLoop
                 }
             }
         }
+
+        Write-Verbose "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage"
     }
 }
 
