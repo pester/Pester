@@ -99,7 +99,7 @@ about_pester
         [switch]$EnableLegacyExpectations,
 		[switch]$PassThru,
 
-        [object[]] $Coverage = @()
+        [object[]] $CodeCoverage = @()
     )
 
     $script:mockTable = @{}
@@ -108,7 +108,7 @@ about_pester
     # property so mocking can happen in the correct scope later on.
 
 	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
-    Enter-CoverageAnalysis -InputObject $Coverage
+    Enter-CoverageAnalysis -CodeCoverage $CodeCoverage
 
 	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
     

@@ -11,29 +11,17 @@ function Enter-CoverageAnalysis
 {
     [CmdletBinding()]
     param (
-        [Parameter(ValueFromPipeline = $true)]
         [object[]]
-        $InputObject
+        $CodeCoverage
     )
 
-    begin
+    $coverageInfo =
+    foreach ($object in $CodeCoverage)
     {
-        $Pester.CommandCoverage = @()
+        Get-CoverageInfoFromUserInput -InputObject $object
     }
 
-    process
-    {
-        $Pester.CommandCoverage += @(
-            foreach ($object in $InputObject)
-            {
-                $coverageInfo = Get-CoverageInfoFromUserInput -InputObject $object
-                if ($null -ne $coverageInfo)
-                {
-                    Get-CoverageBreakpoints -CoverageInfo $coverageInfo
-                }
-            }
-        )
-    }
+    $Pester.CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
 }
 
 function Exit-CoverageAnalysis
@@ -163,27 +151,35 @@ function Get-CoverageBreakpoints
 {
     param ([object[]] $CoverageInfo)
     
-    foreach ($coverageInfoObject in $CoverageInfo)
+    $fileGroups = @($CoverageInfo | Group-Object -Property Path)
+    foreach ($fileGroup in $fileGroups)
     {
-        $filePath = $coverageInfoObject.Path
-
-        $errors = $null
-        $tokens = $null
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile($filePath, [ref] $tokens, [ref] $errors)
-        
-        $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
-        $searchNestedScriptBlocks = $true
-        $commandsInFile = $ast.FindAll($predicate, $searchNestedScriptBlocks)
-
-        foreach ($command in $commandsInFile)
+        :commandLoop
+        foreach ($command in Get-CommandsInFile -Path $fileGroup.Name)
         {
-            if (Test-CoverageOverlapsCommand -CoverageInfo $coverageInfoObject -Command $command)
+            foreach ($coverageInfoObject in $fileGroup.Group)
             {
-                New-CoverageBreakpoint -Command $command
+                if (Test-CoverageOverlapsCommand -CoverageInfo $coverageInfoObject -Command $command)
+                {
+                    New-CoverageBreakpoint -Command $command
+                    continue commandLoop
+                }
             }
         }
     }
+}
 
+function Get-CommandsInFile
+{
+    param ([string] $Path)
+
+    $errors = $null
+    $tokens = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref] $tokens, [ref] $errors)
+        
+    $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
+    $searchNestedScriptBlocks = $true
+    $ast.FindAll($predicate, $searchNestedScriptBlocks)
 }
 
 function Test-CoverageOverlapsCommand
