@@ -63,6 +63,8 @@ InModuleScope Pester {
             It 'Reports the correct missed command' {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
             }
+
+            Exit-CoverageAnalysis -PesterState $testState
         }
 
         Context 'Single function with missed commands' {
@@ -92,6 +94,8 @@ InModuleScope Pester {
             It 'Reports the correct missed command' {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
             }
+            
+            Exit-CoverageAnalysis -PesterState $testState
         }
 
         Context 'Single function with no missed commands' {
@@ -117,6 +121,8 @@ InModuleScope Pester {
             It 'Reports the proper number of missed commands' {
                 $coverageReport.MissedCommands.Count | Should Be 0
             }
+
+            Exit-CoverageAnalysis -PesterState $testState
         }
 
         Context 'Range of lines' {
@@ -142,6 +148,8 @@ InModuleScope Pester {
             It 'Reports the proper number of missed commands' {
                 $coverageReport.MissedCommands.Count | Should Be 0
             }
+
+            Exit-CoverageAnalysis -PesterState $testState
         }
 
         Context 'Wildcard resolution' {
@@ -175,6 +183,8 @@ InModuleScope Pester {
             It 'Reports the correct missed command' {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
             }
+
+            Exit-CoverageAnalysis -PesterState $testState
         }
     }
 }
