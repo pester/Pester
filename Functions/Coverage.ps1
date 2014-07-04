@@ -130,10 +130,18 @@ function Resolve-CoverageInfo
         return
     }
 
-    $resolvedPaths |
-    Where-Object { $_.Provider.Name -ne 'FileSystem' } |
-    ForEach-Object {
-        Write-Error "Coverage path '$path' resolved to non-FileSystem path '$($_.Path)'; skipping this path."
+    $filePaths =
+    foreach ($resolvedPath in $resolvedPaths)
+    {
+        $item = Get-Item -LiteralPath $resolvedPath
+        if ($item -is [System.IO.FileInfo] -and ('.ps1','.psm1') -contains $item.Extension)
+        {
+            $item.FullName
+        }
+        else
+        {
+            Write-Warning "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
+        }
     }
     
     $params = @{
@@ -142,10 +150,9 @@ function Resolve-CoverageInfo
         Function = $UnresolvedCoverageInfo.Function
     }
 
-    $fileSystemPaths = $resolvedPaths | Where-Object { $_.Provider.Name -eq 'FileSystem' }
-    foreach ($fileSystemPath in $fileSystemPaths)
+    foreach ($filePath in $filePaths)
     {
-        $params['Path'] = $fileSystemPath
+        $params['Path'] = $filePath
         New-CoverageInfo @params
     }
 }
