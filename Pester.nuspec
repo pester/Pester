@@ -17,7 +17,6 @@
     <file src="Pester.psm1" target="tools" />
     <file src="Examples\**\*.*" target="tools\Examples" />
     <file src="Functions\**\*.*" target="tools\Functions" />
-    <file src="templates\**\*.*" target="tools\templates" />
     <file src="ObjectAdaptations\**\*.*" target="tools\ObjectAdaptations" />
     <file src="en-US\*.*" target="tools\en-US" />
   </files>
