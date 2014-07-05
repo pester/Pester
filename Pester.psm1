@@ -2,16 +2,6 @@
 # Version: $version$
 # Changeset: $sha$
 
-function Get-VariableAsHash {
-    $hash = @{}
-    Get-Variable | ForEach-Object {
-      $key = $_.Name
-      $hash.$key = ""
-    }
-
-    return $hash
-}
-
 @("$PSScriptRoot\Functions\*.ps1",
   "$PSScriptRoot\Functions\Assertions\*.ps1"
  ) | Resolve-Path |
@@ -135,8 +125,6 @@ about_pester
 
 	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
-
-	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
 	
   $message = "Executing all tests in '$($pester.Path)'"
   if ($TestName) { $message += " matching test name '$TestName'" }

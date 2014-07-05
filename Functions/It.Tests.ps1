@@ -16,13 +16,6 @@ Describe "It - Caller scoped tests" {
 		$test = 'something'
         $test | should be "something"
     }
-	<# TODO implement this to not use the Pester object to save its state
-    It "does not pollute the global namespace" {
-      $extra_keys = List-ExtraKeys $pester.starting_variables $(Get-VariableAsHash)
-	  $expected_keys = "here", "name", "test", "Matches", "fixture", "script", "_", "psitem", "TestDrive"
-      $extra_keys | ? { !($expected_keys -contains $_) } | Should BeNullOrEmpty
-    }
-	#>
 
     $result = $null
     try
