@@ -137,13 +137,7 @@ about_pester
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
 	# TODO make this work again $pester.starting_variables = Get-VariableAsHash
-    
-  if ($EnableLegacyExpectations) {
-      "WARNING: Enabling deprecated legacy expectations. " | Write-Host -Fore Yellow -Back DarkGray
-      . "$PSScriptRoot\ObjectAdaptations\PesterFailure.ps1"
-      Update-TypeData -pre "$PSScriptRoot\ObjectAdaptations\types.ps1xml" -ErrorAction SilentlyContinue
-  }
-
+	
   $message = "Executing all tests in '$($pester.Path)'"
   if ($TestName) { $message += " matching test name '$TestName'" }
   

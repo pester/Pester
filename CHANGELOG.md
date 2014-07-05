@@ -3,6 +3,7 @@
   - Add better output for hashtables in code coverage [GH-150]
   - Fix Invoke-Pester -OutputXml usage of relative paths 
   - Remove Validate-Xml function
+  - Remove legacy object adaptations support
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
