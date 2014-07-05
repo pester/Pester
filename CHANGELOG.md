@@ -2,6 +2,7 @@
   - Fix code coverage tests so they do not left breakpoints set [GH-149]
   - Add better output for hashtables in code coverage [GH-150]
   - Fix Invoke-Pester -OutputXml usage of relative paths 
+  - Remove Validate-Xml function
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
