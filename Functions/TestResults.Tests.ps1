@@ -195,4 +195,25 @@ InModuleScope Pester {
 			    Get-TestTime -Tests $TestResult | Should Be 0.1235
 	    }
     }
+	
+	Describe "GetFullPath" {
+		It "Resolves non existing path correctly" {
+			pushd TestDrive:\
+				$p = GetFullPath notexistingfile.txt 
+			popd
+			$p | Should Be TestDrive:\notexistingfile.txt
+		}
+		
+		It "Resolves existing path correctly" {
+			pushd TestDrive:\
+				New-Item -ItemType File -Name existingfile.txt
+				$p = GetFullPath existingfile.txt 
+			popd
+			$p | Should Be TestDrive:\existingfile.txt
+		}
+		
+		It "Resolves full path correctly" {
+			GetFullPath C:\Windows\System32\notepad.exe | Should Be C:\Windows\System32\notepad.exe
+		}
+	}
 }

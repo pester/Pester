@@ -10,6 +10,18 @@
     return "$time$unit"
 }
 
+function GetFullPath ([string]$Path) {
+	$fullpath = Resolve-Path -Path $Path -ErrorAction SilentlyContinue -ErrorVariable Error
+	if ($fullpath)
+	{
+		$fullpath
+	}
+	else
+	{
+		$error[0].TargetObject
+	}
+}
+
 function Export-NUnitReport {
   param (
     [parameter(Mandatory=$true,ValueFromPipeline=$true)]
@@ -17,6 +29,11 @@ function Export-NUnitReport {
 	[parameter(Mandatory=$true)]
     [String]$Path
 	)
+	
+	#the xmlwriter create method can resolve relatives paths by itself. but its current directory might
+	#be different from what PowerShell sees as the current directory so I have to resolve the path beforehand
+	#working around the limitations of Resolve-Path
+	$Path = GetFullPath -Path $Path
 
 	# Create The Document
 	$settings = New-Object -TypeName Xml.XmlWriterSettings
