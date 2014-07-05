@@ -295,14 +295,19 @@ function Get-CoverageCommandText
 
     $parent = Get-ParentNonPipelineAst -Ast $Ast
 
-    if ($null -ne $parent -and $reportParentExtentTypes -contains $parent.GetType())
+    if ($null -ne $parent)
     {
-        return $parent.Extent.Text
+        if ($parent -is [System.Management.Automation.Language.HashtableAst])
+        {
+            return Get-KeyValuePairText -HashtableAst $parent -ChildAst $Ast
+        }
+        elseif ($reportParentExtentTypes -contains $parent.GetType())
+        {
+            return $parent.Extent.Text
+        }
     }
-    else
-    {
-        return $Ast.Extent.Text
-    }
+
+    return $Ast.Extent.Text
 }
 
 function Get-ParentNonPipelineAst
@@ -318,6 +323,27 @@ function Get-ParentNonPipelineAst
     }
 
     return $parent
+}
+
+function Get-KeyValuePairText
+{
+    param (
+        [System.Management.Automation.Language.HashtableAst] $HashtableAst,
+        [System.Management.Automation.Language.Ast] $ChildAst
+    )
+
+    Set-StrictMode -Off
+
+    foreach ($keyValuePair in $HashtableAst.KeyValuePairs)
+    {
+        if ($keyValuePair.Item2.PipelineElements -contains $ChildAst)
+        {
+            return '{0} = {1}' -f $keyValuePair.Item1.Extent.Text, $keyValuePair.Item2.Extent.Text
+        }
+    }
+
+    # This shouldn't happen, but just in case, default to the old output of just the expression.
+    return $ChildAst.Extent.Text
 }
 
 function Get-CoverageMissedCommands
