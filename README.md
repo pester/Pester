@@ -1,4 +1,8 @@
-***This is a prerelease version of Pester. The following changes are included in this version:***
+###This branch contains the prerelease version of Pester. ###
+
+__Special thanks go to [@dlwyatt](https://github.com/dlwyatt) for implementing the CodeCoverage, Isolation, improved Module mocking and numerous other improvements.__
+
+The following changes are included in the marked versions. For full list of changes please see the Changelog.MD in the root of Pester:
 
 ###### 3.0.0-beta2 (July 4, 2014)
   - Add code coverage
@@ -17,8 +21,6 @@
   - Add It scope to Mock
   - Add Scope parameter to Assert-MockCalled
   - Measure test time more precisely
-
-Please let us know of any bugs you find. Big thanks to @dlwyatt for his contributions. 
 
 ---
 
