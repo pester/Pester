@@ -5,6 +5,7 @@
   - Remove Validate-Xml function
   - Remove legacy object adaptations support
   - Remove tests testing usage of the global scope
+  - Add function name to Code coverage output
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
