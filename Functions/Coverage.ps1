@@ -276,9 +276,31 @@ function New-CoverageBreakpoint
 
     [pscustomobject] @{
         File       = $Command.Extent.File
+        Function   = Get-ParentFunctionName -Ast $Command
         Line       = $Command.Extent.StartLineNumber
         Command    = Get-CoverageCommandText -Ast $Command
         Breakpoint = $breakpoint
+    }
+}
+
+function Get-ParentFunctionName
+{
+    param ([System.Management.Automation.Language.Ast] $Ast)
+
+    $parent = $Ast.Parent
+
+    while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.FunctionDefinitionAst])
+    {
+        $parent = $parent.Parent
+    }
+
+    if ($null -eq $parent)
+    {
+        return ''
+    }
+    else
+    {
+        return $parent.Name
     }
 }
 
@@ -358,7 +380,7 @@ function Get-CoverageReport
 
     $totalCommandCount = $PesterState.CommandCoverage.Count
 
-    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Command)
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Function, Command)
     $analyzedFiles = @($PesterState.CommandCoverage | Select-Object -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
