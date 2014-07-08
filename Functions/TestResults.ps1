@@ -39,7 +39,6 @@ function Export-NUnitReport {
 	$settings = New-Object -TypeName Xml.XmlWriterSettings
 	$settings.Indent = $true
 	$settings.NewLineOnAttributes = $false
-	$settings.WriteEndDocumentOnClose = $true # Gets or sets a value that indicates whether the XmlWriter will add closing tags to all unclosed element tags when the Close method is called.
 	try {
 		$XmlWriter = [Xml.XmlWriter]::Create($Path,$settings)
 		
@@ -185,8 +184,11 @@ function Convert-TimeSpan {
 }
 function Get-TestTime($tests) {
     [TimeSpan]$totalTime = 0;
-    $tests | %{
-        $totalTime += $_.time
+    if ($tests)
+    {
+        $tests | %{
+            $totalTime += $_.time
+        }
     }
     $totalTime | Convert-TimeSpan
 }
