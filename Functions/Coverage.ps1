@@ -142,7 +142,7 @@ function Resolve-CoverageInfo
         {
             $item.FullName
         }
-        else
+        elseif (-not $item.PsIsContainer) 
         {
             Write-Warning "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
         }
