@@ -392,6 +392,7 @@ function Get-CoverageReport
         NumberOfCommandsExecuted = $executedCommandCount
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
+        AnalyzedFiles            = $analyzedFiles
     }
 }
 
@@ -412,7 +413,7 @@ function Show-CoverageReport
     if ($totalCommandCount -gt 1) { $commandPlural = 's' }
     if ($fileCount -gt 1) { $filePlural = 's' }
 
-    $commonParent = Get-CommonParentPath -Path $CoverageReport.MissedCommands.File
+    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
     $report = $CoverageReport.MissedCommands | Select-Object -Property @(
         @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
         'Function'
