@@ -187,4 +187,23 @@ InModuleScope Pester {
             Exit-CoverageAnalysis -PesterState $testState
         }
     }
+
+    Describe 'Stripping common parent paths' {
+        $paths = @(
+            'C:\Common\Folder\UniqueSubfolder1\File.ps1'
+            'C:\Common\Folder\UniqueSubfolder2\File2.ps1'
+            'C:\Common\Folder\UniqueSubfolder3\File3.ps1'
+        )
+
+        $commonPath = Get-CommonParentPath -Path $paths
+
+        It 'Identifies the correct parent path' {
+            $commonPath | Should Be 'C:\Common\Folder'
+        }
+
+        It 'Strips the common path correctly' {
+            Get-RelativePath -Path $paths[0] -RelativeTo $commonPath |
+            Should Be 'UniqueSubfolder1\File.ps1'
+        }
+    }
 }
