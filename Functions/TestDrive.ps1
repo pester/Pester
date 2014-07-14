@@ -5,7 +5,7 @@ function New-TestDrive ([Switch]$PassThru) {
 	$Path = New-RandomTempDirectory
 	$DriveName = "TestDrive"
 	
-	if (-not (Test-Path -Path $Path))
+	if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path))
 	{
 		New-Item -ItemType Container -Path $Path | Out-Null
 	}
@@ -43,7 +43,7 @@ function New-RandomTempDirectory {
     do 
     {
         $Path = Join-Path -Path $env:TEMP -ChildPath ([Guid]::NewGuid())
-	} until (-not ( Test-Path -Path $Path ))
+	} until (-not (  Microsoft.PowerShell.Management\Test-Path -Path $Path ))
     
     New-Item -ItemType Container -Path $Path
 }
@@ -81,7 +81,7 @@ function Remove-TestDrive {
 		$Drive | Remove-PSDrive -Force -ErrorAction SilentlyContinue
 	}
 
-	if (Test-Path -Path $Path)
+	if (Microsoft.PowerShell.Management\Test-Path -Path $Path)
 	{
 		Microsoft.PowerShell.Management\Remove-Item -Path $Path -Force -Recurse 
 	}
