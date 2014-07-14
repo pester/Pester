@@ -392,6 +392,7 @@ function Get-CoverageReport
         NumberOfCommandsExecuted = $executedCommandCount
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
+        AnalyzedFiles            = $analyzedFiles
     }
 }
 
@@ -412,6 +413,14 @@ function Show-CoverageReport
     if ($totalCommandCount -gt 1) { $commandPlural = 's' }
     if ($fileCount -gt 1) { $filePlural = 's' }
 
+    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+    $report = $CoverageReport.MissedCommands | Select-Object -Property @(
+        @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
+        'Function'
+        'Line'
+        'Command'
+    )
+
     Write-Host ''
     Write-Host 'Code coverage report:'
     Write-Host "Covered $executedPercent of $totalCommandCount analyzed command$commandPlural in $fileCount file$filePlural."
@@ -420,6 +429,40 @@ function Show-CoverageReport
     {
         Write-Host ''
         Write-Host 'Missed commands:'
-        $CoverageReport.MissedCommands | Format-Table -AutoSize | Out-Host
+        $report | Format-Table -AutoSize | Out-Host
     }
+}
+
+function Get-CommonParentPath
+{
+    param ([string[]] $Path)
+
+    $pathsToTest = @( $Path | Select-Object -Unique )
+
+    if ($pathsToTest.Count -gt 0)
+    {
+        $parentPath = Split-Path -Path $pathsToTest[0] -Parent
+
+        while ($parentPath.Length -gt 0)
+        {
+            $nonMatches = $pathsToTest -notmatch "^$([regex]::Escape($parentPath))"
+
+            if ($nonMatches.Count -eq 0)
+            {
+                return $parentPath
+            }
+            else
+            {
+                $parentPath = Split-Path -Path $parentPath -Parent
+            }
+        }
+    }
+
+    return [string]::Empty
+}
+
+function Get-RelativePath
+{
+    param ( [string] $Path, [string] $RelativeTo )
+    return $Path -replace "^$([regex]::Escape($RelativeTo))\\?"
 }
