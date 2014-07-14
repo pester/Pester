@@ -79,7 +79,7 @@ param(
     $Pester.CurrentDescribe | Write-Describe
 	New-TestDrive
 	
-	& $fixture
+	$null = & $fixture
 	
 	Remove-TestDrive
 	Clear-Mocks 
