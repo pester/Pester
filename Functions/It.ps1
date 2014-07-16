@@ -66,7 +66,6 @@ about_should
     )
 
     $Pester.EnterTest($name)
-    $TestDriveContent = Get-TestDriveChildItem
     Invoke-SetupBlocks
 
     $PesterException = $null   
@@ -81,7 +80,6 @@ about_should
     $Pester.testresult[-1] | Write-PesterResult
 
     Invoke-TeardownBlocks
-    Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
     Clear-Mocks
     $Pester.LeaveTest()
 }

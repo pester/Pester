@@ -104,13 +104,12 @@ Describe "TestDrive scoping" {
             'TestDrive:\It' | Should Exist
         }
         
-        It "Clears It-scoped contents on exit" {
-            'TestDrive:\It' | Should Not Exist
+        It "Does not clear It-scoped contents on exit" {
+            'TestDrive:\It' | Should Exist
         }
 	}
 
 	It "Context file are removed when returning to Describe" {
-		
 		"TestDrive:\Context" | Should Not Exist
 	}
 	
