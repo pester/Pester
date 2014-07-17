@@ -54,7 +54,7 @@ about_TestDrive
 param(
         [Parameter(Mandatory = $true, Position = 0)] $name,
         $tags=@(),
-        [Parameter(Position = 1)]
+        [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
 
@@ -78,9 +78,13 @@ param(
 	$Pester.EnterDescribe($Name)
     $Pester.CurrentDescribe | Write-Describe
 	New-TestDrive
+
+    # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
+    Add-SetupAndTeardown -ScriptBlock $fixture
 	
 	$null = & $fixture
 	
+    Clear-SetupAndTeardown
 	Remove-TestDrive
 	Clear-Mocks 
 	$Pester.LeaveDescribe()
