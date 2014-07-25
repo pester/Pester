@@ -34,7 +34,10 @@ about_TestDrive
 
 #>
 param(
+    [Parameter(Mandatory = $true)]
     $name,
+
+    [Parameter(Mandatory = $true)]
     [ScriptBlock] $fixture
 )
     $Pester.EnterContext($name)
@@ -42,8 +45,12 @@ param(
 	
     $Pester.CurrentContext | Write-Context
 
+    # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
+    Add-SetupAndTeardown -ScriptBlock $fixture
+
 	$null = & $fixture
 	
+    Clear-SetupAndTeardown
 	Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
    	Clear-Mocks
     $Pester.LeaveContext()

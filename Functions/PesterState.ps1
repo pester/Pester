@@ -29,6 +29,8 @@
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:MostRecentTimestamp = 0
         $script:CommandCoverage = @()
+        $script:BeforeEach = @()
+        $script:AfterEach = @()
 		
 		$script:TestResult = @()
 		
@@ -123,7 +125,9 @@
                              "CurrentDescribe",
                              "CurrentTest",
                              "SessionState",
-                             "CommandCoverage"
+                             "CommandCoverage",
+                             "BeforeEach",
+                             "AfterEach"
         
         $ExportedFunctions = "EnterContext", 
                              "LeaveContext", 
