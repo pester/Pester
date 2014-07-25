@@ -206,4 +206,64 @@ InModuleScope Pester {
             Should Be 'UniqueSubfolder1\File.ps1'
         }
     }
+
+    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4)
+    {
+        Describe 'Analyzing coverage of a DSC configuration' {
+            $root = (Get-PSDrive TestDrive).Root
+
+            $null = New-Item -Path $root\TestScriptWithConfiguration.ps1 -ItemType File -ErrorAction SilentlyContinue
+
+            Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
+                $line1 = $true   # Triggers breakpoint
+                $line2 = $true   # Triggers breakpoint
+
+                configuration MyTestConfig   # does NOT trigger breakpoint
+                {
+                    Node localhost    # Triggers breakpoint
+                    {
+                        WindowsFeature XPSViewer   # Triggers breakpoint
+                        {
+                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
+                            Ensure = 'Present'   # does NOT trigger breakpoint
+                        }
+                    }
+
+                    return # does NOT trigger breakpoint
+
+                    $doesNotExecute = $true   # Triggers breakpoint
+                }
+
+                $line3 = $true   # Triggers breakpoint
+
+                return   # does NOT trigger breakpoint
+
+                $doesnotexecute = $true   # Triggers breakpoint
+'@
+
+            $testState = New-PesterState -Path $root
+
+            Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState
+
+            It 'Has the proper number of breakpoints defined' {
+                $testState.CommandCoverage.Count | Should Be 7
+            }
+
+            $null = . "$root\TestScriptWithConfiguration.ps1"
+
+            $coverageReport = Get-CoverageReport -PesterState $testState
+            It 'Reports the proper number of missed commands before running the configuration' {
+                $coverageReport.MissedCommands.Count | Should Be 4
+            }
+
+            MyTestConfig -OutputPath $root
+
+            $coverageReport = Get-CoverageReport -PesterState $testState
+            It 'Reports the proper number of missed commands after running the configuration' {
+                $coverageReport.MissedCommands.Count | Should Be 2
+            }
+
+            Exit-CoverageAnalysis -PesterState $testState
+        }
+    }
 }

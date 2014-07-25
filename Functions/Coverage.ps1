@@ -266,12 +266,15 @@ function New-CoverageBreakpoint
 {
     param ([System.Management.Automation.Language.Ast] $Command)
 
+    if (IsIgnoredDscCommand -Command $Command) { return }
+
     $params = @{
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
         Action = { }
     }
+
     $breakpoint = Set-PSBreakpoint @params
 
     [pscustomobject] @{
@@ -281,6 +284,57 @@ function New-CoverageBreakpoint
         Command    = Get-CoverageCommandText -Ast $Command
         Breakpoint = $breakpoint
     }
+}
+
+function IsIgnoredDscCommand
+{
+    param ([System.Management.Automation.Language.Ast] $Command)
+
+    if (-not $Command.Extent.File)
+    {
+        # This can happen if the script contains "configuration" or any similarly implemented
+        # dynamic keyword.  PowerShell modifies the script code and reparses it in memory, leading
+        # to AST elements with no File in their Extent.
+        return $true
+    }
+
+    if ($PSVersionTable.PSVersion.Major -ge 4)
+    {
+        if ($Command.Extent.Text -eq 'Configuration')
+        {
+            # More DSC voodoo.  Calls to "configuration" generate breakpoints, but their HitCount
+            # stays zero (even though they are executed.)  For now, ignore them, unless we can come
+            # up with a better solution.
+            return $true
+        }
+
+        if (IsChildOfHashtableDynamicKeyword -Command $Command)
+        {
+            # The lines inside DSC resource declarations don't trigger their breakpooints when executed,
+            # just like the "configuration" keyword itself.  I don't know why, at this point, but just like
+            # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function IsChildOfHashtableDynamicKeyword
+{
+    param ([System.Management.Automation.Language.Ast] $Command)
+
+    for ($ast = $Command.Parent; $null -ne $ast; $ast = $ast.Parent)
+    {
+        if ($ast -is [System.Management.Automation.Language.CommandAst] -and
+            $null -ne $ast.DefiningKeyword -and
+            $ast.DefiningKeyword.BodyMode -eq [System.Management.Automation.Language.DynamicKeywordBodyMode]::Hashtable)
+        {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function Get-ParentFunctionName
