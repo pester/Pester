@@ -298,20 +298,23 @@ function IsIgnoredDscCommand
         return $true
     }
 
-    if ($Command.Extent.Text -eq 'Configuration' -and $PSVersionTable.PSVersion.Major -ge 4)
+    if ($PSVersionTable.PSVersion.Major -ge 4)
     {
-        # More DSC voodoo.  Calls to "configuration" generate breakpoints, but their HitCount
-        # stays zero (even though they are executed.)  For now, ignore them, unless we can come
-        # up with a better solution.
-        return $true
-    }
+        if ($Command.Extent.Text -eq 'Configuration')
+        {
+            # More DSC voodoo.  Calls to "configuration" generate breakpoints, but their HitCount
+            # stays zero (even though they are executed.)  For now, ignore them, unless we can come
+            # up with a better solution.
+            return $true
+        }
 
-    if (IsChildOfHashtableDynamicKeyword -Command $Command)
-    {
-        # The lines inside DSC resource declarations don't trigger their breakpooints when executed,
-        # just like the "configuration" keyword itself.  I don't know why, at this point, but just like
-        # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
-        return $true
+        if (IsChildOfHashtableDynamicKeyword -Command $Command)
+        {
+            # The lines inside DSC resource declarations don't trigger their breakpooints when executed,
+            # just like the "configuration" keyword itself.  I don't know why, at this point, but just like
+            # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
+            return $true
+        }
     }
 
     return $false
