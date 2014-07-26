@@ -115,7 +115,6 @@ about_pester
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
 		[string]$Tag,
-        [switch]$EnableLegacyExpectations,
 		[switch]$PassThru,
 
         [object[]] $CodeCoverage = @()
