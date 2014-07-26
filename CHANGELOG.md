@@ -8,7 +8,8 @@
   - Add function name to Code coverage output [GH-152]
   - Suppress pipeline output in Context / Describe [GH-155]
   - Coverage Output Update [GH-156]
-
+  - Add initial implementation of BeforeEach / AfterEach [GH-158]
+  - CodeCoverage of files containing DSC Configurations [GH-163]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
