@@ -367,11 +367,11 @@ will be counted.
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
 calls to the mocked command.  By default, Assert-MockCalled will find
-all calls to the mocked command, regardless of scope. Valid values are
-Describe (the default), Context and It. If you use a scope of Describe
-or Context, the command will identify all calls to the mocked command
-in the current Describe / Context block, as well as all child scopes of
-that block.
+all calls to the mocked command in the current Context block (if present),
+or the current Describe block (if there is no active Context.)  Valid
+values are Describe, Context and It. If you use a scope of Describe or
+Context, the command will identify all calls to the mocked command in the
+current Describe / Context block, as well as all child scopes of that block.
 
 .EXAMPLE
 C:\PS>Mock Set-Content {}
@@ -452,7 +452,7 @@ param(
     [string] $ModuleName,
 
     [ValidateSet('Describe','Context','It')]
-    [string] $Scope = 'Describe'
+    [string] $Scope
 )
     $mock = $script:mockTable["$ModuleName||$commandName"]
 
@@ -469,7 +469,14 @@ param(
 
     if (-not $Scope)
     {
-        $Scope = $pester.Scope
+        if ($pester.CurrentContext)
+        {
+            $Scope = 'Context'
+        }
+        else
+        {
+            $Scope = 'Describe'
+        }
     }
 
     $cmd = [scriptblock]::Create("$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter")
@@ -606,9 +613,8 @@ function Invoke-Mock {
         $ArgumentList = @()
     )
 
-    $mock = $mockTable["$ModuleName||$CommandName"]
 
-    if ($null -ne $mock)
+    if ($mock = $mockTable["$ModuleName||$CommandName"])
     {
         for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
         {

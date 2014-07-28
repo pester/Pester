@@ -641,7 +641,7 @@ Describe 'Testing mock history behavior from each scope' {
 
     Context 'Without overriding the mock in lower scopes' {
         It "Reports that zero calls have been made to in the describe scope" {
-            Assert-MockCalled MockHistoryChecker -Exactly 0
+            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope Describe
         }
 
         It 'Calls the describe mock' {
@@ -653,21 +653,21 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It "Reports one Context-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
+            Assert-MockCalled MockHistoryChecker -Exactly 1
         }
 
         It "Reports one Describe-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 1
+            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Describe
         }
     }
 
     Context 'After exiting the previous context' {
         It 'Reports zero context-scoped calls in the new context.' {
-            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope Context
+            Assert-MockCalled MockHistoryChecker -Exactly 0
         }
 
         It 'Reports one describe-scoped call from the previous context' {
-            Assert-MockCalled MockHistoryChecker -Exactly 1
+            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Describe
         }
     }
 
@@ -679,11 +679,11 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports one context-scoped call' {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
+            Assert-MockCalled MockHistoryChecker -Exactly 1
         }
 
         It 'Reports two describe-scoped calls, even when one is an override mock in a lower scope' {
-            Assert-MockCalled MockHistoryChecker -Exactly 2
+            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Describe
         }
 
         It 'Calls an It-scoped mock' {
@@ -692,12 +692,16 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports 2 context-scoped calls' {
-            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Context
+            Assert-MockCalled MockHistoryChecker -Exactly 2
         }
 
         It 'Reports 3 describe-scoped calls' {
-            Assert-MockCalled MockHistoryChecker -Exactly 3
+            Assert-MockCalled MockHistoryChecker -Exactly 3 -Scope Describe
         }
+    }
+
+    It 'Reports 3 describe-scoped calls using the default scope in a Describe block' {
+        Assert-MockCalled MockHistoryChecker -Exactly 3
     }
 }
 
