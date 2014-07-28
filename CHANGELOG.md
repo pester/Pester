@@ -11,8 +11,8 @@
   - Add initial implementation of BeforeEach / AfterEach [GH-158]
   - CodeCoverage of files containing DSC Configurations [GH-163]
   - Rolling back some earlier Pester Scope changes [GH-164]
-	- Legacy expectations cleanup [GH-165]
-	- Invoke-Pester tests path fix [GH-166]
+  - Legacy expectations cleanup [GH-165]
+  - Invoke-Pester tests path fix [GH-166]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
