@@ -48,8 +48,17 @@ param(
     # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
     Add-SetupAndTeardown -ScriptBlock $fixture
 
-    $null = & $fixture
-
+    try
+    {
+        $null = & $fixture
+    }
+    catch
+    {
+        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
+        $Pester.AddTestResult('Error occurred in Context block', $false, $null, $_.Exception.Message, $firstStackTraceLine)
+        $Pester.TestResult[-1] | Write-PesterResult
+    }
+	
     Clear-SetupAndTeardown
     Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
     Clear-Mocks
