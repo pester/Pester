@@ -454,6 +454,11 @@ param(
     [ValidateSet('Describe','Context','It')]
     [string] $Scope
 )
+    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $pester.SessionState.Module)
+    {
+        $ModuleName = $pester.SessionState.Module.Name
+    }
+
     $mock = $script:mockTable["$ModuleName||$commandName"]
 
     $moduleMessage = ''
