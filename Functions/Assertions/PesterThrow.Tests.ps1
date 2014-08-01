@@ -1,5 +1,4 @@
 Set-StrictMode -Version Latest
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 InModuleScope Pester {
     Describe "PesterThrow" {
