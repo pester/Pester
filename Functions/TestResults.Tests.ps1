@@ -5,12 +5,12 @@ InModuleScope Pester {
         Setup -Dir "Results"
 
         It "should write a successful test result" {
-				    #create state
-				    $TestResults = New-PesterState -Path TestDrive:\
-				    $testResults.EnterDescribe('Mocked Describe')
-				    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
-				
-				    #export and validate the file
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -21,13 +21,13 @@ InModuleScope Pester {
         }
 
         It "should write a failed test result" {
-		    #create state
-		    $TestResults = New-PesterState -Path TestDrive:\
-		    $testResults.EnterDescribe('Mocked Describe')
-		    $time = [TimeSpan]25000000 #2.5 seconds
-		    $TestResults.AddTestResult("Failed testcase",$false,$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
-		
-		    #export and validate the file
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+            $time = [TimeSpan]25000000 #2.5 seconds
+            $TestResults.AddTestResult("Failed testcase",$false,$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
+
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -37,16 +37,15 @@ InModuleScope Pester {
             $xmlTestCase.time                   | Should Be "2.5"
             $xmlTestCase.failure.message        | Should Be 'Assert failed: "Expected: Test. But was: Testing"'
             $xmlTestCase.failure.'stack-trace'  | Should Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
-
         }
 
          It "should write the test summary" {
-		    #create state
-		    $TestResults = New-PesterState -Path TestDrive:\
-		    $testResults.EnterDescribe('Mocked Describe')
-		    $TestResults.AddTestResult("Testcase",$true,(New-TimeSpan -Seconds 1))
-		
-		    #export and validate the file
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+            $TestResults.AddTestResult("Testcase",$true,(New-TimeSpan -Seconds 1))
+
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -58,13 +57,13 @@ InModuleScope Pester {
         }
 
         it "should write the test-suite information" {
-		    #create state
-		    $TestResults = New-PesterState -Path TestDrive:\
-		    $testResults.EnterDescribe('Mocked Describe')
-		    $TestResults.AddTestResult("Successful testcase",$true,[timespan]10000000) #1.0 seconds
-		    $TestResults.AddTestResult("Successful testcase",$true,[timespan]11000000) #1.1 seconds
-		
-		    #export and validate the file
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+            $TestResults.AddTestResult("Successful testcase",$true,[timespan]10000000) #1.0 seconds
+            $TestResults.AddTestResult("Successful testcase",$true,[timespan]11000000) #1.1 seconds
+
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -78,15 +77,15 @@ InModuleScope Pester {
         }
 
         it "should write two test-suite elements for two describes" {
-		    #create state
-		    $TestResults = New-PesterState -Path TestDrive:\
-		    $testResults.EnterDescribe('Describe #1')
-		    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
-		    $TestResults.LeaveDescribe()
-		    $testResults.EnterDescribe('Describe #2')
-		    $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
-		
-		    #export and validate the file
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Describe #1')
+            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.LeaveDescribe()
+            $testResults.EnterDescribe('Describe #2')
+            $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
+
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -120,100 +119,100 @@ InModuleScope Pester {
         }
 
         it "Should validate test results against the nunit 2.5 schema" {
-			#create state
-		    $TestResults = New-PesterState -Path TestDrive:\
-		    $testResults.EnterDescribe('Describe #1')
-		    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
-		    $TestResults.LeaveDescribe()
-		    $testResults.EnterDescribe('Describe #2')
-		    $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
-				
-			#export and validate the file
-            $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
-            $xml = [xml] (Get-Content $testFile)
-			
-			$schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $xml.Schemas.Add($null,$schemePath) > $null
-			{ $xml.Validate({throw $args.Exception }) } | Should Not Throw
-        }
-		
-		it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
-			#create state
-		    $TestResults = New-PesterState -Path TestDrive:\
-		    $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
-		    $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",$true,(New-TimeSpan -Seconds 1))
-		    $TestResults.LeaveDescribe()
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Describe #1')
+            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.LeaveDescribe()
+            $testResults.EnterDescribe('Describe #2')
+            $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
 
-			#export and validate the file
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xml = [xml] (Get-Content $testFile)
-			
-			$schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xml.Schemas.Add($null,$schemePath) > $null
-			{ $xml.Validate({throw $args.Exception }) } | Should Not Throw
+            { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+        }
+
+        it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
+            $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.LeaveDescribe()
+
+            #export and validate the file
+            $testFile = "$TestDrive\Results\Tests.xml"
+            Export-NunitReport $testResults $testFile
+            $xml = [xml] (Get-Content $testFile)
+
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+            $xml.Schemas.Add($null,$schemePath) > $null
+            { $xml.Validate({throw $args.Exception }) } | Should Not Throw
         }
     }
 
     Describe "Get-TestTime" {
-	    function Using-Culture {
-		    param (
-			    [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-			    [ScriptBlock]$ScriptBlock,
-			    [System.Globalization.CultureInfo]$Culture='en-US'
-		    )
-		
-		    $oldCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
-		    try 
-		    {
-			    [System.Threading.Thread]::CurrentThread.CurrentCulture = $Culture
-			    $ExecutionContext.InvokeCommand.InvokeScript($ScriptBlock)
-		    }
-		    finally 
-		    {
-			    [System.Threading.Thread]::CurrentThread.CurrentCulture = $oldCulture
-		    }
-	    }
-	
-	    It "output is culture agnostic" {
-		    #on cs-CZ, de-DE and other systems where decimal separator is ",". value [double]3.5 is output as 3,5 
-		    #this makes some of the tests fail, it could also leak to the nUnit report if the time was output
-				
-		    $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]35000000 } #3.5 seconds
- 		
-		    #using the string formatter here to know how the string will be output to screen
-		    $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
-		    $Result | Should Be "3.5"
-	    }
-	    It "Time is measured in seconds with 0,1 millisecond as lowest value" {
-			    $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 } 
-			    Get-TestTime -Tests $TestResult | Should Be 0.0001
-			    $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 } 
-			    Get-TestTime -Tests $TestResult | Should Be 0
-			    $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 } 
-			    Get-TestTime -Tests $TestResult | Should Be 0.1235
-	    }
+        function Using-Culture {
+            param (
+                [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+                [ScriptBlock]$ScriptBlock,
+                [System.Globalization.CultureInfo]$Culture='en-US'
+            )
+
+            $oldCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+            try
+            {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $Culture
+                $ExecutionContext.InvokeCommand.InvokeScript($ScriptBlock)
+            }
+            finally
+            {
+                [System.Threading.Thread]::CurrentThread.CurrentCulture = $oldCulture
+            }
+        }
+
+        It "output is culture agnostic" {
+            #on cs-CZ, de-DE and other systems where decimal separator is ",". value [double]3.5 is output as 3,5
+            #this makes some of the tests fail, it could also leak to the nUnit report if the time was output
+
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]35000000 } #3.5 seconds
+
+            #using the string formatter here to know how the string will be output to screen
+            $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
+            $Result | Should Be "3.5"
+        }
+        It "Time is measured in seconds with 0,1 millisecond as lowest value" {
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
+            Get-TestTime -Tests $TestResult | Should Be 0.0001
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
+            Get-TestTime -Tests $TestResult | Should Be 0
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
+            Get-TestTime -Tests $TestResult | Should Be 0.1235
+        }
     }
-	
-	Describe "GetFullPath" {
-		It "Resolves non existing path correctly" {
-			pushd TestDrive:\
-				$p = GetFullPath notexistingfile.txt 
-			popd
-			$p | Should Be TestDrive:\notexistingfile.txt
-		}
-		
-		It "Resolves existing path correctly" {
-			pushd TestDrive:\
-				New-Item -ItemType File -Name existingfile.txt
-				$p = GetFullPath existingfile.txt 
-			popd
-			$p | Should Be TestDrive:\existingfile.txt
-		}
-		
-		It "Resolves full path correctly" {
-			GetFullPath C:\Windows\System32\notepad.exe | Should Be C:\Windows\System32\notepad.exe
-		}
-	}
+
+    Describe "GetFullPath" {
+        It "Resolves non existing path correctly" {
+            pushd TestDrive:\
+            $p = GetFullPath notexistingfile.txt
+            popd
+            $p | Should Be TestDrive:\notexistingfile.txt
+        }
+
+        It "Resolves existing path correctly" {
+            pushd TestDrive:\
+            New-Item -ItemType File -Name existingfile.txt
+            $p = GetFullPath existingfile.txt
+            popd
+            $p | Should Be TestDrive:\existingfile.txt
+        }
+
+        It "Resolves full path correctly" {
+            GetFullPath C:\Windows\System32\notepad.exe | Should Be C:\Windows\System32\notepad.exe
+        }
+    }
 }

@@ -8,7 +8,7 @@ function FunctionUnderTest
         [string]
         $param1
     )
-    
+
     return "I am a real world test"
 }
 
@@ -18,11 +18,11 @@ function FunctionUnderTestWithoutParams([string]$param1) {
 
 filter FilterUnderTest { $_ }
 
-function CommonParamFunction (  
+function CommonParamFunction (
     [string] ${Uncommon},
-    [switch] 
-    ${Verbose}, 
-    [switch]  
+    [switch]
+    ${Verbose},
+    [switch]
     ${Debug},
     [System.Management.Automation.ActionPreference]
     ${ErrorAction},
@@ -104,26 +104,26 @@ Describe 'When calling Mock on an external script' {
     $ps1File | Set-Content -Value "'I am tempExternalScript.ps1'"
 
     Mock 'TestDrive:\tempExternalScript.ps1' {return 'I am not tempExternalScript.ps1'}
-    
+
     <#
         # Invoking the script using its absolute path is not supported
-    
+
         $result = TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using just the script name' {
             $result | Should Be 'I am not tempExternalScript.ps1'
         }
-     
+
         $result = & TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using the command-invocation operator (&)' {
             $result | Should Be 'I am not tempExternalScript.ps1'
         }
-    
+
         $result = . TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using dot source notation' {
             $result | Should Be 'I am not tempExternalScript.ps1'
         }
     #>
-    
+
     Push-Location TestDrive:\
 
     try
@@ -135,8 +135,8 @@ Describe 'When calling Mock on an external script' {
 
         $result = & tempExternalScript.ps1
         It 'Should Invoke the mocked script using the command-invocation operator' {
-			#the command invocation operator is (&). Moved this to comment because it breaks the contionuous builds.
-			#there is issue for this on GH
+            #the command invocation operator is (&). Moved this to comment because it breaks the contionuous builds.
+            #there is issue for this on GH
 
             $result | Should Be 'I am not tempExternalScript.ps1'
         }
@@ -185,14 +185,14 @@ Describe "When calling Mock in the Describe block" {
 
 Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     Mock Get-ChildItem {
-      if($_ -eq 'a'){
-        return "AA"
-      }
-      if($_ -eq 'b'){
-        return "BB"
-      }
+        if($_ -eq 'a'){
+            return "AA"
+        }
+        if($_ -eq 'b'){
+            return "BB"
+        }
     }
-    
+
     $result = ''
     "a", "b" | Get-ChildItem | % { $result += $_ }
 
@@ -202,7 +202,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
 }
 
 Describe "When calling Mock on existing cmdlet with Common params" {
-    Mock CommonParamFunction 
+    Mock CommonParamFunction
 
     $result=[string](Get-Content function:\CommonParamFunction)
 
@@ -249,11 +249,11 @@ Describe "When calling Mock on non-existing function" {
 
 Describe 'When calling Mock, StrictMode is enabled, and variables are used in the ParameterFilter' {
     Set-StrictMode -Version Latest
-    
+
     $result = $null
     $testValue = 'test'
-    
-    try 
+
+    try
     {
         Mock FunctionUnderTest { 'I am the mock' } -ParameterFilter { $param1 -eq $testValue }
     }
@@ -261,15 +261,15 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     {
         $result = $_
     }
-    
+
     It 'Does not throw an error when testing the parameter filter' {
         $result | Should Be $null
     }
-    
+
     It 'Calls the mock properly' {
         FunctionUnderTest $testValue | Should Be 'I am the mock'
     }
-    
+
     It 'Properly asserts the mock was called when there is a variable in the parameter filter' {
         Assert-MockCalled FunctionUnderTest -Exactly 1 -ParameterFilter { $param1 -eq $testValue }
     }
@@ -367,13 +367,13 @@ Describe 'When calling Mock on a module-internal function.' {
 
     Context 'Using Mock -ModuleName "ModuleName" "CommandName" syntax' {
         Mock -ModuleName TestModule InternalFunction { 'I am the mock test' }
-        
+
         It 'Should call the mocked function' {
             TestModule\PublicFunction | Should Be 'I am the mock test'
         }
 
         Mock -ModuleName TestModule Start-Sleep { }
-    
+
         It 'Should mock calls to external functions from inside the module' {
             PublicFunctionThatCallsExternalCommand
 
@@ -719,7 +719,7 @@ Describe "Using a single no param Describe" {
 Describe 'Dot Source Test' {
     # This test is only meaningful if this test file is dot-sourced in the global scope.  If it's executed without
     # dot-sourcing or run by Invoke-Pester, there's no problem.
-    
+
     function TestFunction { Test-Path -Path 'Test' }
     Mock Test-Path { }
 

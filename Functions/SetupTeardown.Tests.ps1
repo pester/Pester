@@ -11,7 +11,7 @@ Describe 'Describe-Scoped setup' {
     }
 
     It 'Assigns the correct value in subsequent tests' {
-        $testVariable | Should Be 'From BeforeEach'        
+        $testVariable | Should Be 'From BeforeEach'
     }
 }
 

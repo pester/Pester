@@ -2,7 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "PesterContainExactly" {
-
         Context "when testing file contents" {
             Setup -File "test.txt" "this is line 1`nPester is awesome"
             It "returns true if the file contains the specified content exactly" {

@@ -1,4 +1,4 @@
-﻿function Context {
+function Context {
 <#
 .SYNOPSIS
 Provides syntactic sugar for logiclly grouping It blocks within a single Describe block.
@@ -42,17 +42,17 @@ param(
 )
     $Pester.EnterContext($name)
     $TestDriveContent = Get-TestDriveChildItem
-	
+
     $Pester.CurrentContext | Write-Context
 
     # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
     Add-SetupAndTeardown -ScriptBlock $fixture
 
-	$null = & $fixture
-	
+    $null = & $fixture
+
     Clear-SetupAndTeardown
-	Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
-   	Clear-Mocks
+    Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+    Clear-Mocks
     $Pester.LeaveContext()
 }
 
