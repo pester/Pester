@@ -2,7 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "PesterExist" {
-
         It "returns true for paths that exist" {
             Test-PositiveAssertion (PesterExist $TestDrive)
         }

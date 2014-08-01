@@ -2,7 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "Parse-ShouldArgs" {
-
         It "sanitizes assertions functions" {
             $parsedArgs = Parse-ShouldArgs TestFunction
             $parsedArgs.AssertionMethod | Should Be PesterTestFunction
@@ -51,7 +50,6 @@ InModuleScope Pester {
     }
 
     Describe "Get-TestResult" {
-
         Context "for positive assertions" {
             function PesterTest { return $true }
             $shouldArgs = Parse-ShouldArgs Test
@@ -72,7 +70,6 @@ InModuleScope Pester {
     }
 
     Describe "Get-FailureMessage" {
-
         Context "for positive assertions" {
             function PesterTestFailureMessage($v, $e) { return "slime $e $v" }
             $shouldArgs = Parse-ShouldArgs Test, 1
@@ -93,9 +90,7 @@ InModuleScope Pester {
 
     }
 
-
     Describe -Tag "Acceptance" "Should" {
-
         It "can use the Be assertion" {
             1 | Should Be 1
         }

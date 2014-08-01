@@ -5,12 +5,12 @@ InModuleScope Pester {
         Setup -Dir "Results"
 
         It "should write a successful test result" {
-                    #create state
-                    $TestResults = New-PesterState -Path TestDrive:\
-                    $testResults.EnterDescribe('Mocked Describe')
-                    $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
 
-                    #export and validate the file
+            #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
@@ -37,7 +37,6 @@ InModuleScope Pester {
             $xmlTestCase.time                   | Should Be "2.5"
             $xmlTestCase.failure.message        | Should Be 'Assert failed: "Expected: Test. But was: Testing"'
             $xmlTestCase.failure.'stack-trace'  | Should Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
-
         }
 
          It "should write the test summary" {
@@ -187,27 +186,27 @@ InModuleScope Pester {
             $Result | Should Be "3.5"
         }
         It "Time is measured in seconds with 0,1 millisecond as lowest value" {
-                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
-                Get-TestTime -Tests $TestResult | Should Be 0.0001
-                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
-                Get-TestTime -Tests $TestResult | Should Be 0
-                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
-                Get-TestTime -Tests $TestResult | Should Be 0.1235
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
+            Get-TestTime -Tests $TestResult | Should Be 0.0001
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
+            Get-TestTime -Tests $TestResult | Should Be 0
+            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
+            Get-TestTime -Tests $TestResult | Should Be 0.1235
         }
     }
 
     Describe "GetFullPath" {
         It "Resolves non existing path correctly" {
             pushd TestDrive:\
-                $p = GetFullPath notexistingfile.txt
+            $p = GetFullPath notexistingfile.txt
             popd
             $p | Should Be TestDrive:\notexistingfile.txt
         }
 
         It "Resolves existing path correctly" {
             pushd TestDrive:\
-                New-Item -ItemType File -Name existingfile.txt
-                $p = GetFullPath existingfile.txt
+            New-Item -ItemType File -Name existingfile.txt
+            $p = GetFullPath existingfile.txt
             popd
             $p | Should Be TestDrive:\existingfile.txt
         }

@@ -23,11 +23,11 @@ function GetFullPath ([string]$Path) {
 }
 
 function Export-NUnitReport {
-  param (
-    [parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [PSObject]$InputObject,
-    [parameter(Mandatory=$true)]
-    [String]$Path
+    param (
+        [parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        [PSObject]$InputObject,
+        [parameter(Mandatory=$true)]
+        [String]$Path
     )
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
@@ -150,21 +150,21 @@ function Export-NUnitReport {
 }
 
 function Get-TestSuiteInfo ($DescribeGroup) {
-        $suite = @{
-            resultMessage = "Failure"
-            success = "False"
-            totalTime = "0.0"
-            name = $DescribeGroup.name
-        }
+    $suite = @{
+        resultMessage = "Failure"
+        success = "False"
+        totalTime = "0.0"
+        name = $DescribeGroup.name
+    }
 
-        #calculate the time first, I am converting the time into string in the TestCases
-        $suite.totalTime = (Get-TestTime $DescribeGroup.Group)
-        $suite.success = (Get-TestSuccess $DescribeGroup.Group)
-        if($suite.success -eq "True")
-        {
-            $suite.resultMessage = "Success"
-        }
-        $suite
+    #calculate the time first, I am converting the time into string in the TestCases
+    $suite.totalTime = (Get-TestTime $DescribeGroup.Group)
+    $suite.success = (Get-TestSuccess $DescribeGroup.Group)
+    if($suite.success -eq "True")
+    {
+        $suite.resultMessage = "Success"
+    }
+    $suite
 }
 
 function Convert-TimeSpan {
@@ -186,7 +186,7 @@ function Get-TestTime($tests) {
     [TimeSpan]$totalTime = 0;
     if ($tests)
     {
-        $tests | %{
+        $tests | foreach {
             $totalTime += $_.time
         }
     }
@@ -195,13 +195,13 @@ function Get-TestTime($tests) {
 
 function Get-TestSuccess($tests) {
     #if any fails, the whole suite fails
-        $result = $true
-        $tests | foreach {
-            if (-not $_.Passed) {
-                $result = $false
-            }
+    $result = $true
+    $tests | foreach {
+        if (-not $_.Passed) {
+            $result = $false
+        }
     }
-        [String]$result
+    [String]$result
 }
 
 function Get-RunTimeEnvironment() {
@@ -215,10 +215,9 @@ function Get-RunTimeEnvironment() {
         user = $env:Username
         "user-domain" = $env:userDomain
         "clr-version" = $PSVersionTable.ClrVersion.ToString()
-   }
+    }
 }
 
 function Exit-WithCode ($FailedCount) {
     $host.SetShouldExit($FailedCount)
 }
-

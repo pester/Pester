@@ -1,7 +1,6 @@
 Set-StrictMode -Version Latest
 
 Describe "Setup" {
-
     It "returns a location that is in a temp area" {
         $TestDrive -like "${$env:temp}*" | Should Be $true
     }
@@ -18,7 +17,6 @@ Describe "TestDrive" {
 }
 
 Describe "Create filesystem with directories" {
-
     Setup -Dir "dir1"
     Setup -Dir "dir2"
 
@@ -34,7 +32,6 @@ Describe "Create filesystem with directories" {
 }
 
 Describe "Create nested directory structure" {
-
     Setup -Dir "parent/child"
 
     It "creates parent directory" {
@@ -47,7 +44,6 @@ Describe "Create nested directory structure" {
 }
 
 Describe "Create a file with no content" {
-
     Setup -File "file"
 
     It "creates file" {
@@ -60,7 +56,6 @@ Describe "Create a file with no content" {
 }
 
 Describe "Create a file with content" {
-
     Setup -File "file" "file contents"
 
     It "creates file" {
@@ -123,7 +118,6 @@ Describe "Cleanup" {
 }
 
 Describe "Cleanup" {
-
     It "should have removed the temp folder from the previous fixture" {
         Test-Path "$TestDrive\foo" | Should Not Exist
     }
@@ -131,11 +125,9 @@ Describe "Cleanup" {
     It "should also remove the TestDrive:" {
         Test-Path "TestDrive:\foo" | Should Not Exist
     }
-
 }
 
 Describe "Cleanup when Remove-Item is mocked" {
-
     Mock Remove-Item {}
 
     Context "add a temp directory" {
@@ -149,7 +141,6 @@ Describe "Cleanup when Remove-Item is mocked" {
         }
 
     }
-
 }
 
 InModuleScope Pester {
@@ -165,5 +156,4 @@ InModuleScope Pester {
 
         }
     }
-
 }

@@ -185,12 +185,12 @@ Describe "When calling Mock in the Describe block" {
 
 Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     Mock Get-ChildItem {
-      if($_ -eq 'a'){
-        return "AA"
-      }
-      if($_ -eq 'b'){
-        return "BB"
-      }
+        if($_ -eq 'a'){
+            return "AA"
+        }
+        if($_ -eq 'b'){
+            return "BB"
+        }
     }
 
     $result = ''

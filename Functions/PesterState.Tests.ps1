@@ -62,7 +62,7 @@ InModuleScope Pester {
                 $p.EnterDescribe("describe")
                 $p.CurrentDescribe | should be "Describe"
             }
-                    It "can enter describe only once" {
+            It "can enter describe only once" {
                 { $p.EnterDescribe("describe") } | Should Throw
             }
 
@@ -122,7 +122,7 @@ InModuleScope Pester {
                 $p.EnterContext("Context")
                 $p.CurrentContext | should be "Context"
             }
-                    It "can enter context only once" {
+            It "can enter context only once" {
                 { $p.EnterContext("Context") } | Should Throw
             }
 

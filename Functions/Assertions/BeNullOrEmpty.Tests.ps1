@@ -2,7 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "PesterBeNullOrEmpty" {
-
         It "should return true if null" {
             Test-PositiveAssertion (PesterBeNullOrEmpty $null)
         }

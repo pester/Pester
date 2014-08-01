@@ -2,7 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "PesterThrow" {
-
         It "returns true if the statement throws an exception" {
             Test-PositiveAssertion (PesterThrow { throw })
         }
@@ -28,7 +27,6 @@ InModuleScope Pester {
     }
 
     Describe "Get-DoMessagesMatch" {
-
         It "returns true if the actual message is the same as the expected message" {
             $expectedErrorMessage = "expected"
             $actualErrorMesage = "expected"

@@ -74,8 +74,7 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
 Describe "#name#" {
-
-        It "does something useful" {
+    It "does something useful" {
         $true | Should Be $false
     }
 }' -replace "#name#",$name

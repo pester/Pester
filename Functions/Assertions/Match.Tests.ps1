@@ -2,7 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "Match" {
-
         It "returns true for things that match" {
             PesterMatch "foobar" "ob" | Should Be $true
         }
@@ -18,8 +17,5 @@ InModuleScope Pester {
         It "uses regular expressions" {
             PesterMatch "foobar" "\S{6}" | Should Be $true
         }
-
-
-
     }
 }

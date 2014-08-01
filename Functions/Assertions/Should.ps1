@@ -1,4 +1,3 @@
-
 function Parse-ShouldArgs([array] $shouldArgs) {
     if ($null -eq $shouldArgs) { $shouldArgs = @() }
 
@@ -92,4 +91,3 @@ function Should {
         } until ($input.MoveNext() -eq $false)
     }
 }
-
