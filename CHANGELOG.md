@@ -15,6 +15,7 @@
   - Invoke-Pester tests path fix [GH-166]
   - Assert-MockCalled default ModuleName fix. [GH-167]
   - Output exception source when test fails [GH-147]
+  - Fix for PesterThrowFailureMessage on PowerShell 2.0. [GH-171]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
