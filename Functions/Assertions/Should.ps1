@@ -66,7 +66,7 @@ function New-ShouldException ($Message,$Line) {
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
     $errorRecord.ErrorDetails = "$Message failed at line: $line"
-    
+
     $errorRecord
 }
 
@@ -85,8 +85,8 @@ function Should {
             if ($testFailed) {
                 $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
                 $failureMessage = Get-FailureMessage $parsedArgs $value
-                
-                
+
+
                 throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine )
             }
         } until ($input.MoveNext() -eq $false)

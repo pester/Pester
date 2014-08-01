@@ -10,8 +10,8 @@ InModuleScope Pester {
         It "returns false for things that do not match exactly" {
             PesterMatchExactly "foobar" "FOOBAR" | Should Be $false
         }
-	
-	    It "uses regular expressions" {
+
+        It "uses regular expressions" {
             PesterMatchExactly "foobar" "\S{6}" | Should Be $true
         }
 

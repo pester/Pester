@@ -142,12 +142,12 @@ function Resolve-CoverageInfo
         {
             $item.FullName
         }
-        elseif (-not $item.PsIsContainer) 
+        elseif (-not $item.PsIsContainer)
         {
             Write-Warning "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
         }
     }
-    
+
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
         EndLine = $UnresolvedCoverageInfo.EndLine
@@ -167,7 +167,7 @@ function Get-CoverageBreakpoints
     param (
         [object[]] $CoverageInfo
     )
-    
+
     $fileGroups = @($CoverageInfo | Group-Object -Property Path)
     foreach ($fileGroup in $fileGroups)
     {
@@ -202,7 +202,7 @@ function Get-CommandsInFile
     $errors = $null
     $tokens = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref] $tokens, [ref] $errors)
-        
+
     $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
     $searchNestedScriptBlocks = $true
     $ast.FindAll($predicate, $searchNestedScriptBlocks)

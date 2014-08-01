@@ -94,7 +94,7 @@ InModuleScope Pester {
             It 'Reports the correct missed command' {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
             }
-            
+
             Exit-CoverageAnalysis -PesterState $testState
         }
 

@@ -8,14 +8,14 @@ InModuleScope Pester {
             It "returns true if the file contains the specified content" {
                 Test-PositiveAssertion (PesterContain "$TestDrive\test.txt" "rush")
             }
-		    It "returns true if the file contains the specified content with different case" {
+            It "returns true if the file contains the specified content with different case" {
                 Test-PositiveAssertion (PesterContain "$TestDrive\test.txt" "RUSH")
             }
 
             It "returns false if the file does not contain the specified content" {
                 Test-NegativeAssertion (PesterContain "$TestDrive\test.txt" "slime")
             }
-		
+
         }
     }
 }

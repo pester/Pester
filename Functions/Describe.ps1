@@ -1,7 +1,7 @@
-﻿function Describe {
+function Describe {
 <#
 .SYNOPSIS
-Defines the context bounds of a test. One may use this block to 
+Defines the context bounds of a test. One may use this block to
 encapsulate a scenario for testing - a set of conditions assumed
 to be present and that should lead to various expected results
 represented by the IT blocks.
@@ -10,8 +10,8 @@ represented by the IT blocks.
 The name of the Test. This is often an expressive phsae describing the scenario being tested.
 
 .PARAMETER Fixture
-The actual test script. If you are following the AAA pattern (Arrange-Act-Assert), this 
-typically holds the arrange and act sections. The Asserts will also lie in this block but are 
+The actual test script. If you are following the AAA pattern (Arrange-Act-Assert), this
+typically holds the arrange and act sections. The Asserts will also lie in this block but are
 typically nested each in its own IT block.
 
 .EXAMPLE
@@ -66,27 +66,27 @@ param(
     }
 
 
- 	if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter)) 
-    { 
+     if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
+    {
         #skip this test
-        return 
+        return
     }
-	
-	#TODO add test to test tags functionality
-	if($pester.TagFilter -and @(Compare-Object $tags $pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
-	$Pester.EnterDescribe($Name)
+    #TODO add test to test tags functionality
+    if($pester.TagFilter -and @(Compare-Object $tags $pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+
+    $Pester.EnterDescribe($Name)
     $Pester.CurrentDescribe | Write-Describe
-	New-TestDrive
+    New-TestDrive
 
     # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
     Add-SetupAndTeardown -ScriptBlock $fixture
-	
-	$null = & $fixture
-	
+
+    $null = & $fixture
+
     Clear-SetupAndTeardown
-	Remove-TestDrive
-	Clear-Mocks 
-	$Pester.LeaveDescribe()
+    Remove-TestDrive
+    Clear-Mocks
+    $Pester.LeaveDescribe()
 }
 

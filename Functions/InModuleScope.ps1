@@ -32,7 +32,7 @@ function InModuleScope
     try
     {
         $Pester.SessionState = $module.SessionState
-        
+
         # Avoid modifying the ScriptBlock instance that was passed in, just in case this causes unexpected problems
 
         $_scriptBlock = [scriptblock]::Create($ScriptBlock.ToString())

@@ -10,15 +10,15 @@ InModuleScope Pester {
         It "returns false for things that do not match" {
             PesterMatch "foobar" "slime" | Should Be $false
         }
-	
-	    It "passes for strings with different case" {
-		    PesterMatch "foobar" "FOOBAR" | Should Be $true
-	    }
-	
-	    It "uses regular expressions" {
-		    PesterMatch "foobar" "\S{6}" | Should Be $true
-	    }
-	
+
+        It "passes for strings with different case" {
+            PesterMatch "foobar" "FOOBAR" | Should Be $true
+        }
+
+        It "uses regular expressions" {
+            PesterMatch "foobar" "\S{6}" | Should Be $true
+        }
+
 
 
     }

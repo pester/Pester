@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 Describe "Module scope separation" {
     Context "When users define variables with the same name as Pester parameters" {
         $test = "This is a test."
-        
+
         It "does not hide user variables" {
             $test | Should Be 'This is a test.'
         }
@@ -15,7 +15,7 @@ Describe "Module scope separation" {
         # module are visible to the SUT.
 
         (Get-Item function:\Get-PesterResult -ErrorAction SilentlyContinue) | Should Be $null
-    }	
+    }
 }
 
 Describe "Executing test code inside a module" {

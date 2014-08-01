@@ -58,12 +58,12 @@ InModuleScope Pester {
 
     Describe 'PesterThrowFailureMessage' {
         $testScriptPath = Join-Path $TestDrive.FullName test.ps1
-        
+
         It 'returns false if the actual message is not the same as the expected message' {
             $unexpectedErrorMessage = 'unexpected'
             $expectedErrorMessage = 'some expected message'
             Set-Content -Path $testScriptPath -Value "throw '$unexpectedErrorMessage'"
-            
+
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
             $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
@@ -83,7 +83,7 @@ InModuleScope Pester {
             $unexpectedErrorMessage = 'unexpected'
             $expectedErrorMessage = 'some expected message'
             Set-Content -Path $testScriptPath -Value "throw '$unexpectedErrorMessage'"
-            
+
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = NotPesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
             $result | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"

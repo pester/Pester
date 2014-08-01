@@ -13,7 +13,7 @@ function List-ExtraKeys($baseHash, $otherHash) {
 
 Describe "It - Caller scoped tests" {
     It "should pass if assertions pass" {
-		$test = 'something'
+        $test = 'something'
         $test | should be "something"
     }
 
@@ -43,14 +43,14 @@ Describe "It - Caller scoped tests" {
 
     It "won't throw if success test block given" {
         $result | Should Be $null
-    }    
+    }
 }
 
 InModuleScope Pester {
     Describe "It - Module scoped tests" {
-	    It "records the correct stack line number of failed tests" {
-		    #the $script scriptblock below is used as a position marker to determine 
-		    #on which line the test failed.
+        It "records the correct stack line number of failed tests" {
+            #the $script scriptblock below is used as a position marker to determine
+            #on which line the test failed.
             try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
             $result = Get-PesterResult $script 0 $ex
             $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "

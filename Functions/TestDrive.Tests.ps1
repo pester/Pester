@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version Latest
+Set-StrictMode -Version Latest
 
 Describe "Setup" {
 
@@ -73,49 +73,49 @@ Describe "Create a file with content" {
 }
 
 Describe "Create file with passthru" {
-	$thefile = Setup -File "thefile" -PassThru
-	
-	It "returns the file from the temp location" {
-		$thefile.FullName -like "${env:TEMP}*" | Should Be $true
-		$thefile.Exists | Should Be $true
-	}
+    $thefile = Setup -File "thefile" -PassThru
+
+    It "returns the file from the temp location" {
+        $thefile.FullName -like "${env:TEMP}*" | Should Be $true
+        $thefile.Exists | Should Be $true
+    }
 }
 
 Describe "Create directory with passthru" {
-	$thedir = Setup -Dir "thedir" -PassThru
-	
-	It "returns the directory from the temp location" {
-		$thedir.FullName -like "${env:TEMP}*" | Should Be $true
-		$thedir.Exists | Should Be $true
-	}
+    $thedir = Setup -Dir "thedir" -PassThru
+
+    It "returns the directory from the temp location" {
+        $thedir.FullName -like "${env:TEMP}*" | Should Be $true
+        $thedir.Exists | Should Be $true
+    }
 }
 
 Describe "TestDrive scoping" {
-	$describe = Setup -File 'Describe' -PassThru
-	Context "Describe file is available in context" {
-		It "Finds the file" {
-			$describe | Should Exist
-		}
-		#create file for the next test
-		Setup -File 'Context'
-        
+    $describe = Setup -File 'Describe' -PassThru
+    Context "Describe file is available in context" {
+        It "Finds the file" {
+            $describe | Should Exist
+        }
+        #create file for the next test
+        Setup -File 'Context'
+
         It "Creates It-scoped contents" {
             Setup -File 'It'
             'TestDrive:\It' | Should Exist
         }
-        
+
         It "Does not clear It-scoped contents on exit" {
             'TestDrive:\It' | Should Exist
         }
-	}
+    }
 
-	It "Context file are removed when returning to Describe" {
-		"TestDrive:\Context" | Should Not Exist
-	}
-	
-	It "Describe file is still available in Describe" {
-		$describe | Should Exist
-	}
+    It "Context file are removed when returning to Describe" {
+        "TestDrive:\Context" | Should Not Exist
+    }
+
+    It "Describe file is still available in Describe" {
+        $describe | Should Exist
+    }
 }
 
 Describe "Cleanup" {
@@ -154,16 +154,16 @@ Describe "Cleanup when Remove-Item is mocked" {
 
 InModuleScope Pester {
     Describe "New-RandomTempDirectory" {
-	    It "creates randomly named directory" {
-		    $first = New-RandomTempDirectory 
-		    $second = New-RandomTempDirectory
-		
-		    $first | Remove-Item -Force 
-		    $second | Remove-Item -Force 
-		
-		    $first.name | Should Not Be $second.name
-		
-	    }
+        It "creates randomly named directory" {
+            $first = New-RandomTempDirectory
+            $second = New-RandomTempDirectory
+
+            $first | Remove-Item -Force
+            $second | Remove-Item -Force
+
+            $first.name | Should Not Be $second.name
+
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-﻿function New-PesterState 
+function New-PesterState
 {
     param (
         [Parameter(Mandatory=$true)]
@@ -11,7 +11,7 @@
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
 
     New-Module -Name Pester -AsCustomObject -ScriptBlock {
-        param ( 
+        param (
             [String]$_path,
             [String[]]$_tagFilter,
             [String[]]$_testNameFilter,
@@ -24,7 +24,7 @@
         $TestNameFilter = $_testNameFilter
 
         $script:SessionState = $_sessionState
-        $script:CurrentContext = "" 
+        $script:CurrentContext = ""
         $script:CurrentDescribe = ""
         $script:CurrentTest = ""
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -36,32 +36,32 @@
         $script:TestResult = @()
 
         function EnterDescribe ($Name)
-        { 
+        {
             if ($CurrentDescribe)
             {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in Describe, you cannot enter Describe twice"
             }
             $script:CurrentDescribe = $Name
         }
-        
-        function LeaveDescribe 
+
+        function LeaveDescribe
         {
-            if ( $CurrentContext ) {  
+            if ( $CurrentContext ) {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot leave Describe before leaving Context"
             }
-            
+
             $script:CurrentDescribe = $null
         }
 
-        function EnterContext ($Name) 
+        function EnterContext ($Name)
         {
-            if ( -not $CurrentDescribe ) 
-            {  
+            if ( -not $CurrentDescribe )
+            {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
             }
 
-            if ( $CurrentContext ) 
-            {  
+            if ( $CurrentContext )
+            {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in Context, you cannot enter Context twice"
             }
 
@@ -69,17 +69,17 @@
             {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in It, you cannot enter Context inside It"
             }
-            
+
             $script:CurrentContext = $Name
         }
-        
-        function LeaveContext 
+
+        function LeaveContext
         {
             if ($CurrentTest)
             {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot leave Context before leaving It"
             }
-            
+
             $script:CurrentContext = $null
         }
 
@@ -103,9 +103,9 @@
             $script:CurrentTest = $null
         }
 
-        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace ) 
+        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace )
         {
-            if (-not $CurrentDescribe) 
+            if (-not $CurrentDescribe)
             {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot add test result before entering Describe"
             }
@@ -125,15 +125,15 @@
                 Passed         = $Passed
                 Time           = $Time
                 FailureMessage = $FailureMessage
-                StackTrace     = $StackTrace                
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Passed, Time, FailureMessage, StackTrace 
+                StackTrace     = $StackTrace
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Passed, Time, FailureMessage, StackTrace
         }
 
-        $ExportedVariables = "Path", 
-        "TagFilter", 
-        "TestNameFilter", 
-        "TestResult", 
-        "CurrentContext", 
+        $ExportedVariables = "Path",
+        "TagFilter",
+        "TestNameFilter",
+        "TestResult",
+        "CurrentContext",
         "CurrentDescribe",
         "CurrentTest",
         "SessionState",
@@ -141,27 +141,27 @@
         "BeforeEach",
         "AfterEach"
 
-        $ExportedFunctions = "EnterContext", 
-        "LeaveContext", 
-        "EnterDescribe", 
+        $ExportedFunctions = "EnterContext",
+        "LeaveContext",
+        "EnterDescribe",
         "LeaveDescribe",
         "EnterTest",
-        "LeaveTest", 
+        "LeaveTest",
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState | 
-    Add-Member -MemberType ScriptProperty -Name TotalCount -Value { 
-        @( $this.TestResult ).Count 
+    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState |
+    Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
+        @( $this.TestResult ).Count
     } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name PassedCount -Value { 
-        @( $this.TestResult | where { $_.Passed } ).count 
+    Add-Member -MemberType ScriptProperty -Name PassedCount -Value {
+        @( $this.TestResult | where { $_.Passed } ).count
     } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name FailedCount -Value { 
-        @( $this.TestResult | where { -not $_.Passed } ).count 
-    } -PassThru | 
-    Add-Member -MemberType ScriptProperty -Name Time -Value { 
-        $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ( $_.time ) } { [timespan]$total } 
+    Add-Member -MemberType ScriptProperty -Name FailedCount -Value {
+        @( $this.TestResult | where { -not $_.Passed } ).count
+    } -PassThru |
+    Add-Member -MemberType ScriptProperty -Name Time -Value {
+        $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ( $_.time ) } { [timespan]$total }
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
@@ -178,7 +178,7 @@
             $parentScope = 'Context'
         }
 
-        if ($null -eq $parentScope -and $scope -ne 'Describe' -and $this.CurrentDescribe) 
+        if ($null -eq $parentScope -and $scope -ne 'Describe' -and $this.CurrentDescribe)
         {
             $parentScope = 'Describe'
         }
@@ -187,8 +187,8 @@
     } -PassThru
 }
 
-function Write-Describe 
-{ 
+function Write-Describe
+{
     param (
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
@@ -197,8 +197,8 @@ function Write-Describe
     }
 }
 
-function Write-Context 
-{ 
+function Write-Context
+{
     param (
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
@@ -208,7 +208,7 @@ function Write-Context
     }
 }
 
-function Write-PesterResult 
+function Write-PesterResult
 {
     param (
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
@@ -221,8 +221,8 @@ function Write-PesterResult
         $error_margin = $margin + "  "
         $output = $TestResult.name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
-        
-        if($TestResult.Passed) 
+
+        if($TestResult.Passed)
         {
             "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
         }
@@ -234,7 +234,7 @@ function Write-PesterResult
     }
 }
 
-function Write-PesterReport 
+function Write-PesterReport
 {
     param (
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
