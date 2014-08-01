@@ -29,7 +29,9 @@ function Get-DoMessagesMatch($value, $expected) {
 }
 
 function Get-ExceptionLineInfo($info) {
-    return ($info.PositionMessage -replace "^At ","from ")
+    # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
+    $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join "`r`n"
+    return ($positionMessage -replace "^At ","from ")
 }
 
 function PesterThrowFailureMessage($value, $expected) {
