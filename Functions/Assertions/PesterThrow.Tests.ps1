@@ -1,4 +1,5 @@
 Set-StrictMode -Version Latest
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 InModuleScope Pester {
     Describe "PesterThrow" {
@@ -57,12 +58,16 @@ InModuleScope Pester {
     }
 
     Describe 'PesterThrowFailureMessage' {
+        $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+        
         It 'returns false if the actual message is not the same as the expected message' {
             $unexpectedErrorMessage = 'unexpected'
             $expectedErrorMessage = 'some expected message'
-            PesterThrow { throw $unexpectedErrorMessage } $expectedErrorMessage > $null
+            Set-Content -Path $testScriptPath -Value "throw '$unexpectedErrorMessage'"
+            
+            PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Be "Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
@@ -73,18 +78,23 @@ InModuleScope Pester {
     }
 
     Describe 'NotPesterThrowFailureMessage' {
+        $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+
         It 'returns false if the actual message is not the same as the expected message' {
             $unexpectedErrorMessage = 'unexpected'
             $expectedErrorMessage = 'some expected message'
-            PesterThrow { throw $unexpectedErrorMessage } $expectedErrorMessage > $null
+            Set-Content -Path $testScriptPath -Value "throw '$unexpectedErrorMessage'"
+            
+            PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = NotPesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Be "Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}"
+            $result | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
-            PesterThrow { throw 'error message' } > $null
+            Set-Content -Path $testScriptPath -Value "throw 'error message'"
+            PesterThrow { & $testScriptPath } > $null
             $result = NotPesterThrowFailureMessage 'error message'
-            $result | Should Be 'Expected: the expression not to throw an exception. Message was {error message}'
+            $result | Should Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
     }
 }
