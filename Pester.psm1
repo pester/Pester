@@ -2,11 +2,12 @@
 # Version: $version$
 # Changeset: $sha$
 
-@("$PSScriptRoot\Functions\*.ps1",
-  "$PSScriptRoot\Functions\Assertions\*.ps1"
- ) | Resolve-Path |
-  ? { -not ($_.ProviderPath.Contains(".Tests.")) } |
-  % { . $_.ProviderPath }
+$moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
+
+"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
+Resolve-Path |
+Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
+ForEach-Object { . $_.ProviderPath }
 
 function Invoke-Pester {
 <#
@@ -14,20 +15,20 @@ function Invoke-Pester {
 Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under the Path
 
 .DESCRIPTION
-Upon calling Invoke-Pester. All files that have a name containing 
-"*.Tests.ps1" will have there tests defined in their Describe blocks 
-executed. Invoke-Pester begins at the location of Path and 
-runs recursively through each sub directory looking for 
-*.Tests.ps1 files for tests to run. If a TestName is provided, 
-Invoke-Pester will only run tests that have a describe block with a 
-matching name. By default, Invoke-Pester will end the test run with a 
-simple report of the number of tests passed and failed output to the 
-console. One may want pester to "fail a build" in the event that any 
-tests fail. To accomodate this, Invoke-Pester will return an exit 
-code equal to the number of failed tests if the EnableExit switch is 
-set. Invoke-Pester will also write a NUnit style log of test results 
-if the OutputXml parameter is provided. In these cases, Invoke-Pester 
-will write the result log to the path provided in the OutputXml 
+Upon calling Invoke-Pester. All files that have a name containing
+"*.Tests.ps1" will have there tests defined in their Describe blocks
+executed. Invoke-Pester begins at the location of Path and
+runs recursively through each sub directory looking for
+*.Tests.ps1 files for tests to run. If a TestName is provided,
+Invoke-Pester will only run tests that have a describe block with a
+matching name. By default, Invoke-Pester will end the test run with a
+simple report of the number of tests passed and failed output to the
+console. One may want pester to "fail a build" in the event that any
+tests fail. To accomodate this, Invoke-Pester will return an exit
+code equal to the number of failed tests if the EnableExit switch is
+set. Invoke-Pester will also write a NUnit style log of test results
+if the OutputXml parameter is provided. In these cases, Invoke-Pester
+will write the result log to the path provided in the OutputXml
 parameter.
 
 Optionally, Pester can generate a report of how much code is covered
@@ -46,7 +47,7 @@ Will cause Invoke-Pester to exit with a exit code equal to the number of failed 
 .PARAMETER OutputXml
 The path where Invoke-Pester will save a NUnit formatted test results log file. If this path is not provided, no log will be generated.
 
-.PARAMETER Tag 
+.PARAMETER Tag
 Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
 
 .PARAMETER PassThru
@@ -107,62 +108,62 @@ about_pester
         [Alias('relative_path')]
         [string]$Path = ".",
         [Parameter(Position=1,Mandatory=0)]
-        [string]$TestName, 
+        [string]$TestName,
         [Parameter(Position=2,Mandatory=0)]
-        [switch]$EnableExit, 
+        [switch]$EnableExit,
         [Parameter(Position=3,Mandatory=0)]
         [string]$OutputXml,
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
-		[string]$Tag,
-		[switch]$PassThru,
+        [string]$Tag,
+        [switch]$PassThru,
 
         [object[]] $CodeCoverage = @()
     )
 
     $script:mockTable = @{}
 
-	$pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
-	
-  $message = "Executing all tests in '$($pester.Path)'"
-  if ($TestName) { $message += " matching test name '$TestName'" }
-  
-  Write-Host $message
 
-  $scriptBlock = { & $args[0] }
-  Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
-  
-  Get-ChildItem $pester.Path -Filter "*.Tests.ps1" -Recurse |
-  where { -not $_.PSIsContainer } |
-  foreach { & $scriptBlock $_.PSPath }
+    $message = "Executing all tests in '$($pester.Path)'"
+    if ($TestName) { $message += " matching test name '$TestName'" }
 
-  $pester | Write-PesterReport
-  $coverageReport = Get-CoverageReport -PesterState $pester
-  Show-CoverageReport -CoverageReport $coverageReport
-  Exit-CoverageAnalysis -PesterState $pester
+    Write-Host $message
 
-  if($OutputXml) {
-      #TODO make this legacy option and move the nUnit report out of invoke-pester
-			#TODO add warning message that informs the user how to use the nunit output properly
-			Export-NunitReport $pester $OutputXml 
-  }
-	
-	if ($PassThru) {
-		#remove all runtime properties like current* and Scope
+    $scriptBlock = { & $args[0] }
+    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
+
+    Get-ChildItem $pester.Path -Filter "*.Tests.ps1" -Recurse |
+    where { -not $_.PSIsContainer } |
+    foreach { & $scriptBlock $_.PSPath }
+
+    $pester | Write-PesterReport
+    $coverageReport = Get-CoverageReport -PesterState $pester
+    Show-CoverageReport -CoverageReport $coverageReport
+    Exit-CoverageAnalysis -PesterState $pester
+
+    if($OutputXml) {
+        #TODO make this legacy option and move the nUnit report out of invoke-pester
+        #TODO add warning message that informs the user how to use the nunit output properly
+        Export-NunitReport $pester $OutputXml
+    }
+
+    if ($PassThru) {
+        #remove all runtime properties like current* and Scope
         $properties = @(
             "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
-            
+
             if ($CodeCoverage)
             {
                 @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
             }
         )
 
-		$pester | Select -Property $properties
-	}
-  if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
-	
+        $pester | Select -Property $properties
+    }
+
+    if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
 }
 
 function Set-ScriptBlockScope
