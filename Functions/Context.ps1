@@ -45,11 +45,9 @@ param(
 
     $Pester.CurrentContext | Write-Context
 
-    # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
-    Add-SetupAndTeardown -ScriptBlock $fixture
-
     try
     {
+        Add-SetupAndTeardown -ScriptBlock $fixture
         $null = & $fixture
     }
     catch

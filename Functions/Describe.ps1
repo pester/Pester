@@ -66,8 +66,7 @@ param(
         $script:mockTable = @{}
     }
 
-
-     if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
+    if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
     {
         #skip this test
         return
@@ -80,11 +79,9 @@ param(
     $Pester.CurrentDescribe | Write-Describe
     New-TestDrive
 
-    # Should we handle errors here resulting from syntax, or just let them go to the caller and abort the whole test operation?
-    Add-SetupAndTeardown -ScriptBlock $fixture
-    
     try
     {
+        Add-SetupAndTeardown -ScriptBlock $fixture
         $null = & $fixture
     }
     catch
