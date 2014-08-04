@@ -19,6 +19,7 @@
   - Pester.bat no longer enables StrictMode.  [GH-172]
   - Fixed default behavior of fixture parameter in Describe and Context.  [GH-174]
   - Syntax errors in test files, as well as terminating errors from Describe or Context blocks are now treated as failed tests.  [GH-168]
+  - Mock lifetime is no longer tied to It blocks. [GH-176]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
