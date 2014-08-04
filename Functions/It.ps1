@@ -80,7 +80,7 @@ about_should
     $Pester.testresult[-1] | Write-PesterResult
 
     Invoke-TeardownBlocks
-    Clear-Mocks
+    Exit-MockScope
     $Pester.LeaveTest()
 }
 

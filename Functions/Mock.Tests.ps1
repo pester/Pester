@@ -616,21 +616,21 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
         It "should use the describe mock" {
             FunctionUnderTest | should be "I am the paramless mock test"
         }
+
         It "should use the describe parameterized mock" {
             FunctionUnderTest "one" | should be "I am the first mock test"
         }
     }
 
-    Context "Testing It-scoped mocks" {
-        Mock FunctionUnderTest { return "I am the context mock" }
+    Context 'When someone calls Mock from inside an It block' {
+        Mock FunctionUnderTest { return 'I am the context mock' }
 
-        It "Should call the It mock" {
-            Mock FunctionUnderTest { return "I am the It mock" }
-            FunctionUnderTest | Should Be "I am the It mock"
+        It 'Sets the mock' {
+            Mock FunctionUnderTest { return 'I am the It mock' }
         }
 
-        It "Should revert to calling the Context mock in the next test" {
-            FunctionUnderTest | Should Be "I am the context mock"
+        It 'Leaves the mock active in the parent scope' {
+            FunctionUnderTest | Should Be 'I am the It mock'
         }
     }
 }

@@ -208,7 +208,7 @@ about_Mocking
         Mock       = $mockWithCopy
         Filter     = $ParameterFilter
         Verifiable = $Verifiable
-        Scope      = $pester.Scope
+        Scope      = Get-ScopeForMock -PesterState $pester
     }
 
     $mock = $mockTable["$ModuleName||$CommandName"]
@@ -515,40 +515,40 @@ function Test-MockCallScope
     return ([array]::IndexOf($scopes, $CallScope) -ge [array]::IndexOf($scopes, $DesiredScope))
 }
 
-function Clear-Mocks {
-    if($mockTable){
-        $currentScope = $pester.Scope
-        $parentScope = $pester.ParentScope
+function Exit-MockScope {
+    if ($null -eq $mockTable) { return }
 
-        $scriptBlock =
+    $currentScope = $pester.Scope
+    $parentScope = $pester.ParentScope
+
+    $scriptBlock =
+    {
+        param ([string] $CommandName)
+
+        $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
+        if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
         {
-            param ([string] $CommandName)
-
-            $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
-            if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
-            {
-                $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "script:$CommandName", $true)
-            }
+            $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "script:$CommandName", $true)
         }
+    }
 
-        $mockKeys = [string[]]$mockTable.Keys
+    $mockKeys = [string[]]$mockTable.Keys
 
-        foreach ($mockKey in $mockKeys)
+    foreach ($mockKey in $mockKeys)
+    {
+        $mock = $mockTable[$mockKey]
+        $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $currentScope})
+
+        if ($null -eq $parentScope)
         {
-            $mock = $mockTable[$mockKey]
-            $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $pester.Scope})
-
-            if ($null -eq $parentScope)
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
+            $mockTable.Remove($mockKey)
+        }
+        else
+        {
+            foreach ($historyEntry in $mock.CallHistory)
             {
-                $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
-                $mockTable.Remove($mockKey)
-            }
-            else
-            {
-                foreach ($historyEntry in $mock.CallHistory)
-                {
-                    if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
-                }
+                if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
             }
         }
     }
@@ -710,4 +710,14 @@ function Test-ParameterFilter
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
 
     & $cmd @BoundParameters @ArgumentList
+}
+
+function Get-ScopeForMock
+{
+    param ($PesterState)
+
+    $scope = $PesterState.Scope
+    if ($scope -eq 'It') { $scope = $PesterState.ParentScope }
+
+    return $scope
 }

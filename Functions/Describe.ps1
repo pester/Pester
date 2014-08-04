@@ -93,7 +93,7 @@ param(
 
     Clear-SetupAndTeardown
     Remove-TestDrive
-    Clear-Mocks
+    Exit-MockScope
     $Pester.LeaveDescribe()
 }
 

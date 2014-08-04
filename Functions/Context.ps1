@@ -59,7 +59,7 @@ param(
 
     Clear-SetupAndTeardown
     Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
-    Clear-Mocks
+    Exit-MockScope
     $Pester.LeaveContext()
 }
 
