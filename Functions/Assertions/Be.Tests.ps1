@@ -12,6 +12,11 @@ InModuleScope Pester {
         It "returns false if the 2 arguments are not equal" {
             Test-NegativeAssertion (PesterBe 1 2)
         }
+
+        It 'Compares Arrays properly' {
+            $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
+            $array | Should Be $array
+        }
     }
 
     Describe "BeExactly" {
@@ -24,6 +29,11 @@ InModuleScope Pester {
         It "passes for numbers" {
             1 | Should BeExactly 1
             2.15 | Should BeExactly 2.15
+        }
+
+        It 'Compares Arrays properly' {
+            $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
+            $array | Should Be $array
         }
     }
 }
