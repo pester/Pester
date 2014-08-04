@@ -74,20 +74,19 @@ function Should {
         $parsedArgs = Parse-ShouldArgs $args
     }
 
-    end {
-        $input.MoveNext()
-        do {
-            $value = $input.Current
+    end {        
+        $valueToTest = foreach ($object in $input)
+        {
+            $object
+        }
 
-            $testFailed = Get-TestResult $parsedArgs $value
+        $testFailed = Get-TestResult $parsedArgs $valueToTest
 
-            if ($testFailed) {
-                $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
-                $failureMessage = Get-FailureMessage $parsedArgs $value
+        if ($testFailed) {
+            $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
+            $failureMessage = Get-FailureMessage $parsedArgs $valueToTest
 
-
-                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine )
-            }
-        } until ($input.MoveNext() -eq $false)
+            throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine )
+        }
     }
 }
