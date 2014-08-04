@@ -37,8 +37,8 @@ param(
     [Parameter(Mandatory = $true)]
     $name,
 
-    [Parameter(Mandatory = $true)]
-    [ScriptBlock] $fixture
+    [ValidateNotNull()]
+    [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
     $Pester.EnterContext($name)
     $TestDriveContent = Get-TestDriveChildItem
