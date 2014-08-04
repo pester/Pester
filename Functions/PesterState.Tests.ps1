@@ -195,10 +195,11 @@ InModuleScope Pester {
                 $result.FailureMessage | should be "fail"
                 $result.StackTrace | should be "stack"
             }
-            it "can't add test result before entering describe" {
+
+            it "can add test result before entering describe" {
                 if ($p.CurrentContext) { $p.LeaveContext()}
                 if ($p.CurrentDescribe) { $p.LeaveDescribe() }
-                { $p.addTestResult(1,1,1) } | should throw
+                { $p.addTestResult(1,1,1) } | should not throw
             }
 
         }

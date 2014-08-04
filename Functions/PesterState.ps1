@@ -105,11 +105,6 @@ function New-PesterState
 
         function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace )
         {
-            if (-not $CurrentDescribe)
-            {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot add test result before entering Describe"
-            }
-
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
 
