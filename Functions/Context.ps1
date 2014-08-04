@@ -56,7 +56,7 @@ param(
         $Pester.AddTestResult('Error occurred in Context block', $false, $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
     }
-	
+
     Clear-SetupAndTeardown
     Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
     Clear-Mocks

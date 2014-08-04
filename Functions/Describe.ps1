@@ -90,7 +90,7 @@ param(
         $Pester.AddTestResult('Error occurred in Describe block', $false, $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
     }
-	
+
     Clear-SetupAndTeardown
     Remove-TestDrive
     Clear-Mocks
