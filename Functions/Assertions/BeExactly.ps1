@@ -1,6 +1,16 @@
 
 function PesterBeExactly($value, $expected) {
-    return ($expected -ceq $value)
+    $expectedArray = @($expected)
+    $valueArray = @($value)
+    
+    if ($expectedArray.Count -ne $valueArray.Count) { return $false }
+    
+    for ($i = 0; $i -lt $expectedArray.Count; $i++)
+    {
+        if ($expectedArray[$i] -cne $valueArray[$i]) { return $false }
+    }
+    
+    return $true
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
