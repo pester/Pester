@@ -33,7 +33,7 @@ InModuleScope Pester {
 
         It 'Compares Arrays properly' {
             $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
-            $array | Should Be $array
+            $array | Should BeExactly $array
         }
     }
 }
