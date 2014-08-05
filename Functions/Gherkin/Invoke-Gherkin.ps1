@@ -10,7 +10,7 @@ function Invoke-Gherkin {
         [string]$Path = $Pwd,
 
         [Parameter(Position=1,Mandatory=0)]
-        [string]$TestName,
+        [string]$ScenarioName,
 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
@@ -22,16 +22,22 @@ function Invoke-Gherkin {
         [Alias('Tags')]
         [string[]]$Tag,
 
+        [object[]] $CodeCoverage = @(),
+
         [switch]$PassThru
     )
 
+    $message = "Testing all features in '$($Path)'"
+    if ($ScenarioName) { $message += " matching scenario '$ScenarioName'" }
+    if ($Tag) { $message += " with Tags: $Tag" }
+    Write-Host $message
 
 
-    # Set-Alias
+    # Clear mocks
+    $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter @($Tag -split "\s+")
-
-    Write-Host Testing all features in $($pester.Path)
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState
+    Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     # Remove all the steps
     $Script:GherkinSteps.Clear()
@@ -44,11 +50,10 @@ function Invoke-Gherkin {
     foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
         $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
 
+        ## This is Pesters "Describe" function
         $Pester.EnterDescribe($Feature)
         Write-Feature $Feature
-
         New-TestDrive
-
 
         $Tagged = if($pester.TagFilter) {
                         foreach($Scenario in $Feature.FeatureElements) {
@@ -62,14 +67,20 @@ function Invoke-Gherkin {
                     }
 
         foreach($Scenario in $Tagged) {
+            # This is Pester's Context function
             $Pester.EnterContext($Scenario.Name)
+            $TestDriveContent = Get-TestDriveChildItem
 
             Invoke-GherkinScenario $Pester $Scenario $Feature.Background
+
+            Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+            Exit-MockScope
             $Pester.LeaveContext()
         }
 
+        ## This is Pesters "Describe" function again
         Remove-TestDrive
-        Clear-Mocks
+        Exit-MockScope
         $Pester.LeaveDescribe()
     }
 
@@ -89,6 +100,7 @@ function Invoke-Gherkin {
 }
 
 function Invoke-GherkinScenario {
+    [CmdletBinding()]
     param(
         $Pester, $Scenario, $Background, [Switch]$Quiet
     )
@@ -115,7 +127,7 @@ function Invoke-GherkinScenario {
                                     }
                                     if($StepName -ne $Step.Name) {
                                         Write-Verbose "Step Name: $StepName"
-                                        $S = New-Object $Step
+                                        $S = New-Object PoshCode.PowerCuke.ObjectModel.Step $Step
                                         $S.Name = $StepName
                                         $S
                                     } else {
@@ -130,7 +142,7 @@ function Invoke-GherkinScenario {
                     }
 
     foreach($Step in $TableSteps) {
-        . Invoke-GherkinStep $Pester $Step
+        Invoke-GherkinStep $Pester $Step
     }
 }
 
@@ -141,39 +153,39 @@ function Invoke-GherkinStep {
     )
     #  Pick the match with the least grouping wildcards in it...
     $StepCommand = $Script:GherkinSteps.Keys | Where { $Step.Name -match $_ } | Sort { $Matches.Count } -Descending | Select -First 1
+    $StepName = "{0} {1}" -f $Step.Keyword, $Step.Name
 
     if(!$StepCommand) {
         $Pester.AddTestResult($Step.Name, $False, [TimeSpan]0, "Could not find test for step!", $null )
     } else {
-
         $Arguments, $Parameters = Get-StepParameters $Step.Name $StepCommand
 
+        $Pester.EnterTest($StepName)
         $PesterException = $null
+        $watch = New-Object System.Diagnostics.Stopwatch
+        $watch.Start()
         try{
-            $watch = [System.Diagnostics.Stopwatch]::new()
-            $watch.Start()
-
             if($Arguments.Count) {
-                $null = . $Script:GherkinSteps.$StepCommand @Arguments @Parameters
+                $null = & $Script:GherkinSteps.$StepCommand @Arguments @Parameters
             } else {
-                $null = . $Script:GherkinSteps.$StepCommand @Parameters
+                $null = & $Script:GherkinSteps.$StepCommand @Parameters
             }
-
-            $watch.Stop()
         } catch {
             $PesterException = $_
-        } finally {
-            $watch.Stop()
         }
 
+        $watch.Stop()
+        Exit-MockScope
+        $Pester.LeaveTest()
+
         $Results = @{
-            Time = $watch.Elapsed
             Test = $Test
+            Time = $watch.Elapsed
             Exception = $PesterException
         }
 
         $Result = Get-PesterResult @Results
-        $Pester.AddTestResult(("{0} {1}" -f $Step.Keyword, $Step.Name), $Result.Success, $result.time, $result.failuremessage, $result.StackTrace )
+        $Pester.AddTestResult($StepName, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace )
     }
 
     $Pester.testresult[-1] | Write-PesterResult
