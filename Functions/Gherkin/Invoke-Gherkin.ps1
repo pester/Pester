@@ -173,7 +173,7 @@ function Invoke-GherkinStep {
         }
 
         $Result = Get-PesterResult @Results
-        $Pester.AddTestResult($Step.Name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace )
+        $Pester.AddTestResult(("{0} {1}" -f $Step.Keyword, $Step.Name), $Result.Success, $result.time, $result.failuremessage, $result.StackTrace )
     }
 
     $Pester.testresult[-1] | Write-PesterResult
