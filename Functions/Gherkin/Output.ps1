@@ -4,7 +4,7 @@ function Write-Feature {
     $Feature
   )
   process {
-    Write-Host "Feature:" $Feature.Name -ForegroundColor Magenta
+    Write-Host "Feature:" $Feature.Keyword $Feature.Name -ForegroundColor Magenta
     $Feature.Description -split "\n" | % {
         Write-Host "        " $_ -ForegroundColor Magenta
     }
