@@ -1,6 +1,7 @@
 Add-Type -Path "$PSScriptRoot\lib\PowerCuke.dll"
 
 $StepPrefix = "Gherkin-Step "
+$GherkinSteps = @{}
 
 function Invoke-Gherkin {
     param(
@@ -28,12 +29,17 @@ function Invoke-Gherkin {
 
     # Set-Alias
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s")
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter @($Tag -split "\s+")
 
     Write-Host Testing all features in $($pester.Path)
 
+    # Remove all the steps
+    $Script:GherkinSteps.Clear()
     # Import all the steps (we're going to need them in a minute)
-    foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){ Import-Module $StepFile.FullName }
+    foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
+        Import-Module $StepFile.FullName -Force
+    }
+
 
     foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
         $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
@@ -43,13 +49,22 @@ function Invoke-Gherkin {
 
         New-TestDrive
 
-        if($Feature.Background) {
-            Invoke-GherkinScenario $Pester $Feature.Background
-        }
 
-        foreach($Scenario in $Feature.FeatureElements | Where { !$pester.TagFilter -or @(Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent).count -gt 0 }) {
+        $Tagged = if($pester.TagFilter) {
+                        foreach($Scenario in $Feature.FeatureElements) {
+                            $Tags = @($Scenario.Tags) + @($Feature.Tags) | Select-Object -Unique
+                            if(Compare-Object $Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent) {
+                                $Scenario
+                            }
+                        }
+                    } else {
+                        $Feature.FeatureElements
+                    }
+
+        foreach($Scenario in $Tagged) {
             $Pester.EnterContext($Scenario.Name)
-            Invoke-GherkinScenario $Pester $Scenario
+
+            Invoke-GherkinScenario $Pester $Scenario $Feature.Background
             $Pester.LeaveContext()
         }
 
@@ -59,7 +74,9 @@ function Invoke-Gherkin {
     }
 
     # Remove all the steps
-    foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){ Remove-Module $StepFile.BaseName }
+    foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
+        Remove-Module $StepFile.BaseName
+    }
 
     $pester | Write-PesterReport
 
@@ -73,43 +90,46 @@ function Invoke-Gherkin {
 
 function Invoke-GherkinScenario {
     param(
-        $Pester, $Scenario
+        $Pester, $Scenario, $Background, [Switch]$Quiet
     )
-    Write-Scenario $Scenario
 
-    $TableSteps = $(
-                if($Scenario.Examples) {
-                    foreach($ExampleSet in $Scenario.Examples) {
-                        $Names = $ExampleSet | Get-Member -Type Properties | Select -Expand Name
-                        $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
-                        foreach($Example in $ExampleSet) {
-                            foreach ($Step in $Scenario.Steps) {
-                                $StepName = $Step.Name
-                                if($StepName -match $NamesPattern) {
-                                    foreach($Name in $Names) {
-                                        if($Example.$Name -and $StepName -match "<${Name}>") {
-                                            Write-Verbose "$StepName -replace '<${Name}>', $Example.$Name ($($Example.$Name))"
-                                            $StepName = $StepName -replace "<${Name}>", $Example.$Name
+    if(!$Quiet) { Write-Scenario $Scenario }
+    if($Background) {
+        Invoke-GherkinScenario $Pester $Background -Quiet
+    }
+
+    $TableSteps =   if($Scenario.Examples) {
+                        foreach($ExampleSet in $Scenario.Examples) {
+                            $Names = $ExampleSet | Get-Member -Type Properties | Select -Expand Name
+                            $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
+                            foreach($Example in $ExampleSet) {
+                                foreach ($Step in $Scenario.Steps) {
+                                    $StepName = $Step.Name
+                                    if($StepName -match $NamesPattern) {
+                                        foreach($Name in $Names) {
+                                            if($Example.$Name -and $StepName -match "<${Name}>") {
+                                                Write-Verbose "$StepName -replace '<${Name}>', $Example.$Name ($($Example.$Name))"
+                                                $StepName = $StepName -replace "<${Name}>", $Example.$Name
+                                            }
                                         }
                                     }
-                                }
-                                if($StepName -ne $Step.Name) {
-                                    Write-Verbose "Step Name: $StepName"
-                                    $S = New-Object $Step
-                                    $S.Name = $StepName
-                                    $S
-                                } else {
-                                    Write-Verbose "Original Step: $($Step.Name)"
-                                    $Step
+                                    if($StepName -ne $Step.Name) {
+                                        Write-Verbose "Step Name: $StepName"
+                                        $S = New-Object $Step
+                                        $S.Name = $StepName
+                                        $S
+                                    } else {
+                                        Write-Verbose "Original Step: $($Step.Name)"
+                                        $Step
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        $Scenario.Steps
                     }
-                } else {
-                    $Scenario.Steps
-                })
 
-    foreach($Step in $TableSteps | Where { !$pester.TagFilter -or @(Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent).count -gt 0 }) {
+    foreach($Step in $TableSteps) {
         . Invoke-GherkinStep $Pester $Step
     }
 }
@@ -119,24 +139,60 @@ function Invoke-GherkinStep {
     param(
         $Pester, $Step
     )
-        $StepCommand = Get-Command "${StepPrefix}*" | Where {
-        $Step.Name -match $_.Name.SubString($StepPrefix.Length)
-    } | Select -First 1
+    #  Pick the match with the least grouping wildcards in it...
+    $StepCommand = $Script:GherkinSteps.Keys | Where { $Step.Name -match $_ } | Sort { $Matches.Count } -Descending | Select -First 1
 
     if(!$StepCommand) {
         $Pester.AddTestResult($Step.Name, $False, [TimeSpan]0, "Could not find test for step!", $null )
     } else {
 
-        $Null = $Step.Name -match $StepCommand.Name.SubString(8)
-        $Parameters = $Matches.Values | % {
-            $ExecutionContext.InvokeCommand.ExpandString($_)
+        $Arguments, $Parameters = Get-StepParameters $Step.Name $StepCommand
+
+        $PesterException = $null
+        try{
+            $watch = [System.Diagnostics.Stopwatch]::new()
+            $watch.Start()
+
+            if($Arguments.Count) {
+                $null = . $Script:GherkinSteps.$StepCommand @Arguments @Parameters
+            } else {
+                $null = . $Script:GherkinSteps.$StepCommand @Parameters
+            }
+
+            $watch.Stop()
+        } catch {
+            $PesterException = $_
+        } finally {
+            $watch.Stop()
         }
 
-        $Results = . $StepCommand @Parameters
+        $Results = @{
+            Time = $watch.Elapsed
+            Test = $Test
+            Exception = $PesterException
+        }
 
         $Result = Get-PesterResult @Results
         $Pester.AddTestResult($Step.Name, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace )
     }
 
     $Pester.testresult[-1] | Write-PesterResult
+}
+
+function Get-StepParameters {
+    param($StepName, $CommandName)
+    $Null = $Step.Name -match $CommandName
+
+    $Arguments = @{}
+    $Parameters = @{}
+    foreach($kv in $Matches.GetEnumerator()) {
+        switch ($kv.Name -as [int]) {
+            0       {  } # toss zero (where it matches the whole string)
+            $null   { $Arguments.($kv.Name) = $ExecutionContext.InvokeCommand.ExpandString($kv.Value)       }
+            default { $Parameters.([int]$kv.Name) = $ExecutionContext.InvokeCommand.ExpandString($kv.Value) }
+        }
+    }
+    $Parameters = @($Parameters.GetEnumerator() | Sort Name | Select -Expand Value)
+
+    return @($Arguments, $Parameters)
 }
