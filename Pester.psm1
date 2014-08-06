@@ -187,14 +187,35 @@ function Set-ScriptBlockScope
         [scriptblock]
         $ScriptBlock,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'FromSessionState')]
         [System.Management.Automation.SessionState]
-        $SessionState
+        $SessionState,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'FromSessionStateInternal')]
+        $SessionStateInternal
     )
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $sessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
-    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($scriptBlock, $sessionStateInternal, $null)
+
+    if ($PSCmdlet.ParameterSetName -eq 'FromSessionState')
+    {
+        $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    }
+
+    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($ScriptBlock, $SessionStateInternal, $null)
+}
+
+function Get-ScriptBlockScope
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
