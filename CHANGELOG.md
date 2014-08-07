@@ -21,6 +21,7 @@
   - Syntax errors in test files, as well as terminating errors from Describe or Context blocks are now treated as failed tests.  [GH-168]
   - Mock lifetime is no longer tied to It blocks. [GH-176]
   - Add module manifest
+  - Added multiple lines to failure messages from Should Be and Should BeExactly. Updated console output code to support blank lines in failure messages and stack traces. [GH-185]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
