@@ -1,6 +1,7 @@
-﻿@{
+@{
+
 # Script module or binary module file associated with this manifest.
-RootModule = 'Pester'
+ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
 ModuleVersion = '3.0.0'
