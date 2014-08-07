@@ -56,14 +56,14 @@ function Invoke-Gherkin {
         New-TestDrive
 
         $Tagged = if($pester.TagFilter) {
-                        foreach($Scenario in $Feature.FeatureElements) {
+                        foreach($Scenario in $Feature.Scenarios) {
                             $Tags = @($Scenario.Tags) + @($Feature.Tags) | Select-Object -Unique
                             if(Compare-Object $Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent) {
                                 $Scenario
                             }
                         }
                     } else {
-                        $Feature.FeatureElements
+                        $Feature.Scenarios
                     }
 
         foreach($Scenario in $Tagged) {
@@ -152,21 +152,27 @@ function Invoke-GherkinStep {
         $Pester, $Step
     )
     #  Pick the match with the least grouping wildcards in it...
-    $StepCommand = $Script:GherkinSteps.Keys | Where { $Step.Name -match $_ } | Sort { $Matches.Count } -Descending | Select -First 1
+    $StepCommand = $(
+        foreach($StepCommand in $Script:GherkinSteps.Keys) {
+            if($Step.Name -match $StepCommand) {
+                $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
+            }
+        }
+    ) | Sort MatchCount | Select -First 1
     $StepName = "{0} {1}" -f $Step.Keyword, $Step.Name
 
     if(!$StepCommand) {
         $Pester.AddTestResult($Step.Name, $False, $null, "Could not find test for step!", $null )
     } else {
-        $Arguments, $Parameters = Get-StepParameters $Step.Name $StepCommand
+        $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
 
         $Pester.EnterTest($StepName)
         $PesterException = $null
         $watch = New-Object System.Diagnostics.Stopwatch
         $watch.Start()
         try{
-            if($Arguments.Count) {
-                $null = & $Script:GherkinSteps.$StepCommand @Arguments @Parameters
+            if($NamedArguments.Count) {
+                $null = & $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters
             } else {
                 $null = & $Script:GherkinSteps.$StepCommand @Parameters
             }
@@ -204,19 +210,26 @@ function Invoke-GherkinStep {
 }
 
 function Get-StepParameters {
-    param($StepName, $CommandName)
+    param($Step, $CommandName)
     $Null = $Step.Name -match $CommandName
 
-    $Arguments = @{}
+    $NamedArguments = @{}
     $Parameters = @{}
     foreach($kv in $Matches.GetEnumerator()) {
         switch ($kv.Name -as [int]) {
             0       {  } # toss zero (where it matches the whole string)
-            $null   { $Arguments.($kv.Name) = $ExecutionContext.InvokeCommand.ExpandString($kv.Value)       }
+            $null   { $NamedArguments.($kv.Name) = $ExecutionContext.InvokeCommand.ExpandString($kv.Value)       }
             default { $Parameters.([int]$kv.Name) = $ExecutionContext.InvokeCommand.ExpandString($kv.Value) }
         }
     }
     $Parameters = @($Parameters.GetEnumerator() | Sort Name | Select -Expand Value)
 
-    return @($Arguments, $Parameters)
+    if($Step.TableArgument) {
+        $NamedArguments.Table = $Step.TableArgument
+    }
+    if($Step.DocStringArgument) {
+        $NamedArguments.DocString = $Step.DocStringArgument
+    }
+
+    return @($NamedArguments, $Parameters)
 }
