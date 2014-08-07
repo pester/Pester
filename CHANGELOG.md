@@ -22,6 +22,7 @@
   - Mock lifetime is no longer tied to It blocks. [GH-176]
   - Add module manifest
   - Added multiple lines to failure messages from Should Be and Should BeExactly. Updated console output code to support blank lines in failure messages and stack traces. [GH-185]
+  - Fixed stack trace information when test failures come from inside InModuleScope blocks, or from something other than a Should assertion.  [GH-183]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
