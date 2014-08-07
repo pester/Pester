@@ -28,20 +28,19 @@ function InModuleScope
     }
 
     $originalState = $Pester.SessionState
+    $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
 
     try
     {
         $Pester.SessionState = $module.SessionState
 
-        # Avoid modifying the ScriptBlock instance that was passed in, just in case this causes unexpected problems
+        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $module.SessionState
 
-        $_scriptBlock = [scriptblock]::Create($ScriptBlock.ToString())
-        Set-ScriptBlockScope -ScriptBlock $_scriptBlock -SessionState $module.SessionState
-
-        & $_scriptBlock
+        & $ScriptBlock
     }
     finally
     {
         $Pester.SessionState = $originalState
+        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope 
     }
 }
