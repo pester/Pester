@@ -103,15 +103,17 @@ function Get-PesterResult {
         if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
         {
             $failureMessage = $exception.exception.message
+            $file = $test.File
             $line = if ( $exception.ErrorDetails.message -match "\d+$" )  { $matches[0] }
         }
         else {
             $failureMessage = $exception.ToString()
-            $line= $exception.InvocationInfo.ScriptLineNumber
+            $file = $Exception.InvocationInfo.ScriptName
+            $line = $Exception.InvocationInfo.ScriptLineNumber
         }
 
         $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
-        $testResult.stackTrace = "at line: $line in $($test.File)"
+        $testResult.stackTrace = "at line: $line in $file"
     }
     return $testResult
 }
