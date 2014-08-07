@@ -89,7 +89,7 @@ function Invoke-Gherkin {
         Remove-Module $StepFile.BaseName
     }
 
-    $pester | Write-PesterReport
+    $pester | Write-TestReport
 
 
     if ($PassThru) {
@@ -156,7 +156,7 @@ function Invoke-GherkinStep {
     $StepName = "{0} {1}" -f $Step.Keyword, $Step.Name
 
     if(!$StepCommand) {
-        $Pester.AddTestResult($Step.Name, $False, [TimeSpan]0, "Could not find test for step!", $null )
+        $Pester.AddTestResult($Step.Name, $False, $null, "Could not find test for step!", $null )
     } else {
         $Arguments, $Parameters = Get-StepParameters $Step.Name $StepCommand
 
@@ -170,7 +170,9 @@ function Invoke-GherkinStep {
             } else {
                 $null = & $Script:GherkinSteps.$StepCommand @Parameters
             }
+            $Success = $True
         } catch {
+            $Success = $False
             $PesterException = $_
         }
 
@@ -178,17 +180,27 @@ function Invoke-GherkinStep {
         Exit-MockScope
         $Pester.LeaveTest()
 
-        $Results = @{
-            Test = $Test
-            Time = $watch.Elapsed
-            Exception = $PesterException
-        }
 
-        $Result = Get-PesterResult @Results
-        $Pester.AddTestResult($StepName, $Result.Success, $result.time, $result.failuremessage, $result.StackTrace )
+        # if($PesterException) {
+        #     if ($PesterException.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+        #     {
+        #         $failureMessage = $PesterException.exception.message  -replace "Exception calling", "Assert failed on"
+        #         $stackTrace = $PesterException.ScriptStackTrace # -split "`n")[3] #-replace "<No File>:"
+        #     }
+        #     else {
+        #         $failureMessage = $PesterException.ToString()
+        #         $stackTrace = ($PesterException.ScriptStackTrace -split "`n")[0]
+        #     }
+
+        #     $Pester.AddTestResult($name, $False, $null, $failureMessage, $stackTrace)
+        # } else {
+        #     $Pester.AddTestResult($name, $True, $null, $null, $null )
+        # }
+
+        $Pester.AddTestResult($StepName, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
     }
 
-    $Pester.testresult[-1] | Write-PesterResult
+    $Pester.testresult[-1] | Write-TestResult
 }
 
 function Get-StepParameters {
