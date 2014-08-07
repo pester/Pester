@@ -4,7 +4,7 @@ function PesterBeExactly($value, $expected) {
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
-    return "Expected: exactly {$expected}, But was {$value}"
+    return "Expected exactly: {$expected}`nBut instead was:  {$value}"
 }
 
 function NotPesterBeExactlyFailureMessage($value, $expected) {
