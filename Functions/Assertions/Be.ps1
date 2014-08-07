@@ -4,7 +4,7 @@ function PesterBe($value, $expected) {
 }
 
 function PesterBeFailureMessage($value, $expected) {
-    return "Expected: {$expected}, But was {$value}"
+    return "Expected: {$expected}`nBut was:  {$value}"
 }
 
 function NotPesterBeFailureMessage($value, $expected) {

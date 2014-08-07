@@ -223,8 +223,8 @@ function Write-PesterResult
         }
         else {
             "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
-            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $error_margin$($TestResult.failureMessage)
-            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $error_margin$($TestResult.stackTrace)
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
         }
     }
 }
