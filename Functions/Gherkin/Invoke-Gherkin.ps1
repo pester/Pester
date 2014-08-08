@@ -46,7 +46,6 @@ function Invoke-Gherkin {
         Import-Module $StepFile.FullName -Force
     }
 
-
     foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
         $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
 
@@ -90,6 +89,9 @@ function Invoke-Gherkin {
     }
 
     $pester | Write-TestReport
+    $coverageReport = Get-CoverageReport -PesterState $pester
+    Show-CoverageReport -CoverageReport $coverageReport
+    Exit-CoverageAnalysis -PesterState $pester
 
 
     if ($PassThru) {
