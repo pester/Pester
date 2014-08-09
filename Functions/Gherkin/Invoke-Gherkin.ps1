@@ -122,18 +122,15 @@ function Invoke-GherkinScenario {
                                     if($StepName -match $NamesPattern) {
                                         foreach($Name in $Names) {
                                             if($Example.$Name -and $StepName -match "<${Name}>") {
-                                                Write-Verbose "$StepName -replace '<${Name}>', $Example.$Name ($($Example.$Name))"
                                                 $StepName = $StepName -replace "<${Name}>", $Example.$Name
                                             }
                                         }
                                     }
                                     if($StepName -ne $Step.Name) {
-                                        Write-Verbose "Step Name: $StepName"
                                         $S = New-Object PoshCode.PowerCuke.ObjectModel.Step $Step
                                         $S.Name = $StepName
                                         $S
                                     } else {
-                                        Write-Verbose "Original Step: $($Step.Name)"
                                         $Step
                                     }
                                 }
@@ -156,7 +153,7 @@ function Invoke-GherkinStep {
     #  Pick the match with the least grouping wildcards in it...
     $StepCommand = $(
         foreach($StepCommand in $Script:GherkinSteps.Keys) {
-            if($Step.Name -match $StepCommand) {
+            if($Step.Name -match "^${StepCommand}$") {
                 $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
             }
         }
