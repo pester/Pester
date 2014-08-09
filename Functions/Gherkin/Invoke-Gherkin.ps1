@@ -42,7 +42,7 @@ function Invoke-Gherkin {
     # Remove all the steps
     $Script:GherkinSteps.Clear()
     # Import all the steps (we're going to need them in a minute)
-    foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
+    foreach($StepFile in Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.psm1" -Recurse){
         Import-Module $StepFile.FullName -Force
     }
 
