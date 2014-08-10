@@ -74,7 +74,7 @@ function Should {
         $parsedArgs = Parse-ShouldArgs $args
     }
 
-    end {        
+    end {
         $valueToTest = foreach ($object in $input)
         {
             $object

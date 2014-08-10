@@ -40,7 +40,7 @@ function CompareArrays
     $placeholderForNull = New-Object object
 
     $First = @(ReplaceValueInArray -Array $First -Value $null -NewValue $placeholderForNull)
-    $Second = @(ReplaceValueInArray -Array $Second -Value $null -NewValue $placeholderForNull) 
+    $Second = @(ReplaceValueInArray -Array $Second -Value $null -NewValue $placeholderForNull)
 
     $arraysAreEqual = ($null -eq (Compare-Object $First $Second @params))
 

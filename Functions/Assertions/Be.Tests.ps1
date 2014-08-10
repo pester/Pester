@@ -5,7 +5,7 @@ InModuleScope Pester {
         It "returns true if the 2 arguments are equal" {
             Test-PositiveAssertion (PesterBe 1 1)
         }
-        
+
         It "returns true if the 2 arguments are equal and have different case" {
             Test-PositiveAssertion (PesterBe "A" "a")
         }
@@ -32,7 +32,7 @@ InModuleScope Pester {
         It "passes if letter case matches" {
             'a' | Should BeExactly 'a'
         }
-        
+
         It "fails if letter case doesn't match" {
             'A' | Should Not BeExactly 'a'
         }
