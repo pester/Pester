@@ -1,6 +1,6 @@
 
 function PesterMatch($value, $expectedMatch) {
-    return ($value -match $expectedMatch)
+    return [bool]($value -match $expectedMatch)
 }
 
 function PesterMatchFailureMessage($value, $expectedMatch) {
