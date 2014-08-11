@@ -26,30 +26,30 @@ InModuleScope Pester {
         }
     }
 
-    Describe "Get-DoMessagesMatch" {
+    Describe "DoMessagesMatch" {
         It "returns true if the actual message is the same as the expected message" {
             $expectedErrorMessage = "expected"
             $actualErrorMesage = "expected"
-            $result = Get-DoMessagesMatch $actualErrorMesage $expectedErrorMessage
+            $result = DoMessagesMatch $actualErrorMesage $expectedErrorMessage
             $result | Should Be $True
         }
 
         It "returns false if the actual message is not the same as the expected message" {
             $expectedErrorMessage = "some expected message"
             $actualErrorMesage = "unexpected"
-            $result = Get-DoMessagesMatch $actualErrorMesage $expectedErrorMessage
+            $result = DoMessagesMatch $actualErrorMesage $expectedErrorMessage
             $result | Should Be $False
         }
 
         It "returns false is there's no expectation" {
-            $result = Get-DoMessagesMatch "" ""
+            $result = DoMessagesMatch "" ""
             $result | Should Be $False
         }
 
         It "returns true if the expected error is contained in the actual message" {
             $actualErrorMesage = "this is a long error message"
             $expectedText = "long error"
-            $result = Get-DoMessagesMatch $actualErrorMesage $expectedText
+            $result = DoMessagesMatch $actualErrorMesage $expectedText
             $result | Should Be $True
         }
     }

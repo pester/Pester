@@ -1,6 +1,10 @@
+function PesterBeAcceptsArrayInput
+{
+    return $true
+}
 
 function PesterBe($value, $expected) {
-    return CompareArrays @($value) @($expected)
+    return CompareArrays $value $expected
 }
 
 function PesterBeFailureMessage($value, $expected) {
@@ -12,7 +16,12 @@ function NotPesterBeFailureMessage($value, $expected) {
 }
 
 function PesterBeExactly($value, $expected) {
-    return CompareArrays @($value) @($expected) -CaseSensitive
+    return CompareArrays $value $expected -CaseSensitive
+}
+
+function PesterBeExactlyAcceptsArrayInput
+{
+    return $true
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
@@ -26,10 +35,15 @@ function NotPesterBeExactlyFailureMessage($value, $expected) {
 function CompareArrays
 {
     param (
-        [object[]] $First,
-        [object[]] $Second,
+        [object[]] $Actual,
+        [object[]] $Expected,
         [switch] $CaseSensitive
     )
+
+    if ($null -eq $Expected)
+    {
+        return $null -eq $Actual -or $Actual.Count -eq 0
+    }
 
     $params = @{ SyncWindow = 0 }
     if ($CaseSensitive)
@@ -39,10 +53,10 @@ function CompareArrays
 
     $placeholderForNull = New-Object object
 
-    $First = @(ReplaceValueInArray -Array $First -Value $null -NewValue $placeholderForNull)
-    $Second = @(ReplaceValueInArray -Array $Second -Value $null -NewValue $placeholderForNull)
+    $Actual   = @(ReplaceValueInArray -Array $Actual -Value $null -NewValue $placeholderForNull)
+    $Expected = @(ReplaceValueInArray -Array $Expected -Value $null -NewValue $placeholderForNull)
 
-    $arraysAreEqual = ($null -eq (Compare-Object $First $Second @params))
+    $arraysAreEqual = ($null -eq (Compare-Object $Actual $Expected @params))
 
     return $arraysAreEqual
 }

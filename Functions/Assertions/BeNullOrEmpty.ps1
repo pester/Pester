@@ -1,19 +1,35 @@
 
-function PesterBeNullOrEmpty($value) {
-    if ($null -eq $value) {
+function PesterBeNullOrEmpty([object[]] $value)
+{
+    if ($null -eq $value -or $value.Count -eq 0)
+    {
         return $true
     }
-    if ([String] -eq $value.GetType()) {
-        return [String]::IsNullOrEmpty($value)
+    elseif ($value.Count -eq 1)
+    {
+        return [String]::IsNullOrEmpty($value[0])
     }
-    if ($null -ne $value.Count) {
-        return $value.Count -lt 1
+    else
+    {
+        return $false
     }
-    return $false
+}
+
+function PesterBeNullOrEmptyAcceptsArrayInput
+{
+    return $true
 }
 
 function PesterBeNullOrEmptyFailureMessage($value) {
-    return "Expected: value to be empty but it was {$value}"
+    if ($value -is [string])
+    {
+        return "Expected: string to be empty but it was {$value}"
+    }
+    else
+    {
+        return "Expected: array to be empty but it contained {$($value.Count)} elements."
+    }
+
 }
 
 function NotPesterBeNullOrEmptyFailureMessage {
