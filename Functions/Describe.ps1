@@ -86,7 +86,7 @@ param(
     }
     catch
     {
-        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
+        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
         $Pester.AddTestResult('Error occurred in Describe block', $false, $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
     }
