@@ -1,6 +1,6 @@
 
 function PesterMatchExactly($value, $expectedMatch) {
-    return ($value -cmatch $expectedMatch)
+    return [bool]($value -cmatch $expectedMatch)
 }
 
 function PesterMatchExactlyFailureMessage($value, $expectedMatch) {

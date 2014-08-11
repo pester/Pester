@@ -4,26 +4,30 @@ $ActualExceptionWasThrown = $false
 
 # because this is a script block, the user will have to
 # wrap the code they want to assert on in { }
-function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
-    $Script:ActualExceptionMessage = ""
-    $Script:ActualExceptionWasThrown = $false
+function PesterThrow([scriptblock[]] $script, $expectedErrorMessage) {
+    foreach ($block in $script)
+    {
+        $Script:ActualExceptionMessage = ""
+        $Script:ActualExceptionWasThrown = $false
 
-    try {
-        # Redirect to $null so script output does not enter the pipeline
-        & $script > $null
-    } catch {
-        $Script:ActualExceptionWasThrown = $true
-        $Script:ActualExceptionMessage = $_.Exception.Message
-        $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
+        try {
+            # Redirect to $null so script output does not enter the pipeline
+            & $block > $null
+        } catch {
+            $Script:ActualExceptionWasThrown = $true
+            $Script:ActualExceptionMessage = $_.Exception.Message
+            $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
+        }
+
+        if (-not ($ActualExceptionWasThrown -and (DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage))) {
+            return $false
+        }
     }
 
-    if ($ActualExceptionWasThrown) {
-        return Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage
-    }
-    return $false
+    return $true
 }
 
-function Get-DoMessagesMatch($value, $expected) {
+function DoMessagesMatch($value, $expected) {
     if ($expected -eq "") { return $false }
     return $value.Contains($expected)
 }
