@@ -598,7 +598,9 @@ function MockPrototype {
         $moduleName = $ExecutionContext.SessionState.Module.Name
     }
 
-    Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $args
+    $ArgumentList = @(Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction SilentlyContinue)
+
+    Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
 }
 
 function Invoke-Mock {
