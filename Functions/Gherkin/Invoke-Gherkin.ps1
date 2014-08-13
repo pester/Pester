@@ -73,7 +73,6 @@ function Invoke-Gherkin {
             Invoke-GherkinScenario $Pester $Scenario $Feature.Background
 
             Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
-            Exit-MockScope
             $Pester.LeaveContext()
         }
 
@@ -94,11 +93,25 @@ function Invoke-Gherkin {
     Exit-CoverageAnalysis -PesterState $pester
 
 
-    if ($PassThru) {
-        #remove all runtime properties like current* and Scope
-        $pester | Select -Property "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+    if($OutputXml) {
+        #TODO make this legacy option and move the nUnit report out of invoke-pester
+        #TODO add warning message that informs the user how to use the nunit output properly
+        Export-NunitReport $pester $OutputXml
     }
 
+    if ($PassThru) {
+        # Remove all runtime properties like current* and Scope
+        $properties = @(
+            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+
+            if ($CodeCoverage)
+            {
+                @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+            }
+        )
+        $pester | Select -Property $properties
+    }
+    if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
 }
 
 function Invoke-GherkinScenario {
@@ -147,7 +160,8 @@ function Invoke-GherkinScenario {
 
 
 function Invoke-GherkinStep {
-    param(
+    [CmdletBinding()]
+    param (
         $Pester, $Step
     )
     #  Pick the match with the least grouping wildcards in it...
@@ -171,10 +185,12 @@ function Invoke-GherkinStep {
         $watch.Start()
         try{
             if($NamedArguments.Count) {
-                $null = & $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters
+                $ScriptBlock = { & $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters }
             } else {
-                $null = & $Script:GherkinSteps.$StepCommand @Parameters
+                $ScriptBlock = { & $Script:GherkinSteps.$StepCommand @Parameters }
             }
+            # Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
+            $null = & $ScriptBlock
             $Success = $True
         } catch {
             $Success = $False
