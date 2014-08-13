@@ -42,9 +42,10 @@ function Invoke-Gherkin {
     # Remove all the steps
     $Script:GherkinSteps.Clear()
     # Import all the steps (we're going to need them in a minute)
-    foreach($StepFile in Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.psm1" -Recurse){
-        Import-Module $StepFile.FullName -Force
+    foreach($StepFile in Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.ps1" -Recurse){
+        . $StepFile.FullName
     }
+    Write-Host "Loaded $($Script:GherkinSteps.Count) Step Definitions"
 
     foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
         $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
@@ -84,7 +85,8 @@ function Invoke-Gherkin {
 
     # Remove all the steps
     foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
-        Remove-Module $StepFile.BaseName
+        $Script:GherkinSteps.Clear()
+        # Remove-Module $StepFile.BaseName
     }
 
     $pester | Write-TestReport
