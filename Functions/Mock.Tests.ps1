@@ -77,6 +77,10 @@ Describe "When calling Mock on existing cmdlet" {
     It "Should Invoke the mocked script" {
         $result | Should Be "I am not Get-Process"
     }
+
+    It 'Should not resolve $args to the parent scope' {
+        { $args = 'From', 'Parent', 'Scope'; Get-Process SomeName } | Should Not Throw
+    }
 }
 
 Describe 'When calling Mock on an alias' {
