@@ -36,37 +36,46 @@ function Invoke-Gherkin {
     # Clear mocks
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState |
+        Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
+            @($this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } }).Count
+        } -passthru |
+        Add-Member -MemberType ScriptProperty -Name PassedScenarios -Value {
+            @($this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) }).Count
+        } -passthru
+
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     # Remove all the steps
     $Script:GherkinSteps.Clear()
     # Import all the steps (we're going to need them in a minute)
-    foreach($StepFile in Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.ps1" -Recurse){
+    $StepFiles = Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.ps1" -Recurse
+    foreach($StepFile in $StepFiles){
         . $StepFile.FullName
     }
-    Write-Host "Loaded $($Script:GherkinSteps.Count) Step Definitions"
+    Write-Host "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
 
     foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
         $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
 
         ## This is Pesters "Describe" function
         $Pester.EnterDescribe($Feature)
-        Write-Feature $Feature
         New-TestDrive
 
-        $Tagged = if($pester.TagFilter) {
-                        foreach($Scenario in $Feature.Scenarios) {
-                            $Tags = @($Scenario.Tags) + @($Feature.Tags) | Select-Object -Unique
-                            if(Compare-Object $Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent) {
-                                $Scenario
-                            }
-                        }
-                    } else {
-                        $Feature.Scenarios
-                    }
+        $Scenarios = $Feature.Scenarios
 
-        foreach($Scenario in $Tagged) {
+        if($pester.TagFilter) {
+            $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
+        }
+        if($pester.TestNameFilter) {
+            $Scenarios = $Scenarios | Where { $_.Name -like $pester.TestNameFilter }
+        }
+
+        if($Scenarios) {
+            Write-Feature $Feature
+        }
+
+        foreach($Scenario in $Scenarios) {
             # This is Pester's Context function
             $Pester.EnterContext($Scenario.Name)
             $TestDriveContent = Get-TestDriveChildItem
@@ -200,7 +209,6 @@ function Invoke-GherkinStep {
         }
 
         $watch.Stop()
-        Exit-MockScope
         $Pester.LeaveTest()
 
 
