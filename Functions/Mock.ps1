@@ -185,6 +185,8 @@ about_Mocking
         [string]$ModuleName
     )
 
+    Assert-DescribeInProgress -CommandName Mock
+
     $filterTest = Test-ParameterFilter -ScriptBlock $ParameterFilter
 
     if ($filterTest -isnot [bool]) { throw [System.Management.Automation.PSArgumentException] 'The Parameter Filter must return a boolean' }
@@ -309,6 +311,8 @@ Assert-VerifiableMocks
 This will not throw an exception because the mock was invoked.
 
 #>
+    Assert-DescribeInProgress -CommandName Assert-VerifiableMocks
+
     $unVerified=@{}
     $mockTable.Keys | % {
         $m=$_; $mockTable[$m].blocks | ? { $_.Verifiable } | % { $unVerified[$m]=$_ }
@@ -454,6 +458,9 @@ param(
     [ValidateSet('Describe','Context','It')]
     [string] $Scope
 )
+    
+    Assert-DescribeInProgress -CommandName Assert-MockCalled
+
     if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $pester.SessionState.Module)
     {
         $ModuleName = $pester.SessionState.Module.Name

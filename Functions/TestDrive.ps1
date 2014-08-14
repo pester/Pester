@@ -48,8 +48,9 @@ function New-RandomTempDirectory {
 function Get-TestDriveItem {
     #moved here from Pester.psm1
     param( [string]$Path )
-    $result = Get-Item $(Join-Path $TestDrive $Path )
-    return $result
+
+    Assert-DescribeInProgress -CommandName Get-TestDriveItem
+    Get-Item $(Join-Path $TestDrive $Path )
 }
 
 function Get-TestDriveChildItem {
@@ -97,6 +98,8 @@ function Setup {
     $Content = "",
     [switch]$PassThru
     )
+
+    Assert-DescribeInProgress -CommandName Setup
 
     $TestDriveName = Get-PSDrive TestDrive | Select -ExpandProperty Root
 

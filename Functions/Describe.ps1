@@ -97,3 +97,11 @@ param(
     $Pester.LeaveDescribe()
 }
 
+function Assert-DescribeInProgress
+{
+    param ($CommandName)
+    if ($null -eq $pester -or [string]::IsNullOrEmpty($pester.CurrentDescribe))
+    {
+        throw "The $CommandName command may only be used inside a Describe block."
+    }
+}

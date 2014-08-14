@@ -21,6 +21,7 @@ param(
     $path,
     [ScriptBlock] $execute
 )
+    Assert-DescribeInProgress -CommandName In
 
     $old_pwd = $pwd
     pushd $path

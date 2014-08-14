@@ -1,5 +1,12 @@
-function BeforeEach { }
-function AfterEach { }
+function BeforeEach
+{
+    Assert-DescribeInProgress -CommandName BeforeEach
+}
+
+function AfterEach
+{
+    Assert-DescribeInProgress -CommandName AfterEach
+}
 
 function Clear-SetupAndTeardown
 {
