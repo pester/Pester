@@ -25,6 +25,7 @@
   - Fixed stack trace information when test failures come from inside InModuleScope blocks, or from something other than a Should assertion.  [GH-183]
   - Fixed stack trace information from Describe and Context block errors in PowerShell 2.0. [GH-186]
   - Fixed a problem with parameter / argument resolution in mocked cmdlets / advanced functions.  [GH-187]
+  - Improved error reporting when Pester commands are called outside of a Describe block. [GH-188]
 
 ## 3.0.0-beta2 (July 4, 2014)
   - Add code coverage [GH-148]
