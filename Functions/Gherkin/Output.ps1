@@ -64,7 +64,10 @@ function Write-TestReport
 
     Microsoft.PowerShell.Utility\Write-Host "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
 
-    $Success, $Failure = if($PesterState.FailedCount -gt 0) { "White", "Red" } else { "DarkGreen", "White" }
-    Microsoft.PowerShell.Utility\Write-Host "Passed: $($PesterState.PassedCount) " -Fore $Success -NoNewLine
+
+    $Success, $Failure = if($PesterState.FailedCount -gt 0) { "White", "Red" } else { "DarkGreen", "DarkGray" }
+    Microsoft.PowerShell.Utility\Write-Host "Scenarios Passed: $($PesterState.PassedScenarios) " -Fore $Success -NoNewLine
+    Microsoft.PowerShell.Utility\Write-Host "Failed: $($PesterState.FailedScenarios) " -Fore $Failure
+    Microsoft.PowerShell.Utility\Write-Host "Steps Passed: $($PesterState.PassedCount) " -Fore $Success -NoNewLine
     Microsoft.PowerShell.Utility\Write-Host "Failed: $($PesterState.FailedCount) " -Fore $Failure
 }
