@@ -71,6 +71,7 @@ function New-ShouldException ($Message,$Line) {
 
 function Should {
     begin {
+        Assert-DescribeInProgress -CommandName Should
         $parsedArgs = Parse-ShouldArgs $args
     }
 

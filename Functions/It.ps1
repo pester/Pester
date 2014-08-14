@@ -65,6 +65,8 @@ about_should
         [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
+    Assert-DescribeInProgress -CommandName It
+
     $Pester.EnterTest($name)
     Invoke-SetupBlocks
 
