@@ -1,10 +1,40 @@
 function BeforeEach
 {
+<#
+.SYNOPSIS
+    Defines a series of steps to perform at the beginning of every It block within
+    the current Context or Describe block.
+
+.DESCRIPTION
+    BeforeEach and AfterEach are unique in that they apply to the entire Context
+    or Describe block, even those that come before the BeforeEach or AfterEach
+    definition within the Context or Describe.  For a full description of this
+    behavior, as well as how multiple BeforeEach or AfterEach blocks interact
+    with each other, please refer to the about_BeforeEach_AfterEach help file.
+
+.LINK
+    about_BeforeEach_AfterEach
+#>
     Assert-DescribeInProgress -CommandName BeforeEach
 }
 
 function AfterEach
 {
+<#
+.SYNOPSIS
+    Defines a series of steps to perform at the end of every It block within
+    the current Context or Describe block.
+
+.DESCRIPTION
+    BeforeEach and AfterEach are unique in that they apply to the entire Context
+    or Describe block, even those that come before the BeforeEach or AfterEach
+    definition within the Context or Describe.  For a full description of this
+    behavior, as well as how multiple BeforeEach or AfterEach blocks interact
+    with each other, please refer to the about_BeforeEach_AfterEach help file.
+
+.LINK
+    about_BeforeEach_AfterEach
+#>
     Assert-DescribeInProgress -CommandName AfterEach
 }
 
