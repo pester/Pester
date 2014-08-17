@@ -338,16 +338,12 @@ Checks if a Mocked command has been called a certain number of times
 and throws an exception if it has not.
 
 .DESCRIPTION
-This command checks the call history of the specified Command, in the
-specified Pester scope (or any child scopes). If it had been called less
-than the number of  times specified (1 is the default), then an exception
-is thrown. You  may specify 0 times if you want to make sure that the mock
-has NOT  been called. If you include the Exactly switch, the number of times
-that the command has been called must mach exactly with the number of
-times specified on this command.
+This command verifies that a mocked command has been called a certain number
+of times.  If the call history of the mocked command does not match the parameters
+passed to Assert-MockCalled, Assert-MockCalled will throw an exception.
 
 .PARAMETER CommandName
-The name of the command to check for mock calls.
+The mocked command whose call history should be checked.
 
 .PARAMETER ModuleName
 The module where the mock being checked was injected.  This is optional,
@@ -358,15 +354,15 @@ The number of times that the mock must be called to avoid an exception
 from throwing.
 
 .PARAMETER Exactly
-If this switch is present, the number specifid in Times must match
-exactly the number of times the mock has been called. Otherwise it
-must match "at least" the number of times specified.
+If this switch is present, the number specified in Times must match 
+exactly the number of times the mock has been called. Otherwise it 
+must match "at least" the number of times specified.  If the value
+passed to the Times parameter is zero, the Exactly switch is implied.
 
 .PARAMETER ParameterFilter
 An optional filter to qualify wich calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
-
 
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
@@ -391,7 +387,7 @@ C:\PS>Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content 2 {$path=$env:temp\test.txt}
+C:\PS>Assert-MockCalled Set-Content 2 { $path -eq "$env:temp\test.txt" }
 
 This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
 
@@ -414,17 +410,17 @@ C:\PS>Assert-MockCalled Set-Content -Exactly 2
 This will throw an exception if some code does not call Set-Content Exactly two times.
 
 .EXAMPLE
-Describe 'Describe' {
+Describe 'Assert-MockCalled Scope behavior' {
     Mock Set-Content { }
 
-    {... Some Code ...}
-
-    It 'Calls Set-Content at least once in the Describe block' {
+    It 'Calls Set-Content at least once in the It block' {
+        {... Some Code ...}
+        
         Assert-MockCalled Set-Content -Exactly 0 -Scope It
     }
 }
 
-Checks for calls only within the current It block
+Checks for calls only within the current It block.
 
 .EXAMPLE
 Describe 'Describe' {
@@ -443,7 +439,11 @@ and Assert-MockCalled commands use the same module name.
 .NOTES
 The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
 (if any) which was used to create the Mock.  Assert-MockCalled will find any entry in the command history
-which matches its parameter filter, regardless of how the Mock was created.
+which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
+mocked command are made which did not match any mock's parameter filter (resulting in the original command
+being executed instead of a mock), these calls to the original command are not tracked in the call history.
+In other words, Assert-MockCalled can only be used to check for calls to the mocked implementation, not
+to the original.
 
 #>
 

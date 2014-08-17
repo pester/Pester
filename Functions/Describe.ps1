@@ -57,7 +57,8 @@ about_TestDrive
 #>
 
     param(
-        [Parameter(Mandatory = $true, Position = 0)] $Name,
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $Name,
         $Tags=@(),
         [Parameter(Position = 1)]
         [ValidateNotNull()]

@@ -42,7 +42,7 @@ about_TestDrive
 #>
     param(
         [Parameter(Mandatory = $true)]
-        $Name ,
+        [string] $Name,
 
         [ValidateNotNull()]
         [ScriptBlock] $Fixture  = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
