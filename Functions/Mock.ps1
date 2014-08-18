@@ -7,14 +7,14 @@ implementation.
 
 .DESCRIPTION
 This creates new behavior for any existing command within the scope of a
-Describe block. The function allows you to specify a ScriptBlock that will
-become the commands new behavior.
+Describe or Context block. The function allows you to specify a script block
+that will become the command's new behavior.
 
-Optionally you may create a Parameter Filter which will examine the
+Optionally, you may create a Parameter Filter which will examine the
 parameters passed to the mocked command and will invoke the mocked
 behavior only if the values of the parameter values pass the filter. If
-they do not, the original commnd implementation will be invoked instead
-of the mock.
+they do not, the original command implementation will be invoked instead
+of a mock.
 
 You may create multiple mocks for the same command, each using a different
 ParameterFilter. ParameterFilters will be evaluated in reverse order of
@@ -23,17 +23,17 @@ The mock of the first filter to pass will be used. The exception to this
 rule are Mocks with no filters. They will always be evaluated last since
 they will act as a "catch all" mock.
 
-Mocks can be marked Verifiable. If so, the Assert-VerifiableMocks can be
-used to check if all Verifiable mocks were actually called. If any
+Mocks can be marked Verifiable. If so, the Assert-VerifiableMocks command
+can be used to check if all Verifiable mocks were actually called. If any
 verifiable mock is not called, Assert-VerifiableMocks will throw an
 exception and indicate all mocks not called.
 
-You can mock commands on behalf of different calling scopes by using the
--ModuleName parameter.  If you do not specify a ModuleName, the command
-is mocked in the scope of the test script.  If the mocked command needs
-to be called from inside a module, Mock it with the -ModuleName parameter
-instead.  You may mock the same command multiple times, in multiple scopes,
-as necessary.
+If you wish to mock commands that are called from inside a script module,
+you can do so by using the -ModuleName parameter to the Mock command. This
+injects the mock into the specified module. If you do not specify a
+module name, the mock will be created in the same scope as the test script.
+You may mock the same command multiple times, in different scopes, as needed.
+Each module's mock maintains a separate call history and verified status.
 
 .PARAMETER CommandName
 The name of the command to be mocked.
@@ -41,10 +41,14 @@ The name of the command to be mocked.
 .PARAMETER MockWith
 A ScriptBlock specifying the behvior that will be used to mock CommandName.
 The default is an empty ScriptBlock.
+NOTE: Do not specify param or dynamicparam blocks in this script block.
+These will be injected automatically based on the signature of the command
+being mocked, and the MockWith script block can contain references to the
+mocked commands parameter variables.
 
 .PARAMETER Verifiable
-When this is set, the mock will be checked when using Assert-VerifiableMocks
-to ensure the mock was called.
+When this is set, the mock will be checked when Assert-VerifiableMocks is
+called.
 
 .PARAMETER ParameterFilter
 An optional filter to limit mocking behavior only to usages of
@@ -60,98 +64,62 @@ command; it doesn't necessarily have to be the same module which
 originally implemented the command.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
-Using this Mock, all calls to Get-ChildItem will return an object with a
+Using this Mock, all calls to Get-ChildItem will return a hashtable with a 
 FullName property returning "A_File.TXT"
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp)}
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp) }
 
 This Mock will only be applied to Get-ChildItem calls within the user's temp directory.
 
 .EXAMPLE
-Mock Set-Content -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
+Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $Value -eq "Expected Value" }
 
 When this mock is used, if the Mock is never invoked and Assert-VerifiableMocks is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
-c:\PS>Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp\1)}
-c:\PS>Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp\2)}
-c:\PS>Mock Get-ChildItem {return @{FullName="C_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp\3)}
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp\1) }
+Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp\2) }
+Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp\3) }
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path -eq "$env:temp\me"}
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}} -ParameterFilter {$Path.StartsWith($env:temp)}
+Mock Get-ChildItem { return @{FullName="B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
+Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp) }
 
 Get-ChildItem $env:temp\me
 
-Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the last Mock created.
+Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the most recent Mock created.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path -eq "$env:temp\me"}
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
+Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem c:\windows
 
-Here, A_File.TXT will be returned. Since no filterwas specified, it will apply to any call to Get-ChildItem that does not pass another filter.
+Here, A_File.TXT will be returned. Since no filter was specified, it will apply to any call to Get-ChildItem that does not pass another filter.
 
 .EXAMPLE
-Mock Get-ChildItem {return @{FullName="B_File.TXT"}} -ParameterFilter {$Path -eq "$env:temp\me"}
-Mock Get-ChildItem {return @{FullName="A_File.TXT"}}
+Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem $env:temp\me
 
-Here, B_File.TXT will be returned. Even though the filterless mock was created last. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
+Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
 
 .EXAMPLE
-Mock -ModuleName MyTestModule Get-ChildItem {return @{FullName="A_File.TXT"}}
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule 
 
 Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
-will return an object with a FullName property returning "A_File.TXT"
+will return a hashtable with a FullName property returning "A_File.TXT"
 
 .EXAMPLE
-    Describe "BuildIfChanged" {
-        Mock Get-Version {return 1.1}
-        Context "Wnen there are Changes" {
-            Mock Get-NextVersion {return 1.2}
-            Mock Build {} -Verifiable -ParameterFilter {$version -eq 1.2}
-
-            $result = BuildIfChanged
-
-            It "Builds the next version" {
-                Assert-VerifiableMocks
-            }
-            It "returns the next version number" {
-                $result.Should.Be(1.2)
-            }
-        }
-        Context "Wnen there are no Changes" {
-            Mock Get-NextVersion -MockWith {return 1.1}
-            Mock Build -MockWith {}
-
-            $result = BuildIfChanged
-
-            It "Should not build the next version" {
-                Assert-MockCalled Build -Times 0 -ParameterFilter{$version -eq 1.1}
-            }
-        }
-    }
-
-    Notice how 'Mock Get-Version {return 1.1}' is declared within the
-    Describe block. This allows all Context and It blocks inside the describe
-    to use this Mock. If a context scoped mock, mocks Get-Version, that mock
-    will override the describe scoped mock within that contex tif both mocks
-    apply to the parameters passed to Get-Version.
-
-.EXAMPLE
-Mock internal module function with Mock.
-
 Get-Module -Name ModuleMockExample | Remove-Module
 New-Module -Name ModuleMockExample  -ScriptBlock {
-    function Hidden {"Hidden"}
+    function Hidden { "Internal Module Function" }
     function Exported { Hidden }
 
     Export-ModuleMember -Function Exported
@@ -160,20 +128,30 @@ New-Module -Name ModuleMockExample  -ScriptBlock {
 Describe "ModuleMockExample" {
 
     It "Hidden function is not directly accessible outside the module" {
-        { ModuleMockExample\Hidden } | Should Throw
+        { Hidden } | Should Throw
     }
 
     It "Original Hidden function is called" {
-        Exported | Should Be "Hidden"
+        Exported | Should Be "Internal Module Function"
     }
 
     It "Hidden is replaced with our implementation" {
-        Mock Hidden { "mocked" } -ModuleName ModuleMockExample
-        Exported | Should Be "mocked"
+        Mock Hidden { "Mocked" } -ModuleName ModuleMockExample
+        Exported | Should Be "Mocked"
     }
 }
 
+This example shows how calls to commands made from inside a module can be
+mocked by using the -ModuleName parameter.
+
+
 .LINK
+Assert-MockCalled
+Assert-VerifiableMocks
+Describe
+Context
+It
+about_Should
 about_Mocking
 #>
 

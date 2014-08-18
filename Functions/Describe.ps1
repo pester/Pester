@@ -49,8 +49,8 @@ Describe "Add-Numbers" {
 .LINK
 It
 Context
-Should
 Invoke-Pester
+about_Should
 about_Mocking
 about_TestDrive
 
