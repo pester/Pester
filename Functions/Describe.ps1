@@ -1,18 +1,23 @@
 function Describe {
 <#
 .SYNOPSIS
-Defines the context bounds of a test. One may use this block to
-encapsulate a scenario for testing - a set of conditions assumed
-to be present and that should lead to various expected results
-represented by the IT blocks.
+Creates a logical group of tests.  All Mocks and TestDrive contents
+defined within a Describe block are scoped to that Describe; they
+will no longer be present when the Describe block exits.  A Describe
+block may contain any number of Context and It blocks.
 
 .PARAMETER Name
-The name of the Test. This is often an expressive phsae describing the scenario being tested.
+The name of the test group. This is often an expressive phrase describing the scenario being tested.
 
 .PARAMETER Fixture
 The actual test script. If you are following the AAA pattern (Arrange-Act-Assert), this
 typically holds the arrange and act sections. The Asserts will also lie in this block but are
-typically nested each in its own IT block.
+typically nested each in its own It block. Assertions are typically performed by the Should
+command within the It blocks.
+
+.PARAMETER Tags
+Optional parameter containing an array of strings.  When calling Invoke-Pester, it is possible to
+specify a -Tag parameter which will only execute Describe blocks containing the same Tag.
 
 .EXAMPLE
 function Add-Numbers($a, $b) {
@@ -20,44 +25,45 @@ function Add-Numbers($a, $b) {
 }
 
 Describe "Add-Numbers" {
-
     It "adds positive numbers" {
         $sum = Add-Numbers 2 3
-        $sum.should.be(5)
+        $sum | Should Be 5
     }
 
     It "adds negative numbers" {
         $sum = Add-Numbers (-2) (-2)
-        $sum.should.be((-4))
+        $sum | Should Be (-4)
     }
 
     It "adds one negative number to positive number" {
         $sum = Add-Numbers (-2) 2
-        $sum.should.be(0)
+        $sum | Should Be 0
     }
 
     It "concatenates strings if given strings" {
         $sum = Add-Numbers two three
-        $sum.should.be("twothree")
+        $sum | Should Be "twothree"
     }
-
 }
 
 .LINK
 It
 Context
 Invoke-Pester
+about_Should
+about_Mocking
 about_TestDrive
 
 #>
 
-param(
-        [Parameter(Mandatory = $true, Position = 0)] $name,
-        $tags=@(),
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $Name,
+        $Tags=@(),
         [Parameter(Position = 1)]
         [ValidateNotNull()]
-        [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
-)
+        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+    )
 
     if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction SilentlyContinue))
     {
@@ -73,16 +79,17 @@ param(
     }
 
     #TODO add test to test tags functionality
-    if($pester.TagFilter -and @(Compare-Object $tags $pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+    if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
     $Pester.EnterDescribe($Name)
+    
     $Pester.CurrentDescribe | Write-Describe
     New-TestDrive
 
     try
     {
-        Add-SetupAndTeardown -ScriptBlock $fixture
-        $null = & $fixture
+        Add-SetupAndTeardown -ScriptBlock $Fixture
+        $null = & $Fixture
     }
     catch
     {
@@ -100,7 +107,7 @@ param(
 function Assert-DescribeInProgress
 {
     param ($CommandName)
-    if ($null -eq $pester -or [string]::IsNullOrEmpty($pester.CurrentDescribe))
+    if ($null -eq $Pester -or [string]::IsNullOrEmpty($Pester.CurrentDescribe))
     {
         throw "The $CommandName command may only be used inside a Describe block."
     }
