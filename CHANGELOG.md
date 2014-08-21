@@ -1,4 +1,4 @@
-## Unreleased
+## 3.0.0 (August 21, 2014)
   - Fix code coverage tests so they do not left breakpoints set [GH-149]
   - Add better output for hashtables in code coverage [GH-150]
   - Fix Invoke-Pester -OutputXml usage of relative paths 
