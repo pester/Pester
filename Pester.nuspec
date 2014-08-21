@@ -13,11 +13,12 @@
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
   </metadata>
   <files>
-    <file src="bin\*.*" target="tools\bin" />
     <file src="Pester.psm1" target="tools" />
+    <file src="Pester.psd1" target="tools" />
+	<file src="nunit_schema_2.5.xsd" target="tools" />
+    <file src="bin\*.*" target="tools\bin" />
     <file src="Examples\**\*.*" target="tools\Examples" />
     <file src="Functions\**\*.*" target="tools\Functions" />
-    <file src="ObjectAdaptations\**\*.*" target="tools\ObjectAdaptations" />
     <file src="en-US\*.*" target="tools\en-US" />
   </files>
 </package>
