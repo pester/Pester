@@ -1,8 +1,36 @@
-###This branch contains the prerelease version of Pester. ###
-
 __Special thanks go to [@dlwyatt](https://github.com/dlwyatt) for implementing the CodeCoverage, Isolation, improved Module mocking and numerous other improvements.__
 
-The following changes are included in the marked versions. For full list of changes please see the Changelog.MD in the root of Pester:
+The following changes are included in the marked versions. For full list of changes please see the [CHANGELOG.md](CHANGELOG.md) in the root of Pester:
+
+###### 3.0.0 (August 21, 2014)
+  - Fix code coverage tests so they do not left breakpoints set [GH-149]
+  - Add better output for hashtables in code coverage [GH-150]
+  - Fix Invoke-Pester -OutputXml usage of relative paths 
+  - Remove Validate-Xml function
+  - Remove legacy object adaptations support
+  - Remove tests testing usage of the global scope
+  - Add function name to Code coverage output [GH-152]
+  - Suppress pipeline output in Context / Describe [GH-155]
+  - Coverage Output Update [GH-156]
+  - Add initial implementation of BeforeEach / AfterEach [GH-158]
+  - CodeCoverage of files containing DSC Configurations [GH-163]
+  - Rolling back some earlier Pester Scope changes [GH-164]
+  - Legacy expectations cleanup [GH-165]
+  - Invoke-Pester tests path fix [GH-166]
+  - Assert-MockCalled default ModuleName fix. [GH-167]
+  - Output exception source when test fails [GH-147]
+  - Fix for PesterThrowFailureMessage on PowerShell 2.0. [GH-171]
+  - Pester.bat no longer enables StrictMode.  [GH-172]
+  - Fixed default behavior of fixture parameter in Describe and Context.  [GH-174]
+  - Syntax errors in test files, as well as terminating errors from Describe or Context blocks are now treated as failed tests.  [GH-168]
+  - Mock lifetime is no longer tied to It blocks. [GH-176]
+  - Add module manifest
+  - Added multiple lines to failure messages from Should Be and Should BeExactly. Updated console output code to support blank lines in failure messages and stack traces. [GH-185]
+  - Fixed stack trace information when test failures come from inside InModuleScope blocks, or from something other than a Should assertion.  [GH-183]
+  - Fixed stack trace information from Describe and Context block errors in PowerShell 2.0. [GH-186]
+  - Fixed a problem with parameter / argument resolution in mocked cmdlets / advanced functions.  [GH-187]
+  - Improved error reporting when Pester commands are called outside of a Describe block. [GH-188]
+  - Extensive updates to help files and comment-based help for v3.0 release. [GH-190]
 
 ###### 3.0.0-beta2 (July 4, 2014)
   - Add code coverage
