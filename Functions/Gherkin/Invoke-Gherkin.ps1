@@ -253,7 +253,8 @@ function Get-StepParameters {
         $NamedArguments.Table = $Step.TableArgument
     }
     if($Step.DocStringArgument) {
-        $NamedArguments.DocString = $Step.DocStringArgument
+        # trim empty matches if we're attaching DocStringArgument
+        $Parameters = @( $Parameters | Where { $_.Length } ) + $Step.DocStringArgument
     }
 
     return @($NamedArguments, $Parameters)
