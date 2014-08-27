@@ -125,6 +125,7 @@ function Export-NUnitReport {
                     $XmlWriter.WriteStartElement("failure")
                     $xmlWriter.WriteElementString("message", $_.FailureMessage)
                     $XmlWriter.WriteElementString("stack-trace", $_.StackTrace)
+                    $XmlWriter.WriteEndElement() # Close failure tag
                 }
                 $XmlWriter.WriteEndElement() #Close test-case tag
             }
