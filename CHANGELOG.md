@@ -1,6 +1,7 @@
 ## Unreleased 
   - Fix nuspec specification to build the 3.0.0 package correctly
   - Add verbose output for Be and BeExactly string comparison [GH-192]
+  - Fixed NUnit XML output (missing close tag for failure element.)  [GH-195]
 
 ## 3.0.0 (August 21, 2014)
   - Fix code coverage tests so they do not left breakpoints set [GH-149]
