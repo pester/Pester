@@ -1,3 +1,6 @@
+## 3.0.1.1 (August 28, 2014)
+ - Fixing wrong version in the manifest, publishing new version so I can update it on Nuget/Chocolatey
+
 ## 3.0.1 (August 28, 2014)
   - Fix nuspec specification to build the 3.0.0 package correctly
   - Add verbose output for Be and BeExactly string comparison [GH-192]
