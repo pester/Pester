@@ -4,7 +4,7 @@
 
 $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
+"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Gherkin\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
 Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
 ForEach-Object { . $_.ProviderPath }
@@ -221,3 +221,4 @@ function Get-ScriptBlockScope
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 Export-ModuleMember BeforeEach, AfterEach
+Export-ModuleMember Invoke-Gherkin, When -Alias And, But, Given, Then
