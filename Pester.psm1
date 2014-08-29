@@ -13,7 +13,7 @@ else
 
 $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
+"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Gherkin\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
 Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 ForEach-Object { . $_.ProviderPath }
@@ -380,3 +380,4 @@ Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Ass
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
 Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember Invoke-Gherkin, When -Alias And, But, Given, Then

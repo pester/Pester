@@ -46,6 +46,9 @@ FunctionsToExport = @(
     'AfterAll'
     'Get-MockDynamicParameters',
     'Set-DynamicParameterVariables'
+    # Gherkin Support:
+    'Invoke-Gherkin',
+    'When'
 )
 
 # # Cmdlets to export from this module
@@ -69,7 +72,13 @@ VariablesToExport = @(
 )
 
 # # Aliases to export from this module
-# AliasesToExport = '*'
+AliasesToExport = @(
+    'And',
+    'But',
+    'Given'
+    'Then'
+)
+
 
 # List of all modules packaged with this module
 # ModuleList = @()
