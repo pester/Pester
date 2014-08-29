@@ -66,8 +66,8 @@ function Write-TestReport
 
 
     $Success, $Failure = if($PesterState.FailedCount -gt 0) { "White", "Red" } else { "DarkGreen", "DarkGray" }
-    Microsoft.PowerShell.Utility\Write-Host "Scenarios Passed: $($PesterState.PassedScenarios) " -Fore $Success -NoNewLine
-    Microsoft.PowerShell.Utility\Write-Host "Failed: $($PesterState.FailedScenarios) " -Fore $Failure
+    Microsoft.PowerShell.Utility\Write-Host "Scenarios Passed: $($PesterState.PassedScenarios.Count) " -Fore $Success -NoNewLine
+    Microsoft.PowerShell.Utility\Write-Host "Failed: $($PesterState.FailedScenarios.Count) " -Fore $Failure
     Microsoft.PowerShell.Utility\Write-Host "Steps Passed: $($PesterState.PassedCount) " -Fore $Success -NoNewLine
     Microsoft.PowerShell.Utility\Write-Host "Failed: $($PesterState.FailedCount) " -Fore $Failure
 }

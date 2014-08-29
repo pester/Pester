@@ -4,13 +4,24 @@ $StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
 
 function Invoke-Gherkin {
+    <#
+        .SYNOPSIS
+            Invoke testing of .feature files
+        .DESCRIPTION
+            By default, tests all .feature files in the current folder and child folders recursively.
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'NewTest')]
     param(
+        # Rerun only the scenarios which failed last time
+        [Parameter(Mandatory = $True, ParameterSetName = "RetestFailed")]
+        [switch]$FailedLast,
+
         [Parameter(Position=0,Mandatory=0)]
         [Alias('relative_path')]
         [string]$Path = $Pwd,
 
         [Parameter(Position=1,Mandatory=0)]
-        [string]$ScenarioName,
+        [string[]]$ScenarioName,
 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
@@ -27,8 +38,17 @@ function Invoke-Gherkin {
         [switch]$PassThru
     )
 
+    if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
+        if((Test-Path variable:script:pester) -and $script:Pester.FailedScenarios.Count -gt 0 ) {
+            $ScenarioName = $Pester.FailedScenarios | Select-Object -Expand Name
+        }
+        else {
+            throw "There's no existing failed tests to re-run"
+        }
+    }
+
     $message = "Testing all features in '$($Path)'"
-    if ($ScenarioName) { $message += " matching scenario '$ScenarioName'" }
+    if ($ScenarioName) { $message += " matching scenario '$($ScenarioName -join "', '")'" }
     if ($Tag) { $message += " with Tags: $Tag" }
     Write-Host $message
 
@@ -36,13 +56,16 @@ function Invoke-Gherkin {
     # Clear mocks
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState |
+    $Script:pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState |
+        Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
         Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
-            @($this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } }).Count
-        } -passthru |
+            $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
+            $this.Features.Scenarios | Where { $Names -contains $_.Name }
+        } -PassThru |
         Add-Member -MemberType ScriptProperty -Name PassedScenarios -Value {
-            @($this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) }).Count
-        } -passthru
+            $Names = $this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) } | Select-Object -Expand Name
+            $this.Features.Scenarios | Where { $Names -contains $_.Name }
+        } -PassThru
 
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
@@ -57,6 +80,7 @@ function Invoke-Gherkin {
 
     foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
         $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
+        $null = $Pester.Features.Add($Feature)
 
         ## This is Pesters "Describe" function
         $Pester.EnterDescribe($Feature)
@@ -68,7 +92,10 @@ function Invoke-Gherkin {
             $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
         }
         if($pester.TestNameFilter) {
-            $Scenarios = $Scenarios | Where { $_.Name -like $pester.TestNameFilter }
+            $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
+                $Scenarios | Where { $_.Name -like $NameFilter }
+            }
+            $Scenarios = $Scenarios | Get-Unique
         }
 
         if($Scenarios) {
@@ -113,7 +140,7 @@ function Invoke-Gherkin {
     if ($PassThru) {
         # Remove all runtime properties like current* and Scope
         $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult","PassedScenarios","FailedScenarios"
 
             if ($CodeCoverage)
             {
