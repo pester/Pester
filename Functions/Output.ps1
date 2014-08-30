@@ -32,8 +32,11 @@ $Script:ReportTheme = DATA {
         Context        = "Cyan"
         ContextDetail  = "DarkCyan"
         Pass           = "DarkGreen"
+        PassTime       = "DarkGray"
         Fail           = "Red"
+        FailTime       = "DarkGray"
         Incomplete     = "Yellow"
+        IncompleteTime = "DarkGray"
         Foreground     = "White"
         Information    = "DarkGray"
         Coverage       = "White"
@@ -74,7 +77,6 @@ function Write-Describe {
                 $ReportStrings.Describe -f $Describe
             }
 
-        Microsoft.PowerShell.Utility\Write-Host
         Microsoft.PowerShell.Utility\Write-Host
         Microsoft.PowerShell.Utility\Write-Host $Text -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
@@ -126,14 +128,16 @@ function Write-PesterResult {
 
         if($TestResult.Passed)
         {
-            "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Pass
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Pass "$margin[+] $output " -NoNewLine
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.PassTime $humanTime
         }
         elseif($null -eq $TestResult.Time) {
-            "$margin[?] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Incomplete
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output " -NoNewLine
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.IncompleteTime $humanTime
         }
         else {
-            "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Fail
-
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Fail "$margin[-] $output " -NoNewLine
+            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.FailTime $humanTime
             Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
             Microsoft.PowerShell.Utility\Write-Host -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
         }
