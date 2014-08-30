@@ -1,4 +1,4 @@
-Add-Type -Path "$PSScriptRoot\lib\PowerCuke.dll"
+Add-Type -Path "${Script:PesterRoot}\lib\PowerCuke.dll"
 
 $StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
@@ -37,119 +37,135 @@ function Invoke-Gherkin {
 
         [switch]$PassThru
     )
-
-    if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
-        if((Test-Path variable:script:pester) -and $script:Pester.FailedScenarios.Count -gt 0 ) {
-            $ScenarioName = $Pester.FailedScenarios | Select-Object -Expand Name
-        }
-        else {
-            throw "There's no existing failed tests to re-run"
-        }
-    }
-
-    $message = "Testing all features in '$($Path)'"
-    if ($ScenarioName) { $message += " matching scenario '$($ScenarioName -join "', '")'" }
-    if ($Tag) { $message += " with Tags: $Tag" }
-    Write-Host $message
-
-
-    # Clear mocks
-    $script:mockTable = @{}
-
-    $Script:pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState |
-        Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
-        Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
-            $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
-            $this.Features.Scenarios | Where { $Names -contains $_.Name }
-        } -PassThru |
-        Add-Member -MemberType ScriptProperty -Name PassedScenarios -Value {
-            $Names = $this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) } | Select-Object -Expand Name
-            $this.Features.Scenarios | Where { $Names -contains $_.Name }
-        } -PassThru
-
-    Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
-
-    # Remove all the steps
-    $Script:GherkinSteps.Clear()
-    # Import all the steps (we're going to need them in a minute)
-    $StepFiles = Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.ps1" -Recurse
-    foreach($StepFile in $StepFiles){
-        . $StepFile.FullName
-    }
-    Write-Host "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
-
-    foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
-        $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
-        $null = $Pester.Features.Add($Feature)
-
-        ## This is Pesters "Describe" function
-        $Pester.EnterDescribe($Feature)
-        New-TestDrive
-
-        $Scenarios = $Feature.Scenarios
-
-        if($pester.TagFilter) {
-            $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
-        }
-        if($pester.TestNameFilter) {
-            $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
-                $Scenarios | Where { $_.Name -like $NameFilter }
+    begin {
+        $Script:ReportStrings = DATA {
+            @{
+                Describe = "Feature: {0}"
+                Context  = "Scenario: {0}"
+                Margin   = "   "
+                Timing   = "Testing completed in {0}"
+                # If this is set to an empty string, the count won't be printed
+                ContextsPassed   = "Scenarios Passed: {0} "
+                ContextsFailed   = "Failed: {0}"
+                TestsPassed    = "Steps Passed: {0} "
+                TestsFailed    = "Failed: {0} "
             }
-            $Scenarios = $Scenarios | Get-Unique
         }
-
-        if($Scenarios) {
-            Write-Feature $Feature
-        }
-
-        foreach($Scenario in $Scenarios) {
-            # This is Pester's Context function
-            $Pester.EnterContext($Scenario.Name)
-            $TestDriveContent = Get-TestDriveChildItem
-
-            Invoke-GherkinScenario $Pester $Scenario $Feature.Background
-
-            Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
-            $Pester.LeaveContext()
-        }
-
-        ## This is Pesters "Describe" function again
-        Remove-TestDrive
-        Exit-MockScope
-        $Pester.LeaveDescribe()
     }
 
-    # Remove all the steps
-    foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
+    end {
+
+        if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
+            if((Test-Path variable:script:pester) -and $script:Pester.FailedScenarios.Count -gt 0 ) {
+                $ScenarioName = $Pester.FailedScenarios | Select-Object -Expand Name
+            }
+            else {
+                throw "There's no existing failed tests to re-run"
+            }
+        }
+
+        $message = "Testing all features in '$($Path)'"
+        if ($ScenarioName) { $message += " matching scenario '$($ScenarioName -join "', '")'" }
+        if ($Tag) { $message += " with Tags: $Tag" }
+        Write-Host $message
+
+
+        # Clear mocks
+        $script:mockTable = @{}
+
+        $Script:pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState |
+            Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
+            Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
+                $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
+                $this.Features.Scenarios | Where { $Names -contains $_.Name }
+            } -PassThru |
+            Add-Member -MemberType ScriptProperty -Name PassedScenarios -Value {
+                $Names = $this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) } | Select-Object -Expand Name
+                $this.Features.Scenarios | Where { $Names -contains $_.Name }
+            } -PassThru
+
+        Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+
+        # Remove all the steps
         $Script:GherkinSteps.Clear()
-        # Remove-Module $StepFile.BaseName
-    }
+        # Import all the steps (we're going to need them in a minute)
+        $StepFiles = Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.ps1" -Recurse
+        foreach($StepFile in $StepFiles){
+            . $StepFile.FullName
+        }
+        Write-Host "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
 
-    $pester | Write-TestReport
-    $coverageReport = Get-CoverageReport -PesterState $pester
-    Show-CoverageReport -CoverageReport $coverageReport
-    Exit-CoverageAnalysis -PesterState $pester
+        foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
+            $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
+            $null = $Pester.Features.Add($Feature)
 
+            ## This is Pesters "Describe" function
+            $Pester.EnterDescribe($Feature)
+            New-TestDrive
 
-    if($OutputXml) {
-        #TODO make this legacy option and move the nUnit report out of invoke-pester
-        #TODO add warning message that informs the user how to use the nunit output properly
-        Export-NunitReport $pester $OutputXml
-    }
+            $Scenarios = $Feature.Scenarios
 
-    if ($PassThru) {
-        # Remove all runtime properties like current* and Scope
-        $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult","PassedScenarios","FailedScenarios"
-
-            if ($CodeCoverage)
-            {
-                @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+            if($pester.TagFilter) {
+                $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
             }
-        )
-        $pester | Select -Property $properties
+            if($pester.TestNameFilter) {
+                $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
+                    $Scenarios | Where { $_.Name -like $NameFilter }
+                }
+                $Scenarios = $Scenarios | Get-Unique
+            }
+
+            if($Scenarios) {
+                Write-Describe $Feature
+            }
+
+            foreach($Scenario in $Scenarios) {
+                # This is Pester's Context function
+                $Pester.EnterContext($Scenario.Name)
+                $TestDriveContent = Get-TestDriveChildItem
+
+                Invoke-GherkinScenario $Pester $Scenario $Feature.Background
+
+                Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+                $Pester.LeaveContext()
+            }
+
+            ## This is Pesters "Describe" function again
+            Remove-TestDrive
+            Exit-MockScope
+            $Pester.LeaveDescribe()
+        }
+
+        # Remove all the steps
+        foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
+            $Script:GherkinSteps.Clear()
+            # Remove-Module $StepFile.BaseName
+        }
+        $pester | Write-PesterReport
+        $coverageReport = Get-CoverageReport -PesterState $pester
+        Show-CoverageReport -CoverageReport $coverageReport
+        Exit-CoverageAnalysis -PesterState $pester
+
+        if($OutputXml) {
+            #TODO make this legacy option and move the nUnit report out of invoke-pester
+            #TODO add warning message that informs the user how to use the nunit output properly
+            Export-NunitReport $pester $OutputXml
+        }
+
+        if ($PassThru) {
+            # Remove all runtime properties like current* and Scope
+            $properties = @(
+                "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult","PassedScenarios","FailedScenarios"
+
+                if ($CodeCoverage)
+                {
+                    @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+                }
+            )
+            $pester | Select -Property $properties
+        }
+        if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
     }
-    if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
 }
 
 function Invoke-GherkinScenario {
@@ -158,7 +174,7 @@ function Invoke-GherkinScenario {
         $Pester, $Scenario, $Background, [Switch]$Quiet
     )
 
-    if(!$Quiet) { Write-Scenario $Scenario }
+    if(!$Quiet) { Write-Context $Scenario }
     if($Background) {
         Invoke-GherkinScenario $Pester $Background -Quiet
     }
@@ -258,7 +274,7 @@ function Invoke-GherkinStep {
         $Pester.AddTestResult($StepName, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
     }
 
-    $Pester.testresult[-1] | Write-TestResult
+    $Pester.testresult[-1] | Write-PesterResult
 }
 
 function Get-StepParameters {
