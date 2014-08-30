@@ -41,7 +41,10 @@ FunctionsToExport = @(
     'InModuleScope',
     'Invoke-Mock',
     'BeforeEach',
-    'AfterEach'
+    'AfterEach',
+    # Gherkin Support:
+    'Invoke-Gherkin',
+    'When'
 )
 
 # # Cmdlets to export from this module
@@ -51,7 +54,13 @@ FunctionsToExport = @(
 # VariablesToExport = '*'
 
 # # Aliases to export from this module
-# AliasesToExport = '*'
+AliasesToExport = @(
+    'And',
+    'But',
+    'Given'
+    'Then'
+)
+
 
 # List of all modules packaged with this module
 # ModuleList = @()
