@@ -1,3 +1,6 @@
+## Unreleased
+  - Coverage Analysis now ignores closing conditions of do/while and do/until loops, which were giving false failures.  (GH-200)
+
 ## 3.0.1.1 (August 28, 2014)
  - Fixing wrong version in the manifest, publishing new version so I can update it on Nuget/Chocolatey
 
