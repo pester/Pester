@@ -108,6 +108,7 @@ about_pester
         [Alias('relative_path')]
         [string]$Path = ".",
         [Parameter(Position=1,Mandatory=0)]
+        [Alias("Name")]
         [string]$TestName,
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
