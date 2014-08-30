@@ -21,6 +21,7 @@ function Invoke-Gherkin {
         [string]$Path = $Pwd,
 
         [Parameter(Position=1,Mandatory=0)]
+        [Alias("Name")]
         [string[]]$ScenarioName,
 
         [Parameter(Position=2,Mandatory=0)]
