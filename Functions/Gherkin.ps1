@@ -38,19 +38,7 @@ function Invoke-Gherkin {
         [switch]$PassThru
     )
     begin {
-        $Script:ReportStrings = DATA {
-            @{
-                Describe = "Feature: {0}"
-                Context  = "Scenario: {0}"
-                Margin   = "   "
-                Timing   = "Testing completed in {0}"
-                # If this is set to an empty string, the count won't be printed
-                ContextsPassed   = "Scenarios Passed: {0} "
-                ContextsFailed   = "Failed: {0}"
-                TestsPassed    = "Steps Passed: {0} "
-                TestsFailed    = "Failed: {0} "
-            }
-        }
+        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1
     }
 
     end {
@@ -63,12 +51,6 @@ function Invoke-Gherkin {
                 throw "There's no existing failed tests to re-run"
             }
         }
-
-        $message = "Testing all features in '$($Path)'"
-        if ($ScenarioName) { $message += " matching scenario '$($ScenarioName -join "', '")'" }
-        if ($Tag) { $message += " with Tags: $Tag" }
-        Write-Host $message
-
 
         # Clear mocks
         $script:mockTable = @{}
@@ -83,6 +65,8 @@ function Invoke-Gherkin {
                 $Names = $this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) } | Select-Object -Expand Name
                 $this.Features.Scenarios | Where { $Names -contains $_.Name }
             } -PassThru
+
+        Write-PesterStart $pester
 
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
@@ -143,7 +127,7 @@ function Invoke-Gherkin {
         }
         $pester | Write-PesterReport
         $coverageReport = Get-CoverageReport -PesterState $pester
-        Show-CoverageReport -CoverageReport $coverageReport
+        Write-CoverageReport -CoverageReport $coverageReport
         Exit-CoverageAnalysis -PesterState $pester
 
         if($OutputXml) {

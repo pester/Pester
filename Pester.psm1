@@ -10,10 +10,10 @@ else
 {
     $script:IgnoreErrorPreference = 'SilentlyContinue'
 }
+$Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-$moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Gherkin\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
+"$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
 Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 ForEach-Object { . $_.ProviderPath }
@@ -220,7 +220,7 @@ about_pester
 
     $pester | Write-PesterReport
     $coverageReport = Get-CoverageReport -PesterState $pester
-    Show-CoverageReport -CoverageReport $coverageReport
+    Write-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
     if(Get-Variable -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
