@@ -2,9 +2,9 @@
 # Version: $version$
 # Changeset: $sha$
 
-$moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
+$Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Gherkin\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
+"$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
 Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
 ForEach-Object { . $_.ProviderPath }
@@ -121,15 +121,16 @@ about_pester
         [object[]] $CodeCoverage = @()
     )
 
+    # Ensure when running Pester that we're using RSpec strings
+    Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1
+
+
     $script:mockTable = @{}
 
     $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-    $message = "Executing all tests in '$($pester.Path)'"
-    if ($TestName) { $message += " matching test name '$TestName'" }
-
-    Write-Host $message
+    Write-PesterStart $pester
 
     $scriptBlock = { & $args[0] }
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
@@ -153,7 +154,7 @@ about_pester
 
     $pester | Write-PesterReport
     $coverageReport = Get-CoverageReport -PesterState $pester
-    Show-CoverageReport -CoverageReport $coverageReport
+    Write-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
     if($OutputXml) {
