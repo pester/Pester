@@ -266,7 +266,7 @@ function New-CoverageBreakpoint
 {
     param ([System.Management.Automation.Language.Ast] $Command)
 
-    if (IsIgnoredDscCommand -Command $Command) { return }
+    if (IsIgnoredCommand -Command $Command) { return }
 
     $params = @{
         Script = $Command.Extent.File
@@ -286,7 +286,7 @@ function New-CoverageBreakpoint
     }
 }
 
-function IsIgnoredDscCommand
+function IsIgnoredCommand
 {
     param ([System.Management.Automation.Language.Ast] $Command)
 
@@ -317,6 +317,13 @@ function IsIgnoredDscCommand
         }
     }
 
+    if (IsClosingLoopCondition -Command $Command)
+    {
+        # For some reason, the closing expressions of do/while and do/until loops don't trigger their breakpoints.
+        # To avoid useless clutter, we'll ignore those lines as well.
+        return $true
+    }
+
     return $false
 }
 
@@ -332,6 +339,27 @@ function IsChildOfHashtableDynamicKeyword
         {
             return $true
         }
+    }
+
+    return $false
+}
+
+function IsClosingLoopCondition
+{
+    param ([System.Management.Automation.Language.Ast] $Command)
+
+    $ast = $Command
+
+    while ($null -ne $ast.Parent)
+    {
+        if (($ast.Parent -is [System.Management.Automation.Language.DoWhileStatementAst] -or
+            $ast.Parent -is [System.Management.Automation.Language.DoUntilStatementAst]) -and
+            $ast.Parent.Condition -eq $ast)
+        {
+            return $true
+        }
+
+        $ast = $ast.Parent
     }
 
     return $false
