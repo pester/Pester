@@ -181,8 +181,11 @@ about_Mocking
         $ModuleName = ''
     }
 
+    $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+    Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+
     $block = @{
-        Mock       = $MockWith
+        Mock       = $mockWithCopy
         Filter     = $ParameterFilter
         Verifiable = $Verifiable
         Scope      = Get-ScopeForMock -PesterState $pester
@@ -665,7 +668,7 @@ function Invoke-Mock {
                     & $ScriptBlock @ArgumentList @BoundParameters
                 }
 
-                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $pester.SessionState
+                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
                 & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters
 
                 return
