@@ -41,7 +41,9 @@ FunctionsToExport = @(
     'InModuleScope',
     'Invoke-Mock',
     'BeforeEach',
-    'AfterEach'
+    'AfterEach',
+    'Get-DynamicParametersForCmdlet',
+    'Set-DynamicParameterVariables'
 )
 
 # # Cmdlets to export from this module

@@ -66,7 +66,7 @@ originally implemented the command.
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
-Using this Mock, all calls to Get-ChildItem will return a hashtable with a 
+Using this Mock, all calls to Get-ChildItem will return a hashtable with a
 FullName property returning "A_File.TXT"
 
 .EXAMPLE
@@ -111,7 +111,7 @@ Get-ChildItem $env:temp\me
 Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
 
 .EXAMPLE
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule 
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule
 
 Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
 will return a hashtable with a FullName property returning "A_File.TXT"
@@ -195,33 +195,44 @@ about_Mocking
 
     if (-not $mock)
     {
-        $cmdletBinding = ''
-        $paramBlock    = ''
+        $cmdletBinding     = ''
+        $paramBlock        = ''
+        $dynamicParamBlock = ''
 
         if ($contextInfo.Command.psobject.Properties['ScriptBlock'] -or $contextInfo.Command.CommandType -eq 'Cmdlet')
         {
             $metadata = [System.Management.Automation.CommandMetaData]$contextInfo.Command
-            $metadata.Parameters.Remove('Verbose')         > $null
-            $metadata.Parameters.Remove('Debug')           > $null
-            $metadata.Parameters.Remove('ErrorAction')     > $null
-            $metadata.Parameters.Remove('WarningAction')   > $null
-            $metadata.Parameters.Remove('ErrorVariable')   > $null
-            $metadata.Parameters.Remove('WarningVariable') > $null
-            $metadata.Parameters.Remove('OutVariable')     > $null
-            $metadata.Parameters.Remove('OutBuffer')       > $null
+            $null = $metadata.Parameters.Remove('Verbose')
+            $null = $metadata.Parameters.Remove('Debug')
+            $null = $metadata.Parameters.Remove('ErrorAction')
+            $null = $metadata.Parameters.Remove('WarningAction')
+            $null = $metadata.Parameters.Remove('ErrorVariable')
+            $null = $metadata.Parameters.Remove('WarningVariable')
+            $null = $metadata.Parameters.Remove('OutVariable')
+            $null = $metadata.Parameters.Remove('OutBuffer')
 
             $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
             $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+
+            if ($contextInfo.Command.CommandType -eq 'Cmdlet')
+            {
+                $dynamicParamBlock = "dynamicparam { Get-DynamicParametersForCmdlet -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+            }
+            else
+            {
+                $dynamicParamBlock = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
+            }
         }
 
         $newContent = Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
-        $mockScript = "$cmdletBinding`r`n    param( $paramBlock )`r`n`r`n    process{`r`n$newContent}"
+        $mockScript = "$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}"
 
         $mock = @{
             OriginalCommand = $contextInfo.Command
             Blocks          = @()
             Cmdlet          = $cmdletBinding
             Params          = $paramBlock
+            DynamicParams   = $dynamicParamBlock
             CommandName     = $CommandName
             SessionState    = $contextInfo.Session
             Scope           = $pester.Scope
@@ -332,8 +343,8 @@ The number of times that the mock must be called to avoid an exception
 from throwing.
 
 .PARAMETER Exactly
-If this switch is present, the number specified in Times must match 
-exactly the number of times the mock has been called. Otherwise it 
+If this switch is present, the number specified in Times must match
+exactly the number of times the mock has been called. Otherwise it
 must match "at least" the number of times specified.  If the value
 passed to the Times parameter is zero, the Exactly switch is implied.
 
@@ -393,7 +404,7 @@ Describe 'Assert-MockCalled Scope behavior' {
 
     It 'Calls Set-Content at least once in the It block' {
         {... Some Code ...}
-        
+
         Assert-MockCalled Set-Content -Exactly 0 -Scope It
     }
 }
@@ -436,7 +447,7 @@ param(
     [ValidateSet('Describe','Context','It')]
     [string] $Scope
 )
-    
+
     Assert-DescribeInProgress -CommandName Assert-MockCalled
 
     if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $pester.SessionState.Module)
@@ -474,8 +485,16 @@ param(
     $qualifiedCalls = @(
         $mock.CallHistory |
         Where-Object {
-            (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and
-            (Test-ParameterFilter -ScriptBlock $ParameterFilter -BoundParameters $_.BoundParams -ArgumentList $_.Args -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
+            $params = @{
+                ScriptBlock       = $ParameterFilter
+                BoundParameters   = $_.BoundParams
+                ArgumentList      = $_.Args
+                CmdletBinding     = $mock.Cmdlet
+                ParamBlock        = $mock.Params
+                DynamicParamBlock = $mock.DynamicParams
+            }
+
+            (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and (Test-ParameterFilter @params)
         }
     )
 
@@ -605,19 +624,53 @@ function Invoke-Mock {
         $ArgumentList = @()
     )
 
-
     if ($mock = $mockTable["$ModuleName||$CommandName"])
     {
         for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
         {
             $block = $mock.Blocks[$idx - 1]
 
-            if (Test-ParameterFilter -ScriptBlock $block.Filter -BoundParameters $BoundParameters -ArgumentList $ArgumentList -CmdletBinding $mock.Cmdlet -ParamBlock $mock.Params)
+            $params = @{
+                ScriptBlock       = $block.Filter
+                BoundParameters   = $BoundParameters
+                ArgumentList      = $ArgumentList
+                CmdletBinding     = $mock.Cmdlet
+                ParamBlock        = $mock.Params
+                DynamicParamBlock = $mock.DynamicParams
+            }
+
+            if (Test-ParameterFilter @params)
             {
                 $block.Verifiable = $false
                 $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
 
-                & $block.Mock @ArgumentList @BoundParameters
+                $scriptBlock = {
+                    param (
+                        [Parameter(Mandatory = $true)]
+                        [scriptblock]
+                        $ScriptBlock,
+
+                        [hashtable]
+                        $BoundParameters = @{},
+
+                        [object[]]
+                        $ArgumentList = @()
+                    )
+
+                    # This script block exists to hold variables without polluting the test script's current scope.
+                    # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
+                    # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
+                    # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
+                    # by doing it inside this temporary script block, those variables don't stick around longer than they
+                    # should.
+
+                    Set-DynamicParameterVariables -SessionState $ExecutionContext.SessionState -Parameters $BoundParameters
+                    & $ScriptBlock @ArgumentList @BoundParameters
+                }
+
+                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
+                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters
+
                 return
             }
         }
@@ -685,15 +738,34 @@ function Test-ParameterFilter
         $CmdletBinding,
 
         [string]
-        $ParamBlock
+        $ParamBlock,
+
+        [string]
+        $DynamicParamBlock
     )
 
-    if ($null -eq $BoundParameters) { $BoundParameters = @{} }
-    if ($null -eq $ArgumentList)    { $ArgumentList = @() }
-    if ($null -eq $CmdletBinding)   { $CmdletBinding = '' }
-    if ($null -eq $ParamBlock)      { $ParamBlock = '' }
+    if ($null -eq $BoundParameters)   { $BoundParameters = @{} }
+    if ($null -eq $ArgumentList)      { $ArgumentList = @() }
+    if ($null -eq $CmdletBinding)     { $CmdletBinding = '' }
+    if ($null -eq $ParamBlock)        { $ParamBlock = '' }
+    if ($null -eq $DynamicParamBlock) { $DynamicParamBlock = '' }
 
-    $cmd = [scriptblock]::Create("$CmdletBinding param ( $ParamBlock ) Set-StrictMode -Off; $ScriptBlock")
+    $scriptBlockString = "
+        $CmdletBinding
+        param (
+            $ParamBlock
+        )
+
+        $DynamicParamBlock
+
+        end {
+            Set-StrictMode -Off
+            Set-DynamicParameterVariables -SessionState `$ExecutionContext.SessionState -Parameters `$PSBoundParameters
+            $ScriptBlock
+        }
+    "
+
+    $cmd = [scriptblock]::Create($scriptBlockString)
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
 
     & $cmd @BoundParameters @ArgumentList
@@ -707,4 +779,124 @@ function Get-ScopeForMock
     if ($scope -eq 'It') { $scope = $PesterState.ParentScope }
 
     return $scope
+}
+
+function Get-DynamicParametersForCmdlet
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $CmdletName,
+
+        [hashtable] $Parameters
+    )
+
+    if ($null -eq $Parameters) { $Parameters = @{} }
+
+    $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
+    $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
+
+    try
+    {
+        $command = Get-Command -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
+
+        if (@($command).Count -gt 1)
+        {
+            throw "Name '$CmdletName' resolved to multiple Cmdlets"
+        }
+    }
+    catch
+    {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+
+    $cmdlet = New-Object $command.ImplementingType.FullName
+    if ($cmdlet -isnot [System.Management.Automation.IDynamicParameters])
+    {
+        return
+    }
+
+    [System.Management.Automation.Cmdlet].GetProperty('Context', $flags).SetValue($cmdlet, $context, $null)
+
+    if ($null -ne $Parameters)
+    {
+        foreach ($keyValuePair in $Parameters.GetEnumerator())
+        {
+            # These conditions shouldn't happen, but just in case...
+
+            $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
+            if ($null -eq $property -or -not $property.CanWrite) { continue }
+
+            $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
+            if (-not $isParameter) { continue }
+
+            $cmdlet.$($keyValuePair.Key) = $keyValuePair.Value
+        }
+    }
+
+    $cmdlet.GetDynamicParameters()
+}
+
+function Set-DynamicParameterVariables
+{
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.SessionState]
+        $SessionState,
+
+        [hashtable]
+        $Parameters
+    )
+
+    if ($null -eq $Parameters) { $Parameters = @{} }
+
+    $commomParams = @(
+        [System.Management.Automation.Internal.CommonParameters].GetProperties() | Select-Object -ExpandProperty Name
+        [System.Management.Automation.Internal.ShouldProcessParameters].GetProperties() | Select-Object -ExpandProperty Name
+        [System.Management.Automation.Internal.TransactionParameters].GetProperties() | Select-Object -ExpandProperty Name
+    )
+
+    foreach ($keyValuePair in $Parameters.GetEnumerator())
+    {
+        $variableName = $keyValuePair.Key
+
+        if ($null -eq $SessionState.PSVariable.Get($variableName) -and
+            $commomParams -notcontains $variableName)
+        {
+            if ($ExecutionContext.SessionState -eq $SessionState)
+            {
+                Set-Variable -Scope 1 -Name $variableName -Value $keyValuePair.Value -Force -Confirm:$false -WhatIf:$false
+            }
+            else
+            {
+                $SessionState.PSVariable.Set($variableName, $keyValuePair.Value)
+            }
+        }
+    }
+}
+
+function Get-DynamicParamBlock
+{
+    param (
+        [scriptblock] $ScriptBlock
+    )
+
+    if ($PSVersionTable.PSVersion.Major -le 2)
+    {
+        $flags = [System.Reflection.BindingFlags]'Instance, NonPublic'
+        $dynamicParams = [scriptblock].GetField('_dynamicParams', $flags).GetValue($ScriptBlock)
+
+        if ($null -ne $dynamicParams)
+        {
+            $dynamicParams = $dynamicParams.ToString()
+            return "dynamicparam { $dynamicParams }"
+        }
+    }
+    else
+    {
+        if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+        {
+            return $ScriptBlock.Ast.Body.DynamicParamBlock.Extent.Text
+        }
+    }
 }
