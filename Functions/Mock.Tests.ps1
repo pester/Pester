@@ -391,14 +391,6 @@ Describe 'When calling Mock on a module-internal function.' {
         It 'Should only call mocks within the same module' {
             TestModule2\PublicFunction | Should Be 'I am the second module internal function'
         }
-
-        Mock -ModuleName TestModule2 InternalFunction2 {
-            InternalFunction 'Test'
-        }
-
-        It 'Should call mocks from inside another mock' {
-            TestModule2\PublicFunction2 | Should Be "I'm the mock who's been passed parameter Test"
-        }
     }
 
     Remove-Module TestModule -Force
@@ -735,5 +727,64 @@ Describe 'Dot Source Test' {
 
     It "Doesn't call the mock with any other parameters" {
         Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
+    }
+}
+
+Describe 'Mocking Cmdlets with dynamic parameters' {
+    Mock Get-ChildItem { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } } #-ParameterFilter { [bool]$CodeSigningCert }
+
+    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+        { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should Not Throw
+        Assert-MockCalled Get-ChildItem
+    }
+}
+
+Describe 'Mocking functions with dynamic parameters' {
+
+    # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+    # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
+
+    function Get-Greeting {
+        [CmdletBinding()]
+        param (
+            $Name
+        )
+
+        DynamicParam {
+            if ($Name -cmatch '\b[a-z]') {
+                $Attributes = New-Object Management.Automation.ParameterAttribute
+                $Attributes.ParameterSetName = "__AllParameterSets"
+                $Attributes.Mandatory = $false
+
+                $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+                $AttributeCollection.Add($Attributes)
+
+                $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+                $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+                $ParamDictionary.Add("Capitalize", $Dynamic)
+                $ParamDictionary
+            }
+        }
+
+        end
+        {
+            if($PSBoundParameters.Capitalize) {
+                $Name = [regex]::Replace(
+                    $Name,
+                    '\b\w',
+                    { $args[0].Value.ToUpper() }
+                )
+            }
+
+            "Welcome $Name!"
+        }
+    }
+
+    Mock Get-Greeting { if (-not $Capitalize) { throw 'Capitalize variable not found, or set to false!' } } -ParameterFilter { [bool]$Capitalize }
+
+    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+        { Get-Greeting -Name lowercase -Capitalize } | Should Not Throw
+        Assert-MockCalled Get-Greeting
     }
 }
