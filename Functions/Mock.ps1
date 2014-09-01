@@ -793,9 +793,6 @@ function Get-DynamicParametersForCmdlet
 
     if ($null -eq $Parameters) { $Parameters = @{} }
 
-    $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
-    $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
-
     try
     {
         $command = Get-Command -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
@@ -816,22 +813,19 @@ function Get-DynamicParametersForCmdlet
         return
     }
 
+    $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
+    $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
     [System.Management.Automation.Cmdlet].GetProperty('Context', $flags).SetValue($cmdlet, $context, $null)
 
-    if ($null -ne $Parameters)
+    foreach ($keyValuePair in $Parameters.GetEnumerator())
     {
-        foreach ($keyValuePair in $Parameters.GetEnumerator())
-        {
-            # These conditions shouldn't happen, but just in case...
+        $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
+        if ($null -eq $property -or -not $property.CanWrite) { continue }
 
-            $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
-            if ($null -eq $property -or -not $property.CanWrite) { continue }
+        $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
+        if (-not $isParameter) { continue }
 
-            $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
-            if (-not $isParameter) { continue }
-
-            $cmdlet.$($keyValuePair.Key) = $keyValuePair.Value
-        }
+        $property.SetValue($cmdlet, $keyValuePair.Value, $null)
     }
 
     $cmdlet.GetDynamicParameters()
