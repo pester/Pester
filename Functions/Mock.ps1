@@ -225,7 +225,7 @@ about_Mocking
         }
 
         $newContent = Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
-        $mockScript = "$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}"
+        $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}")
 
         $mock = @{
             OriginalCommand = $contextInfo.Command
