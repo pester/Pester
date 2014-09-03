@@ -227,9 +227,11 @@ about_Mocking
                 $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
                 $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamStatements")
 
-                if ($contextInfo.Command.ScriptBlock.Module)
+                $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
+
+                if ($null -ne $sessionStateInternal)
                 {
-                    Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionState $contextInfo.Command.ScriptBlock.Module.SessionState
+                    Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionStateInternal $sessionStateInternal
                 }
             }
         }
