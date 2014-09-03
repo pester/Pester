@@ -615,6 +615,11 @@ function MockPrototype {
 }
 
 function Invoke-Mock {
+    <#
+        .SYNOPSIS
+        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+    #>
+
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -832,6 +837,11 @@ function Get-ScopeForMock
 
 function Set-DynamicParameterVariables
 {
+    <#
+        .SYNOPSIS
+        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+    #>
+
     param (
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.SessionState]
@@ -896,6 +906,11 @@ function Get-DynamicParamBlock
 
 function Get-MockDynamicParameters
 {
+    <#
+        .SYNOPSIS
+        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+    #>
+
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ParameterSetName = 'Cmdlet')]
