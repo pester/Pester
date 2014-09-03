@@ -195,6 +195,7 @@ about_Mocking
 
     if (-not $mock)
     {
+        $metadata          = $null
         $cmdletBinding     = ''
         $paramBlock        = ''
         $dynamicParamBlock = ''
@@ -230,12 +231,10 @@ about_Mocking
         $mock = @{
             OriginalCommand = $contextInfo.Command
             Blocks          = @()
-            Cmdlet          = $cmdletBinding
-            Params          = $paramBlock
-            DynamicParams   = $dynamicParamBlock
             CommandName     = $CommandName
             SessionState    = $contextInfo.Session
             Scope           = $pester.Scope
+            Metadata        = $metadata
             CallHistory     = @()
         }
 
@@ -480,18 +479,14 @@ param(
         }
     }
 
-    $cmd = [scriptblock]::Create("$($mock.CmdLet) `r`n param ( $($mock.Params) ) `r`n$parameterFilter")
-
     $qualifiedCalls = @(
         $mock.CallHistory |
         Where-Object {
             $params = @{
-                ScriptBlock       = $ParameterFilter
-                BoundParameters   = $_.BoundParams
-                ArgumentList      = $_.Args
-                CmdletBinding     = $mock.Cmdlet
-                ParamBlock        = $mock.Params
-                DynamicParamBlock = $mock.DynamicParams
+                ScriptBlock     = $ParameterFilter
+                BoundParameters = $_.BoundParams
+                ArgumentList    = $_.Args
+                Metadata        = $mock.Metadata
             }
 
             (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and (Test-ParameterFilter @params)
@@ -631,12 +626,10 @@ function Invoke-Mock {
             $block = $mock.Blocks[$idx - 1]
 
             $params = @{
-                ScriptBlock       = $block.Filter
-                BoundParameters   = $BoundParameters
-                ArgumentList      = $ArgumentList
-                CmdletBinding     = $mock.Cmdlet
-                ParamBlock        = $mock.Params
-                DynamicParamBlock = $mock.DynamicParams
+                ScriptBlock     = $block.Filter
+                BoundParameters = $BoundParameters
+                ArgumentList    = $ArgumentList
+                Metadata        = $mock.Metadata
             }
 
             if (Test-ParameterFilter @params)
@@ -734,41 +727,75 @@ function Test-ParameterFilter
         [object[]]
         $ArgumentList,
 
-        [string]
-        $CmdletBinding,
-
-        [string]
-        $ParamBlock,
-
-        [string]
-        $DynamicParamBlock
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
     )
 
     if ($null -eq $BoundParameters)   { $BoundParameters = @{} }
     if ($null -eq $ArgumentList)      { $ArgumentList = @() }
-    if ($null -eq $CmdletBinding)     { $CmdletBinding = '' }
-    if ($null -eq $ParamBlock)        { $ParamBlock = '' }
-    if ($null -eq $DynamicParamBlock) { $DynamicParamBlock = '' }
+
+    $paramBlock = Get-ParamBlockFromBoundParameters -BoundParameters $BoundParameters -Metadata $Metadata
 
     $scriptBlockString = "
-        $CmdletBinding
-        param (
-            $ParamBlock
-        )
+        $paramBlock
 
-        $DynamicParamBlock
-
-        end {
-            Set-StrictMode -Off
-            Set-DynamicParameterVariables -SessionState `$ExecutionContext.SessionState -Parameters `$PSBoundParameters
-            $ScriptBlock
-        }
+        Set-StrictMode -Off
+        $ScriptBlock
     "
 
     $cmd = [scriptblock]::Create($scriptBlockString)
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
 
     & $cmd @BoundParameters @ArgumentList
+}
+
+function Get-ParamBlockFromBoundParameters
+{
+    param (
+        [System.Collections.IDictionary] $BoundParameters,
+        [System.Management.Automation.CommandMetadata] $Metadata
+    )
+
+    $params = foreach ($paramName in $BoundParameters.Keys)
+    {
+        if ($null -ne $Metadata -and (IsCommonParameter -Name $paramName -Metadata $Metadata))
+        {
+            continue
+        }
+
+        "`${$paramName}"
+    }
+
+    $params = $params -join ','
+
+    if ($null -ne $Metadata)
+    {
+        $cmdletBinding = [System.Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($Metadata)
+    }
+    else
+    {
+        $cmdletBinding = ''
+    }
+
+    return "$cmdletBinding param ($params)"
+}
+
+function IsCommonParameter
+{
+    param (
+        [string] $Name,
+        [System.Management.Automation.CommandMetadata] $Metadata
+    )
+
+    if ($null -ne $Metadata)
+    {
+        if ([System.Management.Automation.Internal.CommonParameters].GetProperty($Name)) { return $true }
+        if ($Metadata.SupportsShouldProcess -and [System.Management.Automation.Internal.ShouldProcessParameters].GetProperty($Name)) { return $true }
+        if ($Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) { return $true }
+        if ($Metadata.SupportsTransactions -and [System.Management.Automation.Internal.TransactionParameters].GetProperty($Name)) { return $true }
+    }
+
+    return $false
 }
 
 function Get-ScopeForMock
