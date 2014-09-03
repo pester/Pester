@@ -669,8 +669,15 @@ function Invoke-Mock {
                     # by doing it inside this temporary script block, those variables don't stick around longer than they
                     # should.
 
+                    # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
+                    # we'll stash them in names unlikely to be overwritten.
+
+                    $___ScriptBlock___ = $ScriptBlock
+                    $___BoundParameters___ = $BoundParameters
+                    $___ArgumentList___ = $ArgumentList
+
                     Set-DynamicParameterVariables -SessionState $ExecutionContext.SessionState -Parameters $BoundParameters
-                    & $ScriptBlock @ArgumentList @BoundParameters
+                    & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
                 }
 
                 Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
@@ -893,8 +900,7 @@ function Set-DynamicParameterVariables
     {
         $variableName = $keyValuePair.Key
 
-        if ($null -eq $SessionState.PSVariable.Get($variableName) -and
-            $commomParams -notcontains $variableName)
+        if ($commomParams -notcontains $variableName)
         {
             if ($ExecutionContext.SessionState -eq $SessionState)
             {

@@ -797,6 +797,15 @@ Describe 'Mocking functions with dynamic parameters' {
         { Get-Greeting -Name lowercase -Capitalize } | Should Not Throw
         Assert-MockCalled Get-Greeting
     }
+
+    Context 'When a variable with the same name as a dynamic parameter exists in a parent scope' {
+        $Capitalize = $false
+
+        It 'Still sets the parameter variable properly in the parameter filter and mock body' {
+            { Get-Greeting -Name lowercase -Capitalize } | Should Not Throw
+            Assert-MockCalled Get-Greeting -Scope It
+        }
+    }
 }
 
 Describe 'Mocking Cmdlets with dynamic parameters in a module' {
