@@ -659,7 +659,10 @@ function Invoke-Mock {
                         $BoundParameters = @{},
 
                         [object[]]
-                        $ArgumentList = @()
+                        $ArgumentList = @(),
+
+                        [System.Management.Automation.CommandMetadata]
+                        $Metadata
                     )
 
                     # This script block exists to hold variables without polluting the test script's current scope.
@@ -676,12 +679,12 @@ function Invoke-Mock {
                     $___BoundParameters___ = $BoundParameters
                     $___ArgumentList___ = $ArgumentList
 
-                    Set-DynamicParameterVariables -SessionState $ExecutionContext.SessionState -Parameters $BoundParameters
+                    Set-DynamicParameterVariables -SessionState $ExecutionContext.SessionState -Parameters $BoundParameters -Metadata $Metadata
                     & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
                 }
 
                 Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters
+                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata
 
                 return
             }
@@ -777,7 +780,7 @@ function Get-ParamBlockFromBoundParameters
 
     $params = foreach ($paramName in $BoundParameters.Keys)
     {
-        if ($null -ne $Metadata -and (IsCommonParameter -Name $paramName -Metadata $Metadata))
+        if (IsCommonParameter -Name $paramName -Metadata $Metadata)
         {
             continue
         }
@@ -885,22 +888,19 @@ function Set-DynamicParameterVariables
         $SessionState,
 
         [hashtable]
-        $Parameters
+        $Parameters,
+
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
     )
 
     if ($null -eq $Parameters) { $Parameters = @{} }
-
-    $commomParams = @(
-        [System.Management.Automation.Internal.CommonParameters].GetProperties() | Select-Object -ExpandProperty Name
-        [System.Management.Automation.Internal.ShouldProcessParameters].GetProperties() | Select-Object -ExpandProperty Name
-        [System.Management.Automation.Internal.TransactionParameters].GetProperties() | Select-Object -ExpandProperty Name
-    )
 
     foreach ($keyValuePair in $Parameters.GetEnumerator())
     {
         $variableName = $keyValuePair.Key
 
-        if ($commomParams -notcontains $variableName)
+        if (-not (IsCommonParameter -Name $variableName -Metadata $Metadata))
         {
             if ($ExecutionContext.SessionState -eq $SessionState)
             {
