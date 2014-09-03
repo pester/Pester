@@ -195,10 +195,11 @@ about_Mocking
 
     if (-not $mock)
     {
-        $metadata          = $null
-        $cmdletBinding     = ''
-        $paramBlock        = ''
-        $dynamicParamBlock = ''
+        $metadata                = $null
+        $cmdletBinding           = ''
+        $paramBlock              = ''
+        $dynamicParamBlock       = ''
+        $dynamicParamScriptBlock = $null
 
         if ($contextInfo.Command.psobject.Properties['ScriptBlock'] -or $contextInfo.Command.CommandType -eq 'Cmdlet')
         {
@@ -221,7 +222,15 @@ about_Mocking
             }
             else
             {
-                $dynamicParamBlock = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
+                $dynamicParamBlock = "dynamicparam { Get-DynamicParametersForMockedFunction -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
+
+                $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
+                $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamStatements")
+
+                if ($contextInfo.Command.ScriptBlock.Module)
+                {
+                    Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionState $contextInfo.Command.ScriptBlock.Module.SessionState
+                }
             }
         }
 
@@ -229,13 +238,14 @@ about_Mocking
         $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}")
 
         $mock = @{
-            OriginalCommand = $contextInfo.Command
-            Blocks          = @()
-            CommandName     = $CommandName
-            SessionState    = $contextInfo.Session
-            Scope           = $pester.Scope
-            Metadata        = $metadata
-            CallHistory     = @()
+            OriginalCommand         = $contextInfo.Command
+            Blocks                  = @()
+            CommandName             = $CommandName
+            SessionState            = $contextInfo.Session
+            Scope                   = $pester.Scope
+            Metadata                = $metadata
+            CallHistory             = @()
+            DynamicParamScriptBlock = $dynamicParamScriptBlock
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
@@ -909,15 +919,47 @@ function Get-DynamicParamBlock
 
         if ($null -ne $dynamicParams)
         {
-            $dynamicParams = $dynamicParams.ToString()
-            return "dynamicparam { $dynamicParams }"
+            return $dynamicParams.ToString()
+
         }
     }
     else
     {
         if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
         {
-            return $ScriptBlock.Ast.Body.DynamicParamBlock.Extent.Text
+            $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
+                          Select-Object -ExpandProperty Extent |
+                          Select-Object -ExpandProperty Text
+
+            return $statements -join "`r`n"
         }
+    }
+}
+
+function Get-DynamicParametersForMockedFunction
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $FunctionName,
+
+        [string]
+        $ModuleName,
+
+        [System.Collections.IDictionary]
+        $Parameters
+    )
+
+    $mock = $mockTable["$ModuleName||$FunctionName"]
+
+    if (-not $mock)
+    {
+        throw "Internal error detected:  Mock for '$FunctionName' in module '$ModuleName' was called, but does not exist in the mock table."
+    }
+
+    if ($mock.DynamicParamScriptBlock)
+    {
+        return & $mock.DynamicParamScriptBlock @Parameters
     }
 }

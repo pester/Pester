@@ -877,6 +877,58 @@ Describe 'Mocking functions with dynamic parameters in a module' {
     Remove-Module TestModule -Force
 }
 
+Describe 'DynamicParam blocks in other scopes' {
+    New-Module -Name TestModule1 {
+        $script:DoDynamicParam = $true
+
+        function DynamicParamFunction {
+            [CmdletBinding()]
+            param ( )
+
+            DynamicParam {
+                if ($script:DoDynamicParam)
+                {
+                    Get-DynamicParametersForCmdlet -CmdletName Get-ChildItem -Parameters @{ Path = [string[]]'Cert:\' }
+                }
+            }
+
+            end
+            {
+                'I am the original function'
+            }
+        }
+    } | Import-Module -Force
+
+    New-Module -Name TestModule2 {
+        function CallingFunction
+        {
+            DynamicParamFunction -CodeSigningCert
+        }
+
+        function CallingFunction2 {
+            [CmdletBinding()]
+            param (
+                [ValidateScript({ [bool](DynamicParamFunction -CodeSigningCert) })]
+                [string]
+                $Whatever
+            )
+        }
+    } | Import-Module -Force
+
+    Mock DynamicParamFunction { if ($CodeSigningCert) { 'I am the mocked function' } } -ModuleName TestModule2
+
+    It 'Properly evaluates dynamic parameters when called from another scope' {
+        CallingFunction | Should Be 'I am the mocked function'
+    }
+
+    It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
+        CallingFunction2 -Whatever 'Whatever'
+    }
+
+    Remove-Module TestModule1 -Force
+    Remove-Module TestModule2 -Force
+}
+
 Describe 'Parameter Filters and Common Parameters' {
     function Test-Function { [CmdletBinding()] param ( ) }
 
