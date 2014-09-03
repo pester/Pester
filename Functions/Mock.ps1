@@ -218,11 +218,11 @@ about_Mocking
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet')
             {
-                $dynamicParamBlock = "dynamicparam { Get-DynamicParametersForCmdlet -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+                $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
             }
             else
             {
-                $dynamicParamBlock = "dynamicparam { Get-DynamicParametersForMockedFunction -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
+                $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
 
                 $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
                 $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamStatements")
@@ -830,56 +830,6 @@ function Get-ScopeForMock
     return $scope
 }
 
-function Get-DynamicParametersForCmdlet
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string] $CmdletName,
-
-        [hashtable] $Parameters
-    )
-
-    if ($null -eq $Parameters) { $Parameters = @{} }
-
-    try
-    {
-        $command = Get-Command -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
-
-        if (@($command).Count -gt 1)
-        {
-            throw "Name '$CmdletName' resolved to multiple Cmdlets"
-        }
-    }
-    catch
-    {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
-
-    $cmdlet = New-Object $command.ImplementingType.FullName
-    if ($cmdlet -isnot [System.Management.Automation.IDynamicParameters])
-    {
-        return
-    }
-
-    $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
-    $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
-    [System.Management.Automation.Cmdlet].GetProperty('Context', $flags).SetValue($cmdlet, $context, $null)
-
-    foreach ($keyValuePair in $Parameters.GetEnumerator())
-    {
-        $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
-        if ($null -eq $property -or -not $property.CanWrite) { continue }
-
-        $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
-        if (-not $isParameter) { continue }
-
-        $property.SetValue($cmdlet, $keyValuePair.Value, $null)
-    }
-
-    $cmdlet.GetDynamicParameters()
-}
-
 function Set-DynamicParameterVariables
 {
     param (
@@ -942,6 +892,86 @@ function Get-DynamicParamBlock
             return $statements -join "`r`n"
         }
     }
+}
+
+function Get-MockDynamicParameters
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ParameterSetName = 'Cmdlet')]
+        [string] $CmdletName,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'Function')]
+        [string] $FunctionName,
+
+        [Parameter(ParameterSetName = 'Function')]
+        [string] $ModuleName,
+
+        [hashtable] $Parameters
+    )
+
+    switch ($PSCmdlet.ParameterSetName)
+    {
+        'Cmdlet'
+        {
+            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters
+        }
+
+        'Function'
+        {
+            Get-DynamicParametersForMockedFunction -FunctionName $FunctionName -ModuleName $ModuleName -Parameters $Parameters
+        }
+    }
+}
+
+function Get-DynamicParametersForCmdlet
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $CmdletName,
+
+        [System.Collections.IDictionary] $Parameters
+    )
+
+    if ($null -eq $Parameters) { $Parameters = @{} }
+
+    try
+    {
+        $command = Get-Command -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
+
+        if (@($command).Count -gt 1)
+        {
+            throw "Name '$CmdletName' resolved to multiple Cmdlets"
+        }
+    }
+    catch
+    {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+
+    $cmdlet = New-Object $command.ImplementingType.FullName
+    if ($cmdlet -isnot [System.Management.Automation.IDynamicParameters])
+    {
+        return
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
+    $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
+    [System.Management.Automation.Cmdlet].GetProperty('Context', $flags).SetValue($cmdlet, $context, $null)
+
+    foreach ($keyValuePair in $Parameters.GetEnumerator())
+    {
+        $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
+        if ($null -eq $property -or -not $property.CanWrite) { continue }
+
+        $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
+        if (-not $isParameter) { continue }
+
+        $property.SetValue($cmdlet, $keyValuePair.Value, $null)
+    }
+
+    $cmdlet.GetDynamicParameters()
 }
 
 function Get-DynamicParametersForMockedFunction

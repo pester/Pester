@@ -42,8 +42,7 @@ FunctionsToExport = @(
     'Invoke-Mock',
     'BeforeEach',
     'AfterEach',
-    'Get-DynamicParametersForCmdlet',
-    'Get-DynamicParametersForMockedFunction',
+    'Get-MockDynamicParameters',
     'Set-DynamicParameterVariables'
 )
 

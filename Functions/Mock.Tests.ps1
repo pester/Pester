@@ -897,7 +897,7 @@ Describe 'DynamicParam blocks in other scopes' {
             DynamicParam {
                 if ($script:DoDynamicParam)
                 {
-                    Get-DynamicParametersForCmdlet -CmdletName Get-ChildItem -Parameters @{ Path = [string[]]'Cert:\' }
+                    Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters @{ Path = [string[]]'Cert:\' }
                 }
             }
 
