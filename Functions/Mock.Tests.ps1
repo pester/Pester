@@ -819,6 +819,8 @@ Describe 'Mocking functions with dynamic parameters in a module' {
     New-Module -Name TestModule {
         function PublicFunction { Get-Greeting -Name lowercase -Capitalize }
 
+        $script:DoDynamicParam = $true
+
         # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
         # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
 
@@ -829,6 +831,10 @@ Describe 'Mocking functions with dynamic parameters in a module' {
             )
 
             DynamicParam {
+                # This check is here to make sure the mocked version can still work if the
+                # original function's dynamicparam block relied on script-scope variables.
+                if (-not $script:DoDynamicParam) { return }
+
                 if ($Name -cmatch '\b[a-z]') {
                     $Attributes = New-Object Management.Automation.ParameterAttribute
                     $Attributes.ParameterSetName = "__AllParameterSets"
@@ -869,4 +875,16 @@ Describe 'Mocking functions with dynamic parameters in a module' {
     }
 
     Remove-Module TestModule -Force
+}
+
+Describe 'Parameter Filters and Common Parameters' {
+    function Test-Function { [CmdletBinding()] param ( ) }
+
+    Mock Test-Function { } -ParameterFilter { $VerbosePreference -eq 'Continue' }
+
+    It 'Applies common parameters correctly when testing the parameter filter' {
+        { Test-Function -Verbose } | Should Not Throw
+        Assert-MockCalled Test-Function
+        Assert-MockCalled Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
+    }
 }
