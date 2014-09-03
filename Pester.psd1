@@ -43,6 +43,7 @@ FunctionsToExport = @(
     'BeforeEach',
     'AfterEach',
     'Get-DynamicParametersForCmdlet',
+    'Get-DynamicParametersForMockedFunction',
     'Set-DynamicParameterVariables'
 )
 
