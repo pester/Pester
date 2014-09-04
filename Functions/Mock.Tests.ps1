@@ -319,6 +319,23 @@ Describe "When calling Mock on existing function with matching unbound arguments
     }
 }
 
+Describe 'When calling Mock on a function that has no parameters' {
+    function Test-Function { }
+    Mock Test-Function { return $args.Count }
+
+    It 'Sends the $args variable properly with 2+ elements' {
+        Test-Function 1 2 3 4 5 | Should Be 5
+    }
+
+    It 'Sends the $args variable properly with 1 element' {
+        Test-Function 1 | Should Be 1
+    }
+
+    It 'Sends the $args variable properly with 0 elements' {
+        Test-Function | Should Be 0
+    }
+}
+
 Describe "When calling Mock on cmdlet Used by Mock" {
     Mock Set-Item {return "I am not Set-Item"}
     Mock Set-Item {return "I am not Set-Item"}
