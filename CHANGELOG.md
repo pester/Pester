@@ -3,6 +3,7 @@
   - Calls to Functions and Cmdlets with dynamic parameters can now be mocked. [GH-203]
   - Mock now avoids assigning strings to items in the Function provider, bypassing a PowerShell 3.0 bug.
   - Bug fix when mocking executables or functions with no param block. [GH-209]
+  - Replace the nuget.exe with version 2.8.2 and set the Team City server to use the same version. 
 
 ## 3.0.1.1 (August 28, 2014)
  - Fixing wrong version in the manifest, publishing new version so I can update it on Nuget/Chocolatey
