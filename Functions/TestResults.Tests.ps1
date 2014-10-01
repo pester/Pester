@@ -205,6 +205,57 @@ InModuleScope Pester {
             $xml.Schemas.Add($null,$schemePath) > $null
             { $xml.Validate({throw $args.Exception }) } | Should Not Throw
         }
+
+        Context 'Exporting Parameterized Tests' {
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+
+            $TestResults.AddTestResult(
+                'Parameterized Testcase One',
+                'Passed',
+                (New-TimeSpan -Seconds 1),
+                $null,
+                $null,
+                'Parameterized Testcase <A>'
+            )
+
+            $TestResults.AddTestResult(
+                'Parameterized Testcase Two',
+                'Failed',
+                (New-TimeSpan -Seconds 1),
+                'Assert failed: "Expected: Test. But was: Testing"',
+                'at line: 28 in  C:\Pester\Result.Tests.ps1',
+                'Parameterized Testcase <A>'
+            )
+
+            #export and validate the file
+            $testFile = "$TestDrive\Results\Tests.xml"
+            Export-NunitReport $testResults $testFile
+            $xmlResult    = [xml] (Get-Content $testFile)
+
+            It 'should write parameterized test results correctly' {
+                $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
+
+                $xmlTestSuite.name     | Should Be 'Parameterized Testcase <A>'
+                $xmlTestSuite.type     | Should Be 'ParameterizedTest'
+                $xmlTestSuite.result   | Should Be 'Failure'
+                $xmlTestSuite.success  | Should Be 'False'
+                $xmlTestSuite.time     | Should Be '2'
+
+                foreach ($testCase in $xmlTestSuite.results.'test-case')
+                {
+                    $testCase.Name | Should Match '^Parameterized Testcase (One|Two)$'
+                    $testCase.time | Should Be 1
+                }
+            }
+
+            it 'Should validate test results against the nunit 2.5 schema' {
+                $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                $null = $xmlResult.Schemas.Add($null,$schemaPath)
+                { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
+            }
+        }
     }
 
     Describe "Get-TestTime" {

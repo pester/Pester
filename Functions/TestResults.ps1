@@ -107,43 +107,71 @@ function Export-NUnitReport {
             $XmlWriter.WriteAttributeString("asserts","0")
             $XmlWriter.WriteStartElement("results")
 
-            #Write test-results
-            $currentDescribe.Group | foreach {
-            $testResult = $_
-                $XmlWriter.WriteStartElement("test-case")
-                $XmlWriter.WriteAttributeString("name", $TestResult.Name)
-                $XmlWriter.WriteAttributeString("executed", "True")
-                $XmlWriter.WriteAttributeString("time", (Convert-TimeSpan $TestResult.Time))
-                $XmlWriter.WriteAttributeString("asserts", "0")
-                $XmlWriter.WriteAttributeString("success", $TestResult.Passed)
-                switch ($TestResult.Result)
+            $suites = $currentDescribe.Group | Group-Object -Property ParameterizedSuiteName
+
+            foreach ($suite in $suites)
+            {
+                if ($suite.Name)
                 {
-                    Passed 
-                    { 
-                        $XmlWriter.WriteAttributeString("result", "Success")
-                        break
-                    }
-                    Skipped 
-                    { 
-                        $XmlWriter.WriteAttributeString("result", "Skipped")
-                        break
-                    }
-                    Pending 
-                    {
-                        $XmlWriter.WriteAttributeString("result", "Inconclusive")
-                        break
-                    }
-                    Failed 
-                    {
-                        $XmlWriter.WriteAttributeString("result", "Failure")
-                        $XmlWriter.WriteStartElement("failure")
-                        $xmlWriter.WriteElementString("message", $TestResult.FailureMessage)
-                        $XmlWriter.WriteElementString("stack-trace", $TestResult.StackTrace)
-                        $XmlWriter.WriteEndElement() # Close failure tag
-                        break
-                    }
+                    $suiteInfo = Get-TestSuiteInfo $suite
+
+                    $XmlWriter.WriteStartElement("test-suite")
+                    $XmlWriter.WriteAttributeString("type", "ParameterizedTest")
+                    $XmlWriter.WriteAttributeString("name", $suiteInfo.Name)
+                    $XmlWriter.WriteAttributeString("executed", "True")
+                    $XmlWriter.WriteAttributeString("result", $suiteInfo.resultMessage)
+                    $XmlWriter.WriteAttributeString("success", $suiteInfo.success)
+                    $XmlWriter.WriteAttributeString("time", $suiteInfo.totalTime)
+                    $XmlWriter.WriteAttributeString("asserts","0")
+                    $XmlWriter.WriteStartElement("results")
                 }
-                $XmlWriter.WriteEndElement() #Close test-case tag
+
+                #Write test-results
+                $suite.Group | foreach {
+                    $testResult = $_
+
+                    $XmlWriter.WriteStartElement("test-case")
+                    $XmlWriter.WriteAttributeString("name", $testResult.Name)
+                    $XmlWriter.WriteAttributeString("executed", "True")
+                    $XmlWriter.WriteAttributeString("time", (Convert-TimeSpan $testResult.Time))
+                    $XmlWriter.WriteAttributeString("asserts", "0")
+                    $XmlWriter.WriteAttributeString("success", $testResult.Passed)
+                    switch ($testResult.Result)
+                    {
+                        Passed 
+                        { 
+                            $XmlWriter.WriteAttributeString("result", "Success")
+                            break
+                        }
+                        Skipped 
+                        { 
+                            $XmlWriter.WriteAttributeString("result", "Skipped")
+                            break
+                        }
+                        Pending 
+                        {
+                            $XmlWriter.WriteAttributeString("result", "Inconclusive")
+                            break
+                        }
+                        Failed 
+                        {
+                            $XmlWriter.WriteAttributeString("result", "Failure")
+                            $XmlWriter.WriteStartElement("failure")
+                            $xmlWriter.WriteElementString("message", $TestResult.FailureMessage)
+                            $XmlWriter.WriteElementString("stack-trace", $TestResult.StackTrace)
+                            $XmlWriter.WriteEndElement() # Close failure tag
+                            break
+                        }
+                    }
+
+                    $XmlWriter.WriteEndElement() #Close test-case tag
+                }
+
+                if ($suite.Name)
+                {
+                    $XmlWriter.WriteEndElement() #Close results tag
+                    $XmlWriter.WriteEndElement() #Close test-suite tag
+                }
             }
 
             $XmlWriter.WriteEndElement() #Close results tag
