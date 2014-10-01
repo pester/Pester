@@ -107,27 +107,54 @@ function Export-NUnitReport {
             $XmlWriter.WriteAttributeString("asserts","0")
             $XmlWriter.WriteStartElement("results")
 
-            #Write test-results
-            $currentDescribe.Group | foreach {
-                $XmlWriter.WriteStartElement("test-case")
-                $XmlWriter.WriteAttributeString("name", $_.Name)
-                $XmlWriter.WriteAttributeString("executed", "True")
-                $XmlWriter.WriteAttributeString("time", (Convert-TimeSpan $_.Time))
-                $XmlWriter.WriteAttributeString("asserts", "0")
-                $XmlWriter.WriteAttributeString("success", $_.Passed)
-                if ($_.Passed)
+            $suites = $currentDescribe.Group | Group-Object -Property ParameterizedSuiteName
+
+            foreach ($suite in $suites)
+            {
+                if ($suite.Name)
                 {
-                    $XmlWriter.WriteAttributeString("result", "Success")
+                    $suiteInfo = Get-TestSuiteInfo $suite
+
+                    $XmlWriter.WriteStartElement("test-suite")
+                    $XmlWriter.WriteAttributeString("type", "ParameterizedTest")
+                    $XmlWriter.WriteAttributeString("name", $suiteInfo.Name)
+                    $XmlWriter.WriteAttributeString("executed", "True")
+                    $XmlWriter.WriteAttributeString("result", $suiteInfo.resultMessage)
+                    $XmlWriter.WriteAttributeString("success", $suiteInfo.success)
+                    $XmlWriter.WriteAttributeString("time", $suiteInfo.totalTime)
+                    $XmlWriter.WriteAttributeString("asserts","0")
+                    $XmlWriter.WriteStartElement("results")
                 }
-                else
+
+                #Write test-results
+                $suite.Group | foreach {
+                    $XmlWriter.WriteStartElement("test-case")
+                    $XmlWriter.WriteAttributeString("name", $_.Name)
+                    $XmlWriter.WriteAttributeString("executed", "True")
+                    $XmlWriter.WriteAttributeString("time", (Convert-TimeSpan $_.Time))
+                    $XmlWriter.WriteAttributeString("asserts", "0")
+                    $XmlWriter.WriteAttributeString("success", $_.Passed)
+                    if ($_.Passed)
+                    {
+                        $XmlWriter.WriteAttributeString("result", "Success")
+                    }
+                    else
+                    {
+                        $XmlWriter.WriteAttributeString("result", "Failure")
+                        $XmlWriter.WriteStartElement("failure")
+                        $xmlWriter.WriteElementString("message", $_.FailureMessage)
+                        $XmlWriter.WriteElementString("stack-trace", $_.StackTrace)
+                        $XmlWriter.WriteEndElement() # Close failure tag
+                    }
+                    $XmlWriter.WriteEndElement() #Close test-case tag
+                }
+
+                if ($suite.Name)
                 {
-                    $XmlWriter.WriteAttributeString("result", "Failure")
-                    $XmlWriter.WriteStartElement("failure")
-                    $xmlWriter.WriteElementString("message", $_.FailureMessage)
-                    $XmlWriter.WriteElementString("stack-trace", $_.StackTrace)
-                    $XmlWriter.WriteEndElement() # Close failure tag
+                    $XmlWriter.WriteEndElement() #Close results tag
+                    $XmlWriter.WriteEndElement() #Close test-suite tag
                 }
-                $XmlWriter.WriteEndElement() #Close test-case tag
+
             }
 
             $XmlWriter.WriteEndElement() #Close results tag
