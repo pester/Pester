@@ -1,16 +1,5 @@
 Set-StrictMode -Version Latest
 
-function List-ExtraKeys($baseHash, $otherHash) {
-    $extra_keys = @()
-    $otherHash.Keys | ForEach-Object {
-        if ( -not $baseHash.ContainsKey($_)) {
-            $extra_keys += $_
-        }
-    }
-
-    return $extra_keys
-}
-
 Describe "It - Caller scoped tests" {
     It "should pass if assertions pass" {
         $test = 'something'
@@ -54,6 +43,17 @@ InModuleScope Pester {
             try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
             $result = Get-PesterResult $script 0 $ex
             $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
+        }
+    }
+
+    Describe 'It - Implementation' {
+        $pesterState = New-PesterState -Path TestDrive:\
+
+        #$pesterState.EnterDescribe('Mocked Describe')
+
+        It 'Throws an error if It is called outside of Describe' {
+            $scriptBlock = { ItImpl -Pester $pesterState 'Tries to enter a test without entering a Describe first' { } }
+            $scriptBlock | Should Throw 'The It command may only be used inside a Describe block.'
         }
     }
 }

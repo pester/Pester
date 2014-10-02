@@ -92,6 +92,19 @@ about_should
         [System.Collections.IDictionary[]] $TestCases
     )
 
+    ItImpl -Pester $pester @PSBoundParameters
+}
+
+function ItImpl
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$name,
+        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [System.Collections.IDictionary[]] $TestCases,
+        $Pester
+    )
+
     Assert-DescribeInProgress -CommandName It
 
     if ($null -ne $TestCases -and $TestCases.Count -gt 0)
