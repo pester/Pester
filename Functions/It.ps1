@@ -105,6 +105,19 @@ about_should
         [Switch] $Skip
     )
 
+    ItImpl -Pester $pester @PSBoundParameters
+}
+
+function ItImpl
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$name,
+        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [System.Collections.IDictionary[]] $TestCases,
+        $Pester
+    )
+
     Assert-DescribeInProgress -CommandName It
    
     if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending))
