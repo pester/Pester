@@ -90,7 +90,7 @@ function New-PesterState
         {
             if (-not $script:CurrentDescribe)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
+                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter It before entering Describe"
             }
 
             if ( $CurrentTest )

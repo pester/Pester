@@ -105,7 +105,7 @@ about_should
         [Switch] $Skip
     )
 
-    ItImpl -Pester $pester @PSBoundParameters
+    ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
 }
 
 function ItImpl
@@ -115,7 +115,8 @@ function ItImpl
         [string]$name,
         [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
         [System.Collections.IDictionary[]] $TestCases,
-        $Pester
+        $Pester,
+        [scriptblock] $OutputScriptBlock
     )
 
     Assert-DescribeInProgress -CommandName It
@@ -165,7 +166,7 @@ function ItImpl
                 Scriptblock = $test
                 Parameters = $testCase
                 ParameterizedSuiteName = $name
-                OutputScriptBlock = ${function:Write-PesterResult}
+                OutputScriptBlock = $OutputScriptBlock
             }
 
             Invoke-Test @splat @pendingSkip
@@ -173,7 +174,7 @@ function ItImpl
     }
     else
     {
-        Invoke-Test -Name $name -ScriptBlock $test @pendingSkip -OutputScriptBlock ${function:Write-PesterResult}
+        Invoke-Test -Name $name -ScriptBlock $test @pendingSkip -OutputScriptBlock $OutputScriptBlock
     }
 }
 
