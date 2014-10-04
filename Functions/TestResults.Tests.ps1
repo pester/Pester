@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "Write nunit test results" {
+    Describe "Write nunit test results (Legacy)" {
         Setup -Dir "Results"
 
         It "should write a successful test result" {
@@ -12,7 +12,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name     | Should Be "Successful testcase"
@@ -29,7 +29,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name                   | Should Be "Failed testcase"
@@ -47,7 +47,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestResult = $xmlResult.'test-results'
             $xmlTestResult.total    | Should Be 1
@@ -65,7 +65,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
@@ -87,7 +87,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
@@ -129,7 +129,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
@@ -157,7 +157,7 @@ InModuleScope Pester {
         it "should write the environment information" {
             $state = New-PesterState "."
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $state $testFile
+            Export-LegacyNunitReport $state $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
@@ -181,7 +181,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xml = [xml] (Get-Content $testFile)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -198,7 +198,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xml = [xml] (Get-Content $testFile)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -231,7 +231,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult    = [xml] (Get-Content $testFile)
 
             It 'should write parameterized test results correctly' {
