@@ -22,7 +22,25 @@ function GetFullPath ([string]$Path) {
     }
 }
 
-function Export-NUnitReport {
+function Export-PesterResults
+{
+    param (
+        $PesterState,
+        [string] $Path,
+        [string] $Format
+    )
+
+    switch ($Format)
+    {
+        'LegacyNUnitXml' { Export-LegacyNUnitReport -InputObject $PesterState -Path $Path }
+
+        default
+        {
+            throw "'$Format' is not a valid Pester export format."
+        }
+    }
+}
+function Export-LegacyNUnitReport {
     param (
         [parameter(Mandatory=$true,ValueFromPipeline=$true)]
         [PSObject]$InputObject,
