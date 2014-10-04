@@ -24,6 +24,14 @@ expectation of the test is not met.If you are following the
 AAA pattern (Arrange-Act-Assert), this typically holds the
 Assert.
 
+.PARAMETER TestCases
+Optional array of hashtable (or any IDictionary) objects.  If this parameter is used,
+Pester will call the test script block once for each table in the TestCases array,
+splatting the dictionary to the test script block as input.  If you want the name of
+the test to appear differently for each test case, you can embed tokens into the Name
+parameter with the syntax 'Adds numbers <A> and <B>' (assuming you have keys named A and B
+in your TestCases hashtables.)
+
 .EXAMPLE
 function Add-Numbers($a, $b) {
     return $a + $b
@@ -51,6 +59,27 @@ Describe "Add-Numbers" {
     }
 }
 
+.EXAMPLE
+function Add-Numbers($a, $b) {
+    return $a + $b
+}
+
+Describe "Add-Numbers" {
+    $testCases = @(
+        @{ a = 2;     b = 3;       expectedResult = 5 }
+        @{ a = -2;    b = -2;      expectedResult = -4 }
+        @{ a = -2;    b = 2;       expectedResult = 0 }
+        @{ a = 'two'; b = 'three'; expectedResult = 'twothree' }
+    )
+
+    It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $testCases {
+        param ($a, $b, $expectedResult)
+
+        $sum = Add-Numbers $a $b
+        $sum | Should Be $expectedResult
+    }
+}
+
 .LINK
 Describe
 Context
@@ -59,24 +88,93 @@ about_should
     param(
         [Parameter(Mandatory = $true)]
         [string]$name,
-        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [System.Collections.IDictionary[]] $TestCases
+    )
+
+    ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
+}
+
+function ItImpl
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$name,
+        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [System.Collections.IDictionary[]] $TestCases,
+        $Pester,
+        [scriptblock] $OutputScriptBlock
     )
 
     Assert-DescribeInProgress -CommandName It
 
-    $Pester.EnterTest($name)
+    if ($null -ne $TestCases -and $TestCases.Count -gt 0)
+    {
+        foreach ($testCase in $TestCases)
+        {
+            $expandedName = [regex]::Replace($name, '<([^>]+)>', {
+                $capture = $args[0].Groups[1].Value
+                if ($testCase.Contains($capture))
+                {
+                    $testCase[$capture]
+                }
+                else
+                {
+                    "<$capture>"
+                }
+            })
+
+            $splat = @{
+                Name = $expandedName
+                Scriptblock = $test
+                Parameters = $testCase
+                ParameterizedSuiteName = $name
+                OutputScriptBlock = $OutputScriptBlock
+            }
+
+            Invoke-Test @splat
+        }
+    }
+    else
+    {
+        Invoke-Test -Name $name -ScriptBlock $test -OutputScriptBlock $OutputScriptBlock
+    }
+}
+
+function Invoke-Test
+{
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $Name,
+
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+
+        [scriptblock] $OutputScriptBlock,
+
+        [System.Collections.IDictionary] $Parameters,
+        [string] $ParameterizedSuiteName
+    )
+
+    if ($null -eq $Parameters) { $Parameters = @{} }
+
+    $Pester.EnterTest($Name)
     Invoke-SetupBlocks
 
     $PesterException = $null
     try{
-        $null = & $test
+        $null = & $ScriptBlock @Parameters
     } catch {
         $PesterException = $_
     }
 
-    $Result = Get-PesterResult -Test $Test -Exception $PesterException
-    $Pester.AddTestResult($Result.name, $Result.Success, $null, $result.failuremessage, $result.StackTrace )
-    $Pester.testresult[-1] | Write-PesterResult
+    $Result = Get-PesterResult -Test $ScriptBlock -Exception $PesterException
+    $Pester.AddTestResult( $Result.name, $Result.Success, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName )
+
+    if ($null -ne $OutputScriptBlock)
+    {
+        $Pester.testresult[-1] | & $OutputScriptBlock
+    }
 
     Invoke-TeardownBlocks
     Exit-MockScope

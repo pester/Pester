@@ -87,7 +87,7 @@ function New-PesterState
         {
             if (-not $script:CurrentDescribe)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
+                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter It before entering Describe"
             }
 
             if ( $CurrentTest )
@@ -103,7 +103,7 @@ function New-PesterState
             $script:CurrentTest = $null
         }
 
-        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace )
+        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace, [string] $ParameterizedSuiteName )
         {
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
@@ -114,14 +114,15 @@ function New-PesterState
             }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
-                Describe       = $CurrentDescribe
-                Context        = $CurrentContext
-                Name           = $Name
-                Passed         = $Passed
-                Time           = $Time
-                FailureMessage = $FailureMessage
-                StackTrace     = $StackTrace
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Passed, Time, FailureMessage, StackTrace
+                Describe               = $CurrentDescribe
+                Context                = $CurrentContext
+                Name                   = $Name
+                Passed                 = $Passed
+                Time                   = $Time
+                FailureMessage         = $FailureMessage
+                StackTrace             = $StackTrace
+                ParameterizedSuiteName = $ParameterizedSuiteName
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName
         }
 
         $ExportedVariables = "Path",

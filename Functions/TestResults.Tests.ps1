@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "Write nunit test results" {
+    Describe "Write nunit test results (Legacy)" {
         Setup -Dir "Results"
 
         It "should write a successful test result" {
@@ -12,7 +12,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name     | Should Be "Successful testcase"
@@ -29,7 +29,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name                   | Should Be "Failed testcase"
@@ -47,7 +47,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestResult = $xmlResult.'test-results'
             $xmlTestResult.total    | Should Be 1
@@ -65,7 +65,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
@@ -87,7 +87,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
@@ -105,7 +105,7 @@ InModuleScope Pester {
         it "should write the environment information" {
             $state = New-PesterState "."
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $state $testFile
+            Export-LegacyNunitReport $state $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
@@ -129,7 +129,7 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xml = [xml] (Get-Content $testFile)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -146,12 +146,63 @@ InModuleScope Pester {
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
+            Export-LegacyNunitReport $testResults $testFile
             $xml = [xml] (Get-Content $testFile)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xml.Schemas.Add($null,$schemePath) > $null
             { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+        }
+
+        Context 'Exporting Parameterized Tests' {
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Mocked Describe')
+
+            $TestResults.AddTestResult(
+                'Parameterized Testcase One',
+                $true,
+                (New-TimeSpan -Seconds 1),
+                $null,
+                $null,
+                'Parameterized Testcase <A>'
+            )
+
+            $TestResults.AddTestResult(
+                'Parameterized Testcase Two',
+                $false,
+                (New-TimeSpan -Seconds 1),
+                'Assert failed: "Expected: Test. But was: Testing"',
+                'at line: 28 in  C:\Pester\Result.Tests.ps1',
+                'Parameterized Testcase <A>'
+            )
+
+            #export and validate the file
+            $testFile = "$TestDrive\Results\Tests.xml"
+            Export-LegacyNunitReport $testResults $testFile
+            $xmlResult    = [xml] (Get-Content $testFile)
+
+            It 'should write parameterized test results correctly' {
+                $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
+
+                $xmlTestSuite.name     | Should Be 'Parameterized Testcase <A>'
+                $xmlTestSuite.type     | Should Be 'ParameterizedTest'
+                $xmlTestSuite.result   | Should Be 'Failure'
+                $xmlTestSuite.success  | Should Be 'False'
+                $xmlTestSuite.time     | Should Be '2'
+
+                foreach ($testCase in $xmlTestSuite.results.'test-case')
+                {
+                    $testCase.Name | Should Match '^Parameterized Testcase (One|Two)$'
+                    $testCase.time | Should Be 1
+                }
+            }
+
+            it 'Should validate test results against the nunit 2.5 schema' {
+                $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                $null = $xmlResult.Schemas.Add($null,$schemaPath)
+                { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
+            }
         }
     }
 
