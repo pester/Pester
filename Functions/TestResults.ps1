@@ -106,7 +106,6 @@ function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $date = Get-Date
     $XmlWriter.WriteAttributeString('date', (Get-Date -Date $date -Format 'yyyy-MM-dd'))
     $XmlWriter.WriteAttributeString('time', (Get-Date -Date $date -Format 'HH:mm:ss'))
-
 }
 
 function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $XmlWriter)
@@ -180,7 +179,6 @@ function Write-NUnitDescribeElements($PesterState, [System.Xml.XmlWriter] $XmlWr
         $XmlWriter.WriteEndElement() #Close results tag
         $XmlWriter.WriteEndElement() #Close test-suite tag
     }
-
 }
 
 function Get-TestSuiteInfo ($TestSuiteGroup) {
@@ -257,11 +255,9 @@ function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.X
     {
         if ($suite.Name)
         {
-            $suiteInfo = Get-TestSuiteInfo $suite
-
             $XmlWriter.WriteStartElement('test-suite')
 
-            Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter
+            Write-NUnitTestSuiteAttributes -TestSuiteInfo (Get-TestSuiteInfo $suite) -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter
 
             $XmlWriter.WriteStartElement('results')
         }
@@ -273,9 +269,7 @@ function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.X
             $XmlWriter.WriteEndElement()
             $XmlWriter.WriteEndElement()
         }
-
     }
-
 }
 
 function Write-NUnitTestCaseElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter)
