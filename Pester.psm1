@@ -129,7 +129,7 @@ about_pester
         [string] $OutputFile,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('LegacyNUnitXml')]
+        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
         [string] $OutputFormat
     )
 

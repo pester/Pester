@@ -115,7 +115,8 @@ function New-PesterState
                 [Nullable[TimeSpan]]$Time,
                 [string]$FailureMessage,
                 [string]$StackTrace,
-                [string] $ParameterizedSuiteName
+                [string] $ParameterizedSuiteName,
+                [System.Collections.IDictionary] $Parameters
             )
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
@@ -150,7 +151,8 @@ function New-PesterState
                 FailureMessage         = $FailureMessage
                 StackTrace             = $StackTrace
                 ParameterizedSuiteName = $ParameterizedSuiteName
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName
+                Parameters             = $Parameters
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
         }
 
         $ExportedVariables = "Path",

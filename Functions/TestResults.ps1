@@ -32,7 +32,8 @@ function Export-PesterResults
 
     switch ($Format)
     {
-        'LegacyNUnitXml' { Export-LegacyNUnitReport -InputObject $PesterState -Path $Path }
+        'LegacyNUnitXml' { Export-NUnitReport -PesterState $PesterState -Path $Path -LegacyFormat }
+        'NUnitXml'       { Export-NUnitReport -PesterState $PesterState -Path $Path }
 
         default
         {
@@ -40,13 +41,15 @@ function Export-PesterResults
         }
     }
 }
-function Export-LegacyNUnitReport {
+function Export-NUnitReport {
     param (
         [parameter(Mandatory=$true,ValueFromPipeline=$true)]
         $PesterState,
 
         [parameter(Mandatory=$true)]
-        [String]$Path
+        [String]$Path,
+
+        [switch] $LegacyFormat
     )
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
@@ -64,7 +67,7 @@ function Export-LegacyNUnitReport {
     try {
         $xmlWriter = [Xml.XmlWriter]::Create($Path,$settings)
 
-        Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+        Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState -LegacyFormat:$LegacyFormat
 
         $xmlWriter.Flush()
     }
@@ -76,7 +79,7 @@ function Export-LegacyNUnitReport {
     }
 }
 
-function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
@@ -90,7 +93,7 @@ function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter)
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $XmlWriter.WriteAttributeString('xmlns','xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi','noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
@@ -108,7 +111,7 @@ function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteAttributeString('time', (Get-Date -Date $date -Format 'HH:mm:ss'))
 }
 
-function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     Write-NUnitEnvironmentInformation @PSBoundParameters
     Write-NUnitCultureInformation @PSBoundParameters
@@ -124,7 +127,7 @@ function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $XmlWriter.WriteStartElement('environment')
 
@@ -136,7 +139,7 @@ function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $XmlWriter.WriteStartElement('culture-info')
 
@@ -146,7 +149,7 @@ function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $Xml
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $XmlWriter.WriteAttributeString('type', 'Powershell')
     $XmlWriter.WriteAttributeString('name', $PesterState.Path)
@@ -160,7 +163,7 @@ function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWrite
     $XmlWriter.WriteAttributeString('asserts','0')
 }
 
-function Write-NUnitDescribeElements($PesterState, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitDescribeElements($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $Describes = $PesterState.TestResult | Group-Object -Property Describe
     foreach ($currentDescribe in $Describes)
@@ -170,23 +173,27 @@ function Write-NUnitDescribeElements($PesterState, [System.Xml.XmlWriter] $XmlWr
         #Write test suites
         $XmlWriter.WriteStartElement('test-suite')
 
-        Write-NUnitTestSuiteAttributes -TestSuiteInfo $DescribeInfo -TestSuiteType 'PowerShell' -XmlWriter $XmlWriter
+        if ($LegacyFormat) { $suiteType = 'PowerShell' } else { $suiteType = 'TestFixture' }
+
+        Write-NUnitTestSuiteAttributes -TestSuiteInfo $DescribeInfo -TestSuiteType $suiteType -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat
 
         $XmlWriter.WriteStartElement('results')
 
-        Write-NUnitDescribeChildElements -TestResults $currentDescribe.Group -XmlWriter $XmlWriter
+        Write-NUnitDescribeChildElements -TestResults $currentDescribe.Group -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeInfo.Name
 
-        $XmlWriter.WriteEndElement() #Close results tag
-        $XmlWriter.WriteEndElement() #Close test-suite tag
+        $XmlWriter.WriteEndElement()
+        $XmlWriter.WriteEndElement()
     }
 }
 
-function Get-TestSuiteInfo ($TestSuiteGroup) {
+function Get-TestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo]$TestSuiteGroup)
+{
     $suite = @{
         resultMessage = 'Failure'
         success = 'False'
         totalTime = '0.0'
-        name = $TestSuiteGroup.name
+        name = $TestSuiteGroup.Name
+        description = $TestSuiteGroup.Name
     }
 
     #calculate the time first, I am converting the time into string in the TestCases
@@ -236,7 +243,7 @@ function Get-TestSuccess($tests) {
     }
     [String]$result
 }
-function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [System.Xml.XmlWriter] $XmlWriter, [string] $TestSuiteType)
+function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [System.Xml.XmlWriter] $XmlWriter, [string] $TestSuiteType, [switch] $LegacyFormat)
 {
     $XmlWriter.WriteAttributeString('type', $TestSuiteType)
     $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
@@ -245,9 +252,14 @@ function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [System.Xml.XmlWriter] $
     $XmlWriter.WriteAttributeString('success', $TestSuiteInfo.success)
     $XmlWriter.WriteAttributeString('time',$TestSuiteInfo.totalTime)
     $XmlWriter.WriteAttributeString('asserts','0')
+
+    if (-not $LegacyFormat)
+    {
+        $XmlWriter.WriteAttributeString('description', $TestSuiteInfo.Description)
+    }
 }
 
-function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat, [string] $DescribeName)
 {
     $suites = $TestResults | Group-Object -Property ParameterizedSuiteName
 
@@ -255,14 +267,21 @@ function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.X
     {
         if ($suite.Name)
         {
+            $suiteInfo = Get-TestSuiteInfo -TestSuiteGroup $suite
+
             $XmlWriter.WriteStartElement('test-suite')
 
-            Write-NUnitTestSuiteAttributes -TestSuiteInfo (Get-TestSuiteInfo $suite) -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter
+            if (-not $LegacyFormat)
+            {
+                $suiteInfo.Name = "$DescribeName.$($suiteInfo.Name)"
+            }
+
+            Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat
 
             $XmlWriter.WriteStartElement('results')
         }
 
-        Write-NUnitTestCaseElements -TestResults $suite.Group -XmlWriter $XmlWriter
+        Write-NUnitTestCaseElements -TestResults $suite.Group -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeName -ParameterizedSuiteName $suite.Name
 
         if ($suite.Name)
         {
@@ -272,22 +291,57 @@ function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.X
     }
 }
 
-function Write-NUnitTestCaseElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitTestCaseElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat, [string] $DescribeName, [string] $ParameterizedSuiteName)
 {
-    #Write test-results
     foreach ($testResult in $TestResults)
     {
         $XmlWriter.WriteStartElement('test-case')
 
-        Write-NUnitTestCaseAttributes -TestResult $testResult -XmlWriter $XmlWriter
+        Write-NUnitTestCaseAttributes -TestResult $testResult -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeName -ParameterizedSuiteName $ParameterizedSuiteName
 
         $XmlWriter.WriteEndElement()
     }
 }
 
-function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat, [string] $DescribeName, [string] $ParameterizedSuiteName)
 {
-    $XmlWriter.WriteAttributeString('name', $TestResult.Name)
+    $testName = $TestResult.Name
+
+    if (-not $LegacyFormat)
+    {
+        if ($testName -eq $ParameterizedSuiteName)
+        {
+            $paramString = ''
+            if ($null -ne $TestResult.Parameters)
+            {
+                $params = @(
+                    foreach ($value in $TestResult.Parameters.Values)
+                    {
+                        if ($null -eq $value)
+                        {
+                            'null'
+                        }
+                        elseif ($value -is [string])
+                        {
+                            '"{0}"' -f $value
+                        }
+                        else
+                        {
+                            $value.ToString()
+                        }
+                    }
+                )
+
+                $paramString = $params -join ','
+            }
+
+            $testName = "$testName($paramString)"
+        }
+
+        $testName = "$DescribeName.$testName"
+    }
+
+    $XmlWriter.WriteAttributeString('name', $testName)
     $XmlWriter.WriteAttributeString('executed', 'True')
     $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Time))
     $XmlWriter.WriteAttributeString('asserts', '0')
