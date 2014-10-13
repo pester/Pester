@@ -966,3 +966,11 @@ Describe 'Parameter Filters and Common Parameters' {
         Assert-MockCalled Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
     }
 }
+
+Describe "Mocking Get-ItemProperty" {
+    Mock Get-ItemProperty { New-Object -typename psobject -property @{ Name = "fakeName" } }
+    It "Does not fail with NotImplementedException" {
+        Get-ItemProperty -Path "HKLM:\Software\Key\" -Name "Property" | Select -ExpandProperty Name | Should Be fakeName
+    }
+}
+

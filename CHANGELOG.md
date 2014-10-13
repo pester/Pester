@@ -1,3 +1,6 @@
+## Unreleased 
+  - Fix mocking of Get-ItemProperty
+
 ## 3.0.3 (October 12, 2014)
   - Can be installed from PowerShellGet
   - Version updated to solve issue on PowerShellGet

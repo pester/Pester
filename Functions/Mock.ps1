@@ -987,7 +987,14 @@ function Get-DynamicParametersForCmdlet
         $property.SetValue($cmdlet, $keyValuePair.Value, $null)
     }
 
-    $cmdlet.GetDynamicParameters()
+    try 
+    {
+        $cmdlet.GetDynamicParameters()
+    }
+    catch [System.NotImplementedException] 
+    { 
+        #ignore the exception 
+    }
 }
 
 function Get-DynamicParametersForMockedFunction
