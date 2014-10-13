@@ -1,3 +1,7 @@
+## 3.0.3 (October 12, 2014)
+  - Can be installed from PowerShellGet
+  - Version updated to solve issue on PowerShellGet
+
 ## 3.0.2 (September 8, 2014)
   - Coverage Analysis now ignores closing conditions of do/while and do/until loops, which were giving false failures.  [GH-200]
   - Calls to Functions and Cmdlets with dynamic parameters can now be mocked. [GH-203]
