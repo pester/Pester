@@ -601,15 +601,19 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
 }
 
 function MockPrototype {
-    $functionName = $MyInvocation.MyCommand.Name
+    # It's necessary to strongly type our variable assignments here, just in case the mocked command has
+    # parameters of the same names with a different type.  We don't actually care about overwriting the
+    # variables, since they're going to be passed along with $PSBoundParameters anyway.
 
-    $moduleName = ''
+    [string] $functionName = $MyInvocation.MyCommand.Name
+
+    [string] $moduleName = ''
     if ($ExecutionContext.SessionState.Module)
     {
         $moduleName = $ExecutionContext.SessionState.Module.Name
     }
 
-    $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction SilentlyContinue
+    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction SilentlyContinue
     if ($null -eq $ArgumentList) { $ArgumentList = @() }
 
     Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
