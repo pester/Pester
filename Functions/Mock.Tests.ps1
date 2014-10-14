@@ -974,3 +974,21 @@ Describe "Mocking Get-ItemProperty" {
     }
 }
 
+Describe 'When mocking a command with parameters that match internal variable names' {
+    function Test-Function
+    {
+        [CmdletBinding()]
+        param (
+            [string] $ArgumentList,
+            [int] $FunctionName,
+            [double] $ModuleName
+        )
+    }
+
+    Mock Test-Function { return 'Mocked!' }
+
+    It 'Should execute the mocked command successfully' {
+        { Test-Function } | Should Not Throw
+        Test-Function | Should Be 'Mocked!'
+    }
+}
