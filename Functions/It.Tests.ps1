@@ -157,6 +157,33 @@ InModuleScope Pester {
             }
         }
     }
+
+    Describe 'Get-OrderedParameterDictionary' {
+        $_testScriptBlock = {
+            param (
+                $1, $c, $0, $z, $a, ${Something.Really/Weird }
+            )
+        }
+
+        $hashtable = @{
+            '1' = 'One'
+            '0' = 'Zero'
+            z = 'Z'
+            a = 'A'
+            c = 'C'
+            'Something.Really/Weird ' = 'Weird'
+        }
+
+        $dictionary = Get-OrderedParameterDictionary -ScriptBlock $_testScriptBlock -Dictionary $hashtable
+
+        It 'Reports keys and values in the same order as the param block' {
+            ($dictionary.Keys -join ',') |
+            Should Be '1,c,0,z,a,Something.Really/Weird '
+
+            ($dictionary.Values -join ',') |
+            Should Be 'One,C,Zero,Z,A,Weird'
+        }
+    }
 }
 InModuleScope Pester {
     Describe "Remove-Comments" {    
