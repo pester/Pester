@@ -224,7 +224,8 @@ function Invoke-Test
         }
 
         $result = Get-PesterResult -Test $ScriptBlock -Exception $PesterException
-        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $Parameters )
+        $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
+        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
     }
     
     if ($null -ne $OutputScriptBlock)
@@ -280,4 +281,51 @@ function Get-PesterResult {
 function Remove-Comments ($Text) 
 {
     $text -replace "(?s)(<#.*#>)" -replace "\#.*" 
+}
+
+function Get-OrderedParameterDictionary
+{
+    [OutputType([System.Collections.IDictionary])]
+    param (
+        [scriptblock] $ScriptBlock,
+        [System.Collections.IDictionary] $Dictionary
+    )
+
+    $parameters = Get-ParameterDictionary -ScriptBlock $ScriptBlock
+
+    $orderedDictionary = New-Object System.Collections.Specialized.OrderedDictionary
+
+    foreach ($parameterName in $parameters.Keys)
+    {
+        $value = $null
+        if ($Dictionary.ContainsKey($parameterName))
+        {
+            $value = $Dictionary[$parameterName]
+        }
+
+        $orderedDictionary[$parameterName] = $value
+    }
+
+    return $orderedDictionary
+}
+
+function Get-ParameterDictionary
+{
+    param (
+        [scriptblock] $ScriptBlock
+    )
+
+    $guid = [guid]::NewGuid().Guid
+
+    try
+    {
+        Set-Content function:\$guid $ScriptBlock
+        $metadata = [System.Management.Automation.CommandMetadata](Get-Command -Name $guid -CommandType Function)
+
+        return $metadata.Parameters
+    }
+    finally
+    {
+        if (Test-Path function:\$guid) { Remove-Item function:\$guid }
+    }
 }
