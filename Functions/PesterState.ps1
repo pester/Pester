@@ -253,11 +253,11 @@ function Write-PesterResult
                 break
             }
             Skipped {
-                "$margin[.] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
+                "$margin[!] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
                 break
             }
             Pending {
-                "$margin[>] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkBlue
+                "$margin[?] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkBlue
                 break
             }
         }
