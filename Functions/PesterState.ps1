@@ -5,7 +5,8 @@ function New-PesterState
         [String]$Path,
         [String[]]$TagFilter,
         [String[]]$TestNameFilter,
-        [System.Management.Automation.SessionState]$SessionState
+        [System.Management.Automation.SessionState]$SessionState,
+        [Switch]$Strict
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -15,7 +16,8 @@ function New-PesterState
             [String]$_path,
             [String[]]$_tagFilter,
             [String[]]$_testNameFilter,
-            [System.Management.Automation.SessionState]$_sessionState
+            [System.Management.Automation.SessionState]$_sessionState,
+            [Switch]$Strict
         )
 
         #public read-only
@@ -32,6 +34,7 @@ function New-PesterState
         $script:CommandCoverage = @()
         $script:BeforeEach = @()
         $script:AfterEach = @()
+        $script:Strict = $Strict
 
         $script:TestResult = @()
 
@@ -107,10 +110,8 @@ function New-PesterState
         {
             param ( 
                 [string]$Name,
-#               [bool]$Passed,
                 [ValidateSet("Failed","Passed","Skipped","Pending")]
                 [String]$Result,
-                [Switch]$Strict,
                 [Nullable[TimeSpan]]$Time,
                 [string]$FailureMessage,
                 [String]$StackTrace 
@@ -123,7 +124,7 @@ function New-PesterState
                 $Time = $script:MostRecentTimestamp - $previousTime
             }
             
-            if (-not $Strict) 
+            if (-not $script:Strict) 
             {
                 $Passed = "Passed","Skipped","Pending" -contains $Result
             }
@@ -138,7 +139,7 @@ function New-PesterState
                 Name           = $Name
                 Passed         = $Passed
                 Result         = $Result
-                Strict         = $Strict
+                Strict         = $script:Strict
                 Time           = $Time
                 FailureMessage = $FailureMessage
                 StackTrace     = $StackTrace
@@ -155,7 +156,8 @@ function New-PesterState
         "SessionState",
         "CommandCoverage",
         "BeforeEach",
-        "AfterEach"
+        "AfterEach",
+        "Strict"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",

@@ -75,7 +75,7 @@ about_should
     }
 
     $Result = Get-PesterResult -Test $Test -Exception $PesterException
-    $Pester.AddTestResult($Result.name, $Result.Result, $Strict, $null, $result.failuremessage, $result.StackTrace )
+    $Pester.AddTestResult($Result.name, $Result.Result, $null, $result.failuremessage, $result.StackTrace )
     $Pester.testresult[-1] | Write-PesterResult
 
     Invoke-TeardownBlocks

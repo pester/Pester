@@ -94,7 +94,7 @@ about_TestDrive
     catch
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
-        $Pester.AddTestResult('Error occurred in Describe block', "Failed", $Strict, $null, $_.Exception.Message, $firstStackTraceLine)
+        $Pester.AddTestResult('Error occurred in Describe block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
     }
 
