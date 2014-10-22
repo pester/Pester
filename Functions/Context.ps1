@@ -64,7 +64,7 @@ about_TestDrive
     catch
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
-        $Pester.AddTestResult('Error occurred in Context block', $false, $null, $_.Exception.Message, $firstStackTraceLine)
+        $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
     }
 

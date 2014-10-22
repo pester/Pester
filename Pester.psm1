@@ -63,6 +63,9 @@ If only StartLine is defined, the entire script file starting with StartLine is 
 If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
 Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
 
+.PARAMETER Strict
+Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
+
 .Example
 Invoke-Pester
 
@@ -118,12 +121,13 @@ about_pester
         [string]$Tag,
         [switch]$PassThru,
 
-        [object[]] $CodeCoverage = @()
+        [object[]] $CodeCoverage = @(),
+        [Switch]$Strict
     )
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     $message = "Executing all tests in '$($pester.Path)'"
@@ -146,7 +150,7 @@ about_pester
         catch
         {
             $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", $false, $null, $_.Exception.Message, $firstStackTraceLine)
+            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", "Failed", $false, $null, $_.Exception.Message, $firstStackTraceLine)
             $pester.TestResult[-1] | Write-PesterResult
         }
     }

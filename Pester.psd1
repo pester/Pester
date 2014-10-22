@@ -49,8 +49,21 @@ FunctionsToExport = @(
 # # Cmdlets to export from this module
 # CmdletsToExport = '*'
 
-# # Variables to export from this module
-# VariablesToExport = '*'
+# Variables to export from this module
+VariablesToExport = @(
+    'Path',
+    'TagFilter',
+    'TestNameFilter',
+    'TestResult',
+    'CurrentContext',
+    'CurrentDescribe',
+    'CurrentTest',
+    'SessionState',
+    'CommandCoverage',
+    'BeforeEach',
+    'AfterEach',
+    'Strict'
+)
 
 # # Aliases to export from this module
 # AliasesToExport = '*'

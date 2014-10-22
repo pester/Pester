@@ -54,9 +54,9 @@ function Export-NUnitReport {
         $XmlWriter.WriteAttributeString("errors", "0")
         $XmlWriter.WriteAttributeString("failures", $InputObject.FailedCount)
         $XmlWriter.WriteAttributeString("not-run", "0")
-        $XmlWriter.WriteAttributeString("inconclusive", "0")
+        $XmlWriter.WriteAttributeString("inconclusive", $InputObject.PendingCount)
         $XmlWriter.WriteAttributeString("ignored", "0")
-        $XmlWriter.WriteAttributeString("skipped", "0")
+        $XmlWriter.WriteAttributeString("skipped", $InputObject.SkippedCount)
         $XmlWriter.WriteAttributeString("invalid", "0")
         $date = Get-Date
         $XmlWriter.WriteAttributeString("date", (Get-Date -Date $date -Format "yyyy-MM-dd"))
@@ -76,14 +76,14 @@ function Export-NUnitReport {
         $XmlWriter.WriteAttributeString("current-uiculture", ([System.Threading.Thread]::CurrentThread.CurrentUiCulture).Name)
         $XmlWriter.WriteEndElement() #Close culture-info tag
 
-        #Write root test-suite element containing all the describes
+        #Write root test-suite element that will contain all describes
         $XmlWriter.WriteStartElement("test-suite")
         $XmlWriter.WriteAttributeString("type", "Powershell")
         $XmlWriter.WriteAttributeString("name", $InputObject.Path)
         $XmlWriter.WriteAttributeString("executed", "True")
 
         $isSuccess = $inputObject.FailedCount -eq 0
-        $result = if ($isSuccess) { "Success" }  else { "Failure"}
+        $result = Get-ParentResult $inputObject
         $XmlWriter.WriteAttributeString("result", $result)
         $XmlWriter.WriteAttributeString("success",[string]$isSuccess)
         $XmlWriter.WriteAttributeString("time",(Convert-TimeSpan $InputObject.Time))
@@ -109,23 +109,39 @@ function Export-NUnitReport {
 
             #Write test-results
             $currentDescribe.Group | foreach {
+            $testResult = $_
                 $XmlWriter.WriteStartElement("test-case")
-                $XmlWriter.WriteAttributeString("name", $_.Name)
+                $XmlWriter.WriteAttributeString("name", $TestResult.Name)
                 $XmlWriter.WriteAttributeString("executed", "True")
-                $XmlWriter.WriteAttributeString("time", (Convert-TimeSpan $_.Time))
+                $XmlWriter.WriteAttributeString("time", (Convert-TimeSpan $TestResult.Time))
                 $XmlWriter.WriteAttributeString("asserts", "0")
-                $XmlWriter.WriteAttributeString("success", $_.Passed)
-                if ($_.Passed)
+                $XmlWriter.WriteAttributeString("success", $TestResult.Passed)
+                switch ($TestResult.Result)
                 {
-                    $XmlWriter.WriteAttributeString("result", "Success")
-                }
-                else
-                {
-                    $XmlWriter.WriteAttributeString("result", "Failure")
-                    $XmlWriter.WriteStartElement("failure")
-                    $xmlWriter.WriteElementString("message", $_.FailureMessage)
-                    $XmlWriter.WriteElementString("stack-trace", $_.StackTrace)
-                    $XmlWriter.WriteEndElement() # Close failure tag
+                    Passed 
+                    { 
+                        $XmlWriter.WriteAttributeString("result", "Success")
+                        break
+                    }
+                    Skipped 
+                    { 
+                        $XmlWriter.WriteAttributeString("result", "Skipped")
+                        break
+                    }
+                    Pending 
+                    {
+                        $XmlWriter.WriteAttributeString("result", "Inconclusive")
+                        break
+                    }
+                    Failed 
+                    {
+                        $XmlWriter.WriteAttributeString("result", "Failure")
+                        $XmlWriter.WriteStartElement("failure")
+                        $xmlWriter.WriteElementString("message", $TestResult.FailureMessage)
+                        $XmlWriter.WriteElementString("stack-trace", $TestResult.StackTrace)
+                        $XmlWriter.WriteEndElement() # Close failure tag
+                        break
+                    }
                 }
                 $XmlWriter.WriteEndElement() #Close test-case tag
             }
@@ -161,10 +177,9 @@ function Get-TestSuiteInfo ($DescribeGroup) {
     #calculate the time first, I am converting the time into string in the TestCases
     $suite.totalTime = (Get-TestTime $DescribeGroup.Group)
     $suite.success = (Get-TestSuccess $DescribeGroup.Group)
-    if($suite.success -eq "True")
-    {
-        $suite.resultMessage = "Success"
-    }
+
+    $suite.resultMessage = Get-GroupResult $DescribeGroup.Group
+   
     $suite
 }
 
@@ -221,4 +236,24 @@ function Get-RunTimeEnvironment() {
 
 function Exit-WithCode ($FailedCount) {
     $host.SetShouldExit($FailedCount)
+}
+
+function Get-ParentResult ($InputObject) 
+{
+    #I am not sure about the result precedence, and can't find any good source
+    #TODO: Confirm this is the correct order of precedence
+    if ($inputObject.FailedCount  -gt 0) { return "Failure" }
+    if ($InputObject.SkippedCount -gt 0) { return "Skipped" }
+    if ($InputObject.PendingCount -gt 0) { return "Inconclusive" }
+    return "Success"
+}
+
+function Get-GroupResult ($InputObject)
+{
+    #I am not sure about the result precedence, and can't find any good source
+    #TODO: Confirm this is the correct order of precedence
+    if ($InputObject |  Where {$_.Result -eq "Failed"}) { return "Failure" }
+    if ($InputObject |  Where {$_.Result -eq "Skipped"}) { return "Skipped" }
+    if ($InputObject |  Where {$_.Result -eq "Pending"}) { return "Inconclusive" }
+    return "Success"
 }
