@@ -24,6 +24,9 @@ expectation of the test is not met.If you are following the
 AAA pattern (Arrange-Act-Assert), this typically holds the
 Assert.
 
+.PARAMETER Pending
+Marks the test as pending, that is inconclusive/not implemented. The test will not run and will
+
 .EXAMPLE
 function Add-Numbers($a, $b) {
     return $a + $b
@@ -68,7 +71,7 @@ about_should
    
     #mark empty Its as Pending
     #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
-    if ([String]::IsNullOrEmpty($test.ToString() -replace "\s")) { $Pending = $true } 
+    if ([String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s")) { $Pending = $true } 
 
     $Pester.EnterTest($name)
     if ($Skip) 
@@ -138,4 +141,9 @@ function Get-PesterResult {
     $testResult.stackTrace = "at line: $line in $file"
 
     return $testResult
+}
+
+function Remove-Comments ($Text) 
+{
+    $text -replace "(?s)(<#.*#>)" -replace "\#.*" 
 }

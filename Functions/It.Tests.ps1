@@ -46,6 +46,7 @@ Describe "It - Caller scoped tests" {
     }
     
     #TODO: Test if empty It is marked as Pending
+    #TODO: Test if scriptblock that contains comments only is marked as pending
 }
 
 InModuleScope Pester {
@@ -56,6 +57,17 @@ InModuleScope Pester {
             try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
             $result = Get-PesterResult $script 0 $ex
             $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
+        }
+    }
+}
+InModuleScope Pester {
+    Describe "Remove-Comments" {    
+        It "Removes single line comments" {
+            Remove-Comments -Text "code #comment" | Should Be "code "
+        } 
+        It "Removes multi line comments" {
+            Remove-Comments -Text "code <#comment
+            comment#> code" | Should Be "code  code"
         }
     }
 }
