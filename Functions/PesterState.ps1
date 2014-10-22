@@ -149,7 +149,7 @@ function New-PesterState
                 Time           = $Time
                 FailureMessage = $FailureMessage
                 StackTrace     = $StackTrace
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, Strict
         }
 
         $ExportedVariables = "Path",
