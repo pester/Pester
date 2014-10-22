@@ -34,16 +34,18 @@ Describe "It - Caller scoped tests" {
     $result = $null
     try
     {
-        It "empty test block" { }
+        It "non-empty test block" { "anything" }
     }
     catch
     {
         $result = $_
     }
 
-    It "won't throw if success test block given" {
+    It "won't throw if non-empty test block given" {
         $result | Should Be $null
     }
+    
+    #TODO: Test if empty It is marked as Pending
 }
 
 InModuleScope Pester {

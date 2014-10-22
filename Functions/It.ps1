@@ -65,6 +65,10 @@ about_should
     )
 
     Assert-DescribeInProgress -CommandName It
+   
+    #mark empty Its as Pending
+    #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
+    if ([String]::IsNullOrEmpty($test.ToString() -replace "\s")) { $Pending = $true } 
 
     $Pester.EnterTest($name)
     if ($Skip) 
