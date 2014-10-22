@@ -59,26 +59,42 @@ about_should
     param(
         [Parameter(Mandatory = $true)]
         [string]$name,
-        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [Switch] $Pending,
+        [Switch] $Skip
     )
 
     Assert-DescribeInProgress -CommandName It
 
     $Pester.EnterTest($name)
-    Invoke-SetupBlocks
-
-    $PesterException = $null
-    try{
-        $null = & $test
-    } catch {
-        $PesterException = $_
+    if ($Skip) 
+    {
+        $Pester.AddTestResult($Name, "Skipped", $null)
     }
+    elseif ($Pending) 
+    {
+        $Pester.AddTestResult($Name, "Pending", $null)
+    }
+    else 
+    {
+        Invoke-SetupBlocks
 
-    $Result = Get-PesterResult -Test $Test -Exception $PesterException
-    $Pester.AddTestResult($Result.name, $Result.Result, $null, $result.failuremessage, $result.StackTrace )
+        $PesterException = $null
+        try{
+            $null = & $test
+        } catch {
+            $PesterException = $_
+        }
+
+        $Result = Get-PesterResult -Test $Test -Exception $PesterException
+        $Pester.AddTestResult($Result.name, $Result.Result, $null, $result.failuremessage, $result.StackTrace )
+    }
     $Pester.testresult[-1] | Write-PesterResult
 
-    Invoke-TeardownBlocks
+    if (-not ($Skip -or $Pending))
+    {
+        Invoke-TeardownBlocks
+    }
     Exit-MockScope
     
     $Pester.LeaveTest()
@@ -94,7 +110,6 @@ function Get-PesterResult {
         success = $false
         result = "Failed"
     };
-    #TODO: Add handling of Strict mode
 
     if(-not $exception)
     {
@@ -103,21 +118,6 @@ function Get-PesterResult {
         return $testResult
     }
     
-    #handle special Pester exceptions
-    if ($exception.FullyQualifiedErrorID -eq 'PesterSkippedTest')
-    {
-        $testResult.Result = "Skipped"
-        $testResult.success = $true
-        return $testResult
-    }
-    if ($exception.FullyQualifiedErrorID -eq 'PesterPendingTest')
-    {
-       $testResult.Result = "Pending"
-       $testResult.success = $true
-        return $testResult
-    }
-    
-    #handle any test that actually failed
     if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
     {
         $failureMessage = $exception.exception.message
@@ -134,22 +134,4 @@ function Get-PesterResult {
     $testResult.stackTrace = "at line: $line in $file"
 
     return $testResult
-}
-
-function Skip {
-    $exception = New-Object Exception
-    $errorID = 'PesterSkippedTest'
-    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
-
-    throw $errorRecord
-}
-
-function Pending {
-    $exception = New-Object Exception
-    $errorID = 'PesterPendingTest'
-    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
-
-    throw $errorRecord
 }

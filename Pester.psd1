@@ -43,9 +43,7 @@ FunctionsToExport = @(
     'BeforeEach',
     'AfterEach',
     'Get-MockDynamicParameters',
-    'Set-DynamicParameterVariables',
-    'Skip', 
-    'Pending'
+    'Set-DynamicParameterVariables'
 )
 
 # # Cmdlets to export from this module
