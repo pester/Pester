@@ -226,6 +226,41 @@ InModuleScope Pester {
             $p.LeaveDescribe()
 
         }
-
+        
+        Context "Path and TestNameFilter parameter is set" {
+            $strict = New-PesterState -path "path" -Strict
+            
+            It "Keeps Passed state" {
+                $strict.AddTestResult("test","Passed")
+                $result = $strict.TestResult[-1]
+                
+                $result.passed | should be $true
+                $result.Result | Should be "Passed"
+            }
+            
+            It "Keeps Failed state" {
+                $strict.AddTestResult("test","Failed")
+                $result = $strict.TestResult[-1]
+                
+                $result.passed | should be $false
+                $result.Result | Should be "Failed"
+            }
+            
+            It "Changes Pending state to Failed" {
+                $strict.AddTestResult("test","Pending")
+                $result = $strict.TestResult[-1]
+                
+                $result.passed | should be $false
+                $result.Result | Should be "Failed"
+            }
+            
+            It "Changes Skipped state to Failed" {
+                $strict.AddTestResult("test","Skipped")
+                $result = $strict.TestResult[-1]
+                
+                $result.passed | should be $false
+                $result.Result | Should be "Failed"
+            }
+        }
     }
 }

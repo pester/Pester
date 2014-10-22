@@ -131,6 +131,11 @@ function New-PesterState
             else
             {
                 $Passed = "Passed" -contains $Result
+                if (-not $Passed)
+                {
+                    $Result = "Failed"
+                }
+                
             }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
@@ -168,7 +173,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState |
+    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict |
     Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
         @( $this.TestResult ).Count
     } -PassThru |
