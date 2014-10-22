@@ -197,6 +197,24 @@ InModuleScope Pester {
                 $result.FailureMessage | should be "fail"
                 $result.StackTrace | should be "stack"
             }
+            
+            it "adds skipped test" {
+                $p.AddTestResult("result","Skipped", $false, 100)
+                $result = $p.TestResult[-1]
+                $result.Name | should be "result"
+                $result.passed | should be $true
+                $result.Result | Should be "Skipped"
+                $result.time.ticks | should be 100
+            }
+            
+            it "adds Pending test" {
+                $p.AddTestResult("result","Pending", $false, 100)
+                $result = $p.TestResult[-1]
+                $result.Name | should be "result"
+                $result.passed | should be $true
+                $result.Result | Should be "Pending"
+                $result.time.ticks | should be 100
+            }
 
             it "can add test result before entering describe" {
                 if ($p.CurrentContext) { $p.LeaveContext()}

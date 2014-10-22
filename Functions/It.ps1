@@ -75,11 +75,12 @@ about_should
     }
 
     $Result = Get-PesterResult -Test $Test -Exception $PesterException
-    $Pester.AddTestResult($Result.name, $Result.Result, $Result.Success, $null, $result.failuremessage, $result.StackTrace )
+    $Pester.AddTestResult($Result.name, $Result.Result, $Strict, $null, $result.failuremessage, $result.StackTrace )
     $Pester.testresult[-1] | Write-PesterResult
 
     Invoke-TeardownBlocks
     Exit-MockScope
+    
     $Pester.LeaveTest()
 }
 
@@ -99,23 +100,56 @@ function Get-PesterResult {
     {
         $testResult.Result = "Passed"
         $testResult.success = $true
+        return $testResult
     }
-    else
+    
+    #handle special Pester exceptions
+    if ($exception.FullyQualifiedErrorID -eq 'PesterSkippedTest')
     {
-        if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
-        {
-            $failureMessage = $exception.exception.message
-            $file = $test.File
-            $line = if ( $exception.ErrorDetails.message -match "\d+$" )  { $matches[0] }
-        }
-        else {
-            $failureMessage = $exception.ToString()
-            $file = $Exception.InvocationInfo.ScriptName
-            $line = $Exception.InvocationInfo.ScriptLineNumber
-        }
-
-        $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
-        $testResult.stackTrace = "at line: $line in $file"
+        $testResult.Result = "Skipped"
+        $testResult.success = $true
+        return $testResult
     }
+    if ($exception.FullyQualifiedErrorID -eq 'PesterPendingTest')
+    {
+       $testResult.Result = "Pending"
+       $testResult.success = $true
+        return $testResult
+    }
+    
+    #handle any test that actually failed
+    if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+    {
+        $failureMessage = $exception.exception.message
+        $file = $test.File
+        $line = if ( $exception.ErrorDetails.message -match "\d+$" )  { $matches[0] }
+    }
+    else {
+        $failureMessage = $exception.ToString()
+        $file = $Exception.InvocationInfo.ScriptName
+        $line = $Exception.InvocationInfo.ScriptLineNumber
+    }
+
+    $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
+    $testResult.stackTrace = "at line: $line in $file"
+
     return $testResult
+}
+
+function Skip {
+    $exception = New-Object Exception
+    $errorID = 'PesterSkippedTest'
+    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
+    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
+
+    throw $errorRecord
+}
+
+function Pending {
+    $exception = New-Object Exception
+    $errorID = 'PesterPendingTest'
+    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
+    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
+
+    throw $errorRecord
 }

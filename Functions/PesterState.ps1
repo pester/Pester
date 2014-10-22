@@ -238,14 +238,26 @@ function Write-PesterResult
         $output = $TestResult.name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 
-        if($TestResult.Passed)
+        switch ($TestResult.Result)
         {
-            "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
-        }
-        else {
-            "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
-            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+            Passed {
+                "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
+                break
+            }
+            Failed {
+                "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
+                Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                break
+            }
+            Skipped {
+                "$margin[.] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
+                break
+            }
+            Pending {
+                "$margin[>] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkBlue
+                break
+            }
         }
     }
 }
