@@ -146,7 +146,7 @@ about_pester
         catch
         {
             $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", $false, $null, $_.Exception.Message, $firstStackTraceLine)
+            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", "Failed", $false, $null, $_.Exception.Message, $firstStackTraceLine)
             $pester.TestResult[-1] | Write-PesterResult
         }
     }

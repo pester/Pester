@@ -103,8 +103,18 @@ function New-PesterState
             $script:CurrentTest = $null
         }
 
-        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace )
+        function AddTestResult 
         {
+            param ( 
+                [string]$Name,
+#               [bool]$Passed,
+                [ValidateSet("Failed","Passed","Skipped","Pending")]
+                [String]$Result,
+                [Switch]$Strict,
+                [Nullable[TimeSpan]]$Time,
+                [string]$FailureMessage,
+                [String]$StackTrace 
+            )
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
 
@@ -112,16 +122,27 @@ function New-PesterState
             {
                 $Time = $script:MostRecentTimestamp - $previousTime
             }
+            
+            if (-not $Strict) 
+            {
+                $Passed = "Passed","Skipped","Pending" -contains $Result
+            }
+            else
+            {
+                $Passed = "Passed" -contains $Result
+            }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
                 Describe       = $CurrentDescribe
                 Context        = $CurrentContext
                 Name           = $Name
                 Passed         = $Passed
+                Result         = $Result
+                Strict         = $Strict
                 Time           = $Time
                 FailureMessage = $FailureMessage
                 StackTrace     = $StackTrace
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Passed, Time, FailureMessage, StackTrace
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace
         }
 
         $ExportedVariables = "Path",

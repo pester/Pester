@@ -180,17 +180,19 @@ InModuleScope Pester {
             $p.EnterDescribe('Describe')
 
             it "adds passed test" {
-                $p.AddTestResult("result",$true, 100)
+                $p.AddTestResult("result","Passed", $false, 100)
                 $result = $p.TestResult[-1]
                 $result.Name | should be "result"
                 $result.passed | should be $true
+                $result.Result | Should be "Passed"
                 $result.time.ticks | should be 100
             }
             it "adds failed test" {
-                $p.AddTestResult("result",$false, 100, "fail", "stack")
+                $p.AddTestResult("result","Failed", $false, 100, "fail", "stack")
                 $result = $p.TestResult[-1]
                 $result.Name | should be "result"
                 $result.passed | should be $false
+                $result.Result | Should be "Failed"
                 $result.time.ticks | should be 100
                 $result.FailureMessage | should be "fail"
                 $result.StackTrace | should be "stack"
@@ -199,8 +201,11 @@ InModuleScope Pester {
             it "can add test result before entering describe" {
                 if ($p.CurrentContext) { $p.LeaveContext()}
                 if ($p.CurrentDescribe) { $p.LeaveDescribe() }
-                { $p.addTestResult(1,1,1) } | should not throw
+                { $p.addTestResult(1,"Passed",$false,1) } | should not throw
             }
+            
+            $p.LeaveContext()
+            $p.LeaveDescribe()
 
         }
 

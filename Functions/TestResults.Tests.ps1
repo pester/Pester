@@ -8,7 +8,7 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Mocked Describe')
-            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.AddTestResult("Successful testcase","Passed",$false,(New-TimeSpan -Seconds 1))
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -25,7 +25,7 @@ InModuleScope Pester {
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Mocked Describe')
             $time = [TimeSpan]25000000 #2.5 seconds
-            $TestResults.AddTestResult("Failed testcase",$false,$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
+            $TestResults.AddTestResult("Failed testcase","Failed",$false,$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -43,7 +43,7 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Mocked Describe')
-            $TestResults.AddTestResult("Testcase",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.AddTestResult("Testcase","Passed",$false,(New-TimeSpan -Seconds 1))
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -60,8 +60,8 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Mocked Describe')
-            $TestResults.AddTestResult("Successful testcase",$true,[timespan]10000000) #1.0 seconds
-            $TestResults.AddTestResult("Successful testcase",$true,[timespan]11000000) #1.1 seconds
+            $TestResults.AddTestResult("Successful testcase","Passed",$false,[timespan]10000000) #1.0 seconds
+            $TestResults.AddTestResult("Successful testcase","Passed",$false,[timespan]11000000) #1.1 seconds
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -80,10 +80,10 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe #1')
-            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.AddTestResult("Successful testcase","Passed",$false,(New-TimeSpan -Seconds 1))
             $TestResults.LeaveDescribe()
             $testResults.EnterDescribe('Describe #2')
-            $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
+            $TestResults.AddTestResult("Failed testcase","Failed",$false,(New-TimeSpan -Seconds 2))
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -122,10 +122,10 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe #1')
-            $TestResults.AddTestResult("Successful testcase",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.AddTestResult("Successful testcase","Passed",$false,(New-TimeSpan -Seconds 1))
             $TestResults.LeaveDescribe()
             $testResults.EnterDescribe('Describe #2')
-            $TestResults.AddTestResult("Failed testcase",$false,(New-TimeSpan -Seconds 2))
+            $TestResults.AddTestResult("Failed testcase","Failed",$false,(New-TimeSpan -Seconds 2))
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -141,7 +141,7 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
-            $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",$true,(New-TimeSpan -Seconds 1))
+            $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-","Passed",$false,(New-TimeSpan -Seconds 1))
             $TestResults.LeaveDescribe()
 
             #export and validate the file

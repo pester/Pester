@@ -75,7 +75,7 @@ about_should
     }
 
     $Result = Get-PesterResult -Test $Test -Exception $PesterException
-    $Pester.AddTestResult($Result.name, $Result.Success, $null, $result.failuremessage, $result.StackTrace )
+    $Pester.AddTestResult($Result.name, $Result.Result, $Result.Success, $null, $result.failuremessage, $result.StackTrace )
     $Pester.testresult[-1] | Write-PesterResult
 
     Invoke-TeardownBlocks
@@ -91,10 +91,13 @@ function Get-PesterResult {
         failureMessage = ""
         stackTrace = ""
         success = $false
+        result = "Failed"
     };
+    #TODO: Add handling of Strict mode
 
     if(-not $exception)
     {
+        $testResult.Result = "Passed"
         $testResult.success = $true
     }
     else
