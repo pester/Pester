@@ -130,9 +130,10 @@ function New-PesterState
             }
             else
             {
-                $Passed = "Passed" -contains $Result
-                if (-not $Passed)
+                $Passed = $Result -eq "Passed"
+                if (($Result -eq "Skipped") -or ($Result -eq "Pending"))
                 {
+                    $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
                     $Result = "Failed"
                 }
                 
