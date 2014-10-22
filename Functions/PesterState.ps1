@@ -179,10 +179,16 @@ function New-PesterState
         @( $this.TestResult ).Count
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name PassedCount -Value {
-        @( $this.TestResult | where { $_.Passed } ).count
+        @( $this.TestResult | where { $_.Result -eq "Passed" } ).count
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name FailedCount -Value {
-        @( $this.TestResult | where { -not $_.Passed } ).count
+        @( $this.TestResult | where { $_.Result -eq "Failed" } ).count
+    } -PassThru |
+    Add-Member -MemberType ScriptProperty -Name SkippedCount -Value {
+        @( $this.TestResult | where { $_.Result -eq "Skipped" } ).count
+    } -PassThru |
+    Add-Member -MemberType ScriptProperty -Name PendingCount -Value {
+        @( $this.TestResult | where { $_.Result -eq "Pending" } ).count
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name Time -Value {
         $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ( $_.time ) } { [timespan]$total }

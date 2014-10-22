@@ -24,7 +24,7 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Mocked Describe')
-            $time = [TimeSpan]25000000 #2.5 seconds
+            $time = [TimeSpan]::FromSeconds(2.5)
             $TestResults.AddTestResult("Failed testcase","Failed",$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
 
             #export and validate the file
@@ -100,6 +100,58 @@ InModuleScope Pester {
             $xmlTestSuite2.result   | Should Be "Failure"
             $xmlTestSuite2.success  | Should Be "False"
             $xmlTestSuite2.time     | Should Be 2.0
+        }
+        
+        it "should write parent results in tree correctly" {
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterDescribe('Failed')
+            $TestResults.AddTestResult("Failed","Failed")
+            $TestResults.AddTestResult("Skipped","Skipped")
+            $TestResults.AddTestResult("Pending","Pending")
+            $TestResults.AddTestResult("Passed","Passed")
+            $TestResults.LeaveDescribe()
+            
+            $testResults.EnterDescribe('Skipped')
+            $TestResults.AddTestResult("Skipped","Skipped")
+            $TestResults.AddTestResult("Pending","Pending")
+            $TestResults.AddTestResult("Passed","Passed")
+            $TestResults.LeaveDescribe()
+            
+            $testResults.EnterDescribe('Pending')
+            $TestResults.AddTestResult("Pending","Pending")
+            $TestResults.AddTestResult("Passed","Passed")
+            $TestResults.LeaveDescribe()
+            
+            $testResults.EnterDescribe('Passed')
+            $TestResults.AddTestResult("Passed","Passed")
+            $TestResults.LeaveDescribe()
+
+            #export and validate the file
+            $testFile = "$TestDrive\Results\Tests.xml"
+            Export-NunitReport $testResults $testFile
+            $xmlResult = [xml] (Get-Content $testFile)
+
+            $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
+            $xmlTestSuite1.name     | Should Be "Failed"
+            $xmlTestSuite1.result   | Should Be "Failure"
+            $xmlTestSuite1.success  | Should Be "False"
+            
+            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
+            $xmlTestSuite2.name     | Should Be "Skipped"
+            $xmlTestSuite2.result   | Should Be "Skipped"
+            $xmlTestSuite2.success  | Should Be "True"
+            
+            $xmlTestSuite3 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[2]
+            $xmlTestSuite3.name     | Should Be "Pending"
+            $xmlTestSuite3.result   | Should Be "Inconclusive"
+            $xmlTestSuite3.success  | Should Be "True"
+            
+            $xmlTestSuite4 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[3]
+            $xmlTestSuite4.name     | Should Be "Passed"
+            $xmlTestSuite4.result   | Should Be "Success"
+            $xmlTestSuite4.success  | Should Be "True"
+
         }
 
         it "should write the environment information" {
