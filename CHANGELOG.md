@@ -1,6 +1,7 @@
 ## Unreleased 
   - Fix mocking of Get-ItemProperty
   - Fix mocking commands with parameters named $FunctionName, $ModuleName or $ArgumentList under some circumstances. [GH-215]
+  - Add Skipped and Pending test results
 
 ## 3.0.3 (October 12, 2014)
   - Can be installed from PowerShellGet

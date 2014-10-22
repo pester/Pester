@@ -1,3 +1,6 @@
+This branch is not supported and is for developement only.
+=======
+
 Pester 3.0 has been released!  To see a list of changes in this version, refer to the [What's New in Pester 3.0?](https://github.com/pester/Pester/wiki/What's-New-in-Pester-3.0%3F) Wiki page.
 
 ---
