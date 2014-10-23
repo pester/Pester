@@ -165,10 +165,6 @@ about_Mocking
 
     Assert-DescribeInProgress -CommandName Mock
 
-    $filterTest = Test-ParameterFilter -ScriptBlock $ParameterFilter
-
-    if ($filterTest -isnot [bool]) { throw [System.Management.Automation.PSArgumentException] 'The Parameter Filter must return a boolean' }
-
     $contextInfo = Validate-Command $CommandName $ModuleName
     $CommandName = $contextInfo.Command.Name
 

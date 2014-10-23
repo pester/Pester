@@ -511,20 +511,6 @@ Describe "When Creating a Verifiable Mock that is called" {
     }
 }
 
-Describe "When Creating a Verifiable Mock with a filter that does not return a boolean" {
-    $result=""
-
-    try{
-        Mock FunctionUnderTest {return "I am a verifiable test"} -parameterFilter {"one"}
-    } Catch {
-        $result=$_
-    }
-
-    It "Should throw" {
-        $result | Should Be "The Parameter Filter must return a boolean"
-    }
-}
-
 Describe "When Calling Assert-MockCalled 0 without exactly" {
     Mock FunctionUnderTest {}
     FunctionUnderTest "one"
