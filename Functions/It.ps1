@@ -59,16 +59,27 @@ Describe
 Context
 about_should
 #>
+    
+    [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true)]
         [string]$name,
-        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [ScriptBlock] $test = {},
+
+        [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
+
+        [Parameter(ParameterSetName = 'Skip')]
         [Switch] $Skip
     )
 
     Assert-DescribeInProgress -CommandName It
    
+    if (-not $PSBoundParameters.ContainsKey('test') -and -not $Skip -and -not $Pending)
+    {
+        throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
+    }
+
     #mark empty Its as Pending
     #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
     if ([String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s")) { $Pending = $true } 
