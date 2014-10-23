@@ -62,8 +62,10 @@ about_should
     
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [string]$name,
+
+        [Parameter(Position = 1)]
         [ScriptBlock] $test = {},
 
         [Parameter(ParameterSetName = 'Pending')]
