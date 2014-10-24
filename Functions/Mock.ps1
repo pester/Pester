@@ -70,7 +70,7 @@ Using this Mock, all calls to Get-ChildItem will return a hashtable with a
 FullName property returning "A_File.TXT"
 
 .EXAMPLE
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp) }
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
 
 This Mock will only be applied to Get-ChildItem calls within the user's temp directory.
 
@@ -80,15 +80,15 @@ Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $V
 When this mock is used, if the Mock is never invoked and Assert-VerifiableMocks is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp\1) }
-Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp\2) }
-Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp\3) }
+Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
+Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
+Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName="B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
-Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path.StartsWith($env:temp) }
+Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
 
 Get-ChildItem $env:temp\me
 
@@ -164,10 +164,6 @@ about_Mocking
     )
 
     Assert-DescribeInProgress -CommandName Mock
-
-    $filterTest = Test-ParameterFilter -ScriptBlock $ParameterFilter
-
-    if ($filterTest -isnot [bool]) { throw [System.Management.Automation.PSArgumentException] 'The Parameter Filter must return a boolean' }
 
     $contextInfo = Validate-Command $CommandName $ModuleName
     $CommandName = $contextInfo.Command.Name
