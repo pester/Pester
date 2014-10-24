@@ -87,7 +87,7 @@ Describe "Add-Numbers" {
 Describe
 Context
 about_should
-#>  
+#>
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
@@ -120,19 +120,19 @@ function ItImpl
     )
 
     Assert-DescribeInProgress -CommandName It
-   
+
     if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending))
     {
         throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
     }
-   
+
     #mark empty Its as Pending
     #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
     if ($PSCmdlet.ParameterSetName -eq 'Normal' -and
        [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
     {
         $Pending = $true
-    } 
+    }
 
     $pendingSkip = @{}
 
@@ -204,11 +204,11 @@ function Invoke-Test
 
     $Pester.EnterTest($Name)
 
-    if ($Skip) 
+    if ($Skip)
     {
         $Pester.AddTestResult($Name, "Skipped", $null)
     }
-    elseif ($Pending) 
+    elseif ($Pending)
     {
         $Pester.AddTestResult($Name, "Pending", $null)
     }
@@ -227,7 +227,7 @@ function Invoke-Test
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
     }
-    
+
     if ($null -ne $OutputScriptBlock)
     {
         $Pester.testresult[-1] | & $OutputScriptBlock
@@ -238,7 +238,7 @@ function Invoke-Test
         Invoke-TeardownBlocks
     }
     Exit-MockScope
-    
+
     $Pester.LeaveTest()
 }
 
@@ -259,7 +259,7 @@ function Get-PesterResult {
         $testResult.success = $true
         return $testResult
     }
-    
+
     if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
     {
         $failureMessage = $exception.exception.message
@@ -278,9 +278,9 @@ function Get-PesterResult {
     return $testResult
 }
 
-function Remove-Comments ($Text) 
+function Remove-Comments ($Text)
 {
-    $text -replace "(?s)(<#.*#>)" -replace "\#.*" 
+    $text -replace "(?s)(<#.*#>)" -replace "\#.*"
 }
 
 function Get-OrderedParameterDictionary

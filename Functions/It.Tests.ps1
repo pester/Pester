@@ -33,7 +33,7 @@ Describe "It - Caller scoped tests" {
     It "won't throw if non-empty test block given" {
         $result | Should Be $null
     }
-    
+
     #TODO: Test if empty It is marked as Pending
     #TODO: Test if scriptblock that contains comments only is marked as pending
 }
@@ -186,10 +186,10 @@ InModuleScope Pester {
     }
 }
 InModuleScope Pester {
-    Describe "Remove-Comments" {    
+    Describe "Remove-Comments" {
         It "Removes single line comments" {
             Remove-Comments -Text "code #comment" | Should Be "code "
-        } 
+        }
         It "Removes multi line comments" {
             Remove-Comments -Text "code <#comment
             comment#> code" | Should Be "code  code"

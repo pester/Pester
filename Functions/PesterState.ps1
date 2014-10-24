@@ -106,9 +106,9 @@ function New-PesterState
             $script:CurrentTest = $null
         }
 
-        function AddTestResult 
+        function AddTestResult
         {
-            param ( 
+            param (
                 [string]$Name,
                 [ValidateSet("Failed","Passed","Skipped","Pending")]
                 [string]$Result,
@@ -125,8 +125,8 @@ function New-PesterState
             {
                 $Time = $script:MostRecentTimestamp - $previousTime
             }
-            
-            if (-not $script:Strict) 
+
+            if (-not $script:Strict)
             {
                 $Passed = "Passed","Skipped","Pending" -contains $Result
             }
@@ -138,7 +138,7 @@ function New-PesterState
                     $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
                     $Result = "Failed"
                 }
-                
+
             }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{

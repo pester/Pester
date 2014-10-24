@@ -105,7 +105,7 @@ InModuleScope Pester {
             $xmlTestSuite2.success     | Should Be "False"
             $xmlTestSuite2.time        | Should Be 2.0
         }
-        
+
         it "should write parent results in tree correctly" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
@@ -115,18 +115,18 @@ InModuleScope Pester {
             $TestResults.AddTestResult("Pending","Pending")
             $TestResults.AddTestResult("Passed","Passed")
             $TestResults.LeaveDescribe()
-            
+
             $testResults.EnterDescribe('Skipped')
             $TestResults.AddTestResult("Skipped","Skipped")
             $TestResults.AddTestResult("Pending","Pending")
             $TestResults.AddTestResult("Passed","Passed")
             $TestResults.LeaveDescribe()
-            
+
             $testResults.EnterDescribe('Pending')
             $TestResults.AddTestResult("Pending","Pending")
             $TestResults.AddTestResult("Passed","Passed")
             $TestResults.LeaveDescribe()
-            
+
             $testResults.EnterDescribe('Passed')
             $TestResults.AddTestResult("Passed","Passed")
             $TestResults.LeaveDescribe()
@@ -140,17 +140,17 @@ InModuleScope Pester {
             $xmlTestSuite1.name     | Should Be "Failed"
             $xmlTestSuite1.result   | Should Be "Failure"
             $xmlTestSuite1.success  | Should Be "False"
-            
+
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
             $xmlTestSuite2.name     | Should Be "Skipped"
             $xmlTestSuite2.result   | Should Be "Skipped"
             $xmlTestSuite2.success  | Should Be "True"
-            
+
             $xmlTestSuite3 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[2]
             $xmlTestSuite3.name     | Should Be "Pending"
             $xmlTestSuite3.result   | Should Be "Inconclusive"
             $xmlTestSuite3.success  | Should Be "True"
-            
+
             $xmlTestSuite4 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[3]
             $xmlTestSuite4.name     | Should Be "Passed"
             $xmlTestSuite4.result   | Should Be "Success"

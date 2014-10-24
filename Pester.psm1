@@ -124,7 +124,7 @@ about_pester
 
         [object[]] $CodeCoverage = @(),
         [Switch]$Strict,
-        
+
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [string] $OutputFile,
 
