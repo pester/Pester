@@ -1,7 +1,11 @@
-## Unreleased 
+## 3.1 (October 23, 2014)
   - Fix mocking of Get-ItemProperty
   - Fix mocking commands with parameters named $FunctionName, $ModuleName or $ArgumentList under some circumstances. [GH-215]
   - Add Skipped and Pending test results
+  - Added support for parameterized tests to the It command.
+  - Deprecated -OutputXml parameter, added -OutputFile and -OutputFormat parameters.
+  - Added new updated NUnit export format.  Original format still available as -OutputFormat LegacyNUnitXml.
+  - Stopped forcing -ParameterFilter blocks to return explicit booleans, preventing some unnecessary null reference exceptions.
 
 ## 3.0.3 (October 12, 2014)
   - Can be installed from PowerShellGet
