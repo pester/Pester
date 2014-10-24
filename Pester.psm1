@@ -106,6 +106,7 @@ Describe
 about_pester
 
 #>
+    [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
     param(
         [Parameter(Position=0,Mandatory=0)]
         [Alias('relative_path')]
@@ -114,7 +115,7 @@ about_pester
         [string]$TestName,
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
-        [Parameter(Position=3,Mandatory=0)]
+        [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
         [string]$OutputXml,
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
@@ -122,8 +123,25 @@ about_pester
         [switch]$PassThru,
 
         [object[]] $CodeCoverage = @(),
-        [Switch]$Strict
+        [Switch]$Strict,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [string] $OutputFile,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
+        [string] $OutputFormat
     )
+
+    if ($PSBoundParameters.ContainsKey('OutputXml'))
+    {
+        Write-Warning 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
+
+        Start-Sleep -Seconds 2
+
+        $OutputFile = $OutputXml
+        $OutputFormat = 'LegacyNUnitXml'
+    }
 
     $script:mockTable = @{}
 
@@ -160,10 +178,9 @@ about_pester
     Show-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
-    if($OutputXml) {
-        #TODO make this legacy option and move the nUnit report out of invoke-pester
-        #TODO add warning message that informs the user how to use the nunit output properly
-        Export-NunitReport $pester $OutputXml
+
+    if($OutputFile) {
+        Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
     }
 
     if ($PassThru) {

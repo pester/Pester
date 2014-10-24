@@ -197,7 +197,7 @@ InModuleScope Pester {
                 $result.FailureMessage | should be "fail"
                 $result.StackTrace | should be "stack"
             }
-            
+
             it "adds skipped test" {
                 $p.AddTestResult("result","Skipped", 100)
                 $result = $p.TestResult[-1]
@@ -206,7 +206,7 @@ InModuleScope Pester {
                 $result.Result | Should be "Skipped"
                 $result.time.ticks | should be 100
             }
-            
+
             it "adds Pending test" {
                 $p.AddTestResult("result","Pending", 100)
                 $result = $p.TestResult[-1]
@@ -221,43 +221,43 @@ InModuleScope Pester {
                 if ($p.CurrentDescribe) { $p.LeaveDescribe() }
                 { $p.addTestResult(1,"Passed",1) } | should not throw
             }
-            
+
             $p.LeaveContext()
             $p.LeaveDescribe()
 
         }
-        
+
         Context "Path and TestNameFilter parameter is set" {
             $strict = New-PesterState -path "path" -Strict
-            
+
             It "Keeps Passed state" {
                 $strict.AddTestResult("test","Passed")
                 $result = $strict.TestResult[-1]
-                
+
                 $result.passed | should be $true
                 $result.Result | Should be "Passed"
             }
-            
+
             It "Keeps Failed state" {
                 $strict.AddTestResult("test","Failed")
                 $result = $strict.TestResult[-1]
-                
+
                 $result.passed | should be $false
                 $result.Result | Should be "Failed"
             }
-            
+
             It "Changes Pending state to Failed" {
                 $strict.AddTestResult("test","Pending")
                 $result = $strict.TestResult[-1]
-                
+
                 $result.passed | should be $false
                 $result.Result | Should be "Failed"
             }
-            
+
             It "Changes Skipped state to Failed" {
                 $strict.AddTestResult("test","Skipped")
                 $result = $strict.TestResult[-1]
-                
+
                 $result.passed | should be $false
                 $result.Result | Should be "Failed"
             }

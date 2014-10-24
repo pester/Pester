@@ -90,7 +90,7 @@ function New-PesterState
         {
             if (-not $script:CurrentDescribe)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
+                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter It before entering Describe"
             }
 
             if ( $CurrentTest )
@@ -106,15 +106,17 @@ function New-PesterState
             $script:CurrentTest = $null
         }
 
-        function AddTestResult 
+        function AddTestResult
         {
-            param ( 
+            param (
                 [string]$Name,
                 [ValidateSet("Failed","Passed","Skipped","Pending")]
-                [String]$Result,
+                [string]$Result,
                 [Nullable[TimeSpan]]$Time,
                 [string]$FailureMessage,
-                [String]$StackTrace 
+                [string]$StackTrace,
+                [string] $ParameterizedSuiteName,
+                [System.Collections.IDictionary] $Parameters
             )
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
@@ -123,8 +125,8 @@ function New-PesterState
             {
                 $Time = $script:MostRecentTimestamp - $previousTime
             }
-            
-            if (-not $script:Strict) 
+
+            if (-not $script:Strict)
             {
                 $Passed = "Passed","Skipped","Pending" -contains $Result
             }
@@ -136,20 +138,21 @@ function New-PesterState
                     $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
                     $Result = "Failed"
                 }
-                
+
             }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
-                Describe       = $CurrentDescribe
-                Context        = $CurrentContext
-                Name           = $Name
-                Passed         = $Passed
-                Result         = $Result
-                Strict         = $script:Strict
-                Time           = $Time
-                FailureMessage = $FailureMessage
-                StackTrace     = $StackTrace
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, Strict
+                Describe               = $CurrentDescribe
+                Context                = $CurrentContext
+                Name                   = $Name
+                Passed                 = $Passed
+                Result                 = $Result
+                Time                   = $Time
+                FailureMessage         = $FailureMessage
+                StackTrace             = $StackTrace
+                ParameterizedSuiteName = $ParameterizedSuiteName
+                Parameters             = $Parameters
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
         }
 
         $ExportedVariables = "Path",
