@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.1.0'
+ModuleVersion = '3.1.1'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'

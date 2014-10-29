@@ -1,4 +1,4 @@
-## Unreleased
+## 3.1.1 (October 29, 2014)
   - Fix Skipped and Pending
   - Fix output format on non-US systems
 
