@@ -1,49 +1,11 @@
 Set-StrictMode -Version Latest
 
-Describe "It - Caller scoped tests" {
-    It "should pass if assertions pass" {
-        $test = 'something'
-        $test | should be "something"
-    }
-
-    $result = $null
-    try
-    {
-        It "no test block"
-    }
-    catch
-    {
-        $result = $_
-    }
-
-    It "throws if no test block given" {
-        $result | Should Not Be $null
-    }
-
-    $result = $null
-    try
-    {
-        It "non-empty test block" { "anything" }
-    }
-    catch
-    {
-        $result = $_
-    }
-
-    It "won't throw if non-empty test block given" {
-        $result | Should Be $null
-    }
-
-    #TODO: Test if empty It is marked as Pending
-    #TODO: Test if scriptblock that contains comments only is marked as pending
-}
-
 InModuleScope Pester {
-    Describe "It - Module scoped tests" {
-        It "records the correct stack line number of failed tests" {
+    Describe 'Get-PesterResult' {
+        It 'records the correct stack line number of failed tests' {
             #the $script scriptblock below is used as a position marker to determine
             #on which line the test failed.
-            try{"something" | should be "nothing"}catch{ $ex=$_} ; $script={}
+            try{'something' | should be 'nothing'}catch{ $ex=$_} ; $script={}
             $result = Get-PesterResult $script 0 $ex
             $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
         }
@@ -84,6 +46,30 @@ InModuleScope Pester {
 
             $testState.TestResult[-1].Passed | Should Be $true
             $testState.TestResult[-1].ParameterizedSuiteName | Should BeNullOrEmpty
+        }
+
+        It 'Does not throw an error if the -Pending switch is used, and no script block is passed' {
+            $scriptBlock = { ItImpl -Pester $testState 'Some Name' -Pending }
+            $scriptBlock | Should Not Throw
+        }
+
+        It 'Does not throw an error if the -Skip switch is used, and no script block is passed' {
+            $scriptBlock = { ItImpl -Pester $testState 'Some Name' -Skip }
+            $scriptBlock | Should Not Throw
+        }
+
+        It 'Creates a pending test for an empty (whitespace and comments only) script block' {
+            $scriptBlock = {
+                # Single-Line comment
+                <#
+                    Multi-
+                    Line-
+                    Comment
+                #>
+            }
+
+            { ItImpl -Pester $testState 'Some Name' $scriptBlock } | Should Not Throw
+            $testState.TestResult[-1].Result | Should Be 'Pending'
         }
 
         It 'Adds a failed test if the script block throws an exception' {
@@ -184,15 +170,14 @@ InModuleScope Pester {
             Should Be 'One,C,Zero,Z,A,Weird'
         }
     }
-}
-InModuleScope Pester {
-    Describe "Remove-Comments" {
-        It "Removes single line comments" {
-            Remove-Comments -Text "code #comment" | Should Be "code "
+
+    Describe 'Remove-Comments' {
+        It 'Removes single line comments' {
+            Remove-Comments -Text 'code #comment' | Should Be 'code '
         }
-        It "Removes multi line comments" {
-            Remove-Comments -Text "code <#comment
-            comment#> code" | Should Be "code  code"
+        It 'Removes multi line comments' {
+            Remove-Comments -Text 'code <#comment
+            comment#> code' | Should Be 'code  code'
         }
     }
 }
