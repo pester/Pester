@@ -327,7 +327,9 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
                         }
                         else
                         {
-                            $value.ToString()
+                            #do not use .ToString() it uses the current culture settings 
+                            #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
+                            [string]$value
                         }
                     }
                 )
@@ -387,7 +389,7 @@ function Get-RunTimeEnvironment() {
         'machine-name' = $env:ComputerName
         user = $env:Username
         'user-domain' = $env:userDomain
-        'clr-version' = $PSVersionTable.ClrVersion.ToString()
+        'clr-version' = [string]$PSVersionTable.ClrVersion
     }
 }
 
