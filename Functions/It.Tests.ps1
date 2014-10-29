@@ -74,7 +74,7 @@ InModuleScope Pester {
         $testState.LeaveTest()
 
         It 'Throws an error if you fail to pass in a test block' {
-            $scriptBlock = { ItImpl 'Some Name' }
+            $scriptBlock = { ItImpl -Pester $testState 'Some Name' }
             $scriptBlock | Should Throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
         }
 

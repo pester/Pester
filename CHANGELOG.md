@@ -1,3 +1,7 @@
+## Unreleased
+  - Fix Skipped and Pending
+  - Fix output format on non-US systems
+
 ## 3.1 (October 23, 2014)
   - Fix mocking of Get-ItemProperty
   - Fix mocking commands with parameters named $FunctionName, $ModuleName or $ArgumentList under some circumstances. [GH-215]

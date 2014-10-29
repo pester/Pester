@@ -110,21 +110,33 @@ about_should
 
 function ItImpl
 {
+    [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, Position=0)]
         [string]$name,
-        [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [Parameter(Position = 1)]
+        [ScriptBlock] $test,
         [System.Collections.IDictionary[]] $TestCases,
+        [Parameter(ParameterSetName = 'Pending')]
+        [Switch] $Pending,
+
+        [Parameter(ParameterSetName = 'Skip')]
+        [Switch] $Skip,
+        
         $Pester,
         [scriptblock] $OutputScriptBlock
     )
 
     Assert-DescribeInProgress -CommandName It
 
+    #unless Skip or Pending is specified you must specify a ScriptBlock to the Test parameter
     if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending))
     {
         throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
     }
+    
+    #the function is called with Pending or Skipped set the script block if needed
+    if ($null -eq $test) { $test = {} }
 
     #mark empty Its as Pending
     #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
