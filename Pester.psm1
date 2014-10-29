@@ -186,7 +186,7 @@ about_pester
     if ($PassThru) {
         #remove all runtime properties like current* and Scope
         $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
 
             if ($CodeCoverage)
             {
