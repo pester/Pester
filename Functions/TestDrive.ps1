@@ -1,23 +1,31 @@
 #
-function New-TestDrive ([Switch]$PassThru) {
-    $Path = New-RandomTempDirectory
-    $DriveName = "TestDrive"
-
-    if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path))
+function New-TestDrive ([Switch]$PassThru, [string] $Path) {
+    if ($Path -notmatch '\S')
     {
-        New-Item -ItemType Container -Path $Path | Out-Null
+        $directory = New-RandomTempDirectory
     }
+    else
+    {
+        if (-not (Microsoft.PowerShell.Management\Test-Path -Path $Path))
+        {
+            New-Item -ItemType Container -Path $Path | Out-Null
+        }
+
+        $directory = Get-Item $Path
+    }
+
+    $DriveName = "TestDrive"
 
     #setup the test drive
     if ( -not (Get-PSDrive -Name $DriveName -ErrorAction SilentlyContinue) )
     {
-        New-PSDrive -Name $DriveName -PSProvider FileSystem -Root $Path -Scope Global -Description "Pester test drive" | Out-Null
+        New-PSDrive -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description "Pester test drive" | Out-Null
     }
 
     #publish the global TestDrive variable used in few places within the module
     if (-not (Get-Variable -Name $DriveName -Scope Global -ErrorAction SilentlyContinue))
     {
-        New-Variable -Name $DriveName -Scope Global -Value $Path
+        New-Variable -Name $DriveName -Scope Global -Value $directory
     }
 
     if ( $PassThru ) { Get-PSDrive -Name $DriveName }

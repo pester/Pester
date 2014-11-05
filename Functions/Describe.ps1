@@ -72,6 +72,23 @@ about_TestDrive
         $script:mockTable = @{}
     }
 
+    DescribeImpl @PSBoundParameters -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
+}
+
+function DescribeImpl {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $Name,
+        $Tags=@(),
+        [Parameter(Position = 1)]
+        [ValidateNotNull()]
+        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+
+        $Pester,
+        [scriptblock] $DescribeOutputBlock,
+        [scriptblock] $TestOutputBlock
+    )
+
     if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
     {
         #skip this test
@@ -83,7 +100,19 @@ about_TestDrive
 
     $Pester.EnterDescribe($Name)
     
-    $Pester.CurrentDescribe | Write-Describe
+    if ($null -ne $DescribeOutputBlock)
+    {
+        $Pester.CurrentDescribe | & $DescribeOutputBlock
+    }
+
+    # If we're unit testing Describe, we have to restore the original PSDrive when we're done here;
+    # this doesn't affect normal client code, who can't nest Describes anyway.
+    $oldTestDrive = $null
+    if (Test-Path TestDrive:\)
+    {
+        $oldTestDrive = (Get-PSDrive TestDrive).Root
+    }
+
     New-TestDrive
 
     try
@@ -95,12 +124,22 @@ about_TestDrive
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
         $Pester.AddTestResult('Error occurred in Describe block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
-        $Pester.TestResult[-1] | Write-PesterResult
+
+        if ($null -ne $TestOutputBlock)
+        {
+            $Pester.TestResult[-1] | & $TestOutputBlock
+        }
     }
 
     Clear-SetupAndTeardown
     Remove-TestDrive
     Exit-MockScope
+
+    if ($oldTestDrive)
+    {
+        New-TestDrive -Path $oldTestDrive
+    }
+
     $Pester.LeaveDescribe()
 }
 
