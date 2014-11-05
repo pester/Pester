@@ -49,12 +49,32 @@ about_TestDrive
         [ScriptBlock] $Fixture  = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
+    ContextImpl @PSBoundParameters -Pester $Pester -ContextOutputBlock ${function:Write-Context} -TestOutputBlock ${function:Write-PesterResult}
+}
+
+function ContextImpl
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Name,
+
+        [ValidateNotNull()]
+        [ScriptBlock] $Fixture  = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+
+        $Pester,
+        [scriptblock] $ContextOutputBlock,
+        [scriptblock] $TestOutputBlock
+    )
+
     Assert-DescribeInProgress -CommandName Context
 
-    $Pester.EnterContext($Name )
+    $Pester.EnterContext($Name)
     $TestDriveContent = Get-TestDriveChildItem
 
-    $Pester.CurrentContext | Write-Context
+    if ($null -ne $ContextOutputBlock)
+    {
+        $Pester.CurrentContext | & $ContextOutputBlock
+    }
 
     try
     {
@@ -65,12 +85,15 @@ about_TestDrive
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
         $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
-        $Pester.TestResult[-1] | Write-PesterResult
+
+        if ($null -ne $TestOutputBlock)
+        {
+            $Pester.TestResult[-1] | & $TestOutputBlock
+        }
     }
 
     Clear-SetupAndTeardown
-    Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+    Clear-TestDrive -Exclude ($TestDriveContent | Select-Object -ExpandProperty FullName)
     Exit-MockScope
     $Pester.LeaveContext()
 }
-
