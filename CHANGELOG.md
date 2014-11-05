@@ -1,5 +1,26 @@
-## Unreleased
-  - Coverage Analysis now ignores closing conditions of do/while and do/until loops, which were giving false failures.  (GH-200)
+## 3.1.1 (October 29, 2014)
+  - Fix Skipped and Pending
+  - Fix output format on non-US systems
+
+## 3.1 (October 23, 2014)
+  - Fix mocking of Get-ItemProperty
+  - Fix mocking commands with parameters named $FunctionName, $ModuleName or $ArgumentList under some circumstances. [GH-215]
+  - Add Skipped and Pending test results
+  - Added support for parameterized tests to the It command.
+  - Deprecated -OutputXml parameter, added -OutputFile and -OutputFormat parameters.
+  - Added new updated NUnit export format.  Original format still available as -OutputFormat LegacyNUnitXml.
+  - Stopped forcing -ParameterFilter blocks to return explicit booleans, preventing some unnecessary null reference exceptions.
+
+## 3.0.3 (October 12, 2014)
+  - Can be installed from PowerShellGet
+  - Version updated to solve issue on PowerShellGet
+
+## 3.0.2 (September 8, 2014)
+  - Coverage Analysis now ignores closing conditions of do/while and do/until loops, which were giving false failures.  [GH-200]
+  - Calls to Functions and Cmdlets with dynamic parameters can now be mocked. [GH-203]
+  - Mock now avoids assigning strings to items in the Function provider, bypassing a PowerShell 3.0 bug.
+  - Bug fix when mocking executables or functions with no param block. [GH-209]
+  - Replace the nuget.exe with version 2.8.2 and set the Team City server to use the same version. 
 
 ## 3.0.1.1 (August 28, 2014)
  - Fixing wrong version in the manifest, publishing new version so I can update it on Nuget/Chocolatey

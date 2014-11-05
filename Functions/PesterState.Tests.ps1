@@ -180,29 +180,87 @@ InModuleScope Pester {
             $p.EnterDescribe('Describe')
 
             it "adds passed test" {
-                $p.AddTestResult("result",$true, 100)
+                $p.AddTestResult("result","Passed", 100)
                 $result = $p.TestResult[-1]
                 $result.Name | should be "result"
                 $result.passed | should be $true
+                $result.Result | Should be "Passed"
                 $result.time.ticks | should be 100
             }
             it "adds failed test" {
-                $p.AddTestResult("result",$false, 100, "fail", "stack")
+                $p.AddTestResult("result","Failed", 100, "fail", "stack")
                 $result = $p.TestResult[-1]
                 $result.Name | should be "result"
                 $result.passed | should be $false
+                $result.Result | Should be "Failed"
                 $result.time.ticks | should be 100
                 $result.FailureMessage | should be "fail"
                 $result.StackTrace | should be "stack"
             }
 
+            it "adds skipped test" {
+                $p.AddTestResult("result","Skipped", 100)
+                $result = $p.TestResult[-1]
+                $result.Name | should be "result"
+                $result.passed | should be $true
+                $result.Result | Should be "Skipped"
+                $result.time.ticks | should be 100
+            }
+
+            it "adds Pending test" {
+                $p.AddTestResult("result","Pending", 100)
+                $result = $p.TestResult[-1]
+                $result.Name | should be "result"
+                $result.passed | should be $true
+                $result.Result | Should be "Pending"
+                $result.time.ticks | should be 100
+            }
+
             it "can add test result before entering describe" {
                 if ($p.CurrentContext) { $p.LeaveContext()}
                 if ($p.CurrentDescribe) { $p.LeaveDescribe() }
-                { $p.addTestResult(1,1,1) } | should not throw
+                { $p.addTestResult(1,"Passed",1) } | should not throw
             }
+
+            $p.LeaveContext()
+            $p.LeaveDescribe()
 
         }
 
+        Context "Path and TestNameFilter parameter is set" {
+            $strict = New-PesterState -path "path" -Strict
+
+            It "Keeps Passed state" {
+                $strict.AddTestResult("test","Passed")
+                $result = $strict.TestResult[-1]
+
+                $result.passed | should be $true
+                $result.Result | Should be "Passed"
+            }
+
+            It "Keeps Failed state" {
+                $strict.AddTestResult("test","Failed")
+                $result = $strict.TestResult[-1]
+
+                $result.passed | should be $false
+                $result.Result | Should be "Failed"
+            }
+
+            It "Changes Pending state to Failed" {
+                $strict.AddTestResult("test","Pending")
+                $result = $strict.TestResult[-1]
+
+                $result.passed | should be $false
+                $result.Result | Should be "Failed"
+            }
+
+            It "Changes Skipped state to Failed" {
+                $strict.AddTestResult("test","Skipped")
+                $result = $strict.TestResult[-1]
+
+                $result.passed | should be $false
+                $result.Result | Should be "Failed"
+            }
+        }
     }
 }

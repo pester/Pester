@@ -63,6 +63,9 @@ If only StartLine is defined, the entire script file starting with StartLine is 
 If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
 Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
 
+.PARAMETER Strict
+Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
+
 .Example
 Invoke-Pester
 
@@ -103,6 +106,7 @@ Describe
 about_pester
 
 #>
+    [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
     param(
         [Parameter(Position=0,Mandatory=0)]
         [Alias('relative_path')]
@@ -111,19 +115,37 @@ about_pester
         [string]$TestName,
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
-        [Parameter(Position=3,Mandatory=0)]
+        [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
         [string]$OutputXml,
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
         [string]$Tag,
         [switch]$PassThru,
 
-        [object[]] $CodeCoverage = @()
+        [object[]] $CodeCoverage = @(),
+        [Switch]$Strict,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [string] $OutputFile,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
+        [string] $OutputFormat
     )
+
+    if ($PSBoundParameters.ContainsKey('OutputXml'))
+    {
+        Write-Warning 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
+
+        Start-Sleep -Seconds 2
+
+        $OutputFile = $OutputXml
+        $OutputFormat = 'LegacyNUnitXml'
+    }
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     $message = "Executing all tests in '$($pester.Path)'"
@@ -146,7 +168,7 @@ about_pester
         catch
         {
             $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", $false, $null, $_.Exception.Message, $firstStackTraceLine)
+            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
             $pester.TestResult[-1] | Write-PesterResult
         }
     }
@@ -156,16 +178,15 @@ about_pester
     Show-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
-    if($OutputXml) {
-        #TODO make this legacy option and move the nUnit report out of invoke-pester
-        #TODO add warning message that informs the user how to use the nunit output properly
-        Export-NunitReport $pester $OutputXml
+
+    if($OutputFile) {
+        Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
     }
 
     if ($PassThru) {
         #remove all runtime properties like current* and Scope
         $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","Time","TestResult"
+            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
 
             if ($CodeCoverage)
             {
@@ -220,4 +241,4 @@ function Get-ScriptBlockScope
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
-Export-ModuleMember BeforeEach, AfterEach
+Export-ModuleMember BeforeEach, AfterEach, Get-MockDynamicParameters, Set-DynamicParameterVariables

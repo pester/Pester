@@ -87,7 +87,7 @@ Describe 'Multiple teardown blocks' {
             $testVariable = 'Set in the first Context AfterEach'
         }
 
-        It 'Performs a test in Context' { }
+        It 'Performs a test in Context' { "some output to prevent the It being marked as Pending and failing because of Strict mode"}
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
             $testVariable | Should Be 'Set in the second Describe AfterEach'

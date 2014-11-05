@@ -319,6 +319,23 @@ Describe "When calling Mock on existing function with matching unbound arguments
     }
 }
 
+Describe 'When calling Mock on a function that has no parameters' {
+    function Test-Function { }
+    Mock Test-Function { return $args.Count }
+
+    It 'Sends the $args variable properly with 2+ elements' {
+        Test-Function 1 2 3 4 5 | Should Be 5
+    }
+
+    It 'Sends the $args variable properly with 1 element' {
+        Test-Function 1 | Should Be 1
+    }
+
+    It 'Sends the $args variable properly with 0 elements' {
+        Test-Function | Should Be 0
+    }
+}
+
 Describe "When calling Mock on cmdlet Used by Mock" {
     Mock Set-Item {return "I am not Set-Item"}
     Mock Set-Item {return "I am not Set-Item"}
@@ -491,20 +508,6 @@ Describe "When Creating a Verifiable Mock that is called" {
     FunctionUnderTest "one"
     It "Assert-VerifiableMocks Should not throw" {
         { Assert-VerifiableMocks } | Should Not Throw
-    }
-}
-
-Describe "When Creating a Verifiable Mock with a filter that does not return a boolean" {
-    $result=""
-
-    try{
-        Mock FunctionUnderTest {return "I am a verifiable test"} -parameterFilter {"one"}
-    } Catch {
-        $result=$_
-    }
-
-    It "Should throw" {
-        $result | Should Be "The Parameter Filter must return a boolean"
     }
 }
 
@@ -735,5 +738,243 @@ Describe 'Dot Source Test' {
 
     It "Doesn't call the mock with any other parameters" {
         Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
+    }
+}
+
+Describe 'Mocking Cmdlets with dynamic parameters' {
+    $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
+    Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
+
+    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+        { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should Not Throw
+        Assert-MockCalled Get-ChildItem
+    }
+}
+
+Describe 'Mocking functions with dynamic parameters' {
+
+    # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+    # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
+
+    function Get-Greeting {
+        [CmdletBinding()]
+        param (
+            $Name
+        )
+
+        DynamicParam {
+            if ($Name -cmatch '\b[a-z]') {
+                $Attributes = New-Object Management.Automation.ParameterAttribute
+                $Attributes.ParameterSetName = "__AllParameterSets"
+                $Attributes.Mandatory = $false
+
+                $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+                $AttributeCollection.Add($Attributes)
+
+                $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+                $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+                $ParamDictionary.Add("Capitalize", $Dynamic)
+                $ParamDictionary
+            }
+        }
+
+        end
+        {
+            if($PSBoundParameters.Capitalize) {
+                $Name = [regex]::Replace(
+                    $Name,
+                    '\b\w',
+                    { $args[0].Value.ToUpper() }
+                )
+            }
+
+            "Welcome $Name!"
+        }
+    }
+
+    $mockWith = { if (-not $Capitalize) { throw 'Capitalize variable not found, or set to false!' } }
+    Mock Get-Greeting -MockWith $mockWith -ParameterFilter { [bool]$Capitalize }
+
+    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+        { Get-Greeting -Name lowercase -Capitalize } | Should Not Throw
+        Assert-MockCalled Get-Greeting
+    }
+
+    Context 'When a variable with the same name as a dynamic parameter exists in a parent scope' {
+        $Capitalize = $false
+
+        It 'Still sets the parameter variable properly in the parameter filter and mock body' {
+            { Get-Greeting -Name lowercase -Capitalize } | Should Not Throw
+            Assert-MockCalled Get-Greeting -Scope It
+        }
+    }
+}
+
+Describe 'Mocking Cmdlets with dynamic parameters in a module' {
+    New-Module -Name TestModule {
+        function PublicFunction   { Get-ChildItem -Path Cert:\ -CodeSigningCert }
+    } | Import-Module -Force
+
+    $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
+    Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$CodeSigningCert }
+
+    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+        { TestModule\PublicFunction } | Should Not Throw
+        Assert-MockCalled Get-ChildItem -ModuleName TestModule
+    }
+
+    Remove-Module TestModule -Force
+}
+
+Describe 'Mocking functions with dynamic parameters in a module' {
+    New-Module -Name TestModule {
+        function PublicFunction { Get-Greeting -Name lowercase -Capitalize }
+
+        $script:DoDynamicParam = $true
+
+        # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+        # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
+
+        function Get-Greeting {
+            [CmdletBinding()]
+            param (
+                $Name
+            )
+
+            DynamicParam {
+                # This check is here to make sure the mocked version can still work if the
+                # original function's dynamicparam block relied on script-scope variables.
+                if (-not $script:DoDynamicParam) { return }
+
+                if ($Name -cmatch '\b[a-z]') {
+                    $Attributes = New-Object Management.Automation.ParameterAttribute
+                    $Attributes.ParameterSetName = "__AllParameterSets"
+                    $Attributes.Mandatory = $false
+
+                    $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+                    $AttributeCollection.Add($Attributes)
+
+                    $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+                    $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+                    $ParamDictionary.Add("Capitalize", $Dynamic)
+                    $ParamDictionary
+                }
+            }
+
+            end
+            {
+                if($PSBoundParameters.Capitalize) {
+                    $Name = [regex]::Replace(
+                        $Name,
+                        '\b\w',
+                        { $args[0].Value.ToUpper() }
+                    )
+                }
+
+                "Welcome $Name!"
+            }
+        }
+    } | Import-Module -Force
+
+    $mockWith = { if (-not $Capitalize) { throw 'Capitalize variable not found, or set to false!' } }
+    Mock Get-Greeting -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Capitalize }
+
+    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+        { TestModule\PublicFunction } | Should Not Throw
+        Assert-MockCalled Get-Greeting -ModuleName TestModule
+    }
+
+    Remove-Module TestModule -Force
+}
+
+Describe 'DynamicParam blocks in other scopes' {
+    New-Module -Name TestModule1 {
+        $script:DoDynamicParam = $true
+
+        function DynamicParamFunction {
+            [CmdletBinding()]
+            param ( )
+
+            DynamicParam {
+                if ($script:DoDynamicParam)
+                {
+                    Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters @{ Path = [string[]]'Cert:\' }
+                }
+            }
+
+            end
+            {
+                'I am the original function'
+            }
+        }
+    } | Import-Module -Force
+
+    New-Module -Name TestModule2 {
+        function CallingFunction
+        {
+            DynamicParamFunction -CodeSigningCert
+        }
+
+        function CallingFunction2 {
+            [CmdletBinding()]
+            param (
+                [ValidateScript({ [bool](DynamicParamFunction -CodeSigningCert) })]
+                [string]
+                $Whatever
+            )
+        }
+    } | Import-Module -Force
+
+    Mock DynamicParamFunction { if ($CodeSigningCert) { 'I am the mocked function' } } -ModuleName TestModule2
+
+    It 'Properly evaluates dynamic parameters when called from another scope' {
+        CallingFunction | Should Be 'I am the mocked function'
+    }
+
+    It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
+        CallingFunction2 -Whatever 'Whatever'
+    }
+
+    Remove-Module TestModule1 -Force
+    Remove-Module TestModule2 -Force
+}
+
+Describe 'Parameter Filters and Common Parameters' {
+    function Test-Function { [CmdletBinding()] param ( ) }
+
+    Mock Test-Function { } -ParameterFilter { $VerbosePreference -eq 'Continue' }
+
+    It 'Applies common parameters correctly when testing the parameter filter' {
+        { Test-Function -Verbose } | Should Not Throw
+        Assert-MockCalled Test-Function
+        Assert-MockCalled Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
+    }
+}
+
+Describe "Mocking Get-ItemProperty" {
+    Mock Get-ItemProperty { New-Object -typename psobject -property @{ Name = "fakeName" } }
+    It "Does not fail with NotImplementedException" {
+        Get-ItemProperty -Path "HKLM:\Software\Key\" -Name "Property" | Select -ExpandProperty Name | Should Be fakeName
+    }
+}
+
+Describe 'When mocking a command with parameters that match internal variable names' {
+    function Test-Function
+    {
+        [CmdletBinding()]
+        param (
+            [string] $ArgumentList,
+            [int] $FunctionName,
+            [double] $ModuleName
+        )
+    }
+
+    Mock Test-Function { return 'Mocked!' }
+
+    It 'Should execute the mocked command successfully' {
+        { Test-Function } | Should Not Throw
+        Test-Function | Should Be 'Mocked!'
     }
 }

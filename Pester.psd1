@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.0.1.1'
+ModuleVersion = '3.1.1'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -41,14 +41,29 @@ FunctionsToExport = @(
     'InModuleScope',
     'Invoke-Mock',
     'BeforeEach',
-    'AfterEach'
+    'AfterEach',
+    'Get-MockDynamicParameters',
+    'Set-DynamicParameterVariables'
 )
 
 # # Cmdlets to export from this module
 # CmdletsToExport = '*'
 
-# # Variables to export from this module
-# VariablesToExport = '*'
+# Variables to export from this module
+VariablesToExport = @(
+    'Path',
+    'TagFilter',
+    'TestNameFilter',
+    'TestResult',
+    'CurrentContext',
+    'CurrentDescribe',
+    'CurrentTest',
+    'SessionState',
+    'CommandCoverage',
+    'BeforeEach',
+    'AfterEach',
+    'Strict'
+)
 
 # # Aliases to export from this module
 # AliasesToExport = '*'
@@ -87,7 +102,7 @@ PrivateData = @{
         # RequireLicenseAcceptance = ""
 
         # Indicates this is a pre-release/testing version of the module.
-        IsPrerelease = 'True'
+        IsPrerelease = 'False'
     }
 }
 

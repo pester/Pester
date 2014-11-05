@@ -5,7 +5,8 @@ function New-PesterState
         [String]$Path,
         [String[]]$TagFilter,
         [String[]]$TestNameFilter,
-        [System.Management.Automation.SessionState]$SessionState
+        [System.Management.Automation.SessionState]$SessionState,
+        [Switch]$Strict
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -15,7 +16,8 @@ function New-PesterState
             [String]$_path,
             [String[]]$_tagFilter,
             [String[]]$_testNameFilter,
-            [System.Management.Automation.SessionState]$_sessionState
+            [System.Management.Automation.SessionState]$_sessionState,
+            [Switch]$Strict
         )
 
         #public read-only
@@ -32,6 +34,7 @@ function New-PesterState
         $script:CommandCoverage = @()
         $script:BeforeEach = @()
         $script:AfterEach = @()
+        $script:Strict = $Strict
 
         $script:TestResult = @()
 
@@ -87,7 +90,7 @@ function New-PesterState
         {
             if (-not $script:CurrentDescribe)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
+                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter It before entering Describe"
             }
 
             if ( $CurrentTest )
@@ -103,8 +106,18 @@ function New-PesterState
             $script:CurrentTest = $null
         }
 
-        function AddTestResult ( [string]$Name, [bool]$Passed, [Nullable[TimeSpan]]$Time, [string]$FailureMessage, [String]$StackTrace )
+        function AddTestResult
         {
+            param (
+                [string]$Name,
+                [ValidateSet("Failed","Passed","Skipped","Pending")]
+                [string]$Result,
+                [Nullable[TimeSpan]]$Time,
+                [string]$FailureMessage,
+                [string]$StackTrace,
+                [string] $ParameterizedSuiteName,
+                [System.Collections.IDictionary] $Parameters
+            )
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
 
@@ -113,15 +126,33 @@ function New-PesterState
                 $Time = $script:MostRecentTimestamp - $previousTime
             }
 
+            if (-not $script:Strict)
+            {
+                $Passed = "Passed","Skipped","Pending" -contains $Result
+            }
+            else
+            {
+                $Passed = $Result -eq "Passed"
+                if (($Result -eq "Skipped") -or ($Result -eq "Pending"))
+                {
+                    $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
+                    $Result = "Failed"
+                }
+
+            }
+
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
-                Describe       = $CurrentDescribe
-                Context        = $CurrentContext
-                Name           = $Name
-                Passed         = $Passed
-                Time           = $Time
-                FailureMessage = $FailureMessage
-                StackTrace     = $StackTrace
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Passed, Time, FailureMessage, StackTrace
+                Describe               = $CurrentDescribe
+                Context                = $CurrentContext
+                Name                   = $Name
+                Passed                 = $Passed
+                Result                 = $Result
+                Time                   = $Time
+                FailureMessage         = $FailureMessage
+                StackTrace             = $StackTrace
+                ParameterizedSuiteName = $ParameterizedSuiteName
+                Parameters             = $Parameters
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
         }
 
         $ExportedVariables = "Path",
@@ -134,7 +165,8 @@ function New-PesterState
         "SessionState",
         "CommandCoverage",
         "BeforeEach",
-        "AfterEach"
+        "AfterEach",
+        "Strict"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -145,15 +177,21 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState |
+    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict |
     Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
         @( $this.TestResult ).Count
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name PassedCount -Value {
-        @( $this.TestResult | where { $_.Passed } ).count
+        @( $this.TestResult | where { $_.Result -eq "Passed" } ).count
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name FailedCount -Value {
-        @( $this.TestResult | where { -not $_.Passed } ).count
+        @( $this.TestResult | where { $_.Result -eq "Failed" } ).count
+    } -PassThru |
+    Add-Member -MemberType ScriptProperty -Name SkippedCount -Value {
+        @( $this.TestResult | where { $_.Result -eq "Skipped" } ).count
+    } -PassThru |
+    Add-Member -MemberType ScriptProperty -Name PendingCount -Value {
+        @( $this.TestResult | where { $_.Result -eq "Pending" } ).count
     } -PassThru |
     Add-Member -MemberType ScriptProperty -Name Time -Value {
         $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ( $_.time ) } { [timespan]$total }
@@ -217,14 +255,26 @@ function Write-PesterResult
         $output = $TestResult.name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 
-        if($TestResult.Passed)
+        switch ($TestResult.Result)
         {
-            "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
-        }
-        else {
-            "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
-            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-            Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+            Passed {
+                "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
+                break
+            }
+            Failed {
+                "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
+                Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                break
+            }
+            Skipped {
+                "$margin[!] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
+                break
+            }
+            Pending {
+                "$margin[?] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
+                break
+            }
         }
     }
 }
@@ -237,5 +287,5 @@ function Write-PesterReport
     )
 
     Write-Host "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
-    Write-Host "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount)"
+    Write-Host "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
 }
