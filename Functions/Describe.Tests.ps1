@@ -19,6 +19,10 @@ Describe 'Testing Describe' {
 
 InModuleScope Pester {
     Describe 'Describe - Implementation' {
+        # Function / mock used for call history tracking and assertion purposes only.
+        function MockMe { param ($Name) }
+        Mock MockMe
+
         Context 'Handling errors in the Fixture' {
             $counter = @{ Value = 0 }
             $testState = New-PesterState -Path $TestDrive
@@ -47,98 +51,78 @@ InModuleScope Pester {
         Context 'Calls to the output blocks' {
             $testState = New-PesterState -Path $TestDrive
 
-            # Revise this to use Mocks and Assert-MockCalled later for better failure messages.  For now,
-            # that's annoying because the mock history will wind up in $testState, but the calls to Assert-MockCalled
-            # will be looking at the active Pester state.  Once the Mocking commands have been refactored to allow for
-            # this sort of testing, we can revisit this file.
-
-            $describeCounter = @{ Value = 0 }
-            $testCounter = @{ Value = 0 }
-
-            $describeOutput = { $describeCounter.Value++ }
-            $testOutput = { $testCounter.Value++ }
+            $describeOutput = { MockMe -Name Describe }
+            $testOutput = { MockMe -Name Test }
 
             It 'Calls the Describe output block once, and does not call the test output block when no errors occur' {
                 $block = { $null = $null }
 
                 DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput
 
-                $testCounter.Value | Should Be 0
-                $describeCounter.Value | Should Be 1
+                Assert-MockCalled MockMe -Exactly 0 -ParameterFilter { $Name -eq 'Test' } -Scope It
+                Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
             }
-
-            $describeCounter.Value = 0
-            $testCounter.Value = 0
 
             It 'Calls the Describe output block once, and the test output block once if an error occurs.' {
                 $block = { throw 'up' }
 
                 DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput
 
-                $testCounter.Value | Should Be 1
-                $describeCounter.Value | Should Be 1
-
+                Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Test' } -Scope It
+                Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
             }
         }
 
         Context 'Test Name Filter' {
             $testState = New-PesterState -Path $TestDrive -TestNameFilter '*One*', 'Test Two'
 
-            $testBlock = { $counter.Value++ }
-            $counter = @{ Value = 0 }
+            $testBlock = { MockMe }
 
-            It 'Calls the test block when the test name matches one of the filters' {
-                DescribeImpl -Name 'TestOneTest' -Pester $testState -Fixture $testBlock
-                $counter.Value | Should Be 1
+            $cases = @(
+                @{ Name = 'TestOneTest'; Description = 'matches a wildcard' }
+                @{ Name = 'Test Two';    Description = 'matches exactly' }
+                @{ Name = 'test two';    Description = 'matches ignoring case' }
+            )
 
-                DescribeImpl -Name 'Test Two' -Pester $testSTate -Fixture $testBlock
-                $counter.Value | Should Be 2
-
-                DescribeImpl -Name 'test two' -Pester $testSTate -Fixture $testBlock
-                $counter.Value | Should Be 3
+            It -TestCases $cases 'Calls the test block when the test name <Description>' {
+                param ($Name)
+                DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock
+                Assert-MockCalled MockMe -Scope It -Exactly 1
             }
-
-            $counter.Value = 0
 
             It 'Does not call the test block when the test name doesn''t match a filter' {
                 DescribeImpl -Name 'Test On' -Pester $testState -Fixture $testBlock
                 DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock
                 DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock
 
-                $counter.Value | Should Be 0
+                Assert-MockCalled MockMe -Scope It -Exactly 0
             }
         }
 
         Context 'Tags Filter' {
             $testState = New-PesterState -Path $TestDrive -TagFilter 'One', '*Two*'
+            $testBlock = { MockMe }
 
-            $testBlock = { $counter.Value++ }
-            $counter = @{ Value = 0 }
+            $cases = @(
+                @{ Tags = 'One';         Description = 'matches the first tag exactly' }
+                @{ Tags = '*Two*';       Description = 'matches the second tag exactly' }
+                @{ Tags = 'One', '*Two'; Description = 'matches both tags exactly' }
+                @{ Tags = 'one';         Description = 'matches the first tag ignoring case' }
+                @{ Tags = '*two*';       Description = 'matches the second tag ignoring case' }
+            )
 
-            It 'Calls the test block when the tag filter exactly matches at least one of the filters' {
-                DescribeImpl -Name 'Blah' -Tags 'One' -Pester $testState -Fixture $testBlock
-                $counter.Value | Should Be 1
+            It -TestCases $cases 'Calls the test block when the tag filter <Description>' {
+                param ($Tags)
 
-                DescribeImpl -Name 'Blah' -Tags '*Two*' -Pester $testSTate -Fixture $testBlock
-                $counter.Value | Should Be 2
-
-                DescribeImpl -Name 'Blah' -Tags 'One', '*Two*' -Pester $testSTate -Fixture $testBlock
-                $counter.Value | Should Be 3
-
-                DescribeImpl -Name 'Blah' -Tags 'one' -Pester $testState -Fixture $testBlock
-                $counter.Value | Should Be 4
-
-                DescribeImpl -Name 'Blah' -Tags '*two*' -Pester $testState -Fixture $testBlock
-                $counter.Value | Should Be 5
+                DescribeImpl -Name 'Blah' -Tags $Tags -Pester $testState -Fixture $testBlock
+                Assert-MockCalled MockMe -Scope It -Exactly 1
             }
-
-            $counter.Value = 0
 
             It 'Does not call the test block when the test tags don''t match the pester state''s tags.' {
                 # Unlike the test name filter, tags are literal matches and not interpreted as wildcards.
                 DescribeImpl -Name 'Blah' -Tags 'TestTwoTest' -Pester $testState -Fixture $testBlock
 
-                $counter.Value | Should Be 0
+                Assert-MockCalled MockMe -Scope It -Exactly 0
             }
         }
 

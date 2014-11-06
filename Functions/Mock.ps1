@@ -241,6 +241,7 @@ about_Mocking
             CommandName             = $CommandName
             SessionState            = $contextInfo.Session
             Scope                   = $pester.Scope
+            PesterState             = $pester
             Metadata                = $metadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
@@ -653,7 +654,7 @@ function Invoke-Mock {
             if (Test-ParameterFilter @params)
             {
                 $block.Verifiable = $false
-                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $mock.PesterState.Scope }
 
                 $scriptBlock = {
                     param (

@@ -49,7 +49,7 @@ about_TestDrive
         [ScriptBlock] $Fixture  = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    ContextImpl @PSBoundParameters -Pester $Pester -ContextOutputBlock ${function:Write-Context} -TestOutputBlock ${function:Write-PesterResult}
+    ContextImpl @PSBoundParameters -Pester $Pester -ContextOutputBlock ${function:Write-Context} -TestOutputBlock ${function:Write-PesterResult} -ClearMocks
 }
 
 function ContextImpl
@@ -63,7 +63,8 @@ function ContextImpl
 
         $Pester,
         [scriptblock] $ContextOutputBlock,
-        [scriptblock] $TestOutputBlock
+        [scriptblock] $TestOutputBlock,
+        [switch] $ClearMocks
     )
 
     Assert-DescribeInProgress -CommandName Context
@@ -78,8 +79,8 @@ function ContextImpl
 
     try
     {
-        Add-SetupAndTeardown -ScriptBlock $Fixture 
-        $null = & $Fixture 
+        Add-SetupAndTeardown -ScriptBlock $Fixture
+        $null = & $Fixture
     }
     catch
     {
@@ -94,6 +95,13 @@ function ContextImpl
 
     Clear-SetupAndTeardown
     Clear-TestDrive -Exclude ($TestDriveContent | Select-Object -ExpandProperty FullName)
-    Exit-MockScope
+
+    # This is a little bit ugly.  The problem is that when we call ContextImpl from our unit tests, we wind up modifying the global
+    # state in $script:mockTable, which is not currently tied to a specific pester state object (though maybe it should be.)
+    if ($ClearMocks)
+    {
+        Exit-MockScope
+    }
+
     $Pester.LeaveContext()
 }
