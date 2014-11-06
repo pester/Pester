@@ -81,6 +81,67 @@ InModuleScope Pester {
             }
         }
 
+        Context 'Test Name Filter' {
+            $testState = New-PesterState -Path $TestDrive -TestNameFilter '*One*', 'Test Two'
+
+            $testBlock = { $counter.Value++ }
+            $counter = @{ Value = 0 }
+
+            It 'Calls the test block when the test name matches one of the filters' {
+                DescribeImpl -Name 'TestOneTest' -Pester $testState -Fixture $testBlock
+                $counter.Value | Should Be 1
+
+                DescribeImpl -Name 'Test Two' -Pester $testSTate -Fixture $testBlock
+                $counter.Value | Should Be 2
+
+                DescribeImpl -Name 'test two' -Pester $testSTate -Fixture $testBlock
+                $counter.Value | Should Be 3
+            }
+
+            $counter.Value = 0
+
+            It 'Does not call the test block when the test name doesn''t match a filter' {
+                DescribeImpl -Name 'Test On' -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock
+
+                $counter.Value | Should Be 0
+            }
+        }
+
+        Context 'Tags Filter' {
+            $testState = New-PesterState -Path $TestDrive -TagFilter 'One', '*Two*'
+
+            $testBlock = { $counter.Value++ }
+            $counter = @{ Value = 0 }
+
+            It 'Calls the test block when the tag filter exactly matches at least one of the filters' {
+                DescribeImpl -Name 'Blah' -Tags 'One' -Pester $testState -Fixture $testBlock
+                $counter.Value | Should Be 1
+
+                DescribeImpl -Name 'Blah' -Tags '*Two*' -Pester $testSTate -Fixture $testBlock
+                $counter.Value | Should Be 2
+
+                DescribeImpl -Name 'Blah' -Tags 'One', '*Two*' -Pester $testSTate -Fixture $testBlock
+                $counter.Value | Should Be 3
+
+                DescribeImpl -Name 'Blah' -Tags 'one' -Pester $testState -Fixture $testBlock
+                $counter.Value | Should Be 4
+
+                DescribeImpl -Name 'Blah' -Tags '*two*' -Pester $testState -Fixture $testBlock
+                $counter.Value | Should Be 5
+            }
+
+            $counter.Value = 0
+
+            It 'Does not call the test block when the test tags don''t match the pester state''s tags.' {
+                # Unlike the test name filter, tags are literal matches and not interpreted as wildcards.
+                DescribeImpl -Name 'Blah' -Tags 'TestTwoTest' -Pester $testState -Fixture $testBlock
+
+                $counter.Value | Should Be 0
+            }
+        }
+
         # Testing nested Describe is probably not necessary here; that's covered by PesterState.Tests.ps1 and $pester.EnterDescribe().
     }
 }

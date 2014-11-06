@@ -39,7 +39,7 @@ executed.
 The path where Invoke-Pester begins to search for test files. The default is the current directory. Aliased 'relative_path' for backwards compatibility.
 
 .PARAMETER TestName
-Informs Invoke-Pester to only run Describe blocks that match this name.
+Informs Invoke-Pester to only run Describe blocks that match these names.  The strings passed to TestName may contain wildcards
 
 .PARAMETER EnableExit
 Will cause Invoke-Pester to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
@@ -112,7 +112,7 @@ about_pester
         [Alias('relative_path')]
         [string]$Path = ".",
         [Parameter(Position=1,Mandatory=0)]
-        [string]$TestName,
+        [string[]]$TestName,
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
         [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]

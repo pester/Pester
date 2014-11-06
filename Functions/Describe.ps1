@@ -89,13 +89,12 @@ function DescribeImpl {
         [scriptblock] $TestOutputBlock
     )
 
-    if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
+    if($Pester.TestNameFilter -and -not ($Pester.TestNameFilter | Where-Object { $Name -like $_ }))
     {
         #skip this test
         return
     }
 
-    #TODO add test to test tags functionality
     if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
     $Pester.EnterDescribe($Name)
