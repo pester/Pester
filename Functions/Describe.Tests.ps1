@@ -24,12 +24,11 @@ InModuleScope Pester {
         Mock MockMe
 
         Context 'Handling errors in the Fixture' {
-            $counter = @{ Value = 0 }
             $testState = New-PesterState -Path $TestDrive
 
             $blockWithError = {
                 throw 'Bad stuff happened!'
-                $counter.Value++
+                MockMe
             }
 
             It 'Does not rethrow terminating exceptions from the Fixture block' {
@@ -44,7 +43,7 @@ InModuleScope Pester {
             }
 
             It 'Does not attempt to run the rest of the Describe block after the error occurs' {
-                $counter.Value | Should Be 0
+                Assert-MockCalled MockMe -Scope Context -Exactly -Times 0
             }
         }
 
