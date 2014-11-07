@@ -72,7 +72,7 @@ about_TestDrive
         $script:mockTable = @{}
     }
 
-    DescribeImpl @PSBoundParameters -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -ClearMocks
+    DescribeImpl @PSBoundParameters -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
 }
 
 function DescribeImpl {
@@ -86,8 +86,7 @@ function DescribeImpl {
 
         $Pester,
         [scriptblock] $DescribeOutputBlock,
-        [scriptblock] $TestOutputBlock,
-        [switch] $ClearMocks
+        [scriptblock] $TestOutputBlock
     )
 
     if($Pester.TestNameFilter -and -not ($Pester.TestNameFilter | Where-Object { $Name -like $_ }))
@@ -133,13 +132,7 @@ function DescribeImpl {
 
     Clear-SetupAndTeardown
     Remove-TestDrive
-
-    # This is a little bit ugly.  The problem is that when we call DescribeImpl from our unit tests, we wind up modifying the global
-    # state in $script:mockTable, which is not currently tied to a specific pester state object (though maybe it should be.) 
-    if ($ClearMocks)
-    {
-        Exit-MockScope
-    }
+    Exit-MockScope
 
     if ($oldTestDrive)
     {

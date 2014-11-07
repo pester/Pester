@@ -529,7 +529,7 @@ function Exit-MockScope {
     $currentScope = $pester.Scope
     $parentScope = $pester.ParentScope
 
-    $scriptBlock =
+    $removeMockStub =
     {
         param ([string] $CommandName)
 
@@ -545,21 +545,27 @@ function Exit-MockScope {
     foreach ($mockKey in $mockKeys)
     {
         $mock = $mockTable[$mockKey]
-        $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $currentScope})
 
-        if ($null -eq $parentScope)
+        $shouldRemoveMock = ShouldRemoveMock -Mock $mock -ActivePesterState $pester
+        if ($shouldRemoveMock)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.CommandName
             $mockTable.Remove($mockKey)
         }
-        else
+        elseif ($mock.PesterState -eq $pester)
         {
+            $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $currentScope})
             foreach ($historyEntry in $mock.CallHistory)
             {
                 if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
             }
         }
     }
+}
+
+function ShouldRemoveMock($Mock, $ActivePesterState)
+{
+    return $ActivePesterState -eq $mock.PesterState -and $null -eq $ActivePesterState.ParentScope
 }
 
 function Validate-Command([string]$CommandName, [string]$ModuleName) {
@@ -988,13 +994,13 @@ function Get-DynamicParametersForCmdlet
         $property.SetValue($cmdlet, $keyValuePair.Value, $null)
     }
 
-    try 
+    try
     {
         $cmdlet.GetDynamicParameters()
     }
-    catch [System.NotImplementedException] 
-    { 
-        #ignore the exception 
+    catch [System.NotImplementedException]
+    {
+        #ignore the exception
     }
 }
 
