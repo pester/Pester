@@ -1,10 +1,14 @@
-
 function PesterBeGreaterThan($value, $expected)
 {
-    return( $value -gt $expected )
+    return [bool]($value -gt $expected)
 }
 
 function PesterBeGreaterThanFailureMessage($value,$expected)
 {
-    "Expected {0} to be greater than {1}" -f $value,$expected
+    return "Expected {$value} to be greater than {$expected}"
+}
+
+function NotPesterBeGreaterThanFailureMessage($value,$expected)
+{
+    return "Expected {$value} to be less than or equal to {$expected}"
 }
