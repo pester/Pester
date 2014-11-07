@@ -37,6 +37,11 @@ SHOULD MEMBERS
         
         $Error.Count | Should BeGreaterThan 0
 
+    BeLessThan
+        Asserts that a number is less than an expected value. Uses PowerShell's -gt operator to compare the two values.
+        
+        $Error.Count | Should BeLessThan 1
+
 	Exist
 		Does not perform any comparison but checks if the object calling Exist 
 		is presnt in a PS Provider. The object must have valid path syntax. It 
