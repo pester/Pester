@@ -219,7 +219,6 @@ function New-PesterState
         return $parentScope
     } -PassThru
 }
-
 function Write-Describe
 {
     param (

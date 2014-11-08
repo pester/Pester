@@ -2,9 +2,9 @@
 # Version: $version$
 # Changeset: $sha$
 
-$moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
+$Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-"$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
+"$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
 Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
 ForEach-Object { . $_.ProviderPath }
@@ -112,6 +112,7 @@ about_pester
         [Alias('relative_path')]
         [string]$Path = ".",
         [Parameter(Position=1,Mandatory=0)]
+        [Alias("Name")]
         [string[]]$TestName,
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
@@ -142,16 +143,16 @@ about_pester
         $OutputFile = $OutputXml
         $OutputFormat = 'LegacyNUnitXml'
     }
+    
+    # Ensure when running Pester that we're using RSpec strings
+    Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1
 
     $script:mockTable = @{}
 
     $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-    $message = "Executing all tests in '$($pester.Path)'"
-    if ($TestName) { $message += " matching test name '$TestName'" }
-
-    Write-Host $message
+    Write-PesterStart $pester
 
     $scriptBlock = { & $args[0] }
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
@@ -175,7 +176,7 @@ about_pester
 
     $pester | Write-PesterReport
     $coverageReport = Get-CoverageReport -PesterState $pester
-    Show-CoverageReport -CoverageReport $coverageReport
+    Write-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
 
@@ -242,3 +243,4 @@ function Get-ScriptBlockScope
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 Export-ModuleMember BeforeEach, AfterEach, Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember Invoke-Gherkin, When -Alias And, But, Given, Then
