@@ -1,5 +1,6 @@
 ## Unreleased
   - Added BeGreaterThan and BeLessThan assertions to Should.
+  - Add -Quiet parameter for Invoke-Pester that disables the output written to screen by Write-Host [GH-223]
 
 ## 3.1.1 (October 29, 2014)
   - Fix Skipped and Pending

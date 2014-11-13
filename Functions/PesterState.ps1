@@ -6,7 +6,8 @@ function New-PesterState
         [String[]]$TagFilter,
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
-        [Switch]$Strict
+        [Switch]$Strict,
+        [Switch]$Quiet
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -17,7 +18,8 @@ function New-PesterState
             [String[]]$_tagFilter,
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
-            [Switch]$Strict
+            [Switch]$Strict,
+            [Switch]$Quiet
         )
 
         #public read-only
@@ -35,6 +37,7 @@ function New-PesterState
         $script:BeforeEach = @()
         $script:AfterEach = @()
         $script:Strict = $Strict
+        $script:Quiet = $Quiet
 
         $script:TestResult = @()
 
@@ -166,7 +169,8 @@ function New-PesterState
         "CommandCoverage",
         "BeforeEach",
         "AfterEach",
-        "Strict"
+        "Strict",
+        "Quiet"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -177,7 +181,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict |
+    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
     Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
         @( $this.TestResult ).Count
     } -PassThru |
@@ -226,7 +230,7 @@ function Write-Describe
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
     process {
-        Write-Host Describing $Name -ForegroundColor Magenta
+        Write-Screen Describing $Name -ForegroundColor Magenta
     }
 }
 
@@ -236,8 +240,8 @@ function Write-Context
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
     process {
-        $margin = "   "
-        Microsoft.PowerShell.Utility\Write-Host ${margin}Context $Name -ForegroundColor Magenta
+        $margin = " " * 3
+        Write-Screen ${margin}Context $Name -ForegroundColor Magenta
     }
 }
 
@@ -258,21 +262,21 @@ function Write-PesterResult
         switch ($TestResult.Result)
         {
             Passed {
-                "$margin[+] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor DarkGreen
+                "$margin[+] $output $humanTime" | Write-Screen -ForegroundColor DarkGreen
                 break
             }
             Failed {
-                "$margin[-] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red
-                Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                Microsoft.PowerShell.Utility\Write-Host -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                "$margin[-] $output $humanTime" | Write-Screen -ForegroundColor red
+                Write-Screen -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                Write-Screen -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
                 break
             }
             Skipped {
-                "$margin[!] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
+                "$margin[!] $output $humanTime" | Write-Screen -ForegroundColor Gray
                 break
             }
             Pending {
-                "$margin[?] $output $humanTime" | Microsoft.PowerShell.Utility\Write-Host -ForegroundColor Gray
+                "$margin[?] $output $humanTime" | Write-Screen -ForegroundColor Gray
                 break
             }
         }
@@ -286,6 +290,58 @@ function Write-PesterReport
         $PesterState
     )
 
-    Write-Host "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
-    Write-Host "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
+    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
+    Write-Screen "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
+}
+
+function Write-Screen {
+    #wraps the Write-Host cmdlet to control if the output is written to screen from one place
+    param(
+        [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
+        [Object] $Object,
+        [Switch] $NoNewline,
+        [Object] $Separator,
+        [ConsoleColor] $ForegroundColor,
+        [ConsoleColor] $BackgroundColor,
+        [Switch] $Quiet = $pester.Quiet
+    )
+
+    #mostly generated code of Write-Host function
+    begin
+    {
+        if ($Quiet) { return }
+        try {
+            $outBuffer = $null
+            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+            {
+                $PSBoundParameters['OutBuffer'] = 1
+            }
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Write-Host', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+            $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
+            $steppablePipeline.Begin($PSCmdlet)
+        } catch {
+            throw
+        }
+    }
+
+    process
+    {
+        if ($Quiet) { return }
+        try {
+            $steppablePipeline.Process($_)
+        } catch {
+            throw
+        }
+    }
+
+    end
+    {
+        if ($Quiet) { return }
+        try {
+            $steppablePipeline.End()
+        } catch {
+            throw
+        }
+    }
 }
