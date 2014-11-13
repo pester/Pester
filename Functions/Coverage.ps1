@@ -511,7 +511,7 @@ function Show-CoverageReport
     {
         Write-Screen ''
         Write-Screen 'Missed commands:'
-        $report | Format-Table -AutoSize
+        $report | Format-Table -AutoSize | Out-String | Write-Screen
     }
 }
 
