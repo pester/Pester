@@ -503,15 +503,15 @@ function Show-CoverageReport
         'Command'
     )
 
-    Write-Host ''
-    Write-Host 'Code coverage report:'
-    Write-Host "Covered $executedPercent of $totalCommandCount analyzed command$commandPlural in $fileCount file$filePlural."
+    Write-Screen ''
+    Write-Screen 'Code coverage report:'
+    Write-Screen "Covered $executedPercent of $totalCommandCount analyzed command$commandPlural in $fileCount file$filePlural."
 
     if ($CoverageReport.MissedCommands.Count -gt 0)
     {
-        Write-Host ''
-        Write-Host 'Missed commands:'
-        $report | Format-Table -AutoSize | Out-Host
+        Write-Screen ''
+        Write-Screen 'Missed commands:'
+        $report | Format-Table -AutoSize | Out-String | Write-Screen
     }
 }
 

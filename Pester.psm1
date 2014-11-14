@@ -66,6 +66,9 @@ Both Function and Path (as well as simple strings passed instead of hashtables) 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
 
+.PARAMETER Quiet
+Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
+
 .Example
 Invoke-Pester
 
@@ -130,7 +133,8 @@ about_pester
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
-        [string] $OutputFormat
+        [string] $OutputFormat,
+        [Switch]$Quiet
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
@@ -145,13 +149,13 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     $message = "Executing all tests in '$($pester.Path)'"
     if ($TestName) { $message += " matching test name '$TestName'" }
 
-    Write-Host $message
+    Write-Screen $message
 
     $scriptBlock = { & $args[0] }
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
