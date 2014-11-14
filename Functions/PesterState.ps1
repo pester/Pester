@@ -267,8 +267,8 @@ function Write-PesterResult
             }
             Failed {
                 "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
-                Write-Screen -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                Write-Screen -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                Write-Screen -OutputType Failed $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                Write-Screen -OutputType Failed $($TestResult.stackTrace -replace '(?m)^',$error_margin)
                 break
             }
             Skipped {
@@ -325,7 +325,7 @@ function Write-Screen {
             }
             
             $StandardColorSet = @{ 
-                Failed  = [ConsoleColor]::DarkRed
+                Failed  = [ConsoleColor]::Red
                 Passed  = [ConsoleColor]::DarkGreen
                 Skipped = [ConsoleColor]::Gray
                 Pending = [ConsoleColor]::Gray
