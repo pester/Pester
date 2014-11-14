@@ -230,7 +230,7 @@ function Write-Describe
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
     process {
-        Write-Screen Describing $Name -ForegroundColor Magenta
+        Write-Screen Describing $Name -OutputType Header 
     }
 }
 
@@ -241,7 +241,7 @@ function Write-Context
     )
     process {
         $margin = " " * 3
-        Write-Screen ${margin}Context $Name -ForegroundColor Magenta
+        Write-Screen ${margin}Context $Name -OutputType Header
     }
 }
 
@@ -262,21 +262,21 @@ function Write-PesterResult
         switch ($TestResult.Result)
         {
             Passed {
-                "$margin[+] $output $humanTime" | Write-Screen -ForegroundColor DarkGreen
+                "$margin[+] $output $humanTime" | Write-Screen -OutputType Passed
                 break
             }
             Failed {
-                "$margin[-] $output $humanTime" | Write-Screen -ForegroundColor red
+                "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
                 Write-Screen -ForegroundColor red $($TestResult.failureMessage -replace '(?m)^',$error_margin)
                 Write-Screen -ForegroundColor red $($TestResult.stackTrace -replace '(?m)^',$error_margin)
                 break
             }
             Skipped {
-                "$margin[!] $output $humanTime" | Write-Screen -ForegroundColor Gray
+                "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
                 break
             }
             Pending {
-                "$margin[?] $output $humanTime" | Write-Screen -ForegroundColor Gray
+                "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
                 break
             }
         }
@@ -297,19 +297,44 @@ function Write-PesterReport
 function Write-Screen {
     #wraps the Write-Host cmdlet to control if the output is written to screen from one place
     param(
+        #Write-Host parameters
         [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
         [Object] $Object,
         [Switch] $NoNewline,
         [Object] $Separator,
-        [ConsoleColor] $ForegroundColor,
-        [ConsoleColor] $BackgroundColor,
-        [Switch] $Quiet = $pester.Quiet
+        #custom parameters
+        [Switch] $Quiet = $pester.Quiet,
+        [ValidateSet("Failed","Passed","Skipped","Pending","Header","Standard")]
+        [String] $OutputType = "Standard"
     )
 
-    #mostly generated code of Write-Host function
     begin
     {
         if ($Quiet) { return }
+        
+        #make the bound parameters compatible with Write-Host
+        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
+        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
+        
+        if ($OutputType -ne "Standard")
+        {
+            #create the key first to make it work in strict mode
+            if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
+            { 
+                $PSBoundParameters.Add('ForegroundColor', $null)
+            }
+            
+            $StandardColorSet = @{ 
+                Failed  = [ConsoleColor]::DarkRed
+                Passed  = [ConsoleColor]::DarkGreen
+                Skipped = [ConsoleColor]::Gray
+                Pending = [ConsoleColor]::Gray
+                Header  = [ConsoleColor]::Magenta
+            }
+            
+            $PSBoundParameters.ForegroundColor = $StandardColorSet.$OutputType
+        }
+        
         try {
             $outBuffer = $null
             if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
