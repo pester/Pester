@@ -3,6 +3,7 @@
   - Add -Quiet parameter for Invoke-Pester that disables the output written to screen by Write-Host [GH-223]
   - Fix Error output for TestDrive [GH-232]
   - Add ExcludeTagFilter parameter [GH-234]
+  - Add different color schemes for dark and light backgrounds
 
 ## 3.1.1 (October 29, 2014)
   - Fix Skipped and Pending

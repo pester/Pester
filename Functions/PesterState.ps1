@@ -327,16 +327,45 @@ function Write-Screen {
             { 
                 $PSBoundParameters.Add('ForegroundColor', $null)
             }
+
             
-            $StandardColorSet = @{ 
-                Failed  = [ConsoleColor]::Red
-                Passed  = [ConsoleColor]::DarkGreen
-                Skipped = [ConsoleColor]::Gray
-                Pending = [ConsoleColor]::Gray
-                Header  = [ConsoleColor]::Magenta
-            }
             
-            $PSBoundParameters.ForegroundColor = $StandardColorSet.$OutputType
+            switch ($Host.Name) 
+            {
+                #light background
+                "PowerGUIScriptEditorHost" {
+                    $ColorSet = @{ 
+                        Failed  = [ConsoleColor]::Red
+                        Passed  = [ConsoleColor]::DarkGreen
+                        Skipped = [ConsoleColor]::DarkGray
+                        Pending = [ConsoleColor]::DarkCyan
+                        Header  = [ConsoleColor]::Magenta
+                    }
+                }
+                #dark background
+                { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
+                    $ColorSet = @{ 
+                        Failed  = [ConsoleColor]::Red
+                        Passed  = [ConsoleColor]::Green
+                        Skipped = [ConsoleColor]::Gray
+                        Pending = [ConsoleColor]::Cyan
+                        Header  = [ConsoleColor]::Magenta
+                    }
+                }
+                default {
+                    $ColorSet = @{ 
+                        Failed  = [ConsoleColor]::Red
+                        Passed  = [ConsoleColor]::DarkGreen
+                        Skipped = [ConsoleColor]::Gray
+                        Pending = [ConsoleColor]::Gray
+                        Header  = [ConsoleColor]::Magenta
+                    }
+                }
+                
+             }
+
+            
+            $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
         }
         
         try {
