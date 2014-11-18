@@ -243,6 +243,51 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function Get-StackTrace {
+    param (
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    function IsPesterInternal([string]$frame) {
+        return ($frame -match "pester")
+    }
+
+    $stackTraceMessageBuilder = New-Object System.Text.StringBuilder
+
+    if ((Get-Member -InputObject $ErrorRecord -Name ScriptStackTrace) -ne $null)
+    {
+        #PS 3.0 has a stack trace on the ErrorRecord; if we have it, use it & skip the manual stack trace below
+        $callStack = @($ErrorRecord.ScriptStackTrace.Split("`n"))
+        foreach($frame in $callStack) {
+            if(-not (IsPesterInternal $frame)) {
+                [Void]$stackTraceMessageBuilder.AppendLine($frame)
+            }
+        }
+    }
+    else {
+        $frameStringFormat = "at {0}, {1}: Line {2}"
+
+        $callStack = @(Get-PSCallStack)
+
+        [Void]$stackTraceMessageBuilder.AppendLine((Out-String -InputObject $ErrorRecord).Trim())
+        [Void]$stackTraceMessageBuilder.AppendLine("--- Begin StackTrace As Of Exception Catch ---")
+        for($i = 1; $i -lt $callStack.Count; $i++) {
+            $frame = $callStack[$i]
+
+            if((IsPesterInternal $frame.ScriptName)) {
+                continue
+            }
+
+            [Void]$stackTraceMessageBuilder.AppendLine([string]::Format($frameStringFormat,
+                $frame.Command,
+                $frame.ScriptName,
+                $frame.InvocationInfo.ScriptLineNumber))
+        }
+    }
+
+    return $stackTraceMessageBuilder.ToString().Trim()
+}
+
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 Export-ModuleMember BeforeEach, AfterEach, Get-MockDynamicParameters, Set-DynamicParameterVariables

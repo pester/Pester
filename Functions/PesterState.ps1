@@ -119,7 +119,8 @@ function New-PesterState
                 [string]$FailureMessage,
                 [string]$StackTrace,
                 [string] $ParameterizedSuiteName,
-                [System.Collections.IDictionary] $Parameters
+                [System.Collections.IDictionary] $Parameters,
+                [System.Management.Automation.ErrorRecord]$ErrorRecord
             )
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
@@ -153,9 +154,10 @@ function New-PesterState
                 Time                   = $Time
                 FailureMessage         = $FailureMessage
                 StackTrace             = $StackTrace
+                ErrorRecord            = $ErrorRecord
                 ParameterizedSuiteName = $ParameterizedSuiteName
                 Parameters             = $Parameters
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ErrorRecord, ParameterizedSuiteName, Parameters
         }
 
         $ExportedVariables = "Path",
@@ -230,7 +232,7 @@ function Write-Describe
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
     process {
-        Write-Screen Describing $Name -OutputType Header 
+        Write-Screen Describing $Name -OutputType Header
     }
 }
 
@@ -311,30 +313,30 @@ function Write-Screen {
     begin
     {
         if ($Quiet) { return }
-        
+
         #make the bound parameters compatible with Write-Host
         if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
         if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
-        
+
         if ($OutputType -ne "Standard")
         {
             #create the key first to make it work in strict mode
             if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
-            { 
+            {
                 $PSBoundParameters.Add('ForegroundColor', $null)
             }
-            
-            $StandardColorSet = @{ 
+
+            $StandardColorSet = @{
                 Failed  = [ConsoleColor]::Red
                 Passed  = [ConsoleColor]::DarkGreen
                 Skipped = [ConsoleColor]::Gray
                 Pending = [ConsoleColor]::Gray
                 Header  = [ConsoleColor]::Magenta
             }
-            
+
             $PSBoundParameters.ForegroundColor = $StandardColorSet.$OutputType
         }
-        
+
         try {
             $outBuffer = $null
             if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
