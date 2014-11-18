@@ -65,11 +65,21 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
+    $File = $null
+
     if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction SilentlyContinue))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
         $script:mockTable = @{}
+    }
+    else
+    {
+        $parentInvocation = Get-Variable -Name MyInvocation -Scope 1 -ValueOnly
+        if($parentInvocation -ne $null)
+        {
+            $File = $parentInvocation.ScriptName
+        }
     }
 
     if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
@@ -82,8 +92,8 @@ about_TestDrive
     if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
 
     $Pester.EnterDescribe($Name)
-    
-    $Pester.CurrentDescribe | Write-Describe
+
+    $Pester.CurrentDescribe | Write-Describe -File $File
     New-TestDrive
 
     try
