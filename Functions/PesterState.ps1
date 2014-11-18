@@ -227,10 +227,19 @@ function New-PesterState
 function Write-Describe
 {
     param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name,
+        $File
+
     )
     process {
-        Write-Screen Describing $Name -OutputType Header 
+        $margin = " "
+        if($File -ne $null)
+        {
+            $msg = "File: {0}" -f $File
+            Write-Screen $msg -OutputType Header
+        }
+
+        Write-Screen ${margin}Describing $Name -OutputType Header
     }
 }
 
@@ -252,7 +261,7 @@ function Write-PesterResult
         $TestResult
     )
     process {
-        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
+        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 2 } else { 0 }
 
         $margin = " " * $TestDepth
         $error_margin = $margin + "  "
@@ -311,30 +320,30 @@ function Write-Screen {
     begin
     {
         if ($Quiet) { return }
-        
+
         #make the bound parameters compatible with Write-Host
         if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
         if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
-        
+
         if ($OutputType -ne "Standard")
         {
             #create the key first to make it work in strict mode
             if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
-            { 
+            {
                 $PSBoundParameters.Add('ForegroundColor', $null)
             }
-            
-            $StandardColorSet = @{ 
+
+            $StandardColorSet = @{
                 Failed  = [ConsoleColor]::Red
                 Passed  = [ConsoleColor]::DarkGreen
                 Skipped = [ConsoleColor]::Gray
                 Pending = [ConsoleColor]::Gray
                 Header  = [ConsoleColor]::Magenta
             }
-            
+
             $PSBoundParameters.ForegroundColor = $StandardColorSet.$OutputType
         }
-        
+
         try {
             $outBuffer = $null
             if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
