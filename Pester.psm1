@@ -134,7 +134,9 @@ about_pester
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
         [string] $OutputFormat,
-        [Switch]$Quiet
+        [Switch]$Quiet,
+        [Alias('ExcludeTags')]
+        [string]$ExcludeTag
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
@@ -149,7 +151,7 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -ExcludeTag ($ExcludeTag -split "\s")
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     $message = "Executing all tests in '$($pester.Path)'"
@@ -190,7 +192,7 @@ about_pester
     if ($PassThru) {
         #remove all runtime properties like current* and Scope
         $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
+            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult", "ExcludeTag"
 
             if ($CodeCoverage)
             {

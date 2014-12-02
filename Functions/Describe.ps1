@@ -68,7 +68,7 @@ about_TestDrive
     if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction SilentlyContinue))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
-        $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
+        $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState -ExcludeTag @()
         $script:mockTable = @{}
     }
 
@@ -80,7 +80,10 @@ about_TestDrive
 
     #TODO add test to test tags functionality
     if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-
+ 
+    if($Pester.ExcludeTag -and @(Compare-Object $Tags $Pester.ExcludeTag -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+ 
+ 
     $Pester.EnterDescribe($Name)
     
     $Pester.CurrentDescribe | Write-Describe

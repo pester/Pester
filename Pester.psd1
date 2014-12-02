@@ -53,6 +53,7 @@ FunctionsToExport = @(
 VariablesToExport = @(
     'Path',
     'TagFilter',
+    'ExcludeTag',
     'TestNameFilter',
     'TestResult',
     'CurrentContext',

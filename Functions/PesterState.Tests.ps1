@@ -52,6 +52,29 @@ InModuleScope Pester {
             }
 
         }
+        
+        Context "Path and ExcludeTag parameter is set" {
+            $p = new-pesterstate -path "path" -ExcludeTag "tag","tag2"
+
+            it "sets the path property" {
+                $p.Path | should be  "path"
+            }
+
+            it "sets the TestNameFilter property" {
+                $p.ExcludeTag | should be ("tag","tag2")
+            }
+        }
+        Context "Path TestNameFilter and ExcludeTag parameter is set" {
+            $p = new-pesterstate -path "path" -ExcludeTag "tag","tag2" -testnamefilter "filter"
+
+            it "sets the path property" {
+                $p.Path | should be  "path"
+            }
+
+            it "sets the ExcludeTag property" {
+                $p.ExcludeTag | should be ("tag","tag2")
+            }
+        }
     }
 
     Describe "Pester state object" {
