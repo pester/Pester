@@ -9,13 +9,13 @@ function New-TestDrive ([Switch]$PassThru) {
     }
 
     #setup the test drive
-    if ( -not (Get-PSDrive -Name $DriveName -ErrorAction SilentlyContinue) )
+    if ( -not (Test-Path "${DriveName}:\") )
     {
         New-PSDrive -Name $DriveName -PSProvider FileSystem -Root $Path -Scope Global -Description "Pester test drive" | Out-Null
     }
 
     #publish the global TestDrive variable used in few places within the module
-    if (-not (Get-Variable -Name $DriveName -Scope Global -ErrorAction SilentlyContinue))
+    if (-not (Test-Path "Variable:Global:DriveName"))
     {
         New-Variable -Name $DriveName -Scope Global -Value $Path
     }
