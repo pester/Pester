@@ -81,7 +81,7 @@ about_TestDrive
     #TODO add test to test tags functionality
     if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
  
-    if($Pester.ExcludeTag -and @(Compare-Object $Tags $Pester.ExcludeTag -IncludeEqual -ExcludeDifferent).count -eq $Pester.ExcludeTag.Length) {return}
+    if($Pester.ExcludeTag -and @(Compare-Object $Tags $Pester.ExcludeTag -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
  
  
     $Pester.EnterDescribe($Name)
