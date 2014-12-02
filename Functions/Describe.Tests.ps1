@@ -160,13 +160,14 @@ InModuleScope Pester {
             )
 
             It -TestCases $cases 'Does not call the test block when the <Description>.' {
+                param($Tags)
                 # Unlike the test name filter, tags are literal matches and not interpreted as wildcards.
-                DescribeImpl -Name 'Blah' -Tags 'TestTwoTest' -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name 'Blah' -Tags $Tags -Pester $testState -Fixture $testBlock
 
                 Assert-MockCalled MockMe -Scope It -Exactly 0
             }
         }
-
+        
         # Testing nested Describe is probably not necessary here; that's covered by PesterState.Tests.ps1 and $pester.EnterDescribe().
     }
 }
