@@ -50,6 +50,9 @@ The path where Invoke-Pester will save a NUnit formatted test results log file. 
 .PARAMETER Tag
 Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
 
+.PARAMETER ExcludeTag
+Informs Invoke-Pester to not run blocks tagged with the tags specified.
+
 .PARAMETER PassThru
 Returns a Pester result object containing the information about the whole test run, and each test.
 
@@ -115,14 +118,19 @@ about_pester
         [Alias('relative_path')]
         [string]$Path = ".",
         [Parameter(Position=1,Mandatory=0)]
-        [string]$TestName,
+        [Alias("Name")]
+        [string[]]$TestName,
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
         [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
         [string]$OutputXml,
+
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
-        [string]$Tag,
+        [string[]]$Tag,
+
+        [string[]]$ExcludeTag,
+
         [switch]$PassThru,
 
         [object[]] $CodeCoverage = @(),
@@ -149,7 +157,7 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     $message = "Executing all tests in '$($pester.Path)'"
@@ -190,7 +198,7 @@ about_pester
     if ($PassThru) {
         #remove all runtime properties like current* and Scope
         $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
+            "Path","TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
 
             if ($CodeCoverage)
             {
