@@ -7,7 +7,8 @@ function New-PesterState
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
-        [Switch]$Quiet
+        [Switch]$Quiet,
+        [String[]]$ExcludeTag
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -19,14 +20,16 @@ function New-PesterState
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
-            [Switch]$Quiet
+            [Switch]$Quiet,
+            [String[]]$_excludeTag
         )
 
         #public read-only
         $Path = $_path
         $TagFilter = $_tagFilter
         $TestNameFilter = $_testNameFilter
-
+        $ExcludeTag = $_excludeTag
+        
         $script:SessionState = $_sessionState
         $script:CurrentContext = ""
         $script:CurrentDescribe = ""
@@ -160,6 +163,7 @@ function New-PesterState
 
         $ExportedVariables = "Path",
         "TagFilter",
+        "ExcludeTag",
         "TestNameFilter",
         "TestResult",
         "CurrentContext",
@@ -181,7 +185,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
+    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet, $ExcludeTag |
     Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
         @( $this.TestResult ).Count
     } -PassThru |

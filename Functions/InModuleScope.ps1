@@ -64,7 +64,7 @@ function InModuleScope
     if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction SilentlyContinue))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
-        $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
+        $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState -ExcludeTag @()
         $script:mockTable = @{}
     }
 
