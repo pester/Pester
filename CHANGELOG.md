@@ -1,4 +1,4 @@
-## Unreleased
+## 3.2.0 (December 3, 2014)
   - Added BeGreaterThan and BeLessThan assertions to Should.
   - Add -Quiet parameter for Invoke-Pester that disables the output written to screen by Write-Host [GH-223]
   - Fix Error output for TestDrive [GH-232]
