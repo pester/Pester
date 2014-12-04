@@ -1,3 +1,6 @@
+## Unreleased
+  - Validate manifest version, changelog version and tag version
+
 ## 3.2.0 (December 3, 2014)
   - Added BeGreaterThan and BeLessThan assertions to Should.
   - Add -Quiet parameter for Invoke-Pester that disables the output written to screen by Write-Host [GH-223]
