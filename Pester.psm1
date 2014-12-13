@@ -50,6 +50,9 @@ The path where Invoke-Pester will save a NUnit formatted test results log file. 
 .PARAMETER Tag
 Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
 
+.PARAMETER ExcludeTag
+Informs Invoke-Pester to not run blocks tagged with the tags specified.
+
 .PARAMETER PassThru
 Returns a Pester result object containing the information about the whole test run, and each test.
 
@@ -65,6 +68,9 @@ Both Function and Path (as well as simple strings passed instead of hashtables) 
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
+
+.PARAMETER Quiet
+Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
 
 .Example
 Invoke-Pester
@@ -118,9 +124,13 @@ about_pester
         [switch]$EnableExit,
         [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
         [string]$OutputXml,
+
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
-        [string]$Tag,
+        [string[]]$Tag,
+
+        [string[]]$ExcludeTag,
+
         [switch]$PassThru,
 
         [object[]] $CodeCoverage = @(),
@@ -131,7 +141,8 @@ about_pester
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
-        [string] $OutputFormat
+        [string] $OutputFormat,
+        [Switch]$Quiet
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
@@ -149,10 +160,17 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     Write-PesterStart $pester
+    
+    # TODO:  Make sure this logic is accounted for in Write-PesterStart for the merge.
+
+    # $message = "Executing all tests in '$($pester.Path)'"
+    # if ($TestName) { $message += " matching test name '$TestName'" }
+    # 
+    # Write-Screen $message
 
     $scriptBlock = { & $args[0] }
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
@@ -187,7 +205,7 @@ about_pester
     if ($PassThru) {
         #remove all runtime properties like current* and Scope
         $properties = @(
-            "Path","TagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
+            "Path","TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
 
             if ($CodeCoverage)
             {
@@ -240,7 +258,22 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function Get-IgnoreErrorPreference
+{
+    if ($PSVersionTable.PSVersion.Major -ge 3)
+    {
+        return 'Ignore'
+    }
+    else
+    {
+        return 'SilentlyContinue'
+    }
+
+}
+
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
-Export-ModuleMember BeforeEach, AfterEach, Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
+Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember Get-IgnoreErrorPreference
 Export-ModuleMember Invoke-Gherkin, When -Alias And, But, Given, Then

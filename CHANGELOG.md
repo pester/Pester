@@ -1,5 +1,14 @@
 ## Unreleased
+  - Validate manifest version, changelog version and tag version
+  - Added BeforeAll and AfterAll commands
+  - Updated code to take advantage of -ErrorAction Ignore in PowerShell v3+.
+
+## 3.2.0 (December 3, 2014)
   - Added BeGreaterThan and BeLessThan assertions to Should.
+  - Add -Quiet parameter for Invoke-Pester that disables the output written to screen by Write-Host [GH-223]
+  - Fix Error output for TestDrive [GH-232]
+  - Add ExcludeTagFilter parameter [GH-234]
+  - Add different color schemes for dark and light backgrounds
 
 ## 3.1.1 (October 29, 2014)
   - Fix Skipped and Pending

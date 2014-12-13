@@ -4,9 +4,11 @@ function New-PesterState
         [Parameter(Mandatory=$true)]
         [String]$Path,
         [String[]]$TagFilter,
+        [String[]]$ExcludeTagFilter,
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
-        [Switch]$Strict
+        [Switch]$Strict,
+        [Switch]$Quiet
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -15,14 +17,17 @@ function New-PesterState
         param (
             [String]$_path,
             [String[]]$_tagFilter,
+            [String[]]$_excludeTagFilter,
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
-            [Switch]$Strict
+            [Switch]$Strict,
+            [Switch]$Quiet
         )
 
         #public read-only
         $Path = $_path
         $TagFilter = $_tagFilter
+        $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
 
         $script:SessionState = $_sessionState
@@ -34,7 +39,10 @@ function New-PesterState
         $script:CommandCoverage = @()
         $script:BeforeEach = @()
         $script:AfterEach = @()
+        $script:BeforeAll = @()
+        $script:AfterAll = @()
         $script:Strict = $Strict
+        $script:Quiet = $Quiet
 
         $script:TestResult = @()
 
@@ -157,6 +165,7 @@ function New-PesterState
 
         $ExportedVariables = "Path",
         "TagFilter",
+        "ExcludeTagFilter",
         "TestNameFilter",
         "TestResult",
         "CurrentContext",
@@ -166,7 +175,10 @@ function New-PesterState
         "CommandCoverage",
         "BeforeEach",
         "AfterEach",
-        "Strict"
+        "BeforeAll",
+        "AfterAll",
+        "Strict",
+        "Quiet"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -177,7 +189,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState, $Strict |
+    } -ArgumentList $Path, $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
     Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
         @( $this.TestResult ).Count
     } -PassThru |

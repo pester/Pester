@@ -25,7 +25,7 @@ InModuleScope Pester {
             }
 
         }
-        Context "Path and TagFilter parameter is set" {
+        Context "Path and TagFilter parameter are set" {
             $p = new-pesterstate -path "path" -TagFilter "tag","tag2"
 
             it "sets the path property" {
@@ -34,6 +34,32 @@ InModuleScope Pester {
 
             it "sets the TestNameFilter property" {
                 $p.TagFilter | should be ("tag","tag2")
+            }
+        }
+        Context "Path and ExcludeTagFilter parameter are set" {
+            $p = new-pesterstate -path "path" -ExcludeTagFilter "tag3", "tag"
+
+            it "sets the path property" {
+                $p.Path | should be  "path"
+            }
+
+            it "sets the ExcludeTagFilter property" {
+                $p.ExcludeTagFilter | should be ("tag3", "tag")
+            }
+        }        
+        Context "Path, TagFilter and ExcludeTagFilter parameter are set" {
+            $p = new-pesterstate -path "path" -TagFilter "tag","tag2" -ExcludeTagFilter "tag3"
+
+            it "sets the path property" {
+                $p.Path | should be  "path"
+            }
+
+            it "sets the TestNameFilter property" {
+                $p.TagFilter | should be ("tag","tag2")
+            }
+
+            it "sets the ExcludeTagFilter property" {
+                $p.ExcludeTagFilter | should be ("tag3")
             }
         }
         Context "Path TestNameFilter and TagFilter parameter is set" {

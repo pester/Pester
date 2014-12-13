@@ -478,6 +478,42 @@ function Get-CoverageReport
     }
 }
 
+function Show-CoverageReport
+{
+    param ([object] $CoverageReport)
+
+    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
+    {
+        return
+    }
+
+    $totalCommandCount = $CoverageReport.NumberOfCommandsAnalyzed
+    $fileCount = $CoverageReport.NumberOfFilesAnalyzed
+    $executedPercent = ($CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed).ToString("P2")
+
+    $commandPlural = $filePlural = ''
+    if ($totalCommandCount -gt 1) { $commandPlural = 's' }
+    if ($fileCount -gt 1) { $filePlural = 's' }
+
+    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+    $report = $CoverageReport.MissedCommands | Select-Object -Property @(
+        @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
+        'Function'
+        'Line'
+        'Command'
+    )
+
+    Write-Screen ''
+    Write-Screen 'Code coverage report:'
+    Write-Screen "Covered $executedPercent of $totalCommandCount analyzed command$commandPlural in $fileCount file$filePlural."
+
+    if ($CoverageReport.MissedCommands.Count -gt 0)
+    {
+        Write-Screen ''
+        Write-Screen 'Missed commands:'
+        $report | Format-Table -AutoSize | Out-String | Write-Screen
+    }
+}
 
 function Get-CommonParentPath
 {

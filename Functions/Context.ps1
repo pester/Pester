@@ -79,6 +79,7 @@ function ContextImpl
     try
     {
         Add-SetupAndTeardown -ScriptBlock $Fixture
+        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
         $null = & $Fixture
     }
     catch
@@ -90,6 +91,10 @@ function ContextImpl
         {
             $Pester.TestResult[-1] | & $TestOutputBlock
         }
+    }
+    finally
+    {
+        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
     }
 
     Clear-SetupAndTeardown

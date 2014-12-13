@@ -531,7 +531,7 @@ InModuleScope Pester {
             pushd TestDrive:\
             $p = GetFullPath notexistingfile.txt
             popd
-            $p | Should Be TestDrive:\notexistingfile.txt
+            $p | Should Be (Join-Path $TestDrive notexistingfile.txt)
         }
 
         It "Resolves existing path correctly" {
@@ -539,7 +539,7 @@ InModuleScope Pester {
             New-Item -ItemType File -Name existingfile.txt
             $p = GetFullPath existingfile.txt
             popd
-            $p | Should Be TestDrive:\existingfile.txt
+            $p | Should Be (Join-Path $TestDrive existingfile.txt)
         }
 
         It "Resolves full path correctly" {
