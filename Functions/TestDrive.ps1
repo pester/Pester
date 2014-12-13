@@ -64,7 +64,7 @@ function Get-TestDriveChildItem {
 function Remove-TestDrive {
 
     $DriveName = "TestDrive"
-    $Drive = Get-PSDrive -Name $DriveName -ErrorAction SilentlyContinue
+    $Drive = Get-PSDrive -Name $DriveName -ErrorAction (Get-IgnoreErrorPreference)
     $Path = ($Drive).Root
 
 
@@ -76,7 +76,7 @@ function Remove-TestDrive {
 
     if ( $Drive )
     {
-        $Drive | Remove-PSDrive -Force -ErrorAction SilentlyContinue
+        $Drive | Remove-PSDrive -Force -ErrorAction (Get-IgnoreErrorPreference)
     }
 
     if (Microsoft.PowerShell.Management\Test-Path -Path $Path)
@@ -84,7 +84,7 @@ function Remove-TestDrive {
         Microsoft.PowerShell.Management\Remove-Item -Path $Path -Force -Recurse
     }
 
-    if (Get-Variable -Name $DriveName -Scope Global -ErrorAction SilentlyContinue) {
+    if (Get-Variable -Name $DriveName -Scope Global -ErrorAction (Get-IgnoreErrorPreference)) {
         Remove-Variable -Scope Global -Name $DriveName -Force
     }
 }

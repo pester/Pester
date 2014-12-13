@@ -11,15 +11,12 @@ function Get-HumanTime($Seconds) {
 }
 
 function GetFullPath ([string]$Path) {
-    $fullpath = Resolve-Path -Path $Path -ErrorAction SilentlyContinue -ErrorVariable Error
-    if ($fullpath)
+    if (-not [System.IO.Path]::IsPathRooted($Path))
     {
-        $fullpath
+        $Path = Join-Path $ExecutionContext.SessionState.Path.CurrentFileSystemLocation $Path
     }
-    else
-    {
-        $error[0].TargetObject
-    }
+
+    return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 }
 
 function Export-PesterResults

@@ -58,14 +58,19 @@ about_TestDrive
 
     try
     {
-        Add-SetupAndTeardown -ScriptBlock $Fixture 
-        $null = & $Fixture 
+        Add-SetupAndTeardown -ScriptBlock $Fixture
+        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
+        $null = & $Fixture
     }
     catch
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
         $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
+    }
+    finally
+    {
+        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
     }
 
     Clear-SetupAndTeardown

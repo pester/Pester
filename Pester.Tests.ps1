@@ -3,8 +3,7 @@
 $manifestPath   = "$here\Pester.psd1"
 $changellogPath = "$here\CHANGELOG.md"
 
-Describe "Pester manifest and changelog" {
-    
+Describe "Pester manifest and changelog" {    
     $script:manifest = $null
     It "has a valid manifest" {
         {   
@@ -56,5 +55,21 @@ Describe "Pester manifest and changelog" {
             $script:manifest.Version -as [Version] | Should be ( $script:tagVersion -as [Version] )
         }
         
+    }
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 3)
+{
+    $error.Clear()
+    Describe 'Clean treatment of the $error variable' {
+        Context 'A Context' {
+            It 'Performs a successful test' {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Did not add anything to the $error variable' {
+            $error.Count | Should Be 0
+        }
     }
 }
