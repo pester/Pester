@@ -42,6 +42,8 @@ FunctionsToExport = @(
     'Invoke-Mock',
     'BeforeEach',
     'AfterEach',
+    'BeforeAll',
+    'AfterAll'
     'Get-MockDynamicParameters',
     'Set-DynamicParameterVariables'
 )

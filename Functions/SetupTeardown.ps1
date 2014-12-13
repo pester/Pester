@@ -6,9 +6,9 @@ function BeforeEach
     the current Context or Describe block.
 
 .DESCRIPTION
-    BeforeEach and AfterEach are unique in that they apply to the entire Context
-    or Describe block, even those that come before the BeforeEach or AfterEach
-    definition within the Context or Describe.  For a full description of this
+    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+    to the entire Context or Describe block, regardless of the order of the
+    statements in the Context or Describe.  For a full description of this
     behavior, as well as how multiple BeforeEach or AfterEach blocks interact
     with each other, please refer to the about_BeforeEach_AfterEach help file.
 
@@ -26,9 +26,9 @@ function AfterEach
     the current Context or Describe block.
 
 .DESCRIPTION
-    BeforeEach and AfterEach are unique in that they apply to the entire Context
-    or Describe block, even those that come before the BeforeEach or AfterEach
-    definition within the Context or Describe.  For a full description of this
+    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+    to the entire Context or Describe block, regardless of the order of the
+    statements in the Context or Describe.  For a full description of this
     behavior, as well as how multiple BeforeEach or AfterEach blocks interact
     with each other, please refer to the about_BeforeEach_AfterEach help file.
 
@@ -38,44 +38,101 @@ function AfterEach
     Assert-DescribeInProgress -CommandName AfterEach
 }
 
+function BeforeAll
+{
+<#
+.SYNOPSIS
+    Defines a series of steps to perform at the beginning of the current Context
+    or Describe block.
+
+.DESCRIPTION
+    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+    to the entire Context or Describe block, regardless of the order of the
+    statements in the Context or Describe.
+
+.LINK
+    about_BeforeEach_AfterEach
+#>
+    Assert-DescribeInProgress -CommandName BeforeAll
+}
+
+function AfterAll
+{
+<#
+.SYNOPSIS
+    Defines a series of steps to perform at the end of every It block within
+    the current Context or Describe block.
+
+.DESCRIPTION
+    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+    to the entire Context or Describe block, regardless of the order of the
+    statements in the Context or Describe.
+
+.LINK
+    about_BeforeEach_AfterEach
+#>
+    Assert-DescribeInProgress -CommandName AfterAll
+}
+
 function Clear-SetupAndTeardown
 {
     $pester.BeforeEach = @( $pester.BeforeEach | Where-Object { $_.Scope -ne $pester.Scope } )
     $pester.AfterEach  = @( $pester.AfterEach  | Where-Object { $_.Scope -ne $pester.Scope } )
+    $pester.BeforeAll  = @( $pester.BeforeAll  | Where-Object { $_.Scope -ne $pester.Scope } )
+    $pester.AfterAll   = @( $pester.AfterAll   | Where-Object { $_.Scope -ne $pester.Scope } )
 }
 
-function Invoke-SetupBlocks
+function Invoke-TestCaseSetupBlocks
 {
     $orderedSetupBlocks = @(
-        $pester.BeforeEach | Where-Object { $_.Scope -eq 'Describe' }
-        $pester.BeforeEach | Where-Object { $_.Scope -eq 'Context'  }
+        $pester.BeforeEach | Where-Object { $_.Scope -eq 'Describe' } | Select-Object -ExpandProperty ScriptBlock
+        $pester.BeforeEach | Where-Object { $_.Scope -eq 'Context'  } | Select-Object -ExpandProperty ScriptBlock
     )
 
-    foreach ($setupBlock in $orderedSetupBlocks)
-    {
-        try
-        {
-            . $setupBlock.ScriptBlock
-        }
-        catch
-        {
-            Write-Error -ErrorRecord $_
-        }
-    }
+    Invoke-Blocks -ScriptBlock $orderedSetupBlocks
 }
 
-function Invoke-TeardownBlocks
+function Invoke-TestCaseTeardownBlocks
 {
     $orderedTeardownBlocks = @(
-        $pester.AfterEach | Where-Object { $_.Scope -eq 'Context'  }
-        $pester.AfterEach | Where-Object { $_.Scope -eq 'Describe' }
+        $pester.AfterEach | Where-Object { $_.Scope -eq 'Context'  } | Select-Object -ExpandProperty ScriptBlock
+        $pester.AfterEach | Where-Object { $_.Scope -eq 'Describe' } | Select-Object -ExpandProperty ScriptBlock
     )
 
-    foreach ($teardownBlock in $orderedTeardownBlocks)
+    Invoke-Blocks -ScriptBlock $orderedTeardownBlocks
+}
+
+function Invoke-TestGroupSetupBlocks
+{
+    param ([string] $Scope)
+
+    $scriptBlocks = $pester.BeforeAll |
+                    Where-Object { $_.Scope -eq $Scope } |
+                    Select-Object -ExpandProperty ScriptBlock
+
+    Invoke-Blocks -ScriptBlock $scriptBlocks
+}
+
+function Invoke-TestGroupTeardownBlocks
+{
+    param ([string] $Scope)
+
+    $scriptBlocks = $pester.AfterAll |
+                    Where-Object { $_.Scope -eq $Scope } |
+                    Select-Object -ExpandProperty ScriptBlock
+
+    Invoke-Blocks -ScriptBlock $scriptBlocks
+}
+
+function Invoke-Blocks
+{
+    param ([scriptblock[]] $ScriptBlock)
+
+    foreach ($block in $ScriptBlock)
     {
         try
         {
-            . $teardownBlock.ScriptBlock
+            . $block
         }
         catch
         {
@@ -137,13 +194,19 @@ function IsSetupOrTeardownCommand
 function IsSetupCommand
 {
     param ([string] $CommandName)
-    return $CommandName -eq 'BeforeEach'
+    return $CommandName -eq 'BeforeEach' -or $CommandName -eq 'BeforeAll'
 }
 
 function IsTeardownCommand
 {
     param ([string] $CommandName)
-    return $CommandName -eq 'AfterEach'
+    return $CommandName -eq 'AfterEach' -or $CommandName -eq 'AfterAll'
+}
+
+function IsTestGroupCommand
+{
+    param ([string] $CommandName)
+    return $CommandName -eq 'BeforeAll' -or $CommandName -eq 'AfterAll'
 }
 
 function Get-BraceIndecesForCommand
@@ -236,13 +299,30 @@ function Add-SetupTeardownFromTokens
     $setupOrTeardownBlock = [scriptblock]::Create($setupOrTeardownCodeText)
     Set-ScriptBlockScope -ScriptBlock $setupOrTeardownBlock -SessionState $pester.SessionState
 
-    if (IsSetupCommand -CommandName $commandName)
+    $isSetupCommand = IsSetupCommand -CommandName $commandName
+    $isGroupCommand = IsTestGroupCommand -CommandName $commandName
+
+    if ($isSetupCommand)
     {
-        Add-BeforeEach -ScriptBlock $setupOrTeardownBlock
+        if ($isGroupCommand)
+        {
+            Add-BeforeAll -ScriptBlock $setupOrTeardownBlock
+        }
+        else
+        {
+            Add-BeforeEach -ScriptBlock $setupOrTeardownBlock
+        }
     }
     else
     {
-        Add-AfterEach -ScriptBlock $setupOrTeardownBlock
+        if ($isGroupCommand)
+        {
+            Add-AfterAll -ScriptBlock $setupOrTeardownBlock
+        }
+        else
+        {
+            Add-AfterEach -ScriptBlock $setupOrTeardownBlock
+        }
     }
 }
 
@@ -261,7 +341,6 @@ function Add-BeforeEach
     }
 
     $pester.BeforeEach += @(New-Object psobject -Property $props)
-
 }
 
 function Add-AfterEach
@@ -279,4 +358,38 @@ function Add-AfterEach
     }
 
     $pester.AfterEach += @(New-Object psobject -Property $props)
+}
+
+function Add-BeforeAll
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    $props = @{
+        Scope       = $pester.Scope
+        ScriptBlock = $ScriptBlock
+    }
+
+    $pester.BeforeAll += @(New-Object psobject -Property $props)
+}
+
+function Add-AfterAll
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    $props = @{
+        Scope       = $pester.Scope
+        ScriptBlock = $ScriptBlock
+    }
+
+    $pester.AfterAll += @(New-Object psobject -Property $props)
 }

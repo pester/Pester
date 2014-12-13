@@ -253,4 +253,5 @@ function Get-ScriptBlockScope
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
-Export-ModuleMember BeforeEach, AfterEach, Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
+Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables
