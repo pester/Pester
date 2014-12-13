@@ -1,5 +1,7 @@
 ## Unreleased
   - Validate manifest version, changelog version and tag version
+  - Added BeforeAll and AfterAll commands
+  - Updated code to take advantage of -ErrorAction Ignore in PowerShell v3+.
 
 ## 3.2.0 (December 3, 2014)
   - Added BeGreaterThan and BeLessThan assertions to Should.

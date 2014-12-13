@@ -251,7 +251,21 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function Get-IgnoreErrorPreference
+{
+    if ($PSVersionTable.PSVersion.Major -ge 3)
+    {
+        return 'Ignore'
+    }
+    else
+    {
+        return 'SilentlyContinue'
+    }
+
+}
+
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
 Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember Get-IgnoreErrorPreference
