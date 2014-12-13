@@ -17,16 +17,6 @@ function GetFullPath ([string]$Path) {
     }
 
     return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-    
-    #$fullpath = Resolve-Path -Path $Path -ErrorAction SilentlyContinue
-    #if ($fullpath)
-    #{
-    #    $fullpath
-    #}
-    #else
-    #{
-    #    $_.TargetObject
-    #}
 }
 
 function Export-PesterResults
