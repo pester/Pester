@@ -23,7 +23,7 @@ function New-TestDrive ([Switch]$PassThru, [string] $Path) {
     }
 
     #publish the global TestDrive variable used in few places within the module
-    if (-not (Test-Path "Variable:Global:DriveName"))
+    if (-not (Test-Path "Variable:Global:$DriveName"))
     {
         New-Variable -Name $DriveName -Scope Global -Value $directory
     }

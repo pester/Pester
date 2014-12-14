@@ -18,15 +18,18 @@ $Script:ReportStrings = DATA {
         Context  = 'Context {0}'
         Margin   = '   '
         Timing   = 'Tests completed in {0}'
+
         # If this is set to an empty string, the count won't be printed
         ContextsPassed = ''
         ContextsFailed = ''
+
         TestsPassed    = 'Tests Passed: {0} '
         TestsFailed    = 'Failed: {0} '
         TestsSkipped   = 'Skipped: {0} '
         TestsPending   = 'Pending: {0} '
     }
 }
+
 $Script:ReportTheme = DATA {
     @{
         Describe       = 'Green'
@@ -231,178 +234,179 @@ function Write-CoverageReport {
 
 # TODO:  Merge all of the output changes made in LanguageDecoupling with the output changes made in master (light/dark themes, etc.)
 
-function Write-Describe
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
-    )
-    process {
-        Write-Screen Describing $Name -OutputType Header 
-    }
-}
-
-function Write-Context
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
-    )
-    process {
-        $margin = " " * 3
-        Write-Screen ${margin}Context $Name -OutputType Header
-    }
-}
-
-function Write-PesterResult
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $TestResult
-    )
-    process {
-        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
-
-        $margin = " " * $TestDepth
-        $error_margin = $margin + "  "
-        $output = $TestResult.name
-        $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
-
-        switch ($TestResult.Result)
-        {
-            Passed {
-                "$margin[+] $output $humanTime" | Write-Screen -OutputType Passed
-                break
-            }
-            Failed {
-                "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
-                Write-Screen -OutputType Failed $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                Write-Screen -OutputType Failed $($TestResult.stackTrace -replace '(?m)^',$error_margin)
-                break
-            }
-            Skipped {
-                "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
-                break
-            }
-            Pending {
-                "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
-                break
-            }
-        }
-    }
-}
-
-function Write-PesterReport
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $PesterState
-    )
-
-    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
-    Write-Screen "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
-}
-
-function Write-Screen {
-    #wraps the Write-Host cmdlet to control if the output is written to screen from one place
-    param(
-        #Write-Host parameters
-        [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
-        [Object] $Object,
-        [Switch] $NoNewline,
-        [Object] $Separator,
-        #custom parameters
-        [Switch] $Quiet = $pester.Quiet,
-        [ValidateSet("Failed","Passed","Skipped","Pending","Header","Standard")]
-        [String] $OutputType = "Standard"
-    )
-
-    begin
-    {
-        if ($Quiet) { return }
-        
-        #make the bound parameters compatible with Write-Host
-        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
-        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
-        
-        if ($OutputType -ne "Standard")
-        {
-            #create the key first to make it work in strict mode
-            if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
-            { 
-                $PSBoundParameters.Add('ForegroundColor', $null)
-            }
-
-            
-            
-            switch ($Host.Name) 
-            {
-                #light background
-                "PowerGUIScriptEditorHost" {
-                    $ColorSet = @{ 
-                        Failed  = [ConsoleColor]::Red
-                        Passed  = [ConsoleColor]::DarkGreen
-                        Skipped = [ConsoleColor]::DarkGray
-                        Pending = [ConsoleColor]::DarkCyan
-                        Header  = [ConsoleColor]::Magenta
-                    }
-                }
-                #dark background
-                { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
-                    $ColorSet = @{ 
-                        Failed  = [ConsoleColor]::Red
-                        Passed  = [ConsoleColor]::Green
-                        Skipped = [ConsoleColor]::Gray
-                        Pending = [ConsoleColor]::Cyan
-                        Header  = [ConsoleColor]::Magenta
-                    }
-                }
-                default {
-                    $ColorSet = @{ 
-                        Failed  = [ConsoleColor]::Red
-                        Passed  = [ConsoleColor]::DarkGreen
-                        Skipped = [ConsoleColor]::Gray
-                        Pending = [ConsoleColor]::Gray
-                        Header  = [ConsoleColor]::Magenta
-                    }
-                }
-                
-             }
-
-            
-            $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
-        }
-        
-        try {
-            $outBuffer = $null
-            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
-            {
-                $PSBoundParameters['OutBuffer'] = 1
-            }
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Write-Host', [System.Management.Automation.CommandTypes]::Cmdlet)
-            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
-            $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
-            $steppablePipeline.Begin($PSCmdlet)
-        } catch {
-            throw
-        }
-    }
-
-    process
-    {
-        if ($Quiet) { return }
-        try {
-            $steppablePipeline.Process($_)
-        } catch {
-            throw
-        }
-    }
-
-    end
-    {
-        if ($Quiet) { return }
-        try {
-            $steppablePipeline.End()
-        } catch {
-            throw
-        }
-    }
-}
+# function Write-Describe
+# {
+#     param (
+#         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+#     )
+#     process {
+#         Write-Screen Describing $Name -OutputType Header
+#     }
+# }
+#
+# function Write-Context
+# {
+#     param (
+#         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+#     )
+#     process {
+#         $margin = " " * 3
+#         Write-Screen ${margin}Context $Name -OutputType Header
+#     }
+# }
+#
+# function Write-PesterResult
+# {
+#     param (
+#         [Parameter(mandatory=$true, valueFromPipeline=$true)]
+#         $TestResult
+#     )
+#     process {
+#         $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
+#
+#         $margin = " " * $TestDepth
+#         $error_margin = $margin + "  "
+#         $output = $TestResult.name
+#         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
+#
+#         switch ($TestResult.Result)
+#         {
+#             Passed {
+#                 "$margin[+] $output $humanTime" | Write-Screen -OutputType Passed
+#                 break
+#             }
+#             Failed {
+#                 "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
+#                 Write-Screen -OutputType Failed $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+#                 Write-Screen -OutputType Failed $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+#                 break
+#             }
+#             Skipped {
+#                 "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
+#                 break
+#             }
+#             Pending {
+#                 "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
+#                 break
+#             }
+#         }
+#     }
+# }
+#
+# function Write-PesterReport
+# {
+#     param (
+#         [Parameter(mandatory=$true, valueFromPipeline=$true)]
+#         $PesterState
+#     )
+#
+#     Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
+#     Write-Screen "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
+# }
+#
+# function Write-Screen {
+#     #wraps the Write-Host cmdlet to control if the output is written to screen from one place
+#     param(
+#         #Write-Host parameters
+#         [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
+#         [Object] $Object,
+#         [Switch] $NoNewline,
+#         [Object] $Separator,
+#         #custom parameters
+#         [Switch] $Quiet = $pester.Quiet,
+#         [ValidateSet("Failed","Passed","Skipped","Pending","Header","Standard")]
+#         [String] $OutputType = "Standard"
+#     )
+#
+#     begin
+#     {
+#         if ($Quiet) { return }
+#
+#         #make the bound parameters compatible with Write-Host
+#         if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
+#         if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
+#
+#         if ($OutputType -ne "Standard")
+#         {
+#             #create the key first to make it work in strict mode
+#             if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
+#             {
+#                 $PSBoundParameters.Add('ForegroundColor', $null)
+#             }
+#
+#
+#
+#             switch ($Host.Name)
+#             {
+#                 #light background
+#                 "PowerGUIScriptEditorHost" {
+#                     $ColorSet = @{
+#                         Failed  = [ConsoleColor]::Red
+#                         Passed  = [ConsoleColor]::DarkGreen
+#                         Skipped = [ConsoleColor]::DarkGray
+#                         Pending = [ConsoleColor]::DarkCyan
+#                         Header  = [ConsoleColor]::Magenta
+#                     }
+#                 }
+#                 #dark background
+#                 { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
+#                     $ColorSet = @{
+#                         Failed  = [ConsoleColor]::Red
+#                         Passed  = [ConsoleColor]::Green
+#                         Skipped = [ConsoleColor]::Gray
+#                         Pending = [ConsoleColor]::Cyan
+#                         Header  = [ConsoleColor]::Magenta
+#                     }
+#                 }
+#                 default {
+#                     $ColorSet = @{
+#                         Failed  = [ConsoleColor]::Red
+#                         Passed  = [ConsoleColor]::DarkGreen
+#                         Skipped = [ConsoleColor]::Gray
+#                         Pending = [ConsoleColor]::Gray
+#                         Header  = [ConsoleColor]::Magenta
+#                     }
+#                 }
+#
+#              }
+#
+#
+#             $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
+#         }
+#
+#         try {
+#             $outBuffer = $null
+#             if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+#             {
+#                 $PSBoundParameters['OutBuffer'] = 1
+#             }
+#             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Write-Host', [System.Management.Automation.CommandTypes]::Cmdlet)
+#             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+#             $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
+#             $steppablePipeline.Begin($PSCmdlet)
+#         } catch {
+#             throw
+#         }
+#     }
+#
+#     process
+#     {
+#         if ($Quiet) { return }
+#         try {
+#             $steppablePipeline.Process($_)
+#         } catch {
+#             throw
+#         }
+#     }
+#
+#     end
+#     {
+#         if ($Quiet) { return }
+#         try {
+#             $steppablePipeline.End()
+#         } catch {
+#             throw
+#         }
+#     }
+# }
+# 
