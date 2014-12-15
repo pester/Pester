@@ -83,6 +83,49 @@ Describe "New-Fixture" {
         }
 
     }
-    #TODO add tests that validate the contents of default files
+	
+    Context "Custom fixture templates are not found so default values are used" {
+        It "Creates the default function template" {
+            Mock -ModuleName Pester Test-Path -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1") } -MockWith { $false }
+            
+            $path = "TestDrive:\"
+            $name = "DefaultFunctionTemplate-Fixture"
+
+            New-Fixture -Name $name -Path $path | Out-Null
+            $functionFilePath = Join-Path -Path $path -ChildPath "$name.ps1"
+
+            $functionFilePath | Should Exist
+
+            (Get-Content -Path $functionFilePath -Raw) | Should Be ("function #name# {`r`n`r`n}`r`n" -replace "#name#",$name)
+        }
+
+        It "Creates the default test template" {
+            Mock -ModuleName Pester Test-Path -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1") } -MockWith { $false }
+            
+            $path = "TestDrive:\"
+            $name = "DefaultTestTemplate-Fixture"
+
+            New-Fixture -Name $name -Path $path | Out-Null
+            $testFilePath = Join-Path -Path $path -ChildPath "$name.Tests.ps1"
+
+            $testFilePath | Should Exist
+
+            $expectedTestFileContent = @'
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+. "$here\$sut"
+
+Describe "#name#" {
+    It "does something useful" {
+        $true | Should Be $false
+    }
+}
+
+'@
+            $expectedTestFileContent = $expectedTestFileContent -replace "#name#",$name
+
+            (Get-Content -Path $testFilePath -Raw) | Should Be ($expectedTestFileContent)
+        }
+    }
 }
 
