@@ -66,10 +66,21 @@ function New-Fixture {
         [String]$Name
     )
     #region File contents
-    #keep this formatted as is. the forma is output to the file as is, including indentation
-    $scriptCode = "function $name {`r`n`r`n}"
+    #keep this formatted as is. the format is output to the file as is, including indentation
+    $userFunctionTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1"
+    if( Test-Path -Path $userFunctionTemplatePath ) {
+        $scriptCode = Get-Content -Raw -Path $userFunctionTemplatePath
+    } else {
+        $scriptCode = "function #name# {`r`n`r`n}"
+    }
+    
+    $scriptCode = $scriptCode -replace "#name#",$name
 
-    $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $userTestTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1"
+    if( Test-Path -Path $UserTestTemplatePath ) {
+        $testCode = Get-Content -Raw -Path $userTestTemplatePath
+    } else {
+        $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
@@ -77,7 +88,10 @@ Describe "#name#" {
     It "does something useful" {
         $true | Should Be $false
     }
-}' -replace "#name#",$name
+}'
+    }
+
+    $testCode = $testCode -replace "#name#",$name
 
     #endregion
 
