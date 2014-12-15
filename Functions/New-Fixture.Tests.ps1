@@ -127,5 +127,37 @@ Describe "#name#" {
             (Get-Content -Path $testFilePath -Raw) | Should Be ($expectedTestFileContent)
         }
     }
+
+    Context "Custom fixture templates are in Env:\USERPROFILE\WindowsPowerShell\Pester" {
+        It "Copies the content of NewFixtureTestTemplate.ps1 to the test file" {
+            
+            Mock -ModuleName Pester Test-Path -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1") } -MockWith { $true }
+            Mock -ModuleName Pester Get-Content -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1") } -MockWith { "TEST TEMPLATE CONTENT" } 
+
+            $path = "TestDrive:\"
+            $name = "TestTemplate-Fixture"
+
+            New-Fixture -Name $name -Path $path | Out-Null
+            $testFilePath = Join-Path -Path $path -ChildPath "$name.Tests.ps1"
+            $testFilePath | Should Exist
+            Get-Content $testFilePath -Raw | Should Be "TEST TEMPLATE CONTENT`r`n"
+        }
+
+        It "Copies the content of NewFixtureFunctionTemplate.ps1 to the function file" {
+            
+            Mock -ModuleName Pester Test-Path -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1") } -MockWith { $true }
+            Mock -ModuleName Pester Get-Content -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1") } -MockWith { "TEST TEMPLATE CONTENT" }
+
+            $path = "TestDrive:\"
+            $name = "FunctionTemplate-Fixture"
+
+            New-Fixture -Name $name -Path $path | Out-Null
+            $testFilePath = Join-Path -Path $path -ChildPath "$name.ps1"
+            $testFilePath | Should Exist
+            Get-Content $testFilePath -Raw | Should Be "TEST TEMPLATE CONTENT`r`n"
+        }
+
+    }
+
 }
 
