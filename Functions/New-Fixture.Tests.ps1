@@ -96,7 +96,7 @@ Describe "New-Fixture" {
 
             $functionFilePath | Should Exist
 
-            (Get-Content -Path $functionFilePath -Raw) | Should Be ("function #name# {`r`n`r`n}`r`n" -replace "#name#",$name)
+            [System.IO.File]::ReadAllText( (Get-Item $functionFilePath).FullName ) | Should Be ("function #name# {`r`n`r`n}`r`n" -replace "#name#",$name)
         }
 
         It "Creates the default test template" {
@@ -124,15 +124,18 @@ Describe "#name#" {
 '@
             $expectedTestFileContent = $expectedTestFileContent -replace "#name#",$name
 
-            (Get-Content -Path $testFilePath -Raw) | Should Be ($expectedTestFileContent)
+            [System.IO.File]::ReadAllText( (Get-Item $testFilePath).FullName ) | Should Be ($expectedTestFileContent)
         }
     }
 
     Context "Custom fixture templates are in Env:\USERPROFILE\WindowsPowerShell\Pester" {
         It "Copies the content of NewFixtureTestTemplate.ps1 to the test file" {
+			$PesterTemplatePath = Join-Path -Path (Get-Item -Path "TestDrive:\").Fullname -ChildPath "WindowsPowerShell\Pester"
+			$TestTemplatePath = Join-Path -Path $PesterTemplatePath -ChildPath "NewFixtureTestTemplate.ps1"
+			New-Item -Path $PesterTemplatePath -ItemType Directory -Force | Out-Null
+			[System.IO.File]::WriteAllText($TestTemplatePath, "TEST TEMPLATE CONTENT")
             
-            Mock -ModuleName Pester Test-Path -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1") } -MockWith { $true }
-            Mock -ModuleName Pester Get-Content -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1") } -MockWith { "TEST TEMPLATE CONTENT" } 
+			Mock -ModuleName Pester Join-Path -ParameterFilter { $path -eq $env:USERPROFILE -and $childPath -eq "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1" } -MockWith { "TestDrive:\WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1" }
 
             $path = "TestDrive:\"
             $name = "TestTemplate-Fixture"
@@ -140,23 +143,25 @@ Describe "#name#" {
             New-Fixture -Name $name -Path $path | Out-Null
             $testFilePath = Join-Path -Path $path -ChildPath "$name.Tests.ps1"
             $testFilePath | Should Exist
-            Get-Content $testFilePath -Raw | Should Be "TEST TEMPLATE CONTENT`r`n"
+            [System.IO.File]::ReadAllText( (Get-Item $testFilePath).FullName ) | Should Be "TEST TEMPLATE CONTENT`r`n"
         }
 
         It "Copies the content of NewFixtureFunctionTemplate.ps1 to the function file" {
+			$PesterTemplatePath = Join-Path -Path (Get-Item -Path "TestDrive:\").Fullname -ChildPath "WindowsPowerShell\Pester"
+			$FunctionTemplatePath = Join-Path -Path $PesterTemplatePath -ChildPath "NewFixtureFunctionTemplate.ps1"
+			New-Item -Path $PesterTemplatePath -ItemType Directory -Force | Out-Null
+			[System.IO.File]::WriteAllText($FunctionTemplatePath, "FUNCTION TEMPLATE CONTENT")
+			
+			Mock -ModuleName Pester Join-Path -ParameterFilter { $path -eq $env:USERPROFILE -and $childPath -eq "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1" } -MockWith { "TestDrive:\WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1" }
             
-            Mock -ModuleName Pester Test-Path -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1") } -MockWith { $true }
-            Mock -ModuleName Pester Get-Content -ParameterFilter { $path -eq (Join-Path $env:USERPROFILE "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1") } -MockWith { "TEST TEMPLATE CONTENT" }
-
             $path = "TestDrive:\"
             $name = "FunctionTemplate-Fixture"
 
             New-Fixture -Name $name -Path $path | Out-Null
             $testFilePath = Join-Path -Path $path -ChildPath "$name.ps1"
             $testFilePath | Should Exist
-            Get-Content $testFilePath -Raw | Should Be "TEST TEMPLATE CONTENT`r`n"
+            [System.IO.File]::ReadAllText( (Get-Item $testFilePath).FullName ) | Should Be "FUNCTION TEMPLATE CONTENT`r`n"
         }
-
     }
 
 }
