@@ -6,7 +6,7 @@ $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
 "$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
-Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
+Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 ForEach-Object { . $_.ProviderPath }
 
 function Invoke-Pester {
