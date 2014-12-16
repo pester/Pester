@@ -67,7 +67,7 @@ function New-Fixture {
     )
     #region File contents
     #keep this formatted as is. the format is output to the file as is, including indentation
-    $userFunctionTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1"
+    $userFunctionTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "Documents\WindowsPowerShell\Pester\NewFixtureFunctionTemplate.ps1"
     if( Test-Path -Path $userFunctionTemplatePath ) {
         $scriptCode = [System.IO.File]::ReadAllText( (Get-Item $userFunctionTemplatePath).Fullname )
     } else {
@@ -76,7 +76,7 @@ function New-Fixture {
     
     $scriptCode = $scriptCode -replace "#name#",$name
 
-    $userTestTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1"
+    $userTestTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "Documents\WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1"
     if( Test-Path -Path $UserTestTemplatePath ) {
         $testCode = [System.IO.File]::ReadAllText( (Get-Item $userTestTemplatePath).Fullname )
     } else {
