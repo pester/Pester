@@ -108,6 +108,8 @@ about_TestDrive
     Remove-TestDrive
     Exit-MockScope
     $Pester.LeaveDescribe()
+
+    Write-TeamCity "testSuiteFinished name='$Name'"
 }
 
 function Assert-DescribeInProgress
