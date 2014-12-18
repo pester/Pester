@@ -243,7 +243,7 @@ function Write-TeamCity {
     param([string]$message)
 
     if($pester.TeamCity) {
-        Write-Host "##teamcity[$message]"
+        Write-Screen "##teamcity[$message]"
     }
 }
 
