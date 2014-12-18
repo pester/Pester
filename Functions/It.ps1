@@ -219,6 +219,9 @@ function Invoke-Test
     if ($Skip)
     {
         $Pester.AddTestResult($Name, "Skipped", $null)
+        
+        # Tell TeamCity we're skipping this test
+        Write-TeamCity "testIgnored name='$Name'"
     }
     elseif ($Pending)
     {
@@ -226,6 +229,9 @@ function Invoke-Test
     }
     else
     {
+        # Write status message for TeamCity
+        Write-TeamCity "testStarted name='$Name' captureStandardOutput='true'"
+        
         Invoke-TestCaseSetupBlocks
 
         $PesterException = $null
@@ -237,6 +243,12 @@ function Invoke-Test
 
         $result = Get-PesterResult -Test $ScriptBlock -Exception $PesterException
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
+
+        if($result.Result -eq "Failed") { 
+            # Tell TeamCity the test failed
+            Write-TeamCity "testFailed name='$Name'"
+        }
+
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
     }
 
@@ -251,6 +263,10 @@ function Invoke-Test
     }
 
     Exit-MockScope
+
+    # Write status message for TeamCity
+    Write-TeamCity "testFinished name='$Name'"
+
     $Pester.LeaveTest()
 }
 

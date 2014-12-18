@@ -51,7 +51,11 @@ about_TestDrive
 
     Assert-DescribeInProgress -CommandName Context
 
-    $Pester.EnterContext($Name )
+    # Write a status message for TeamCity
+    Write-TeamCity "testSuiteStarted name='$Name'"
+    
+    $Pester.EnterContext($Name)
+
     $TestDriveContent = Get-TestDriveChildItem
 
     $Pester.CurrentContext | Write-Context
@@ -77,5 +81,8 @@ about_TestDrive
     Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
     Exit-MockScope
     $Pester.LeaveContext()
+
+    # Write a status message for TeamCity
+    Write-TeamCity "testSuiteFinished name='$Name'"
 }
 

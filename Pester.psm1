@@ -53,6 +53,9 @@ Informs Invoke-Pester to only run Describe blocks tagged with the tags specified
 .PARAMETER ExcludeTag
 Informs Invoke-Pester to not run blocks tagged with the tags specified.
 
+.PARAMETER TeamCity
+Informs Invoke-Pester to write TeamCity messages using the format specified in https://confluence.jetbrains.com/display/TCD9/Build+Script+Interaction+with+TeamCity
+
 .PARAMETER PassThru
 Returns a Pester result object containing the information about the whole test run, and each test.
 
@@ -131,6 +134,8 @@ about_pester
 
         [string[]]$ExcludeTag,
 
+        [switch]$TeamCity,
+
         [switch]$PassThru,
 
         [object[]] $CodeCoverage = @(),
@@ -157,7 +162,7 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -TeamCity:$TeamCity
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     $message = "Executing all tests in '$($pester.Path)'"

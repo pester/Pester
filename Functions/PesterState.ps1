@@ -8,7 +8,8 @@ function New-PesterState
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
-        [Switch]$Quiet
+        [Switch]$Quiet,
+        [Switch]$TeamCity
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -21,7 +22,8 @@ function New-PesterState
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
-            [Switch]$Quiet
+            [Switch]$Quiet,
+            [Switch]$TeamCity
         )
 
         #public read-only
@@ -43,6 +45,7 @@ function New-PesterState
         $script:AfterAll = @()
         $script:Strict = $Strict
         $script:Quiet = $Quiet
+        $script:TeamCity = $TeamCity
 
         $script:TestResult = @()
 
@@ -52,6 +55,7 @@ function New-PesterState
             {
                 throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in Describe, you cannot enter Describe twice"
             }
+
             $script:CurrentDescribe = $Name
         }
 
@@ -178,7 +182,8 @@ function New-PesterState
         "BeforeAll",
         "AfterAll",
         "Strict",
-        "Quiet"
+        "Quiet",
+        "TeamCity"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -189,7 +194,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
+    } -ArgumentList $Path, $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet, $TeamCity |
     Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
         @( $this.TestResult ).Count
     } -PassThru |
@@ -230,6 +235,16 @@ function New-PesterState
 
         return $parentScope
     } -PassThru
+}
+
+function Write-TeamCity {
+    #writes a teamcity message to the console if enabled
+
+    param([string]$message)
+
+    if($pester.TeamCity) {
+        Write-Screen "##teamcity[$message]"
+    }
 }
 
 function Write-Describe
