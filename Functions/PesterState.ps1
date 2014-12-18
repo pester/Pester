@@ -253,7 +253,6 @@ function Write-Describe
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
     process {
-        Write-TeamCity "testSuiteStarted name='$Name'"
         Write-Screen Describing $Name -OutputType Header 
     }
 }

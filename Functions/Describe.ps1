@@ -82,6 +82,9 @@ about_TestDrive
     if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
     if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
 
+    # Write a status message for TeamCity
+    Write-TeamCity "testSuiteStarted name='$Name'"
+    
     $Pester.EnterDescribe($Name)
 
     $Pester.CurrentDescribe | Write-Describe
@@ -109,6 +112,7 @@ about_TestDrive
     Exit-MockScope
     $Pester.LeaveDescribe()
 
+    # Write a status message for TeamCity
     Write-TeamCity "testSuiteFinished name='$Name'"
 }
 
