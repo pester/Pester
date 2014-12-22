@@ -4,9 +4,11 @@
 
 $Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
+. "$PesterRoot\PesterCore.ps1"
+
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
-Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
+Where-Object { $_.ProviderPath -notlike '*.Tests.ps1' } |
 ForEach-Object { . $_.ProviderPath }
 
 function Invoke-Pester {
