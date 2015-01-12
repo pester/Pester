@@ -264,11 +264,10 @@ function Get-IgnoreErrorPreference
 
 }
 
-<# uncomment this once ISESteroids can refresh snippets on load
 if (($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3))
 {
     Import-IseSnippet -Path $PSScriptRoot\Snippets
-}#>
+}
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock

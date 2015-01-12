@@ -1,4 +1,5 @@
-## Unreleased
+## 3.3.1 (January 12, 2015)
+  - Import ISESteroids snippets on load
   - Updated Code Coverage analysis to be compatible with the PowerShell 5.0 AST when analyzing DSC configurations. [GH-249]
 
 ## 3.3.0 (January 10, 2015)
