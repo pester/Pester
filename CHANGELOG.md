@@ -1,3 +1,6 @@
+## Unreleased
+  - Updated Code Coverage analysis to be compatible with the PowerShell 5.0 AST when analyzing DSC configurations. [GH-249]
+
 ## 3.3.0 (January 10, 2015)
   - Validate manifest version, changelog version and tag version
   - Added BeforeAll and AfterAll commands
