@@ -218,10 +218,21 @@ about_Mocking
             }
             else
             {
+                $metadataWithoutMandatory = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+                foreach ($parameter in $metadataWithoutMandatory.Parameters.Values)
+                {
+                    foreach ($parameterSet in $parameter.ParameterSets.Values)
+                    {
+                        $parameterSet.IsMandatory = $false
+                    }
+                }
+
+                $paramBlockWithoutMandatory = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataWithoutMandatory)
+
                 $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
 
                 $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
-                $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamStatements")
+                $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlockWithoutMandatory )`r`n$dynamicParamStatements")
 
                 $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
 
@@ -609,7 +620,7 @@ function MockPrototype {
         $moduleName = $ExecutionContext.SessionState.Module.Name
     }
 
-    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction SilentlyContinue
+    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction (Get-IgnoreErrorPreference)
     if ($null -eq $ArgumentList) { $ArgumentList = @() }
 
     Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList

@@ -39,6 +39,8 @@ function New-PesterState
         $script:CommandCoverage = @()
         $script:BeforeEach = @()
         $script:AfterEach = @()
+        $script:BeforeAll = @()
+        $script:AfterAll = @()
         $script:Strict = $Strict
         $script:Quiet = $Quiet
 
@@ -173,6 +175,8 @@ function New-PesterState
         "CommandCoverage",
         "BeforeEach",
         "AfterEach",
+        "BeforeAll",
+        "AfterAll",
         "Strict",
         "Quiet"
 

@@ -122,7 +122,7 @@ function ItImpl
 
         [Parameter(ParameterSetName = 'Skip')]
         [Switch] $Skip,
-        
+
         $Pester,
         [scriptblock] $OutputScriptBlock
     )
@@ -134,7 +134,7 @@ function ItImpl
     {
         throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
     }
-    
+
     #the function is called with Pending or Skipped set the script block if needed
     if ($null -eq $test) { $test = {} }
 
@@ -226,7 +226,7 @@ function Invoke-Test
     }
     else
     {
-        Invoke-SetupBlocks
+        Invoke-TestCaseSetupBlocks
 
         $PesterException = $null
         try{
@@ -247,10 +247,10 @@ function Invoke-Test
 
     if (-not ($Skip -or $Pending))
     {
-        Invoke-TeardownBlocks
+        Invoke-TestCaseTeardownBlocks
     }
-    Exit-MockScope
 
+    Exit-MockScope
     $Pester.LeaveTest()
 }
 

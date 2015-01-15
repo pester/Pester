@@ -1,5 +1,12 @@
-## Unreleased
+## 3.3.1 (January 12, 2015)
+  - Import ISESteroids snippets on load
+  - Updated Code Coverage analysis to be compatible with the PowerShell 5.0 AST when analyzing DSC configurations. [GH-249]
+
+## 3.3.0 (January 10, 2015)
   - Validate manifest version, changelog version and tag version
+  - Added BeforeAll and AfterAll commands
+  - Updated code to take advantage of -ErrorAction Ignore in PowerShell v3+.
+  - Add ISESteroids snippets but do not import them
 
 ## 3.2.0 (December 3, 2014)
   - Added BeGreaterThan and BeLessThan assertions to Should.

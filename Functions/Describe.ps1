@@ -65,7 +65,7 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction SilentlyContinue))
+    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction (Get-IgnoreErrorPreference)))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
@@ -83,13 +83,17 @@ about_TestDrive
     if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
 
     $Pester.EnterDescribe($Name)
-    
+
     $Pester.CurrentDescribe | Write-Describe
-    New-TestDrive
+    $testDriveAdded = $false
 
     try
     {
+        New-TestDrive
+        $testDriveAdded = $true
+
         Add-SetupAndTeardown -ScriptBlock $Fixture
+        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
         $null = & $Fixture
     }
     catch
@@ -98,9 +102,13 @@ about_TestDrive
         $Pester.AddTestResult('Error occurred in Describe block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
         $Pester.TestResult[-1] | Write-PesterResult
     }
+    finally
+    {
+        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        if ($testDriveAdded) { Remove-TestDrive }
+    }
 
     Clear-SetupAndTeardown
-    Remove-TestDrive
     Exit-MockScope
     $Pester.LeaveDescribe()
 }

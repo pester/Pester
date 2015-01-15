@@ -6,7 +6,7 @@ $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
 "$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
-Where-Object { -not ($_.ProviderPath.Contains(".Tests.")) } |
+Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 ForEach-Object { . $_.ProviderPath }
 
 function Invoke-Pester {
@@ -251,6 +251,26 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function Get-IgnoreErrorPreference
+{
+    if ($PSVersionTable.PSVersion.Major -ge 3)
+    {
+        return 'Ignore'
+    }
+    else
+    {
+        return 'SilentlyContinue'
+    }
+
+}
+
+if (($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3))
+{
+    Import-IseSnippet -Path $PSScriptRoot\Snippets
+}
+
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
-Export-ModuleMember BeforeEach, AfterEach, Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
+Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables
+Export-ModuleMember Get-IgnoreErrorPreference
