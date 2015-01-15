@@ -85,10 +85,13 @@ about_TestDrive
     $Pester.EnterDescribe($Name)
 
     $Pester.CurrentDescribe | Write-Describe
-    New-TestDrive
+    $testDriveAdded = $false
 
     try
     {
+        New-TestDrive
+        $testDriveAdded = $true
+
         Add-SetupAndTeardown -ScriptBlock $Fixture
         Invoke-TestGroupSetupBlocks -Scope $pester.Scope
         $null = & $Fixture
@@ -102,10 +105,10 @@ about_TestDrive
     finally
     {
         Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        if ($testDriveAdded) { Remove-TestDrive }
     }
 
     Clear-SetupAndTeardown
-    Remove-TestDrive
     Exit-MockScope
     $Pester.LeaveDescribe()
 }
