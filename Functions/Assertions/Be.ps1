@@ -1,9 +1,13 @@
 #Be
 function PesterBe($value, $expected) {
-    return ($expected -eq $value)
+    return CompareArrays $value $expected
 }
 
 function PesterBeFailureMessage($value, $expected) {
+    # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
+    $value = ($value)
+    $expected = ($expected)
+
     if (-not (($expected -is [string]) -and ($value -is [string])))
     {
         return "Expected: {$expected}`nBut was:  {$value}"
@@ -22,13 +26,27 @@ function NotPesterBeFailureMessage($value, $expected) {
     return "Expected: value was {$value}, but should not have been the same"
 }
 
+Add-AssertionOperator -Name                      Be `
+                      -Test                      $function:PesterBe `
+                      -GetPositiveFailureMessage $function:PesterBeFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeFailureMessage `
+                      -SupportsArrayInput
+
 #BeExactly
 function PesterBeExactly($value, $expected) {
-    return ($expected -ceq $value)
+    return CompareArrays $value $expected -CaseSensitive
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
+<<<<<<< HEAD
     if (-not (($expected -is [string]) -and ($value -is [string])))
+=======
+    # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
+    $value = ($value)
+    $expected = ($expected)
+
+    if (-not (($expected -is [string]) -and ($value -is [string])))
+>>>>>>> b4f3124... Added array comparison support for Be / BeNullOrEmpty / BeExactly
     {
         return "Expected exactly: {$expected}`nBut was: {$value}"
     }
@@ -45,6 +63,13 @@ function PesterBeExactlyFailureMessage($value, $expected) {
 function NotPesterBeExactlyFailureMessage($value, $expected) {
     return "Expected: value was {$value}, but should not have been exactly the same"
 }
+
+Add-AssertionOperator -Name                      BeExactly `
+                      -Test                      $function:PesterBeExactly `
+                      -GetPositiveFailureMessage $function:PesterBeExactlyFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeExactlyFailureMessage `
+                      -SupportsArrayInput
+
 
 #common functions
 function Get-CompareStringMessage {
@@ -107,6 +132,60 @@ function Expand-SpecialCharacters {
     [string[]]$InputObject)
     process {
         $InputObject -replace "`n","\n" -replace "`r","\r" -replace "`t","\t" -replace "`0", "\0" -replace "`b","\b"
+    }
+}
+
+function CompareArrays
+{
+    param (
+        [object[]] $Actual,
+        [object[]] $Expected,
+        [switch] $CaseSensitive
+    )
+
+    if ($null -eq $Expected)
+    {
+        return $null -eq $Actual -or $Actual.Count -eq 0 -or ($Actual.Count -eq 1 -and $null -eq $Actual[0])
+    }
+
+    $params = @{ SyncWindow = 0 }
+    if ($CaseSensitive)
+    {
+        $params['CaseSensitive'] = $true
+    }
+
+    $placeholderForNull = New-Object object
+
+    $Actual   = @(ReplaceValueInArray -Array $Actual -Value $null -NewValue $placeholderForNull)
+    $Expected = @(ReplaceValueInArray -Array $Expected -Value $null -NewValue $placeholderForNull)
+
+    $arraysAreEqual = ($null -eq (Compare-Object $Actual $Expected @params))
+
+    return $arraysAreEqual
+}
+
+function ReplaceValueInArray
+{
+    param (
+        [object[]] $Array,
+        [object] $Value,
+        [object] $NewValue
+    )
+
+    foreach ($object in $Array)
+    {
+        if ($Value -eq $object)
+        {
+            $NewValue
+        }
+        elseif (@($object).Count -gt 1)
+        {
+            ReplaceValueInArray -Array @($object) -Value $Value -NewValue $NewValue
+        }
+        else
+        {
+            $object
+        }
     }
 }
 

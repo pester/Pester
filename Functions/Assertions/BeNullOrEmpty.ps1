@@ -1,16 +1,17 @@
 
-function PesterBeNullOrEmpty($value) {
-    if ($null -eq $value) {
+function PesterBeNullOrEmpty([object[]] $value) {
+    if ($null -eq $value -or $value.Count -eq 0)
+    {
         return $true
     }
-    if ([String] -eq $value.GetType()) {
-        return [String]::IsNullOrEmpty($value)
+    elseif ($value.Count -eq 1)
+    {
+        return [String]::IsNullOrEmpty($value[0])
     }
-    if ($null -ne $value.PSObject.Properties['Count'] -and
-        $null -ne $value.Count) {
-        return $value.Count -lt 1
+    else
+    {
+        return $false
     }
-    return $false
 }
 
 function PesterBeNullOrEmptyFailureMessage($value) {
@@ -21,3 +22,8 @@ function NotPesterBeNullOrEmptyFailureMessage {
     return "Expected: value to not be empty"
 }
 
+Add-AssertionOperator -Name                      BeNullOrEmpty `
+                      -Test                      $function:PesterBeNullOrEmpty `
+                      -GetPositiveFailureMessage $function:PesterBeNullOrEmptyFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeNullOrEmptyFailureMessage `
+                      -SupportsArrayInput
