@@ -5,7 +5,7 @@ properties {
     $baseDir = $psake.build_script_dir
     $version = git describe --abbrev=0 --tags
     $nugetExe = "$baseDir\vendor\tools\nuget"
-	$targetBase = "tools"
+    $targetBase = "tools"
 }
 
 Task default -depends Build
