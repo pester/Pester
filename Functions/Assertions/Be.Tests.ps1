@@ -25,6 +25,35 @@ InModuleScope Pester {
 
             $array | Should Be $arrayWithCaps
         }
+
+        It 'Handles reference types properly' {
+            $object1 = New-Object psobject -Property @{ Value = 'Test' }
+            $object2 = New-Object psobject -Property @{ Value = 'Test' }
+
+            $object1 | Should Be $object1
+            $object1 | Should Not Be $object2
+        }
+
+        It 'Handles arrays with nested arrays' {
+            $array1 = @(
+                @(1,2,3,4,5),
+                @(6,7,8,9,0)
+            )
+
+            $array2 = @(
+                @(1,2,3,4,5),
+                @(6,7,8,9,0)
+            )
+
+            $array1 | Should Be $array2
+
+            $array3 = @(
+                @(1,2,3,4,5),
+                @(6,7,8,9,0, 'Oops!')
+            )
+
+            $array1 | Should Not Be $array3
+        }
     }
 
     Describe "PesterBeFailureMessage" {

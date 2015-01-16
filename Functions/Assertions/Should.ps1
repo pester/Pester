@@ -79,7 +79,8 @@ function Should {
 
     end
     {
-        $inputArray = @(foreach ($object in $input) { $object })
+        $inputArray = New-Object System.Collections.ArrayList
+        foreach ($object in $input) { $null = $inputArray.Add($object) }
 
         $lineNumber = $MyInvocation.ScriptLineNumber
         $lineText   = $MyInvocation.Line.TrimEnd("`n")
@@ -90,7 +91,7 @@ function Should {
         }
         if ($entry.SupportsArrayInput)
         {
-            Invoke-Assertion $entry $parsedArgs $inputArray $lineNumber $lineText
+            Invoke-Assertion $entry $parsedArgs $inputArray.ToArray() $lineNumber $lineText
         }
         else
         {

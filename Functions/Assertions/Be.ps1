@@ -1,6 +1,6 @@
 #Be
 function PesterBe($value, $expected) {
-    return CompareArrays $value $expected
+    return ArraysAreEqual $value $expected
 }
 
 function PesterBeFailureMessage($value, $expected) {
@@ -34,19 +34,15 @@ Add-AssertionOperator -Name                      Be `
 
 #BeExactly
 function PesterBeExactly($value, $expected) {
-    return CompareArrays $value $expected -CaseSensitive
+    return ArraysAreEqual $value $expected -CaseSensitive
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
-<<<<<<< HEAD
-    if (-not (($expected -is [string]) -and ($value -is [string])))
-=======
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $value = ($value)
     $expected = ($expected)
 
     if (-not (($expected -is [string]) -and ($value -is [string])))
->>>>>>> b4f3124... Added array comparison support for Be / BeNullOrEmpty / BeExactly
     {
         return "Expected exactly: {$expected}`nBut was: {$value}"
     }
@@ -135,33 +131,68 @@ function Expand-SpecialCharacters {
     }
 }
 
-function CompareArrays
+function ArraysAreEqual
 {
     param (
-        [object[]] $Actual,
-        [object[]] $Expected,
+        [object[]] $First,
+        [object[]] $Second,
         [switch] $CaseSensitive
     )
 
-    if ($null -eq $Expected)
+    $firstNullOrEmpty  = ArrayOrSingleElementIsNullOrEmpty -Array $First
+    $secondNullOrEmpty = ArrayOrSingleElementIsNullOrEmpty -Array $Second
+
+    if ($firstNullOrEmpty -or $secondNullOrEmpty)
     {
-        return $null -eq $Actual -or $Actual.Count -eq 0 -or ($Actual.Count -eq 1 -and $null -eq $Actual[0])
+        return $firstNullOrEmpty -and $secondNullOrEmpty
     }
 
-    $params = @{ SyncWindow = 0 }
-    if ($CaseSensitive)
+    if ($First.Count -ne $Second.Count) { return $false }
+
+    for ($i = 0; $i -lt $First.Count; $i++)
     {
-        $params['CaseSensitive'] = $true
+        if ((IsCollection $First[$i]) -or (IsCollection $Second[$i]))
+        {
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
+            {
+                return $false
+            }
+        }
+        else
+        {
+            if ($CaseSensitive)
+            {
+                $comparer = { $args[0] -ceq $args[1] }
+            }
+            else
+            {
+                $comparer = { $args[0] -eq $args[1] }
+            }
+
+            if (-not (& $comparer $First[$i] $Second[$i]))
+            {
+                return $false
+            }
+        }
     }
 
-    $placeholderForNull = New-Object object
+    return $true
+}
 
-    $Actual   = @(ReplaceValueInArray -Array $Actual -Value $null -NewValue $placeholderForNull)
-    $Expected = @(ReplaceValueInArray -Array $Expected -Value $null -NewValue $placeholderForNull)
+function ArrayOrSingleElementIsNullOrEmpty
+{
+    param ([object[]] $Array)
 
-    $arraysAreEqual = ($null -eq (Compare-Object $Actual $Expected @params))
+    return $null -eq $Array -or $Array.Count -eq 0 -or ($Array.Count -eq 1 -and $null -eq $Array[0])
+}
 
-    return $arraysAreEqual
+function IsCollection
+{
+    param ([object] $InputObject)
+
+    return $InputObject -is [System.Collections.IEnumerable] -and
+           $InputObject -isnot [string] -and
+           $InputObject -isnot [System.Collections.IDictionary]
 }
 
 function ReplaceValueInArray
