@@ -46,7 +46,14 @@ function New-PesterState
 
         $script:TestResult = @()
 
-        function EnterDescribe ($Name)
+        $script:TotalCount = 0
+        $script:Time = [timespan]0
+        $script:PassedCount = 0
+        $script:FailedCount = 0
+        $script:SkippedCount = 0
+        $script:PendingCount = 0
+
+        function EnterDescribe([string]$Name)
         {
             if ($CurrentDescribe)
             {
@@ -64,7 +71,7 @@ function New-PesterState
             $script:CurrentDescribe = $null
         }
 
-        function EnterContext ($Name)
+        function EnterContext([string]$Name)
         {
             if ( -not $CurrentDescribe )
             {
@@ -126,6 +133,7 @@ function New-PesterState
                 [string] $ParameterizedSuiteName,
                 [System.Collections.IDictionary] $Parameters
             )
+
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
 
@@ -147,6 +155,17 @@ function New-PesterState
                     $Result = "Failed"
                 }
 
+            }
+
+            $script:TotalCount++
+            $script:Time += $Time
+
+            switch ($Result)
+            {
+                Passed  { $script:PassedCount++; break; }
+                Failed  { $script:FailedCount++; break; }
+                Skipped { $script:SkippedCount++; break; }
+                Pending { $script:PendingCount++; break; }
             }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
@@ -178,7 +197,13 @@ function New-PesterState
         "BeforeAll",
         "AfterAll",
         "Strict",
-        "Quiet"
+        "Quiet",
+        "Time",
+        "TotalCount",
+        "PassedCount",
+        "FailedCount",
+        "SkippedCount",
+        "PendingCount"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -190,24 +215,6 @@ function New-PesterState
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
     } -ArgumentList $Path, $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
-    Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
-        @( $this.TestResult ).Count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name PassedCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Passed" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name FailedCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Failed" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name SkippedCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Skipped" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name PendingCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Pending" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name Time -Value {
-        $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ( $_.time ) } { [timespan]$total }
-    } -PassThru |
     Add-Member -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
         elseif ($this.CurrentContext)  { 'Context' }

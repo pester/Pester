@@ -154,14 +154,16 @@ function Add-SetupAndTeardown
 
     for ($i = 0; $i -lt $tokens.Count; $i++)
     {
-        if ($tokens[$i].Type -eq [System.Management.Automation.PSTokenType]::Command -and
-            (IsSetupOrTeardownCommand -CommandName $tokens[$i].Content))
+        $token = $tokens[$i]
+        $type = $token.Type
+        if ($type -eq [System.Management.Automation.PSTokenType]::Command -and
+            (IsSetupOrTeardownCommand -CommandName $token.Content))
         {
             $openBraceIndex, $closeBraceIndex = Get-BraceIndecesForCommand -Tokens $tokens -CommandIndex $i
             Add-SetupTeardownFromTokens -Tokens $tokens -CommandIndex $i -OpenBraceIndex $openBraceIndex -CloseBraceIndex $closeBraceIndex -CodeText $codeText
             $i = $closeBraceIndex
         }
-        elseif ($tokens[$i].Type -eq [System.Management.Automation.PSTokenType]::GroupStart)
+        elseif ($type -eq [System.Management.Automation.PSTokenType]::GroupStart)
         {
             # We don't want to parse Setup or Teardown commands in child scopes here, so anything
             # bounded by a GroupStart / GroupEnd token pair which is not immediately preceded by
@@ -246,6 +248,40 @@ function Get-GroupStartTokenForCommand
     return $CommandIndex + 1
 }
 
+Add-Type -TypeDefinition @'
+    namespace Pester
+    {
+        using System;
+        using System.Management.Automation;
+
+        public static class ClosingBraceFinder
+        {
+            public static int GetClosingBraceIndex(PSToken[] tokens, int startIndex)
+            {
+                int groupLevel = 1;
+                int len = tokens.Length;
+
+                for (int i = startIndex + 1; i < len; i++)
+                {
+                    PSTokenType type = tokens[i].Type;
+                    if (type == PSTokenType.GroupStart)
+                    {
+                        groupLevel++;
+                    }
+                    else if (type == PSTokenType.GroupEnd)
+                    {
+                        groupLevel--;
+
+                        if (groupLevel <= 0) { return i; }
+                    }
+                }
+
+                return -1;
+            }
+        }
+    }
+'@
+
 function Get-GroupCloseTokenIndex
 {
     param (
@@ -253,33 +289,14 @@ function Get-GroupCloseTokenIndex
         [int] $GroupStartTokenIndex
     )
 
-    $groupLevel = 1
+    $closeIndex = [Pester.ClosingBraceFinder]::GetClosingBraceIndex($Tokens, $GroupStartTokenIndex)
 
-    for ($i = $GroupStartTokenIndex + 1; $i -lt $Tokens.Count; $i++)
+    if ($closeIndex -lt 0)
     {
-        switch ($Tokens[$i].Type)
-        {
-            ([System.Management.Automation.PSTokenType]::GroupStart)
-            {
-                $groupLevel++
-                break
-            }
-
-            ([System.Management.Automation.PSTokenType]::GroupEnd)
-            {
-                $groupLevel--
-
-                if ($groupLevel -le 0)
-                {
-                    return $i
-                }
-
-                break
-            }
-        }
+        throw 'No corresponding GroupEnd token was found.'
     }
 
-    throw 'No corresponding GroupEnd token was found.'
+    return $closeIndex
 }
 
 function Add-SetupTeardownFromTokens
