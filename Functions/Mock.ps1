@@ -620,7 +620,16 @@ function MockPrototype {
         $moduleName = $ExecutionContext.SessionState.Module.Name
     }
 
-    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction (Get-IgnoreErrorPreference)
+    if ($PSVersionTable.PSVersion.Major -ge 3)
+    {
+        [string] $IgnoreErrorPreference = 'Ignore'
+    }
+    else
+    {
+        [string] $IgnoreErrorPreference = 'SilentlyContinue'
+    }
+
+    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
     if ($null -eq $ArgumentList) { $ArgumentList = @() }
 
     Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
