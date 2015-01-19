@@ -1,4 +1,4 @@
-## Unreleased
+## 3.3.2 (January 19, 2015)
   - Performance Improvements
 
 ## 3.3.1 (January 12, 2015)
