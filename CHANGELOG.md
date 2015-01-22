@@ -1,4 +1,4 @@
-## 3.3.3 (January 22, 2015)
+## 3.3.4 (January 22, 2015)
   - No changes; publishing again to fix broken PowerShellGet upload.
 
 ## 3.3.2 (January 19, 2015)
