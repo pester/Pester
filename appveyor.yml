@@ -1,5 +1,5 @@
 install:
-  - cinst pester
+  - ps: Import-Module -Force .\Pester.psd1
 
 build: false
 
