@@ -1,5 +1,5 @@
 ## Unreleased
-  - Testing automated build
+  - Testing automated build.
 
 ## 3.3.4 (January 22, 2015)
   - No changes; publishing again to fix broken PowerShellGet upload.
