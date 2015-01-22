@@ -42,10 +42,16 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
     }
     
-    if (Get-Command git.exe -ErrorAction SilentlyContinue ) {
-        $script:tagVersion
+    if (Get-Command git.exe -ErrorAction SilentlyContinue) {
+        $script:tagVersion = $null
         It "is tagged with a valid version" {
-            $script:tagVersion = git describe --abbrev=0 --tags 
+            $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
+
+            if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
+            {
+                $script:tagVersion = $matches[1]
+            }
+
             $script:tagVersion                  | Should Not BeNullOrEmpty
             $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
         }
