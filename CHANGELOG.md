@@ -1,5 +1,5 @@
 ## Unreleased
-  - Testing automated build.
+  - Updated tests to allow PRs to be automatically tested, with status updates to GitHub, by our CI server.
 
 ## 3.3.4 (January 22, 2015)
   - No changes; publishing again to fix broken PowerShellGet upload.
