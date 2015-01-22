@@ -28,12 +28,7 @@ Task Version-Module{
 }
 
 Task Unversion-Module{
-    $v = git describe --abbrev=0 --tags
-    $changeset=(git log -1 $($v + '..') --pretty=format:%H)
-    (Get-Content "$baseDir\Pester.psm1") `
-      | % {$_ -replace "$version", "`$version`$" } `
-      | % {$_ -replace "$changeset", "`$sha`$" } `
-      | Set-Content "$baseDir\Pester.psm1"
+    git checkout -- .\Pester.psm1
 }
 
 Task Pack-Nuget {
