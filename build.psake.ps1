@@ -7,8 +7,8 @@ properties {
     $nugetExe = "$baseDir\vendor\tools\nuget"
 }
 
-Task default -depends Build
-Task Build -depends Test, Package
+Task default -depends Test, Build
+Task Build -depends Package
 Task Package -depends Version-Module, Pack-Nuget, Unversion-Module
 Task Release -depends Build, Push-Nuget
 
