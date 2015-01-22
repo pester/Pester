@@ -3,7 +3,7 @@
 $manifestPath   = "$here\Pester.psd1"
 $changellogPath = "$here\CHANGELOG.md"
 
-Describe "Pester manifest and changelog" {    
+Describe -Tags 'VersionChecks' "Pester manifest and changelog" {    
     $script:manifest = $null
     It "has a valid manifest" {
         {   
