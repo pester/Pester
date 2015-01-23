@@ -78,4 +78,18 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
             $error.Count | Should Be 0
         }
     }
+
+    Describe 'Failing intentionally on v3+' {
+        It 'Fails' {
+            $true | Should Be $false
+        }
+    }
+}
+else
+{
+    Describe 'Failing intentionally on v2-' {
+        It 'Fails' {
+            $true | Should Be $false
+        }
+    }
 }
