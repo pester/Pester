@@ -167,11 +167,6 @@ about_Mocking
 
     $contextInfo = Validate-Command $CommandName $ModuleName
 
-    if ($CommandName -eq 'dir')
-    {
-        $contextInfo | Format-Custom -Depth 2 | Out-Host
-    }
-
     $CommandName = $contextInfo.Command.Name
 
     if ($contextInfo.Session.Module -and $contextInfo.Session.Module.Name)
@@ -289,11 +284,6 @@ about_Mocking
         $mock.Blocks | Where-Object { $_.Filter.ToString() -ne '$True' }
         if ($block.Filter.ToString() -ne '$True') { $block }
     )
-
-    if ($PSBoundParameters['CommandName'] -eq 'dir')
-    {
-        $mockTable["$ModuleName||$CommandName"] | Format-Custom -Depth 2 | Out-Host
-    }
 }
 
 
