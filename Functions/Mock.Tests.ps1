@@ -87,6 +87,7 @@ Describe 'When calling Mock on an alias' {
     Mock dir {return 'I am not dir'}
 
     Get-Command dir | Out-Host
+    Get-Command Get-ChildItem | Out-Host
 
     $result = dir
 
