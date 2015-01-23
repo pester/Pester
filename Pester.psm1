@@ -260,9 +260,10 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
-if (($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3))
+$snippetsDirectoryPath = "$PSScriptRoot\Snippets"
+if (($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3) -and (Test-Path $snippetsDirectoryPath))
 {
-    Import-IseSnippet -Path $PSScriptRoot\Snippets
+    Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
