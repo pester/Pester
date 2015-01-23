@@ -169,7 +169,7 @@ about_Mocking
 
     if ($CommandName -eq 'dir')
     {
-        $contextInfo | Format-Custom -Depth 4 | Out-Host
+        $contextInfo | Format-Custom -Depth 2 | Out-Host
     }
 
     $CommandName = $contextInfo.Command.Name
@@ -292,7 +292,7 @@ about_Mocking
 
     if ($PSBoundParameters['CommandName'] -eq 'dir')
     {
-        $mockTable["$ModuleName||$CommandName"] | Format-Custom -Depth 5 | Out-Host
+        $mockTable["$ModuleName||$CommandName"] | Format-Custom -Depth 2 | Out-Host
     }
 }
 
