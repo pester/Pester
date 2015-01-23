@@ -84,12 +84,36 @@ Describe "When calling Mock on existing cmdlet" {
 }
 
 Describe 'When calling Mock on an alias' {
-    Mock dir {return 'I am not dir'}
+    $originalPath = $env:path
 
-    $result = dir
+    try
+    {
+        # Our TeamCity server has a dir.exe on the system path, and PowerShell v2 apparently finds that instead of the PowerShell alias first.
+        # This annoying bit of code makes sure our test works as intended even when this is the case.
 
-    It 'Should Invoke the mocked script' {
-        $result | Should Be 'I am not dir'
+        $dirExe = Get-Command dir -CommandType Application -ErrorAction SilentlyContinue
+        if ($null -ne $dirExe)
+        {
+            foreach ($app in $dirExe)
+            {
+                $parent = (Split-Path $app.Path -Parent).TrimEnd('\')
+                $pattern = "^$([regex]::Escape($parent))\\?"
+
+                $env:path = $env:path -split ';' -notmatch $pattern -join ';'
+            }
+        }
+
+        Mock dir {return 'I am not dir'}
+
+        $result = dir
+
+        It 'Should Invoke the mocked script' {
+            $result | Should Be 'I am not dir'
+        }
+    }
+    finally
+    {
+        $env:path = $originalPath
     }
 }
 
