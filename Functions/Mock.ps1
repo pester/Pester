@@ -292,7 +292,7 @@ about_Mocking
 
     if ($PSBoundParameters['CommandName'] -eq 'dir')
     {
-        $mockTable["$ModuleName||$CommandName"] | Format-Custom -Depth 8 | Out-Host
+        $mockTable["$ModuleName||$CommandName"] | Format-Custom -Depth 5 | Out-Host
     }
 }
 
