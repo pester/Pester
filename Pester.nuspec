@@ -21,6 +21,7 @@
     <file src="bin\*.*" target="tools\bin" />
     <file src="Examples\**\*.*" target="tools\Examples" />
     <file src="Functions\**\*.*" target="tools\Functions" />
+    <file src="Snippets\*.*" target="tools\Snippets" />
     <file src="en-US\*.*" target="tools\en-US" />
   </files>
 </package>
