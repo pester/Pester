@@ -166,6 +166,9 @@ about_Mocking
     Assert-DescribeInProgress -CommandName Mock
 
     $contextInfo = Validate-Command $CommandName $ModuleName
+
+    $contextInfo | Format-Custom -Depth 4 | Out-Host
+
     $CommandName = $contextInfo.Command.Name
 
     if ($contextInfo.Session.Module -and $contextInfo.Session.Module.Name)
@@ -283,6 +286,8 @@ about_Mocking
         $mock.Blocks | Where-Object { $_.Filter.ToString() -ne '$True' }
         if ($block.Filter.ToString() -ne '$True') { $block }
     )
+
+    $mockTable["$ModuleName||$CommandName"] | Format-Custom -Depth 8 | Out-Host
 }
 
 
