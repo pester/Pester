@@ -166,6 +166,7 @@ about_Mocking
     Assert-DescribeInProgress -CommandName Mock
 
     $contextInfo = Validate-Command $CommandName $ModuleName
+
     $CommandName = $contextInfo.Command.Name
 
     if ($contextInfo.Session.Module -and $contextInfo.Session.Module.Name)

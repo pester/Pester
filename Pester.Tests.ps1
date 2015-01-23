@@ -79,3 +79,13 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
         }
     }
 }
+
+
+if ($PSVersionTable.PSVersion.Major -le 2)
+{
+    Describe 'Deliberately failing' {
+        It 'Fails' {
+            $true | Should Be $false
+        }
+    }
+}
