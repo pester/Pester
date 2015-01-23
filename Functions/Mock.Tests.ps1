@@ -86,6 +86,8 @@ Describe "When calling Mock on existing cmdlet" {
 Describe 'When calling Mock on an alias' {
     Mock dir {return 'I am not dir'}
 
+    Get-Command dir | Out-Host
+
     $result = dir
 
     It 'Should Invoke the mocked script' {
