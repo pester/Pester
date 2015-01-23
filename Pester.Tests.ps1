@@ -3,6 +3,8 @@
 $manifestPath   = "$here\Pester.psd1"
 $changellogPath = "$here\CHANGELOG.md"
 
+# DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
+
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {    
     $script:manifest = $null
     It "has a valid manifest" {
