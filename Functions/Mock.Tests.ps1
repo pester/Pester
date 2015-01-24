@@ -117,6 +117,20 @@ Describe 'When calling Mock on an alias' {
     }
 }
 
+Describe 'When calling Mock on an alias that refers to a function Pester can''t see' {
+    It 'Mocks the aliased command successfully' {
+        # This function is defined in a non-global scope; code inside the Pester module can't see it directly.
+        function orig {'orig'}
+        New-Alias 'ali' orig
+
+        ali | Should Be 'orig'
+
+        { mock ali {'mck'} } | Should Not Throw
+
+        ali | Should Be 'mck'
+    }
+}
+
 Describe 'When calling Mock on a filter' {
     Mock FilterUnderTest {return 'I am not FilterUnderTest'}
 
