@@ -274,9 +274,12 @@ function Get-PesterResult {
 
     if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
     {
-        $failureMessage = $exception.exception.message
+        $details = $exception.ErrorDetails.message | ConvertFrom-Json
+        
+        $failureMessage = $details.message
         $file = $test.File
-        $line = if ( $exception.ErrorDetails.message -match "\d+$" )  { $matches[0] }
+        $line = $details.line
+        $lineText = $details.linetext
     }
     else {
         $failureMessage = $exception.ToString()
@@ -285,7 +288,7 @@ function Get-PesterResult {
     }
 
     $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
-    $testResult.stackTrace = "at line: $line in $file"
+    $testResult.stackTrace = "at line: $line in $file`n`n$line`:$linetext"
 
     return $testResult
 }

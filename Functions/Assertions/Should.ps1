@@ -59,12 +59,13 @@ function Get-FailureMessage($shouldArgs, $value) {
 
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
-function New-ShouldException ($Message,$Line) {
+function New-ShouldException ($Message, $Line, $LineText) {
     $exception = New-Object Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
-    $errorRecord.ErrorDetails = "$Message failed at line: $line"
+    $errorRecord.ErrorDetails = @{message = $Message; line = $line; linetext = $LineText} | ConvertTo-Json -Compress
+    #"$Message failed at line: $line : $LineText"
 
     $errorRecord
 }
@@ -83,11 +84,13 @@ function Should {
             $testFailed = Get-TestResult $parsedArgs $value
 
             if ($testFailed) {
+                $ShouldExceptionLineText = $MyInvocation.Line
                 $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
+
                 $failureMessage = Get-FailureMessage $parsedArgs $value
 
 
-                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine )
+                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine -LineText $ShouldExceptionLineText)
             }
         } until ($input.MoveNext() -eq $false)
     }
