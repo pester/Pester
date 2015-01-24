@@ -576,7 +576,14 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
 
-    $scriptBlock = { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') }
+    $scriptBlock = {
+        $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
+        while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias)
+        {
+            $command = $command.ResolvedCommand
+        }
+        return $command
+    }
 
     if ($ModuleName) {
         $module = Microsoft.PowerShell.Core\Get-Module $ModuleName -All |
@@ -590,10 +597,6 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     if (-not $origCommand) {
         Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $session
         $origCommand = & $scriptBlock $commandName
-    }
-
-    if ($origCommand -and $origCommand.CommandType -eq [System.Management.Automation.CommandTypes]::Alias) {
-        $origCommand = $origCommand.ResolvedCommand
     }
 
     if (-not $origCommand) {
