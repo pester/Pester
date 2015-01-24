@@ -118,7 +118,7 @@ Describe 'When calling Mock on an alias' {
 }
 
 Describe 'When calling Mock on an alias that refers to a function Pester can''t see' {
-    It 'tst' {
+    It 'Mocks the aliased command successfully' {
         # This function is defined in a non-global scope; code inside the Pester module can't see it directly.
         function orig {'orig'}
         New-Alias 'ali' orig
