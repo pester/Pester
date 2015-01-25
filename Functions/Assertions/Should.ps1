@@ -63,11 +63,11 @@ function New-ShouldException ($Message, $Line, $LineText) {
     $exception = New-Object Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
-    $errorRecord.ErrorDetails = @{message = $Message; line = $line; linetext = $LineText} | ConvertTo-Json -Compress
-    #"$Message failed at line: $line : $LineText"
-
-    $errorRecord
+    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
+    $targetObject = @{message = $Message; line = $line; linetext = $LineText}
+    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    $errorRecord.ErrorDetails = "$Message failed at line: $line : $LineText"
+    return $errorRecord
 }
 
 function Should {
@@ -84,7 +84,7 @@ function Should {
             $testFailed = Get-TestResult $parsedArgs $value
 
             if ($testFailed) {
-                $ShouldExceptionLineText = $MyInvocation.Line
+                $ShouldExceptionLineText = $MyInvocation.Line.TrimEnd("`n")
                 $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
 
                 $failureMessage = Get-FailureMessage $parsedArgs $value

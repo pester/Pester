@@ -274,7 +274,8 @@ function Get-PesterResult {
 
     if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
     {
-        $details = $exception.ErrorDetails.message | ConvertFrom-Json
+        # we use TargetObject to pass structured information about the error.
+        $details = $exception.TargetObject
         
         $failureMessage = $details.message
         $file = $test.File
@@ -288,7 +289,7 @@ function Get-PesterResult {
     }
 
     $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
-    $testResult.stackTrace = "at line: $line in $file`n`n$line`:$linetext"
+    $testResult.stackTrace = "at line: $line in $file`n$line`: $linetext"
 
     return $testResult
 }
