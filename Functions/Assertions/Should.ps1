@@ -66,7 +66,6 @@ function New-ShouldException ($Message, $Line, $LineText) {
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
     $targetObject = @{message = $Message; line = $line; linetext = $LineText}
     $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
-    $errorRecord.ErrorDetails = "$Message failed at line: $line : $LineText"
     return $errorRecord
 }
 
