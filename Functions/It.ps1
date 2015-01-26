@@ -280,16 +280,17 @@ function Get-PesterResult {
         $failureMessage = $details.message
         $file = $test.File
         $line = $details.line
-        $lineText = $details.linetext
+        $lineText = "`n$line`: $($details.linetext)"
     }
     else {
         $failureMessage = $exception.ToString()
         $file = $Exception.InvocationInfo.ScriptName
         $line = $Exception.InvocationInfo.ScriptLineNumber
+        $lineText = ''
     }
 
     $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
-    $testResult.stackTrace = "at line: $line in $file`n$line`: $linetext"
+    $testResult.stackTrace = "at line: $line in ${file}${lineText}"
 
     return $testResult
 }
