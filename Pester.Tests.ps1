@@ -82,15 +82,15 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
     }
 }
 
-Describe 'No trailing whitespace allowed' {
-    It 'Pester source files contain no trailing whitespace' {
-        $pesterRoot = (Get-Module Pester).ModuleBase
+Describe 'Style rules' {
+    $pesterRoot = (Get-Module Pester).ModuleBase
         
-        $files = @(
-            Get-ChildItem $pesterRoot -Include *.ps1,*.psm1
-            Get-ChildItem $pesterRoot\Functions -Include *.ps1,*.psm1 -Recurse
-        )
+    $files = @(
+        Get-ChildItem $pesterRoot -Include *.ps1,*.psm1
+        Get-ChildItem $pesterRoot\Functions -Include *.ps1,*.psm1 -Recurse
+    )
 
+    It 'Pester source files contain no trailing whitespace' {
         $badLines = @(
             foreach ($file in $files)
             {
@@ -111,6 +111,24 @@ Describe 'No trailing whitespace allowed' {
         {
             throw "The following $($badLines.Count) lines contain trailing whitespace: `r`n`r`n$($badLines -join "`r`n")"
         }
+    }
+
+    It 'Pester Source Files all end with a newline' {
+        $badFiles = @(
+            foreach ($file in $files)
+            {
+                $string = [System.IO.File]::ReadAllText($file.FullName)
+                if ($string.Length -gt 0 -and $string[-1] -ne "`n")
+                {
+                    $file.FullName
+                }
+            }
+        )
+
+        if ($badFiles.Count -gt 0)
+        {
+            throw "The following files do not end with a newline: `r`n`r`n$($badFiles -join "`r`n")"
+        }        
     }
 }
 
