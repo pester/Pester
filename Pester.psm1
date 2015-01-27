@@ -240,12 +240,17 @@ function ResolveTestScripts
             if ($object -is [System.Collections.IDictionary])
             {
                 $unresolvedPath = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Path', 'p'
-                $arguments      = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a'
+                $arguments      = @(Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a')
                 $parameters     = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
 
-                if ($unresolvedPath -notmatch '\S')
+                if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S')
                 {
-                    throw 'When passing hashtables to the -Path parameter, the Path key is mandatory.'
+                    throw 'When passing hashtables to the -Path parameter, the Path key is mandatory, and must contain a single string.'
+                }
+
+                if ($null -ne $parameters -and $parameters -isnot [System.Collections.IDictionary])
+                {
+                    throw 'When passing hashtables to the -Path parameter, the Parameters key (if present) must be assigned an IDictionary object.'
                 }
             }
             else
