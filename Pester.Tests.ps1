@@ -191,6 +191,14 @@ InModuleScope Pester {
                 $result[0].Parameters.PSBase.Count | Should Be 1
                 $result[0].Parameters['MyKey'] | Should Be 'MyValue'
             }
+
+            It 'Throws an error if no Path is specified' {
+                { ResolveTestScripts @{} } | Should Throw
+            }
+
+            It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
+                { ResolveTestScripts @{ P='P'; Params = 'A string' } } | Should Throw
+            }
         }
     }
 }
