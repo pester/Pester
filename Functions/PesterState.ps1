@@ -1,8 +1,6 @@
 function New-PesterState
 {
     param (
-        [Parameter(Mandatory=$true)]
-        [String]$Path,
         [String[]]$TagFilter,
         [String[]]$ExcludeTagFilter,
         [String[]]$TestNameFilter,
@@ -15,7 +13,6 @@ function New-PesterState
 
     New-Module -Name Pester -AsCustomObject -ScriptBlock {
         param (
-            [String]$_path,
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
             [String[]]$_testNameFilter,
@@ -25,7 +22,6 @@ function New-PesterState
         )
 
         #public read-only
-        $Path = $_path
         $TagFilter = $_tagFilter
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
@@ -182,8 +178,7 @@ function New-PesterState
             } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
         }
 
-        $ExportedVariables = "Path",
-        "TagFilter",
+        $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
         "TestResult",
@@ -214,7 +209,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
+    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
     Add-Member -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
         elseif ($this.CurrentContext)  { 'Context' }

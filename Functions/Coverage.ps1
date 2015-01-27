@@ -94,16 +94,6 @@ function Get-CoverageInfoFromDictionary
     return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Function $function
 }
 
-function Get-DictionaryValueFromFirstKeyFound
-{
-    param ([System.Collections.IDictionary] $Dictionary, [object[]] $Key)
-
-    foreach ($keyToTry in $Key)
-    {
-        if ($Dictionary.Contains($keyToTry)) { return $Dictionary[$keyToTry] }
-    }
-}
-
 function Convert-UnknownValueToInt
 {
     param ([object] $Value, [int] $DefaultValue = 0)

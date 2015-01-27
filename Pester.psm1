@@ -125,12 +125,15 @@ about_pester
     param(
         [Parameter(Position=0,Mandatory=0)]
         [Alias('relative_path')]
-        [string]$Path = ".",
+        [object[]]$Path = '.',
+
         [Parameter(Position=1,Mandatory=0)]
         [Alias("Name")]
         [string[]]$TestName,
+
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
+
         [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
         [string]$OutputXml,
 
@@ -143,6 +146,7 @@ about_pester
         [switch]$PassThru,
 
         [object[]] $CodeCoverage = @(),
+
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -151,6 +155,7 @@ about_pester
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
         [string] $OutputFormat,
+
         [Switch]$Quiet
     )
 
@@ -166,30 +171,35 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-    $message = "Executing all tests in '$($pester.Path)'"
-    if ($TestName) { $message += " matching test name '$TestName'" }
+    $invokeTestScript = {
+        param (
+            [Parameter(Position = 0)]
+            [string] $Path,
 
-    Write-Screen $message
+            [object[]] $Arguments = @(),
+            [System.Collections.IDictionary] $Parameters = @{}
+        )
 
-    $scriptBlock = { & $args[0] }
-    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
+        & $Path @Parameters @Arguments
+    }
 
-    Get-ChildItem $pester.Path -Filter "*.Tests.ps1" -Recurse |
-    where { -not $_.PSIsContainer } |
-    foreach {
-        $testFile = $_
+    Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
+    $testScripts = ResolveTestScripts $Path
+
+    foreach ($testScript in $testScripts)
+    {
         try
         {
-            & $scriptBlock $testFile.PSPath
+            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
         }
         catch
         {
             $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-            $pester.AddTestResult("Error occurred in test script '$($testFile.FullName)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+            $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
             $pester.TestResult[-1] | Write-PesterResult
         }
     }
@@ -198,7 +208,6 @@ about_pester
     $coverageReport = Get-CoverageReport -PesterState $pester
     Show-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
-
 
     if($OutputFile) {
         Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
@@ -219,6 +228,80 @@ about_pester
     }
 
     if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
+}
+
+function ResolveTestScripts
+{
+    param ([object[]] $Path)
+
+    $resolvedScriptInfo = @(
+        foreach ($object in $Path)
+        {
+            if ($object -is [System.Collections.IDictionary])
+            {
+                $unresolvedPath = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Path', 'p'
+                $arguments      = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a'
+                $parameters     = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
+
+                if ($unresolvedPath -notmatch '\S')
+                {
+                    throw 'When passing hashtables to the -Path parameter, the Path key is mandatory.'
+                }
+            }
+            else
+            {
+                $unresolvedPath = [string] $object
+                $arguments      = @()
+                $parameters     = @{}            
+            }
+
+            if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
+                (Test-Path -LiteralPath $unresolvedPath -PathType Leaf) -and
+                (Get-Item -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
+            {
+                New-Object psobject -Property @{
+                    Path       = $unresolvedPath
+                    Arguments  = $arguments
+                    Parameters = $parameters
+                }
+            }
+            else
+            {
+                # World's longest pipeline?
+
+                Resolve-Path -Path $unresolvedPath |
+                Where-Object { $_.Provider.Name -eq 'FileSystem' } |
+                Select-Object -ExpandProperty ProviderPath |
+                Get-ChildItem -Include *.Tests.ps1 -Recurse |
+                Where-Object { -not $_.PSIsContainer } |
+                Select-Object -ExpandProperty FullName -Unique |
+                ForEach-Object {
+                    New-Object psobject -Property @{
+                        Path       = $_
+                        Arguments  = $arguments
+                        Parameters = $parameters
+                    }
+                }
+            }
+        }
+    )
+
+    # Here, we have the option of trying to weed out duplicate file paths that also contain identical
+    # Parameters / Arguments.  However, we already make sure that each object in $Path didn't produce
+    # any duplicate file paths, and if the caller happens to pass in a set of parameters that produce
+    # dupes, maybe that's not our problem.  For now, just return what we found.
+
+    $resolvedScriptInfo
+}
+
+function Get-DictionaryValueFromFirstKeyFound
+{
+    param ([System.Collections.IDictionary] $Dictionary, [object[]] $Key)
+
+    foreach ($keyToTry in $Key)
+    {
+        if ($Dictionary.Contains($keyToTry)) { return $Dictionary[$keyToTry] }
+    }
 }
 
 function Set-ScriptBlockScope
