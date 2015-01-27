@@ -82,6 +82,38 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
     }
 }
 
+Describe 'No trailing whitespace allowed' {
+    It 'Pester source files contain no trailing whitespace' {
+        $pesterRoot = (Get-Module Pester).ModuleBase
+        
+        $files = @(
+            Get-ChildItem $pesterRoot -Include *.ps1,*.psm1
+            Get-ChildItem $pesterRoot\Functions -Include *.ps1,*.psm1 -Recurse
+        )
+
+        $badLines = @(
+            foreach ($file in $files)
+            {
+                $lines = [System.IO.File]::ReadAllLines($file.FullName)
+                $lineCount = $lines.Count
+                
+                for ($i = 0; $i -lt $lineCount; $i++)
+                {
+                    if ($lines[$i] -match '\s+$')
+                    {
+                        'File: {0}, Line: {1}' -f $file.FullName, ($i + 1)
+                    }
+                }
+            }
+        )
+
+        if ($badLines.Count -gt 0)
+        {
+            throw "The following $($badLines.Count) lines contain trailing whitespace: `r`n`r`n$($badLines -join "`r`n")"
+        }
+    }
+}
+
 InModuleScope Pester {
     Describe 'ResolveTestScripts' {
         Setup -File SomeFile.ps1
