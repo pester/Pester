@@ -24,8 +24,8 @@ InModuleScope Pester {
             it "sets the ExcludeTagFilter property" {
                 $p.ExcludeTagFilter | should be ("tag3", "tag")
             }
-        }        
-        
+        }
+
         Context "TagFilter and ExcludeTagFilter parameter are set" {
             $p = new-pesterstate -TagFilter "tag","tag2" -ExcludeTagFilter "tag3"
 

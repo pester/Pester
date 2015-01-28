@@ -7,7 +7,7 @@ function InModuleScope
 .DESCRIPTION
    By injecting some test code into the scope of a PowerShell
    script module, you can use non-exported functions, aliases
-   and variables inside that module, to perform unit tests on 
+   and variables inside that module, to perform unit tests on
    its internal implementation.
 
    InModuleScope may be used anywhere inside a Pester script,
@@ -91,6 +91,6 @@ function InModuleScope
     finally
     {
         $Pester.SessionState = $originalState
-        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope 
+        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope
     }
 }

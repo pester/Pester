@@ -324,7 +324,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
                         }
                         else
                         {
-                            #do not use .ToString() it uses the current culture settings 
+                            #do not use .ToString() it uses the current culture settings
                             #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
                             [string]$value
                         }

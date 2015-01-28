@@ -84,7 +84,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 
 Describe 'Style rules' {
     $pesterRoot = (Get-Module Pester).ModuleBase
-        
+
     $files = @(
         Get-ChildItem $pesterRoot -Include *.ps1,*.psm1
         Get-ChildItem $pesterRoot\Functions -Include *.ps1,*.psm1 -Recurse
@@ -96,7 +96,7 @@ Describe 'Style rules' {
             {
                 $lines = [System.IO.File]::ReadAllLines($file.FullName)
                 $lineCount = $lines.Count
-                
+
                 for ($i = 0; $i -lt $lineCount; $i++)
                 {
                     if ($lines[$i] -match '\s+$')
@@ -128,7 +128,7 @@ Describe 'Style rules' {
         if ($badFiles.Count -gt 0)
         {
             throw "The following files do not end with a newline: `r`n`r`n$($badFiles -join "`r`n")"
-        }        
+        }
     }
 }
 

@@ -1010,13 +1010,13 @@ function Get-DynamicParametersForCmdlet
         $property.SetValue($cmdlet, $keyValuePair.Value, $null)
     }
 
-    try 
+    try
     {
         $cmdlet.GetDynamicParameters()
     }
-    catch [System.NotImplementedException] 
-    { 
-        #ignore the exception 
+    catch [System.NotImplementedException]
+    {
+        #ignore the exception
     }
 }
 
