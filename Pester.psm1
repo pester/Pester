@@ -45,7 +45,13 @@ by the tests, and information about any commands which were not
 executed.
 
 .PARAMETER Script
-This parameter indicates which test scripts should be run.  This parameter may be passed simple strings (wildcards are allowed), or hashtables containing Path, Arguments and Parameters keys.  If used, the Parameters key must refer to a hashtable, and the Arguments key must refer to an array; these will be splatted to the test script(s) indicated in the Path key. Aliased to 'Path' and 'relative_path' for backwards compatibility.  Note:  If the path contains any wildcards, or if it refers to a directory, then Pester will search for and execute all test scripts named *.Tests.ps1 in the target path; the search is recursive.  If the path contains no wildcards and refers to a file, Pester will just try to execute that file regardless of its name.
+This parameter indicates which test scripts should be run.
+This parameter may be passed simple strings (wildcards are allowed), or hashtables containing Path, Arguments and Parameters keys.
+If hashtables are used, the Parameters key must refer to a hashtable, and the Arguments key must refer to an array; these will be splatted to the test script(s) indicated in the Path key.
+
+Note:  If the path contains any wildcards, or if it refers to a directory, then Pester will search for and execute all test scripts named *.Tests.ps1 in the target path; the search is recursive.  If the path contains no wildcards and refers to a file, Pester will just try to execute that file regardless of its name.
+
+Aliased to 'Path' and 'relative_path' for backwards compatibility.
 
 .PARAMETER TestName
 Informs Invoke-Pester to only run Describe blocks that match this name.
