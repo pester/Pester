@@ -44,8 +44,8 @@ Optionally, Pester can generate a report of how much code is covered
 by the tests, and information about any commands which were not
 executed.
 
-.PARAMETER Path
-The path where Invoke-Pester begins to search for test files. The default is the current directory. Aliased 'relative_path' for backwards compatibility.
+.PARAMETER Script
+This parameter indicates which test scripts should be run.  This parameter may be passed simple strings (wildcards are allowed), or hashtables containing Path, Arguments and Parameters keys.  If used, the Parameters key must refer to a hashtable, and the Arguments key must refer to an array; these will be splatted to the test script(s) indicated in the Path key. Aliased to 'Path' and 'relative_path' for backwards compatibility.  Note:  If the path contains any wildcards, or if it refers to a directory, then Pester will search for and execute all test scripts named *.Tests.ps1 in the target path; the search is recursive.  If the path contains no wildcards and refers to a file, Pester will just try to execute that file regardless of its name.
 
 .PARAMETER TestName
 Informs Invoke-Pester to only run Describe blocks that match this name.
@@ -87,9 +87,14 @@ Invoke-Pester
 This will find all *.Tests.ps1 files and run their tests. No exit code will be returned and no log file will be saved.
 
 .Example
-Invoke-Pester ./tests/Utils*
+Invoke-Pester -Script ./tests/Utils*
 
 This will run all tests in files under ./Tests that begin with Utils and alsocontains .Tests.
+
+.Example
+Invoke-Pester -Script @{ Path = './tests/Utils*'; Parameters = @{ NamedParameter = 'Passed By Name' }; Arguments = @('Passed by position') }
+
+Executes the same tests as in Example 1, but will run them with the equivalent of the following command line:  & $testScriptPath -NamedParameter 'Passed By Name' 'Passed by position'
 
 .Example
 Invoke-Pester -TestName "Add Numbers"
@@ -124,8 +129,8 @@ about_pester
     [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
     param(
         [Parameter(Position=0,Mandatory=0)]
-        [Alias('relative_path')]
-        [object[]]$Path = '.',
+        [Alias('Path', 'relative_path')]
+        [object[]]$Script = '.',
 
         [Parameter(Position=1,Mandatory=0)]
         [Alias("Name")]
@@ -188,7 +193,7 @@ about_pester
 
     Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
-    $testScripts = ResolveTestScripts $Path
+    $testScripts = ResolveTestScripts $Script
 
     foreach ($testScript in $testScripts)
     {
@@ -264,10 +269,18 @@ function ResolveTestScripts
                 (Test-Path -LiteralPath $unresolvedPath -PathType Leaf) -and
                 (Get-Item -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
             {
-                New-Object psobject -Property @{
-                    Path       = $unresolvedPath
-                    Arguments  = $arguments
-                    Parameters = $parameters
+                $extension = [System.IO.Path]::GetExtension($unresolvedPath)
+                if ($extension -ne '.ps1')
+                {
+                    Write-Error "Script path '$unresolvedPath' is not a ps1 file."
+                }
+                else
+                {
+                    New-Object psobject -Property @{
+                        Path       = $unresolvedPath
+                        Arguments  = $arguments
+                        Parameters = $parameters
+                    }
                 }
             }
             else
