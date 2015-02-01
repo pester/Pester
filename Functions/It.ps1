@@ -276,7 +276,7 @@ function Get-PesterResult {
     {
         # we use TargetObject to pass structured information about the error.
         $details = $exception.TargetObject
-        
+
         $failureMessage = $details.message
         $file = $test.File
         $line = $details.line
