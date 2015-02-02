@@ -70,12 +70,19 @@ function InModuleScope
 
     try
     {
-        $module = Get-Module -Name $ModuleName -All -ErrorAction Stop
+        $modules = @(Get-Module -Name $ModuleName -All -ErrorAction Stop)
     }
     catch
     {
         throw "No module named '$ModuleName' is currently loaded."
     }
+
+    if ($modules.Count -gt 1)
+    {
+        throw "Multiple modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
+    }
+
+    $module = $modules[0]
 
     $originalState = $Pester.SessionState
     $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
