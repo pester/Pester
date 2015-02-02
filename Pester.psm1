@@ -220,7 +220,7 @@ about_pester
     Show-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
-    if($OutputFile) {
+    if(Get-Variable -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
         Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
     }
 
@@ -368,7 +368,7 @@ function Get-ScriptBlockScope
 }
 
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
-if (($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3) -and (Test-Path $snippetsDirectoryPath))
+if ((Test-Path -Path Variable:\psise) -and ($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3) -and (Test-Path $snippetsDirectoryPath))
 {
     Import-IseSnippet -Path $snippetsDirectoryPath
 }

@@ -69,12 +69,19 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
-            $xmlTestResult.type        | Should Be "Powershell"
-            $xmlTestResult.name        | Should Be "Mocked Describe"
-            $xmlTestResult.description | Should BeNullOrEmpty
-            $xmlTestResult.result      | Should Be "Success"
-            $xmlTestResult.success     | Should Be "True"
-            $xmlTestResult.time        | Should Be 2.1
+
+            $description = $null
+            if ($xmlTestResult.PSObject.Properties['description'])
+            {
+                $description = $xmlTestResult.description
+            }
+
+            $xmlTestResult.type    | Should Be "Powershell"
+            $xmlTestResult.name    | Should Be "Mocked Describe"
+            $description           | Should BeNullOrEmpty
+            $xmlTestResult.result  | Should Be "Success"
+            $xmlTestResult.success | Should Be "True"
+            $xmlTestResult.time    | Should Be 2.1
         }
 
         it "should write two test-suite elements for two describes" {
@@ -92,18 +99,31 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
-            $xmlTestSuite1.name        | Should Be "Describe #1"
-            $xmlTestSuite1.description | Should BeNullOrEmpty
-            $xmlTestSuite1.result      | Should Be "Success"
-            $xmlTestSuite1.success     | Should Be "True"
-            $xmlTestSuite1.time        | Should Be 1.0
+
+            $description = $null
+            if ($xmlTestSuite1.PSObject.Properties['description'])
+            {
+                $description = $xmlTestSuite1.description
+            }
+
+            $xmlTestSuite1.name    | Should Be "Describe #1"
+            $description           | Should BeNullOrEmpty
+            $xmlTestSuite1.result  | Should Be "Success"
+            $xmlTestSuite1.success | Should Be "True"
+            $xmlTestSuite1.time    | Should Be 1.0
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
-            $xmlTestSuite2.name        | Should Be "Describe #2"
-            $xmlTestSuite2.description | Should BeNullOrEmpty
-            $xmlTestSuite2.result      | Should Be "Failure"
-            $xmlTestSuite2.success     | Should Be "False"
-            $xmlTestSuite2.time        | Should Be 2.0
+            $description = $null
+            if ($xmlTestSuite2.PSObject.Properties['description'])
+            {
+                $description = $xmlTestSuite2.description
+            }
+
+            $xmlTestSuite2.name    | Should Be "Describe #2"
+            $description           | Should BeNullOrEmpty
+            $xmlTestSuite2.result  | Should Be "Failure"
+            $xmlTestSuite2.success | Should Be "False"
+            $xmlTestSuite2.time    | Should Be 2.0
         }
 
         it "should write parent results in tree correctly" {
@@ -244,12 +264,18 @@ InModuleScope Pester {
             It 'should write parameterized test results correctly' {
                 $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
 
-                $xmlTestSuite.name        | Should Be 'Parameterized Testcase <A>'
-                $xmlTestSuite.description | Should BeNullOrEmpty
-                $xmlTestSuite.type        | Should Be 'ParameterizedTest'
-                $xmlTestSuite.result      | Should Be 'Failure'
-                $xmlTestSuite.success     | Should Be 'False'
-                $xmlTestSuite.time        | Should Be '2'
+                $description = $null
+                if ($xmlTestSuite.PSObject.Properties['description'])
+                {
+                    $description = $xmlTestSuite.description
+                }
+
+                $xmlTestSuite.name    | Should Be 'Parameterized Testcase <A>'
+                $description          | Should BeNullOrEmpty
+                $xmlTestSuite.type    | Should Be 'ParameterizedTest'
+                $xmlTestSuite.result  | Should Be 'Failure'
+                $xmlTestSuite.success | Should Be 'False'
+                $xmlTestSuite.time    | Should Be '2'
 
                 foreach ($testCase in $xmlTestSuite.results.'test-case')
                 {
