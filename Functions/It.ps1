@@ -129,6 +129,10 @@ function ItImpl
 
     Assert-DescribeInProgress -CommandName It
 
+    # Jumping through hoops to make strict mode happy.
+    if ($PSCmdlet.ParameterSetName -ne 'Skip') { $Skip = $false }
+    if ($PSCmdlet.ParameterSetName -ne 'Pending') { $Pending = $false }
+
     #unless Skip or Pending is specified you must specify a ScriptBlock to the Test parameter
     if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending))
     {

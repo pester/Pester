@@ -513,7 +513,7 @@ param(
     )
 
     if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
-        throw "Expected ${commandName}${$moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
+        throw "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
     } elseif($qualifiedCalls.Length -lt $times) {
         throw "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($qualifiedCalls.Length) times"
     }
@@ -842,7 +842,7 @@ function IsCommonParameter
     {
         if ([System.Management.Automation.Internal.CommonParameters].GetProperty($Name)) { return $true }
         if ($Metadata.SupportsShouldProcess -and [System.Management.Automation.Internal.ShouldProcessParameters].GetProperty($Name)) { return $true }
-        if ($Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) { return $true }
+        if ($PSVersionTable.PSVersion.Major -ge 3 -and $Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) { return $true }
         if ($Metadata.SupportsTransactions -and [System.Management.Automation.Internal.TransactionParameters].GetProperty($Name)) { return $true }
     }
 
