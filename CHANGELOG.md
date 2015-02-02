@@ -2,6 +2,7 @@
   - Fix for mocking aliases for commands that are in scopes that Pester can't normally see. [GH-267]
   - Added line information to test failure output in Should assertion failures. [GH-266]
   - Added support for passing named parameters or positional arguments to test scripts, and for calling test scripts that are not named *.Tests.ps1.  [GH-272]
+  - Made Pester compliant with StrictMode.  [GH-274]
 
 ## 3.3.5 (January 23, 2015)
   - Updated tests to allow PRs to be automatically tested, with status updates to GitHub, by our CI server.
