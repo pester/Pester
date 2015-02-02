@@ -139,8 +139,11 @@ function ArraysAreEqual
         [switch] $CaseSensitive
     )
 
-    $firstNullOrEmpty  = ArrayOrSingleElementIsNullOrEmpty -Array $First
-    $secondNullOrEmpty = ArrayOrSingleElementIsNullOrEmpty -Array $Second
+    # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
+    # silly error in PowerShell v3.  (Null Reference exception from the PowerShell engine in a
+    # method called CheckAutomationNullInCommandArgumentArray(System.Object[]) ).
+    $firstNullOrEmpty  = ArrayOrSingleElementIsNullOrEmpty -Array @($First)
+    $secondNullOrEmpty = ArrayOrSingleElementIsNullOrEmpty -Array @($Second)
 
     if ($firstNullOrEmpty -or $secondNullOrEmpty)
     {
