@@ -16,7 +16,7 @@
     <file src="Pester.psm1" target="tools" />
     <file src="Pester.psd1" target="tools" />
     <file src="Pester.Tests.ps1" target="tools" />
-    <file src="LICENSE" target="tools" />
+    <file src="LICENSE*" target="tools" />
     <file src="chocolateyInstall.ps1" />
 	<file src="nunit_schema_2.5.xsd" target="tools" />
     <file src="bin\*.*" target="tools\bin" />
