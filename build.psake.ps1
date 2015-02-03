@@ -3,7 +3,7 @@ properties {
     $currentDir = resolve-path .
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value
     $baseDir = $psake.build_script_dir
-    $version = git describe --abbrev=0 --tags
+    $version = git.exe describe --abbrev=0 --tags
     $nugetExe = "$baseDir\vendor\tools\nuget"
 }
 
@@ -13,14 +13,14 @@ Task Package -depends Version-Module, Pack-Nuget, Unversion-Module
 Task Release -depends Build, Push-Nuget
 
 Task Test {
-    CD "$baseDir"
+    Set-Location "$baseDir"
     exec {."$baseDir\bin\Pester.bat"}
-    CD $currentDir
+    Set-Location $currentDir
 }
 
 Task Version-Module{
-    $v = git describe --abbrev=0 --tags
-    $changeset=(git log -1 $($v + '..') --pretty=format:%H)
+    $v = git.exe describe --abbrev=0 --tags
+    $changeset=(git.exe log -1 $($v + '..') --pretty=format:%H)
     (Get-Content "$baseDir\Pester.psm1") `
       | % {$_ -replace "\`$version\`$", "$version" } `
       | % {$_ -replace "\`$sha\`$", "$changeset" } `
@@ -28,7 +28,9 @@ Task Version-Module{
 }
 
 Task Unversion-Module{
-    git checkout -- .\Pester.psm1
+    Set-Location $baseDir
+    git.exe checkout -- $baseDir\Pester.psm1
+    Set-Location $currentDir
 }
 
 Task Pack-Nuget {
