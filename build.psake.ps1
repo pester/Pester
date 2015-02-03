@@ -5,6 +5,7 @@ properties {
     $baseDir = $psake.build_script_dir
     $version = git.exe describe --abbrev=0 --tags
     $nugetExe = "$baseDir\vendor\tools\nuget"
+    $targetBase = "tools"
 }
 
 Task default -depends Test, Build
@@ -41,7 +42,7 @@ Task Pack-Nuget {
     mkdir "$baseDir\build"
     exec {
       . $nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" `
-      -NoPackageAnalysis -version $version
+      -NoPackageAnalysis -version $version -Properties targetBase=$targetBase
     }
 }
 
