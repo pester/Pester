@@ -12,7 +12,50 @@ InModuleScope Pester {
         It "returns false if the 2 arguments are not equal" {
             Test-NegativeAssertion (PesterBe 1 2)
         }
+
+        It 'Compares Arrays properly' {
+            $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
+            $array | Should Be $array
+        }
+
+        It 'Compares arrays with correct case-insensitive behavior' {
+            $string = 'I am a string'
+            $array = @(1,2,3,4,$string)
+            $arrayWithCaps = @(1,2,3,4,$string.ToUpper())
+
+            $array | Should Be $arrayWithCaps
+        }
+
+        It 'Handles reference types properly' {
+            $object1 = New-Object psobject -Property @{ Value = 'Test' }
+            $object2 = New-Object psobject -Property @{ Value = 'Test' }
+
+            $object1 | Should Be $object1
+            $object1 | Should Not Be $object2
+        }
+
+        It 'Handles arrays with nested arrays' {
+            $array1 = @(
+                @(1,2,3,4,5),
+                @(6,7,8,9,0)
+            )
+
+            $array2 = @(
+                @(1,2,3,4,5),
+                @(6,7,8,9,0)
+            )
+
+            $array1 | Should Be $array2
+
+            $array3 = @(
+                @(1,2,3,4,5),
+                @(6,7,8,9,0, 'Oops!')
+            )
+
+            $array1 | Should Not Be $array3
+        }
     }
+
     Describe "PesterBeFailureMessage" {
         #the correctness of difference index value and the arrow pointing to the correct place
         #are not tested here thoroughly, but the behaviour was visually checked and is
@@ -58,12 +101,27 @@ InModuleScope Pester {
         It "passes if letter case matches" {
             'a' | Should BeExactly 'a'
         }
+
         It "fails if letter case doesn't match" {
             'A' | Should Not BeExactly 'a'
         }
+
         It "passes for numbers" {
             1 | Should BeExactly 1
             2.15 | Should BeExactly 2.15
+        }
+
+        It 'Compares Arrays properly' {
+            $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
+            $array | Should BeExactly $array
+        }
+
+        It 'Compares arrays with correct case-sensitive behavior' {
+            $string = 'I am a string'
+            $array = @(1,2,3,4,$string)
+            $arrayWithCaps = @(1,2,3,4,$string.ToUpper())
+
+            $array | Should Not BeExactly $arrayWithCaps
         }
     }
 

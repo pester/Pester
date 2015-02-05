@@ -1,4 +1,4 @@
-function Parse-ShouldArgs([array] $shouldArgs) {
+function Parse-ShouldArgs([object[]] $shouldArgs) {
     if ($null -eq $shouldArgs) { $shouldArgs = @() }
 
     $parsedArgs = @{
@@ -9,7 +9,7 @@ function Parse-ShouldArgs([array] $shouldArgs) {
     $assertionMethodIndex = 0
     $expectedValueIndex   = 1
 
-    if ($shouldArgs.Count -gt 0 -and $shouldArgs[0].ToLower() -eq "not") {
+    if ($shouldArgs.Count -gt 0 -and $shouldArgs[0] -eq "not") {
         $parsedArgs.PositiveAssertion = $false
         $assertionMethodIndex += 1
         $expectedValueIndex   += 1
@@ -17,7 +17,7 @@ function Parse-ShouldArgs([array] $shouldArgs) {
 
     if ($assertionMethodIndex -lt $shouldArgs.Count)
     {
-        $parsedArgs.AssertionMethod = "Pester$($shouldArgs[$assertionMethodIndex])"
+        $parsedArgs.AssertionMethod = "$($shouldArgs[$assertionMethodIndex])"
     }
     else
     {
@@ -32,33 +32,29 @@ function Parse-ShouldArgs([array] $shouldArgs) {
     return $parsedArgs
 }
 
-function Get-TestResult($shouldArgs, $value) {
-    $assertionMethod = $shouldArgs.AssertionMethod
-    $command = Get-Command $assertionMethod -ErrorAction $script:IgnoreErrorPreference
+function Get-TestResult($assertionEntry, $shouldArgs, $value) {
+    $testResult = (& $assertionEntry.Test $value $shouldArgs.ExpectedValue)
 
-    if ($null -eq $command)
-    {
-        $assertionMethod = $assertionMethod -replace '^Pester'
-        throw "'$assertionMethod' is not a valid Should operator."
-    }
-
-    $testResult = (& $assertionMethod $value $shouldArgs.ExpectedValue)
-
-    if ($shouldArgs.PositiveAssertion) {
+    if (-not $shouldArgs.PositiveAssertion) {
         return -not $testResult
     }
 
     return $testResult
 }
 
-function Get-FailureMessage($shouldArgs, $value) {
-    $failureMessageFunction = "$($shouldArgs.AssertionMethod)FailureMessage"
-    if (-not $shouldArgs.PositiveAssertion) {
-        $failureMessageFunction = "Not$failureMessageFunction"
+function Get-FailureMessage($assertionEntry, $shouldArgs, $value) {
+    if ($shouldArgs.PositiveAssertion)
+    {
+        $failureMessageFunction = $assertionEntry.GetPositiveFailureMessage
+    }
+    else
+    {
+        $failureMessageFunction = $assertionEntry.GetNegativeFailureMessage
     }
 
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
+
 function New-ShouldException ($Message, $Line, $LineText) {
     $exception = New-Object Exception $Message
     $errorID = 'PesterAssertionFailed'
@@ -73,24 +69,46 @@ function Should {
     begin {
         Assert-DescribeInProgress -CommandName Should
         $parsedArgs = Parse-ShouldArgs $args
+
+        $entry = Get-AssertionOperatorEntry -Name $parsedArgs.AssertionMethod
+        if ($null -eq $entry)
+        {
+            throw "'$($parsedArgs.AssertionMethod)' is not a valid Should operator."
+        }
     }
 
-    end {
-        $input.MoveNext()
-        do {
-            $value = $input.Current
+    end
+    {
+        $inputArray = New-Object System.Collections.ArrayList
+        foreach ($object in $input) { $null = $inputArray.Add($object) }
 
-            $testFailed = Get-TestResult $parsedArgs $value
+        $lineNumber = $MyInvocation.ScriptLineNumber
+        $lineText   = $MyInvocation.Line.TrimEnd("`n")
 
-            if ($testFailed) {
-                $ShouldExceptionLineText = $MyInvocation.Line.TrimEnd("`n")
-                $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
-
-                $failureMessage = Get-FailureMessage $parsedArgs $value
-
-
-                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine -LineText $ShouldExceptionLineText)
+        if ($inputArray.Count -eq 0)
+        {
+            Invoke-Assertion $entry $parsedArgs $null $lineNumber $lineText
+        }
+        if ($entry.SupportsArrayInput)
+        {
+            Invoke-Assertion $entry $parsedArgs $inputArray.ToArray() $lineNumber $lineText
+        }
+        else
+        {
+            foreach ($object in $inputArray)
+            {
+                Invoke-Assertion $entry $parsedArgs $object $lineNumber $lineText
             }
-        } until ($input.MoveNext() -eq $false)
+        }
+    }
+}
+
+function Invoke-Assertion($assertionEntry, $shouldArgs, $valueToTest, $lineNumber, $lineText)
+{
+    $testSucceeded = Get-TestResult $assertionEntry $shouldArgs $valueToTest
+    if (-not $testSucceeded)
+    {
+        $failureMessage = Get-FailureMessage $assertionEntry $shouldArgs $valueToTest
+        throw ( New-ShouldException -Message $failureMessage -Line $lineNumber -LineText $lineText )
     }
 }

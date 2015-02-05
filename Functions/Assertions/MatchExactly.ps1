@@ -1,6 +1,6 @@
 
 function PesterMatchExactly($value, $expectedMatch) {
-    return ($value -cmatch $expectedMatch)
+    return [bool]($value -cmatch $expectedMatch)
 }
 
 function PesterMatchExactlyFailureMessage($value, $expectedMatch) {
@@ -11,3 +11,7 @@ function NotPesterMatchExactlyFailureMessage($value, $expectedMatch) {
     return "Expected: ${value} to not match the expression ${expectedMatch} exactly"
 }
 
+Add-AssertionOperator -Name                      MatchExactly `
+                      -Test                      $function:PesterMatchExactly `
+                      -GetPositiveFailureMessage $function:PesterMatchExactlyFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterMatchExactlyFailureMessage

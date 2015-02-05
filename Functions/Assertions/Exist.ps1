@@ -12,3 +12,7 @@ function NotPesterExistFailureMessage($value) {
 }
 
 
+Add-AssertionOperator -Name                      Exist `
+                      -Test                      $function:PesterExist `
+                      -GetPositiveFailureMessage $function:PesterExistFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterExistFailureMessage

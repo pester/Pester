@@ -51,3 +51,8 @@ function NotPesterThrowFailureMessage($value, $expected) {
         return "Expected: the expression not to throw an exception. Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage,($ActualExceptionLine  -replace "`n","`n    ")
     }
 }
+
+Add-AssertionOperator -Name                      Throw `
+                      -Test                      $function:PesterThrow `
+                      -GetPositiveFailureMessage $function:PesterThrowFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterThrowFailureMessage

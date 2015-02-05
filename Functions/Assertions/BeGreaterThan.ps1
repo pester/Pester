@@ -12,3 +12,8 @@ function NotPesterBeGreaterThanFailureMessage($value,$expected)
 {
     return "Expected {$value} to be less than or equal to {$expected}"
 }
+
+Add-AssertionOperator -Name                      BeGreaterThan `
+                      -Test                      $function:PesterBeGreaterThan `
+                      -GetPositiveFailureMessage $function:PesterBeGreaterThanFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeGreaterThanFailureMessage

@@ -2,9 +2,12 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "Parse-ShouldArgs" {
-        It "sanitizes assertions functions" {
+        It "identifies assertion functions" {
             $parsedArgs = Parse-ShouldArgs TestFunction
-            $parsedArgs.AssertionMethod | Should Be PesterTestFunction
+            $parsedArgs.AssertionMethod | Should Be TestFunction
+
+            $parsedArgs = Parse-ShouldArgs Not, TestFunction
+            $parsedArgs.AssertionMethod | Should Be TestFunction
         }
 
         It "works with strict mode when using 'switch' style tests" {
@@ -37,54 +40,52 @@ InModuleScope Pester {
                 $ParsedArgs.PositiveAssertion | Should Be $false
             }
         }
-
-        Context "for the throw assertion" {
-
-            $parsedArgs = Parse-ShouldArgs Throw
-
-            It "translates the Throw assertion to PesterThrow" {
-                $ParsedArgs.AssertionMethod | Should Be PesterThrow
-            }
-
-        }
     }
 
     Describe "Get-TestResult" {
         Context "for positive assertions" {
-            function PesterTest { return $true }
             $shouldArgs = Parse-ShouldArgs Test
+            $assertionEntry = @{
+                Test = { return $true }
+            }
 
-            It "returns false if the test returns true" {
-                Get-TestResult $shouldArgs | Should Be $false
+            It "returns true if the test returns true" {
+                Get-TestResult $assertionEntry $shouldArgs | Should Be $true
             }
         }
 
         Context "for negative assertions" {
-            function PesterTest { return $false }
-            $shouldArgs = Parse-ShouldArgs Not, Test
+            $shouldArgs = Parse-ShouldArgs Test
+            $assertionEntry = @{
+                Test = { return $false }
+            }
 
             It "returns false if the test returns false" {
-                Get-TestResult $shouldArgs | Should Be $false
+                Get-TestResult $assertionEntry $shouldArgs | Should Be $false
             }
         }
     }
 
     Describe "Get-FailureMessage" {
+        $assertionEntry = @{
+            GetPositiveFailureMessage = { param ($v, $e) return "slime $e $v" }
+            GetNegativeFailureMessage = { param ($v, $e) return "not slime $e $v" }
+        }
+
         Context "for positive assertions" {
-            function PesterTestFailureMessage($v, $e) { return "slime $e $v" }
+
             $shouldArgs = Parse-ShouldArgs Test, 1
 
             It "should return the postive assertion failure message" {
-                Get-FailureMessage $shouldArgs 2 | Should Be "slime 1 2"
+                Get-FailureMessage $assertionEntry $shouldArgs 2 | Should Be "slime 1 2"
             }
         }
 
         Context "for negative assertions" {
-            function NotPesterTestFailureMessage($v, $e) { return "not slime $e $v" }
             $shouldArgs = Parse-ShouldArgs Not, Test, 1
 
             It "should return the negative assertion failure message" {
-              Get-FailureMessage $shouldArgs 2 | Should Be "not slime 1 2"
+              Get-FailureMessage $assertionEntry $shouldArgs 2 | Should Be "not slime 1 2"
             }
         }
 
