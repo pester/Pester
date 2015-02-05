@@ -586,10 +586,8 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     }
 
     if ($ModuleName) {
-        $module = Microsoft.PowerShell.Core\Get-Module $ModuleName -All |
-                  Sort ModuleType |
-                  Where { ($origCommand = & $_ $scriptBlock $commandName) } |
-                  Select -First 1
+        $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+        $origCommand = & $module $scriptBlock $CommandName
     }
 
     $session = $pester.SessionState
@@ -604,7 +602,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     }
 
     if ($module) {
-        $session = & @($module)[0] { $ExecutionContext.SessionState }
+        $session = & $module { $ExecutionContext.SessionState }
     }
 
     @{Command = $origCommand; Session = $session}
