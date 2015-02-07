@@ -123,7 +123,6 @@ function Get-ScriptModule
         $actualTypes = $actualTypes -join ', '
 
         throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'"
->>>>>>> master
     }
 
     return $scriptModules[0]
