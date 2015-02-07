@@ -99,7 +99,7 @@ function DescribeImpl {
     if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
 
     $Pester.EnterDescribe($Name)
-    
+
     if ($null -ne $DescribeOutputBlock)
     {
         $Pester.CurrentDescribe | & $DescribeOutputBlock
