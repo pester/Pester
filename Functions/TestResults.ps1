@@ -149,7 +149,12 @@ function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $Xml
 function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $XmlWriter.WriteAttributeString('type', 'Powershell')
-    $XmlWriter.WriteAttributeString('name', $PesterState.Path)
+
+    # TODO: This used to be writing $PesterState.Path, back when that was a single string (and existed.)
+    #       Better would be to produce a test suite for each resolved file, rather than for the value
+    #       of the path that was passed to Invoke-Pester.
+
+    $XmlWriter.WriteAttributeString('name', 'Pester')
     $XmlWriter.WriteAttributeString('executed', 'True')
 
     $isSuccess = $PesterState.FailedCount -eq 0
@@ -163,23 +168,26 @@ function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWrite
 function Write-NUnitDescribeElements($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
     $Describes = $PesterState.TestResult | Group-Object -Property Describe
-    foreach ($currentDescribe in $Describes)
+    if ($null -ne $Describes)
     {
-        $DescribeInfo = Get-TestSuiteInfo $currentDescribe
+        foreach ($currentDescribe in $Describes)
+        {
+            $DescribeInfo = Get-TestSuiteInfo $currentDescribe
 
-        #Write test suites
-        $XmlWriter.WriteStartElement('test-suite')
+            #Write test suites
+            $XmlWriter.WriteStartElement('test-suite')
 
-        if ($LegacyFormat) { $suiteType = 'PowerShell' } else { $suiteType = 'TestFixture' }
+            if ($LegacyFormat) { $suiteType = 'PowerShell' } else { $suiteType = 'TestFixture' }
 
-        Write-NUnitTestSuiteAttributes -TestSuiteInfo $DescribeInfo -TestSuiteType $suiteType -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat
+            Write-NUnitTestSuiteAttributes -TestSuiteInfo $DescribeInfo -TestSuiteType $suiteType -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat
 
-        $XmlWriter.WriteStartElement('results')
+            $XmlWriter.WriteStartElement('results')
 
-        Write-NUnitDescribeChildElements -TestResults $currentDescribe.Group -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeInfo.Name
+            Write-NUnitDescribeChildElements -TestResults $currentDescribe.Group -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeInfo.Name
 
-        $XmlWriter.WriteEndElement()
-        $XmlWriter.WriteEndElement()
+            $XmlWriter.WriteEndElement()
+            $XmlWriter.WriteEndElement()
+        }
     }
 }
 
@@ -324,7 +332,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
                         }
                         else
                         {
-                            #do not use .ToString() it uses the current culture settings 
+                            #do not use .ToString() it uses the current culture settings
                             #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
                             [string]$value
                         }

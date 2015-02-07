@@ -94,16 +94,6 @@ function Get-CoverageInfoFromDictionary
     return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Function $function
 }
 
-function Get-DictionaryValueFromFirstKeyFound
-{
-    param ([System.Collections.IDictionary] $Dictionary, [object[]] $Key)
-
-    foreach ($keyToTry in $Key)
-    {
-        if ($Dictionary.Contains($keyToTry)) { return $Dictionary[$keyToTry] }
-    }
-}
-
 function Convert-UnknownValueToInt
 {
     param ([object] $Value, [int] $DefaultValue = 0)
@@ -203,7 +193,21 @@ function Get-CommandsInFile
     $tokens = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref] $tokens, [ref] $errors)
 
-    $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
+    if ($PSVersionTable.PSVersion.Major -ge 5)
+    {
+        # In PowerShell 5.0, dynamic keywords for DSC configurations are represented by the DynamicKeywordStatementAst
+        # class.  They still trigger breakpoints, but are not a child class of CommandBaseAst anymore.
+
+        $predicate = {
+            $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.CommandBaseAst]
+        }
+    }
+    else
+    {
+        $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
+    }
+
     $searchNestedScriptBlocks = $true
     $ast.FindAll($predicate, $searchNestedScriptBlocks)
 }
@@ -333,11 +337,25 @@ function IsChildOfHashtableDynamicKeyword
 
     for ($ast = $Command.Parent; $null -ne $ast; $ast = $ast.Parent)
     {
-        if ($ast -is [System.Management.Automation.Language.CommandAst] -and
-            $null -ne $ast.DefiningKeyword -and
-            $ast.DefiningKeyword.BodyMode -eq [System.Management.Automation.Language.DynamicKeywordBodyMode]::Hashtable)
+        if ($PSVersionTable.PSVersion.Major -ge 5)
         {
-            return $true
+            # The ast behaves differently for DSC resources with version 5+.  There's a new DynamicKeywordStatementAst class,
+            # and they no longer are represented by CommandAst objects.
+
+            if ($ast -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -and
+                $ast.CommandElements[-1] -is [System.Management.Automation.Language.HashtableAst])
+            {
+                return $true
+            }
+        }
+        else
+        {
+            if ($ast -is [System.Management.Automation.Language.CommandAst] -and
+                $null -ne $ast.DefiningKeyword -and
+                $ast.DefiningKeyword.BodyMode -eq [System.Management.Automation.Language.DynamicKeywordBodyMode]::Hashtable)
+            {
+                return $true
+            }
         }
     }
 

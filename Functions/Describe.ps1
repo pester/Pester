@@ -65,7 +65,7 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction (Get-IgnoreErrorPreference)))
+    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
@@ -113,10 +113,11 @@ function DescribeImpl {
         $oldTestDrive = (Get-PSDrive TestDrive).Root
     }
 
-    New-TestDrive
-
     try
     {
+        New-TestDrive
+        $testDriveAdded = $true
+
         Add-SetupAndTeardown -ScriptBlock $Fixture
         Invoke-TestGroupSetupBlocks -Scope $pester.Scope
         $null = & $Fixture
@@ -134,10 +135,10 @@ function DescribeImpl {
     finally
     {
         Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        if ($testDriveAdded) { Remove-TestDrive }
     }
 
     Clear-SetupAndTeardown
-    Remove-TestDrive
     Exit-MockScope
 
     if ($oldTestDrive)

@@ -1,8 +1,6 @@
 function New-PesterState
 {
     param (
-        [Parameter(Mandatory=$true)]
-        [String]$Path,
         [String[]]$TagFilter,
         [String[]]$ExcludeTagFilter,
         [String[]]$TestNameFilter,
@@ -15,7 +13,6 @@ function New-PesterState
 
     New-Module -Name Pester -AsCustomObject -ScriptBlock {
         param (
-            [String]$_path,
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
             [String[]]$_testNameFilter,
@@ -25,7 +22,6 @@ function New-PesterState
         )
 
         #public read-only
-        $Path = $_path
         $TagFilter = $_tagFilter
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
@@ -46,7 +42,14 @@ function New-PesterState
 
         $script:TestResult = @()
 
-        function EnterDescribe ($Name)
+        $script:TotalCount = 0
+        $script:Time = [timespan]0
+        $script:PassedCount = 0
+        $script:FailedCount = 0
+        $script:SkippedCount = 0
+        $script:PendingCount = 0
+
+        function EnterDescribe([string]$Name)
         {
             if ($CurrentDescribe)
             {
@@ -64,7 +67,7 @@ function New-PesterState
             $script:CurrentDescribe = $null
         }
 
-        function EnterContext ($Name)
+        function EnterContext([string]$Name)
         {
             if ( -not $CurrentDescribe )
             {
@@ -126,6 +129,7 @@ function New-PesterState
                 [string] $ParameterizedSuiteName,
                 [System.Collections.IDictionary] $Parameters
             )
+
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
 
@@ -149,6 +153,17 @@ function New-PesterState
 
             }
 
+            $script:TotalCount++
+            $script:Time += $Time
+
+            switch ($Result)
+            {
+                Passed  { $script:PassedCount++; break; }
+                Failed  { $script:FailedCount++; break; }
+                Skipped { $script:SkippedCount++; break; }
+                Pending { $script:PendingCount++; break; }
+            }
+
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
                 Describe               = $CurrentDescribe
                 Context                = $CurrentContext
@@ -163,8 +178,7 @@ function New-PesterState
             } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
         }
 
-        $ExportedVariables = "Path",
-        "TagFilter",
+        $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
         "TestResult",
@@ -178,7 +192,13 @@ function New-PesterState
         "BeforeAll",
         "AfterAll",
         "Strict",
-        "Quiet"
+        "Quiet",
+        "Time",
+        "TotalCount",
+        "PassedCount",
+        "FailedCount",
+        "SkippedCount",
+        "PendingCount"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -189,25 +209,7 @@ function New-PesterState
         "AddTestResult"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $Path, $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
-    Add-Member -MemberType ScriptProperty -Name TotalCount -Value {
-        @( $this.TestResult ).Count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name PassedCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Passed" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name FailedCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Failed" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name SkippedCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Skipped" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name PendingCount -Value {
-        @( $this.TestResult | where { $_.Result -eq "Pending" } ).count
-    } -PassThru |
-    Add-Member -MemberType ScriptProperty -Name Time -Value {
-        $this.TestResult | foreach { [timespan]$total=0 } { $total = $total + ( $_.time ) } { [timespan]$total }
-    } -PassThru |
+    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
     Add-Member -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
         elseif ($this.CurrentContext)  { 'Context' }
@@ -230,4 +232,180 @@ function New-PesterState
 
         return $parentScope
     } -PassThru
+}
+
+function Write-Describe
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+    )
+    process {
+        Write-Screen Describing $Name -OutputType Header
+    }
+}
+
+function Write-Context
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+    )
+    process {
+        $margin = " " * 3
+        Write-Screen ${margin}Context $Name -OutputType Header
+    }
+}
+
+function Write-PesterResult
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $TestResult
+    )
+    process {
+        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
+
+        $margin = " " * $TestDepth
+        $error_margin = $margin + "  "
+        $output = $TestResult.name
+        $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
+
+        switch ($TestResult.Result)
+        {
+            Passed {
+                "$margin[+] $output $humanTime" | Write-Screen -OutputType Passed
+                break
+            }
+            Failed {
+                "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
+                Write-Screen -OutputType Failed $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                Write-Screen -OutputType Failed $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                break
+            }
+            Skipped {
+                "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
+                break
+            }
+            Pending {
+                "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
+                break
+            }
+        }
+    }
+}
+
+function Write-PesterReport
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $PesterState
+    )
+
+    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
+    Write-Screen "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
+}
+
+function Write-Screen {
+    #wraps the Write-Host cmdlet to control if the output is written to screen from one place
+    param(
+        #Write-Host parameters
+        [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
+        [Object] $Object,
+        [Switch] $NoNewline,
+        [Object] $Separator,
+        #custom parameters
+        [Switch] $Quiet = $pester.Quiet,
+        [ValidateSet("Failed","Passed","Skipped","Pending","Header","Standard")]
+        [String] $OutputType = "Standard"
+    )
+
+    begin
+    {
+        if ($Quiet) { return }
+
+        #make the bound parameters compatible with Write-Host
+        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
+        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
+
+        if ($OutputType -ne "Standard")
+        {
+            #create the key first to make it work in strict mode
+            if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
+            {
+                $PSBoundParameters.Add('ForegroundColor', $null)
+            }
+
+
+
+            switch ($Host.Name)
+            {
+                #light background
+                "PowerGUIScriptEditorHost" {
+                    $ColorSet = @{
+                        Failed  = [ConsoleColor]::Red
+                        Passed  = [ConsoleColor]::DarkGreen
+                        Skipped = [ConsoleColor]::DarkGray
+                        Pending = [ConsoleColor]::DarkCyan
+                        Header  = [ConsoleColor]::Magenta
+                    }
+                }
+                #dark background
+                { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
+                    $ColorSet = @{
+                        Failed  = [ConsoleColor]::Red
+                        Passed  = [ConsoleColor]::Green
+                        Skipped = [ConsoleColor]::Gray
+                        Pending = [ConsoleColor]::Cyan
+                        Header  = [ConsoleColor]::Magenta
+                    }
+                }
+                default {
+                    $ColorSet = @{
+                        Failed  = [ConsoleColor]::Red
+                        Passed  = [ConsoleColor]::DarkGreen
+                        Skipped = [ConsoleColor]::Gray
+                        Pending = [ConsoleColor]::Gray
+                        Header  = [ConsoleColor]::Magenta
+                    }
+                }
+
+             }
+
+
+            $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
+        }
+
+        try {
+            $outBuffer = $null
+            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+            {
+                $PSBoundParameters['OutBuffer'] = 1
+            }
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Write-Host', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+            $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
+            $steppablePipeline.Begin($PSCmdlet)
+        } catch {
+            throw
+        }
+    }
+
+    process
+    {
+        if ($Quiet) { return }
+        try {
+            $steppablePipeline.Process($_)
+        } catch {
+            throw
+        }
+    }
+
+    end
+    {
+        if ($Quiet) { return }
+        try {
+            $steppablePipeline.End()
+        } catch {
+            throw
+        }
+    }
 }

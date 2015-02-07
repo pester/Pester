@@ -34,7 +34,7 @@ function Parse-ShouldArgs([array] $shouldArgs) {
 
 function Get-TestResult($shouldArgs, $value) {
     $assertionMethod = $shouldArgs.AssertionMethod
-    $command = Get-Command $assertionMethod -ErrorAction (Get-IgnoreErrorPreference)
+    $command = Get-Command $assertionMethod -ErrorAction $script:IgnoreErrorPreference
 
     if ($null -eq $command)
     {
@@ -59,14 +59,14 @@ function Get-FailureMessage($shouldArgs, $value) {
 
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
-function New-ShouldException ($Message,$Line) {
+function New-ShouldException ($Message, $Line, $LineText) {
     $exception = New-Object Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $null
-    $errorRecord.ErrorDetails = "$Message failed at line: $line"
-
-    $errorRecord
+    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
+    $targetObject = @{message = $Message; line = $line; linetext = $LineText}
+    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    return $errorRecord
 }
 
 function Should {
@@ -83,11 +83,13 @@ function Should {
             $testFailed = Get-TestResult $parsedArgs $value
 
             if ($testFailed) {
+                $ShouldExceptionLineText = $MyInvocation.Line.TrimEnd("`n")
                 $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
+
                 $failureMessage = Get-FailureMessage $parsedArgs $value
 
 
-                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine )
+                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine -LineText $ShouldExceptionLineText)
             }
         } until ($input.MoveNext() -eq $false)
     }

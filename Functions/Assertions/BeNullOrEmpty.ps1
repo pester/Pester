@@ -6,7 +6,8 @@ function PesterBeNullOrEmpty($value) {
     if ([String] -eq $value.GetType()) {
         return [String]::IsNullOrEmpty($value)
     }
-    if ($null -ne $value.Count) {
+    if ($null -ne $value.PSObject.Properties['Count'] -and
+        $null -ne $value.Count) {
         return $value.Count -lt 1
     }
     return $false

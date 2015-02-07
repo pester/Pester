@@ -61,18 +61,14 @@ function InModuleScope
         $ScriptBlock
     )
 
-    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction (Get-IgnoreErrorPreference)))
+    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $PSCmdlet.SessionState
         $script:mockTable = @{}
     }
 
-    $module = Get-Module -Name $ModuleName -ErrorAction SilentlyContinue
-    if ($null -eq $module)
-    {
-        throw "No module named '$ModuleName' is currently loaded."
-    }
+    $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
 
     $originalState = $Pester.SessionState
     $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
@@ -90,4 +86,45 @@ function InModuleScope
         $Pester.SessionState = $originalState
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope
     }
+}
+
+function Get-ScriptModule
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $ModuleName
+    )
+
+    try
+    {
+        $modules = @(Get-Module -Name $ModuleName -All -ErrorAction Stop)
+    }
+    catch
+    {
+        throw "No module named '$ModuleName' is currently loaded."
+    }
+
+    $scriptModules = @($modules | Where-Object { $_.ModuleType -eq 'Script' })
+
+    if ($scriptModules.Count -gt 1)
+    {
+        throw "Multiple Script modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
+    }
+
+    if ($scriptModules.Count -eq 0)
+    {
+        $actualTypes = @(
+            $modules |
+            Where-Object { $_.ModuleType -ne 'Script' } |
+            Select-Object -ExpandProperty ModuleType -Unique
+        )
+
+        $actualTypes = $actualTypes -join ', '
+
+        throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'"
+>>>>>>> master
+    }
+
+    return $scriptModules[0]
 }

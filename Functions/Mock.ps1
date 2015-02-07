@@ -514,7 +514,7 @@ param(
     )
 
     if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
-        throw "Expected ${commandName}${$moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
+        throw "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
     } elseif($qualifiedCalls.Length -lt $times) {
         throw "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($qualifiedCalls.Length) times"
     }
@@ -583,13 +583,18 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
 
-    $scriptBlock = { $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All') }
+    $scriptBlock = {
+        $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
+        while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias)
+        {
+            $command = $command.ResolvedCommand
+        }
+        return $command
+    }
 
     if ($ModuleName) {
-        $module = Microsoft.PowerShell.Core\Get-Module $ModuleName -All |
-                  Sort ModuleType |
-                  Where { ($origCommand = & $_ $scriptBlock $commandName) } |
-                  Select -First 1
+        $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+        $origCommand = & $module $scriptBlock $CommandName
     }
 
     $session = $pester.SessionState
@@ -599,16 +604,12 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         $origCommand = & $scriptBlock $commandName
     }
 
-    if ($origCommand -and $origCommand.CommandType -eq [System.Management.Automation.CommandTypes]::Alias) {
-        $origCommand = $origCommand.ResolvedCommand
-    }
-
     if (-not $origCommand) {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $commandName")
     }
 
     if ($module) {
-        $session = & @($module)[0] { $ExecutionContext.SessionState }
+        $session = & $module { $ExecutionContext.SessionState }
     }
 
     @{Command = $origCommand; Session = $session}
@@ -627,7 +628,16 @@ function MockPrototype {
         $moduleName = $ExecutionContext.SessionState.Module.Name
     }
 
-    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction (Get-IgnoreErrorPreference)
+    if ($PSVersionTable.PSVersion.Major -ge 3)
+    {
+        [string] $IgnoreErrorPreference = 'Ignore'
+    }
+    else
+    {
+        [string] $IgnoreErrorPreference = 'SilentlyContinue'
+    }
+
+    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
     if ($null -eq $ArgumentList) { $ArgumentList = @() }
 
     Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
@@ -837,7 +847,7 @@ function IsCommonParameter
     {
         if ([System.Management.Automation.Internal.CommonParameters].GetProperty($Name)) { return $true }
         if ($Metadata.SupportsShouldProcess -and [System.Management.Automation.Internal.ShouldProcessParameters].GetProperty($Name)) { return $true }
-        if ($Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) { return $true }
+        if ($PSVersionTable.PSVersion.Major -ge 3 -and $Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) { return $true }
         if ($Metadata.SupportsTransactions -and [System.Management.Automation.Internal.TransactionParameters].GetProperty($Name)) { return $true }
     }
 

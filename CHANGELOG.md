@@ -1,7 +1,31 @@
 ## Unreleased
+  - Fix for mocking aliases for commands that are in scopes that Pester can't normally see. [GH-267]
+  - Added line information to test failure output in Should assertion failures. [GH-266]
+  - Added support for passing named parameters or positional arguments to test scripts, and for calling test scripts that are not named *.Tests.ps1.  [GH-272]
+  - Made Pester compliant with StrictMode.  [GH-274]
+  - Improved error message when InModuleScope finds multiple modules loaded with the same name. [GH-276]
+  - Updated build script to allow for custom root folder in the nupkg. [GH-254]
+  - Improved error messages for InModuleScope and Mock -ModuleName when multiple modules with the same name are loaded. Also enabled these commands to work if only one of the loaded modules is a Script module. [GH-278]
+
+## 3.3.5 (January 23, 2015)
+  - Updated tests to allow PRs to be automatically tested, with status updates to GitHub, by our CI server.
+  - Added Snippets directory to the nuget packages, and updated code so the module won't fail to import if Snippets are missing.
+
+## 3.3.4 (January 22, 2015)
+  - No changes; publishing again to fix broken PowerShellGet upload.
+
+## 3.3.2 (January 19, 2015)
+  - Performance Improvements
+
+## 3.3.1 (January 12, 2015)
+  - Import ISESteroids snippets on load
+  - Updated Code Coverage analysis to be compatible with the PowerShell 5.0 AST when analyzing DSC configurations. [GH-249]
+
+## 3.3.0 (January 10, 2015)
   - Validate manifest version, changelog version and tag version
   - Added BeforeAll and AfterAll commands
   - Updated code to take advantage of -ErrorAction Ignore in PowerShell v3+.
+  - Add ISESteroids snippets but do not import them
 
 ## 3.2.0 (December 3, 2014)
   - Added BeGreaterThan and BeLessThan assertions to Should.

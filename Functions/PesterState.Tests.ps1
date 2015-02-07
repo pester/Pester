@@ -2,57 +2,32 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "New-PesterState" {
-        it "Path is mandatory parameter" {
-            (get-command New-PesterState ).Parameters.Path.ParameterSets.__AllParameterSets.IsMandatory | Should Be $true
-        }
-
-        Context "Path parameter is set" {
-            it "sets the path property" {
-                $p = new-pesterstate -path "path"
-                $p.Path | should be  "path"
-            }
-        }
-
-        Context "Path and TestNameFilter parameter is set" {
-            $p = new-pesterstate -path "path" -TestNameFilter "filter"
-
-            it "sets the path property" {
-                $p.Path | should be  "path"
-            }
+        Context "TestNameFilter parameter is set" {
+            $p = new-pesterstate -TestNameFilter "filter"
 
             it "sets the TestNameFilter property" {
                 $p.TestNameFilter | should be "filter"
             }
 
         }
-        Context "Path and TagFilter parameter are set" {
-            $p = new-pesterstate -path "path" -TagFilter "tag","tag2"
-
-            it "sets the path property" {
-                $p.Path | should be  "path"
-            }
+        Context "TagFilter parameter is set" {
+            $p = new-pesterstate -TagFilter "tag","tag2"
 
             it "sets the TestNameFilter property" {
                 $p.TagFilter | should be ("tag","tag2")
             }
         }
-        Context "Path and ExcludeTagFilter parameter are set" {
-            $p = new-pesterstate -path "path" -ExcludeTagFilter "tag3", "tag"
 
-            it "sets the path property" {
-                $p.Path | should be  "path"
-            }
+        Context "ExcludeTagFilter parameter is set" {
+            $p = new-pesterstate -ExcludeTagFilter "tag3", "tag"
 
             it "sets the ExcludeTagFilter property" {
                 $p.ExcludeTagFilter | should be ("tag3", "tag")
             }
-        }        
-        Context "Path, TagFilter and ExcludeTagFilter parameter are set" {
-            $p = new-pesterstate -path "path" -TagFilter "tag","tag2" -ExcludeTagFilter "tag3"
+        }
 
-            it "sets the path property" {
-                $p.Path | should be  "path"
-            }
+        Context "TagFilter and ExcludeTagFilter parameter are set" {
+            $p = new-pesterstate -TagFilter "tag","tag2" -ExcludeTagFilter "tag3"
 
             it "sets the TestNameFilter property" {
                 $p.TagFilter | should be ("tag","tag2")
@@ -62,12 +37,8 @@ InModuleScope Pester {
                 $p.ExcludeTagFilter | should be ("tag3")
             }
         }
-        Context "Path TestNameFilter and TagFilter parameter is set" {
-            $p = new-pesterstate -path "path" -TagFilter "tag","tag2" -testnamefilter "filter"
-
-            it "sets the path property" {
-                $p.Path | should be  "path"
-            }
+        Context "TestNameFilter and TagFilter parameter is set" {
+            $p = new-pesterstate -TagFilter "tag","tag2" -testnamefilter "filter"
 
             it "sets the TestNameFilter property" {
                 $p.TagFilter | should be ("tag","tag2")
@@ -81,7 +52,7 @@ InModuleScope Pester {
     }
 
     Describe "Pester state object" {
-        $p = New-PesterState -Path "Local"
+        $p = New-PesterState
 
         Context "entering describe" {
             It "enters describe" {
@@ -254,7 +225,7 @@ InModuleScope Pester {
         }
 
         Context "Path and TestNameFilter parameter is set" {
-            $strict = New-PesterState -path "path" -Strict
+            $strict = New-PesterState -Strict
 
             It "Keeps Passed state" {
                 $strict.AddTestResult("test","Passed")
