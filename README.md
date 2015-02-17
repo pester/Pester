@@ -66,20 +66,22 @@ Describe "BuildIfChanged" {
 
 Running Tests
 -------------
-    C:\PS>./bin/pester.bat
+    C:\PS> Invoke-Pester
 
-This will run all tests inside of files containing *.Tests.* recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+This will run all tests inside of files named *.Tests.ps1 recursively from the current directory downwards and print a report of all failing and passing tests to the console.
 
 Continuous Integration with Pester
 -----------------------------------
 
-Pester integrates well with almost any build automation solution. You could create a MSBuild target that calls Pester's convenience Batch file:
+Pester integrates well with almost any build automation solution.  There are several options for this integration:
 
-    <Target Name="Tests">
-    <Exec Command="cmd /c $(baseDir)pester\bin\pester.bat" />
-    </Target>
+- The `-OutputFile` parameter allows you to export data about the test execution.  Currently, this parameter allows you to produce NUnit-style XML output, which any modern CI solution should be able to read.
+- The `-PassThru` parameter can be used if your CI solution supports running PowerShell code directly.  After Pester finishes running, check the FailedCount property on the object to determine whether any tests failed, and take action from there.
+- The `-EnableExit` switch causes Pester to exit the current PowerShell session with an error code.  This error code will be the number of failed tests; 0 indicates success.
 
-This will start a powershell session, import the Pester Module and call invoke pester within the current directory. If any test fails, it will return an exit code equal to the number of failed tests and all test 	results will be saved to Test.xml using NUnit's Schema allowing you to plug these results nicely into most Build systems like CruiseControl, [TeamCity](https://github.com/pester/Pester/wiki/Showing-Test-Results-in-TeamCity), TFS or Jenkins.
+As an example, there is also a file named `Pester.bat` in the `bin` folder which shows how you might integrate with a CI solution that does not support running PowerShell directly.  By wrapping a call to Invoke-Pester in a batch file, and making sure that batch file returns a non-zero exit code if any tests fail, you can still use Pester even when limited to commands run from cmd.exe in your CI jobs.
+
+Whenever possible, it's better to run Invoke-Pester directly (either in an interactive PowerShell session, or using CI software that supports running PowerShell steps in jobs.)  This is the method that we test and support in our releases.
 
 Some further reading and resources:
 -----------------------------------
