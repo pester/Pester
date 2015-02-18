@@ -122,7 +122,7 @@ function ItImpl
 
         [Parameter(ParameterSetName = 'Skip')]
         [Switch] $Skip,
-        
+
         $Pester,
         [scriptblock] $OutputScriptBlock
     )
@@ -134,7 +134,7 @@ function ItImpl
     {
         throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
     }
-    
+
     #the function is called with Pending or Skipped set the script block if needed
     if ($null -eq $test) { $test = {} }
 
@@ -284,7 +284,7 @@ function Get-PesterResult {
         $line = $Exception.InvocationInfo.ScriptLineNumber
     }
 
-    $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
+    $testResult.failureMessage = $failureMessage
     $testResult.stackTrace = "at line: $line in $file"
 
     return $testResult
