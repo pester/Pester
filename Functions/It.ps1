@@ -293,7 +293,7 @@ function Get-PesterResult {
         $lineText = ''
     }
 
-    $testResult.failureMessage = $failureMessage -replace "Exception calling", "Assert failed on"
+    $testResult.failureMessage = $failureMessage
     $testResult.stackTrace = "at line: $line in ${file}${lineText}"
 
     return $testResult
