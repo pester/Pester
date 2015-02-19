@@ -232,14 +232,14 @@ function Invoke-Test
     {
         Invoke-TestCaseSetupBlocks
 
-        $PesterException = $null
+        $errorRecord = $null
         try{
             $null = & $ScriptBlock @Parameters
         } catch {
-            $PesterException = $_
+            $errorRecord = $_
         }
 
-        $result = Get-PesterResult -Test $ScriptBlock -Exception $PesterException
+        $result = Get-PesterResult -Test $ScriptBlock -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
     }
@@ -259,7 +259,12 @@ function Invoke-Test
 }
 
 function Get-PesterResult {
-    param([ScriptBlock] $Test, $Time, $Exception)
+    param(
+        [ScriptBlock] $Test,
+        [Nullable[TimeSpan]] $Time,
+        [System.Management.Automation.ErrorRecord] $ErrorRecord
+    )
+
     $testResult = @{
         name = $name
         time = $time
@@ -269,27 +274,28 @@ function Get-PesterResult {
         result = "Failed"
     };
 
-    if(-not $exception)
+    if(-not $ErrorRecord)
     {
         $testResult.Result = "Passed"
         $testResult.success = $true
         return $testResult
     }
 
-    if ($exception.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+    if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
     {
         # we use TargetObject to pass structured information about the error.
-        $details = $exception.TargetObject
+        $details = $ErrorRecord.TargetObject
 
         $failureMessage = $details.message
         $file = $test.File
         $line = $details.line
         $lineText = "`n$line`: $($details.linetext)"
     }
-    else {
-        $failureMessage = $exception.ToString()
-        $file = $Exception.InvocationInfo.ScriptName
-        $line = $Exception.InvocationInfo.ScriptLineNumber
+    else
+    {
+        $failureMessage = $ErrorRecord.ToString()
+        $file = $ErrorRecord.InvocationInfo.ScriptName
+        $line = $ErrorRecord.InvocationInfo.ScriptLineNumber
         $lineText = ''
     }
 

@@ -59,12 +59,12 @@ function Get-FailureMessage($shouldArgs, $value) {
 
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
-function New-ShouldException ($Message, $Line, $LineText) {
+function New-ShouldErrorRecord ([string] $Message, [string] $Line, [string] $LineText) {
     $exception = New-Object Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{message = $Message; line = $line; linetext = $LineText}
+    $targetObject = @{Message = $Message; Line = $Line; LineText = $LineText}
     $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
     return $errorRecord
 }
@@ -83,13 +83,12 @@ function Should {
             $testFailed = Get-TestResult $parsedArgs $value
 
             if ($testFailed) {
-                $ShouldExceptionLineText = $MyInvocation.Line.TrimEnd("`n")
-                $ShouldExceptionLine = $MyInvocation.ScriptLineNumber
+                $lineText = $MyInvocation.Line.TrimEnd("`n")
+                $line = $MyInvocation.ScriptLineNumber
 
                 $failureMessage = Get-FailureMessage $parsedArgs $value
 
-
-                throw ( New-ShouldException -Message $failureMessage -Line $ShouldExceptionLine -LineText $ShouldExceptionLineText)
+                throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
             }
         } until ($input.MoveNext() -eq $false)
     }
