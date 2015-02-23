@@ -255,17 +255,22 @@ about_Mocking
             Metadata                = $metadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
+            FunctionScope           = ''
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
 
         if ($contextInfo.Command.CommandType -eq 'Function')
         {
+            $mock['FunctionScope'] = $contextInfo.Scope
+
             $scriptBlock =
             {
-                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$args"))
+                param ( [string] $CommandName )
+
+                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName"))
                 {
-                    $ExecutionContext.InvokeProvider.Item.Rename("Function:\$args", "script:PesterIsMocking_$args", $true)
+                    $ExecutionContext.InvokeProvider.Item.Rename("Function:\$CommandName", "script:PesterIsMocking_$CommandName", $true)
                 }
             }
 
@@ -541,12 +546,15 @@ function Exit-MockScope {
 
     $scriptBlock =
     {
-        param ([string] $CommandName)
+        param (
+            [string] $CommandName,
+            [string] $Scope
+        )
 
         $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
         if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
         {
-            $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "script:$CommandName", $true)
+            $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "$Scope$CommandName", $true)
         }
     }
 
@@ -559,7 +567,7 @@ function Exit-MockScope {
 
         if ($null -eq $parentScope)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName, $mock.FunctionScope
             $mockTable.Remove($mockKey)
         }
         else
@@ -575,6 +583,7 @@ function Exit-MockScope {
 function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
+    $commandInfo = $null
 
     $scriptBlock = {
         $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
@@ -582,22 +591,45 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         {
             $command = $command.ResolvedCommand
         }
-        return $command
+
+        $properties = @{
+            Command = $command
+        }
+
+        if ($null -ne $command -and $command.CommandType -eq 'Function')
+        {
+            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)") -and
+                (Get-Content "function:\global:$($command.Name)") -eq $command.ScriptBlock)
+            {
+                $properties['Scope'] = 'global:'
+            }
+            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)") -and
+                    (Get-Content "function:\script:$($command.Name)") -eq $command.ScriptBlock)
+            {
+                $properties['Scope'] = 'script:'
+            }
+            else
+            {
+                $properties['Scope'] = ''
+            }
+        }
+
+        return New-Object psobject -Property $properties
     }
 
     if ($ModuleName) {
         $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
-        $origCommand = & $module $scriptBlock $CommandName
+        $commandInfo = & $module $scriptBlock $CommandName
     }
 
     $session = $pester.SessionState
 
-    if (-not $origCommand) {
+    if (-not $commandInfo.Command) {
         Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $session
-        $origCommand = & $scriptBlock $commandName
+        $commandInfo = & $scriptBlock $commandName
     }
 
-    if (-not $origCommand) {
+    if (-not $commandInfo.Command) {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $commandName")
     }
 
@@ -605,7 +637,13 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         $session = & $module { $ExecutionContext.SessionState }
     }
 
-    @{Command = $origCommand; Session = $session}
+    $hash = @{Command = $commandInfo.Command; Session = $session}
+    if ($commandInfo.Command.CommandType -eq 'Function')
+    {
+        $hash['Scope'] = $commandInfo.Scope
+    }
+
+    return $hash
 }
 
 function MockPrototype {
