@@ -8,8 +8,13 @@ if '%1'=='?' goto usage
 if '%1'=='/help' goto usage
 if '%1'=='help' goto usage
 
+SET FILE=Test.xml
+if NOT '%2'=='' SET FILE=%2
+SET FORMAT=NUnitXml
+if NOT '%3'=='' SET FORMAT=%3
+
 @PowerShell -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command ^
- "& Import-Module '%DIR%..\Pester.psm1';  & { Invoke-Pester -OutputXml Test.xml -Strict -EnableExit %ARGS%}"
+ "& Import-Module '%DIR%..\Pester.psm1';  & { Invoke-Pester -OutputFile %FILE% -OutputFormat %FORMAT% -Strict -EnableExit %ARGS%}"
 
 goto finish
 :usage
