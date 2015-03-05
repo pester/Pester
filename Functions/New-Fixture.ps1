@@ -73,7 +73,7 @@ function New-Fixture {
     } else {
         $scriptCode = "function #name# {`r`n`r`n}"
     }
-    
+
     $scriptCode = $scriptCode -replace "#name#",$name
 
     $userTestTemplatePath = Join-Path -Path $env:USERPROFILE -ChildPath "Documents\WindowsPowerShell\Pester\NewFixtureTestTemplate.ps1"
