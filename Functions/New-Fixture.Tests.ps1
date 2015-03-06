@@ -110,8 +110,7 @@ Describe "New-Fixture" {
 
             $testFilePath | Should Exist
 
-            $expectedTestFileContent = @'
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+            $expectedTestFileContent = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
@@ -119,12 +118,11 @@ Describe "#name#" {
     It "does something useful" {
         $true | Should Be $false
     }
-}
-
-'@
+}'
             $expectedTestFileContent = $expectedTestFileContent -replace "#name#",$name
+			Set-Content -Path TestDrive:\ExpectedContent.txt -Value $expectedTestFileContent -Encoding UTF8
 
-            [System.IO.File]::ReadAllText( (Get-Item $testFilePath).FullName ) | Should Be ($expectedTestFileContent)
+            [System.IO.File]::ReadAllText( (Get-Item $testFilePath).FullName ) | Should Be ([System.IO.File]::ReadAllText( (Get-Item "TestDrive:\ExpectedContent.txt").FullName))
         }
     }
 
