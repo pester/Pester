@@ -234,7 +234,10 @@ function Invoke-Test
 
         $errorRecord = $null
         try{
-            $null = & $ScriptBlock @Parameters
+            do
+            {
+                $null = & $ScriptBlock @Parameters
+            } until ($true)
         } catch {
             $errorRecord = $_
         }

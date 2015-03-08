@@ -205,7 +205,10 @@ about_pester
     {
         try
         {
-            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+            do
+            {
+                & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+            } until ($true)
         }
         catch
         {
@@ -268,7 +271,7 @@ function ResolveTestScripts
             {
                 $unresolvedPath = [string] $object
                 $arguments      = @()
-                $parameters     = @{}            
+                $parameters     = @{}
             }
 
             if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
