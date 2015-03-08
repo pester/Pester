@@ -1,7 +1,7 @@
 ﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath   = "$here\Pester.psd1"
-$changellogPath = "$here\CHANGELOG.md"
+$changeLogPath = "$here\CHANGELOG.md"
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
 
@@ -28,7 +28,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:changelogVersion = $null
     It "has a valid version in the changelog" {
 
-        foreach ($line in (Get-Content $changellogPath))
+        foreach ($line in (Get-Content $changeLogPath))
         {
             if ($line -match "^\D*(?<Version>(\d+\.){1,3}\d+)")
             {

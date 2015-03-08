@@ -6,6 +6,7 @@
   - Improved error message when InModuleScope finds multiple modules loaded with the same name. [GH-276]
   - Updated build script to allow for custom root folder in the nupkg. [GH-254]
   - Improved error messages for InModuleScope and Mock -ModuleName when multiple modules with the same name are loaded. Also enabled these commands to work if only one of the loaded modules is a Script module. [GH-278]
+  - Added some graceful handling of test code that has a misplaced break or continue statement. [GH-290]
 
 ## 3.3.5 (January 23, 2015)
   - Updated tests to allow PRs to be automatically tested, with status updates to GitHub, by our CI server.

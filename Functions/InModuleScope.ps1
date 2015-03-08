@@ -79,7 +79,10 @@ function InModuleScope
 
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $module.SessionState
 
-        & $ScriptBlock
+        do
+        {
+            & $ScriptBlock
+        } until ($true)
     }
     finally
     {
