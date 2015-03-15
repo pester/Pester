@@ -3,6 +3,12 @@
 $manifestPath   = "$here\Pester.psd1"
 $changeLogPath = "$here\CHANGELOG.md"
 
+Describe 'Testing pester.bat' {
+    It 'Deliberately fails' {
+        $true | Should Be $false
+    }
+}
+
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
 
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
