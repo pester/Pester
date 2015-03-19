@@ -1,4 +1,4 @@
-## 3.3.6 (Marth 19, 2015)
+## 3.3.6 (March 19, 2015)
   - Fix for mocking aliases for commands that are in scopes that Pester can't normally see. [GH-267]
   - Added line information to test failure output in Should assertion failures. [GH-266]
   - Added support for passing named parameters or positional arguments to test scripts, and for calling test scripts that are not named *.Tests.ps1.  [GH-272]
