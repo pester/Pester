@@ -1010,11 +1010,22 @@ function Get-DynamicParametersForCmdlet
 
     try
     {
-        $cmdlet.GetDynamicParameters()
+        # This unary comma is important in some cases.  On Windows 7 systems, the ActiveDirectory module cmdlets
+        # return objects from this method which implement IEnumerable for some reason, and even cause PowerShell
+        # to throw an exception when it tries to cast the object to that interface.
+
+        # We avoid that problem by wrapping the result of GetDynamicParameters() in a one-element array with the
+        # unary comma.  PowerShell enumerates that array instead of trying to enumerate the goofy object, and
+        # everyone's happy.
+
+        # Love the comma.  Don't delete it.  We don't have a test for this yet, unless we can get the AD module
+        # on a Server 2008 R2 build server, or until we write some C# code to reproduce its goofy behavior.
+
+        ,$cmdlet.GetDynamicParameters()
     }
     catch [System.NotImplementedException]
     {
-        #ignore the exception
+        # Some cmdlets implement IDynamicParameters but then throw a NotImplementedException.  I have no idea why.  Ignore them.
     }
 }
 

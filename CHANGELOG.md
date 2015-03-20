@@ -1,3 +1,6 @@
+## Unreleased
+  - Added workaround for GetDynamicParameters() bug that was affecting mocks on the ActiveDirectory module in Windows 7. [GH-295]
+
 ## 3.3.6 (March 19, 2015)
   - Fix for mocking aliases for commands that are in scopes that Pester can't normally see. [GH-267]
   - Added line information to test failure output in Should assertion failures. [GH-266]
