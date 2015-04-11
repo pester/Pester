@@ -2,7 +2,7 @@ TOPIC
 	Should
 
 SYNOPSIS
-	Provides assertion convenience methods for comapring objects and throwing 
+	Provides assertion convenience methods for comparing objects and throwing 
 	test failures when test expectations fail.
 
 DESCRIPTION
@@ -21,41 +21,94 @@ SHOULD MEMBERS
 		Compares one object with another for equality and throws if the two 
 		objects are not the same.
 
-		C:\PS>$actual="actual value"
-		C:\PS>$actual.Should.Be("actual value") #Nothing happens
-		C:\PS>$actual.Should.Be("not actual value") #A Pester Failure is thrown
+        $actual="Actual value"
+        $actual | Should Be "actual value" # Test will pass
+        $actual | Should Be "not actual value"  # Test will fail
 
-	Have_Count_Of
-		Intended for comparing IEnumerables for the number of elements. However, 
-		if both objects being compared do not implement IEnumerable then the 
-		comparison will pass since both objects will be treated as though they 
-		have a count of 1. As of Powershell version 3, a $null object compared 
-		to a non null object will fail. They will pass in version 2.0.
+    BeExactly
+        Compares one object with another for equality and throws if the two objects are not the same.  This comparison is case sensitive.
 
-		C:\PS>$actual=@(1,2,3)
-		C:\PS>$actual.Should.Have_Count_Of(@(3,2)) #Will fail
+        $actual="Actual value"
+        $actual | Should BeExactly "Actual value" # Test will pass
+        $actual | Should BeExactly "actual value" # Test will fail
+        
+    BeGreaterThan
+        Asserts that a number is greater than an expected value. Uses PowerShell's -gt operator to compare the two values.
+        
+        $Error.Count | Should BeGreaterThan 0
+
+    BeLessThan
+        Asserts that a number is less than an expected value. Uses PowerShell's -gt operator to compare the two values.
+        
+        $Error.Count | Should BeLessThan 1
 
 	Exist
 		Does not perform any comparison but checks if the object calling Exist 
 		is presnt in a PS Provider. The object must have valid path syntax. It 
 		essentially must pass a Test-Path call.
 
-		C:\PS>$actual=(Dir . )[0].FullName
-		C:\PS>Remove-Item $actual
-		C:\PS>$actual.Should.Exist #Will fail
+        $actual=(Dir . )[0].FullName
+        Remove-Item $actual
+        $actual | Should Exist # Test will fail
 
-	Match
-		Uses a regular expression to compare two objects.
+    Contain
+        Checks to see if a file contains the specified text.  This search is not case sensitive and uses regular expressions. 
+        
+        Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
+        'TestDrive:\file.txt' | Should Contain 'I Am' # Test will pass
+        'TestDrive:\file.txt' | Should Contain '^I.*file$' # Test will pass
 
-		C:\PS>"I am a value".Should.Match("I am") #Passes
-		C:\PS>"I am a value".Should.Match("I am a bad person") #will fail
+        'TestDrive:\file.txt' | Should Contain 'I Am Not' # Test will fail
 
-	Like
+        Tip: Use [regex]::Escape("pattern") to match the exact text.
+	    
+        Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
+        'TestDrive:\file.txt' | Should Contain 'I.am.a.file' # Test will pass
+        'TestDrive:\file.txt' | Should Contain ([regex]::Escape('I.am.a.file')) # Test will fail
 
-		Performs a wildcard based comparison.
+    ContainExactly
+        Checks to see if a file contains the specified text.  This search is case sensitive and uses regular expressions to match the text.
 
-		C:\PS>"I am a value".Should.Match("I am*") #Passes
-		C:\PS>"I am a value".Should.Match("*I am") #will fail
+        Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
+        'TestDrive:\file.txt' | Should Contain 'I am' # Test will pass
+        'TestDrive:\file.txt' | Should Contain 'I Am' # Test will fail
+
+    Match
+		Uses a regular expression to compare two objects. This comparison is not case sensitive.
+
+        "I am a value" | Should Match "I Am" # Test will pass
+        "I am a value" | Should Match "I am a bad person" # Test will fail
+
+        Tip: Use [regex]::Escape("pattern") to match the exact text.
+
+        "Greg" | Should Match ".reg" # Test will pass
+        "Greg" | Should Match ([regex]::Escape(".reg")) # Test will fail
+
+    MatchExactly
+        Uses a regular expression to compare two objects.  This comparison is case sensitive.
+
+        "I am a value" | Should MatchExactly "I am" # Test will pass
+        "I am a value" | Should MatchExactly "I Am" # Test will fail
+
+    Throw
+        Checks if an exception was thrown in the input ScriptBlock.
+
+        { foo } | Should Throw # Test will pass
+        { $foo = 1 } | Should Throw # Test will fail
+        { foo } | Should Not Throw # Test will fail
+        { $foo = 1 } | Should Not Throw # Test will pass
+
+        Warning: The input object must be a ScriptBlock, otherwise it is processed outside of the assertion.
+
+        Get-Process -Name "process" -ErrorAction Stop | Should Throw # Should pass, but the exception thrown by Get-Process causes the test to fail.
+
+    BeNullOrEmpty
+        Checks values for null or empty (strings). The static [String]::IsNullOrEmpty() method is used to do the comparison.
+
+        $null | Should BeNullOrEmpty # Test will pass
+        $null | Should Not BeNullOrEmpty # Test will fail
+        @()   | Should BeNullOrEmpty # Test will pass
+        ""    | Should BeNullOrEmpty # Test will pass
 
 USING SHOULD IN A TEST
 
@@ -67,7 +120,7 @@ USING SHOULD IN A TEST
 
 	    It "adds positive numbers" {
 	        $sum = Add-Numbers 2 3
-	        $sum.should.be(3)
+	        $sum | should be 3
 	    }
 	}
 
@@ -75,4 +128,5 @@ USING SHOULD IN A TEST
 
 SEE ALSO
 	Describe
+    Context
 	It

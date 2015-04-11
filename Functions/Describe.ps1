@@ -1,18 +1,23 @@
 function Describe {
 <#
 .SYNOPSIS
-Defines the context bounds of a test. One may use this block to 
-encapsulate a scenario for testing - a set of conditions assumed
-to be present and that should lead to various expected results
-represented by the IT blocks.
+Creates a logical group of tests.  All Mocks and TestDrive contents
+defined within a Describe block are scoped to that Describe; they
+will no longer be present when the Describe block exits.  A Describe
+block may contain any number of Context and It blocks.
 
 .PARAMETER Name
-The name of the Test. This is often an expressive phsae describing the scenario being tested.
+The name of the test group. This is often an expressive phrase describing the scenario being tested.
 
 .PARAMETER Fixture
-The actual test script. If you are following the AAA pattern (Arrange-Act-Assert), this 
-typically holds the arrange and act sections. The Asserts will also lie in this block but are 
-typically nested each in its own IT block.
+The actual test script. If you are following the AAA pattern (Arrange-Act-Assert), this
+typically holds the arrange and act sections. The Asserts will also lie in this block but are
+typically nested each in its own It block. Assertions are typically performed by the Should
+command within the It blocks.
+
+.PARAMETER Tags
+Optional parameter containing an array of strings.  When calling Invoke-Pester, it is possible to
+specify a -Tag parameter which will only execute Describe blocks containing the same Tag.
 
 .EXAMPLE
 function Add-Numbers($a, $b) {
@@ -20,64 +25,103 @@ function Add-Numbers($a, $b) {
 }
 
 Describe "Add-Numbers" {
-
     It "adds positive numbers" {
         $sum = Add-Numbers 2 3
-        $sum.should.be(5)
+        $sum | Should Be 5
     }
 
     It "adds negative numbers" {
         $sum = Add-Numbers (-2) (-2)
-        $sum.should.be((-4))
+        $sum | Should Be (-4)
     }
 
     It "adds one negative number to positive number" {
         $sum = Add-Numbers (-2) 2
-        $sum.should.be(0)
+        $sum | Should Be 0
     }
 
     It "concatenates strings if given strings" {
         $sum = Add-Numbers two three
-        $sum.should.be("twothree")
+        $sum | Should Be "twothree"
     }
-
 }
 
 .LINK
 It
 Context
 Invoke-Pester
+about_Should
+about_Mocking
 about_TestDrive
 
 #>
 
-param(
-        [Parameter(Mandatory = $true, Position = 0)] $name,
-        $tags=@(),
-        [Parameter(Mandatory = $true, Position = 1)]
-        [ScriptBlock] $fixture
-)
-    $pester.Scope = "Describe"
-    if($testName -ne '' -and $testName.ToLower() -ne $name.ToLower()) {return}
-    if($pester.arr_testTags -ne '' -and @(Compare-Object $tags $pester.arr_testTags -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $Name,
+        $Tags=@(),
+        [Parameter(Position = 1)]
+        [ValidateNotNull()]
+        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+    )
 
-    Setup
-
-    $pester.results = Get-GlobalTestResults
-    $pester.margin = " " * $pester.results.TestDepth
-    $pester.results.TestDepth += 1
-    $pester.results.CurrentDescribe = @{
-        name = $name
-        Tests = @()
+    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    {
+        # User has executed a test script directly instead of calling Invoke-Pester
+        $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
+        $script:mockTable = @{}
     }
 
-    $pester.output = $pester.margin + "Describing " + $name
-    Write-Host -fore yellow $($pester.output)
-    & $fixture
+    if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
+    {
+        #skip this test
+        return
+    }
 
-    $pester.Scope = "Describe" #may have been switched to context
-    Cleanup
-    $pester.results.Describes += $pester.results.CurrentDescribe
-    $pester.results.TestDepth -= 1
+    #TODO add test to test tags functionality
+    if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+    if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+
+    $Pester.EnterDescribe($Name)
+
+    $Pester.CurrentDescribe | Write-Describe
+    $testDriveAdded = $false
+
+    try
+    {
+        New-TestDrive
+        $testDriveAdded = $true
+
+        Add-SetupAndTeardown -ScriptBlock $Fixture
+        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
+
+        do
+        {
+            $null = & $Fixture
+        } until ($true)
+    }
+    catch
+    {
+        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
+        $Pester.AddTestResult('Error occurred in Describe block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+        $Pester.TestResult[-1] | Write-PesterResult
+    }
+    finally
+    {
+        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        if ($testDriveAdded) { Remove-TestDrive }
+    }
+
+    Clear-SetupAndTeardown
+    Exit-MockScope
+    $Pester.LeaveDescribe()
 }
 
+function Assert-DescribeInProgress
+{
+    param ($CommandName)
+    if ($null -eq $Pester -or [string]::IsNullOrEmpty($Pester.CurrentDescribe))
+    {
+        throw "The $CommandName command may only be used inside a Describe block."
+    }
+}

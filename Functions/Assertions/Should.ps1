@@ -1,24 +1,48 @@
-
 function Parse-ShouldArgs([array] $shouldArgs) {
-    $parsedArgs = @{ PositiveAssertion = $true }
+    if ($null -eq $shouldArgs) { $shouldArgs = @() }
+
+    $parsedArgs = @{
+        PositiveAssertion = $true
+        ExpectedValue = $null
+    }
 
     $assertionMethodIndex = 0
     $expectedValueIndex   = 1
 
-    if ($shouldArgs[0].ToLower() -eq "not") {
+    if ($shouldArgs.Count -gt 0 -and $shouldArgs[0].ToLower() -eq "not") {
         $parsedArgs.PositiveAssertion = $false
         $assertionMethodIndex += 1
         $expectedValueIndex   += 1
     }
 
-    $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
-    $parsedArgs.AssertionMethod = "Pester$($shouldArgs[$assertionMethodIndex])"
+    if ($assertionMethodIndex -lt $shouldArgs.Count)
+    {
+        $parsedArgs.AssertionMethod = "Pester$($shouldArgs[$assertionMethodIndex])"
+    }
+    else
+    {
+        throw 'You cannot call Should without specifying an assertion method.'
+    }
+
+    if ($expectedValueIndex -lt $shouldArgs.Count)
+    {
+        $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
+    }
 
     return $parsedArgs
 }
 
 function Get-TestResult($shouldArgs, $value) {
-    $testResult = (& $shouldArgs.AssertionMethod $value $shouldArgs.ExpectedValue)
+    $assertionMethod = $shouldArgs.AssertionMethod
+    $command = Get-Command $assertionMethod -ErrorAction $script:IgnoreErrorPreference
+
+    if ($null -eq $command)
+    {
+        $assertionMethod = $assertionMethod -replace '^Pester'
+        throw "'$assertionMethod' is not a valid Should operator."
+    }
+
+    $testResult = (& $assertionMethod $value $shouldArgs.ExpectedValue)
 
     if ($shouldArgs.PositiveAssertion) {
         return -not $testResult
@@ -35,9 +59,19 @@ function Get-FailureMessage($shouldArgs, $value) {
 
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
+function New-ShouldErrorRecord ([string] $Message, [string] $Line, [string] $LineText) {
+    $exception = New-Object Exception $Message
+    $errorID = 'PesterAssertionFailed'
+    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
+    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
+    $targetObject = @{Message = $Message; Line = $Line; LineText = $LineText}
+    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    return $errorRecord
+}
 
 function Should {
     begin {
+        Assert-DescribeInProgress -CommandName Should
         $parsedArgs = Parse-ShouldArgs $args
     }
 
@@ -49,10 +83,13 @@ function Should {
             $testFailed = Get-TestResult $parsedArgs $value
 
             if ($testFailed) {
-                $pester.ShouldExceptionLine = $MyInvocation.ScriptLineNumber
-                throw (Get-FailureMessage $parsedArgs $value)
+                $lineText = $MyInvocation.Line.TrimEnd("`n")
+                $line = $MyInvocation.ScriptLineNumber
+
+                $failureMessage = Get-FailureMessage $parsedArgs $value
+
+                throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
             }
         } until ($input.MoveNext() -eq $false)
     }
 }
-

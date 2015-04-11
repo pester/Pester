@@ -1,130 +1,423 @@
-$scriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
-function Get-GlobalTestResults {
-    if ($pester.testResults -ne $null) {
-        return $pester.testResults
-    }
-
-    $pester.testResults = @{}
-    $pester.testResults.Describes = @();
-    $pester.testResults.CurrentDescribe = @{ name = ''; Tests = @() }
-    $pester.testResults.TestCount = 0
-    $pester.testResults.FailedTestsCount = 0
-    $pester.testResults.TestDepth = 0
-    $pester.testResults.TotalTime = 0;
-
-    return $pester.testResults
-}
-
-function Reset-GlobalTestResults {
-    $pester.testResults = $null
-}
-
-function Write-TestReport {
-    $results = $pester.testResults
-    Write-Host "Tests completed in $(Get-HumanTime $results.TotalTime)"
-    Write-Host "Passed: $($results.TestCount - $results.FailedTestsCount) Failed: $($results.FailedTestsCount)"
-}
-
-function Get-HumanTime($seconds) {
-    if($seconds -gt 0.99) {
-        $time = [math]::Round($seconds, 2)
-        $unit = "s"
+function Get-HumanTime($Seconds) {
+    if($Seconds -gt 0.99) {
+        $time = [math]::Round($Seconds, 2)
+        $unit = 's'
     }
     else {
-        $time = [math]::Floor($seconds * 1000)
-        $unit = "ms"
+        $time = [math]::Floor($Seconds * 1000)
+        $unit = 'ms'
     }
     return "$time$unit"
 }
 
-function Write-NunitTestReport($results, $outputFile) {
-    if($results -eq $null) {
-        return;
-    }
-    $report = @{
-        runDate = (Get-Date -format "yyyy-MM-dd")
-        runTime = (Get-Date -format "HH:mm:ss")
-        total = 0;
-        failures = 0;
+function GetFullPath ([string]$Path) {
+    if (-not [System.IO.Path]::IsPathRooted($Path))
+    {
+        $Path = Join-Path $ExecutionContext.SessionState.Path.CurrentFileSystemLocation $Path
     }
 
-    $report.total = $results.TestCount
-    $report.failures = $results.FailedTestsCount
-    $report.TestSuites = (Get-TestSuites $results.Describes)
-    $report.testCases = (Get-TestResults $results.Tests)
-    $report.Environment = (Get-RunTimeEnvironment)
-    Invoke-Template 'TestResults.template.xml' $report | Set-Content $outputFile -force
+    return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 }
 
-function Get-TestSuites($describes) {
-    $testSuites = ( $describes | %{
-        $suite = @{  
-            resultMessage = "Failure"
-            totalTime = "0.0"
-            name = $_.name
-        }
-        $suite.testCases = (Get-TestResults $_.Tests)  
-        $suite.totalTime = (Get-TestTime $_.Tests)
-        $suite.success = (Get-TestSuccess $_.Tests)
-        if($suite.success -eq "True") 
+function Export-PesterResults
+{
+    param (
+        $PesterState,
+        [string] $Path,
+        [string] $Format
+    )
+
+    switch ($Format)
+    {
+        'LegacyNUnitXml' { Export-NUnitReport -PesterState $PesterState -Path $Path -LegacyFormat }
+        'NUnitXml'       { Export-NUnitReport -PesterState $PesterState -Path $Path }
+
+        default
         {
-            $suite.resultMessage = "Success" 
+            throw "'$Format' is not a valid Pester export format."
         }
-        Invoke-Template 'TestSuite.template.xml' $suite
-    })
-    return $testSuites
+    }
+}
+function Export-NUnitReport {
+    param (
+        [parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        $PesterState,
+
+        [parameter(Mandatory=$true)]
+        [String]$Path,
+
+        [switch] $LegacyFormat
+    )
+
+    #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
+    #be different from what PowerShell sees as the current directory so I have to resolve the path beforehand
+    #working around the limitations of Resolve-Path
+
+    $Path = GetFullPath -Path $Path
+
+    $settings = New-Object -TypeName Xml.XmlWriterSettings -Property @{
+        Indent = $true
+        NewLineOnAttributes = $false
+    }
+
+    $xmlWriter = $null
+    try {
+        $xmlWriter = [Xml.XmlWriter]::Create($Path,$settings)
+
+        Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState -LegacyFormat:$LegacyFormat
+
+        $xmlWriter.Flush()
+    }
+    finally
+    {
+        if ($null -ne $xmlWriter) {
+            try { $xmlWriter.Close() } catch {}
+        }
+    }
+}
+
+function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    # Write the XML Declaration
+    $XmlWriter.WriteStartDocument($false)
+
+    # Write Root Element
+    $xmlWriter.WriteStartElement('test-results')
+
+    Write-NUnitTestResultAttributes @PSBoundParameters
+    Write-NUnitTestResultChildNodes @PSBoundParameters
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    $XmlWriter.WriteAttributeString('xmlns','xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
+    $XmlWriter.WriteAttributeString('xsi','noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
+    $XmlWriter.WriteAttributeString('name','Pester')
+    $XmlWriter.WriteAttributeString('total', $PesterState.TotalCount)
+    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('failures', $PesterState.FailedCount)
+    $XmlWriter.WriteAttributeString('not-run', '0')
+    $XmlWriter.WriteAttributeString('inconclusive', $PesterState.PendingCount)
+    $XmlWriter.WriteAttributeString('ignored', '0')
+    $XmlWriter.WriteAttributeString('skipped', $PesterState.SkippedCount)
+    $XmlWriter.WriteAttributeString('invalid', '0')
+    $date = Get-Date
+    $XmlWriter.WriteAttributeString('date', (Get-Date -Date $date -Format 'yyyy-MM-dd'))
+    $XmlWriter.WriteAttributeString('time', (Get-Date -Date $date -Format 'HH:mm:ss'))
+}
+
+function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    Write-NUnitEnvironmentInformation @PSBoundParameters
+    Write-NUnitCultureInformation @PSBoundParameters
+
+    $XmlWriter.WriteStartElement('test-suite')
+    Write-NUnitGlobalTestSuiteAttributes @PSBoundParameters
+
+    $XmlWriter.WriteStartElement('results')
+
+    Write-NUnitDescribeElements @PSBoundParameters
+
+    $XmlWriter.WriteEndElement()
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    $XmlWriter.WriteStartElement('environment')
+
+    $environment = Get-RunTimeEnvironment
+    foreach ($keyValuePair in $environment.GetEnumerator()) {
+        $XmlWriter.WriteAttributeString($keyValuePair.Name, $keyValuePair.Value)
+    }
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    $XmlWriter.WriteStartElement('culture-info')
+
+    $XmlWriter.WriteAttributeString('current-culture', ([System.Threading.Thread]::CurrentThread.CurrentCulture).Name)
+    $XmlWriter.WriteAttributeString('current-uiculture', ([System.Threading.Thread]::CurrentThread.CurrentUiCulture).Name)
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    $XmlWriter.WriteAttributeString('type', 'Powershell')
+
+    # TODO: This used to be writing $PesterState.Path, back when that was a single string (and existed.)
+    #       Better would be to produce a test suite for each resolved file, rather than for the value
+    #       of the path that was passed to Invoke-Pester.
+
+    $XmlWriter.WriteAttributeString('name', 'Pester')
+    $XmlWriter.WriteAttributeString('executed', 'True')
+
+    $isSuccess = $PesterState.FailedCount -eq 0
+    $result = Get-ParentResult $PesterState
+    $XmlWriter.WriteAttributeString('result', $result)
+    $XmlWriter.WriteAttributeString('success',[string]$isSuccess)
+    $XmlWriter.WriteAttributeString('time',(Convert-TimeSpan $PesterState.Time))
+    $XmlWriter.WriteAttributeString('asserts','0')
+}
+
+function Write-NUnitDescribeElements($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
+{
+    $Describes = $PesterState.TestResult | Group-Object -Property Describe
+    if ($null -ne $Describes)
+    {
+        foreach ($currentDescribe in $Describes)
+        {
+            $DescribeInfo = Get-TestSuiteInfo $currentDescribe
+
+            #Write test suites
+            $XmlWriter.WriteStartElement('test-suite')
+
+            if ($LegacyFormat) { $suiteType = 'PowerShell' } else { $suiteType = 'TestFixture' }
+
+            Write-NUnitTestSuiteAttributes -TestSuiteInfo $DescribeInfo -TestSuiteType $suiteType -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat
+
+            $XmlWriter.WriteStartElement('results')
+
+            Write-NUnitDescribeChildElements -TestResults $currentDescribe.Group -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeInfo.Name
+
+            $XmlWriter.WriteEndElement()
+            $XmlWriter.WriteEndElement()
+        }
+    }
+}
+
+function Get-TestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo]$TestSuiteGroup)
+{
+    $suite = @{
+        resultMessage = 'Failure'
+        success = 'False'
+        totalTime = '0.0'
+        name = $TestSuiteGroup.Name
+        description = $TestSuiteGroup.Name
+    }
+
+    #calculate the time first, I am converting the time into string in the TestCases
+    $suite.totalTime = (Get-TestTime $TestSuiteGroup.Group)
+    $suite.success = (Get-TestSuccess $TestSuiteGroup.Group)
+    $suite.resultMessage = Get-GroupResult $TestSuiteGroup.Group
+    $suite
 }
 
 function Get-TestTime($tests) {
-    $totalTime = 0;
-    $tests | %{
-        $totalTime += $_.time
+    [TimeSpan]$totalTime = 0;
+    if ($tests)
+    {
+        foreach ($test in $tests)
+        {
+            $totalTime += $test.time
+        }
     }
-    return $totalTime;
-}
 
+    Convert-TimeSpan -TimeSpan $totalTime
+}
+function Convert-TimeSpan {
+    param (
+        [Parameter(ValueFromPipeline=$true)]
+        $TimeSpan
+    )
+    process {
+        if ($TimeSpan) {
+            [string][math]::round(([TimeSpan]$TimeSpan).totalseconds,4)
+        }
+        else
+        {
+            '0'
+        }
+    }
+}
 function Get-TestSuccess($tests) {
-    $success = "True"
-    $tests | %{
-        if($_.success -eq $false) {
-            $success = "False"
+    $result = $true
+    if ($tests)
+    {
+        foreach ($test in $tests) {
+            if (-not $test.Passed) {
+                $result = $false
+                break
+            }
         }
     }
-    return $success;
+    [String]$result
+}
+function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [System.Xml.XmlWriter] $XmlWriter, [string] $TestSuiteType, [switch] $LegacyFormat)
+{
+    $XmlWriter.WriteAttributeString('type', $TestSuiteType)
+    $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
+    $XmlWriter.WriteAttributeString('executed', 'True')
+    $XmlWriter.WriteAttributeString('result', $TestSuiteInfo.resultMessage)
+    $XmlWriter.WriteAttributeString('success', $TestSuiteInfo.success)
+    $XmlWriter.WriteAttributeString('time',$TestSuiteInfo.totalTime)
+    $XmlWriter.WriteAttributeString('asserts','0')
+
+    if (-not $LegacyFormat)
+    {
+        $XmlWriter.WriteAttributeString('description', $TestSuiteInfo.Description)
+    }
 }
 
-function Get-TestResults($tests) {
-    $testCaseXmls = $tests | %{ 
-        $result = $_
-        if($result.success) {
-            Invoke-Template 'TestCaseSuccess.template.xml' $result
+function Write-NUnitDescribeChildElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat, [string] $DescribeName)
+{
+    $suites = $TestResults | Group-Object -Property ParameterizedSuiteName
+
+    foreach ($suite in $suites)
+    {
+        if ($suite.Name)
+        {
+            $suiteInfo = Get-TestSuiteInfo -TestSuiteGroup $suite
+
+            $XmlWriter.WriteStartElement('test-suite')
+
+            if (-not $LegacyFormat)
+            {
+                $suiteInfo.Name = "$DescribeName.$($suiteInfo.Name)"
+            }
+
+            Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat
+
+            $XmlWriter.WriteStartElement('results')
         }
-        else {
-            Invoke-Template  'TestCaseFailure.template.xml' $result
+
+        Write-NUnitTestCaseElements -TestResults $suite.Group -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeName -ParameterizedSuiteName $suite.Name
+
+        if ($suite.Name)
+        {
+            $XmlWriter.WriteEndElement()
+            $XmlWriter.WriteEndElement()
         }
     }
-    return $testCaseXmls
 }
 
+function Write-NUnitTestCaseElements([object[]] $TestResults, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat, [string] $DescribeName, [string] $ParameterizedSuiteName)
+{
+    foreach ($testResult in $TestResults)
+    {
+        $XmlWriter.WriteStartElement('test-case')
+
+        Write-NUnitTestCaseAttributes -TestResult $testResult -XmlWriter $XmlWriter -LegacyFormat:$LegacyFormat -DescribeName $DescribeName -ParameterizedSuiteName $ParameterizedSuiteName
+
+        $XmlWriter.WriteEndElement()
+    }
+}
+
+function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat, [string] $DescribeName, [string] $ParameterizedSuiteName)
+{
+    $testName = $TestResult.Name
+
+    if (-not $LegacyFormat)
+    {
+        if ($testName -eq $ParameterizedSuiteName)
+        {
+            $paramString = ''
+            if ($null -ne $TestResult.Parameters)
+            {
+                $params = @(
+                    foreach ($value in $TestResult.Parameters.Values)
+                    {
+                        if ($null -eq $value)
+                        {
+                            'null'
+                        }
+                        elseif ($value -is [string])
+                        {
+                            '"{0}"' -f $value
+                        }
+                        else
+                        {
+                            #do not use .ToString() it uses the current culture settings
+                            #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
+                            [string]$value
+                        }
+                    }
+                )
+
+                $paramString = $params -join ','
+            }
+
+            $testName = "$testName($paramString)"
+        }
+
+        $testName = "$DescribeName.$testName"
+
+        $XmlWriter.WriteAttributeString('description', $TestResult.Name)
+    }
+
+    $XmlWriter.WriteAttributeString('name', $testName)
+    $XmlWriter.WriteAttributeString('executed', 'True')
+    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Time))
+    $XmlWriter.WriteAttributeString('asserts', '0')
+    $XmlWriter.WriteAttributeString('success', $TestResult.Passed)
+
+    switch ($TestResult.Result)
+    {
+        Passed
+        {
+            $XmlWriter.WriteAttributeString('result', 'Success')
+            break
+        }
+        Skipped
+        {
+            $XmlWriter.WriteAttributeString('result', 'Skipped')
+            break
+        }
+        Pending
+        {
+            $XmlWriter.WriteAttributeString('result', 'Inconclusive')
+            break
+        }
+        Failed
+        {
+            $XmlWriter.WriteAttributeString('result', 'Failure')
+            $XmlWriter.WriteStartElement('failure')
+            $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+            $XmlWriter.WriteElementString('stack-trace', $TestResult.StackTrace)
+            $XmlWriter.WriteEndElement() # Close failure tag
+            break
+        }
+    }
+}
 function Get-RunTimeEnvironment() {
     $osSystemInformation = (Get-WmiObject Win32_OperatingSystem)
-    $currentCulture = ([System.Threading.Thread]::CurrentThread.CurrentCulture).Name
-    $data = @{
-        osVersion = $osSystemInformation.Version
+    @{
+        'nunit-version' = '2.5.8.0'
+        'os-version' = $osSystemInformation.Version
         platform = $osSystemInformation.Name
-        runPath = (Get-Location).Path
-        machineName = $env:ComputerName
-        userName = $env:Username
-        userDomain = $env:userDomain
-        currentCulture = $currentCulture
+        cwd = (Get-Location).Path #run path
+        'machine-name' = $env:ComputerName
+        user = $env:Username
+        'user-domain' = $env:userDomain
+        'clr-version' = [string]$PSVersionTable.ClrVersion
     }
-    return Invoke-Template 'TestEnvironment.template.xml' $data
 }
 
-
-
-function Exit-WithCode {
-    $failedTestsCount = $Pester.TestResults.FailedTestsCount
-    $host.SetShouldExit($failedTestsCount)
+function Exit-WithCode ($FailedCount) {
+    $host.SetShouldExit($FailedCount)
 }
 
+function Get-ParentResult ($InputObject)
+{
+    #I am not sure about the result precedence, and can't find any good source
+    #TODO: Confirm this is the correct order of precedence
+    if ($inputObject.FailedCount  -gt 0) { return 'Failure' }
+    if ($InputObject.SkippedCount -gt 0) { return 'Skipped' }
+    if ($InputObject.PendingCount -gt 0) { return 'Inconclusive' }
+    return 'Success'
+}
+
+function Get-GroupResult ($InputObject)
+{
+    #I am not sure about the result precedence, and can't find any good source
+    #TODO: Confirm this is the correct order of precedence
+    if ($InputObject |  Where {$_.Result -eq 'Failed'}) { return 'Failure' }
+    if ($InputObject |  Where {$_.Result -eq 'Skipped'}) { return 'Skipped' }
+    if ($InputObject |  Where {$_.Result -eq 'Pending'}) { return 'Inconclusive' }
+    return 'Success'
+}

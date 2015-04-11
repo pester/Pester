@@ -1,0 +1,22 @@
+﻿<?xml version='1.0' encoding='utf-8' ?>
+    <Snippets  xmlns='http://schemas.microsoft.com/PowerShell/Snippets'>
+        <Snippet Version='1.0.0'>
+            <Header>
+                <Title>Should Be</Title>
+                <Description>Add Pester Should Be assertion</Description>
+                <Shortcut>sb</Shortcut> 
+                <Keywords>Pipeline,ScriptBlock,Editor,Console</Keywords>
+                <Author>nohwnd</Author>
+                <SnippetTypes>
+                    <SnippetType>Expansion</SnippetType>
+                </SnippetTypes>
+            </Header>
+
+            <Code>
+                <Script Language='PowerShell' CaretOffset='12'>
+                    <![CDATA[| Should Be ]]>
+                </Script>
+            </Code>
+
+    </Snippet>
+</Snippets>

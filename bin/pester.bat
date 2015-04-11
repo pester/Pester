@@ -8,8 +8,8 @@ if '%1'=='?' goto usage
 if '%1'=='/help' goto usage
 if '%1'=='help' goto usage
 
-@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command ^
- "& Import-Module '%DIR%..\Pester.psm1'; & { Invoke-Pester -OutputXml Test.xml -EnableExit %ARGS%}"
+@PowerShell -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command ^
+ "& Import-Module '%DIR%..\Pester.psm1';  & { Invoke-Pester -OutputXml Test.xml -Strict -EnableExit %ARGS%}"
 
 goto finish
 :usage
@@ -27,7 +27,7 @@ echo.
 goto finish
 
 :help
-@PowerShell -NonInteractive -NoProfile -ExecutionPolicy unrestricted -Command ^
+@PowerShell -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command ^
   "& Import-Module '%DIR%..\Pester.psm1'; & { Get-Help %2}"
 
 :finish

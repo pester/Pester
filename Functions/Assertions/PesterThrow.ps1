@@ -1,21 +1,24 @@
 
+$ActualExceptionMessage = ""
+$ActualExceptionWasThrown = $false
+
 # because this is a script block, the user will have to
 # wrap the code they want to assert on in { }
 function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
-    $pester.ActualExceptionMessage = ""
-    $pester.ActualExceptionWasThrown = $false
+    $Script:ActualExceptionMessage = ""
+    $Script:ActualExceptionWasThrown = $false
 
     try {
-        # Piping to Out-Null so results of script exeution
-        # does not remain on the pipeline
-        & $script | Out-Null
+        # Redirect to $null so script output does not enter the pipeline
+        & $script > $null
     } catch {
-        $pester.ActualExceptionWasThrown = $true
-        $pester.ActualExceptionMessage = $_.Exception.Message
+        $Script:ActualExceptionWasThrown = $true
+        $Script:ActualExceptionMessage = $_.Exception.Message
+        $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
     }
 
-    if ($pester.ActualExceptionWasThrown) {
-        return (Get-DoMessagesMatch $pester.ActualExceptionMessage $expectedErrorMessage)
+    if ($ActualExceptionWasThrown) {
+        return Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage
     }
     return $false
 }
@@ -25,10 +28,16 @@ function Get-DoMessagesMatch($value, $expected) {
     return $value.Contains($expected)
 }
 
+function Get-ExceptionLineInfo($info) {
+    # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
+    $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join "`r`n"
+    return ($positionMessage -replace "^At ","from ")
+}
+
 function PesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-      return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}" -f
-              $expected, $pester.ActualExceptionMessage,(@{$true="";$false="not "}[$pester.ActualExceptionWasThrown])
+        return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
+               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
     } else {
       return "Expected: the expression to throw an exception"
     }
@@ -36,10 +45,9 @@ function PesterThrowFailureMessage($value, $expected) {
 
 function NotPesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-        return "Expected: the expression to not throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}" -f
-              $expected, $pester.ActualExceptionMessage,(@{$true="";$false="not "}[$pester.ActualExceptionWasThrown])
+        return "Expected: the expression not to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
+               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
     } else {
-        return "Expected: the expression to not throw an exception. Message was {{{0}}}" -f $pester.ActualExceptionMessage
+        return "Expected: the expression not to throw an exception. Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage,($ActualExceptionLine  -replace "`n","`n    ")
     }
 }
-
