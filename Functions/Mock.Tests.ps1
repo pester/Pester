@@ -413,11 +413,18 @@ Describe 'When calling Mock on a module-internal function.' {
         function InternalFunction2 { 'I am the second module, second function' }
         function PublicFunction   { InternalFunction }
         function PublicFunction2 { InternalFunction2 }
-        Export-ModuleMember -Function PublicFunction, PublicFunction2
+
+        function FuncThatOverwritesExecutionContext {
+            param ($ExecutionContext)
+
+            InternalFunction
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunction2, FuncThatOverwritesExecutionContext
     } | Import-Module -Force
 
     It 'Should fail to call the internal module function' {
-        { TestModule\InternalFuncTion } | Should Throw
+        { TestModule\InternalFunction } | Should Throw
     }
 
     It 'Should call the actual internal module function from the public function' {
@@ -453,6 +460,10 @@ Describe 'When calling Mock on a module-internal function.' {
 
         It 'Should call mocks from inside another mock' {
             TestModule2\PublicFunction2 | Should Be "I'm the mock who's been passed parameter Test"
+        }
+
+        It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
+            TestModule2\FuncThatOverwritesExecutionContext | Should Be 'I am the second module internal function'
         }
     }
 

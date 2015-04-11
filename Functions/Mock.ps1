@@ -244,6 +244,9 @@ about_Mocking
         }
 
         $newContent = Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
+        $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
+        $newContent = $newContent -replace '#MODULENAME#', $ModuleName
+
         $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}")
 
         $mock = @{
@@ -613,13 +616,8 @@ function MockPrototype {
     # parameters of the same names with a different type.  We don't actually care about overwriting the
     # variables, since they're going to be passed along with $PSBoundParameters anyway.
 
-    [string] $functionName = $MyInvocation.MyCommand.Name
-
-    [string] $moduleName = ''
-    if ($ExecutionContext.SessionState.Module)
-    {
-        $moduleName = $ExecutionContext.SessionState.Module.Name
-    }
+    [string] $functionName = '#FUNCTIONNAME#'
+    [string] $moduleName = '#MODULENAME#'
 
     if ($PSVersionTable.PSVersion.Major -ge 3)
     {
