@@ -1027,3 +1027,34 @@ Describe 'When mocking a command with parameters that match internal variable na
         Test-Function | Should Be 'Mocked!'
     }
 }
+
+Describe 'Mocking commands with potentially ambigious parameter sets' {
+    function SomeFunction
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ParameterSetName                = 'ps1',
+                       ValueFromPipelineByPropertyName = $true)]
+            [string]
+            $p1,
+
+            [parameter(ParameterSetName                = 'ps2',
+                       ValueFromPipelineByPropertyName = $true)]
+            [string]
+            $p2
+        )
+        process
+        {
+            return $true
+        }
+    }
+
+    Mock SomeFunction { }
+
+    It 'Should call the function successfully, even with delayed parameter binding' {
+        $object = New-Object psobject -Property @{ p1 = 'Whatever' }
+        { $object | SomeFunction } | Should Not Throw
+        Assert-MockCalled SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
+    }
+}
