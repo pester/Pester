@@ -687,7 +687,10 @@ function Invoke-Mock {
                         $ArgumentList = @(),
 
                         [System.Management.Automation.CommandMetadata]
-                        $Metadata
+                        $Metadata,
+
+                        [System.Management.Automation.SessionState]
+                        $SessionState
                     )
 
                     # This script block exists to hold variables without polluting the test script's current scope.
@@ -704,12 +707,12 @@ function Invoke-Mock {
                     $___BoundParameters___ = $BoundParameters
                     $___ArgumentList___ = $ArgumentList
 
-                    Set-DynamicParameterVariables -SessionState $ExecutionContext.SessionState -Parameters $BoundParameters -Metadata $Metadata
+                    Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
                     & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
                 }
 
                 Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata
+                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
 
                 return
             }
