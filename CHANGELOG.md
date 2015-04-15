@@ -1,3 +1,6 @@
+## 3.3.8 (April 15, 2015)
+  - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]
+
 ## 3.3.7 (April 15, 2015)
   - Added workaround for GetDynamicParameters() bug that was affecting mocks on the ActiveDirectory module in Windows 7. [GH-295]
   - Revised Mocking code to avoid potential bugs when functions define parameters named $ExecutionContext or $MyInvocation. [GH-304]
