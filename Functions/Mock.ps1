@@ -218,27 +218,30 @@ about_Mocking
             }
             else
             {
-                $metadataWithoutMandatory = [System.Management.Automation.CommandMetaData]$contextInfo.Command
-                foreach ($parameter in $metadataWithoutMandatory.Parameters.Values)
-                {
-                    foreach ($parameterSet in $parameter.ParameterSets.Values)
-                    {
-                        $parameterSet.IsMandatory = $false
-                    }
-                }
-
-                $paramBlockWithoutMandatory = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataWithoutMandatory)
-
-                $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
-
                 $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
-                $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlockWithoutMandatory )`r`n$dynamicParamStatements")
 
-                $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
-
-                if ($null -ne $sessionStateInternal)
+                if ($dynamicParamStatements -match '\S')
                 {
-                    Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionStateInternal $sessionStateInternal
+                    $metadataWithoutMandatory = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+                    foreach ($parameter in $metadataWithoutMandatory.Parameters.Values)
+                    {
+                        foreach ($parameterSet in $parameter.ParameterSets.Values)
+                        {
+                            $parameterSet.IsMandatory = $false
+                        }
+                    }
+
+                    $paramBlockWithoutMandatory = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataWithoutMandatory)
+                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
+
+                    $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlockWithoutMandatory )`r`n$dynamicParamStatements")
+
+                    $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
+
+                    if ($null -ne $sessionStateInternal)
+                    {
+                        Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionStateInternal $sessionStateInternal
+                    }
                 }
             }
         }
@@ -616,9 +619,6 @@ function MockPrototype {
     # parameters of the same names with a different type.  We don't actually care about overwriting the
     # variables, since they're going to be passed along with $PSBoundParameters anyway.
 
-    [string] $functionName = '#FUNCTIONNAME#'
-    [string] $moduleName = '#MODULENAME#'
-
     if ($PSVersionTable.PSVersion.Major -ge 3)
     {
         [string] $IgnoreErrorPreference = 'Ignore'
@@ -631,7 +631,7 @@ function MockPrototype {
     [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
     if ($null -eq $ArgumentList) { $ArgumentList = @() }
 
-    Invoke-Mock -CommandName $functionName -ModuleName $moduleName -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
 }
 
 function Invoke-Mock {
