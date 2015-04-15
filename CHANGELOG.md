@@ -1,5 +1,7 @@
 ## Unreleased
   - Added workaround for GetDynamicParameters() bug that was affecting mocks on the ActiveDirectory module in Windows 7. [GH-295]
+  - Revised Mocking code to avoid potential bugs when functions define parameters named $ExecutionContext or $MyInvocation. [GH-304]
+  - Mocked functions no longer call Get-MockDynamicParameters if the original function had no dynamicparam block. [GH-306]
 
 ## 3.3.6 (March 19, 2015)
   - Fix for mocking aliases for commands that are in scopes that Pester can't normally see. [GH-267]
