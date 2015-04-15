@@ -405,7 +405,14 @@ Describe 'When calling Mock on a module-internal function.' {
         function InternalFunction { 'I am the internal function' }
         function PublicFunction   { InternalFunction }
         function PublicFunctionThatCallsExternalCommand { Start-Sleep 0 }
-        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand
+
+        function FuncThatOverwritesExecutionContext {
+            param ($ExecutionContext)
+
+            InternalFunction
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand, FuncThatOverwritesExecutionContext
     } | Import-Module -Force
 
     New-Module -Name TestModule2 {
@@ -464,6 +471,7 @@ Describe 'When calling Mock on a module-internal function.' {
 
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
             TestModule2\FuncThatOverwritesExecutionContext | Should Be 'I am the second module internal function'
+            TestModule\FuncThatOverwritesExecutionContext | Should Be 'I am the mock test'
         }
     }
 
