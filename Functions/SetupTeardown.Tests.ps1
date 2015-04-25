@@ -156,3 +156,5 @@ Describe 'Finishing TestGroup Setup and Teardown tests' {
         $script:ContextAfterAllCounter   | Should Be 1
     }
 }
+
+#Testing if failing setup or teardown will fail 'It' is done in the TestsRunningInCleanRunspace.Tests.ps1 file
