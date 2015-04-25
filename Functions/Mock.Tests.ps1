@@ -611,15 +611,11 @@ Describe "When Calling Assert-MockCalled without exactly" {
     Mock FunctionUnderTest {}
     FunctionUnderTest "one"
     FunctionUnderTest "one"
-
-    try {
-        Assert-MockCalled FunctionUnderTest 3
-    } Catch {
-        $result=$_
-    }
+    FunctionUnderTest "two"
 
     It "Should throw if mock was not called atleast the number of times specified" {
-        $result.Exception.Message | Should Be "Expected FunctionUnderTest to be called at least 3 times but was called 2 times"
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest 4 }
+        $scriptBlock | Should Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
@@ -628,6 +624,11 @@ Describe "When Calling Assert-MockCalled without exactly" {
 
     It "Should not throw if mock was called at exactly the number of times specified" {
         Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
+    }
+
+    It "Should throw an error if any non-matching calls to the mock are made, and the -NotOtherwise switch is used" {
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ParameterFilter { $param1 -eq 'one' } -NotOtherwise }
+        $scriptBlock | Should Throw '1 non-matching calls were made'
     }
 }
 

@@ -469,7 +469,9 @@ param(
     [string] $ModuleName,
 
     [ValidateSet('Describe','Context','It')]
-    [string] $Scope
+    [string] $Scope,
+
+    [switch] $NotOtherwise
 )
 
     Assert-DescribeInProgress -CommandName Assert-MockCalled
@@ -504,24 +506,48 @@ param(
         }
     }
 
-    $qualifiedCalls = @(
-        $mock.CallHistory |
-        Where-Object {
-            $params = @{
-                ScriptBlock     = $ParameterFilter
-                BoundParameters = $_.BoundParams
-                ArgumentList    = $_.Args
-                Metadata        = $mock.Metadata
-            }
+    $matchingCalls = New-Object System.Collections.ArrayList
+    $nonMatchingCalls = New-Object System.Collections.ArrayList
 
-            (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and (Test-ParameterFilter @params)
+    foreach ($historyEntry in $mock.CallHistory)
+    {
+        if (-not (Test-MockCallScope -CallScope $historyEntry.Scope -DesiredScope $Scope)) { continue }
+
+        $params = @{
+            ScriptBlock     = $ParameterFilter
+            BoundParameters = $historyEntry.BoundParams
+            ArgumentList    = $historyEntry.Args
+            Metadata        = $mock.Metadata
         }
-    )
 
-    if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
-        throw "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
-    } elseif($qualifiedCalls.Length -lt $times) {
-        throw "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($qualifiedCalls.Length) times"
+
+        if (Test-ParameterFilter @params)
+        {
+            $null = $matchingCalls.Add($historyEntry)
+        }
+        else
+        {
+            $null = $nonMatchingCalls.Add($historyEntry)
+        }
+    }
+
+    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $line = $MyInvocation.ScriptLineNumber
+
+    if($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0)))
+    {
+        $failureMessage = "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($matchingCalls.Count) times"
+        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+    }
+    elseif($matchingCalls.Count -lt $times)
+    {
+        $failureMessage = "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($matchingCalls.Count) times"
+        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+    }
+    elseif ($NotOtherwise -and $nonMatchingCalls.Count -gt 0)
+    {
+        $failureMessage = "Expected ${commandName}${$moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
     }
 }
 
