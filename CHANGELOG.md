@@ -1,5 +1,6 @@
 ## Unreleased
   - Fixed Describe's handling of TestName filter when multiple strings are passed to Invoke-Pester's -TestName parameter.
+  - Failing BeforeEach or AfterEach will fail the test [GH-326]
 
 ## 3.3.8 (April 15, 2015)
   - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]
