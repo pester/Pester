@@ -583,7 +583,8 @@ function Exit-MockScope {
 function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
-    $commandInfo = $null
+
+    $commandInfo = New-Object psobject -Property @{ Command = $null; Scope = '' }
 
     $scriptBlock = {
         $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
