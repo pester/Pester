@@ -546,7 +546,7 @@ param(
     }
     elseif ($NotOtherwise -and $nonMatchingCalls.Count -gt 0)
     {
-        $failureMessage = "Expected ${commandName}${$moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+        $failureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
         throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
     }
 }
