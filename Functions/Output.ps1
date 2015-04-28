@@ -47,12 +47,13 @@ $Script:ReportTheme = DATA {
 function Write-PesterStart {
     param(
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $PesterState
+        $PesterState,
+        $Path = $Path
     )
     process {
         $OFS = $ReportStrings.MessageOfs
 
-        $message = $ReportStrings.StartMessage -f "$($PesterState.Path)"
+        $message = $ReportStrings.StartMessage -f "$($Path)"
         if ($PesterState.TestNameFilter) {
            $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }
