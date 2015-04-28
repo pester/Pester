@@ -5,6 +5,7 @@
   - Fixed BeforeEach / etc parsing in PSv3+ so breakpoints and automatic variables ($PSCommandPath, etc) will work properly.  [GH-333]
   - Fixed bug in 'Should Be' when comparing strings, and null or empty strings are piped in to the Should command.  [GH-333]
   - Added some calls to Write-Progress in the It command.  [GH-322]
+  - Bug fix when mocking functions that are in the global scope; the original functions were being lost when the Describe block ended.  [GH-323]
 
 ## 3.3.8 (April 15, 2015)
   - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]
