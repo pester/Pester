@@ -18,7 +18,7 @@
     <file src="Pester.Tests.ps1" target="$targetBase$" />
     <file src="LICENSE*" target="$targetBase$" />
     <file src="chocolateyInstall.ps1" />
-	<file src="nunit_schema_2.5.xsd" target="$targetBase$" />
+    <file src="nunit_schema_2.5.xsd" target="$targetBase$" />
     <file src="bin\*.*" target="$targetBase$\bin" />
     <file src="Examples\**\*.*" target="$targetBase$\Examples" />
     <file src="Functions\**\*.*" target="$targetBase$\Functions" />
