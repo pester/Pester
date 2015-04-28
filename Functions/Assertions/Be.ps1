@@ -50,8 +50,10 @@ function NotPesterBeExactlyFailureMessage($value, $expected) {
 function Get-CompareStringMessage {
     param(
         [Parameter(Mandatory=$true)]
+        [AllowEmptyString()]
         [String]$Expected,
         [Parameter(Mandatory=$true)]
+        [AllowEmptyString()]
         [String]$Actual,
         [switch]$CaseSensitive
     )
@@ -104,6 +106,7 @@ function Get-CompareStringMessage {
 function Expand-SpecialCharacters {
     param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+    [AllowEmptyString()]
     [string[]]$InputObject)
     process {
         $InputObject -replace "`n","\n" -replace "`r","\r" -replace "`t","\t" -replace "`0", "\0" -replace "`b","\b"
