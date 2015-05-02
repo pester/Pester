@@ -460,19 +460,40 @@ to the original.
 
 #>
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
 param(
+    [Parameter(Mandatory = $true, Position = 0)]
     [string]$CommandName,
-    [switch]$Exactly,
+
+    [Parameter(Position = 1)]
     [int]$Times=1,
+
+    [Parameter(ParameterSetName = 'ParameterFilter', Position = 2)]
     [ScriptBlock]$ParameterFilter = {$True},
+
+    [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
+    [scriptblock] $ExclusiveFilter,
+
+    [Parameter(Position = 3)]
     [string] $ModuleName,
 
+    [Parameter(Position = 4)]
     [ValidateSet('Describe','Context','It')]
     [string] $Scope,
 
-    [switch] $NotOtherwise
+    [switch]$Exactly
 )
+
+    if ($PSCmdlet.ParameterSetName -eq 'ParameterFilter')
+    {
+        $filter = $ParameterFilter
+        $filterIsExclusive = $false
+    }
+    else
+    {
+        $filter = $ExclusiveFilter
+        $filterIsExclusive = $true
+    }
 
     Assert-DescribeInProgress -CommandName Assert-MockCalled
 
@@ -514,7 +535,7 @@ param(
         if (-not (Test-MockCallScope -CallScope $historyEntry.Scope -DesiredScope $Scope)) { continue }
 
         $params = @{
-            ScriptBlock     = $ParameterFilter
+            ScriptBlock     = $filter
             BoundParameters = $historyEntry.BoundParams
             ArgumentList    = $historyEntry.Args
             Metadata        = $mock.Metadata
@@ -544,7 +565,7 @@ param(
         $failureMessage = "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($matchingCalls.Count) times"
         throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
     }
-    elseif ($NotOtherwise -and $nonMatchingCalls.Count -gt 0)
+    elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0)
     {
         $failureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
         throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)

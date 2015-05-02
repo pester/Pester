@@ -626,8 +626,8 @@ Describe "When Calling Assert-MockCalled without exactly" {
         Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
     }
 
-    It "Should throw an error if any non-matching calls to the mock are made, and the -NotOtherwise switch is used" {
-        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ParameterFilter { $param1 -eq 'one' } -NotOtherwise }
+    It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } }
         $scriptBlock | Should Throw '1 non-matching calls were made'
     }
 }
