@@ -377,6 +377,15 @@ An optional filter to qualify wich calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
 
+.PARAMETER ExlusiveFilter
+Like ParameterFilter, except when you use ExclusiveFilter, and there
+were any calls to the mocked command which do not match the filter,
+an exception will be thrown.  This is a convenient way to avoid needing
+to have two calls to Assert-MockCalled like this:
+
+Assert-MockCalled SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
+Assert-MockCalled SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
+
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
 calls to the mocked command.  By default, Assert-MockCalled will find
@@ -448,6 +457,13 @@ Describe 'Describe' {
 
 Checks for calls to the mock within the SomeModule module.  Note that both the Mock
 and Assert-MockCalled commands use the same module name.
+
+.EXAMPLE
+Assert-MockCalled Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+
+Checks to make sure that Get-ChildItem was called at least one time with
+the -Path parameter set to 'C:\', and that it was not called at all with
+the -Path parameter set to any other value.
 
 .NOTES
 The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
