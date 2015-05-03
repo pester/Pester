@@ -64,6 +64,14 @@ InModuleScope Pester {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
             }
 
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should Be 6
+            }
+
+            It 'Reports the correct hit command' {
+                $coverageReport.HitCommands[0].Command | Should Be "'I am the nested function.'"
+            }
+
             Exit-CoverageAnalysis -PesterState $testState
         }
 
@@ -95,6 +103,10 @@ InModuleScope Pester {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
             }
 
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should Be 0
+            }
+
             Exit-CoverageAnalysis -PesterState $testState
         }
 
@@ -122,6 +134,14 @@ InModuleScope Pester {
                 $coverageReport.MissedCommands.Count | Should Be 0
             }
 
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should Be 5
+            }
+
+            It 'Reports the correct hit command' {
+                $coverageReport.HitCommands[0].Command | Should Be "'I am the nested function.'"
+            }
+
             Exit-CoverageAnalysis -PesterState $testState
         }
 
@@ -147,6 +167,14 @@ InModuleScope Pester {
 
             It 'Reports the proper number of missed commands' {
                 $coverageReport.MissedCommands.Count | Should Be 0
+            }
+
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should Be 2
+            }
+
+            It 'Reports the correct hit command' {
+                $coverageReport.HitCommands[0].Command | Should Be "'I am functionOne'"
             }
 
             Exit-CoverageAnalysis -PesterState $testState
@@ -182,6 +210,14 @@ InModuleScope Pester {
 
             It 'Reports the correct missed command' {
                 $coverageReport.MissedCommands[0].Command | Should Be "'I am function two.  I never get called.'"
+            }
+
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should Be 5
+            }
+
+            It 'Reports the correct hit command' {
+                $coverageReport.HitCommands[0].Command | Should Be "'I am the nested function.'"
             }
 
             Exit-CoverageAnalysis -PesterState $testState
