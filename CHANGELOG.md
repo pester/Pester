@@ -8,6 +8,7 @@
   - Bug fix when mocking functions that are in the global scope; the original functions were being lost when the Describe block ended.  [GH-323]
   - Improved failed assertion output from Assert-MockCalled; now behaves more like Should.  [GH-324]
   - Added -ExclusiveFilter parameter to Assert-MockCalled.  Works like -ParameterFilter, except there also must not be any calls to the mocked command which do _not_ match the filter.
+  - Added the "bin" folder to the PATH environment variable when installing from Chocolatey.  Also removed the hard-coded -OutputXml and -Strict parameters from this file; only -EnableExit is always used from the bat file now.  [GH-281]
 
 ## 3.3.8 (April 15, 2015)
   - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]
