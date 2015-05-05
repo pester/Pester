@@ -5,9 +5,23 @@ InModuleScope Pester {
         It 'records the correct stack line number of failed tests' {
             #the $script scriptblock below is used as a position marker to determine
             #on which line the test failed.
-            try{'something' | should be 'nothing'}catch{ $ex=$_} ; $script={}
-            $result = Get-PesterResult $script 0 $ex
+            $errorRecord = $null
+            try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
+            $result = Get-PesterResult $script 0 $errorRecord
             $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
+        }
+
+        It 'Does not modify the error message from the original exception' {
+            $object = New-Object psobject
+            $message = 'I am an error.'
+            Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
+
+            $errorRecord = $null
+            try { $object.ThrowSomething() } catch { $errorRecord = $_ }; $script = {}
+
+            $pesterResult = Get-PesterResult $script 0 $errorRecord
+
+            $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
         }
     }
 

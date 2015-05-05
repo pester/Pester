@@ -16,7 +16,7 @@ else
 
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |
-Where-Object { $_.ProviderPath -notlike '*.Tests.ps1' } |
+Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 ForEach-Object { . $_.ProviderPath }
 
 function Invoke-Pester {
@@ -211,7 +211,10 @@ about_pester
     {
         try
         {
-            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+            do
+            {
+                & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+            } until ($true)
         }
         catch
         {
@@ -274,7 +277,7 @@ function ResolveTestScripts
             {
                 $unresolvedPath = [string] $object
                 $arguments      = @()
-                $parameters     = @{}            
+                $parameters     = @{}
             }
 
             if ($unresolvedPath -notmatch '[\*\?\[\]]' -and

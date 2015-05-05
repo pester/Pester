@@ -120,7 +120,11 @@ function DescribeImpl {
 
         Add-SetupAndTeardown -ScriptBlock $Fixture
         Invoke-TestGroupSetupBlocks -Scope $pester.Scope
-        $null = & $Fixture
+
+        do
+        {
+            $null = & $Fixture
+        } until ($true)
     }
     catch
     {

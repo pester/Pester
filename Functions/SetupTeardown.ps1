@@ -131,19 +131,66 @@ function Invoke-Blocks
     foreach ($block in $ScriptBlock)
     {
         if ($null -eq $block) { continue }
-
-        try
-        {
-            . $block
-        }
-        catch
-        {
-            Write-Error -ErrorRecord $_
-        }
+        . $block
     }
 }
 
 function Add-SetupAndTeardown
+{
+    param (
+        [scriptblock] $ScriptBlock
+    )
+
+    if ($PSVersionTable.PSVersion.Major -le 2)
+    {
+        Add-SetupAndTeardownV2 -ScriptBlock $ScriptBlock
+    }
+    else
+    {
+        Add-SetupAndTeardownV3 -ScriptBlock $ScriptBlock
+    }
+}
+
+function Add-SetupAndTeardownV3
+{
+    param (
+        [scriptblock] $ScriptBlock
+    )
+
+    $pattern = '^(?:Before|After)(?:Each|All)$'
+    $predicate = {
+        param ([System.Management.Automation.Language.Ast] $Ast)
+
+        $Ast -is [System.Management.Automation.Language.CommandAst] -and
+        $Ast.CommandElements.Count -eq 2 -and
+        $Ast.CommandElements[0].ToString() -match $pattern -and
+        $Ast.CommandElements[1] -is [System.Management.Automation.Language.ScriptBlockExpressionAst]
+    }
+
+    $searchNestedBlocks = $false
+
+    $calls = $ScriptBlock.Ast.FindAll($predicate, $searchNestedBlocks)
+
+    foreach ($call in $calls)
+    {
+        # For some reason, calling ScriptBlockAst.GetScriptBlock() sometimes blows up due to failing semantics
+        # checks, even though the code is perfectly valid.  So we'll poke around with reflection again to skip
+        # that part and just call the internal ScriptBlock constructor that we need
+
+        $iPmdProviderType = [scriptblock].Assembly.GetType('System.Management.Automation.Language.IParameterMetadataProvider')
+
+        $flags = [System.Reflection.BindingFlags]'Instance, NonPublic'
+        $constructor = [scriptblock].GetConstructor($flags, $null, [Type[]]@($iPmdProviderType, [bool]), $null)
+
+        $block = $constructor.Invoke(@($call.CommandElements[1].ScriptBlock, $false))
+
+        Set-ScriptBlockScope -ScriptBlock $block -SessionState $pester.SessionState
+        $commandName = $call.CommandElements[0].ToString()
+        Add-SetupOrTeardownScriptBlock -CommandName $commandName -ScriptBlock $block
+    }
+}
+
+function Add-SetupAndTeardownV2
 {
     param (
         [scriptblock] $ScriptBlock
@@ -160,7 +207,10 @@ function Add-SetupAndTeardown
             (IsSetupOrTeardownCommand -CommandName $token.Content))
         {
             $openBraceIndex, $closeBraceIndex = Get-BraceIndecesForCommand -Tokens $tokens -CommandIndex $i
-            Add-SetupTeardownFromTokens -Tokens $tokens -CommandIndex $i -OpenBraceIndex $openBraceIndex -CloseBraceIndex $closeBraceIndex -CodeText $codeText
+
+            $block = Get-ScriptBlockFromTokens -Tokens $Tokens -OpenBraceIndex $openBraceIndex -CloseBraceIndex $closeBraceIndex -CodeText $codeText
+            Add-SetupOrTeardownScriptBlock -CommandName $token.Content -ScriptBlock $block
+
             $i = $closeBraceIndex
         }
         elseif ($type -eq [System.Management.Automation.PSTokenType]::GroupStart)
@@ -299,48 +349,55 @@ function Get-GroupCloseTokenIndex
     return $closeIndex
 }
 
-function Add-SetupTeardownFromTokens
+function Get-ScriptBlockFromTokens
 {
     param (
         [System.Management.Automation.PSToken[]] $Tokens,
-        [int] $CommandIndex,
         [int] $OpenBraceIndex,
         [int] $CloseBraceIndex,
         [string] $CodeText
     )
 
-    $commandName = $Tokens[$CommandIndex].Content
-
     $blockStart = $Tokens[$OpenBraceIndex + 1].Start
     $blockLength = $Tokens[$CloseBraceIndex].Start - $blockStart
     $setupOrTeardownCodeText = $codeText.Substring($blockStart, $blockLength)
 
-    $setupOrTeardownBlock = [scriptblock]::Create($setupOrTeardownCodeText)
-    Set-ScriptBlockScope -ScriptBlock $setupOrTeardownBlock -SessionState $pester.SessionState
+    $scriptBlock = [scriptblock]::Create($setupOrTeardownCodeText)
+    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $pester.SessionState
 
-    $isSetupCommand = IsSetupCommand -CommandName $commandName
-    $isGroupCommand = IsTestGroupCommand -CommandName $commandName
+    return $scriptBlock
+}
+
+function Add-SetupOrTeardownScriptBlock
+{
+    param (
+        [string] $CommandName,
+        [scriptblock] $ScriptBlock
+    )
+
+    $isSetupCommand = IsSetupCommand -CommandName $CommandName
+    $isGroupCommand = IsTestGroupCommand -CommandName $CommandName
 
     if ($isSetupCommand)
     {
         if ($isGroupCommand)
         {
-            Add-BeforeAll -ScriptBlock $setupOrTeardownBlock
+            Add-BeforeAll -ScriptBlock $ScriptBlock
         }
         else
         {
-            Add-BeforeEach -ScriptBlock $setupOrTeardownBlock
+            Add-BeforeEach -ScriptBlock $ScriptBlock
         }
     }
     else
     {
         if ($isGroupCommand)
         {
-            Add-AfterAll -ScriptBlock $setupOrTeardownBlock
+            Add-AfterAll -ScriptBlock $ScriptBlock
         }
         else
         {
-            Add-AfterEach -ScriptBlock $setupOrTeardownBlock
+            Add-AfterEach -ScriptBlock $ScriptBlock
         }
     }
 }

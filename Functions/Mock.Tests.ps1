@@ -405,7 +405,14 @@ Describe 'When calling Mock on a module-internal function.' {
         function InternalFunction { 'I am the internal function' }
         function PublicFunction   { InternalFunction }
         function PublicFunctionThatCallsExternalCommand { Start-Sleep 0 }
-        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand
+
+        function FuncThatOverwritesExecutionContext {
+            param ($ExecutionContext)
+
+            InternalFunction
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand, FuncThatOverwritesExecutionContext
     } | Import-Module -Force
 
     New-Module -Name TestModule2 {
@@ -413,11 +420,18 @@ Describe 'When calling Mock on a module-internal function.' {
         function InternalFunction2 { 'I am the second module, second function' }
         function PublicFunction   { InternalFunction }
         function PublicFunction2 { InternalFunction2 }
-        Export-ModuleMember -Function PublicFunction, PublicFunction2
+
+        function FuncThatOverwritesExecutionContext {
+            param ($ExecutionContext)
+
+            InternalFunction
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunction2, FuncThatOverwritesExecutionContext
     } | Import-Module -Force
 
     It 'Should fail to call the internal module function' {
-        { TestModule\InternalFuncTion } | Should Throw
+        { TestModule\InternalFunction } | Should Throw
     }
 
     It 'Should call the actual internal module function from the public function' {
@@ -453,6 +467,11 @@ Describe 'When calling Mock on a module-internal function.' {
 
         It 'Should call mocks from inside another mock' {
             TestModule2\PublicFunction2 | Should Be "I'm the mock who's been passed parameter Test"
+        }
+
+        It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
+            TestModule2\FuncThatOverwritesExecutionContext | Should Be 'I am the second module internal function'
+            TestModule\FuncThatOverwritesExecutionContext | Should Be 'I am the mock test'
         }
     }
 
@@ -1014,5 +1033,36 @@ Describe 'When mocking a command with parameters that match internal variable na
     It 'Should execute the mocked command successfully' {
         { Test-Function } | Should Not Throw
         Test-Function | Should Be 'Mocked!'
+    }
+}
+
+Describe 'Mocking commands with potentially ambigious parameter sets' {
+    function SomeFunction
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ParameterSetName                = 'ps1',
+                       ValueFromPipelineByPropertyName = $true)]
+            [string]
+            $p1,
+
+            [parameter(ParameterSetName                = 'ps2',
+                       ValueFromPipelineByPropertyName = $true)]
+            [string]
+            $p2
+        )
+        process
+        {
+            return $true
+        }
+    }
+
+    Mock SomeFunction { }
+
+    It 'Should call the function successfully, even with delayed parameter binding' {
+        $object = New-Object psobject -Property @{ p1 = 'Whatever' }
+        { $object | SomeFunction } | Should Not Throw
+        Assert-MockCalled SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
     }
 }
