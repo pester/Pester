@@ -9,7 +9,7 @@ if '%1'=='/help' goto usage
 if '%1'=='help' goto usage
 
 @PowerShell -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command ^
- "& Import-Module '%DIR%..\Pester.psm1';  & { Invoke-Pester -OutputXml Test.xml -Strict -EnableExit %ARGS%}"
+ "& Import-Module '%DIR%..\Pester.psm1';  & { Invoke-Pester -EnableExit %ARGS%}"
 
 goto finish
 :usage

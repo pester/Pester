@@ -383,6 +383,15 @@ An optional filter to qualify wich calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
 
+.PARAMETER ExlusiveFilter
+Like ParameterFilter, except when you use ExclusiveFilter, and there
+were any calls to the mocked command which do not match the filter,
+an exception will be thrown.  This is a convenient way to avoid needing
+to have two calls to Assert-MockCalled like this:
+
+Assert-MockCalled SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
+Assert-MockCalled SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
+
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
 calls to the mocked command.  By default, Assert-MockCalled will find
@@ -455,6 +464,13 @@ Describe 'Describe' {
 Checks for calls to the mock within the SomeModule module.  Note that both the Mock
 and Assert-MockCalled commands use the same module name.
 
+.EXAMPLE
+Assert-MockCalled Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+
+Checks to make sure that Get-ChildItem was called at least one time with
+the -Path parameter set to 'C:\', and that it was not called at all with
+the -Path parameter set to any other value.
+
 .NOTES
 The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
 (if any) which was used to create the Mock.  Assert-MockCalled will find any entry in the command history
@@ -466,17 +482,40 @@ to the original.
 
 #>
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
 param(
+    [Parameter(Mandatory = $true, Position = 0)]
     [string]$CommandName,
-    [switch]$Exactly,
+
+    [Parameter(Position = 1)]
     [int]$Times=1,
+
+    [Parameter(ParameterSetName = 'ParameterFilter', Position = 2)]
     [ScriptBlock]$ParameterFilter = {$True},
+
+    [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
+    [scriptblock] $ExclusiveFilter,
+
+    [Parameter(Position = 3)]
     [string] $ModuleName,
 
+    [Parameter(Position = 4)]
     [ValidateSet('Describe','Context','It')]
-    [string] $Scope
+    [string] $Scope,
+
+    [switch]$Exactly
 )
+
+    if ($PSCmdlet.ParameterSetName -eq 'ParameterFilter')
+    {
+        $filter = $ParameterFilter
+        $filterIsExclusive = $false
+    }
+    else
+    {
+        $filter = $ExclusiveFilter
+        $filterIsExclusive = $true
+    }
 
     Assert-DescribeInProgress -CommandName Assert-MockCalled
 
@@ -510,24 +549,48 @@ param(
         }
     }
 
-    $qualifiedCalls = @(
-        $mock.CallHistory |
-        Where-Object {
-            $params = @{
-                ScriptBlock     = $ParameterFilter
-                BoundParameters = $_.BoundParams
-                ArgumentList    = $_.Args
-                Metadata        = $mock.Metadata
-            }
+    $matchingCalls = New-Object System.Collections.ArrayList
+    $nonMatchingCalls = New-Object System.Collections.ArrayList
 
-            (Test-MockCallScope -CallScope $_.Scope -DesiredScope $Scope) -and (Test-ParameterFilter @params)
+    foreach ($historyEntry in $mock.CallHistory)
+    {
+        if (-not (Test-MockCallScope -CallScope $historyEntry.Scope -DesiredScope $Scope)) { continue }
+
+        $params = @{
+            ScriptBlock     = $filter
+            BoundParameters = $historyEntry.BoundParams
+            ArgumentList    = $historyEntry.Args
+            Metadata        = $mock.Metadata
         }
-    )
 
-    if($qualifiedCalls.Length -ne $times -and ($Exactly -or ($times -eq 0))) {
-        throw "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($qualifiedCalls.Length.ToString()) times"
-    } elseif($qualifiedCalls.Length -lt $times) {
-        throw "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($qualifiedCalls.Length) times"
+
+        if (Test-ParameterFilter @params)
+        {
+            $null = $matchingCalls.Add($historyEntry)
+        }
+        else
+        {
+            $null = $nonMatchingCalls.Add($historyEntry)
+        }
+    }
+
+    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $line = $MyInvocation.ScriptLineNumber
+
+    if($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0)))
+    {
+        $failureMessage = "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($matchingCalls.Count) times"
+        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+    }
+    elseif($matchingCalls.Count -lt $times)
+    {
+        $failureMessage = "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($matchingCalls.Count) times"
+        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+    }
+    elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0)
+    {
+        $failureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
     }
 }
 

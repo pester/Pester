@@ -6,6 +6,10 @@
   - Fixed bug in 'Should Be' when comparing strings, and null or empty strings are piped in to the Should command.  [GH-333]
   - Added some calls to Write-Progress in the It command.  [GH-322]
   - Bug fix when mocking functions that are in the global scope; the original functions were being lost when the Describe block ended.  [GH-323]
+  - Improved failed assertion output from Assert-MockCalled; now behaves more like Should.  [GH-324]
+  - Added -ExclusiveFilter parameter to Assert-MockCalled.  Works like -ParameterFilter, except there also must not be any calls to the mocked command which do _not_ match the filter.
+  - Added the "bin" folder to the PATH environment variable when installing from Chocolatey.  Also removed the hard-coded -OutputXml and -Strict parameters from this file; only -EnableExit is always used from the bat file now.  [GH-281]
+  - PassThru object (when used in conjunction with -CodeCoverage) now includes information about Hit commands in addition to Missed commands.  [GH-341]
 
 ## 3.3.8 (April 15, 2015)
   - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]

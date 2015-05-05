@@ -474,6 +474,12 @@ function Get-CoverageMissedCommands
     $CommandCoverage | Where-Object { $_.Breakpoint.HitCount -eq 0 }
 }
 
+function Get-CoverageHitCommands
+{
+    param ([object[]] $CommandCoverage)
+    $CommandCoverage | Where-Object { $_.Breakpoint.HitCount -gt 0 }
+}
+
 function Get-CoverageReport
 {
     param ([object] $PesterState)
@@ -481,6 +487,7 @@ function Get-CoverageReport
     $totalCommandCount = $PesterState.CommandCoverage.Count
 
     $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Function, Command)
+    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Function, Command)
     $analyzedFiles = @($PesterState.CommandCoverage | Select-Object -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
@@ -492,6 +499,7 @@ function Get-CoverageReport
         NumberOfCommandsExecuted = $executedCommandCount
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
+        HitCommands              = $hitCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
