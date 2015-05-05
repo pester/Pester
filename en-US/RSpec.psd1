@@ -17,6 +17,7 @@
     Context  = 'Context {0}'
     Margin   = '   '
     Timing   = 'Tests completed in {0}'
+
     # If this is set to an empty string, the count won't be printed
     ContextsPassed = ''
     ContextsFailed = ''

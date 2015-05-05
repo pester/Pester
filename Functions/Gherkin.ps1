@@ -5,43 +5,115 @@ $GherkinSteps = @{}
 
 function Invoke-Gherkin {
     <#
-        .SYNOPSIS
-            Invoke testing of .feature files
-        .DESCRIPTION
-            By default, tests all .feature files in the current folder and child folders recursively.
+        .Synopsis
+            Invokes Pester to run all tests defined in .feature files
+        .Description
+            Upon calling Invoke-Gherkin, all files that have a name matching *.feature in the 
+            current folder (and child folders recursively), will be parsed and executed.
+
+            If ScenarioName is specified, only scenarios which match the provided name(s) will
+            be run. If FailedLast is specified, only scenarios which failed the previous run 
+            will be re-executed. 
+
+            Optionally, Pester can generate a report of how much code is covered by the tests, and information about any commands which were not executed.
+        .Example
+            Invoke-Gherkin
+
+            This will find all *.feature specifications and execute their tests. No exit code will be returned and no log file will be saved.
+
+        .Example
+            Invoke-Gherkin -Path ./tests/Utils*
+
+            This will run all *.feature specifications under ./Tests that begin with Utils.
+
+        .Example
+            Invoke-Gherkin -ScenarioName "Add Numbers"
+
+            This will only run the Scenario named "Add Numbers"
+
+        .Example
+            Invoke-Gherkin -EnableExit -OutputXml "./artifacts/TestResults.xml"
+
+            This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifatcs/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+
+        .Example
+            Invoke-Gherkin -CodeCoverage 'ScriptUnderTest.ps1'
+
+            Runs all *.feature specifications in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
+
+        .Example
+            Invoke-Gherkin -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
+
+            Runs all *.feature specifications in the current directory, and generates a coverage report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
+
+        .Example
+            Invoke-Gherkin -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
+
+            Runs all *.feature specifications in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
+
+        .Link
+            Invoke-Pester
     #>
-    [CmdletBinding(DefaultParameterSetName = 'NewTest')]
+    [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
     param(
         # Rerun only the scenarios which failed last time
         [Parameter(Mandatory = $True, ParameterSetName = "RetestFailed")]
         [switch]$FailedLast,
 
+        # This parameter indicates which feature files should be tested.
+        # Aliased to 'Script' for compatibility with Pester, but does not support hashtables, since feature files don't take parameters.
         [Parameter(Position=0,Mandatory=0)]
-        [Alias('relative_path')]
+        [Alias('Script','relative_path')]
         [string]$Path = $Pwd,
 
+        # When set, invokes testing of scenarios which match this name.
+        # Aliased to 'Name' and 'TestName' for compatibility with Pester.
         [Parameter(Position=1,Mandatory=0)]
-        [Alias("Name")]
+        [Alias("Name","TestName")]
         [string[]]$ScenarioName,
 
+        # Will cause Invoke-Gherkin to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
 
-        [Parameter(Position=3,Mandatory=0)]
-        [string]$OutputXml,
-
+        # Filters Scenarios and Features and runs only the ones tagged with the specified tags.
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
         [string[]]$Tag,
 
+        # Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
+        # If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
+        # By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
+        # Hashtables must contain a Path key (which can be abbreviated to just "P"), and may contain Function (or "F"), StartLine (or "S"), and EndLine ("E") keys to narrow down the commands to be analyzed.
+        # If Function is specified, StartLine and EndLine are ignored.
+        # If only StartLine is defined, the entire script file starting with StartLine is analyzed.
+        # If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
+        # Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
         [object[]] $CodeCoverage = @(),
+
+        # Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
+        [Switch]$Strict,
+
+        # The path to write a report file to. If this path is not provided, no log will be generated.
+        # Aliased to 'OutputXml' for backwards compatibility
+        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [Alias('OutputXml')]
+        [string] $OutputFile,
+
+        # The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
+        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
+        [string] $OutputFormat = 'NUnitXml',
+
+        # Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
+        [Switch]$Quiet,
 
         [switch]$PassThru
     )
     begin {
+        . $PesterRoot\Functions\Output.ps1
         Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1
     }
-
     end {
 
         if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
@@ -56,7 +128,7 @@ function Invoke-Gherkin {
         # Clear mocks
         $script:mockTable = @{}
 
-        $Script:pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState |
+        $Script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
             Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
                 $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
@@ -74,13 +146,13 @@ function Invoke-Gherkin {
         # Remove all the steps
         $Script:GherkinSteps.Clear()
         # Import all the steps (we're going to need them in a minute)
-        $StepFiles = Get-ChildItem (Split-Path $pester.Path) -Filter "*.steps.ps1" -Recurse
+        $StepFiles = Get-ChildItem (Split-Path $Path) -Filter "*.steps.ps1" -Recurse
         foreach($StepFile in $StepFiles){
             . $StepFile.FullName
         }
         Write-Host "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
 
-        foreach($FeatureFile in Get-ChildItem $pester.Path -Filter "*.feature" -Recurse ) {
+        foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
             $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
             $null = $Pester.Features.Add($Feature)
 
@@ -122,7 +194,7 @@ function Invoke-Gherkin {
         }
 
         # Remove all the steps
-        foreach($StepFile in Get-ChildItem $pester.Path -Filter "*.steps.psm1" -Recurse){
+        foreach($StepFile in Get-ChildItem $Path -Filter "*.steps.psm1" -Recurse){
             $Script:GherkinSteps.Clear()
             # Remove-Module $StepFile.BaseName
         }
@@ -131,10 +203,8 @@ function Invoke-Gherkin {
         Write-CoverageReport -CoverageReport $coverageReport
         Exit-CoverageAnalysis -PesterState $pester
 
-        if($OutputXml) {
-            #TODO make this legacy option and move the nUnit report out of invoke-pester
-            #TODO add warning message that informs the user how to use the nunit output properly
-            Export-NunitReport $pester $OutputXml
+        if(Get-Variable -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+            Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
         }
 
         if ($PassThru) {
@@ -214,7 +284,7 @@ function Invoke-GherkinStep {
     $StepName = "{0} {1}" -f $Step.Keyword, $Step.Name
 
     if(!$StepCommand) {
-        $Pester.AddTestResult($Step.Name, $False, $null, "Could not find test for step!", $null )
+        $Pester.AddTestResult($Step.Name, "Skipped", $null, "Could not find test for step!", $null )
     } else {
         $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
 
@@ -230,31 +300,14 @@ function Invoke-GherkinStep {
             }
             # Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
             $null = & $ScriptBlock
-            $Success = $True
+            $Success = "Passed"
         } catch {
-            $Success = $False
+            $Success = "Failed"
             $PesterException = $_
         }
 
         $watch.Stop()
         $Pester.LeaveTest()
-
-
-        # if($PesterException) {
-        #     if ($PesterException.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
-        #     {
-        #         $failureMessage = $PesterException.exception.message  -replace "Exception calling", "Assert failed on"
-        #         $stackTrace = $PesterException.ScriptStackTrace # -split "`n")[3] #-replace "<No File>:"
-        #     }
-        #     else {
-        #         $failureMessage = $PesterException.ToString()
-        #         $stackTrace = ($PesterException.ScriptStackTrace -split "`n")[0]
-        #     }
-
-        #     $Pester.AddTestResult($name, $False, $null, $failureMessage, $stackTrace)
-        # } else {
-        #     $Pester.AddTestResult($name, $True, $null, $null, $null )
-        # }
 
         $Pester.AddTestResult($StepName, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
     }

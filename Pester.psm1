@@ -2,7 +2,6 @@
 # Version: $version$
 # Changeset: $sha$
 
-$Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
@@ -11,6 +10,7 @@ else
 {
     $script:IgnoreErrorPreference = 'SilentlyContinue'
 }
+$Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
 . "$PesterRoot\PesterCore.ps1"
 
