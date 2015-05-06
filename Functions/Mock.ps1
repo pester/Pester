@@ -637,7 +637,7 @@ function Exit-MockScope {
         $shouldRemoveMock = ShouldRemoveMock -Mock $mock -ActivePesterState $pester
         if ($shouldRemoveMock)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.CommandName
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.CommandName, $mock.FunctionScope
             $mockTable.Remove($mockKey)
         }
         elseif ($mock.PesterState -eq $pester)
