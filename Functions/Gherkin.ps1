@@ -149,12 +149,16 @@ function Invoke-Gherkin {
         Write-Verbose "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
 
         foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
-            $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
+            $Feature = [PoshCode.PowerCuke.Parser]::Parse((Get-Content $FeatureFile.FullName -Delim ([char]0)))
             $null = $Pester.Features.Add($Feature)
 
             ## This is Pesters "Describe" function
             $Pester.EnterDescribe($Feature)
             New-TestDrive
+
+            ## Hypothetically, we could add FEATURE setup/teardown?
+            # Add-SetupAndTeardown -ScriptBlock $Fixture
+            # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
 
             $Scenarios = $Feature.Scenarios
 
@@ -176,15 +180,27 @@ function Invoke-Gherkin {
                 # This is Pester's Context function
                 $Pester.EnterContext($Scenario.Name)
                 $TestDriveContent = Get-TestDriveChildItem
+                ## Hypothetically, we could add SCENARIO setup/teardown?
+                # Add-SetupAndTeardown -ScriptBlock $Fixture
+                # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
 
                 Invoke-GherkinScenario $Pester $Scenario $Feature.Background
+                ## Hypothetically, we could add FEATURE setup/teardown?
+                # Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+                ## Hypothetically, we could add FEATURE setup/teardown?
+                # Clear-SetupAndTeardown
 
                 Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+                # Exit-MockScope
                 $Pester.LeaveContext()
             }
 
             ## This is Pesters "Describe" function again
+            ## Hypothetically, we could add FEATURE setup/teardown?
+            # Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
             Remove-TestDrive
+            ## Hypothetically, we could add FEATURE setup/teardown?
+            # Clear-SetupAndTeardown
             Exit-MockScope
             $Pester.LeaveDescribe()
         }
