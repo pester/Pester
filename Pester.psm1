@@ -170,84 +170,88 @@ about_pester
 
         [Switch]$Quiet
     )
-
-    if ($PSBoundParameters.ContainsKey('OutputXml'))
-    {
-        Write-Warning 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
-
-        Start-Sleep -Seconds 2
-
-        $OutputFile = $OutputXml
-        $OutputFormat = 'LegacyNUnitXml'
-    }
-    
-    # Ensure when running Pester that we're using RSpec strings
-    Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1
-
-    $script:mockTable = @{}
-
-    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
-    Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
-
-    Write-PesterStart $pester
-    
-    $invokeTestScript = {
-        param (
-            [Parameter(Position = 0)]
-            [string] $Path,
-
-            [object[]] $Arguments = @(),
-            [System.Collections.IDictionary] $Parameters = @{}
-        )
-
-        & $Path @Parameters @Arguments
+    begin {
+        # Ensure when running Pester that we're using RSpec strings
+        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1
     }
 
-    Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
-
-    $testScripts = ResolveTestScripts $Script
-
-    foreach ($testScript in $testScripts)
-    {
-        try
+    end {
+        if ($PSBoundParameters.ContainsKey('OutputXml'))
         {
-            do
-            {
-                & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-            } until ($true)
+            Write-Warning 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
+
+            Start-Sleep -Seconds 2
+
+            $OutputFile = $OutputXml
+            $OutputFormat = 'LegacyNUnitXml'
         }
-        catch
+        
+
+        $script:mockTable = @{}
+
+        $Script:Pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+        Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+
+        Write-PesterStart $pester $Script
+        
+        $invokeTestScript = {
+            param (
+                [Parameter(Position = 0)]
+                [string] $Path,
+
+                [object[]] $Arguments = @(),
+                [System.Collections.IDictionary] $Parameters = @{}
+            )
+
+            & $Path @Parameters @Arguments
+        }
+
+        Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
+
+        $testScripts = ResolveTestScripts $Script
+
+        foreach ($testScript in $testScripts)
         {
-            $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-            $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
-            $pester.TestResult[-1] | Write-PesterResult
-        }
-    }
-
-    $pester | Write-PesterReport
-    $coverageReport = Get-CoverageReport -PesterState $pester
-    Write-CoverageReport -CoverageReport $coverageReport
-    Exit-CoverageAnalysis -PesterState $pester
-
-    if(Get-Variable -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
-        Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
-    }
-
-    if ($PassThru) {
-        #remove all runtime properties like current* and Scope
-        $properties = @(
-            "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
-
-            if ($CodeCoverage)
+            try
             {
-                @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+                do
+                {
+                    & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                } until ($true)
             }
-        )
+            catch
+            {
+                $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
+                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+                $pester.TestResult[-1] | Write-PesterResult
+            }
+        }
 
-        $pester | Select -Property $properties
+        $pester | Write-PesterReport
+        $coverageReport = Get-CoverageReport -PesterState $pester
+        Write-CoverageReport -CoverageReport $coverageReport
+        Exit-CoverageAnalysis -PesterState $pester
+
+        if(Get-Variable -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+            Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
+        }
+
+        if ($PassThru) {
+            #remove all runtime properties like current* and Scope
+            $properties = @(
+                "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
+
+                if ($CodeCoverage)
+                {
+                    @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+                }
+            )
+
+            $pester | Select -Property $properties
+        }
+
+        if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
     }
-
-    if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
 }
 
 function ResolveTestScripts

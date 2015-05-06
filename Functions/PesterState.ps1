@@ -175,6 +175,7 @@ function New-PesterState
                 StackTrace             = $StackTrace
                 ParameterizedSuiteName = $ParameterizedSuiteName
                 Parameters             = $Parameters
+                Quiet                  = $script:Quiet
             } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
         }
 

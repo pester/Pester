@@ -40,7 +40,7 @@ $Script:ReportTheme = DATA {
         PassTime       = 'DarkGray'
         Fail           = 'Red'
         FailTime       = 'DarkGray'
-        Skipped        = 'Gray'
+        Skipped        = 'Yellow'
         Pending        = 'Gray'
         Incomplete     = 'Yellow'
         IncompleteTime = 'DarkGray'
@@ -58,6 +58,8 @@ function Write-PesterStart {
         $Path = $Path
     )
     process {
+        if($PesterState.Quiet) { return }
+
         $OFS = $ReportStrings.MessageOfs
 
         $message = $ReportStrings.StartMessage -f "$($Path)"
@@ -68,7 +70,7 @@ function Write-PesterStart {
            $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         }
 
-        Write-Host $message -Foreground $ReportTheme.Foreground
+        Microsoft.PowerShell.Utility\Write-Host $message -Foreground $ReportTheme.Foreground
     }
 }
 
@@ -78,12 +80,13 @@ function Write-Describe {
         $Describe
     )
     process {
+        if($script:Pester.Quiet) { return }
 
         $Text = if($Describe.Name) {
-                $ReportStrings.Describe -f $Describe.Name
-            } else {
-                $ReportStrings.Describe -f $Describe
-            }
+            $ReportStrings.Describe -f $Describe.Name
+        } else {
+            $ReportStrings.Describe -f $Describe
+        }
 
         Microsoft.PowerShell.Utility\Write-Host
         Microsoft.PowerShell.Utility\Write-Host $Text -ForegroundColor $ReportTheme.Describe
@@ -102,7 +105,7 @@ function Write-Context {
         $Context
     )
     process {
-
+        if($script:Pester.Quiet) { return }
         $Text = if($Context.Name) {
                 $ReportStrings.Context -f $Context.Name
             } else {
@@ -127,6 +130,8 @@ function Write-PesterResult {
     )
 
     process {
+        if($script:Pester.Quiet) { return }
+
         $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
 
         $margin = ' ' * $TestDepth
@@ -176,10 +181,17 @@ function Write-PesterReport {
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
         $PesterState
     )
+    if($PesterState.Quiet) { return }
 
     Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.Timing -f (Get-HumanTime $PesterState.Time.TotalSeconds)) -Foreground $ReportTheme.Foreground
 
-    $Success, $Failure = if($PesterState.FailedCount -gt 0) { $ReportTheme.Foreground, $ReportTheme.Fail } else { $ReportTheme.Pass, $ReportTheme.Information }
+    $Success, $Failure = if($PesterState.FailedCount -gt 0) {
+                            $ReportTheme.Foreground, $ReportTheme.Fail
+                         } else {
+                            $ReportTheme.Pass, $ReportTheme.Information
+                         }
+    $Skipped = if($PesterState.SkippedCount -gt 0) { $ReportTheme.Skipped } else { $ReportTheme.Information }
+    $Pending = if($PesterState.PendingCount -gt 0) { $ReportTheme.Pending } else { $ReportTheme.Information }
     if($ReportStrings.ContextsPassed) {
         Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.ContextsPassed -f $PesterState.PassedScenarios.Count) -Foreground $Success -NoNewLine
         Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.ContextsFailed -f $PesterState.FailedScenarios.Count) -Foreground $Failure
@@ -187,15 +199,15 @@ function Write-PesterReport {
     if($ReportStrings.TestsPassed) {
         Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.TestsPassed -f $PesterState.PassedCount) -Foreground $Success -NoNewLine
         Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.TestsFailed -f $PesterState.FailedCount) -Foreground $Failure -NoNewline
-        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.TestsSkipped -f $PesterState.SkippedCount) -Foreground $ReportTheme.Skipped -NoNewline
-        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.TestsPending -f $PesterState.PendingCount) -Foreground $ReportTheme.Skipped
+        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.TestsSkipped -f $PesterState.SkippedCount) -Foreground $Skipped -NoNewline
+        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.TestsPending -f $PesterState.PendingCount) -Foreground $Pending
     }
 }
 
 function Write-CoverageReport {
     param ([object] $CoverageReport)
 
-    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
+    if ($null -eq $CoverageReport -or $script:Pester.Quiet -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
     {
         return
     }
@@ -215,21 +227,21 @@ function Write-CoverageReport {
         'Command'
     )
 
-    Write-Host
-    Write-Host $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
+    Microsoft.PowerShell.Utility\Write-Host
+    Microsoft.PowerShell.Utility\Write-Host $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
 
     if ($CoverageReport.MissedCommands.Count -gt 0)
     {
-        Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
+        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
         if ($CoverageReport.MissedCommands.Count -eq 1)
         {
-            Write-Host $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
+            Microsoft.PowerShell.Utility\Write-Host $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
         } else {
-            Write-Host $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
+            Microsoft.PowerShell.Utility\Write-Host $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
         }
-        $report | Format-Table -AutoSize | Out-Host
+        $report | Format-Table -AutoSize | Microsoft.PowerShell.Utility\Out-Host
     } else {
-        Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
+        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
     }
 }
 

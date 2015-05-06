@@ -8,12 +8,9 @@ function Invoke-Gherkin {
         .Synopsis
             Invokes Pester to run all tests defined in .feature files
         .Description
-            Upon calling Invoke-Gherkin, all files that have a name matching *.feature in the 
-            current folder (and child folders recursively), will be parsed and executed.
+            Upon calling Invoke-Gherkin, all files that have a name matching *.feature in the current folder (and child folders recursively), will be parsed and executed.
 
-            If ScenarioName is specified, only scenarios which match the provided name(s) will
-            be run. If FailedLast is specified, only scenarios which failed the previous run 
-            will be re-executed. 
+            If ScenarioName is specified, only scenarios which match the provided name(s) will be run. If FailedLast is specified, only scenarios which failed the previous run will be re-executed.
 
             Optionally, Pester can generate a report of how much code is covered by the tests, and information about any commands which were not executed.
         .Example
@@ -111,7 +108,6 @@ function Invoke-Gherkin {
         [switch]$PassThru
     )
     begin {
-        . $PesterRoot\Functions\Output.ps1
         Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1
     }
     end {
@@ -139,7 +135,7 @@ function Invoke-Gherkin {
                 $this.Features.Scenarios | Where { $Names -contains $_.Name }
             } -PassThru
 
-        Write-PesterStart $pester
+        Write-PesterStart $pester $Path
 
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
@@ -150,7 +146,7 @@ function Invoke-Gherkin {
         foreach($StepFile in $StepFiles){
             . $StepFile.FullName
         }
-        Write-Host "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
+        Write-Verbose "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
 
         foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
             $Feature = [PoshCode.PowerCuke.Parser]::Parse((gc $FeatureFile -Delim ([char]0)))
@@ -230,6 +226,7 @@ function Invoke-GherkinScenario {
     )
 
     if(!$Quiet) { Write-Context $Scenario }
+    # If there's a background, we have to run that before the actual tests
     if($Background) {
         Invoke-GherkinScenario $Pester $Background -Quiet
     }
