@@ -142,7 +142,7 @@ function Invoke-Gherkin {
         # Remove all the steps
         $Script:GherkinSteps.Clear()
         # Import all the steps (we're going to need them in a minute)
-        $StepFiles = Get-ChildItem (Split-Path $Path) -Filter "*.steps.ps1" -Recurse
+        $StepFiles = Get-ChildItem $Path -Filter "*.steps.ps1" -Recurse
         foreach($StepFile in $StepFiles){
             . $StepFile.FullName
         }
