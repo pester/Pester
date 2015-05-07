@@ -78,6 +78,9 @@ function Invoke-Gherkin {
         [Alias('Tags')]
         [string[]]$Tag,
 
+        # Informs Invoke-Pester to not run blocks tagged with the tags specified.
+        [string[]]$ExcludeTag,
+
         # Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
         # If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
         # By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
@@ -124,7 +127,7 @@ function Invoke-Gherkin {
         # Clear mocks
         $script:mockTable = @{}
 
-        $Script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
+        $Script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
             Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
                 $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
@@ -162,9 +165,17 @@ function Invoke-Gherkin {
 
             $Scenarios = $Feature.Scenarios
 
+            # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
             if($pester.TagFilter) {
                 $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
             }
+
+            # if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+            if($Pester.ExcludeTagFilter) {
+                $Scenarios = $Scenarios | Where { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
+            }
+
+
             if($pester.TestNameFilter) {
                 $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
                     $Scenarios | Where { $_.Name -like $NameFilter }
