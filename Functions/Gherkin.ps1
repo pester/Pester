@@ -195,10 +195,13 @@ function Invoke-Gherkin {
                 # Add-SetupAndTeardown -ScriptBlock $Fixture
                 # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
 
+                # Make sure broken tests don't leave you in space:
+                $Location = Get-Location
                 Invoke-GherkinScenario $Pester $Scenario $Feature.Background
-                ## Hypothetically, we could add FEATURE setup/teardown?
+                $Location | Set-Location
+                ## Hypothetically, we could add SCENARIO setup/teardown?
                 # Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
-                ## Hypothetically, we could add FEATURE setup/teardown?
+                ## Hypothetically, we could add SCENARIO setup/teardown?
                 # Clear-SetupAndTeardown
 
                 Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
