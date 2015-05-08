@@ -239,7 +239,7 @@ function Write-CoverageReport {
         } else {
             Microsoft.PowerShell.Utility\Write-Host $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
         }
-        $report | Format-Table -AutoSize | Microsoft.PowerShell.Utility\Out-Host
+        $report | Format-Table -AutoSize | Microsoft.PowerShell.Core\Out-Host
     } else {
         Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
     }
