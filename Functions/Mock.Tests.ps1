@@ -405,7 +405,14 @@ Describe 'When calling Mock on a module-internal function.' {
         function InternalFunction { 'I am the internal function' }
         function PublicFunction   { InternalFunction }
         function PublicFunctionThatCallsExternalCommand { Start-Sleep 0 }
-        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand
+
+        function FuncThatOverwritesExecutionContext {
+            param ($ExecutionContext)
+
+            InternalFunction
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunctionThatCallsExternalCommand, FuncThatOverwritesExecutionContext
     } | Import-Module -Force
 
     New-Module -Name TestModule2 {
@@ -464,6 +471,7 @@ Describe 'When calling Mock on a module-internal function.' {
 
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
             TestModule2\FuncThatOverwritesExecutionContext | Should Be 'I am the second module internal function'
+            TestModule\FuncThatOverwritesExecutionContext | Should Be 'I am the mock test'
         }
     }
 
@@ -603,15 +611,11 @@ Describe "When Calling Assert-MockCalled without exactly" {
     Mock FunctionUnderTest {}
     FunctionUnderTest "one"
     FunctionUnderTest "one"
-
-    try {
-        Assert-MockCalled FunctionUnderTest 3
-    } Catch {
-        $result=$_
-    }
+    FunctionUnderTest "two"
 
     It "Should throw if mock was not called atleast the number of times specified" {
-        $result.Exception.Message | Should Be "Expected FunctionUnderTest to be called at least 3 times but was called 2 times"
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest 4 }
+        $scriptBlock | Should Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
@@ -620,6 +624,11 @@ Describe "When Calling Assert-MockCalled without exactly" {
 
     It "Should not throw if mock was called at exactly the number of times specified" {
         Assert-MockCalled FunctionUnderTest 2 { $param1 -eq "one" }
+    }
+
+    It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } }
+        $scriptBlock | Should Throw '1 non-matching calls were made'
     }
 }
 
@@ -1025,5 +1034,36 @@ Describe 'When mocking a command with parameters that match internal variable na
     It 'Should execute the mocked command successfully' {
         { Test-Function } | Should Not Throw
         Test-Function | Should Be 'Mocked!'
+    }
+}
+
+Describe 'Mocking commands with potentially ambigious parameter sets' {
+    function SomeFunction
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ParameterSetName                = 'ps1',
+                       ValueFromPipelineByPropertyName = $true)]
+            [string]
+            $p1,
+
+            [parameter(ParameterSetName                = 'ps2',
+                       ValueFromPipelineByPropertyName = $true)]
+            [string]
+            $p2
+        )
+        process
+        {
+            return $true
+        }
+    }
+
+    Mock SomeFunction { }
+
+    It 'Should call the function successfully, even with delayed parameter binding' {
+        $object = New-Object psobject -Property @{ p1 = 'Whatever' }
+        { $object | SomeFunction } | Should Not Throw
+        Assert-MockCalled SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
     }
 }

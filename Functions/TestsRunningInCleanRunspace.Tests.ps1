@@ -85,3 +85,63 @@ Describe "Tests running in clean runspace" {
         $result.TotalCount | Should Be 4
     }
 }
+
+Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace)' {
+    #these tests are kinda tricky. We need to ensure few things:
+    #1) failing BeforeEach will fail the test. This is easy, just put the BeforeEach in the same try catch as the invocation
+    #   of It code.
+    #2) failing AfterEach will fail the test. To do that we might put the AfterEach to the same try as the It code, BUT we also
+    #   want to guarantee that the AfterEach will run even if the test in It will fail. For this reason the AfterEach must be triggered in
+    #   a finally block. And there we are not protected by the catch clause. So we need another try in the the finally to catch teardown block
+    #   error. If we fail to do that the state won't be correctly cleaned up and we can get strange errors like: "You are still in It block", when
+    #   running next test. For the same reason I am putting the "ensure all tests run" tests here. otherwise you get false positives because you cannot determine
+    #   if the suite failed because of the whole suite failed or just a single test failed.
+
+    It 'It fails if BeforeEach fails' {
+        $testSuite = {
+            Describe 'Guarantee It fail on setup or teardown fail' {
+                BeforeEach {
+                    throw [System.InvalidOperationException] 'test exception'
+                }
+
+                It 'It fails if BeforeEach fails' {
+                    $true
+                }
+            }
+        }
+
+        $result = Invoke-PesterInJob -ScriptBlock $testSuite
+
+        $result.FailedCount | Should Be 1
+        $result.TestResult[0].FailureMessage | Should Be "test exception"
+    }
+
+    It 'It fails if AfterEach fails' {
+        $testSuite = {
+            Describe 'Guarantee It fail on setup or teardown fail' {
+                It 'It fails if AfterEach fails' {
+                    $true
+                }
+
+                 AfterEach {
+                    throw [System.InvalidOperationException] 'test exception'
+                }
+            }
+
+            Describe 'Make sure all the tests in the suite run' {
+                #when the previous test fails in after each and
+                It 'It is pending' -Pending {}
+            }
+        }
+
+        $result = Invoke-PesterInJob -ScriptBlock $testSuite
+
+        if ($result.PendingCount -ne 1)
+        {
+            throw "The test suite in separate runspace did not run to completion, it was likely terminated by an uncaught exception thrown in AfterEach."
+        }
+
+        $result.FailedCount | Should Be 1
+        $result.TestResult[0].FailureMessage | Should Be "test exception"
+    }
+}

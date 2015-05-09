@@ -72,7 +72,7 @@ about_TestDrive
         $script:mockTable = @{}
     }
 
-    if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
+    if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | Where-Object { $Name -like $_ }))
     {
         #skip this test
         return

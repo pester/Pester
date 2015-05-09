@@ -230,31 +230,48 @@ function Invoke-Test
     }
     else
     {
-        Invoke-TestCaseSetupBlocks
+        Write-Progress -Activity "Running test '$Name'" -Status Processing
 
         $errorRecord = $null
-        try{
+        try
+        {
+            Invoke-TestCaseSetupBlocks
+
             do
             {
                 $null = & $ScriptBlock @Parameters
             } until ($true)
-        } catch {
+        }
+        catch
+        {
             $errorRecord = $_
         }
+        finally
+        {
+            #guarantee that the teardown action will run and prevent it from failing the whole suite
+            try
+            {
+                if (-not ($Skip -or $Pending))
+                {
+                    Invoke-TestCaseTeardownBlocks
+                }
+            }
+            catch
+            {
+                $errorRecord = $_
+            }
+        }
+
 
         $result = Get-PesterResult -Test $ScriptBlock -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
+        Write-Progress -Activity "Running test '$Name'" -Completed -Status Processing
     }
 
     if ($null -ne $OutputScriptBlock)
     {
         $Pester.testresult[-1] | & $OutputScriptBlock
-    }
-
-    if (-not ($Skip -or $Pending))
-    {
-        Invoke-TestCaseTeardownBlocks
     }
 
     Exit-MockScope

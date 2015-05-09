@@ -8,9 +8,11 @@ end
 
     $scriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
     $sourceDirectory = Join-Path $scriptRoot Tools
+	$binPath = Join-Path $targetDirectory bin
 
     Update-Directory -Source $sourceDirectory -Destination $targetDirectory
-
+	Install-ChocolateyPath $binPath
+	
     if ($PSVersionTable.PSVersion.Major -lt 4)
     {
         $modulePaths = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine') -split ';'
