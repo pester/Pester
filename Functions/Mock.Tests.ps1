@@ -558,7 +558,9 @@ Describe "When Creating a Verifiable Mock that is not called" {
             $result.Exception.Message | Should Be "`r`n Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
         }
 
-        Remove-Module TestModule -Force
+        AfterAll {
+            Remove-Module TestModule -Force
+        }
     }
 }
 
@@ -928,7 +930,9 @@ Describe 'Mocking functions with dynamic parameters' {
             Assert-MockCalled Get-Greeting -ModuleName TestModule
         }
 
-        Remove-Module TestModule -Force
+        AfterAll {
+            Remove-Module TestModule -Force
+        }
     }
 
     Context 'When the mocked command has mandatory parameters that are passed in via the pipeline' {
@@ -1161,10 +1165,9 @@ Describe 'Mocking Cmdlets with dynamic parameters in a module' {
         Assert-MockCalled Get-ChildItem -ModuleName TestModule
     }
 
-    Remove-Module TestModule -Force
-}
-
-Describe 'Mocking functions with dynamic parameters in a module' {
+    AfterAll {
+        Remove-Module TestModule -Force
+    }
 }
 
 Describe 'DynamicParam blocks in other scopes' {
