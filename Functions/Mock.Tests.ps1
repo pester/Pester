@@ -475,8 +475,10 @@ Describe 'When calling Mock on a module-internal function.' {
         }
     }
 
-    Remove-Module TestModule -Force
-    Remove-Module TestModule2 -Force
+    AfterAll {
+        Remove-Module TestModule -Force
+        Remove-Module TestModule2 -Force
+    }
 }
 
 Describe "When Applying multiple Mocks on a single command" {
@@ -1213,8 +1215,10 @@ Describe 'DynamicParam blocks in other scopes' {
         CallingFunction2 -Whatever 'Whatever'
     }
 
-    Remove-Module TestModule1 -Force
-    Remove-Module TestModule2 -Force
+    AfterAll {
+        Remove-Module TestModule1 -Force
+        Remove-Module TestModule2 -Force
+    }
 }
 
 Describe 'Parameter Filters and Common Parameters' {
