@@ -51,7 +51,7 @@ function Invoke-Gherkin {
         .Link
             Invoke-Pester
     #>
-    [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
+    [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
         # Rerun only the scenarios which failed last time
         [Parameter(Mandatory = $True, ParameterSetName = "RetestFailed")]
@@ -96,12 +96,10 @@ function Invoke-Gherkin {
 
         # The path to write a report file to. If this path is not provided, no log will be generated.
         # Aliased to 'OutputXml' for backwards compatibility
-        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [Alias('OutputXml')]
         [string] $OutputFile,
 
         # The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
-        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
