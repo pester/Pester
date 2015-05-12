@@ -44,7 +44,7 @@ SHOULD MEMBERS
 
 	Exist
 		Does not perform any comparison but checks if the object calling Exist 
-		is presnt in a PS Provider. The object must have valid path syntax. It 
+		is present in a PS Provider. The object must have valid path syntax. It 
 		essentially must pass a Test-Path call.
 
         $actual=(Dir . )[0].FullName

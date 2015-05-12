@@ -10,7 +10,7 @@ SYNOPSIS
 DESCRIPTION
 	With the set of Mocking functions that Pester exposes, one can:
 
-	- Mock the behavior of ANY powershell command.
+	- Mock the behavior of ANY PowerShell command.
 	- Verify that specific commands were (or were not) called.
 	- Verify the number of times a command was called with a set of specified 
 	 parameters.
