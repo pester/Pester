@@ -1,7 +1,6 @@
 
 function PesterExist($value) {
-    $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($value)
-    Test-Path -LiteralPath $resolvedPath
+    Test-Path $value
 }
 
 function PesterExistFailureMessage($value) {

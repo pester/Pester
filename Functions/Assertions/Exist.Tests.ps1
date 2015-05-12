@@ -10,10 +10,27 @@ InModuleScope Pester {
             Test-NegativeAssertion (PesterExist "$TestDrive\nonexistant")
         }
 
-        It "returns correct value for path that contains [ ]" {
-            $file = New-Item -Path "TestDrive:\[test].txt" -ItemType File
+        It 'works for path with escaped [ ] characters' {
+            New-Item -Path "TestDrive:\[test].txt" -ItemType File | Out-Null
+            "TestDrive:\``[test``].txt"  | Should Exist
+        }
 
-            $file | Should Exist
+        It 'returns correct result for function drive' {
+            function f1 {}
+
+            'function:f1' | Should Exist
+        }
+
+        It 'returns correct result for env drive' {
+            $env:test = 'somevalue'
+
+            'env:test' | Should Exist
+        }
+
+        It 'returns correct result for env drive' {
+            $env:test = 'somevalue'
+
+            'env:test' | Should Exist
         }
     }
 }
