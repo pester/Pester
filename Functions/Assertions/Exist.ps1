@@ -1,6 +1,7 @@
 
 function PesterExist($value) {
-    return (Test-Path $value)
+    $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($value)
+    Test-Path -LiteralPath $resolvedPath
 }
 
 function PesterExistFailureMessage($value) {
@@ -10,5 +11,3 @@ function PesterExistFailureMessage($value) {
 function NotPesterExistFailureMessage($value) {
     return "Expected: ${value} to not exist, but it was found"
 }
-
-

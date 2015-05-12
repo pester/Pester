@@ -9,5 +9,11 @@ InModuleScope Pester {
         It "returns false for paths do not exist" {
             Test-NegativeAssertion (PesterExist "$TestDrive\nonexistant")
         }
+
+        It "returns correct value for path that contains [ ]" {
+            $file = New-Item -Path "TestDrive:\[test].txt" -ItemType File
+
+            $file | Should Exist
+        }
     }
 }
