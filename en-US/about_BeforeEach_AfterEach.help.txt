@@ -4,7 +4,7 @@ BeforeEach, AfterEach, BeforeAll, and AfterAll
 The BeforeEach and AfterEach commands allow you to define setup and teardown tasks that are
 performed at the beginning and end of every It block. This can eliminate duplication of code
 in test scripts, ensure that each test is performed on a pristine state regardless of their
-order, and perform any necessary cleanup tasks after each test.
+order, and perform any necessary clean-up tasks after each test.
 
 BeforeEach and AfterEach blocks may be defined inside of any Describe or Context. If they
 are present in both a Context and its parent Describe, BeforeEach blocks in the Describe scope
