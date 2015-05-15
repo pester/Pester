@@ -25,7 +25,15 @@ AAA pattern (Arrange-Act-Assert), this typically holds the
 Assert.
 
 .PARAMETER Pending
-Marks the test as pending, that is inconclusive/not implemented. The test will not run and will
+Use this parameter to explicitly mark the test as work-in-progress/not implemented/pending when you
+need to distinguish a test that fails because it is not finished yet from a tests
+that fail as a result of changes being made in the code base. An empty test, that is a
+test that contains nothing except whitespace or comments is marked as Pending by default.
+
+.PARAMETER Skip
+Use this parameter to explicitly mark the test to be skipped. This is preferable to temporarily
+commenting out a test, because the test remains listed in the output. Use the Strict parameter
+of Invoke-Pester to force all skipped tests to fail.
 
 .PARAMETER TestCases
 Optional array of hashtable (or any IDictionary) objects.  If this parameter is used,
