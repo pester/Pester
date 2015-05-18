@@ -1292,3 +1292,15 @@ Describe 'Mocking commands with potentially ambigious parameter sets' {
         Assert-MockCalled SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
     }
 }
+
+Describe 'When mocking a command that has an ArgumentList parameter with validation' {
+    Mock Start-Process { return 'mocked' }
+
+    It 'Calls the mock properly' {
+        $hash = @{ Result = $null }
+        $scriptBlock = { $hash.Result = Start-Process -FilePath cmd.exe -ArgumentList '/c dir c:\' }
+        
+        $scriptBlock | Should Not Throw
+        $hash.Result | Should Be 'mocked'
+    }
+}
