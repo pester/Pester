@@ -740,10 +740,10 @@ function MockPrototype {
         [string] $IgnoreErrorPreference = 'SilentlyContinue'
     }
 
-    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
-    if ($null -eq $ArgumentList) { $ArgumentList = @() }
+    [object] ${a r g s} = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
+    if ($null -eq ${a r g s}) { ${a r g s} = @() }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s}
 }
 
 function Invoke-Mock {
