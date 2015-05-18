@@ -1299,7 +1299,7 @@ Describe 'When mocking a command that has an ArgumentList parameter with validat
     It 'Calls the mock properly' {
         $hash = @{ Result = $null }
         $scriptBlock = { $hash.Result = Start-Process -FilePath cmd.exe -ArgumentList '/c dir c:\' }
-        
+
         $scriptBlock | Should Not Throw
         $hash.Result | Should Be 'mocked'
     }
