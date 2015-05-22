@@ -1,5 +1,7 @@
 Set-StrictMode -Version Latest
 
+$thisScriptRegex = [regex]::Escape($MyInvocation.ScriptName)
+
 InModuleScope Pester {
     Describe 'Get-PesterResult' {
         It 'records the correct stack line number of failed tests in the Tests file' {
@@ -7,8 +9,8 @@ InModuleScope Pester {
             #on which line the test failed.
             $errorRecord = $null
             try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
-            $result = Get-PesterResult $script 0 $errorRecord
-            $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in "
+            $result = Get-PesterResult 0 $errorRecord
+            $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in $thisScriptRegex"
         }
 
         It 'Does not modify the error message from the original exception' {
@@ -17,9 +19,9 @@ InModuleScope Pester {
             Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
 
             $errorRecord = $null
-            try { $object.ThrowSomething() } catch { $errorRecord = $_ }; $script = {}
+            try { $object.ThrowSomething() } catch { $errorRecord = $_ }
 
-            $pesterResult = Get-PesterResult $script 0 $errorRecord
+            $pesterResult = Get-PesterResult 0 $errorRecord
 
             $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
         }
@@ -199,7 +201,6 @@ InModuleScope Pester {
 Describe 'Get-PesterResult - Part 2' {
     It 'records the correct stack line number of failed tests in another file' {
         $errorRecord = $null
-        $script = {}
 
         $testPath = Join-Path $TestDrive test.ps1
         $escapedTestPath = [regex]::Escape($testPath)
@@ -219,7 +220,7 @@ Describe 'Get-PesterResult - Part 2' {
         # That was throwing off the test results at first, because the error record we got was due to the invalid (null) value being passed to -ErrorAction.
 
         $cmd = InModuleScope Pester { ${function:Get-PesterResult} }
-        $result = & $cmd $script 0 $errorRecord
+        $result = & $cmd 0 $errorRecord
 
         $result.Stacktrace | should match "at line: 2 in $escapedTestPath"
     }
