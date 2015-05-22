@@ -271,7 +271,7 @@ function Invoke-Test
         }
 
 
-        $result = Get-PesterResult -Test $ScriptBlock -ErrorRecord $errorRecord
+        $result = Get-PesterResult -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
         Write-Progress -Activity "Running test '$Name'" -Completed -Status Processing
@@ -288,7 +288,6 @@ function Invoke-Test
 
 function Get-PesterResult {
     param(
-        [ScriptBlock] $Test,
         [Nullable[TimeSpan]] $Time,
         [System.Management.Automation.ErrorRecord] $ErrorRecord
     )
@@ -314,10 +313,10 @@ function Get-PesterResult {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
-        $failureMessage = $details.message
-        $file = $test.File
-        $line = $details.line
-        $lineText = "`n$line`: $($details.linetext)"
+        $failureMessage = $details.Message
+        $file = $details.File
+        $line = $details.Line
+        $lineText = "`n$line`: $($details.LineText)"
     }
     else
     {
