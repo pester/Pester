@@ -1,30 +1,7 @@
 Set-StrictMode -Version Latest
 
-$thisScriptRegex = [regex]::Escape($MyInvocation.ScriptName)
-
 InModuleScope Pester {
     Describe 'Get-PesterResult' {
-        It 'records the correct stack line number of failed tests in the Tests file' {
-            #the $script scriptblock below is used as a position marker to determine
-            #on which line the test failed.
-            $errorRecord = $null
-            try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
-            $result = Get-PesterResult 0 $errorRecord
-            $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in $thisScriptRegex"
-        }
-
-        It 'Does not modify the error message from the original exception' {
-            $object = New-Object psobject
-            $message = 'I am an error.'
-            Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
-
-            $errorRecord = $null
-            try { $object.ThrowSomething() } catch { $errorRecord = $_ }
-
-            $pesterResult = Get-PesterResult 0 $errorRecord
-
-            $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
-        }
     }
 
     Describe 'It - Implementation' {
@@ -198,7 +175,33 @@ InModuleScope Pester {
     }
 }
 
-Describe 'Get-PesterResult - Part 2' {
+$thisScriptRegex = [regex]::Escape($MyInvocation.MyCommand.Path)
+
+Describe 'Get-PesterResult' {
+    $getPesterResult = InModuleScope Pester { ${function:Get-PesterResult} }
+
+    It 'records the correct stack line number of failed tests in the Tests file' {
+        #the $script scriptblock below is used as a position marker to determine
+        #on which line the test failed.
+        $errorRecord = $null
+        try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
+        $result = & $getPesterResult 0 $errorRecord
+        $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in $thisScriptRegex"
+    }
+
+    It 'Does not modify the error message from the original exception' {
+        $object = New-Object psobject
+        $message = 'I am an error.'
+        Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
+
+        $errorRecord = $null
+        try { $object.ThrowSomething() } catch { $errorRecord = $_ }
+
+        $pesterResult = & $getPesterResult 0 $errorRecord
+
+        $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
+    }
+
     It 'records the correct stack line number of failed tests in another file' {
         $errorRecord = $null
 
@@ -216,11 +219,7 @@ Describe 'Get-PesterResult - Part 2' {
             $errorRecord = $_
         }
 
-        # This approach is necessary to avoid screwing up the script scoped variables (in particular, $script:IgnoreErrorPreference) when Should is called.
-        # That was throwing off the test results at first, because the error record we got was due to the invalid (null) value being passed to -ErrorAction.
-
-        $cmd = InModuleScope Pester { ${function:Get-PesterResult} }
-        $result = & $cmd 0 $errorRecord
+        $result = & $getPesterResult 0 $errorRecord
 
         $result.Stacktrace | should match "at line: 2 in $escapedTestPath"
     }
