@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe 'Get-PesterResult' {
-        It 'records the correct stack line number of failed tests' {
+        It 'records the correct stack line number of failed tests in the Tests file' {
             #the $script scriptblock below is used as a position marker to determine
             #on which line the test failed.
             $errorRecord = $null
@@ -193,5 +193,34 @@ InModuleScope Pester {
             Remove-Comments -Text 'code <#comment
             comment#> code' | Should Be 'code  code'
         }
+    }
+}
+
+Describe 'Get-PesterResult - Part 2' {
+    It 'records the correct stack line number of failed tests in another file' {
+        $errorRecord = $null
+        $script = {}
+
+        $testPath = Join-Path $TestDrive test.ps1
+        $escapedTestPath = [regex]::Escape($testPath)
+
+        Set-Content -Path $testPath -Value "`r`n'One' | Should Be 'Two'"
+
+        try
+        {
+            & $testPath
+        }
+        catch
+        {
+            $errorRecord = $_
+        }
+
+        # This approach is necessary to avoid screwing up the script scoped variables (in particular, $script:IgnoreErrorPreference) when Should is called.
+        # That was throwing off the test results at first, because the error record we got was due to the invalid (null) value being passed to -ErrorAction.
+
+        $cmd = InModuleScope Pester { ${function:Get-PesterResult} }
+        $result = & $cmd $script 0 $errorRecord
+
+        $result.Stacktrace | should match "at line: 2 in $escapedTestPath"
     }
 }
