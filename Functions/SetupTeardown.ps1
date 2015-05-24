@@ -197,7 +197,7 @@ function Add-SetupAndTeardownV2
     )
 
     $codeText = $ScriptBlock.ToString()
-    $tokens = ParseCodeIntoTokens -CodeText $codeText
+    $tokens = @(ParseCodeIntoTokens -CodeText $codeText)
 
     for ($i = 0; $i -lt $tokens.Count; $i++)
     {

@@ -66,7 +66,7 @@ function New-Fixture {
         [String]$Name
     )
     #region File contents
-    #keep this formatted as is. the forma is output to the file as is, including indentation
+    #keep this formatted as is. the format is output to the file as is, including indentation
     $scriptCode = "function $name {`r`n`r`n}"
 
     $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path

@@ -314,7 +314,7 @@ function IsIgnoredCommand
 
         if (IsChildOfHashtableDynamicKeyword -Command $Command)
         {
-            # The lines inside DSC resource declarations don't trigger their breakpooints when executed,
+            # The lines inside DSC resource declarations don't trigger their breakpoints when executed,
             # just like the "configuration" keyword itself.  I don't know why, at this point, but just like
             # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
             return $true

@@ -222,19 +222,29 @@ about_Mocking
 
                 if ($dynamicParamStatements -match '\S')
                 {
-                    $metadataWithoutMandatory = [System.Management.Automation.CommandMetaData]$contextInfo.Command
-                    foreach ($parameter in $metadataWithoutMandatory.Parameters.Values)
+                    $metadataSafeForDynamicParams = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+                    foreach ($parameter in $metadataSafeForDynamicParams.Parameters.Values)
                     {
-                        foreach ($parameterSet in $parameter.ParameterSets.Values)
-                        {
-                            $parameterSet.IsMandatory = $false
-                        }
+                        $parameter.ParameterSets.Clear()
                     }
 
-                    $paramBlockWithoutMandatory = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataWithoutMandatory)
-                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters }"
+                    $paramBlockSafeForDynamicParams = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataSafeForDynamicParams)
+                    $comma = if ($metadataSafeForDynamicParams.Parameters.Count -gt 0) { ',' } else { '' }
+                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
 
-                    $dynamicParamScriptBlock = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlockWithoutMandatory )`r`n$dynamicParamStatements")
+                    $code = @"
+                        $cmdletBinding
+                        param(
+                            [object] `${P S Cmdlet}$comma
+                            $paramBlockSafeForDynamicParams
+                        )
+
+                        `$PSCmdlet = `${P S Cmdlet}
+
+                        $dynamicParamStatements
+"@
+
+                    $dynamicParamScriptBlock = [scriptblock]::Create($code)
 
                     $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
 
@@ -737,10 +747,10 @@ function MockPrototype {
         [string] $IgnoreErrorPreference = 'SilentlyContinue'
     }
 
-    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
-    if ($null -eq $ArgumentList) { $ArgumentList = @() }
+    [object] ${a r g s} = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
+    if ($null -eq ${a r g s}) { ${a r g s} = @() }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s}
 }
 
 function Invoke-Mock {
@@ -1054,7 +1064,9 @@ function Get-MockDynamicParameters
         [Parameter(ParameterSetName = 'Function')]
         [string] $ModuleName,
 
-        [hashtable] $Parameters
+        [hashtable] $Parameters,
+
+        [object] $Cmdlet
     )
 
     switch ($PSCmdlet.ParameterSetName)
@@ -1066,7 +1078,7 @@ function Get-MockDynamicParameters
 
         'Function'
         {
-            Get-DynamicParametersForMockedFunction -FunctionName $FunctionName -ModuleName $ModuleName -Parameters $Parameters
+            Get-DynamicParametersForMockedFunction -FunctionName $FunctionName -ModuleName $ModuleName -Parameters $Parameters -Cmdlet $Cmdlet
         }
     }
 }
@@ -1151,7 +1163,10 @@ function Get-DynamicParametersForMockedFunction
         $ModuleName,
 
         [System.Collections.IDictionary]
-        $Parameters
+        $Parameters,
+
+        [object]
+        $Cmdlet
     )
 
     $mock = $mockTable["$ModuleName||$FunctionName"]
@@ -1163,6 +1178,7 @@ function Get-DynamicParametersForMockedFunction
 
     if ($mock.DynamicParamScriptBlock)
     {
-        return & $mock.DynamicParamScriptBlock @Parameters
+        $splat = @{ 'P S Cmdlet' = $Cmdlet }
+        return & $mock.DynamicParamScriptBlock @Parameters @splat
     }
 }

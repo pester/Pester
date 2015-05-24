@@ -1,4 +1,4 @@
-## Unreleased
+## 3.3.9 (May 23, 2015)
   - Fixed Describe's handling of TestName filter when multiple strings are passed to Invoke-Pester's -TestName parameter.
   - Failing BeforeEach or AfterEach will fail the test [GH-326]
   - Added BeOfType operator to the Should command. [GH-327]
@@ -10,6 +10,9 @@
   - Added -ExclusiveFilter parameter to Assert-MockCalled.  Works like -ParameterFilter, except there also must not be any calls to the mocked command which do _not_ match the filter.
   - Added the "bin" folder to the PATH environment variable when installing from Chocolatey.  Also removed the hard-coded -OutputXml and -Strict parameters from this file; only -EnableExit is always used from the bat file now.  [GH-281]
   - PassThru object (when used in conjunction with -CodeCoverage) now includes information about Hit commands in addition to Missed commands.  [GH-341]
+  - Improvements to support for mocking advanced fynctions with dynamic parameters.  [GH-346]
+  - Fix for PowerShell v2 bug when mocking commands that have an -ArgumentList parameter with validation attributes.  [GH-354]
+  - Fixed stack trace output when the call to Should is in a file other than the file that contains the It block. [GH-358]
 
 ## 3.3.8 (April 15, 2015)
   - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]

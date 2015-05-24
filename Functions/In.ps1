@@ -1,7 +1,7 @@
 function In {
 <#
 .SYNOPSIS
-A convenience function that executes a scrit from a specified path.
+A convenience function that executes a script from a specified path.
 
 .DESCRIPTION
 Before the script block passed to the execute parameter is invoked,

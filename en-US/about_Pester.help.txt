@@ -6,22 +6,22 @@ SYNOPSIS
 
 DESCRIPTION
 	Pester provides a framework for running Unit Tests to execute and validate 
-	Powershell commands. Pester follows a file naming convention for naming 
+	PowerShell commands. Pester follows a file naming convention for naming 
 	tests to be discovered by pester at test time and a simple set of 
 	functions that expose a Testing DSL for isolating, running, evaluating and 
-	reporting the results of Powershell commands.
+	reporting the results of PowerShell commands.
 
-	Pester tests can execute any command or script that is accesible to a 
-	pester test file. This can include functions, Cmdlets, Modules and scripts. 
+	Pester tests can execute any command or script that is accessible to a 
+	pester test file. This can include functions, cmdlets, modules and scripts. 
 	Pester can be run in ad hoc style in a console or it can be integrated into 
 	the Build scripts of a Continuous Integration system.
 
 	Pester also contains a powerful set of Mocking Functions that allow tests to 
 	mimic and mock the functionality of any command inside of a piece of 
-	powershell code being tested. See about_Mocking.
+	PowerShell code being tested. See about_Mocking.
 
 CREATING A PESTER TEST
-	To start using Pester, You may use the Add-Fixture function to scaffold both 
+	To start using Pester, you may use the Add-Fixture function to scaffold both 
 	a new implementation function and a test function.
 
 	C:\PS>New-Fixture deploy Clean
@@ -52,7 +52,7 @@ CREATING A PESTER TEST
     Each It block should test one thing and throw an exception if the test 
     fails. Pester will consider any It block that throws an exception to be a 
     failed test. Pester provides a set of extensions that can perform various 
-    comparisons between the values emited or altered by a test and an expected 
+    comparisons between the values emitted or altered by a test and an expected 
     value (see about_Should). 
 
 RUNNNING A PESTER TEST
@@ -115,7 +115,7 @@ PESTER AND CONTINUOUS INTEGRATION
 	<Exec Command="cmd /c $(baseDir)pester\bin\pester.bat" />
 	</Target>
 
-	This will start a powershell session, import the Pester Module and call 
+	This will start a PowerShell session, import the Pester Module and call 
 	invoke pester within the current directory. If any test fails, it will 
 	return an exit code equal to the number of failed tests and all test 
 	results will be saved to Test.xml using NUnit's Schema allowing you to 
@@ -126,7 +126,7 @@ OTHER EXAMPLES
 	Pester's own tests. See all files in the Pester Functions folder 
 	containing *Tests.ps1
 	
-	Chocolatey tests. Chocolatey is a popular powershell based Windows 
+	Chocolatey tests. Chocolatey is a popular PowerShell based Windows 
 	package management system. It uses Pester tests to validate its own 
 	functionality.
 

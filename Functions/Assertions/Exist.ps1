@@ -1,6 +1,6 @@
 
 function PesterExist($value) {
-    return (Test-Path $value)
+    Test-Path $value
 }
 
 function PesterExistFailureMessage($value) {
@@ -10,5 +10,3 @@ function PesterExistFailureMessage($value) {
 function NotPesterExistFailureMessage($value) {
     return "Expected: ${value} to not exist, but it was found"
 }
-
-
