@@ -28,3 +28,8 @@ function NotPesterBeOfTypeFailureMessage($value, $expectedType) {
         return "Expected: ${value} to be of any type except [$expectedType], but unable to find type [$expectedType]. Make sure that the assembly that contains that type is loaded."
     }
 }
+
+Add-AssertionOperator -Name                      BeOfType `
+                      -Test                      $function:PesterBeOfType `
+                      -GetPositiveFailureMessage $function:PesterBeOfTypeFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeOfTypeFailureMessage

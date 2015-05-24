@@ -109,6 +109,6 @@ function Invoke-Assertion($assertionEntry, $shouldArgs, $valueToTest, $file, $li
     if (-not $testSucceeded)
     {
         $failureMessage = Get-FailureMessage $assertionEntry $shouldArgs $valueToTest
-        throw ( New-ShouldException -Message $failureMessage -File $file -Line $lineNumber -LineText $lineText )
+        throw ( New-ShouldErrorRecord -Message $failureMessage -File $file -Line $lineNumber -LineText $lineText )
     }
 }
