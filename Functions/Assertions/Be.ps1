@@ -1,9 +1,13 @@
 #Be
 function PesterBe($value, $expected) {
-    return ($expected -eq $value)
+    return ArraysAreEqual $value $expected
 }
 
 function PesterBeFailureMessage($value, $expected) {
+    # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
+    $value = ($value)
+    $expected = ($expected)
+
     if (-not (($expected -is [string]) -and ($value -is [string])))
     {
         return "Expected: {$expected}`nBut was:  {$value}"
@@ -22,12 +26,22 @@ function NotPesterBeFailureMessage($value, $expected) {
     return "Expected: value was {$value}, but should not have been the same"
 }
 
+Add-AssertionOperator -Name                      Be `
+                      -Test                      $function:PesterBe `
+                      -GetPositiveFailureMessage $function:PesterBeFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeFailureMessage `
+                      -SupportsArrayInput
+
 #BeExactly
 function PesterBeExactly($value, $expected) {
-    return ($expected -ceq $value)
+    return ArraysAreEqual $value $expected -CaseSensitive
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
+    # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
+    $value = ($value)
+    $expected = ($expected)
+
     if (-not (($expected -is [string]) -and ($value -is [string])))
     {
         return "Expected exactly: {$expected}`nBut was: {$value}"
@@ -45,6 +59,13 @@ function PesterBeExactlyFailureMessage($value, $expected) {
 function NotPesterBeExactlyFailureMessage($value, $expected) {
     return "Expected: value was {$value}, but should not have been exactly the same"
 }
+
+Add-AssertionOperator -Name                      BeExactly `
+                      -Test                      $function:PesterBeExactly `
+                      -GetPositiveFailureMessage $function:PesterBeExactlyFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterBeExactlyFailureMessage `
+                      -SupportsArrayInput
+
 
 #common functions
 function Get-CompareStringMessage {
@@ -110,6 +131,98 @@ function Expand-SpecialCharacters {
     [string[]]$InputObject)
     process {
         $InputObject -replace "`n","\n" -replace "`r","\r" -replace "`t","\t" -replace "`0", "\0" -replace "`b","\b"
+    }
+}
+
+function ArraysAreEqual
+{
+    param (
+        [object[]] $First,
+        [object[]] $Second,
+        [switch] $CaseSensitive
+    )
+
+    # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
+    # silly error in PowerShell v3.  (Null Reference exception from the PowerShell engine in a
+    # method called CheckAutomationNullInCommandArgumentArray(System.Object[]) ).
+    $firstNullOrEmpty  = ArrayOrSingleElementIsNullOrEmpty -Array @($First)
+    $secondNullOrEmpty = ArrayOrSingleElementIsNullOrEmpty -Array @($Second)
+
+    if ($firstNullOrEmpty -or $secondNullOrEmpty)
+    {
+        return $firstNullOrEmpty -and $secondNullOrEmpty
+    }
+
+    if ($First.Count -ne $Second.Count) { return $false }
+
+    for ($i = 0; $i -lt $First.Count; $i++)
+    {
+        if ((IsCollection $First[$i]) -or (IsCollection $Second[$i]))
+        {
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
+            {
+                return $false
+            }
+        }
+        else
+        {
+            if ($CaseSensitive)
+            {
+                $comparer = { $args[0] -ceq $args[1] }
+            }
+            else
+            {
+                $comparer = { $args[0] -eq $args[1] }
+            }
+
+            if (-not (& $comparer $First[$i] $Second[$i]))
+            {
+                return $false
+            }
+        }
+    }
+
+    return $true
+}
+
+function ArrayOrSingleElementIsNullOrEmpty
+{
+    param ([object[]] $Array)
+
+    return $null -eq $Array -or $Array.Count -eq 0 -or ($Array.Count -eq 1 -and $null -eq $Array[0])
+}
+
+function IsCollection
+{
+    param ([object] $InputObject)
+
+    return $InputObject -is [System.Collections.IEnumerable] -and
+           $InputObject -isnot [string] -and
+           $InputObject -isnot [System.Collections.IDictionary]
+}
+
+function ReplaceValueInArray
+{
+    param (
+        [object[]] $Array,
+        [object] $Value,
+        [object] $NewValue
+    )
+
+    foreach ($object in $Array)
+    {
+        if ($Value -eq $object)
+        {
+            $NewValue
+        }
+        elseif (@($object).Count -gt 1)
+        {
+            ReplaceValueInArray -Array @($object) -Value $Value -NewValue $NewValue
+        }
+        else
+        {
+            $object
+        }
     }
 }
 

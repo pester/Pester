@@ -12,7 +12,50 @@ else
 }
 $Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-. "$PesterRoot\PesterCore.ps1"
+$script:AssertionOperators = @{}
+
+function Add-AssertionOperator
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $Name,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock] $Test,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock] $GetPositiveFailureMessage,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock] $GetNegativeFailureMessage,
+
+        [switch] $SupportsArrayInput
+    )
+
+    $key = $Name.ToLower()
+
+    if ($script:AssertionOperators.ContainsKey($key))
+    {
+        throw "Assertion operator '$Name' already exists in the global assertions table."
+    }
+
+    $entry = New-Object psobject -Property @{
+        Test = $Test
+        GetPositiveFailureMessage = $GetPositiveFailureMessage
+        GetNegativeFailureMessage = $GetNegativeFailureMessage
+        SupportsArrayInput = [bool]$SupportsArrayInput
+    }
+
+    $script:AssertionOperators[$key] = $entry
+}
+
+function Get-AssertionOperatorEntry([string] $Name)
+{
+    return $script:AssertionOperators[$Name.ToLower()]
+}
+
+$moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 Resolve-Path |

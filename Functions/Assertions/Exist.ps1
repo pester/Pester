@@ -1,4 +1,3 @@
-
 function PesterExist($value) {
     Test-Path $value
 }
@@ -10,3 +9,8 @@ function PesterExistFailureMessage($value) {
 function NotPesterExistFailureMessage($value) {
     return "Expected: ${value} to not exist, but it was found"
 }
+
+Add-AssertionOperator -Name                      Exist `
+                      -Test                      $function:PesterExist `
+                      -GetPositiveFailureMessage $function:PesterExistFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterExistFailureMessage

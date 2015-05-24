@@ -11,3 +11,7 @@ function NotPesterContainExactlyFailureMessage($file, $contentExpecation) {
     return "Expected: file {$file} to not contain exactly ${contentExpecation} but it did"
 }
 
+Add-AssertionOperator -Name                      ContainExactly `
+                      -Test                      $function:PesterContainExactly `
+                      -GetPositiveFailureMessage $function:PesterContainExactlyFailureMessage `
+                      -GetNegativeFailureMessage $function:NotPesterContainExactlyFailureMessage

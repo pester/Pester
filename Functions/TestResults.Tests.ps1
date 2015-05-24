@@ -52,8 +52,8 @@ InModuleScope Pester {
             $xmlTestResult = $xmlResult.'test-results'
             $xmlTestResult.total    | Should Be 1
             $xmlTestResult.failures | Should Be 0
-            $xmlTestResult.date     | Should Be $true
-            $xmlTestResult.time     | Should Be $true
+            $xmlTestResult.date     | Should Not BeNullOrEmpty
+            $xmlTestResult.time     | Should Not BeNullOrEmpty
         }
 
         it "should write the test-suite information" {
@@ -185,8 +185,8 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
-            $xmlEnvironment.'os-Version'    | Should Be $true
-            $xmlEnvironment.platform        | Should Be $true
+            $xmlEnvironment.'os-Version'    | Should Not BeNullOrEmpty
+            $xmlEnvironment.platform        | Should Not BeNullOrEmpty
             $xmlEnvironment.cwd             | Should Be (Get-Location).Path
             if ($env:Username) {
                 $xmlEnvironment.user        | Should Be $env:Username
@@ -343,8 +343,8 @@ InModuleScope Pester {
             $xmlTestResult = $xmlResult.'test-results'
             $xmlTestResult.total    | Should Be 1
             $xmlTestResult.failures | Should Be 0
-            $xmlTestResult.date     | Should Be $true
-            $xmlTestResult.time     | Should Be $true
+            $xmlTestResult.date     | Should Not BeNullOrEmpty
+            $xmlTestResult.time     | Should Not BeNullOrEmpty
         }
 
         it "should write the test-suite information" {
@@ -404,8 +404,8 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
-            $xmlEnvironment.'os-Version'    | Should Be $true
-            $xmlEnvironment.platform        | Should Be $true
+            $xmlEnvironment.'os-Version'    | Should Not BeNullOrEmpty
+            $xmlEnvironment.platform        | Should Not BeNullOrEmpty
             $xmlEnvironment.cwd             | Should Be (Get-Location).Path
             if ($env:Username) {
                 $xmlEnvironment.user        | Should Be $env:Username
