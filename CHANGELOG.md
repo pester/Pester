@@ -1,4 +1,4 @@
-## Unreleased
+## 3.3.9 (May 23, 2015)
   - Fixed Describe's handling of TestName filter when multiple strings are passed to Invoke-Pester's -TestName parameter.
   - Failing BeforeEach or AfterEach will fail the test [GH-326]
   - Added BeOfType operator to the Should command. [GH-327]
