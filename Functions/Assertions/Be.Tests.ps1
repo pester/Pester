@@ -132,3 +132,12 @@ InModuleScope Pester {
     }
 }
 
+Describe "Be / BeExactly - New Syntax" {
+    It 'Passes tests correctly with the new syntax' {
+        { 'One' | Should -Be 'One' } | Should Not Throw
+        { 'One' | Should -Not -Be 'Two' } | Should Not Throw
+        { 'ONE' | Should -BeExactly 'ONE' } | Should Not Throw
+        { 'ONE' | Should -Not -BeExactly 'One' } | Should Not Throw
+        { (1..5) | Should -Be (1..5) } | Should Not Throw
+    }
+}

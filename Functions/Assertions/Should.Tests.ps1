@@ -73,19 +73,14 @@ InModuleScope Pester {
         }
 
         Context "for positive assertions" {
-
-            $shouldArgs = Parse-ShouldArgs Test, 1
-
             It "should return the postive assertion failure message" {
-                Get-FailureMessage $assertionEntry $shouldArgs 2 | Should Be "slime 1 2"
+                Get-FailureMessage $assertionEntry $false 2 1 | Should Be "slime 1 2"
             }
         }
 
         Context "for negative assertions" {
-            $shouldArgs = Parse-ShouldArgs Not, Test, 1
-
             It "should return the negative assertion failure message" {
-              Get-FailureMessage $assertionEntry $shouldArgs 2 | Should Be "not slime 1 2"
+              Get-FailureMessage $assertionEntry $true 2 1 | Should Be "not slime 1 2"
             }
         }
 

@@ -1,16 +1,16 @@
 #Be
-function PesterBe($value, $expected) {
-    return ArraysAreEqual $value $expected
+function PesterBe($ActualValue, $expected) {
+    return ArraysAreEqual $ActualValue $expected
 }
 
-function PesterBeFailureMessage($value, $expected) {
+function PesterBeFailureMessage($ActualValue, $expected) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
-    $value = ($value)
+    $ActualValue = ($ActualValue)
     $expected = ($expected)
 
-    if (-not (($expected -is [string]) -and ($value -is [string])))
+    if (-not (($expected -is [string]) -and ($ActualValue -is [string])))
     {
-        return "Expected: {$expected}`nBut was:  {$value}"
+        return "Expected: {$expected}`nBut was:  {$ActualValue}"
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -19,32 +19,34 @@ function PesterBeFailureMessage($value, $expected) {
     This is a quickwin solution, doing the join in the Should directly might be better
     way of doing this. But I don't want to mix two problems.
     #>
-    ( Get-CompareStringMessage -Expected $expected -Actual $value ) -join "`n"
+    ( Get-CompareStringMessage -Expected $expected -Actual $ActualValue ) -join "`n"
 }
 
-function NotPesterBeFailureMessage($value, $expected) {
-    return "Expected: value was {$value}, but should not have been the same"
+function NotPesterBeFailureMessage($ActualValue, $expected) {
+    return "Expected: value was {$ActualValue}, but should not have been the same"
 }
 
-Add-AssertionOperator -Name                      Be `
-                      -Test                      $function:PesterBe `
-                      -GetPositiveFailureMessage $function:PesterBeFailureMessage `
-                      -GetNegativeFailureMessage $function:NotPesterBeFailureMessage `
+Add-AssertionOperator -Name                       Be `
+                      -Test                       $function:PesterBe `
+                      -GetPositiveFailureMessage  $function:PesterBeFailureMessage `
+                      -GetNegativeFailureMessage  $function:NotPesterBeFailureMessage `
+                      -Alias                      'Eq' `
+                      -ExpectedValueParameterName 'expected' `
                       -SupportsArrayInput
 
 #BeExactly
-function PesterBeExactly($value, $expected) {
-    return ArraysAreEqual $value $expected -CaseSensitive
+function PesterBeExactly($ActualValue, $expected) {
+    return ArraysAreEqual $ActualValue $expected -CaseSensitive
 }
 
-function PesterBeExactlyFailureMessage($value, $expected) {
+function PesterBeExactlyFailureMessage($ActualValue, $expected) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
-    $value = ($value)
+    $ActualValue = ($ActualValue)
     $expected = ($expected)
 
-    if (-not (($expected -is [string]) -and ($value -is [string])))
+    if (-not (($expected -is [string]) -and ($ActualValue -is [string])))
     {
-        return "Expected exactly: {$expected}`nBut was: {$value}"
+        return "Expected exactly: {$expected}`nBut was: {$ActualValue}"
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -53,11 +55,11 @@ function PesterBeExactlyFailureMessage($value, $expected) {
     This is a quickwin solution, doing the join in the Should directly might be better
     way of doing this. But I don't want to mix two problems.
     #>
-    ( Get-CompareStringMessage -Expected $expected -Actual $value -CaseSensitive ) -join "`n"
+    ( Get-CompareStringMessage -Expected $expected -Actual $ActualValue -CaseSensitive ) -join "`n"
 }
 
-function NotPesterBeExactlyFailureMessage($value, $expected) {
-    return "Expected: value was {$value}, but should not have been exactly the same"
+function NotPesterBeExactlyFailureMessage($ActualValue, $expected) {
+    return "Expected: value was {$ActualValue}, but should not have been exactly the same"
 }
 
 Add-AssertionOperator -Name                      BeExactly `
