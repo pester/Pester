@@ -21,7 +21,7 @@ DESCRIPTION
 	PowerShell code being tested. See about_Mocking.
 
 CREATING A PESTER TEST
-	To start using Pester, you may use the Add-Fixture function to scaffold both 
+	To start using Pester, you may use the New-Fixture function to scaffold both 
 	a new implementation function and a test function.
 
 	C:\PS>New-Fixture deploy Clean
