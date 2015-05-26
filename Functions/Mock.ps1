@@ -679,12 +679,12 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         if ($null -ne $command -and $command.CommandType -eq 'Function')
         {
             if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)") -and
-                (Get-Content "function:\global:$($command.Name)") -eq $command.ScriptBlock)
+                (Microsoft.PowerShell.Management\Get-Content "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'global:'
             }
             elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)") -and
-                    (Get-Content "function:\script:$($command.Name)") -eq $command.ScriptBlock)
+                    (Microsoft.PowerShell.Management\Get-Content "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'script:'
             }
@@ -727,23 +727,23 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
 }
 
 function MockPrototype {
-    # It's necessary to strongly type our variable assignments here, just in case the mocked command has
-    # parameters of the same names with a different type.  We don't actually care about overwriting the
-    # variables, since they're going to be passed along with $PSBoundParameters anyway.
-
     if ($PSVersionTable.PSVersion.Major -ge 3)
     {
-        [string] $IgnoreErrorPreference = 'Ignore'
+        [string] ${ignore preference} = 'Ignore'
     }
     else
     {
-        [string] $IgnoreErrorPreference = 'SilentlyContinue'
+        [string] ${ignore preference} = 'SilentlyContinue'
     }
 
-    [object] ${a r g s} = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
+    [object] ${a r g s} = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
     if ($null -eq ${a r g s}) { ${a r g s} = @() }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s}
+    ${p s cmdlet} = Get-Variable -Name PSCmdlet -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+
+    ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
+
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state}
 }
 
 function Invoke-Mock {
@@ -765,7 +765,9 @@ function Invoke-Mock {
         $BoundParameters = @{},
 
         [object[]]
-        $ArgumentList = @()
+        $ArgumentList = @(),
+
+        [object] $CallerSessionState
     )
 
     if ($mock = $mockTable["$ModuleName||$CommandName"])
@@ -830,7 +832,16 @@ function Invoke-Mock {
             }
         }
 
-        & $mock.OriginalCommand @ArgumentList @BoundParameters
+        $scriptBlock = {
+            param ($Command, $ArgumentList, $BoundParameters)
+            & $Command @ArgumentList @BoundParameters
+        }
+
+        $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
+
+        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+
+        & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
     }
     elseif ($mock = $mockTable["||$CommandName"])
     {
@@ -838,7 +849,16 @@ function Invoke-Mock {
         # a module can wind up executing Invoke-Mock when that was not the intent of the test.  Try to recover from
         # this by executing the original command.
 
-        & $mock.OriginalCommand @ArgumentList @BoundParameters
+        $scriptBlock = {
+            param ($Command, $ArgumentList, $BoundParameters)
+            & $Command @ArgumentList @BoundParameters
+        }
+
+        $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
+
+        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+
+        & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
     }
     else
     {
