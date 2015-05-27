@@ -427,7 +427,18 @@ Describe 'When calling Mock on a module-internal function.' {
             InternalFunction
         }
 
-        Export-ModuleMember -Function PublicFunction, PublicFunction2, FuncThatOverwritesExecutionContext
+        function ScopeTest {
+            return Get-CallerModuleName
+        }
+
+        function Get-CallerModuleName {
+            [CmdletBinding()]
+            param ( )
+
+            return $PSCmdlet.SessionState.Module.Name
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunction2, FuncThatOverwritesExecutionContext, ScopeTest
     } | Import-Module -Force
 
     It 'Should fail to call the internal module function' {
@@ -472,6 +483,19 @@ Describe 'When calling Mock on a module-internal function.' {
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
             TestModule2\FuncThatOverwritesExecutionContext | Should Be 'I am the second module internal function'
             TestModule\FuncThatOverwritesExecutionContext | Should Be 'I am the mock test'
+        }
+
+        Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+
+        It 'Should call the original command from the proper scope if no parameter filters match' {
+            TestModule2\ScopeTest | Should Be 'TestModule2'
+        }
+
+        Mock -ModuleName TestModule2 Get-Content { }
+
+        It 'Does not trigger the mocked Get-Content from Pester internals' {
+            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+            Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
         }
     }
 
