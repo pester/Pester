@@ -1,3 +1,7 @@
+## Unreleased
+  - Fully qualified calls to Get-Content within Mocking code, to avoid triggering client's mocked versions of that command. [GH-362]
+  - Fixed a scoping error when calling the original command if no parameter filters match the call.  [GH-362]
+
 ## 3.3.9 (May 23, 2015)
   - Fixed Describe's handling of TestName filter when multiple strings are passed to Invoke-Pester's -TestName parameter.
   - Failing BeforeEach or AfterEach will fail the test [GH-326]
