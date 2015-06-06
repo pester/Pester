@@ -146,6 +146,11 @@ function Invoke-Gherkin {
     )
     begin {
         Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1
+
+        # Make sure broken tests don't leave you in space:
+        $Location = Get-Location
+        $FileLocation = Get-Location -PSProvider FileSystem
+
     }
     end {
 
@@ -254,10 +259,11 @@ function Invoke-Gherkin {
         Invoke-GherkinHook AfterAllFeatures
 
         # Remove all the steps
-        foreach($StepFile in Get-ChildItem $Path -Filter "*.steps.psm1" -Recurse){
-            $Script:GherkinSteps.Clear()
-            # Remove-Module $StepFile.BaseName
-        }
+        $Script:GherkinSteps.Clear()
+        
+        $Location | Set-Location
+        [Environment]::CurrentDirectory = Convert-Path $FileLocation
+
         $pester | Write-PesterReport
         $coverageReport = Get-CoverageReport -PesterState $pester
         Write-CoverageReport -CoverageReport $coverageReport
@@ -297,10 +303,6 @@ function Invoke-GherkinScenario {
 
     Invoke-GherkinHook BeforeScenario $Scenario.Name $Scenario.Tags
 
-    # Make sure broken tests don't leave you in space:
-    $Location = Get-Location
-    $FileLocation = Get-Location -PSProvider FileSystem
-
     $TableSteps =   if($Scenario.Examples) {
                         foreach($ExampleSet in $Scenario.Examples) {
                             $Names = $ExampleSet | Get-Member -Type Properties | Select -Expand Name
@@ -332,9 +334,6 @@ function Invoke-GherkinScenario {
     foreach($Step in $TableSteps) {
         Invoke-GherkinStep $Pester $Step $Scenario.Tags
     }
-
-    $Location | Set-Location
-    [Environment]::CurrentDirectory = $FileLocation
 
     Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
 }
