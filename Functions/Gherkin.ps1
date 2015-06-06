@@ -4,6 +4,40 @@ Add-Type -Path "${Script:PesterRoot}\lib\PowerCuke.dll"
 
 $StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
+$GherkinHooks = @{
+    BeforeAllFeatures = @()
+    BeforeFeature = @()
+    BeforeScenario = @()
+    BeforeStep = @()
+    AfterAllFeatures = @()
+    AfterFeature = @()
+    AfterScenario = @()
+    AfterStep = @()
+}
+
+function Invoke-GherkinHook {
+    [CmdletBinding()]
+    param([string]$Hook, [string]$Name, [string[]]$Tags)
+    
+    if($GherkinHooks.${Hook}) {
+        foreach($GherkinHook in $GherkinHooks.${Hook}) {
+            if($GherkinHook.Tags -and $Tags) {
+                :tags foreach($hookTag in $GherkinHook.Tags) {
+                    foreach($testTag in $Tags) {
+                        if($testTag -match "^($hookTag)$") {
+                            & $hook.Script $Name
+                            break :tags
+                        }
+                    }
+                }
+            } elseif($GherkinHook.Tags) {
+                # If the hook has tags, it can't run if the step doesn't
+            } else {
+                & $GherkinHook.Script $Name
+            }
+        } # @{ Tags = $Tags; Script = $Test }
+    }
+}
 
 function Invoke-Gherkin {
     <#
@@ -142,16 +176,24 @@ function Invoke-Gherkin {
 
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-        # Remove all the steps
-        $Script:GherkinSteps.Clear()
-        # Import all the steps (we're going to need them in a minute)
-        $StepFiles = Get-ChildItem $Path -Filter "*.steps.ps1" -Recurse
-        foreach($StepFile in $StepFiles){
-            . $StepFile.FullName
-        }
-        Write-Verbose "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
-
+        $BeforeAllFeatures = $false
         foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
+
+            # Remove all the steps
+            $Script:GherkinSteps.Clear()
+            # Import all the steps that are at the same level or a subdirectory
+            $StepPath = Split-Path $FeatureFile
+            $StepFiles = Get-ChildItem $StepPath -Filter "*.steps.ps1" -Recurse
+            foreach($StepFile in $StepFiles){
+                . $StepFile.FullName
+            }
+            Write-Verbose "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
+
+            if(!$BeforeAllFeatures) {
+                Invoke-GherkinHook BeforeAllFeatures
+                $BeforeAllFeatures = $true
+            }
+
             $Feature = [PoshCode.PowerCuke.Parser]::Parse((Get-Content $FeatureFile.FullName -Delim ([char]0)))
             $null = $Pester.Features.Add($Feature)
 
@@ -159,6 +201,7 @@ function Invoke-Gherkin {
             $Pester.EnterDescribe($Feature)
             New-TestDrive
 
+            Invoke-GherkinHook BeforeFeature $Feature.Name $Feature.Tags
             ## Hypothetically, we could add FEATURE setup/teardown?
             # Add-SetupAndTeardown -ScriptBlock $Fixture
             # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
@@ -191,20 +234,8 @@ function Invoke-Gherkin {
                 # This is Pester's Context function
                 $Pester.EnterContext($Scenario.Name)
                 $TestDriveContent = Get-TestDriveChildItem
-                ## Hypothetically, we could add SCENARIO setup/teardown?
-                # Add-SetupAndTeardown -ScriptBlock $Fixture
-                # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
 
-                # Make sure broken tests don't leave you in space:
-                $Location = Get-Location
-                $FileLocation = Get-Location -PSProvider FileSystem
                 Invoke-GherkinScenario $Pester $Scenario $Feature.Background
-                $Location | Set-Location
-                [Environment]::CurrentDirectory = $FileLocation
-                ## Hypothetically, we could add SCENARIO setup/teardown?
-                # Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
-                ## Hypothetically, we could add SCENARIO setup/teardown?
-                # Clear-SetupAndTeardown
 
                 Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
                 # Exit-MockScope
@@ -212,14 +243,15 @@ function Invoke-Gherkin {
             }
 
             ## This is Pesters "Describe" function again
-            ## Hypothetically, we could add FEATURE setup/teardown?
-            # Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+            Invoke-GherkinHook AfterFeature $Feature.Name $Feature.Tags
+
             Remove-TestDrive
             ## Hypothetically, we could add FEATURE setup/teardown?
             # Clear-SetupAndTeardown
             Exit-MockScope
             $Pester.LeaveDescribe()
         }
+        Invoke-GherkinHook AfterAllFeatures
 
         # Remove all the steps
         foreach($StepFile in Get-ChildItem $Path -Filter "*.steps.psm1" -Recurse){
@@ -263,6 +295,12 @@ function Invoke-GherkinScenario {
         Invoke-GherkinScenario $Pester $Background -Quiet
     }
 
+    Invoke-GherkinHook BeforeScenario $Scenario.Name $Scenario.Tags
+
+    # Make sure broken tests don't leave you in space:
+    $Location = Get-Location
+    $FileLocation = Get-Location -PSProvider FileSystem
+
     $TableSteps =   if($Scenario.Examples) {
                         foreach($ExampleSet in $Scenario.Examples) {
                             $Names = $ExampleSet | Get-Member -Type Properties | Select -Expand Name
@@ -292,15 +330,20 @@ function Invoke-GherkinScenario {
                     }
 
     foreach($Step in $TableSteps) {
-        Invoke-GherkinStep $Pester $Step
+        Invoke-GherkinStep $Pester $Step $Scenario.Tags
     }
+
+    $Location | Set-Location
+    [Environment]::CurrentDirectory = $FileLocation
+
+    Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
 }
 
 
 function Invoke-GherkinStep {
     [CmdletBinding()]
     param (
-        $Pester, $Step
+        $Pester, $Step, $Tags
     )
     #  Pick the match with the least grouping wildcards in it...
     $StepCommand = $(
@@ -322,6 +365,8 @@ function Invoke-GherkinStep {
         $watch = New-Object System.Diagnostics.Stopwatch
         $watch.Start()
         try{
+            Invoke-GherkinHook BeforeStep $Step.Name $Tags
+
             if($NamedArguments.Count) {
                 $ScriptBlock = { & $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters }
             } else {
@@ -329,6 +374,9 @@ function Invoke-GherkinStep {
             }
             # Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
             $null = & $ScriptBlock
+
+            Invoke-GherkinHook AfterStep $Step.Name $Tags
+
             $Success = "Passed"
         } catch {
             $Success = "Failed"
@@ -369,3 +417,4 @@ function Get-StepParameters {
 
     return @($NamedArguments, $Parameters)
 }
+

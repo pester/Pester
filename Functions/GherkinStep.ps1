@@ -1,4 +1,4 @@
-Function When {
+function When {
     param(
         [Parameter(Mandatory=$True, Position=0)]
         [String]$Name,
