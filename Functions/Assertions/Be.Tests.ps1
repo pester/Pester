@@ -16,6 +16,7 @@ InModuleScope Pester {
         It 'Compares Arrays properly' {
             $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
             $array | Should Be $array
+            $array | Should -Be $array
         }
 
         It 'Compares arrays with correct case-insensitive behavior' {
@@ -24,6 +25,7 @@ InModuleScope Pester {
             $arrayWithCaps = @(1,2,3,4,$string.ToUpper())
 
             $array | Should Be $arrayWithCaps
+            $array | Should -Be $arrayWithCaps
         }
 
         It 'Handles reference types properly' {
@@ -32,6 +34,8 @@ InModuleScope Pester {
 
             $object1 | Should Be $object1
             $object1 | Should Not Be $object2
+            $object1 | Should -Be $object1
+            $object1 | Should -Not -Be $object2
         }
 
         It 'Handles arrays with nested arrays' {
@@ -46,6 +50,7 @@ InModuleScope Pester {
             )
 
             $array1 | Should Be $array2
+            $array1 | Should -Be $array2
 
             $array3 = @(
                 @(1,2,3,4,5),
@@ -53,6 +58,7 @@ InModuleScope Pester {
             )
 
             $array1 | Should Not Be $array3
+            $array1 | Should -Not -Be $array3
         }
     }
 
@@ -68,30 +74,37 @@ InModuleScope Pester {
 
             $string = "string"
             PesterBeFailureMessage $string $string | Should BeNullOrEmpty
+            PesterBeFailureMessage $string $string | Should -BeNullOrEmpty
         }
 
         It "Outputs less verbose message for two different objects that are not strings" {
             PesterBeFailureMessage 2 1 | Should Be "Expected: {1}`nBut was:  {2}"
+            PesterBeFailureMessage 2 1 | Should -Be "Expected: {1}`nBut was:  {2}"
         }
 
         It "Outputs verbose message for two strings of different length" {
             PesterBeFailureMessage "actual" "expected" | Should Be "Expected string length 8 but was 6. Strings differ at index 0.`nExpected: {expected}`nBut was:  {actual}`n-----------^"
+            PesterBeFailureMessage "actual" "expected" | Should -Be "Expected string length 8 but was 6. Strings differ at index 0.`nExpected: {expected}`nBut was:  {actual}`n-----------^"
         }
 
         It "Outputs verbose message for two different strings of the same length" {
             PesterBeFailureMessage "x" "y" | Should Be "String lengths are both 1. Strings differ at index 0.`nExpected: {y}`nBut was:  {x}`n-----------^"
+            PesterBeFailureMessage "x" "y" | Should -Be "String lengths are both 1. Strings differ at index 0.`nExpected: {y}`nBut was:  {x}`n-----------^"
         }
 
         It "Replaces non-printable characters correctly" {
             PesterBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Should Be "String lengths are both 6. Strings differ at index 5.`nExpected: {\n\r\b\0\ty}`nBut was:  {\n\r\b\0\tx}`n---------------------^"
+            PesterBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Should -Be "String lengths are both 6. Strings differ at index 5.`nExpected: {\n\r\b\0\ty}`nBut was:  {\n\r\b\0\tx}`n---------------------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced before the difference" {
             PesterBeFailureMessage "123`n456" "123`n789" | Should Be "String lengths are both 7. Strings differ at index 4.`nExpected: {123\n789}`nBut was:  {123\n456}`n----------------^"
+            PesterBeFailureMessage "123`n456" "123`n789" | Should -Be "String lengths are both 7. Strings differ at index 4.`nExpected: {123\n789}`nBut was:  {123\n456}`n----------------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced after the difference" {
             PesterBeFailureMessage "abcd`n123" "abc!`n123" | Should Be "String lengths are both 8. Strings differ at index 3.`nExpected: {abc!\n123}`nBut was:  {abcd\n123}`n--------------^"
+            PesterBeFailureMessage "abcd`n123" "abc!`n123" | Should -Be "String lengths are both 8. Strings differ at index 3.`nExpected: {abc!\n123}`nBut was:  {abcd\n123}`n--------------^"
         }
     }
 }
@@ -100,20 +113,25 @@ InModuleScope Pester {
     Describe "BeExactly" {
         It "passes if letter case matches" {
             'a' | Should BeExactly 'a'
+            'a' | Should -BeExactly 'a'
         }
 
         It "fails if letter case doesn't match" {
             'A' | Should Not BeExactly 'a'
+            'A' | Should -Not -BeExactly 'a'
         }
 
         It "passes for numbers" {
             1 | Should BeExactly 1
             2.15 | Should BeExactly 2.15
+            1 | Should -BeExactly 1
+            2.15 | Should -BeExactly 2.15
         }
 
         It 'Compares Arrays properly' {
             $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
             $array | Should BeExactly $array
+            $array | Should -BeExactly $array
         }
 
         It 'Compares arrays with correct case-sensitive behavior' {
@@ -122,22 +140,14 @@ InModuleScope Pester {
             $arrayWithCaps = @(1,2,3,4,$string.ToUpper())
 
             $array | Should Not BeExactly $arrayWithCaps
+            $array | Should -Not -BeExactly $arrayWithCaps
         }
     }
 
     Describe "PesterBeExactlyFailureMessage" {
         It "Writes verbose message for strings that differ by case" {
             PesterBeExactlyFailureMessage "a" "A" | Should Be "String lengths are both 1. Strings differ at index 0.`nExpected: {A}`nBut was:  {a}`n-----------^"
+            PesterBeExactlyFailureMessage "a" "A" | Should -Be "String lengths are both 1. Strings differ at index 0.`nExpected: {A}`nBut was:  {a}`n-----------^"
         }
-    }
-}
-
-Describe "Be / BeExactly - New Syntax" {
-    It 'Passes tests correctly with the new syntax' {
-        { 'One' | Should -Be 'One' } | Should Not Throw
-        { 'One' | Should -Not -Be 'Two' } | Should Not Throw
-        { 'ONE' | Should -BeExactly 'ONE' } | Should Not Throw
-        { 'ONE' | Should -Not -BeExactly 'One' } | Should Not Throw
-        { (1..5) | Should -Be (1..5) } | Should Not Throw
     }
 }

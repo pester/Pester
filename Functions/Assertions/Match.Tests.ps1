@@ -3,19 +3,23 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Match" {
         It "returns true for things that match" {
-            Test-PositiveAssertion (PesterMatch "foobar" "ob")
+            'foobar' | Should Match 'ob'
+            'foobar' | Should -Match 'ob'
         }
 
         It "returns false for things that do not match" {
-            Test-NegativeAssertion (PesterMatch "foobar" "slime")
+            'foobar' | Should Not Match 'slime'
+            'foobar' | Should -Not -Match 'slime'
         }
 
         It "passes for strings with different case" {
-            Test-PositiveAssertion (PesterMatch "foobar" "FOOBAR")
+            'foobar' | Should Match 'FOOBAR'
+            'foobar' | Should -Match 'FOOBAR'
         }
 
         It "uses regular expressions" {
-            Test-PositiveAssertion (PesterMatch "foobar" "\S{6}")
+            'foobar' | Should Match '\S{6}'
+            'foobar' | Should -Match '\S{6}'
         }
     }
 }

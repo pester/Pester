@@ -82,7 +82,7 @@ function Write-Describe {
     process {
         if($script:Pester.Quiet) { return }
 
-        $Text = if($Describe.Name) {
+        $Text = if($Describe.PSObject.Properties['Name'] -and $Describe.Name) {
             $ReportStrings.Describe -f $Describe.Name
         } else {
             $ReportStrings.Describe -f $Describe
@@ -91,7 +91,7 @@ function Write-Describe {
         Microsoft.PowerShell.Utility\Write-Host
         Microsoft.PowerShell.Utility\Write-Host $Text -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
-        if($Describe.Description) {
+        if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
             $Describe.Description -split '\n' | % {
                 Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.Margin * 2) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
@@ -106,7 +106,7 @@ function Write-Context {
     )
     process {
         if($script:Pester.Quiet) { return }
-        $Text = if($Context.Name) {
+        $Text = if($Context.PSObject.Properties['Name'] -and $Context.Name) {
                 $ReportStrings.Context -f $Context.Name
             } else {
                 $ReportStrings.Context -f $Context
@@ -115,7 +115,7 @@ function Write-Context {
         Microsoft.PowerShell.Utility\Write-Host
         Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
         # If the scenario has a longer description, write that too
-        if($Context.Description) {
+        if($Context.PSObject.Properties['Description'] -and $Context.Description) {
             $Context.Description -split '\n' | % {
                 Microsoft.PowerShell.Utility\Write-Host (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
             }

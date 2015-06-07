@@ -380,8 +380,8 @@ about_pester
             }
             catch
             {
-                $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+                $stackTraceLine = 'at {0}: line {1}' -f $_.InvocationInfo.ScriptName, $_.InvocationInfo.ScriptLineNumber
+                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $stackTraceLine)
                 $pester.TestResult[-1] | Write-PesterResult
             }
         }
