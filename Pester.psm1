@@ -119,7 +119,7 @@ function Add-AssertionDynamicParameterSet
     $attribute.ParameterSetName = $AssertionEntry.Name
     $attribute.Mandatory = $false
     $null = $dynamic.Attributes.Add($attribute)
-    
+
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values)
     {
@@ -135,7 +135,7 @@ function Add-AssertionDynamicParameterSet
             if ($script:AssertionOperators.ContainsKey($alias) -or $script:AssertionAliases.ContainsKey($alias))
             {
                 throw "Test block for assertion operator $($AssertionEntry.Name) contains a parameter named $($parameter.Name) with alias $alias, which conflicts with another assertion operator's name or alias."
-            }            
+            }
         }
 
         if ($script:AssertionDynamicParams.ContainsKey($parameter.Name))
@@ -158,7 +158,7 @@ function Add-AssertionDynamicParameterSet
         $attribute.Position = ($i++)
 
         $null = $dynamic.Attributes.Add($attribute)
-    }    
+    }
 }
 
 function Get-AssertionOperatorEntry([string] $Name)
@@ -344,7 +344,7 @@ about_pester
             $OutputFile = $OutputXml
             $OutputFormat = 'LegacyNUnitXml'
         }
-        
+
 
         $script:mockTable = @{}
 
@@ -352,7 +352,7 @@ about_pester
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
         Write-PesterStart $pester $Script
-        
+
         $invokeTestScript = {
             param (
                 [Parameter(Position = 0)]
