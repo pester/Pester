@@ -49,7 +49,7 @@ function NotPesterBeFailureMessage($ActualValue, $ExpectedValue) {
 
 Add-AssertionOperator -Name               Be `
                       -Test               $function:PesterBe `
-                      -Alias              'Eq' `
+                      -Alias              'EQ' `
                       -SupportsArrayInput
 
 #BeExactly

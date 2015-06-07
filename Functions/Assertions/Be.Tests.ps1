@@ -3,20 +3,27 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "PesterBe" {
         It "returns true if the 2 arguments are equal" {
-            Test-PositiveAssertion (PesterBe 1 1)
+            1 | Should Be 1
+            1 | Should -Be 1
+            1 | Should -EQ 1
         }
         It "returns true if the 2 arguments are equal and have different case" {
-            Test-PositiveAssertion (PesterBe "A" "a")
+            'A' | Should Be 'a'
+            'A' | Should -Be 'a'
+            'A' | Should -EQ 'a'
         }
 
         It "returns false if the 2 arguments are not equal" {
-            Test-NegativeAssertion (PesterBe 1 2)
+            1 | Should Not Be 2
+            1 | Should -Not -Be 2
+            1 | Should -Not -EQ 2
         }
 
         It 'Compares Arrays properly' {
             $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
             $array | Should Be $array
             $array | Should -Be $array
+            $array | Should -EQ $array
         }
 
         It 'Compares arrays with correct case-insensitive behavior' {
@@ -26,6 +33,7 @@ InModuleScope Pester {
 
             $array | Should Be $arrayWithCaps
             $array | Should -Be $arrayWithCaps
+            $array | Should -EQ $arrayWithCaps
         }
 
         It 'Handles reference types properly' {
@@ -36,6 +44,8 @@ InModuleScope Pester {
             $object1 | Should Not Be $object2
             $object1 | Should -Be $object1
             $object1 | Should -Not -Be $object2
+            $object1 | Should -EQ $object1
+            $object1 | Should -Not -EQ $object2
         }
 
         It 'Handles arrays with nested arrays' {
@@ -51,6 +61,7 @@ InModuleScope Pester {
 
             $array1 | Should Be $array2
             $array1 | Should -Be $array2
+            $array1 | Should -EQ $array2
 
             $array3 = @(
                 @(1,2,3,4,5),
@@ -59,6 +70,7 @@ InModuleScope Pester {
 
             $array1 | Should Not Be $array3
             $array1 | Should -Not -Be $array3
+            $array1 | Should -Not -EQ $array3
         }
     }
 
