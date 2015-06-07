@@ -3,26 +3,31 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "PesterThrow" {
         It "returns true if the statement throws an exception" {
-            Test-PositiveAssertion (PesterThrow { throw })
+            { throw } | Should Throw
+            { throw } | Should -Throw
         }
 
         It "returns false if the statement does not throw an exception" {
-            Test-NegativeAssertion (PesterThrow { 1 + 1 })
+            { 1 + 1 } | Should Not Throw
+            { 1 + 1 } | Should -Not -Throw
         }
 
         It "returns true if the statement throws an exception and the actual error text matches the expected error text" {
             $expectedErrorMessage = "expected error message"
-            Test-PositiveAssertion (PesterThrow { throw $expectedErrorMessage } $expectedErrorMessage)
+            { throw $expectedErrorMessage } | Should Throw $expectedErrorMessage
+            { throw $expectedErrorMessage } | Should -Throw $expectedErrorMessage
         }
 
         It "returns false if the statement throws an exception and the actual error does not match the expected error text" {
             $unexpectedErrorMessage = "unexpected error message"
             $expectedErrorMessage = "some expected error message"
-            Test-NegativeAssertion (PesterThrow { throw $unexpectedErrorMessage} $expectedErrorMessage)
+            { throw $unexpectedErrorMessage } | Should Not Throw $expectedErrorMessage
+            { throw $unexpectedErrorMessage } | Should -Not -Throw $expectedErrorMessage
         }
 
         It "returns true if the statement throws an exception and the actual error text matches the expected error pattern" {
-            Test-PositiveAssertion (PesterThrow { throw "expected error"} "error")
+            { throw 'expected error' } | Should Throw 'error'
+            { throw 'expected error' } | Should -Throw 'error'
         }
     }
 
@@ -32,6 +37,7 @@ InModuleScope Pester {
             $actualErrorMesage = "expected"
             $result = Get-DoMessagesMatch $actualErrorMesage $expectedErrorMessage
             $result | Should Be $True
+            $result | Should -Be $True
         }
 
         It "returns false if the actual message is not the same as the expected message" {
@@ -39,11 +45,13 @@ InModuleScope Pester {
             $actualErrorMesage = "unexpected"
             $result = Get-DoMessagesMatch $actualErrorMesage $expectedErrorMessage
             $result | Should Be $False
+            $result | Should -Be $False
         }
 
         It "returns false is there's no expectation" {
             $result = Get-DoMessagesMatch "" ""
             $result | Should Be $False
+            $result | Should -Be $False
         }
 
         It "returns true if the expected error is contained in the actual message" {
@@ -51,6 +59,7 @@ InModuleScope Pester {
             $expectedText = "long error"
             $result = Get-DoMessagesMatch $actualErrorMesage $expectedText
             $result | Should Be $True
+            $result | Should -Be $True
         }
     }
 
@@ -65,12 +74,14 @@ InModuleScope Pester {
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
             $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
             PesterThrow { } > $null
             $result = PesterThrowFailureMessage 'error message'
             $result | Should Be 'Expected: the expression to throw an exception'
+            $result | Should -Be 'Expected: the expression to throw an exception'
         }
     }
 
@@ -82,16 +93,16 @@ InModuleScope Pester {
             $expectedErrorMessage = 'some expected message'
             Set-Content -Path $testScriptPath -Value "throw '$unexpectedErrorMessage'"
 
-            PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
-            $result = NotPesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result = PesterThrow { & $testScriptPath } $expectedErrorMessage
+            $result.FailureMessage | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
             Set-Content -Path $testScriptPath -Value "throw 'error message'"
-            PesterThrow { & $testScriptPath } > $null
-            $result = NotPesterThrowFailureMessage 'error message'
-            $result | Should Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result = PesterThrow { & $testScriptPath } -Negate
+            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
     }
 }

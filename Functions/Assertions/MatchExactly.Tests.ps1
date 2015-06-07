@@ -3,15 +3,21 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "MatchExactly" {
         It "returns true for things that match exactly" {
-            PesterMatchExactly "foobar" "ob" | Should Be $true
+            'foobar' | Should MatchExactly 'ob'
+            'foobar' | Should -MatchExactly 'ob'
+            'foobar' | Should -CMATCH 'ob'
         }
 
         It "returns false for things that do not match exactly" {
-            PesterMatchExactly "foobar" "FOOBAR" | Should Be $false
+            'foobar' | Should Not MatchExactly 'FOOBAR'
+            'foobar' | Should -Not -MatchExactly 'FOOBAR'
+            'foobar' | Should -Not -CMATCH 'FOOBAR'
         }
 
         It "uses regular expressions" {
-            PesterMatchExactly "foobar" "\S{6}" | Should Be $true
+            'foobar' | Should MatchExactly '\S{6}'
+            'foobar' | Should -MatchExactly '\S{6}'
+            'foobar' | Should -CMATCH '\S{6}'
         }
     }
 }

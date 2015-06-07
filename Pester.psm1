@@ -12,7 +12,9 @@ else
 }
 $Script:PesterRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-$script:AssertionOperators = @{}
+$script:AssertionOperators = New-Object 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
+$script:AssertionAliases = New-Object 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
+$script:AssertionDynamicParams = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 
 function Add-AssertionOperator
 {
@@ -24,35 +26,149 @@ function Add-AssertionOperator
         [Parameter(Mandatory = $true)]
         [scriptblock] $Test,
 
-        [Parameter(Mandatory = $true)]
-        [scriptblock] $GetPositiveFailureMessage,
-
-        [Parameter(Mandatory = $true)]
-        [scriptblock] $GetNegativeFailureMessage,
+        [ValidateNotNullOrEmpty()]
+        [string[]] $Alias,
 
         [switch] $SupportsArrayInput
     )
 
-    $key = $Name.ToLower()
+    $namesToCheck = @(
+        $Name
+        $Alias
+    )
 
-    if ($script:AssertionOperators.ContainsKey($key))
-    {
-        throw "Assertion operator '$Name' already exists in the global assertions table."
-    }
+    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $entry = New-Object psobject -Property @{
-        Test = $Test
-        GetPositiveFailureMessage = $GetPositiveFailureMessage
-        GetNegativeFailureMessage = $GetNegativeFailureMessage
-        SupportsArrayInput = [bool]$SupportsArrayInput
+        Test                       = $Test
+        SupportsArrayInput         = [bool]$SupportsArrayInput
+        Name                       = $Name
+        Alias                      = $Alias
     }
 
-    $script:AssertionOperators[$key] = $entry
+    $script:AssertionOperators[$Name] = $entry
+
+    foreach ($string in $Alias)
+    {
+        if ($string -notmatch '\S') { continue }
+        $script:AssertionAliases[$string] = $Name
+    }
+
+    Add-AssertionDynamicParameterSet -AssertionEntry $entry
+}
+
+function Assert-AssertionOperatorNameIsUnique
+{
+    param (
+        [string[]] $Name
+    )
+
+    foreach ($string in $name)
+    {
+        if ($string -notmatch '\S') { continue }
+
+        if ($script:AssertionOperators.ContainsKey($string))
+        {
+            throw "Assertion operator name '$string' has been added multiple times."
+        }
+
+        if ($script:AssertionAliases.ContainsKey($string))
+        {
+            throw "Assertion operator name '$string' already exists as an alias for operator '$($script:AssertionAliases[$key])'"
+        }
+    }
+}
+
+function Add-AssertionDynamicParameterSet
+{
+    param (
+        [object] $AssertionEntry
+    )
+
+    ${function:__AssertionTest__} = $AssertionEntry.Test
+    $commandInfo = Get-Command __AssertionTest__ -CommandType Function
+    $metadata = [System.Management.Automation.CommandMetadata]$commandInfo
+
+    $attribute = New-Object Management.Automation.ParameterAttribute
+    $attribute.ParameterSetName = $AssertionEntry.Name
+    $attribute.Mandatory = $true
+
+    $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+    $null = $attributeCollection.Add($attribute)
+
+    if ($AssertionEntry.Alias -match '\S')
+    {
+        $attribute = New-Object System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
+        $attributeCollection.Add($attribute)
+    }
+
+    $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
+    $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
+
+    if ($script:AssertionDynamicParams.ContainsKey('Not'))
+    {
+        $dynamic = $script:AssertionDynamicParams['Not']
+    }
+    else
+    {
+        $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Not', [switch], (New-Object System.Collections.ObjectModel.Collection[Attribute]))
+        $null = $script:AssertionDynamicParams.Add('Not', $dynamic)
+    }
+
+    $attribute = New-Object System.Management.Automation.ParameterAttribute
+    $attribute.ParameterSetName = $AssertionEntry.Name
+    $attribute.Mandatory = $false
+    $null = $dynamic.Attributes.Add($attribute)
+
+    $i = 1
+    foreach ($parameter in $metadata.Parameters.Values)
+    {
+        if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not' -or $parameter.Name -eq 'Negate') { continue }
+
+        if ($script:AssertionOperators.ContainsKey($parameter.Name) -or $script:AssertionAliases.ContainsKey($parameter.Name))
+        {
+            throw "Test block for assertion operator $($AssertionEntry.Name) contains a parameter named $($parameter.Name), which conflicts with another assertion operator's name or alias."
+        }
+
+        foreach ($alias in $parameter.Aliases)
+        {
+            if ($script:AssertionOperators.ContainsKey($alias) -or $script:AssertionAliases.ContainsKey($alias))
+            {
+                throw "Test block for assertion operator $($AssertionEntry.Name) contains a parameter named $($parameter.Name) with alias $alias, which conflicts with another assertion operator's name or alias."
+            }
+        }
+
+        if ($script:AssertionDynamicParams.ContainsKey($parameter.Name))
+        {
+            $dynamic = $script:AssertionDynamicParams[$parameter.Name]
+        }
+        else
+           {
+            # We deliberatey use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
+            # We also don't bother to try to copy transformation / validation attributes here for the same reason.
+            # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
+
+            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($parameter.Name, [object], (New-Object System.Collections.ObjectModel.Collection[Attribute]))
+            $null = $script:AssertionDynamicParams.Add($parameter.Name, $dynamic)
+        }
+
+        $attribute = New-Object Management.Automation.ParameterAttribute
+        $attribute.ParameterSetName = $AssertionEntry.Name
+        $attribute.Mandatory = $false
+        $attribute.Position = ($i++)
+
+        $null = $dynamic.Attributes.Add($attribute)
+    }
 }
 
 function Get-AssertionOperatorEntry([string] $Name)
 {
-    return $script:AssertionOperators[$Name.ToLower()]
+    return $script:AssertionOperators[$Name]
+}
+
+function Get-AssertionDynamicParams
+{
+    return $script:AssertionDynamicParams
 }
 
 $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
@@ -228,7 +344,7 @@ about_pester
             $OutputFile = $OutputXml
             $OutputFormat = 'LegacyNUnitXml'
         }
-        
+
 
         $script:mockTable = @{}
 
@@ -236,7 +352,7 @@ about_pester
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
         Write-PesterStart $pester $Script
-        
+
         $invokeTestScript = {
             param (
                 [Parameter(Position = 0)]
@@ -264,8 +380,8 @@ about_pester
             }
             catch
             {
-                $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+                $stackTraceLine = 'at {0}: line {1}' -f $_.InvocationInfo.ScriptName, $_.InvocationInfo.ScriptLineNumber
+                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $stackTraceLine)
                 $pester.TestResult[-1] | Write-PesterResult
             }
         }
