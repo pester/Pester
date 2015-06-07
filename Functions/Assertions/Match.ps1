@@ -1,17 +1,35 @@
+function PesterMatch($ActualValue, $RegularExpression, [switch] $Negate) {
+    [bool] $succeeded = $ActualValue -match $RegularExpression
 
-function PesterMatch($value, $expectedMatch) {
-    return [bool]($value -match $expectedMatch)
+    if ($Negate) { $succeeded = -not $succeeded }
+
+    $failureMessage = ''
+
+    if (-not $succeeded)
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression
+        }
+        else
+        {
+            $failureMessage = PesterMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $succeeded
+        FailureMessage = $failureMessage
+    }
 }
 
-function PesterMatchFailureMessage($value, $expectedMatch) {
-    return "Expected: {$value} to match the expression {$expectedMatch}"
+function PesterMatchFailureMessage($ActualValue, $RegularExpression) {
+    return "Expected: {$ActualValue} to match the expression {$RegularExpression}"
 }
 
-function NotPesterMatchFailureMessage($value, $expectedMatch) {
-    return "Expected: ${value} to not match the expression ${expectedMatch}"
+function NotPesterMatchFailureMessage($ActualValue, $RegularExpression) {
+    return "Expected: {$ActualValue} to not match the expression {$RegularExpression}"
 }
 
-Add-AssertionOperator -Name                      Match `
-                      -Test                      $function:PesterMatch `
-                      -GetPositiveFailureMessage $function:PesterMatchFailureMessage `
-                      -GetNegativeFailureMessage $function:NotPesterMatchFailureMessage
+Add-AssertionOperator -Name Match `
+                      -Test $function:PesterMatch

@@ -1,4 +1,5 @@
-. $PSScriptRoot\Validator.ps1 -Verbose
+$scriptRoot = Split-Path $MyInvocation.MyCommand.Path
+. $scriptRoot\Validator.ps1 -Verbose
 
 Describe "Testing a validator" {
 

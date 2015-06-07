@@ -1,3 +1,5 @@
+if ($PSVersionTable.PSVersion.Major -le 2) { return }
+
 Add-Type -Path "${Script:PesterRoot}\lib\PowerCuke.dll"
 
 $StepPrefix = "Gherkin-Step "

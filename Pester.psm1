@@ -26,17 +26,8 @@ function Add-AssertionOperator
         [Parameter(Mandatory = $true)]
         [scriptblock] $Test,
 
-        [Parameter(Mandatory = $true)]
-        [scriptblock] $GetPositiveFailureMessage,
-
-        [Parameter(Mandatory = $true)]
-        [scriptblock] $GetNegativeFailureMessage,
-
         [ValidateNotNullOrEmpty()]
         [string[]] $Alias,
-
-        [ValidateNotNullOrEmpty()]
-        [string] $ExpectedValueParameterName,
 
         [switch] $SupportsArrayInput
     )
@@ -50,12 +41,9 @@ function Add-AssertionOperator
 
     $entry = New-Object psobject -Property @{
         Test                       = $Test
-        GetPositiveFailureMessage  = $GetPositiveFailureMessage
-        GetNegativeFailureMessage  = $GetNegativeFailureMessage
         SupportsArrayInput         = [bool]$SupportsArrayInput
         Name                       = $Name
         Alias                      = $Alias
-        ExpectedValueParameterName = $ExpectedValueParameterName
     }
 
     $script:AssertionOperators[$Name] = $entry
@@ -135,7 +123,7 @@ function Add-AssertionDynamicParameterSet
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values)
     {
-        if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not') { continue }
+        if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not' -or $parameter.Name -eq 'Negate') { continue }
 
         if ($script:AssertionOperators.ContainsKey($parameter.Name) -or $script:AssertionAliases.ContainsKey($parameter.Name))
         {

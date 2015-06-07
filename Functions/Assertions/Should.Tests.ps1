@@ -42,50 +42,6 @@ InModuleScope Pester {
         }
     }
 
-    Describe "Get-TestResult" {
-        Context "for positive assertions" {
-            $shouldArgs = Parse-ShouldArgs Test
-            $assertionEntry = @{
-                Test = { return $true }
-            }
-
-            It "returns true if the test returns true" {
-                Get-TestResult $assertionEntry $shouldArgs | Should Be $true
-            }
-        }
-
-        Context "for negative assertions" {
-            $shouldArgs = Parse-ShouldArgs Test
-            $assertionEntry = @{
-                Test = { return $false }
-            }
-
-            It "returns false if the test returns false" {
-                Get-TestResult $assertionEntry $shouldArgs | Should Be $false
-            }
-        }
-    }
-
-    Describe "Get-FailureMessage" {
-        $assertionEntry = @{
-            GetPositiveFailureMessage = { param ($v, $e) return "slime $e $v" }
-            GetNegativeFailureMessage = { param ($v, $e) return "not slime $e $v" }
-        }
-
-        Context "for positive assertions" {
-            It "should return the postive assertion failure message" {
-                Get-FailureMessage $assertionEntry $false 2 1 | Should Be "slime 1 2"
-            }
-        }
-
-        Context "for negative assertions" {
-            It "should return the negative assertion failure message" {
-              Get-FailureMessage $assertionEntry $true 2 1 | Should Be "not slime 1 2"
-            }
-        }
-
-    }
-
     Describe -Tag "Acceptance" "Should" {
         It "can use the Be assertion" {
             1 | Should Be 1

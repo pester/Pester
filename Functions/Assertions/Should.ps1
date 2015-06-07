@@ -32,34 +32,6 @@ function Parse-ShouldArgs([object[]] $shouldArgs) {
     return $parsedArgs
 }
 
-function Get-LegacyTestResult($assertionEntry, $shouldArgs, $value) {
-    $testResult = (& $assertionEntry.Test $value $shouldArgs.ExpectedValue)
-
-    if (-not $shouldArgs.PositiveAssertion) {
-        return -not $testResult
-    }
-
-    return $testResult
-}
-
-function Get-TestResult
-{
-    param (
-        [object] $AssertionEntry,
-        [System.Collections.IDictionary] $BoundParameters,
-        [object] $Value,
-        [bool] $Negate = $false
-    )
-
-    $testResult = (& $assertionEntry.Test -ActualValue $value @BoundParameters)
-
-    if ($Negate) {
-        return -not $testResult
-    }
-
-    return $testResult
-}
-
 function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
     if ($negate)
     {
@@ -107,7 +79,7 @@ function Should
 
     begin
     {
-        Assert-DescribeInProgress -CommandName Should
+        #Assert-DescribeInProgress -CommandName Should
 
         $inputArray = New-Object System.Collections.ArrayList
 
@@ -186,12 +158,19 @@ function Should
 
 function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText)
 {
-    $testSucceeded = Get-LegacyTestResult $assertionEntry $shouldArgs $valueToTest
-    if (-not $testSucceeded)
+    # $expectedValueSplat = @(
+    #     if ($null -ne $shouldArgs.ExpectedValue)
+    #     {
+    #         ,$shouldArgs.ExpectedValue
+    #     }
+    # )
+
+    $negate = -not $shouldArgs.PositiveAssertion
+
+    $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
+    if (-not $testResult.Succeeded)
     {
-        $negate = -not $shouldArgs.PositiveAssertion
-        $failureMessage = Get-FailureMessage $assertionEntry $negate $valueToTest $shouldArgs.expectedValue
-        throw ( New-ShouldErrorRecord -Message $failureMessage -File $file -Line $lineNumber -LineText $lineText )
+        throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
     }
 }
 
@@ -207,16 +186,9 @@ function Invoke-Assertion
         [switch] $Negate
     )
 
-    $expected = @()
-    if ($AssertionEntry.ExpectedValueParameterName)
+    $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate @BoundParameters
+    if (-not $testResult.Succeeded)
     {
-        $expected = @($BoundParameters[$AssertionEntry.ExpectedValueParameterName])
-    }
-
-    $testSucceeded = Get-TestResult $AssertionEntry $BoundParameters $valueToTest ([bool] $Negate)
-    if (-not $testSucceeded)
-    {
-        $failureMessage = Get-FailureMessage $assertionEntry ([bool]$negate) $valueToTest @expected
-        throw ( New-ShouldErrorRecord -Message $failureMessage -File $file -Line $lineNumber -LineText $lineText )
+        throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
     }
 }

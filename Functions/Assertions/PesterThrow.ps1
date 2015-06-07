@@ -1,31 +1,48 @@
-
-$ActualExceptionMessage = ""
-$ActualExceptionWasThrown = $false
-
-# because this is a script block, the user will have to
-# wrap the code they want to assert on in { }
-function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
-    $Script:ActualExceptionMessage = ""
-    $Script:ActualExceptionWasThrown = $false
+function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, [switch] $Negate) {
+    $script:ActualExceptionMessage = ""
+    $script:ActualExceptionWasThrown = $false
 
     try {
-        # Redirect to $null so script output does not enter the pipeline
-        & $script > $null
+        do {
+            $null = & $ActualValue
+        } until ($true)
     } catch {
-        $Script:ActualExceptionWasThrown = $true
-        $Script:ActualExceptionMessage = $_.Exception.Message
-        $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
+        $script:ActualExceptionWasThrown = $true
+        $script:ActualExceptionMessage = $_.Exception.Message
+        $script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
     }
+
+    [bool] $succeeded = $false
 
     if ($ActualExceptionWasThrown) {
-        return Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage
+        $succeeded = Get-DoMessagesMatch $script:ActualExceptionMessage $ExpectedMessage
     }
-    return $false
+
+    if ($Negate) { $succeeded = -not $succeeded }
+
+    $failureMessage = ''
+
+    if (-not $succeeded)
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterThrowFailureMessage -ActualValue $ActualValue -ExpectedMessage $ExpectedMessage
+        }
+        else
+        {
+            $failureMessage = PesterThrowFailureMessage -ActualValue $ActualValue -ExpectedMessage $ExpectedMessage
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $succeeded
+        FailureMessage = $failureMessage
+    }
 }
 
-function Get-DoMessagesMatch($value, $expected) {
-    if ($expected -eq "") { return $false }
-    return $value.Contains($expected)
+function Get-DoMessagesMatch($ActualValue, $ExpectedMessage) {
+    if ($ExpectedMessage -eq "") { return $false }
+    return $ActualValue.Contains($ExpectedMessage)
 }
 
 function Get-ExceptionLineInfo($info) {
@@ -34,25 +51,23 @@ function Get-ExceptionLineInfo($info) {
     return ($positionMessage -replace "^At ","from ")
 }
 
-function PesterThrowFailureMessage($value, $expected) {
-    if ($expected) {
+function PesterThrowFailureMessage($ActualValue, $ExpectedMessage) {
+    if ($ExpectedMessage) {
         return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
-               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
+               $ExpectedMessage, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
     } else {
-      return "Expected: the expression to throw an exception"
+        return "Expected: the expression to throw an exception"
     }
 }
 
-function NotPesterThrowFailureMessage($value, $expected) {
-    if ($expected) {
+function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage) {
+    if ($ExpectedMessage) {
         return "Expected: the expression not to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
-               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
+               $ExpectedMessage, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
     } else {
         return "Expected: the expression not to throw an exception. Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage,($ActualExceptionLine  -replace "`n","`n    ")
     }
 }
 
-Add-AssertionOperator -Name                      Throw `
-                      -Test                      $function:PesterThrow `
-                      -GetPositiveFailureMessage $function:PesterThrowFailureMessage `
-                      -GetNegativeFailureMessage $function:NotPesterThrowFailureMessage
+Add-AssertionOperator -Name Throw `
+                      -Test $function:PesterThrow
