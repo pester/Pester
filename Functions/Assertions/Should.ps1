@@ -60,13 +60,13 @@ function Should
     [CmdletBinding(DefaultParameterSetName = 'Legacy')]
     param (
         [Parameter(ParameterSetName = 'Legacy', Position = 0)]
-        [object] ${Legacy Arg1},
+        [object] $LegacyArg1,
 
         [Parameter(ParameterSetName = 'Legacy', Position = 1)]
-        [object] ${Legacy Arg2},
+        [object] $LegacyArg2,
 
         [Parameter(ParameterSetName = 'Legacy', Position = 2)]
-        [object] ${Legacy Arg3},
+        [object] $LegacyArg3,
 
         [Parameter(ValueFromPipeline = $true)]
         [object] $ActualValue
@@ -85,7 +85,7 @@ function Should
 
         if ($PSCmdlet.ParameterSetName -eq 'Legacy')
         {
-            $parsedArgs = Parse-ShouldArgs (${Legacy Arg1}, ${Legacy Arg2}, ${Legacy Arg3})
+            $parsedArgs = Parse-ShouldArgs ($LegacyArg1, $LegacyArg2, $LegacyArg3)
             $entry = Get-AssertionOperatorEntry -Name $parsedArgs.AssertionMethod
             if ($null -eq $entry)
             {
