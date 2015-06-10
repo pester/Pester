@@ -187,7 +187,7 @@ function Invoke-Gherkin {
             # Remove all the steps
             $Script:GherkinSteps.Clear()
             # Import all the steps that are at the same level or a subdirectory
-            $StepPath = Split-Path $FeatureFile
+            $StepPath = Split-Path $FeatureFile.FullName
             $StepFiles = Get-ChildItem $StepPath -Filter "*.steps.ps1" -Recurse
             foreach($StepFile in $StepFiles){
                 . $StepFile.FullName
