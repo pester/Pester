@@ -110,6 +110,7 @@ about_should
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
         [Switch] $Skip
     )
 
@@ -129,6 +130,7 @@ function ItImpl
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
         [Switch] $Skip,
 
         $Pester,
@@ -221,6 +223,7 @@ function Invoke-Test
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
         [Switch] $Skip
     )
 
