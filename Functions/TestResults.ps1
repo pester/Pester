@@ -95,13 +95,13 @@ function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteAttributeString('xmlns','xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi','noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name','Pester')
-    $XmlWriter.WriteAttributeString('total', $PesterState.TotalCount)
+    $XmlWriter.WriteAttributeString('total', ($PesterState.TotalCount - $PesterState.SkippedCount))
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $PesterState.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', '0')
     $XmlWriter.WriteAttributeString('inconclusive', $PesterState.PendingCount)
-    $XmlWriter.WriteAttributeString('ignored', '0')
-    $XmlWriter.WriteAttributeString('skipped', $PesterState.SkippedCount)
+    $XmlWriter.WriteAttributeString('ignored', $PesterState.SkippedCount)
+    $XmlWriter.WriteAttributeString('skipped', '0')
     $XmlWriter.WriteAttributeString('invalid', '0')
     $date = Get-Date
     $XmlWriter.WriteAttributeString('date', (Get-Date -Date $date -Format 'yyyy-MM-dd'))
@@ -351,7 +351,6 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     }
 
     $XmlWriter.WriteAttributeString('name', $testName)
-    $XmlWriter.WriteAttributeString('executed', 'True')
     $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Time))
     $XmlWriter.WriteAttributeString('asserts', '0')
     $XmlWriter.WriteAttributeString('success', $TestResult.Passed)
@@ -361,21 +360,25 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         Passed
         {
             $XmlWriter.WriteAttributeString('result', 'Success')
+            $XmlWriter.WriteAttributeString('executed', 'True')
             break
         }
         Skipped
         {
-            $XmlWriter.WriteAttributeString('result', 'Skipped')
+            $XmlWriter.WriteAttributeString('result', 'Ignored')
+            $XmlWriter.WriteAttributeString('executed', 'False')
             break
         }
         Pending
         {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
+            $XmlWriter.WriteAttributeString('executed', 'True')
             break
         }
         Failed
         {
             $XmlWriter.WriteAttributeString('result', 'Failure')
+            $XmlWriter.WriteAttributeString('executed', 'True')
             $XmlWriter.WriteStartElement('failure')
             $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
             $XmlWriter.WriteElementString('stack-trace', $TestResult.StackTrace)
@@ -407,7 +410,7 @@ function Get-ParentResult ($InputObject)
     #I am not sure about the result precedence, and can't find any good source
     #TODO: Confirm this is the correct order of precedence
     if ($inputObject.FailedCount  -gt 0) { return 'Failure' }
-    if ($InputObject.SkippedCount -gt 0) { return 'Skipped' }
+    if ($InputObject.SkippedCount -gt 0) { return 'Ignored' }
     if ($InputObject.PendingCount -gt 0) { return 'Inconclusive' }
     return 'Success'
 }
@@ -417,7 +420,7 @@ function Get-GroupResult ($InputObject)
     #I am not sure about the result precedence, and can't find any good source
     #TODO: Confirm this is the correct order of precedence
     if ($InputObject |  Where {$_.Result -eq 'Failed'}) { return 'Failure' }
-    if ($InputObject |  Where {$_.Result -eq 'Skipped'}) { return 'Skipped' }
+    if ($InputObject |  Where {$_.Result -eq 'Skipped'}) { return 'Ignored' }
     if ($InputObject |  Where {$_.Result -eq 'Pending'}) { return 'Inconclusive' }
     return 'Success'
 }

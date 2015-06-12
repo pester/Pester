@@ -51,6 +51,11 @@ InModuleScope Pester {
             $scriptBlock | Should Not Throw
         }
 
+        It 'Does not throw an error if the -Ignore switch is used, and no script block is passed' {
+            $scriptBlock = { ItImpl -Pester $testState 'Some Name' -Ignore }
+            $scriptBlock | Should Not Throw
+        }
+
         It 'Creates a pending test for an empty (whitespace and comments only) script block' {
             $scriptBlock = {
                 # Single-Line comment
