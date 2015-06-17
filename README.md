@@ -68,7 +68,13 @@ Running Tests
 -------------
     C:\PS> Invoke-Pester
 
-This will run all tests inside of files named *.Tests.ps1 recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+This will run all tests inside of files named `*.Tests.ps1` recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+
+    C:\PS> Invoke-Pester -TestName BuildIfChanged
+
+You can also run specific tests by using the `-TestName` parameter on the `Invoke-Pester` command. The above example will run all tests with a `Describe` block named `BuildIfChanged`. If you want to run multiple tests, you can pass in an array of strings into the `-TestName` parameter, similar to the following example:
+
+    C:\PS> Invoke-Pester -TestName BuildIfChanged, BaconShouldBeCrispy
 
 Continuous Integration with Pester
 -----------------------------------
