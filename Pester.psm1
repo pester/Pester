@@ -185,8 +185,6 @@ about_pester
     $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-    Write-Screen "`r`n`r`n`r`n`r`n"
-
     $invokeTestScript = {
         param (
             [Parameter(Position = 0)]
@@ -205,6 +203,7 @@ about_pester
 
     foreach ($testScript in $testScripts)
     {
+        Write-Progress -Activity 'Running Tests... ' -Status $testScript.Path -PercentComplete ((($cnt++ +1)/ $testScripts.Count) * 100);
         try
         {
             do
