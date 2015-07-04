@@ -241,8 +241,6 @@ function Invoke-Test
     }
     else
     {
-        Write-Progress -Activity "Running test '$Name'" -Status Processing
-
         $errorRecord = $null
         try
         {
@@ -277,7 +275,6 @@ function Invoke-Test
         $result = Get-PesterResult -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
-        Write-Progress -Activity "Running test '$Name'" -Completed -Status Processing
     }
 
     if ($null -ne $OutputScriptBlock)
