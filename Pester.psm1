@@ -199,11 +199,12 @@ about_pester
 
     Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
-    $testScripts = ResolveTestScripts $Script
+    # force array type so we always have a length property, even in case only a single test script is used.
+    [Array] $testScripts = ResolveTestScripts $Script
 
     foreach ($testScript in $testScripts)
     {
-        Write-Progress -Activity 'Running Tests... ' -Status $testScript.Path -PercentComplete ((($cnt++ +1)/ $testScripts.Count) * 100);
+        Write-Progress -Activity 'Running Tests... ' -Status $testScript.Path -PercentComplete ((($cnt++) / $testScripts.Length) * 100)
         try
         {
             do
