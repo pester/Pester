@@ -110,6 +110,7 @@ function New-PesterState
             }
 
             $script:CurrentTest = $Name
+            $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
         }
 
         function LeaveTest

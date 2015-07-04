@@ -185,8 +185,6 @@ about_pester
     $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-    Write-Screen "`r`n`r`n`r`n`r`n"
-
     $invokeTestScript = {
         param (
             [Parameter(Position = 0)]
@@ -201,10 +199,12 @@ about_pester
 
     Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
-    $testScripts = ResolveTestScripts $Script
+    # force array type so we always have a length property, even in case only a single test script is used.
+    [Array] $testScripts = ResolveTestScripts $Script
 
     foreach ($testScript in $testScripts)
     {
+        Write-Progress -Activity 'Running Tests... ' -Status $testScript.Path -PercentComplete ((($cnt++) / $testScripts.Length) * 100)
         try
         {
             do
