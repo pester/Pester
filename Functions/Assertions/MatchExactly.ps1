@@ -1,6 +1,11 @@
 
 function PesterMatchExactly($value, $expectedMatch) {
-    return ($value -cmatch $expectedMatch)
+    $ofs = "`n"
+    if($value -isnot [string] -and (Test-Path $file -ErrorAction SilentlyContinue)) {
+        return "$(Get-Content $value)" -cmatch $expectedMatch
+    } else {
+        return "$value" -cmatch $expectedMatch
+    }
 }
 
 function PesterMatchExactlyFailureMessage($value, $expectedMatch) {
