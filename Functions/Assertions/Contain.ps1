@@ -1,6 +1,6 @@
 
 function PesterContain($file, $contentExpecation) {
-    return ((Get-Content $file) -match $contentExpecation)
+    return ((Get-Content -Encoding UTF8 $file) -match $contentExpecation)
 }
 
 function PesterContainFailureMessage($file, $contentExpecation) {
