@@ -1,4 +1,4 @@
-## Unreleased
+## 3.3.10 (August 14, 2015)
   - Fully qualified calls to Get-Content within Mocking code, to avoid triggering client's mocked versions of that command. [GH-362]
   - Fixed a scoping error when calling the original command if no parameter filters match the call.  [GH-362]
   - Added Ignore alias for -Skip on the It command, and updated NUnit output to flag these tests as Ignored instead of Skipped, for better integration with things like TeamCity.  [GH-368]
