@@ -3,16 +3,23 @@ param ( )
 
 end
 {
-    $modulePath = Join-Path $env:ProgramFiles WindowsPowerShell\Modules
+    $modulePath      = Join-Path $env:ProgramFiles WindowsPowerShell\Modules
     $targetDirectory = Join-Path $modulePath Pester
-
-    $scriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
+    $scriptRoot      = Split-Path $MyInvocation.MyCommand.Path -Parent
     $sourceDirectory = Join-Path $scriptRoot Tools
-	$binPath = Join-Path $targetDirectory bin
+
+    if ($PSVersionTable.PSVersion.Major -ge 5)
+    {
+        $manifestFile    = Join-Path $sourceDirectory Pester.psd1
+        $manifest        = Test-ModuleManifest -Path $manifestFile -WarningAction Ignore -ErrorAction Stop
+        $targetDirectory = Join-Path $targetDirectory $manifest.Version.ToString()
+    }
 
     Update-Directory -Source $sourceDirectory -Destination $targetDirectory
-	Install-ChocolateyPath $binPath
-	
+    
+    $binPath = Join-Path $targetDirectory bin
+    Install-ChocolateyPath $binPath
+
     if ($PSVersionTable.PSVersion.Major -lt 4)
     {
         $modulePaths = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine') -split ';'
@@ -96,11 +103,11 @@ begin
 
         $targetFiles = Get-ChildItem -Path $Destination -Recurse |
                        Where-Object { -not $_.PSIsContainer }
-    
+
         foreach ($targetFile in $targetFiles)
         {
             $relativePath = Get-RelativePath $targetFile.FullName -RelativeTo $Destination
-            $sourcePath = Join-Path $Source $relativePath        
+            $sourcePath = Join-Path $Source $relativePath
 
             if (-not (Test-Path $sourcePath -PathType Leaf))
             {
