@@ -1328,3 +1328,18 @@ Describe 'When mocking a command that has an ArgumentList parameter with validat
         $hash.Result | Should Be 'mocked'
     }
 }
+
+# These assertions won't actually "fail"; we had an infinite recursion bug in Get-DynamicParametersForCmdlet
+# if the caller mocked New-Object.  It should be fixed by making that call to New-Object module-qualified,
+# and this test will make sure it's working properly.  If this test fails, it'll take a really long time
+# to execute, and then will throw a stack overflow error.
+
+Describe 'Mocking New-Object' {
+    It 'Works properly' {
+        Mock New-Object
+
+        $result = New-Object -TypeName Object
+        $result | Should Be $null
+        Assert-MockCalled New-Object
+    }
+}

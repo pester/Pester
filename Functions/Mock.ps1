@@ -1122,7 +1122,7 @@ function Get-DynamicParametersForCmdlet
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    $cmdlet = New-Object $command.ImplementingType.FullName
+    $cmdlet = Microsoft.PowerShell.Utility\New-Object $command.ImplementingType.FullName
     if ($cmdlet -isnot [System.Management.Automation.IDynamicParameters])
     {
         return
