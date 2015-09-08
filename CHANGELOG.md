@@ -1,3 +1,6 @@
+## 3.3.11 (September 8, 2015)
+  - Fixed a bug where mocking New-Object would cause a stack overflow.  [GH-405]
+
 ## 3.3.10 (August 14, 2015)
   - Fully qualified calls to Get-Content within Mocking code, to avoid triggering client's mocked versions of that command. [GH-362]
   - Fixed a scoping error when calling the original command if no parameter filters match the call.  [GH-362]
