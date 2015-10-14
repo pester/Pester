@@ -321,6 +321,18 @@ function Get-PesterResult {
         $line = $details.Line
         $lineText = "`n$line`: $($details.LineText)"
     }
+    elseif ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestInconclusive')
+    {
+        # we use TargetObject to pass structured information about the error.
+        $details = $ErrorRecord.TargetObject
+
+        $failureMessage = $details.Message
+        $file = $details.File
+        $line = $details.Line
+        $lineText = "`n$line`: $($details.LineText)"
+
+        $testResult.Result = 'Inconclusive'
+    }
     else
     {
         $failureMessage = $ErrorRecord.ToString()

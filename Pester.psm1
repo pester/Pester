@@ -378,7 +378,7 @@ if ((Test-Path -Path Variable:\psise) -and ($null -ne $psISE) -and ($PSVersionTa
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
-Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
+Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
 Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
 Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables

@@ -48,6 +48,7 @@ function New-PesterState
         $script:FailedCount = 0
         $script:SkippedCount = 0
         $script:PendingCount = 0
+        $script:InconclusiveCount = 0
 
         function EnterDescribe([string]$Name)
         {
@@ -121,7 +122,7 @@ function New-PesterState
         {
             param (
                 [string]$Name,
-                [ValidateSet("Failed","Passed","Skipped","Pending")]
+                [ValidateSet("Failed","Passed","Skipped","Pending","Inconclusive")]
                 [string]$Result,
                 [Nullable[TimeSpan]]$Time,
                 [string]$FailureMessage,
@@ -162,6 +163,7 @@ function New-PesterState
                 Failed  { $script:FailedCount++; break; }
                 Skipped { $script:SkippedCount++; break; }
                 Pending { $script:PendingCount++; break; }
+                Inconclusive { $script:InconclusiveCount++; break; }
             }
 
             $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
@@ -198,7 +200,8 @@ function New-PesterState
         "PassedCount",
         "FailedCount",
         "SkippedCount",
-        "PendingCount"
+        "PendingCount",
+        "InconclusiveCount"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -289,6 +292,15 @@ function Write-PesterResult
                 "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
                 break
             }
+            Inconclusive {
+                "$margin[?] $output $humanTime" | Write-Screen -OutputType Inconclusive
+                if ($testresult.FailureMessage) {
+                    Write-Screen -OutputType Inconclusive $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                }
+
+                Write-Screen -OutputType Inconclusive $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                break
+            }
         }
     }
 }
@@ -301,7 +313,12 @@ function Write-PesterReport
     )
 
     Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
-    Write-Screen "Passed: $($PesterState.PassedCount) Failed: $($PesterState.FailedCount) Skipped: $($PesterState.SkippedCount) Pending: $($PesterState.PendingCount)"
+    Write-Screen ("Passed: {0} Failed: {1} Skipped: {2} Pending: {3} Inconclusive: {4}" -f
+                  $PesterState.PassedCount,
+                  $PesterState.FailedCount,
+                  $PesterState.SkippedCount,
+                  $PesterState.PendingCount,
+                  $PesterState.InconclusiveCount)
 }
 
 function Write-Screen {
@@ -314,7 +331,7 @@ function Write-Screen {
         [Object] $Separator,
         #custom parameters
         [Switch] $Quiet = $pester.Quiet,
-        [ValidateSet("Failed","Passed","Skipped","Pending","Header","Standard")]
+        [ValidateSet("Failed","Passed","Skipped","Pending","Inconclusive","Header","Standard")]
         [String] $OutputType = "Standard"
     )
 
@@ -341,30 +358,33 @@ function Write-Screen {
                 #light background
                 "PowerGUIScriptEditorHost" {
                     $ColorSet = @{
-                        Failed  = [ConsoleColor]::Red
-                        Passed  = [ConsoleColor]::DarkGreen
-                        Skipped = [ConsoleColor]::DarkGray
-                        Pending = [ConsoleColor]::DarkCyan
-                        Header  = [ConsoleColor]::Magenta
+                        Failed       = [ConsoleColor]::Red
+                        Passed       = [ConsoleColor]::DarkGreen
+                        Skipped      = [ConsoleColor]::DarkGray
+                        Pending      = [ConsoleColor]::DarkCyan
+                        Inconclusive = [ConsoleColor]::DarkCyan
+                        Header       = [ConsoleColor]::Magenta
                     }
                 }
                 #dark background
                 { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
                     $ColorSet = @{
-                        Failed  = [ConsoleColor]::Red
-                        Passed  = [ConsoleColor]::Green
-                        Skipped = [ConsoleColor]::Gray
-                        Pending = [ConsoleColor]::Cyan
-                        Header  = [ConsoleColor]::Magenta
+                        Failed       = [ConsoleColor]::Red
+                        Passed       = [ConsoleColor]::Green
+                        Skipped      = [ConsoleColor]::Gray
+                        Pending      = [ConsoleColor]::Cyan
+                        Inconclusive = [ConsoleColor]::Cyan
+                        Header       = [ConsoleColor]::Magenta
                     }
                 }
                 default {
                     $ColorSet = @{
-                        Failed  = [ConsoleColor]::Red
-                        Passed  = [ConsoleColor]::DarkGreen
-                        Skipped = [ConsoleColor]::Gray
-                        Pending = [ConsoleColor]::Gray
-                        Header  = [ConsoleColor]::Magenta
+                        Failed       = [ConsoleColor]::Red
+                        Passed       = [ConsoleColor]::DarkGreen
+                        Skipped      = [ConsoleColor]::Gray
+                        Pending      = [ConsoleColor]::Gray
+                        Inconclusive = [ConsoleColor]::Gray
+                        Header       = [ConsoleColor]::Magenta
                     }
                 }
 
