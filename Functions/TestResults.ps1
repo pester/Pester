@@ -60,18 +60,24 @@ function Export-NUnitReport {
         NewLineOnAttributes = $false
     }
 
+    $xmlFile = $null
     $xmlWriter = $null
     try {
-        $xmlWriter = [Xml.XmlWriter]::Create($Path,$settings)
+        $xmlFile = [IO.File]::Create($Path)
+        $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
         Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState -LegacyFormat:$LegacyFormat
 
         $xmlWriter.Flush()
+        $xmlFile.Flush()
     }
     finally
     {
         if ($null -ne $xmlWriter) {
             try { $xmlWriter.Close() } catch {}
+        }
+        if ($null -ne $xmlFile) {
+            try { $xmlFile.Close() } catch {}
         }
     }
 }
