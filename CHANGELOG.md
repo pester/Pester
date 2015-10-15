@@ -1,3 +1,6 @@
+## Unreleased
+  - Fixed a bug with mocking dynamic parameters on latest Windows 10 / PSv5 builds.  [GH-419]
+
 ## 3.3.11 (September 8, 2015)
   - Fixed a bug where mocking New-Object would cause a stack overflow.  [GH-405]
 
