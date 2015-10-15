@@ -213,7 +213,9 @@ about_Mocking
             # We will filter them out and add them at the end to be
             # compatible with both earlier and later versions
             $dynamicParams = $metadata.Parameters.Values | ? {$_.IsDynamic}
-            $dynamicparams | % { $null = $metadata.Parameters.Remove($_.name) }
+            if($dynamicParams -ne $null) {
+                $dynamicparams | % { $null = $metadata.Parameters.Remove($_.name) }
+            }
 
             $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
             $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
