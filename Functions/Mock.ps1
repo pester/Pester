@@ -209,6 +209,12 @@ about_Mocking
             $null = $metadata.Parameters.Remove('OutVariable')
             $null = $metadata.Parameters.Remove('OutBuffer')
 
+            # Some versions of powershell may include dynamic parameters here
+            # We will filter them out and add them at the end to be
+            # compatible with both earlier and later versions
+            $dynamicParams = $metadata.Parameters.Values | ? {$_.IsDynamic}
+            $dynamicparams | % { $null = $metadata.Parameters.Remove($_.name) }
+
             $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
             $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
