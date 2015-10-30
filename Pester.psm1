@@ -379,6 +379,6 @@ if ((Test-Path -Path Variable:\psise) -and ($null -ne $psISE) -and ($PSVersionTa
 }
 
 Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
-Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
+Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock, Select-NonPipelinedBoundParameters
 Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
 Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables

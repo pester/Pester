@@ -268,7 +268,8 @@ about_Mocking
         $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
         $newContent = $newContent -replace '#MODULENAME#', $ModuleName
 
-        $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}")
+        # Wrap in an End block and batch pipeline to be sent to Invoke-Mock
+        $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nend{`r`n$newContent}")
 
         $mock = @{
             OriginalCommand         = $contextInfo.Command
@@ -751,7 +752,109 @@ function MockPrototype {
 
     ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state}
+    if($myinvocation.ExpectingInput) {
+        $pipeArray = @($Input)
+        # We have pipeline input so strip off params bound from pipeline
+        $filtered = Select-NonPipelinedBoundParameters `
+          -Invocation $MyInvocation `
+          -PipelineInput $pipeArray `
+          -ParameterSet $PSCmdlet.ParameterSetName `
+          -BoundParameters $PSBoundParameters
+
+        # using the , operator to batch all pipelineInput in an array
+        ,$pipeArray | Invoke-Mock -CommandName '#FUNCTIONNAME#' `
+                    -ModuleName '#MODULENAME#' `
+                    -BoundParameters $PSBoundParameters `
+                    -ArgumentList ${a r g s} `
+                    -CallerSessionState ${session state} `
+                    -FilteredParameters $filtered
+    }
+    else {
+        Invoke-Mock -CommandName '#FUNCTIONNAME#' `
+                    -ModuleName '#MODULENAME#' `
+                    -BoundParameters $PSBoundParameters `
+                    -ArgumentList ${a r g s} `
+                    -CallerSessionState ${session state}
+    }
+}
+
+function Select-NonPipelinedBoundParameters {
+    <#
+        .SYNOPSIS
+        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+
+        .DESCRIPTION
+        This attempts to "unbind" all parameters bound from the pipeline.
+        We will examine the parameter metadata and values of the bound
+        parameters and compare the values with the pieline input stripping
+        parametrs that appear to be candidates to be bound from the pipeline.
+
+        Here are the criteria used to determine such candidates:
+         - The parameters must be attributed ValueFromPipeline or ValueFromPipelineByPropertyName
+         - One of the following is true of the parameter value:
+           - -eq with the pipeline input evaluates to $True
+           - Compare-Object with the pipeline input releals that no values are different
+    #>
+
+    [CmdletBinding()]
+    param (
+        [object]
+        $Invocation,
+
+        [object[]]
+        $PipelineInput,
+
+        [string]
+        $ParameterSet,
+
+        [hashtable]
+        $BoundParameters = @{}
+    )
+
+    # This is done in an End block so use the last value on the pipeline
+    $lastInput=$PipelineInput[$PipelineInput.count-1]
+
+    $filteredParameters = @{}
+
+    if($Invocation.MyCommand.Parameters -eq $Null) { return $filteredParameters }
+
+    $BoundParameters.Keys | % {
+        $paramAttributes = $Invocation.MyCommand.Parameters[$_].Attributes | ? { $_ -is [System.Management.Automation.ParameterAttribute] }
+        $match = $false
+
+        if($paramAttributes | ? { $_.ValueFromPipeline }){
+            $testVal = $BoundParameters[$_]
+
+            # If this is an array of 1, just use that value because thats what powershell does
+            if($testVal -is [Array] -and $testVal.Length -eq 1){
+                $testVal = $BoundParameters[$_][0]
+            }
+            $testMatch = ($testVal -eq $lastInput)
+            if($testMatch.Gettype() -ne [bool]) {
+                $testMatch = ((Compare-Object $testVal $lastInput -ExcludeDifferent) -eq $null)
+            }
+            if($testMatch) { $match = $true }
+        }
+        if($paramAttributes | ? { $_.ValueFromPipelineByPropertyName }){
+            $hasProperty = $false
+            try { $hasProperty = $lastInput.$_ } catch { }
+
+            # Get-Member takes too long
+            if($hasProperty) {
+                $testMatch = ($BoundParameters[$_] -eq $lastInput.$_)
+                if($testMatch.Gettype() -ne [bool]) {
+                    $testMatch = ((Compare-Object $BoundParameters[$_] $lastInput.$_ -ExcludeDifferent) -eq $null)
+                }
+                if($testMatch) {
+                    $match = $true
+                }
+            }
+        }
+
+        if(!$match) { $filteredParameters[$_] = $BoundParameters[$_]}
+    }
+
+    return $filteredParameters
 }
 
 function Invoke-Mock {
@@ -775,103 +878,183 @@ function Invoke-Mock {
         [object[]]
         $ArgumentList = @(),
 
-        [object] $CallerSessionState
+        [object] $CallerSessionState,
+
+        [Parameter(ValueFromPipeline = $True)]
+        [object]
+        $pipelineInput,
+
+        [hashtable]
+        $FilteredParameters
     )
-
-    if ($mock = $mockTable["$ModuleName||$CommandName"])
-    {
-        for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
+    process {
+        if ($mock = $mockTable["$ModuleName||$CommandName"])
         {
-            $block = $mock.Blocks[$idx - 1]
-
-            $params = @{
-                ScriptBlock     = $block.Filter
-                BoundParameters = $BoundParameters
-                ArgumentList    = $ArgumentList
-                Metadata        = $mock.Metadata
-            }
-
-            if (Test-ParameterFilter @params)
+            for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
             {
-                $block.Verifiable = $false
-                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+                $block = $mock.Blocks[$idx - 1]
 
-                $scriptBlock = {
-                    param (
-                        [Parameter(Mandatory = $true)]
-                        [scriptblock]
-                        $ScriptBlock,
-
-                        [hashtable]
-                        $BoundParameters = @{},
-
-                        [object[]]
-                        $ArgumentList = @(),
-
-                        [System.Management.Automation.CommandMetadata]
-                        $Metadata,
-
-                        [System.Management.Automation.SessionState]
-                        $SessionState
-                    )
-
-                    # This script block exists to hold variables without polluting the test script's current scope.
-                    # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
-                    # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
-                    # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
-                    # by doing it inside this temporary script block, those variables don't stick around longer than they
-                    # should.
-
-                    # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
-                    # we'll stash them in names unlikely to be overwritten.
-
-                    $___ScriptBlock___ = $ScriptBlock
-                    $___BoundParameters___ = $BoundParameters
-                    $___ArgumentList___ = $ArgumentList
-
-                    Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
-                    & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+                $params = @{
+                    ScriptBlock     = $block.Filter
+                    BoundParameters = $BoundParameters
+                    ArgumentList    = $ArgumentList
+                    Metadata        = $mock.Metadata
                 }
 
-                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
+                if (Test-ParameterFilter @params)
+                {
+                    $block.Verifiable = $false
+                    $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
 
-                return
+                    $scriptBlock = {
+                        param (
+                            [Parameter(Mandatory = $true)]
+                            [scriptblock]
+                            $ScriptBlock,
+
+                            [hashtable]
+                            $BoundParameters = @{},
+
+                            [object[]]
+                            $ArgumentList = @(),
+
+                            [System.Management.Automation.CommandMetadata]
+                            $Metadata,
+
+                            [System.Management.Automation.SessionState]
+                            $SessionState,
+
+                            [Parameter(ValueFromPipeline = $True)]
+                            [object]
+                            $pipelineInput
+                        )
+                        process {
+                            # This script block exists to hold variables without polluting the test script's current scope.
+                            # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
+                            # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
+                            # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
+                            # by doing it inside this temporary script block, those variables don't stick around longer than they
+                            # should.
+
+                            # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
+                            # we'll stash them in names unlikely to be overwritten.
+
+                            $___ScriptBlock___ = $ScriptBlock
+                            $___BoundParameters___ = $BoundParameters
+                            $___ArgumentList___ = $ArgumentList
+
+                            Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
+                            & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+                        }
+                    }
+
+                    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
+
+                    $mockWithPipeline = $false
+                    if($myinvocation.ExpectingInput) {
+                        $mockWithPipeline = $true
+                    }
+
+                    if($mockWithPipeline){
+                        $currentErrorPreference = $ErrorActionPreference
+                        $ErrorActionPreference = "Stop"
+                        try {
+                            $pipelineInput | & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $FilteredParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
+                        }
+                        catch [System.Management.Automation.ParameterBindingException] {
+                            # There was an error in our parameter stripping
+                            # Fall back to original non pipeline call
+                            $mockWithPipeline = $false
+                        }
+                        catch {
+                            if($_.GetType() -eq [System.Management.Automation.ErrorRecord]){
+                                write-error $_
+                            }
+                            else{
+                                throw $_
+                            }
+                        }
+                        finally {
+                            $ErrorActionPreference = $currentErrorPreference
+                        }
+                    }
+
+                    if(!$mockWithPipeline){
+                        & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
+                    }
+
+                    return
+                }
+            }
+
+            $scriptBlock = {
+                param ($Command, $ArgumentList, $BoundParameters)
+                if($myinvocation.ExpectingInput) {
+                    $input | & $Command @ArgumentList @BoundParameters
+                }
+                else {
+                    & $Command @ArgumentList @BoundParameters
+                }
+            }
+
+            $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
+
+            Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+            $mockWithPipeline = $false
+            if($myinvocation.ExpectingInput) {
+                $mockWithPipeline = $true
+            }
+
+            if($mockWithPipeline){
+                $currentErrorPreference = $ErrorActionPreference
+                $ErrorActionPreference = "Stop"
+                try {
+                    $pipelineInput | & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $FilteredParameters
+                }
+                catch [System.Management.Automation.ParameterBindingException] {
+                    # There was an error in our parameter stripping
+                    # Fall back to original non pipeline call
+                    $mockWithPipeline = $false
+                }
+                catch {
+                    if($_.GetType() -eq [System.Management.Automation.ErrorRecord]){
+                        write-error $_
+                    }
+                    else{
+                        throw $_
+                    }
+                }
+                finally {
+                    $ErrorActionPreference = $currentErrorPreference
+                }
+            }
+
+            if(!$mockWithPipeline){
+                & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
             }
         }
+        elseif ($mock = $mockTable["||$CommandName"])
+        {
+            # This situation can happen if the test script is dot-sourced in the global scope.  Under these conditions,
+            # a module can wind up executing Invoke-Mock when that was not the intent of the test.  Try to recover from
+            # this by executing the original command.
 
-        $scriptBlock = {
-            param ($Command, $ArgumentList, $BoundParameters)
-            & $Command @ArgumentList @BoundParameters
+            $scriptBlock = {
+                param ($Command, $ArgumentList, $BoundParameters)
+                & $Command @ArgumentList @BoundParameters
+            }
+
+            $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
+
+            Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+
+            & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
         }
-
-        $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
-
-        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
-
-        & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
-    }
-    elseif ($mock = $mockTable["||$CommandName"])
-    {
-        # This situation can happen if the test script is dot-sourced in the global scope.  Under these conditions,
-        # a module can wind up executing Invoke-Mock when that was not the intent of the test.  Try to recover from
-        # this by executing the original command.
-
-        $scriptBlock = {
-            param ($Command, $ArgumentList, $BoundParameters)
-            & $Command @ArgumentList @BoundParameters
+        else
+        {
+            # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
+            throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
         }
-
-        $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
-
-        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
-
-        & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
-    }
-    else
-    {
-        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
-        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
     }
 }
 
