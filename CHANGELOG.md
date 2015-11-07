@@ -1,6 +1,7 @@
 ## Unreleased
   - Fixed a bug with mocking dynamic parameters on latest Windows 10 / PSv5 builds.  [GH-419]
   - Fix for NUnit XML export on .NET core.  [GH-420]
+  - Mocking improvements for calling original commands with begin/process/end blocks. [GH-422]
 
 ## 3.3.11 (September 8, 2015)
   - Fixed a bug where mocking New-Object would cause a stack overflow.  [GH-405]
