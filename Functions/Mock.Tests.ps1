@@ -39,6 +39,42 @@ function CommonParamFunction (
     return "Please strip me of my common parameters. They are far too common."
 }
 
+function PipelineInputFunction {
+    param(
+        [Parameter(ValueFromPipeline=$True)]
+        [int]$PipeInt1,
+        [Parameter(ValueFromPipeline=$True)]
+        [int[]]$PipeInt2,
+        [Parameter(ValueFromPipeline=$True)]
+        [string]$PipeStr,
+        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [int]$PipeIntProp,
+        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [int[]]$PipeArrayProp,
+        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [string]$PipeStringProp
+    )
+    begin{
+        $p = 0
+    }
+    process {
+        foreach($i in $input)
+        {
+            $p += 1
+            write-output @{
+                index=$p;
+                val=$i;
+                PipeInt1=$PipeInt1;
+                PipeInt2=$PipeInt2;
+                PipeStr=$PipeStr;
+                PipeIntProp=$PipeIntProp;
+                PipeArrayProp=$PipeArrayProp;
+                PipeStringProp=$PipeStringProp;
+            }
+        }
+    }
+}
+
 Describe "When calling Mock on existing function" {
     Mock FunctionUnderTest { return "I am the mock test that was passed $param1"}
 
@@ -1341,5 +1377,84 @@ Describe 'Mocking New-Object' {
         $result = New-Object -TypeName Object
         $result | Should Be $null
         Assert-MockCalled New-Object
+    }
+}
+
+Describe 'Mocking a function taking input from pipeline' {
+    $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp'='1';'PipeArrayProp'=1;'PipeStringProp'=1}
+    $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp'=@(1)}
+    $noMockArrayResult = @(1,2) | PipelineInputFunction
+    $noMockIntResult = 1 | PipelineInputFunction
+    $noMockStringResult = '1' | PipelineInputFunction
+    $noMockResultByProperty = $psobj | PipelineInputFunction -PipeStr 'val'
+    $noMockArrayResultByProperty = $psArrayobj | PipelineInputFunction -PipeStr 'val'
+
+    Mock PipelineInputFunction { write-output 'mocked' } -ParameterFilter { $PipeStr -eq 'blah' }
+
+    context 'when calling original function with an array' {
+        $result = @(1,2) | PipelineInputFunction
+        it 'Returns actual implementation' {
+            $result[0].keys | % {
+                $result[0][$_] | Should Be $noMockArrayResult[0][$_]
+                $result[1][$_] | Should Be $noMockArrayResult[1][$_]
+            }
+        }
+    }
+
+    context 'when calling original function with an int' {
+        $result = 1 | PipelineInputFunction
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockIntResult[$_]
+            }
+        }
+    }
+
+    context 'when calling original function with a string' {
+        $result = '1' | PipelineInputFunction
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockStringResult[$_]
+            }
+        }
+    }
+
+    context 'when calling original function and pipeline is bound by property name' {
+        $result = $psobj | PipelineInputFunction -PipeStr 'val'
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockResultByProperty[$_]
+            }
+        }
+    }
+
+    context 'when calling original function and forcing a parameter binding exception' {
+        Mock PipelineInputFunction {
+            if($MyInvocation.ExpectingInput) {
+                throw New-Object -TypeName System.Management.Automation.ParameterBindingException
+            }
+            write-output $MyInvocation.ExpectingInput
+        }
+        $result = $psobj | PipelineInputFunction
+
+        it 'falls back to no pipeline input' {
+            $result | Should Be $false
+        }
+    }
+
+    context 'when calling original function and pipeline is bound by property name with array values' {
+        $result = $psArrayobj | PipelineInputFunction -PipeStr 'val'
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockArrayResultByProperty[$_]
+            }
+        }
+    }
+
+    context 'when calling the mocked function' {
+        $result = 'blah' | PipelineInputFunction
+        it 'Returns mocked implementation' {
+            $result | Should Be 'mocked'
+        }
     }
 }
