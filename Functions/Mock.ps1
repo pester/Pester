@@ -268,7 +268,27 @@ about_Mocking
         $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
         $newContent = $newContent -replace '#MODULENAME#', $ModuleName
 
-        $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}")
+        $code = @"
+            $cmdletBinding
+            param ( $paramBlock )
+            $dynamicParamBlock
+            begin
+            {
+                $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
+            }
+
+            process
+            {
+                $($newContent -replace '#BLOCK#', 'Process' -replace '#INPUT#', '-InputObject @($input)')
+            }
+
+            end
+            {
+                $($newContent -replace '#BLOCK#', 'End' -replace '#INPUT#')
+            }
+"@
+
+        $mockScript = [scriptblock]::Create($code)
 
         $mock = @{
             OriginalCommand         = $contextInfo.Command
@@ -751,7 +771,7 @@ function MockPrototype {
 
     ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state}
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' #INPUT#
 }
 
 function Invoke-Mock {
@@ -775,104 +795,200 @@ function Invoke-Mock {
         [object[]]
         $ArgumentList = @(),
 
-        [object] $CallerSessionState
+        [object] $CallerSessionState,
+
+        [ValidateSet('Begin', 'Process', 'End')]
+        [string] $FromBlock,
+
+        [object] $InputObject
     )
 
-    if ($mock = $mockTable["$ModuleName||$CommandName"])
-    {
-        for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
-        {
-            $block = $mock.Blocks[$idx - 1]
+    $detectedModule = $ModuleName
+    $mock = FindMock -CommandName $CommandName -ModuleName ([ref]$detectedModule)
 
-            $params = @{
-                ScriptBlock     = $block.Filter
-                BoundParameters = $BoundParameters
-                ArgumentList    = $ArgumentList
-                Metadata        = $mock.Metadata
+    if ($null -eq $mock)
+    {
+        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
+        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
+    }
+
+    switch ($FromBlock)
+    {
+        Begin
+        {
+            $mock.InputObjects = New-Object System.Collections.ArrayList
+            $mock.ShouldExecuteOriginalCommand = $false
+            $mock.BeginBoundParameters = $BoundParameters.Clone()
+            $mock.BeginArgumentList = $ArgumentList
+
+            return
+        }
+
+        Process
+        {
+            $block = $null
+            if ($detectedModule -eq $ModuleName)
+            {
+                $block = FindMatchingBlock -Mock $mock -BoundParameters $BoundParameters -ArgumentList $ArgumentList
             }
 
-            if (Test-ParameterFilter @params)
+            if ($null -ne $block)
             {
-                $block.Verifiable = $false
-                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+                ExecuteBlock -Block $block `
+                             -CommandName $CommandName `
+                             -ModuleName $ModuleName `
+                             -BoundParameters $BoundParameters `
+                             -ArgumentList $ArgumentList `
+                             -Mock $mock
 
-                $scriptBlock = {
-                    param (
-                        [Parameter(Mandatory = $true)]
-                        [scriptblock]
-                        $ScriptBlock,
-
-                        [hashtable]
-                        $BoundParameters = @{},
-
-                        [object[]]
-                        $ArgumentList = @(),
-
-                        [System.Management.Automation.CommandMetadata]
-                        $Metadata,
-
-                        [System.Management.Automation.SessionState]
-                        $SessionState
-                    )
-
-                    # This script block exists to hold variables without polluting the test script's current scope.
-                    # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
-                    # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
-                    # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
-                    # by doing it inside this temporary script block, those variables don't stick around longer than they
-                    # should.
-
-                    # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
-                    # we'll stash them in names unlikely to be overwritten.
-
-                    $___ScriptBlock___ = $ScriptBlock
-                    $___BoundParameters___ = $BoundParameters
-                    $___ArgumentList___ = $ArgumentList
-
-                    Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
-                    & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+                return
+            }
+            else
+            {
+                $mock.ShouldExecuteOriginalCommand = $true
+                if ($null -ne $InputObject)
+                {
+                    $null = $mock.InputObjects.AddRange(@($InputObject))
                 }
-
-                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
 
                 return
             }
         }
 
-        $scriptBlock = {
-            param ($Command, $ArgumentList, $BoundParameters)
-            & $Command @ArgumentList @BoundParameters
+        End
+        {
+            if ($mock.ShouldExecuteOriginalCommand)
+            {
+                if ($mock.InputObjects.Count -gt 0)
+                {
+                    $scriptBlock = {
+                        param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
+                        $InputObjects | & $Command @ArgumentList @BoundParameters
+                    }
+                }
+                else
+                {
+                    $scriptBlock = {
+                        param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
+                        & $Command @ArgumentList @BoundParameters
+                    }
+                }
+
+                $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
+
+                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+
+                & $scriptBlock -Command $mock.OriginalCommand `
+                               -ArgumentList $mock.BeginArgumentList `
+                               -BoundParameters $mock.BeginBoundParameters `
+                               -InputObjects $mock.InputObjects
+            }
+        }
+    }
+}
+
+function FindMock
+{
+    param (
+        [string] $CommandName,
+        [ref] $ModuleName
+    )
+
+    $mock = $mockTable["$($ModuleName.Value)||$CommandName"]
+
+    if ($null -eq $mock)
+    {
+        $mock = $mockTable["||$CommandName"]
+        if ($null -ne $mock)
+        {
+            $ModuleName.Value = ''
+        }
+    }
+
+    return $mock
+}
+
+function FindMatchingBlock
+{
+    param (
+        [object] $Mock,
+        [hashtable] $BoundParameters = @{},
+        [object[]] $ArgumentList = @()
+    )
+
+    for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
+    {
+        $block = $mock.Blocks[$idx - 1]
+
+        $params = @{
+            ScriptBlock     = $block.Filter
+            BoundParameters = $BoundParameters
+            ArgumentList    = $ArgumentList
+            Metadata        = $mock.Metadata
         }
 
-        $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
-
-        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
-
-        & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
-    }
-    elseif ($mock = $mockTable["||$CommandName"])
-    {
-        # This situation can happen if the test script is dot-sourced in the global scope.  Under these conditions,
-        # a module can wind up executing Invoke-Mock when that was not the intent of the test.  Try to recover from
-        # this by executing the original command.
-
-        $scriptBlock = {
-            param ($Command, $ArgumentList, $BoundParameters)
-            & $Command @ArgumentList @BoundParameters
+        if (Test-ParameterFilter @params)
+        {
+            return $block
         }
-
-        $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
-
-        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
-
-        & $scriptBlock -Command $mock.OriginalCommand -ArgumentList $ArgumentList -BoundParameters $BoundParameters
     }
-    else
-    {
-        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
-        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
+
+    return $null
+}
+
+function ExecuteBlock
+{
+    param (
+        [object] $Block,
+        [object] $Mock,
+        [string] $CommandName,
+        [string] $ModuleName,
+        [hashtable] $BoundParameters = @{},
+        [object[]] $ArgumentList = @()
+    )
+
+    $Block.Verifiable = $false
+    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+
+    $scriptBlock = {
+        param (
+            [Parameter(Mandatory = $true)]
+            [scriptblock]
+            $ScriptBlock,
+
+            [hashtable]
+            $BoundParameters = @{},
+
+            [object[]]
+            $ArgumentList = @(),
+
+            [System.Management.Automation.CommandMetadata]
+            $Metadata,
+
+            [System.Management.Automation.SessionState]
+            $SessionState
+        )
+
+        # This script block exists to hold variables without polluting the test script's current scope.
+        # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
+        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
+        # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
+        # by doing it inside this temporary script block, those variables don't stick around longer than they
+        # should.
+
+        # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
+        # we'll stash them in names unlikely to be overwritten.
+
+        $___ScriptBlock___ = $ScriptBlock
+        $___BoundParameters___ = $BoundParameters
+        $___ArgumentList___ = $ArgumentList
+
+        Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
+        & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
     }
+
+    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
+    & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
 }
 
 function Invoke-InMockScope
