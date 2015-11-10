@@ -135,7 +135,7 @@ SEE ALSO
 	Describe
 	Context
 	It
-	Add-Fixture
+	New-Fixture
 	Invoke-Pester
 	about_Should
 	about_TestDrive
