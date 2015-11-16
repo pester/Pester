@@ -1,3 +1,6 @@
+## Unreleased
+  - improve stack trace and exception console output
+
 ## 3.3.11 (September 8, 2015)
   - Fixed a bug where mocking New-Object would cause a stack overflow.  [GH-405]
 

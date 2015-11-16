@@ -127,7 +127,8 @@ function New-PesterState
                 [string]$FailureMessage,
                 [string]$StackTrace,
                 [string] $ParameterizedSuiteName,
-                [System.Collections.IDictionary] $Parameters
+                [System.Collections.IDictionary] $Parameters,
+                [System.Management.Automation.ErrorRecord] $ErrorRecord
             )
 
             $previousTime = $script:MostRecentTimestamp
@@ -173,9 +174,10 @@ function New-PesterState
                 Time                   = $Time
                 FailureMessage         = $FailureMessage
                 StackTrace             = $StackTrace
+                ErrorRecord            = $ErrorRecord
                 ParameterizedSuiteName = $ParameterizedSuiteName
                 Parameters             = $Parameters
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ParameterizedSuiteName, Parameters
+            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ErrorRecord, ParameterizedSuiteName, Parameters
         }
 
         $ExportedVariables = "TagFilter",
@@ -277,9 +279,10 @@ function Write-PesterResult
             }
             Failed {
                 "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
-                Write-Screen -OutputType Failed $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                Write-Screen -OutputType Failed $($TestResult.stackTrace -replace '(?m)^',$error_margin)
-                break
+                $TestResult.ErrorRecord |
+                    ConvertTo-FailureLines |
+                    % {$_.Message + $_.Trace} |
+                    % { Write-Screen -OutputType Failed $($_ -replace '(?m)^',$error_margin) }
             }
             Skipped {
                 "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
@@ -290,6 +293,76 @@ function Write-PesterResult
                 break
             }
         }
+    }
+}
+
+function ConvertTo-FailureLines
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $ErrorRecord
+    )
+    process {
+        $lines = @{
+            Message = @()
+            Trace = @()
+        }
+
+        ## convert the exception messages
+        $exception = $ErrorRecord.Exception
+        $exceptionLines = @()
+        while ($exception)
+        {
+            $exceptionName = $exception.GetType().Name
+            $thisLines = $exception.Message.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed')
+            {
+                $thisLines[0] = "$exceptionName`: $($thisLines[0])"
+            }
+            [array]::Reverse($thisLines)
+            $exceptionLines += $thisLines
+            $exception = $exception.InnerException
+        }
+        [array]::Reverse($exceptionLines)
+        $lines.Message += $exceptionLines
+        if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
+        {
+            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
+
+        if ( -not ($ErrorRecord | Get-Member -Name ScriptStackTrace) )
+        {
+            if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+            {
+                $lines.Trace += "at line: $($ErrorRecord.TargetObject.Line) in $($ErrorRecord.TargetObject.File)"
+            }
+            else
+            {
+                $lines.Trace += "at line: $($ErrorRecord.InvocationInfo.ScriptLineNumber) in $($ErrorRecord.InvocationInfo.ScriptName)"
+            }
+            return $lines
+        }
+
+        ## convert the stack trace
+        $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+
+        # omit the lines internal to Pester
+        foreach ( $line in $traceLines )
+        {
+            if ( $line -match '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$' )
+            {
+                break
+            }
+            $count ++
+        }
+        $lines.Trace += $traceLines |
+            Select-Object -First $count |
+            ? {
+                $_ -notmatch '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$' -and
+                $_ -notmatch '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+            }
+
+        return $lines
     }
 }
 
