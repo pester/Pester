@@ -10,7 +10,7 @@ function New-Fixture {
     placed in the current directory and are called and populated as such:
 
 
-    The script defining the funciton: .\Clean.ps1:
+    The script defining the function: .\Clean.ps1:
 
     function Clean {
 
