@@ -276,7 +276,7 @@ function Invoke-Test
 
         $result = Get-PesterResult -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
-        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
+        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
         Write-Progress -Activity "Running test '$Name'" -Completed -Status Processing
     }
 
@@ -300,6 +300,7 @@ function Get-PesterResult {
         time = $time
         failureMessage = ""
         stackTrace = ""
+        ErrorRecord = $null
         success = $false
         result = "Failed"
     };
@@ -331,6 +332,7 @@ function Get-PesterResult {
 
     $testResult.failureMessage = $failureMessage
     $testResult.stackTrace = "at line: $line in ${file}${lineText}"
+    $testResult.ErrorRecord = $ErrorRecord
 
     return $testResult
 }
