@@ -60,7 +60,7 @@ function Get-CompareStringMessage {
 
     $expectedLength = $expected.Length
     $actualLength = $actual.Length
-    $maxLength = $expectedLength,$actualLength | Sort -Descending | select -First 1
+    $maxLength = $expectedLength,$actualLength | & $SafeCommands['Sort-Object'] -Descending | & $SafeCommands['Select-Object'] -First 1
 
     $differenceIndex = $null
     for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i){
@@ -94,9 +94,9 @@ function Get-CompareStringMessage {
         {
             #count all the special characters before the difference
             $specialCharacterOffset = ($actual[0..($differenceIndex-1)] |
-                Where {"`n","`r","`t","`b","`0" -contains $_} |
-                Measure-Object |
-                select -ExpandProperty Count)
+                & $SafeCommands['Where-Object'] {"`n","`r","`t","`b","`0" -contains $_} |
+                & $SafeCommands['Measure-Object'] |
+                & $SafeCommands['Select-Object'] -ExpandProperty Count)
         }
 
         '-'*($differenceIndex+$specialCharacterOffset+11)+'^'

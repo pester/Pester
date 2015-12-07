@@ -34,7 +34,7 @@ function Parse-ShouldArgs([array] $shouldArgs) {
 
 function Get-TestResult($shouldArgs, $value) {
     $assertionMethod = $shouldArgs.AssertionMethod
-    $command = Get-Command $assertionMethod -ErrorAction $script:IgnoreErrorPreference
+    $command = Get-Command $assertionMethod -CommandType Function -ErrorAction $script:IgnoreErrorPreference
 
     if ($null -eq $command)
     {
@@ -60,12 +60,12 @@ function Get-FailureMessage($shouldArgs, $value) {
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
 function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
-    $exception = New-Object Exception $Message
+    $exception = & $SafeCommands['New-Object'] Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
     $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
     return $errorRecord
 }
 

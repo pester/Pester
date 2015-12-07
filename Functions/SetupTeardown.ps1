@@ -76,17 +76,17 @@ function AfterAll
 
 function Clear-SetupAndTeardown
 {
-    $pester.BeforeEach = @( $pester.BeforeEach | Where-Object { $_.Scope -ne $pester.Scope } )
-    $pester.AfterEach  = @( $pester.AfterEach  | Where-Object { $_.Scope -ne $pester.Scope } )
-    $pester.BeforeAll  = @( $pester.BeforeAll  | Where-Object { $_.Scope -ne $pester.Scope } )
-    $pester.AfterAll   = @( $pester.AfterAll   | Where-Object { $_.Scope -ne $pester.Scope } )
+    $pester.BeforeEach = @( $pester.BeforeEach | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
+    $pester.AfterEach  = @( $pester.AfterEach  | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
+    $pester.BeforeAll  = @( $pester.BeforeAll  | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
+    $pester.AfterAll   = @( $pester.AfterAll   | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
 }
 
 function Invoke-TestCaseSetupBlocks
 {
     $orderedSetupBlocks = @(
-        $pester.BeforeEach | Where-Object { $_.Scope -eq 'Describe' } | Select-Object -ExpandProperty ScriptBlock
-        $pester.BeforeEach | Where-Object { $_.Scope -eq 'Context'  } | Select-Object -ExpandProperty ScriptBlock
+        $pester.BeforeEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Describe' } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
+        $pester.BeforeEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Context'  } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
     )
 
     Invoke-Blocks -ScriptBlock $orderedSetupBlocks
@@ -95,8 +95,8 @@ function Invoke-TestCaseSetupBlocks
 function Invoke-TestCaseTeardownBlocks
 {
     $orderedTeardownBlocks = @(
-        $pester.AfterEach | Where-Object { $_.Scope -eq 'Context'  } | Select-Object -ExpandProperty ScriptBlock
-        $pester.AfterEach | Where-Object { $_.Scope -eq 'Describe' } | Select-Object -ExpandProperty ScriptBlock
+        $pester.AfterEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Context'  } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
+        $pester.AfterEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Describe' } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
     )
 
     Invoke-Blocks -ScriptBlock $orderedTeardownBlocks
@@ -107,8 +107,8 @@ function Invoke-TestGroupSetupBlocks
     param ([string] $Scope)
 
     $scriptBlocks = $pester.BeforeAll |
-                    Where-Object { $_.Scope -eq $Scope } |
-                    Select-Object -ExpandProperty ScriptBlock
+                    & $SafeCommands['Where-Object'] { $_.Scope -eq $Scope } |
+                    & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
 
     Invoke-Blocks -ScriptBlock $scriptBlocks
 }
@@ -118,8 +118,8 @@ function Invoke-TestGroupTeardownBlocks
     param ([string] $Scope)
 
     $scriptBlocks = $pester.AfterAll |
-                    Where-Object { $_.Scope -eq $Scope } |
-                    Select-Object -ExpandProperty ScriptBlock
+                    & $SafeCommands['Where-Object'] { $_.Scope -eq $Scope } |
+                    & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
 
     Invoke-Blocks -ScriptBlock $scriptBlocks
 }
@@ -298,7 +298,7 @@ function Get-GroupStartTokenForCommand
     return $CommandIndex + 1
 }
 
-Add-Type -TypeDefinition @'
+& $SafeCommands['Add-Type'] -TypeDefinition @'
     namespace Pester
     {
         using System;
@@ -416,7 +416,7 @@ function Add-BeforeEach
         ScriptBlock = $ScriptBlock
     }
 
-    $pester.BeforeEach += @(New-Object psobject -Property $props)
+    $pester.BeforeEach += @(& $SafeCommands['New-Object'] psobject -Property $props)
 }
 
 function Add-AfterEach
@@ -433,7 +433,7 @@ function Add-AfterEach
         ScriptBlock = $ScriptBlock
     }
 
-    $pester.AfterEach += @(New-Object psobject -Property $props)
+    $pester.AfterEach += @(& $SafeCommands['New-Object'] psobject -Property $props)
 }
 
 function Add-BeforeAll
@@ -450,7 +450,7 @@ function Add-BeforeAll
         ScriptBlock = $ScriptBlock
     }
 
-    $pester.BeforeAll += @(New-Object psobject -Property $props)
+    $pester.BeforeAll += @(& $SafeCommands['New-Object'] psobject -Property $props)
 }
 
 function Add-AfterAll
@@ -467,5 +467,5 @@ function Add-AfterAll
         ScriptBlock = $ScriptBlock
     }
 
-    $pester.AfterAll += @(New-Object psobject -Property $props)
+    $pester.AfterAll += @(& $SafeCommands['New-Object'] psobject -Property $props)
 }

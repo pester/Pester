@@ -859,6 +859,9 @@ Describe 'Dot Source Test' {
     }
 
     It "Doesn't call the mock with any other parameters" {
+        InModuleScope Pester {
+            $global:calls = $mockTable['||Test-Path'].CallHistory
+        }
         Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
     }
 }
@@ -1461,23 +1464,30 @@ Describe 'Mocking a function taking input from pipeline' {
 
 Describe 'Mocking module-qualified calls' {
     It 'Mock alias should not exist before the mock is defined' {
-        'alias:\Microsoft.PowerShell.Management\Get-Content' | Should Not Exist
+        $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
+        $alias | Should Be $null
     }
 
-    Context 'Scope Boundary' {
-        $mockFile = 'TestDrive:\TestFile'
-        $mockResult = 'Mocked'
+    $mockFile = 'TestDrive:\TestFile'
+    $mockResult = 'Mocked'
 
-        Mock Get-Content { return $mockResult } -ParameterFilter { $Path -eq $mockFile }
-        Setup -File TestFile -Content 'The actual file'
+    Mock Get-Content { return $mockResult } -ParameterFilter { $Path -eq $mockFile }
+    Setup -File TestFile -Content 'The actual file'
 
-        It 'Calls the mock properly even if the call is module-qualified' {
-            $result = Microsoft.PowerShell.Management\Get-Content -Path $mockFile
-            $result | Should Be $mockResult
-        }
+    It 'Creates the alias while the mock is in effect' {
+        $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
+        $alias | Should Not Be $null
     }
 
+    It 'Calls the mock properly even if the call is module-qualified' {
+        $result = Microsoft.PowerShell.Management\Get-Content -Path $mockFile
+        $result | Should Be $mockResult
+    }
+}
+
+Describe 'After a mock goes out of scope' {
     It 'Removes the alias after the mock goes out of scope' {
-        'alias:\Microsoft.PowerShell.Management\Get-Content' | Should Not Exist
+        $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
+        $alias | Should Be $null
     }
 }

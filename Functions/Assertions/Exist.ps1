@@ -1,6 +1,6 @@
 
 function PesterExist($value) {
-    Test-Path $value
+    & $SafeCommands['Test-Path'] $value
 }
 
 function PesterExistFailureMessage($value) {

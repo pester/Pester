@@ -11,7 +11,7 @@ function New-PesterState
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
 
-    New-Module -Name Pester -AsCustomObject -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
@@ -50,11 +50,18 @@ function New-PesterState
         $script:PendingCount = 0
         $script:InconclusiveCount = 0
 
+        $script:SafeCommands = @{}
+
+        $script:SafeCommands['New-Object']          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+        $script:SafeCommands['Select-Object']       = Get-Command -Name Select-Object       -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+        $script:SafeCommands['Export-ModuleMember'] = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core    -CommandType Cmdlet
+        $script:SafeCommands['Add-Member']          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+
         function EnterDescribe([string]$Name)
         {
             if ($CurrentDescribe)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in Describe, you cannot enter Describe twice"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in Describe, you cannot enter Describe twice"
             }
             $script:CurrentDescribe = $Name
         }
@@ -62,7 +69,7 @@ function New-PesterState
         function LeaveDescribe
         {
             if ( $CurrentContext ) {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot leave Describe before leaving Context"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot leave Describe before leaving Context"
             }
 
             $script:CurrentDescribe = $null
@@ -72,17 +79,17 @@ function New-PesterState
         {
             if ( -not $CurrentDescribe )
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter Context before entering Describe"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot enter Context before entering Describe"
             }
 
             if ( $CurrentContext )
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in Context, you cannot enter Context twice"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in Context, you cannot enter Context twice"
             }
 
             if ($CurrentTest)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in It, you cannot enter Context inside It"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in It, you cannot enter Context inside It"
             }
 
             $script:CurrentContext = $Name
@@ -92,7 +99,7 @@ function New-PesterState
         {
             if ($CurrentTest)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot leave Context before leaving It"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot leave Context before leaving It"
             }
 
             $script:CurrentContext = $null
@@ -102,12 +109,12 @@ function New-PesterState
         {
             if (-not $script:CurrentDescribe)
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "Cannot enter It before entering Describe"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot enter It before entering Describe"
             }
 
             if ( $CurrentTest )
             {
-                throw Microsoft.PowerShell.Utility\New-Object InvalidOperationException "You already are in It, you cannot enter It twice"
+                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in It, you cannot enter It twice"
             }
 
             $script:CurrentTest = $Name
@@ -167,7 +174,7 @@ function New-PesterState
                 Inconclusive { $script:InconclusiveCount++; break; }
             }
 
-            $Script:TestResult += Microsoft.PowerShell.Utility\New-Object -TypeName PsObject -Property @{
+            $Script:TestResult += & $SafeCommands['New-Object'] -TypeName PsObject -Property @{
                 Describe               = $CurrentDescribe
                 Context                = $CurrentContext
                 Name                   = $Name
@@ -179,7 +186,7 @@ function New-PesterState
                 ErrorRecord            = $ErrorRecord
                 ParameterizedSuiteName = $ParameterizedSuiteName
                 Parameters             = $Parameters
-            } | Microsoft.PowerShell.Utility\Select-Object Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ErrorRecord, ParameterizedSuiteName, Parameters
+            } | & $SafeCommands['Select-Object'] Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ErrorRecord, ParameterizedSuiteName, Parameters
         }
 
         $ExportedVariables = "TagFilter",
@@ -213,15 +220,15 @@ function New-PesterState
         "LeaveTest",
         "AddTestResult"
 
-        Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
+        & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
     } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
-    Add-Member -MemberType ScriptProperty -Name Scope -Value {
+    & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
         elseif ($this.CurrentContext)  { 'Context' }
         elseif ($this.CurrentDescribe) { 'Describe' }
         else { $null }
     } -Passthru |
-    Add-Member -MemberType ScriptProperty -Name ParentScope -Value {
+    & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name ParentScope -Value {
         $parentScope = $null
         $scope = $this.Scope
 
@@ -284,8 +291,8 @@ function Write-PesterResult
                 "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
                 $TestResult.ErrorRecord |
                     ConvertTo-FailureLines |
-                    % {$_.Message + $_.Trace} |
-                    % { Write-Screen -OutputType Failed $($_ -replace '(?m)^',$error_margin) }
+                    & $SafeCommands['ForEach-Object'] {$_.Message + $_.Trace} |
+                    & $SafeCommands['ForEach-Object'] { Write-Screen -OutputType Failed $($_ -replace '(?m)^',$error_margin) }
             }
             Skipped {
                 "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
@@ -342,7 +349,7 @@ function ConvertTo-FailureLines
             $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
-        if ( -not ($ErrorRecord | Get-Member -Name ScriptStackTrace) )
+        if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) )
         {
             if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
             {
@@ -368,8 +375,8 @@ function ConvertTo-FailureLines
             $count ++
         }
         $lines.Trace += $traceLines |
-            Select-Object -First $count |
-            ? {
+            & $SafeCommands['Select-Object'] -First $count |
+            & $SafeCommands['Where-Object'] {
                 $_ -notmatch '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$' -and
                 $_ -notmatch '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
             }
@@ -413,8 +420,8 @@ function Write-Screen {
         if ($Quiet) { return }
 
         #make the bound parameters compatible with Write-Host
-        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | Out-Null }
-        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | Out-Null}
+        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | & $SafeCommands['Out-Null'] }
+        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | & $SafeCommands['Out-Null'] }
 
         if ($OutputType -ne "Standard")
         {
