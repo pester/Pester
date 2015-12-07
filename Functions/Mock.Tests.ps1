@@ -1458,3 +1458,26 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 }
+
+Describe 'Mocking module-qualified calls' {
+    It 'Mock alias should not exist before the mock is defined' {
+        'alias:\Microsoft.PowerShell.Management\Get-Content' | Should Not Exist
+    }
+
+    Context 'Scope Boundary' {
+        $mockFile = 'TestDrive:\TestFile'
+        $mockResult = 'Mocked'
+
+        Mock Get-Content { return $mockResult } -ParameterFilter { $Path -eq $mockFile }
+        Setup -File TestFile -Content 'The actual file'
+
+        It 'Calls the mock properly even if the call is module-qualified' {
+            $result = Microsoft.PowerShell.Management\Get-Content -Path $mockFile
+            $result | Should Be $mockResult
+        }
+    }
+
+    It 'Removes the alias after the mock goes out of scope' {
+        'alias:\Microsoft.PowerShell.Management\Get-Content' | Should Not Exist
+    }
+}
