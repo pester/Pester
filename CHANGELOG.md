@@ -6,6 +6,7 @@
   - Case insensitive replacement of Test in help [GH-428]
   - Improve stack trace and exception console output [GH-426]
   - Added support for intercepting module-qualified calls to a mocked command. [GH-432]
+  - Improved Assert-MockCalled to allow it to be passed an alias as the -CommandName.
 
 ## 3.3.11 (September 8, 2015)
   - Fixed a bug where mocking New-Object would cause a stack overflow.  [GH-405]
