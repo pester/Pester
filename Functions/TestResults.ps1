@@ -105,7 +105,7 @@ function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $PesterState.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', '0')
-    $XmlWriter.WriteAttributeString('inconclusive', $PesterState.PendingCount)
+    $XmlWriter.WriteAttributeString('inconclusive', $PesterState.PendingCount + $PesterState.InconclusiveCount)
     $XmlWriter.WriteAttributeString('ignored', $PesterState.SkippedCount)
     $XmlWriter.WriteAttributeString('skipped', '0')
     $XmlWriter.WriteAttributeString('invalid', '0')
@@ -375,10 +375,25 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('executed', 'False')
             break
         }
+
         Pending
         {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
+            break
+        }
+        Inconclusive
+        {
+            $XmlWriter.WriteAttributeString('result', 'Inconclusive')
+            $XmlWriter.WriteAttributeString('executed', 'True')
+
+            if ($TestResult.FailureMessage)
+            {
+                $XmlWriter.WriteStartElement('reason')
+                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+                $XmlWriter.WriteEndElement() # Close reason tag
+            }
+
             break
         }
         Failed
@@ -427,6 +442,6 @@ function Get-GroupResult ($InputObject)
     #TODO: Confirm this is the correct order of precedence
     if ($InputObject |  Where {$_.Result -eq 'Failed'}) { return 'Failure' }
     if ($InputObject |  Where {$_.Result -eq 'Skipped'}) { return 'Ignored' }
-    if ($InputObject |  Where {$_.Result -eq 'Pending'}) { return 'Inconclusive' }
+    if ($InputObject |  Where {$_.Result -eq 'Pending' -or $_.Result -eq 'Inconclusive'}) { return 'Inconclusive' }
     return 'Success'
 }
