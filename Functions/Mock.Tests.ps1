@@ -1500,10 +1500,10 @@ Describe 'Assert-MockCalled with Aliases' {
     It 'Allows calls to Assert-MockCalled to use both aliases and the original command name' {
         function TestFunction { }
         Set-Alias -Name PesterTF -Value TestFunction
-        Mock gc
-        $null = gc c:\does\not\matter.txt
+        Mock PesterTF
+        $null = PesterTF
 
-        { Assert-MockCalled gc } | Should Not Throw
-        { Assert-MockCalled Get-Content } | Should Not Throw
+        { Assert-MockCalled PesterTF } | Should Not Throw
+        { Assert-MockCalled TestFunction } | Should Not Throw
     }
 }
