@@ -1491,3 +1491,19 @@ Describe 'After a mock goes out of scope' {
         $alias | Should Be $null
     }
 }
+
+Describe 'Assert-MockCalled with Aliases' {
+    AfterEach {
+        if (Test-Path alias:PesterTF) { Remove-Item Alias:PesterTF }
+    }
+
+    It 'Allows calls to Assert-MockCalled to use both aliases and the original command name' {
+        function TestFunction { }
+        Set-Alias -Name PesterTF -Value TestFunction
+        Mock gc
+        $null = gc c:\does\not\matter.txt
+
+        { Assert-MockCalled gc } | Should Not Throw
+        { Assert-MockCalled Get-Content } | Should Not Throw
+    }
+}
