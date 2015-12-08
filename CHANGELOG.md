@@ -1,4 +1,4 @@
-## Unreleased
+## 3.3.12 (December 8, 2015)
   - Fixed a bug with mocking dynamic parameters on latest Windows 10 / PSv5 builds.  [GH-419]
   - Fix for NUnit XML export on .NET core.  [GH-420]
   - Added Set-TestInconclusive command.  [GH-421]
