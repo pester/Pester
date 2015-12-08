@@ -578,7 +578,10 @@ param(
         $ModuleName = $pester.SessionState.Module.Name
     }
 
-    $mock = $script:mockTable["$ModuleName||$commandName"]
+    $contextInfo = Validate-Command $CommandName $ModuleName
+    $CommandName = $contextInfo.Command.Name
+
+    $mock = $script:mockTable["$ModuleName||$CommandName"]
 
     $moduleMessage = ''
     if ($ModuleName)
