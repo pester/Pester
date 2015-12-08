@@ -98,6 +98,7 @@ Some further reading and resources:
 * [The Wiki](https://github.com/pester/Pester/wiki)
 * [Google Discussion Group](https://groups.google.com/forum/?fromgroups#!forum/pester)
 * `C:\PS> Import-Module ./pester.psm1; Get-Help about_pester`
+* Microsoft's test suite for Powershell itself is being converted into Pester tests. [See this repo.](https://github.com/PowerShell/PowerShell-Tests)
 * Note: The following two links were for Pester v1.0.  The syntax shown, particularly for performing Assertions with Should, is no longer applicable to later versions of Pester.
     * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
     * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)
