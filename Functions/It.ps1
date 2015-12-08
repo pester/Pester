@@ -241,7 +241,7 @@ function Invoke-Test
     }
     else
     {
-        Write-Progress -Activity "Running test '$Name'" -Status Processing
+        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
 
         $errorRecord = $null
         try
@@ -277,7 +277,7 @@ function Invoke-Test
         $result = Get-PesterResult -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
-        Write-Progress -Activity "Running test '$Name'" -Completed -Status Processing
+        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
     }
 
     if ($null -ne $OutputScriptBlock)
@@ -364,7 +364,7 @@ function Get-OrderedParameterDictionary
 
     $parameters = Get-ParameterDictionary -ScriptBlock $ScriptBlock
 
-    $orderedDictionary = New-Object System.Collections.Specialized.OrderedDictionary
+    $orderedDictionary = & $SafeCommands['New-Object'] System.Collections.Specialized.OrderedDictionary
 
     foreach ($parameterName in $parameters.Keys)
     {
@@ -390,13 +390,13 @@ function Get-ParameterDictionary
 
     try
     {
-        Set-Content function:\$guid $ScriptBlock
+        & $SafeCommands['Set-Content'] function:\$guid $ScriptBlock
         $metadata = [System.Management.Automation.CommandMetadata](Get-Command -Name $guid -CommandType Function)
 
         return $metadata.Parameters
     }
     finally
     {
-        if (Test-Path function:\$guid) { Remove-Item function:\$guid }
+        if (& $SafeCommands['Test-Path'] function:\$guid) { & $SafeCommands['Remove-Item'] function:\$guid }
     }
 }

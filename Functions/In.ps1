@@ -24,12 +24,12 @@ param(
     Assert-DescribeInProgress -CommandName In
 
     $old_pwd = $pwd
-    pushd $path
+    & $SafeCommands['Push-Location'] $path
     $pwd = $path
     try {
         & $execute
     } finally {
-        popd
+        & $SafeCommands['Pop-Location']
         $pwd = $old_pwd
     }
 }

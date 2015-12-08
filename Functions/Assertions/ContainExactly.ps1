@@ -1,5 +1,5 @@
 function PesterContainExactly($file, $contentExpecation) {
-    return ((Get-Content -Encoding UTF8 $file) -cmatch $contentExpecation)
+    return ((& $SafeCommands['Get-Content'] -Encoding UTF8 $file) -cmatch $contentExpecation)
 }
 
 function PesterContainExactlyFailureMessage($file, $contentExpecation) {
