@@ -86,11 +86,11 @@ function Invoke-Pester {
 Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under the Path
 
 .DESCRIPTION
-Upon calling Invoke-Pester. All files that have a name containing
-"*.Tests.ps1" will have there tests defined in their Describe blocks
+Upon calling Invoke-Pester, all files that have a name containing
+"*.Tests.ps1" will have the tests defined in their Describe blocks
 executed. Invoke-Pester begins at the location of Path and
 runs recursively through each sub directory looking for
-*.Tests.ps1 files for tests to run. If a TestName is provided,
+"*.Tests.ps1" files containing tests. If a TestName is provided,
 Invoke-Pester will only run tests that have a describe block with a
 matching name. By default, Invoke-Pester will end the test run with a
 simple report of the number of tests passed and failed output to the
