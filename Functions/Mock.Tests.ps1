@@ -1507,3 +1507,12 @@ Describe 'Assert-MockCalled with Aliases' {
         { Assert-MockCalled TestFunction } | Should Not Throw
     }
 }
+
+Describe 'Mocking Get-Command' {
+    # This was reported as a bug in 3.3.12; we were relying on Get-Command to safely invoke other commands.
+    # Mocking Get-Command, though, would result in infinite recursion.
+
+    It 'Does not break when Get-Command is mocked' {
+        { Mock Get-Command } | Should Not Throw
+    }
+}

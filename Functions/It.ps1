@@ -391,7 +391,7 @@ function Get-ParameterDictionary
     try
     {
         & $SafeCommands['Set-Content'] function:\$guid $ScriptBlock
-        $metadata = [System.Management.Automation.CommandMetadata](Get-Command -Name $guid -CommandType Function)
+        $metadata = [System.Management.Automation.CommandMetadata](& $SafeCommands['Get-Command'] -Name $guid -CommandType Function)
 
         return $metadata.Parameters
     }

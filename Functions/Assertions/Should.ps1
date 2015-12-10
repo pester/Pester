@@ -34,7 +34,7 @@ function Parse-ShouldArgs([array] $shouldArgs) {
 
 function Get-TestResult($shouldArgs, $value) {
     $assertionMethod = $shouldArgs.AssertionMethod
-    $command = Get-Command $assertionMethod -CommandType Function -ErrorAction $script:IgnoreErrorPreference
+    $command = & $SafeCommands['Get-Command'] $assertionMethod -CommandType Function -ErrorAction $script:IgnoreErrorPreference
 
     if ($null -eq $command)
     {

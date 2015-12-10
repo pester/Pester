@@ -13,6 +13,10 @@ else
     $outNullModule = 'Microsoft.PowerShell.Utility'
 }
 
+# Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
+# Get-Command does.  Since this is at import time, before any mocks have been defined, that's probably acceptable.
+# If someone monkeys with Get-Command before they import Pester, they may break something.
+
 $script:SafeCommands = @{
     'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
@@ -21,6 +25,7 @@ $script:SafeCommands = @{
     'ForEach-Object'      = Get-Command -Name ForEach-Object      -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
     'Format-Table'        = Get-Command -Name Format-Table        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Get-ChildItem'       = Get-Command -Name Get-ChildItem       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Get-Command'         = Get-Command -Name Get-Command         -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
     'Get-Content'         = Get-Command -Name Get-Content         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Get-Date'            = Get-Command -Name Get-Date            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Get-Item'            = Get-Command -Name Get-Item            -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
@@ -434,6 +439,16 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function SafeGetCommand
+{
+    <#
+        .SYNOPSIS
+        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+    #>
+
+    return $script:SafeCommands['Get-Command']
+}
+
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
 if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     ($null -ne $psISE) -and
@@ -447,3 +462,4 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
+& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand
