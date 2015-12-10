@@ -330,7 +330,7 @@ about_Mocking
             $mock.Alias = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
 
             $scriptBlock = {
-                $setAlias = Get-Command -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
                 & $setAlias -Name $args[0] -Value $args[1] -Scope Script
             }
 
@@ -720,8 +720,8 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $commandInfo = & $SafeCommands['New-Object'] psobject -Property @{ Command = $null; Scope = '' }
 
     $scriptBlock = {
-        $getContentCommand = Get-Command Get-Content -Module Microsoft.PowerShell.Management -CommandType Cmdlet
-        $newObjectCommand  = Get-Command New-Object  -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet
+        $getContentCommand = & (Pester\SafeGetCommand) Get-Content -Module Microsoft.PowerShell.Management -CommandType Cmdlet
+        $newObjectCommand  = & (Pester\SafeGetCommand) New-Object  -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet
 
         $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
         while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias)
@@ -793,7 +793,7 @@ function MockPrototype {
         [string] ${ignore preference} = 'SilentlyContinue'
     }
 
-    ${get Variable Command} = Get-Command -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+    ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
     [object] ${a r g s} = & ${get Variable Command} -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
     if ($null -eq ${a r g s}) { ${a r g s} = @() }
@@ -1265,7 +1265,7 @@ function Get-DynamicParametersForCmdlet
 
     try
     {
-        $command = Get-Command -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
+        $command = & $SafeCommands['Get-Command'] -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
 
         if (@($command).Count -gt 1)
         {

@@ -46,7 +46,8 @@ FunctionsToExport = @(
     'AfterAll'
     'Get-MockDynamicParameters',
     'Set-DynamicParameterVariables',
-    'Set-TestInconclusive'
+    'Set-TestInconclusive',
+    'SafeGetCommand'
 )
 
 # # Cmdlets to export from this module

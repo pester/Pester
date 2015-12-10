@@ -52,10 +52,10 @@ function New-PesterState
 
         $script:SafeCommands = @{}
 
-        $script:SafeCommands['New-Object']          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
-        $script:SafeCommands['Select-Object']       = Get-Command -Name Select-Object       -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
-        $script:SafeCommands['Export-ModuleMember'] = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core    -CommandType Cmdlet
-        $script:SafeCommands['Add-Member']          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+        $script:SafeCommands['New-Object']          = & (Pester\SafeGetCommand) -Name New-Object          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+        $script:SafeCommands['Select-Object']       = & (Pester\SafeGetCommand) -Name Select-Object       -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+        $script:SafeCommands['Export-ModuleMember'] = & (Pester\SafeGetCommand) -Name Export-ModuleMember -Module Microsoft.PowerShell.Core    -CommandType Cmdlet
+        $script:SafeCommands['Add-Member']          = & (Pester\SafeGetCommand) -Name Add-Member          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
         function EnterDescribe([string]$Name)
         {
