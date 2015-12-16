@@ -1,3 +1,6 @@
+## 3.3.14 (December 16, 2015)
+  - Fixed Coverage analysis output, which broke in 3.3.12.  [GH-440]
+
 ## 3.3.13 (December 10, 2015)
   - Fixed a bug where mocking Get-Command would result in infinite recursion.  [GH-437]
 
