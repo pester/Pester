@@ -80,6 +80,37 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
             $error.Count | Should Be 0
         }
     }
+
+    InModuleScope Pester {
+        Describe 'SafeCommands table' {
+            $path = $ExecutionContext.SessionState.Module.ModuleBase
+            $filesToCheck = Get-ChildItem -Path $path -Recurse -Include *.ps1,*.psm1 -Exclude *.Tests.ps1
+            $callsToSafeCommands = @(
+                foreach ($file in $files)
+                {
+                    $tokens = $parseErrors = $null
+                    $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref] $tokens, [ref] $parseErrors)
+                    $filter = {
+                        $args[0] -is [System.Management.Automation.Language.CommandAst] -and
+                        $args[0].InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Ampersand -and
+                        $args[0].CommandElements[0] -is [System.Management.Automation.Language.IndexExpressionAst] -and
+                        $args[0].CommandElements[0].Target -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                        $args[0].CommandElements[0].Target.VariablePath.UserPath -match '^(?:script:)?SafeCommands$'
+                    }
+
+                    $ast.FindAll($filter, $true)
+                }
+            )
+
+            $uniqueSafeCommands = $callsToSafeCommands | ForEach-Object { $_.CommandElements[0].Index.Value } | Select-Object -Unique
+
+            $missingSafeCommands = $uniqueSafeCommands | Where-Object { -not $script:SafeCommands.ContainsKey($_) }
+
+            It 'The SafeCommands table contains all commands that are called from the module' {
+                $missingSafeCommands | Should Be $null
+            }
+        }
+    }
 }
 
 Describe 'Style rules' {
