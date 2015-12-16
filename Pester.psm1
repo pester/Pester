@@ -177,7 +177,12 @@ This will only run the Describe block named "Add Numbers"
 .Example
 Invoke-Pester -EnableExit -OutputXml "./artifacts/TestResults.xml"
 
-This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifatcs/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifacts/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+
+.Example
+Invoke-Pester -EnableExit -OutputFile "./artifacts/TestResults.xml" -OutputFormat NUnitxml
+
+This runs all tests from the current directory downwards and writes the results to an output file and NUnitxml output format
 
 .EXAMPLE
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
