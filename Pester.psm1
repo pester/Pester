@@ -274,7 +274,7 @@ about_pester
 
     Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
-    $testScripts = ResolveTestScripts $Script
+    $testScripts = @(ResolveTestScripts $Script)
 
     foreach ($testScript in $testScripts)
     {
