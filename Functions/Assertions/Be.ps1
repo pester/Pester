@@ -26,8 +26,8 @@ function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate) {
 
 function PesterBeFailureMessage($ActualValue, $ExpectedValue) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
-    $ActualValue = ($ActualValue)
-    $ExpectedValue = ($ExpectedValue)
+    $ActualValue = $($ActualValue)
+    $ExpectedValue = $($ExpectedValue)
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string])))
     {
@@ -80,8 +80,8 @@ function PesterBeExactly($ActualValue, $ExpectedValue) {
 
 function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
-    $ActualValue = ($ActualValue)
-    $ExpectedValue = ($ExpectedValue)
+    $ActualValue = $($ActualValue)
+    $ExpectedValue = $($ExpectedValue)
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string])))
     {

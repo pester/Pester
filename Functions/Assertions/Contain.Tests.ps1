@@ -21,7 +21,8 @@ InModuleScope Pester {
             }
 
             It "returns true if the file contains the specified UTF8 content" {
-                Test-PositiveAssertion (PesterContain "$TestDrive\test.txt" "☺")
+                "$TestDrive\test.txt" | Should Contain "☺"
+                "$TestDrive\test.txt" | Should -Contain "☺"
             }
         }
     }

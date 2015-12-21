@@ -15,7 +15,8 @@ InModuleScope Pester {
             }
 
             It "returns true if the file contains the specified Unicode content exactyle" {
-                Test-PositiveAssertion (PesterContainExactly "$TestDrive\test.txt" "☺")
+                "$TestDrive\test.txt" | Should ContainExactly "☺"
+                "$TestDrive\test.txt" | Should -ContainExactly "☺"
             }
         }
     }

@@ -90,7 +90,7 @@ function ContextImpl
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-        
+
         if ($null -ne $TestOutputBlock)
         {
             $Pester.TestResult[-1] | & $TestOutputBlock
