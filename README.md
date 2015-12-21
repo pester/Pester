@@ -1,6 +1,8 @@
 ## This branch contains pre-relase code which will eventually become Pester v4.0.0.  It is not intended for public use at this time, nor is it supported.
 
-Pester 3.0 has been released!  To see a list of changes in this version, refer to the [What's New in Pester 3.0?](https://github.com/pester/Pester/wiki/What's-New-in-Pester-3.0%3F) Wiki page.
+__Build Status:__ [![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:Pester_TestPester)/statusIcon)](https://build.powershell.org/project.html?projectId=Pester&tab=projectOverview&guest=1)
+
+Pester 3.0 has been released!  To see a list of changes in this version, refer to the [What's New in Pester 3.0?](https://github.com/pester/Pester/wiki/What's-New-in-Pester-3.0) Wiki page.
 
 ---
 
@@ -34,7 +36,7 @@ BuildChanges.Tests.ps1
 
 ```powershell
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
 . "$here\$sut"
 
 Describe "BuildIfChanged" {
@@ -70,7 +72,13 @@ Running Tests
 -------------
     C:\PS> Invoke-Pester
 
-This will run all tests inside of files named *.Tests.ps1 recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+This will run all tests inside of files named `*.Tests.ps1` recursively from the current directory downwards and print a report of all failing and passing tests to the console.
+
+    C:\PS> Invoke-Pester -TestName BuildIfChanged
+
+You can also run specific tests by using the `-TestName` parameter on the `Invoke-Pester` command. The above example will run all tests with a `Describe` block named `BuildIfChanged`. If you want to run multiple tests, you can pass in an array of strings into the `-TestName` parameter, similar to the following example:
+
+    C:\PS> Invoke-Pester -TestName BuildIfChanged, BaconShouldBeCrispy
 
 Continuous Integration with Pester
 -----------------------------------
@@ -92,6 +100,7 @@ Some further reading and resources:
 * [The Wiki](https://github.com/pester/Pester/wiki)
 * [Google Discussion Group](https://groups.google.com/forum/?fromgroups#!forum/pester)
 * `C:\PS> Import-Module ./pester.psm1; Get-Help about_pester`
+* Microsoft's test suite for Powershell itself is being converted into Pester tests. [See this repo.](https://github.com/PowerShell/PowerShell-Tests)
 * Note: The following two links were for Pester v1.0.  The syntax shown, particularly for performing Assertions with Should, is no longer applicable to later versions of Pester.
     * [powershell-bdd-testing-pester-screencast](http://scottmuc.com/blog/development/powershell-bdd-testing-pester-screencast/)
     * [pester-bdd-for-the-system-administrator](http://scottmuc.com/blog/development/pester-bdd-for-the-system-administrator/)

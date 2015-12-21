@@ -1,5 +1,5 @@
 function PesterExist($ActualValue, [switch] $Negate) {
-    [bool] $succeeded = Test-Path $ActualValue
+    [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
 
     if ($Negate) { $succeeded = -not $succeeded }
 
@@ -17,7 +17,7 @@ function PesterExist($ActualValue, [switch] $Negate) {
         }
     }
 
-    return New-Object psobject -Property @{
+    return & $SafeCommands['New-Object'] psobject -Property @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

@@ -6,7 +6,7 @@ if ($PSVersionTable.PSVersion.Major -le 2)
     function Enter-CoverageAnalysis {
         param ( $CodeCoverage )
 
-        if ($CodeCoverage) { Write-Error 'Code coverage analysis requires PowerShell 3.0 or later.' }
+        if ($CodeCoverage) { & $SafeCommands['Write-Error'] 'Code coverage analysis requires PowerShell 3.0 or later.' }
     }
 
     return
@@ -33,12 +33,12 @@ function Exit-CoverageAnalysis
 {
     param ([object] $PesterState)
 
-    Set-StrictMode -Off
+    & $SafeCommands['Set-StrictMode'] -Off
 
     $breakpoints = @($PesterState.CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0)
     {
-        Remove-PSBreakpoint -Breakpoint $breakpoints
+        & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
     }
 }
 
@@ -116,25 +116,25 @@ function Resolve-CoverageInfo
 
     try
     {
-        $resolvedPaths = Resolve-Path -Path $path -ErrorAction Stop
+        $resolvedPaths = & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop
     }
     catch
     {
-        Write-Error "Could not resolve coverage path '$path': $($_.Exception.Message)"
+        & $SafeCommands['Write-Error'] "Could not resolve coverage path '$path': $($_.Exception.Message)"
         return
     }
 
     $filePaths =
     foreach ($resolvedPath in $resolvedPaths)
     {
-        $item = Get-Item -LiteralPath $resolvedPath
+        $item = & $SafeCommands['Get-Item'] -LiteralPath $resolvedPath
         if ($item -is [System.IO.FileInfo] -and ('.ps1','.psm1') -contains $item.Extension)
         {
             $item.FullName
         }
         elseif (-not $item.PsIsContainer)
         {
-            Write-Warning "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
+            & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
         }
     }
 
@@ -158,10 +158,10 @@ function Get-CoverageBreakpoints
         [object[]] $CoverageInfo
     )
 
-    $fileGroups = @($CoverageInfo | Group-Object -Property Path)
+    $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path)
     foreach ($fileGroup in $fileGroups)
     {
-        Write-Verbose "Initializing code coverage analysis for file '$($fileGroup.Name)'"
+        & $SafeCommands['Write-Verbose'] "Initializing code coverage analysis for file '$($fileGroup.Name)'"
         $totalCommands = 0
         $analyzedCommands = 0
 
@@ -181,7 +181,7 @@ function Get-CoverageBreakpoints
             }
         }
 
-        Write-Verbose "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage"
+        & $SafeCommands['Write-Verbose'] "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage"
     }
 }
 
@@ -279,7 +279,7 @@ function New-CoverageBreakpoint
         Action = { }
     }
 
-    $breakpoint = Set-PSBreakpoint @params
+    $breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
 
     [pscustomobject] @{
         File       = $Command.Extent.File
@@ -454,7 +454,7 @@ function Get-KeyValuePairText
         [System.Management.Automation.Language.Ast] $ChildAst
     )
 
-    Set-StrictMode -Off
+    & $SafeCommands['Set-StrictMode'] -Off
 
     foreach ($keyValuePair in $HashtableAst.KeyValuePairs)
     {
@@ -471,13 +471,13 @@ function Get-KeyValuePairText
 function Get-CoverageMissedCommands
 {
     param ([object[]] $CommandCoverage)
-    $CommandCoverage | Where-Object { $_.Breakpoint.HitCount -eq 0 }
+    $CommandCoverage | & $SafeCommands['Where-Object'] { $_.Breakpoint.HitCount -eq 0 }
 }
 
 function Get-CoverageHitCommands
 {
     param ([object[]] $CommandCoverage)
-    $CommandCoverage | Where-Object { $_.Breakpoint.HitCount -gt 0 }
+    $CommandCoverage | & $SafeCommands['Where-Object'] { $_.Breakpoint.HitCount -gt 0 }
 }
 
 function Get-CoverageReport
@@ -486,9 +486,9 @@ function Get-CoverageReport
 
     $totalCommandCount = $PesterState.CommandCoverage.Count
 
-    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Function, Command)
-    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | Select-Object File, Line, Function, Command)
-    $analyzedFiles = @($PesterState.CommandCoverage | Select-Object -ExpandProperty File -Unique)
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
+    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
+    $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
     $executedCommandCount = $totalCommandCount - $missedCommands.Count
@@ -508,11 +508,11 @@ function Get-CommonParentPath
 {
     param ([string[]] $Path)
 
-    $pathsToTest = @( $Path | Select-Object -Unique )
+    $pathsToTest = @( $Path | & $SafeCommands['Select-Object'] -Unique )
 
     if ($pathsToTest.Count -gt 0)
     {
-        $parentPath = Split-Path -Path $pathsToTest[0] -Parent
+        $parentPath = & $SafeCommands['Split-Path'] -Path $pathsToTest[0] -Parent
 
         while ($parentPath.Length -gt 0)
         {
@@ -524,7 +524,7 @@ function Get-CommonParentPath
             }
             else
             {
-                $parentPath = Split-Path -Path $parentPath -Parent
+                $parentPath = & $SafeCommands['Split-Path'] -Path $parentPath -Parent
             }
         }
     }

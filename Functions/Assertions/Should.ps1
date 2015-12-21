@@ -46,12 +46,12 @@ function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
 }
 
 function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
-    $exception = New-Object Exception $Message
+    $exception = & $SafeCommands['New-Object'] Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
     $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
     return $errorRecord
 }
 

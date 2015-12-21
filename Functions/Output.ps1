@@ -214,34 +214,34 @@ function Write-CoverageReport {
 
     $totalCommandCount = $CoverageReport.NumberOfCommandsAnalyzed
     $fileCount = $CoverageReport.NumberOfFilesAnalyzed
-    $executedPercent = $CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed
+    $executedPercent = ($CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed).ToString("P2")
 
     $command = if ($totalCommandCount -gt 1) { $ReportStrings.CommandPlural } else { $ReportStrings.CommandSingular }
     $file = if ($fileCount -gt 1) { $ReportStrings.FilePlural } else { $ReportStrings.FileSingular }
 
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
-    $report = $CoverageReport.MissedCommands | Select-Object -Property @(
+    $report = $CoverageReport.MissedCommands | & $SafeCommands['Select-Object'] -Property @(
         @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
         'Function'
         'Line'
         'Command'
     )
 
-    Microsoft.PowerShell.Utility\Write-Host
-    Microsoft.PowerShell.Utility\Write-Host $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
+    & $SafeCommands['Write-Host']
+    & $SafeCommands['Write-Host'] $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
 
     if ($CoverageReport.MissedCommands.Count -gt 0)
     {
-        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
+        & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
         if ($CoverageReport.MissedCommands.Count -eq 1)
         {
-            Microsoft.PowerShell.Utility\Write-Host $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
+            & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
         } else {
-            Microsoft.PowerShell.Utility\Write-Host $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
+            & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
         }
-        $report | Format-Table -AutoSize | Microsoft.PowerShell.Core\Out-Host
+        $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-Host']
     } else {
-        Microsoft.PowerShell.Utility\Write-Host ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
+        & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
     }
 }
 

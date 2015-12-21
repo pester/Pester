@@ -10,7 +10,7 @@ function New-Fixture {
     placed in the current directory and are called and populated as such:
 
 
-    The script defining the funciton: .\Clean.ps1:
+    The script defining the function: .\Clean.ps1:
 
     function Clean {
 
@@ -70,7 +70,7 @@ function New-Fixture {
     $scriptCode = "function $name {`r`n`r`n}"
 
     $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', ''.''
 . "$here\$sut"
 
 Describe "#name#" {
@@ -88,17 +88,20 @@ Describe "#name#" {
 }
 
 function Create-File ($Path,$Name,$Content) {
-    if (-not (Test-Path -Path $Path)) {
-        New-Item -ItemType Directory -Path $Path | Out-Null
+    if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
+        & $SafeCommands['New-Item'] -ItemType Directory -Path $Path | & $SafeCommands['Out-Null']
     }
 
-    $FullPath = Join-Path -Path $Path -ChildPath $Name
-    if (-not (Test-Path -Path $FullPath)) {
-        Set-Content -Path  $FullPath -Value $Content -Encoding UTF8
-        Get-Item -Path $FullPath
+    $FullPath = & $SafeCommands['Join-Path'] -Path $Path -ChildPath $Name
+    if (-not (& $SafeCommands['Test-Path'] -Path $FullPath)) {
+        & $SafeCommands['Set-Content'] -Path  $FullPath -Value $Content -Encoding UTF8
+        & $SafeCommands['Get-Item'] -Path $FullPath
     }
     else
     {
+        # This is deliberately not sent through $SafeCommands, because our own tests rely on
+        # mocking Write-Warning, and it's not really the end of the world if this call happens to
+        # be screwed up in an edge case.
         Write-Warning "Skipping the file '$FullPath', because it already exists."
     }
 }

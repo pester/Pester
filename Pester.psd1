@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.3.9'
+ModuleVersion = '3.3.14'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -46,7 +46,8 @@ FunctionsToExport = @(
     'AfterAll'
     'Get-MockDynamicParameters',
     'Set-DynamicParameterVariables'
-    'Get-IgnoreErrorPreference',
+    'Set-TestInconclusive',
+    'SafeGetCommand',
     # Gherkin Support:
     'Invoke-Gherkin',
     'When'

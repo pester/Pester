@@ -1,5 +1,5 @@
 function PesterContainExactly($ActualValue, $ExpectedContent, [switch] $Negate) {
-    $succeeded = (@(Get-Content $ActualValue) -cmatch $ExpectedContent).Count -gt 0
+    $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -cmatch $ExpectedContent).Count -gt 0
 
     if ($Negate) { $succeeded = -not $succeeded }
 
@@ -17,7 +17,7 @@ function PesterContainExactly($ActualValue, $ExpectedContent, [switch] $Negate) 
         }
     }
 
-    return New-Object psobject -Property @{
+    return & $SafeCommands['New-Object'] psobject -Property @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

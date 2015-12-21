@@ -21,7 +21,7 @@ DESCRIPTION
 	PowerShell code being tested. See about_Mocking.
 
 CREATING A PESTER TEST
-	To start using Pester, you may use the Add-Fixture function to scaffold both 
+	To start using Pester, you may use the New-Fixture function to scaffold both 
 	a new implementation function and a test function.
 
 	C:\PS>New-Fixture deploy Clean
@@ -34,7 +34,7 @@ CREATING A PESTER TEST
 
     ./deploy/clean.Tests.ps1
     $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
     . "$here\$sut"
 
     Describe "clean" {
@@ -71,7 +71,7 @@ RUNNNING A PESTER TEST
 	}
 
 	$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
     . "$here\$sut"
 
     Describe "BuildIfChanged" {
@@ -135,7 +135,7 @@ SEE ALSO
 	Describe
 	Context
 	It
-	Add-Fixture
+	New-Fixture
 	Invoke-Pester
 	about_Should
 	about_TestDrive

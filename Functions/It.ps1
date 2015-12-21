@@ -110,6 +110,7 @@ about_should
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
         [Switch] $Skip
     )
 
@@ -129,6 +130,7 @@ function ItImpl
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
         [Switch] $Skip,
 
         $Pester,
@@ -221,6 +223,7 @@ function Invoke-Test
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
         [Switch] $Skip
     )
 
@@ -238,7 +241,7 @@ function Invoke-Test
     }
     else
     {
-        Write-Progress -Activity "Running test '$Name'" -Status Processing
+        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
 
         $errorRecord = $null
         try
@@ -273,8 +276,8 @@ function Invoke-Test
 
         $result = Get-PesterResult -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
-        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters )
-        Write-Progress -Activity "Running test '$Name'" -Completed -Status Processing
+        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
+        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
     }
 
     if ($null -ne $OutputScriptBlock)
@@ -297,6 +300,7 @@ function Get-PesterResult {
         time = $time
         failureMessage = ""
         stackTrace = ""
+        ErrorRecord = $null
         success = $false
         result = "Failed"
     };
@@ -318,6 +322,18 @@ function Get-PesterResult {
         $line = $details.Line
         $lineText = "`n$line`: $($details.LineText)"
     }
+    elseif ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestInconclusive')
+    {
+        # we use TargetObject to pass structured information about the error.
+        $details = $ErrorRecord.TargetObject
+
+        $failureMessage = $details.Message
+        $file = $details.File
+        $line = $details.Line
+        $lineText = "`n$line`: $($details.LineText)"
+
+        $testResult.Result = 'Inconclusive'
+    }
     else
     {
         $failureMessage = $ErrorRecord.ToString()
@@ -328,6 +344,7 @@ function Get-PesterResult {
 
     $testResult.failureMessage = $failureMessage
     $testResult.stackTrace = "at line: $line in ${file}${lineText}"
+    $testResult.ErrorRecord = $ErrorRecord
 
     return $testResult
 }
@@ -347,7 +364,7 @@ function Get-OrderedParameterDictionary
 
     $parameters = Get-ParameterDictionary -ScriptBlock $ScriptBlock
 
-    $orderedDictionary = New-Object System.Collections.Specialized.OrderedDictionary
+    $orderedDictionary = & $SafeCommands['New-Object'] System.Collections.Specialized.OrderedDictionary
 
     foreach ($parameterName in $parameters.Keys)
     {
@@ -373,13 +390,13 @@ function Get-ParameterDictionary
 
     try
     {
-        Set-Content function:\$guid $ScriptBlock
-        $metadata = [System.Management.Automation.CommandMetadata](Get-Command -Name $guid -CommandType Function)
+        & $SafeCommands['Set-Content'] function:\$guid $ScriptBlock
+        $metadata = [System.Management.Automation.CommandMetadata](& $SafeCommands['Get-Command'] -Name $guid -CommandType Function)
 
         return $metadata.Parameters
     }
     finally
     {
-        if (Test-Path function:\$guid) { Remove-Item function:\$guid }
+        if (& $SafeCommands['Test-Path'] function:\$guid) { & $SafeCommands['Remove-Item'] function:\$guid }
     }
 }

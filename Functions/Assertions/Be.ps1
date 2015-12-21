@@ -18,7 +18,7 @@ function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate) {
         }
     }
 
-    return New-Object psobject -Property @{
+    return & $SafeCommands['New-Object'] psobject -Property @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }
@@ -121,7 +121,7 @@ function Get-CompareStringMessage {
 
     $ExpectedValueLength = $ExpectedValue.Length
     $actualLength = $actual.Length
-    $maxLength = $ExpectedValueLength,$actualLength | Sort -Descending | select -First 1
+    $maxLength = $ExpectedValueLength,$actualLength | & $SafeCommands['Sort-Object'] -Descending | & $SafeCommands['Select-Object'] -First 1
 
     $differenceIndex = $null
     for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i){
@@ -146,7 +146,6 @@ function Get-CompareStringMessage {
            "String lengths are both $ExpectedValueLength. Strings differ at index $differenceIndex."
         }
 
-
         "Expected: {{{0}}}" -f ( $ExpectedValue | Expand-SpecialCharacters )
         "But was:  {{{0}}}" -f ( $actual | Expand-SpecialCharacters )
 
@@ -155,9 +154,9 @@ function Get-CompareStringMessage {
         {
             #count all the special characters before the difference
             $specialCharacterOffset = ($actual[0..($differenceIndex-1)] |
-                Where {"`n","`r","`t","`b","`0" -contains $_} |
-                Measure-Object |
-                select -ExpandProperty Count)
+                & $SafeCommands['Where-Object'] {"`n","`r","`t","`b","`0" -contains $_} |
+                & $SafeCommands['Measure-Object'] |
+                & $SafeCommands['Select-Object'] -ExpandProperty Count)
         }
 
         '-'*($differenceIndex+$specialCharacterOffset+11)+'^'

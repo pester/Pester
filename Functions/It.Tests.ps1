@@ -51,6 +51,11 @@ InModuleScope Pester {
             $scriptBlock | Should Not Throw
         }
 
+        It 'Does not throw an error if the -Ignore switch is used, and no script block is passed' {
+            $scriptBlock = { ItImpl -Pester $testState 'Some Name' -Ignore }
+            $scriptBlock | Should Not Throw
+        }
+
         It 'Creates a pending test for an empty (whitespace and comments only) script block' {
             $scriptBlock = {
                 # Single-Line comment
@@ -180,15 +185,20 @@ $thisScriptRegex = [regex]::Escape($MyInvocation.MyCommand.Path)
 Describe 'Get-PesterResult' {
     $getPesterResult = InModuleScope Pester { ${function:Get-PesterResult} }
 
-    It 'records the correct stack line number of failed tests in the Tests file' {
+    Context 'failed tests in Tests file' {
         #the $script scriptblock below is used as a position marker to determine
         #on which line the test failed.
         $errorRecord = $null
         try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
         $result = & $getPesterResult 0 $errorRecord
-        $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in $thisScriptRegex"
+        It 'records the correct stack line number' {
+            $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in $thisScriptRegex"
+        }
+        It 'records the correct error record' {
+            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should be $true
+            $result.ErrorRecord.Exception.Message | Should match 'Expected: {nothing}'
+        }
     }
-
     It 'Does not modify the error message from the original exception' {
         $object = New-Object psobject
         $message = 'I am an error.'
@@ -201,8 +211,7 @@ Describe 'Get-PesterResult' {
 
         $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
     }
-
-    It 'records the correct stack line number of failed tests in another file' {
+    Context 'failed tests in another file' {
         $errorRecord = $null
 
         $testPath = Join-Path $TestDrive test.ps1
@@ -221,6 +230,13 @@ Describe 'Get-PesterResult' {
 
         $result = & $getPesterResult 0 $errorRecord
 
-        $result.Stacktrace | should match "at line: 2 in $escapedTestPath"
+
+        It 'records the correct stack line number' {
+            $result.Stacktrace | should match "at line: 2 in $escapedTestPath"
+        }
+        It 'records the correct error record' {
+            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should be $true
+            $result.ErrorRecord.Exception.Message | Should match 'Expected: {Two}'
+        }
     }
 }

@@ -39,6 +39,42 @@ function CommonParamFunction (
     return "Please strip me of my common parameters. They are far too common."
 }
 
+function PipelineInputFunction {
+    param(
+        [Parameter(ValueFromPipeline=$True)]
+        [int]$PipeInt1,
+        [Parameter(ValueFromPipeline=$True)]
+        [int[]]$PipeInt2,
+        [Parameter(ValueFromPipeline=$True)]
+        [string]$PipeStr,
+        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [int]$PipeIntProp,
+        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [int[]]$PipeArrayProp,
+        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [string]$PipeStringProp
+    )
+    begin{
+        $p = 0
+    }
+    process {
+        foreach($i in $input)
+        {
+            $p += 1
+            write-output @{
+                index=$p;
+                val=$i;
+                PipeInt1=$PipeInt1;
+                PipeInt2=$PipeInt2;
+                PipeStr=$PipeStr;
+                PipeIntProp=$PipeIntProp;
+                PipeArrayProp=$PipeArrayProp;
+                PipeStringProp=$PipeStringProp;
+            }
+        }
+    }
+}
+
 Describe "When calling Mock on existing function" {
     Mock FunctionUnderTest { return "I am the mock test that was passed $param1"}
 
@@ -427,7 +463,18 @@ Describe 'When calling Mock on a module-internal function.' {
             InternalFunction
         }
 
-        Export-ModuleMember -Function PublicFunction, PublicFunction2, FuncThatOverwritesExecutionContext
+        function ScopeTest {
+            return Get-CallerModuleName
+        }
+
+        function Get-CallerModuleName {
+            [CmdletBinding()]
+            param ( )
+
+            return $PSCmdlet.SessionState.Module.Name
+        }
+
+        Export-ModuleMember -Function PublicFunction, PublicFunction2, FuncThatOverwritesExecutionContext, ScopeTest
     } | Import-Module -Force
 
     It 'Should fail to call the internal module function' {
@@ -472,6 +519,19 @@ Describe 'When calling Mock on a module-internal function.' {
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
             TestModule2\FuncThatOverwritesExecutionContext | Should Be 'I am the second module internal function'
             TestModule\FuncThatOverwritesExecutionContext | Should Be 'I am the mock test'
+        }
+
+        Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+
+        It 'Should call the original command from the proper scope if no parameter filters match' {
+            TestModule2\ScopeTest | Should Be 'TestModule2'
+        }
+
+        Mock -ModuleName TestModule2 Get-Content { }
+
+        It 'Does not trigger the mocked Get-Content from Pester internals' {
+            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+            Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
         }
     }
 
@@ -799,6 +859,9 @@ Describe 'Dot Source Test' {
     }
 
     It "Doesn't call the mock with any other parameters" {
+        InModuleScope Pester {
+            $global:calls = $mockTable['||Test-Path'].CallHistory
+        }
         Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
     }
 }
@@ -1302,5 +1365,154 @@ Describe 'When mocking a command that has an ArgumentList parameter with validat
 
         $scriptBlock | Should Not Throw
         $hash.Result | Should Be 'mocked'
+    }
+}
+
+# These assertions won't actually "fail"; we had an infinite recursion bug in Get-DynamicParametersForCmdlet
+# if the caller mocked New-Object.  It should be fixed by making that call to New-Object module-qualified,
+# and this test will make sure it's working properly.  If this test fails, it'll take a really long time
+# to execute, and then will throw a stack overflow error.
+
+Describe 'Mocking New-Object' {
+    It 'Works properly' {
+        Mock New-Object
+
+        $result = New-Object -TypeName Object
+        $result | Should Be $null
+        Assert-MockCalled New-Object
+    }
+}
+
+Describe 'Mocking a function taking input from pipeline' {
+    $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp'='1';'PipeArrayProp'=1;'PipeStringProp'=1}
+    $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp'=@(1)}
+    $noMockArrayResult = @(1,2) | PipelineInputFunction
+    $noMockIntResult = 1 | PipelineInputFunction
+    $noMockStringResult = '1' | PipelineInputFunction
+    $noMockResultByProperty = $psobj | PipelineInputFunction -PipeStr 'val'
+    $noMockArrayResultByProperty = $psArrayobj | PipelineInputFunction -PipeStr 'val'
+
+    Mock PipelineInputFunction { write-output 'mocked' } -ParameterFilter { $PipeStr -eq 'blah' }
+
+    context 'when calling original function with an array' {
+        $result = @(1,2) | PipelineInputFunction
+        it 'Returns actual implementation' {
+            $result[0].keys | % {
+                $result[0][$_] | Should Be $noMockArrayResult[0][$_]
+                $result[1][$_] | Should Be $noMockArrayResult[1][$_]
+            }
+        }
+    }
+
+    context 'when calling original function with an int' {
+        $result = 1 | PipelineInputFunction
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockIntResult[$_]
+            }
+        }
+    }
+
+    context 'when calling original function with a string' {
+        $result = '1' | PipelineInputFunction
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockStringResult[$_]
+            }
+        }
+    }
+
+    context 'when calling original function and pipeline is bound by property name' {
+        $result = $psobj | PipelineInputFunction -PipeStr 'val'
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockResultByProperty[$_]
+            }
+        }
+    }
+
+    context 'when calling original function and forcing a parameter binding exception' {
+        Mock PipelineInputFunction {
+            if($MyInvocation.ExpectingInput) {
+                throw New-Object -TypeName System.Management.Automation.ParameterBindingException
+            }
+            write-output $MyInvocation.ExpectingInput
+        }
+        $result = $psobj | PipelineInputFunction
+
+        it 'falls back to no pipeline input' {
+            $result | Should Be $false
+        }
+    }
+
+    context 'when calling original function and pipeline is bound by property name with array values' {
+        $result = $psArrayobj | PipelineInputFunction -PipeStr 'val'
+        it 'Returns actual implementation' {
+            $result.keys | % {
+                $result[$_] | Should Be $noMockArrayResultByProperty[$_]
+            }
+        }
+    }
+
+    context 'when calling the mocked function' {
+        $result = 'blah' | PipelineInputFunction
+        it 'Returns mocked implementation' {
+            $result | Should Be 'mocked'
+        }
+    }
+}
+
+Describe 'Mocking module-qualified calls' {
+    It 'Mock alias should not exist before the mock is defined' {
+        $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
+        $alias | Should Be $null
+    }
+
+    $mockFile = 'TestDrive:\TestFile'
+    $mockResult = 'Mocked'
+
+    Mock Get-Content { return $mockResult } -ParameterFilter { $Path -eq $mockFile }
+    Setup -File TestFile -Content 'The actual file'
+
+    It 'Creates the alias while the mock is in effect' {
+        $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
+        $alias | Should Not Be $null
+    }
+
+    It 'Calls the mock properly even if the call is module-qualified' {
+        $result = Microsoft.PowerShell.Management\Get-Content -Path $mockFile
+        $result | Should Be $mockResult
+    }
+}
+
+Describe 'After a mock goes out of scope' {
+    It 'Removes the alias after the mock goes out of scope' {
+        $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
+        $alias | Should Be $null
+    }
+}
+
+Describe 'Assert-MockCalled with Aliases' {
+    AfterEach {
+        if (Test-Path alias:PesterTF) { Remove-Item Alias:PesterTF }
+    }
+
+    It 'Allows calls to Assert-MockCalled to use both aliases and the original command name' {
+        function TestFunction { }
+        Set-Alias -Name PesterTF -Value TestFunction
+        Mock PesterTF
+        $null = PesterTF
+
+        { Assert-MockCalled PesterTF } | Should Not Throw
+        { Assert-MockCalled TestFunction } | Should Not Throw
+    }
+}
+
+Describe 'Mocking Get-Command' {
+    # This was reported as a bug in 3.3.12; we were relying on Get-Command to safely invoke other commands.
+    # Mocking Get-Command, though, would result in infinite recursion.
+
+    It 'Does not break when Get-Command is mocked' {
+        { Mock Get-Command } | Should Not Throw
     }
 }
