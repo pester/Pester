@@ -40,6 +40,14 @@ SHOULD MEMBERS
         
         Tip: use [Management.Automation.WildcardPattern]::Escape() to escape wildcard-characters.
         
+    BeLikeExactly
+        Users a wildcard to compare two objects. The comparision is case sensitive.
+        
+        "I am a value" | Should BeLike "*value"  # Test will pass
+        "I am a value" | Should BeLike "*VALUE"  # Test will fail
+        
+        Tip: use [Management.Automation.WildcardPattern]::Escape() to escape wildcard-characters.
+        
     BeGreaterThan
         Asserts that a number is greater than an expected value. Uses PowerShell's -gt operator to compare the two values.
         
