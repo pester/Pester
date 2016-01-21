@@ -16,11 +16,11 @@ In addition to using your own logic to test expectations and throw exceptions,
 you may also use Pester's Should command to perform assertions in plain language.
 
 .PARAMETER Name
-An expressive phsae describing the expected test outcome.
+An expressive phrase describing the expected test outcome.
 
 .PARAMETER Test
 The script block that should throw an exception if the
-expectation of the test is not met.If you are following the
+expectation of the test is not met. If you are following the
 AAA pattern (Arrange-Act-Assert), this typically holds the
 Assert.
 
@@ -84,6 +84,28 @@ Describe "Add-Numbers" {
     )
 
     It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $testCases {
+        param ($a, $b, $expectedResult)
+
+        $sum = Add-Numbers $a $b
+        $sum | Should Be $expectedResult
+    }
+}
+
+.EXAMPLE
+# The test is marked 'Pending'
+function Add-Numbers($a, $b) {
+    return $a + $b
+}
+
+Describe "Add-Numbers" {
+    $testCases = @(
+        @{ a = 2;     b = 3;       expectedResult = 5 }
+        @{ a = -2;    b = -2;      expectedResult = -4 }
+        @{ a = -2;    b = 2;       expectedResult = 0 }
+        @{ a = 'two'; b = 'three'; expectedResult = 'twothree' }
+    )
+
+    It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $testCases -Pending {
         param ($a, $b, $expectedResult)
 
         $sum = Add-Numbers $a $b
