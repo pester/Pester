@@ -163,7 +163,7 @@ InModuleScope Pester {
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
             $xmlTestSuite2.name     | Should Be "Skipped"
-            $xmlTestSuite2.result   | Should Be "Skipped"
+            $xmlTestSuite2.result   | Should Be "Ignored"
             $xmlTestSuite2.success  | Should Be "True"
 
             $xmlTestSuite3 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[2]

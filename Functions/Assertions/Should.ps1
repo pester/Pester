@@ -34,7 +34,7 @@ function Parse-ShouldArgs([array] $shouldArgs) {
 
 function Get-TestResult($shouldArgs, $value) {
     $assertionMethod = $shouldArgs.AssertionMethod
-    $command = Get-Command $assertionMethod -ErrorAction $script:IgnoreErrorPreference
+    $command = & $SafeCommands['Get-Command'] $assertionMethod -CommandType Function -ErrorAction $script:IgnoreErrorPreference
 
     if ($null -eq $command)
     {
@@ -59,13 +59,13 @@ function Get-FailureMessage($shouldArgs, $value) {
 
     return (& $failureMessageFunction $value $shouldArgs.ExpectedValue)
 }
-function New-ShouldErrorRecord ([string] $Message, [string] $Line, [string] $LineText) {
-    $exception = New-Object Exception $Message
+function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
+    $exception = & $SafeCommands['New-Object'] Exception $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{Message = $Message; Line = $Line; LineText = $LineText}
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
+    $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
     return $errorRecord
 }
 
@@ -85,10 +85,11 @@ function Should {
             if ($testFailed) {
                 $lineText = $MyInvocation.Line.TrimEnd("`n")
                 $line = $MyInvocation.ScriptLineNumber
+                $file = $MyInvocation.ScriptName
 
                 $failureMessage = Get-FailureMessage $parsedArgs $value
 
-                throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+                throw ( New-ShouldErrorRecord -Message $failureMessage -File $file -Line $line -LineText $lineText)
             }
         } until ($input.MoveNext() -eq $false)
     }

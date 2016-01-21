@@ -68,8 +68,8 @@ about_TestDrive
     }
     catch
     {
-        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | Select-Object -First 1
-        $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
+        $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
         $Pester.TestResult[-1] | Write-PesterResult
     }
     finally
@@ -78,7 +78,7 @@ about_TestDrive
     }
 
     Clear-SetupAndTeardown
-    Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+    Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
     Exit-MockScope
     $Pester.LeaveContext()
 }

@@ -5,18 +5,86 @@
 if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
+    $outNullModule = 'Microsoft.PowerShell.Core'
 }
 else
 {
     $script:IgnoreErrorPreference = 'SilentlyContinue'
+    $outNullModule = 'Microsoft.PowerShell.Utility'
 }
 
-$moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
+# Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
+# Get-Command does.  Since this is at import time, before any mocks have been defined, that's probably acceptable.
+# If someone monkeys with Get-Command before they import Pester, they may break something.
+
+$script:SafeCommands = @{
+    'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Compare-Object'      = Get-Command -Name Compare-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Export-ModuleMember' = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'ForEach-Object'      = Get-Command -Name ForEach-Object      -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Format-Table'        = Get-Command -Name Format-Table        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Get-ChildItem'       = Get-Command -Name Get-ChildItem       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Get-Command'         = Get-Command -Name Get-Command         -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Get-Content'         = Get-Command -Name Get-Content         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Get-Date'            = Get-Command -Name Get-Date            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Get-Item'            = Get-Command -Name Get-Item            -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Get-Location'        = Get-Command -Name Get-Location        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Get-Member'          = Get-Command -Name Get-Member          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Get-Module'          = Get-Command -Name Get-Module          -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Get-PSDrive'         = Get-Command -Name Get-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Get-Variable'        = Get-Command -Name Get-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Get-WmiObject'       = Get-Command -Name Get-WmiObject       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Group-Object'        = Get-Command -Name Group-Object        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Join-Path'           = Get-Command -Name Join-Path           -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Measure-Object'      = Get-Command -Name Measure-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'New-Item'            = Get-Command -Name New-Item            -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'New-Module'          = Get-Command -Name New-Module          -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'New-Object'          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  -CommandType Cmdlet -ErrorAction Stop
+    'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Push-Location'       = Get-Command -Name Push-Location       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Remove-Item'         = Get-Command -Name Remove-Item         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Remove-PSBreakpoint' = Get-Command -Name Remove-PSBreakpoint -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Remove-PSDrive'      = Get-Command -Name Remove-PSDrive      -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Remove-Variable'     = Get-Command -Name Remove-Variable     -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Resolve-Path'        = Get-Command -Name Resolve-Path        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Select-Object'       = Get-Command -Name Select-Object       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Set-Content'         = Get-Command -Name Set-Content         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint    -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Set-StrictMode'      = Get-Command -Name Set-StrictMode      -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Set-Variable'        = Get-Command -Name Set-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Sort-Object'         = Get-Command -Name Sort-Object         -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Split-Path'          = Get-Command -Name Split-Path          -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Start-Sleep'         = Get-Command -Name Start-Sleep         -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Test-Path'           = Get-Command -Name Test-Path           -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    'Where-Object'        = Get-Command -Name Where-Object        -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Write-Error'         = Get-Command -Name Write-Error         -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Write-Progress'      = Get-Command -Name Write-Progress      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+}
+
+# little sanity check to make sure we don't blow up a system with a typo up there
+# (not that I've EVER done that by, for example, mapping New-Item to Remove-Item...)
+
+foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
+{
+    if ($keyValuePair.Key -ne $keyValuePair.Value.Name)
+    {
+        throw "SafeCommands entry for $($keyValuePair.Key) does not hold a reference to the proper command."
+    }
+}
+
+$moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 
 "$moduleRoot\Functions\*.ps1", "$moduleRoot\Functions\Assertions\*.ps1" |
-Resolve-Path |
-Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
-ForEach-Object { . $_.ProviderPath }
+& $script:SafeCommands['Resolve-Path'] |
+& $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+& $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
 function Invoke-Pester {
 <#
@@ -24,11 +92,11 @@ function Invoke-Pester {
 Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under the Path
 
 .DESCRIPTION
-Upon calling Invoke-Pester. All files that have a name containing
-"*.Tests.ps1" will have there tests defined in their Describe blocks
+Upon calling Invoke-Pester, all files that have a name containing
+"*.Tests.ps1" will have the tests defined in their Describe blocks
 executed. Invoke-Pester begins at the location of Path and
 runs recursively through each sub directory looking for
-*.Tests.ps1 files for tests to run. If a TestName is provided,
+"*.Tests.ps1" files containing tests. If a TestName is provided,
 Invoke-Pester will only run tests that have a describe block with a
 matching name. By default, Invoke-Pester will end the test run with a
 simple report of the number of tests passed and failed output to the
@@ -110,7 +178,12 @@ This will only run the Describe block named "Add Numbers"
 .Example
 Invoke-Pester -EnableExit -OutputXml "./artifacts/TestResults.xml"
 
-This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifatcs/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifacts/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+
+.Example
+Invoke-Pester -EnableExit -OutputFile "./artifacts/TestResults.xml" -OutputFormat NUnitxml
+
+This runs all tests from the current directory downwards and writes the results to an output file and NUnitxml output format
 
 .EXAMPLE
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
@@ -172,9 +245,9 @@ about_pester
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
     {
-        Write-Warning 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
+        & $script:SafeCommands['Write-Warning'] 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
 
-        Start-Sleep -Seconds 2
+        & $script:SafeCommands['Start-Sleep'] -Seconds 2
 
         $OutputFile = $OutputXml
         $OutputFormat = 'LegacyNUnitXml'
@@ -201,7 +274,7 @@ about_pester
 
     Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
-    $testScripts = ResolveTestScripts $Script
+    $testScripts = @(ResolveTestScripts $Script)
 
     foreach ($testScript in $testScripts)
     {
@@ -214,8 +287,8 @@ about_pester
         }
         catch
         {
-            $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Select-Object -First 1
-            $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine)
+            $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+            $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
             $pester.TestResult[-1] | Write-PesterResult
         }
     }
@@ -225,7 +298,7 @@ about_pester
     Show-CoverageReport -CoverageReport $coverageReport
     Exit-CoverageAnalysis -PesterState $pester
 
-    if(Get-Variable -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+    if(& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
         Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
     }
 
@@ -240,7 +313,7 @@ about_pester
             }
         )
 
-        $pester | Select -Property $properties
+        $pester | & $script:SafeCommands['Select-Object'] -Property $properties
     }
 
     if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
@@ -277,17 +350,17 @@ function ResolveTestScripts
             }
 
             if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
-                (Test-Path -LiteralPath $unresolvedPath -PathType Leaf) -and
-                (Get-Item -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
+                (& $script:SafeCommands['Test-Path'] -LiteralPath $unresolvedPath -PathType Leaf) -and
+                (& $script:SafeCommands['Get-Item'] -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
             {
                 $extension = [System.IO.Path]::GetExtension($unresolvedPath)
                 if ($extension -ne '.ps1')
                 {
-                    Write-Error "Script path '$unresolvedPath' is not a ps1 file."
+                    & $script:SafeCommands['Write-Error'] "Script path '$unresolvedPath' is not a ps1 file."
                 }
                 else
                 {
-                    New-Object psobject -Property @{
+                    & $script:SafeCommands['New-Object'] psobject -Property @{
                         Path       = $unresolvedPath
                         Arguments  = $arguments
                         Parameters = $parameters
@@ -298,14 +371,14 @@ function ResolveTestScripts
             {
                 # World's longest pipeline?
 
-                Resolve-Path -Path $unresolvedPath |
-                Where-Object { $_.Provider.Name -eq 'FileSystem' } |
-                Select-Object -ExpandProperty ProviderPath |
-                Get-ChildItem -Include *.Tests.ps1 -Recurse |
-                Where-Object { -not $_.PSIsContainer } |
-                Select-Object -ExpandProperty FullName -Unique |
-                ForEach-Object {
-                    New-Object psobject -Property @{
+                & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
+                & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
+                & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
+                & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
+                & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
+                & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
+                & $script:SafeCommands['ForEach-Object'] {
+                    & $script:SafeCommands['New-Object'] psobject -Property @{
                         Path       = $_
                         Arguments  = $arguments
                         Parameters = $parameters
@@ -372,13 +445,27 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function SafeGetCommand
+{
+    <#
+        .SYNOPSIS
+        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+    #>
+
+    return $script:SafeCommands['Get-Command']
+}
+
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
-if ((Test-Path -Path Variable:\psise) -and ($null -ne $psISE) -and ($PSVersionTable.PSVersion.Major -ge 3) -and (Test-Path $snippetsDirectoryPath))
+if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
+    ($null -ne $psISE) -and
+    ($PSVersionTable.PSVersion.Major -ge 3) -and
+    (& $script:SafeCommands['Test-Path'] $snippetsDirectoryPath))
 {
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
-Export-ModuleMember Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled
-Export-ModuleMember New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
-Export-ModuleMember BeforeEach, AfterEach, BeforeAll, AfterAll
-Export-ModuleMember Get-MockDynamicParameters, Set-DynamicParameterVariables
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
+& $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
+& $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
+& $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
+& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand

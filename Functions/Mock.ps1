@@ -209,6 +209,14 @@ about_Mocking
             $null = $metadata.Parameters.Remove('OutVariable')
             $null = $metadata.Parameters.Remove('OutBuffer')
 
+            # Some versions of powershell may include dynamic parameters here
+            # We will filter them out and add them at the end to be
+            # compatible with both earlier and later versions
+            $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
+            if($dynamicParams -ne $null) {
+                $dynamicparams | & $SafeCommands['ForEach-Object'] { $null = $metadata.Parameters.Remove($_.name) }
+            }
+
             $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
             $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
@@ -256,11 +264,31 @@ about_Mocking
             }
         }
 
-        $newContent = Microsoft.PowerShell.Management\Get-Content function:\MockPrototype
+        $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
         $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
         $newContent = $newContent -replace '#MODULENAME#', $ModuleName
 
-        $mockScript = [scriptblock]::Create("$cmdletBinding`r`nparam( $paramBlock )`r`n$dynamicParamBlock`r`nprocess{`r`n$newContent}")
+        $code = @"
+            $cmdletBinding
+            param ( $paramBlock )
+            $dynamicParamBlock
+            begin
+            {
+                $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
+            }
+
+            process
+            {
+                $($newContent -replace '#BLOCK#', 'Process' -replace '#INPUT#', '-InputObject @($input)')
+            }
+
+            end
+            {
+                $($newContent -replace '#BLOCK#', 'End' -replace '#INPUT#')
+            }
+"@
+
+        $mockScript = [scriptblock]::Create($code)
 
         $mock = @{
             OriginalCommand         = $contextInfo.Command
@@ -272,6 +300,7 @@ about_Mocking
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
             FunctionScope           = ''
+            Alias                   = $null
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
@@ -295,13 +324,25 @@ about_Mocking
 
         $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
         $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mockScript
+
+        if ($mock.OriginalCommand.ModuleName)
+        {
+            $mock.Alias = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+
+            $scriptBlock = {
+                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+            }
+
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.Alias, $CommandName
+        }
     }
 
     $mock.Blocks = @(
-        $mock.Blocks | Where-Object { $_.Filter.ToString() -eq '$True' }
+        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -eq '$True' }
         if ($block.Filter.ToString() -eq '$True') { $block }
 
-        $mock.Blocks | Where-Object { $_.Filter.ToString() -ne '$True' }
+        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -ne '$True' }
         if ($block.Filter.ToString() -ne '$True') { $block }
     )
 }
@@ -342,8 +383,12 @@ This will not throw an exception because the mock was invoked.
     Assert-DescribeInProgress -CommandName Assert-VerifiableMocks
 
     $unVerified=@{}
-    $mockTable.Keys | % {
-        $m=$_; $mockTable[$m].blocks | ? { $_.Verifiable } | % { $unVerified[$m]=$_ }
+    $mockTable.Keys | & $SafeCommands['ForEach-Object'] {
+        $m=$_;
+
+        $mockTable[$m].blocks |
+        & $SafeCommands['Where-Object'] { $_.Verifiable } |
+        & $SafeCommands['ForEach-Object'] { $unVerified[$m]=$_ }
     }
     if($unVerified.Count -gt 0) {
         foreach($mock in $unVerified.Keys){
@@ -533,7 +578,10 @@ param(
         $ModuleName = $pester.SessionState.Module.Name
     }
 
-    $mock = $script:mockTable["$ModuleName||$commandName"]
+    $contextInfo = Validate-Command $CommandName $ModuleName
+    $CommandName = $contextInfo.Command.Name
+
+    $mock = $script:mockTable["$ModuleName||$CommandName"]
 
     $moduleMessage = ''
     if ($ModuleName)
@@ -558,8 +606,8 @@ param(
         }
     }
 
-    $matchingCalls = New-Object System.Collections.ArrayList
-    $nonMatchingCalls = New-Object System.Collections.ArrayList
+    $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
+    $nonMatchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
 
     foreach ($historyEntry in $mock.CallHistory)
     {
@@ -627,13 +675,19 @@ function Exit-MockScope {
     {
         param (
             [string] $CommandName,
-            [string] $Scope
+            [string] $Scope,
+            [string] $Alias
         )
 
         $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
         if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
         {
             $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "$Scope$CommandName", $true)
+        }
+
+        if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias:$Alias", $true, $true))
+        {
+            $ExecutionContext.InvokeProvider.Item.Remove("Alias:$Alias", $false, $true, $true)
         }
     }
 
@@ -642,11 +696,11 @@ function Exit-MockScope {
     foreach ($mockKey in $mockKeys)
     {
         $mock = $mockTable[$mockKey]
-        $mock.Blocks = @($mock.Blocks | Where {$_.Scope -ne $currentScope})
+        $mock.Blocks = @($mock.Blocks | & $SafeCommands['Where-Object'] {$_.Scope -ne $currentScope})
 
         if ($null -eq $parentScope)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName, $mock.FunctionScope
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName, $mock.FunctionScope, $mock.Alias
             $mockTable.Remove($mockKey)
         }
         else
@@ -663,9 +717,12 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
     $origCommand = $null
 
-    $commandInfo = New-Object psobject -Property @{ Command = $null; Scope = '' }
+    $commandInfo = & $SafeCommands['New-Object'] psobject -Property @{ Command = $null; Scope = '' }
 
     $scriptBlock = {
+        $getContentCommand = & (Pester\SafeGetCommand) Get-Content -Module Microsoft.PowerShell.Management -CommandType Cmdlet
+        $newObjectCommand  = & (Pester\SafeGetCommand) New-Object  -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet
+
         $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
         while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias)
         {
@@ -679,12 +736,12 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         if ($null -ne $command -and $command.CommandType -eq 'Function')
         {
             if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)") -and
-                (Get-Content "function:\global:$($command.Name)") -eq $command.ScriptBlock)
+                (& $getContentCommand "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'global:'
             }
             elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)") -and
-                    (Get-Content "function:\script:$($command.Name)") -eq $command.ScriptBlock)
+                    (& $getContentCommand "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'script:'
             }
@@ -694,7 +751,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
             }
         }
 
-        return New-Object psobject -Property $properties
+        return & $newObjectCommand psobject -Property $properties
     }
 
     if ($ModuleName) {
@@ -727,23 +784,25 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
 }
 
 function MockPrototype {
-    # It's necessary to strongly type our variable assignments here, just in case the mocked command has
-    # parameters of the same names with a different type.  We don't actually care about overwriting the
-    # variables, since they're going to be passed along with $PSBoundParameters anyway.
-
     if ($PSVersionTable.PSVersion.Major -ge 3)
     {
-        [string] $IgnoreErrorPreference = 'Ignore'
+        [string] ${ignore preference} = 'Ignore'
     }
     else
     {
-        [string] $IgnoreErrorPreference = 'SilentlyContinue'
+        [string] ${ignore preference} = 'SilentlyContinue'
     }
 
-    [object] $ArgumentList = Get-Variable -Name args -ValueOnly -Scope Local -ErrorAction $IgnoreErrorPreference
-    if ($null -eq $ArgumentList) { $ArgumentList = @() }
+    ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList $ArgumentList
+    [object] ${a r g s} = & ${get Variable Command} -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+    if ($null -eq ${a r g s}) { ${a r g s} = @() }
+
+    ${p s cmdlet} = & ${get Variable Command} -Name PSCmdlet -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+
+    ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
+
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' #INPUT#
 }
 
 function Invoke-Mock {
@@ -765,86 +824,202 @@ function Invoke-Mock {
         $BoundParameters = @{},
 
         [object[]]
-        $ArgumentList = @()
+        $ArgumentList = @(),
+
+        [object] $CallerSessionState,
+
+        [ValidateSet('Begin', 'Process', 'End')]
+        [string] $FromBlock,
+
+        [object] $InputObject
     )
 
-    if ($mock = $mockTable["$ModuleName||$CommandName"])
-    {
-        for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
-        {
-            $block = $mock.Blocks[$idx - 1]
+    $detectedModule = $ModuleName
+    $mock = FindMock -CommandName $CommandName -ModuleName ([ref]$detectedModule)
 
-            $params = @{
-                ScriptBlock     = $block.Filter
-                BoundParameters = $BoundParameters
-                ArgumentList    = $ArgumentList
-                Metadata        = $mock.Metadata
+    if ($null -eq $mock)
+    {
+        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
+        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
+    }
+
+    switch ($FromBlock)
+    {
+        Begin
+        {
+            $mock.InputObjects = & $SafeCommands['New-Object'] System.Collections.ArrayList
+            $mock.ShouldExecuteOriginalCommand = $false
+            $mock.BeginBoundParameters = $BoundParameters.Clone()
+            $mock.BeginArgumentList = $ArgumentList
+
+            return
+        }
+
+        Process
+        {
+            $block = $null
+            if ($detectedModule -eq $ModuleName)
+            {
+                $block = FindMatchingBlock -Mock $mock -BoundParameters $BoundParameters -ArgumentList $ArgumentList
             }
 
-            if (Test-ParameterFilter @params)
+            if ($null -ne $block)
             {
-                $block.Verifiable = $false
-                $mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+                ExecuteBlock -Block $block `
+                             -CommandName $CommandName `
+                             -ModuleName $ModuleName `
+                             -BoundParameters $BoundParameters `
+                             -ArgumentList $ArgumentList `
+                             -Mock $mock
 
-                $scriptBlock = {
-                    param (
-                        [Parameter(Mandatory = $true)]
-                        [scriptblock]
-                        $ScriptBlock,
-
-                        [hashtable]
-                        $BoundParameters = @{},
-
-                        [object[]]
-                        $ArgumentList = @(),
-
-                        [System.Management.Automation.CommandMetadata]
-                        $Metadata,
-
-                        [System.Management.Automation.SessionState]
-                        $SessionState
-                    )
-
-                    # This script block exists to hold variables without polluting the test script's current scope.
-                    # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
-                    # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
-                    # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
-                    # by doing it inside this temporary script block, those variables don't stick around longer than they
-                    # should.
-
-                    # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
-                    # we'll stash them in names unlikely to be overwritten.
-
-                    $___ScriptBlock___ = $ScriptBlock
-                    $___BoundParameters___ = $BoundParameters
-                    $___ArgumentList___ = $ArgumentList
-
-                    Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
-                    & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+                return
+            }
+            else
+            {
+                $mock.ShouldExecuteOriginalCommand = $true
+                if ($null -ne $InputObject)
+                {
+                    $null = $mock.InputObjects.AddRange(@($InputObject))
                 }
-
-                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-                & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
 
                 return
             }
         }
 
-        & $mock.OriginalCommand @ArgumentList @BoundParameters
-    }
-    elseif ($mock = $mockTable["||$CommandName"])
-    {
-        # This situation can happen if the test script is dot-sourced in the global scope.  Under these conditions,
-        # a module can wind up executing Invoke-Mock when that was not the intent of the test.  Try to recover from
-        # this by executing the original command.
+        End
+        {
+            if ($mock.ShouldExecuteOriginalCommand)
+            {
+                if ($mock.InputObjects.Count -gt 0)
+                {
+                    $scriptBlock = {
+                        param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
+                        $InputObjects | & $Command @ArgumentList @BoundParameters
+                    }
+                }
+                else
+                {
+                    $scriptBlock = {
+                        param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
+                        & $Command @ArgumentList @BoundParameters
+                    }
+                }
 
-        & $mock.OriginalCommand @ArgumentList @BoundParameters
+                $state = if ($CallerSessionState) { $CallerSessionState } else { $mock.SessionState }
+
+                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+
+                & $scriptBlock -Command $mock.OriginalCommand `
+                               -ArgumentList $mock.BeginArgumentList `
+                               -BoundParameters $mock.BeginBoundParameters `
+                               -InputObjects $mock.InputObjects
+            }
+        }
     }
-    else
+}
+
+function FindMock
+{
+    param (
+        [string] $CommandName,
+        [ref] $ModuleName
+    )
+
+    $mock = $mockTable["$($ModuleName.Value)||$CommandName"]
+
+    if ($null -eq $mock)
     {
-        # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
-        throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
+        $mock = $mockTable["||$CommandName"]
+        if ($null -ne $mock)
+        {
+            $ModuleName.Value = ''
+        }
     }
+
+    return $mock
+}
+
+function FindMatchingBlock
+{
+    param (
+        [object] $Mock,
+        [hashtable] $BoundParameters = @{},
+        [object[]] $ArgumentList = @()
+    )
+
+    for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--)
+    {
+        $block = $mock.Blocks[$idx - 1]
+
+        $params = @{
+            ScriptBlock     = $block.Filter
+            BoundParameters = $BoundParameters
+            ArgumentList    = $ArgumentList
+            Metadata        = $mock.Metadata
+        }
+
+        if (Test-ParameterFilter @params)
+        {
+            return $block
+        }
+    }
+
+    return $null
+}
+
+function ExecuteBlock
+{
+    param (
+        [object] $Block,
+        [object] $Mock,
+        [string] $CommandName,
+        [string] $ModuleName,
+        [hashtable] $BoundParameters = @{},
+        [object[]] $ArgumentList = @()
+    )
+
+    $Block.Verifiable = $false
+    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+
+    $scriptBlock = {
+        param (
+            [Parameter(Mandatory = $true)]
+            [scriptblock]
+            $ScriptBlock,
+
+            [hashtable]
+            $BoundParameters = @{},
+
+            [object[]]
+            $ArgumentList = @(),
+
+            [System.Management.Automation.CommandMetadata]
+            $Metadata,
+
+            [System.Management.Automation.SessionState]
+            $SessionState
+        )
+
+        # This script block exists to hold variables without polluting the test script's current scope.
+        # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
+        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
+        # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
+        # by doing it inside this temporary script block, those variables don't stick around longer than they
+        # should.
+
+        # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
+        # we'll stash them in names unlikely to be overwritten.
+
+        $___ScriptBlock___ = $ScriptBlock
+        $___BoundParameters___ = $BoundParameters
+        $___ArgumentList___ = $ArgumentList
+
+        Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
+        & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
+    & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
 }
 
 function Invoke-InMockScope
@@ -999,7 +1174,7 @@ function Set-DynamicParameterVariables
         {
             if ($ExecutionContext.SessionState -eq $SessionState)
             {
-                Set-Variable -Scope 1 -Name $variableName -Value $keyValuePair.Value -Force -Confirm:$false -WhatIf:$false
+                & $SafeCommands['Set-Variable'] -Scope 1 -Name $variableName -Value $keyValuePair.Value -Force -Confirm:$false -WhatIf:$false
             }
             else
             {
@@ -1031,8 +1206,8 @@ function Get-DynamicParamBlock
         if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
         {
             $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                          Select-Object -ExpandProperty Extent |
-                          Select-Object -ExpandProperty Text
+                          & $SafeCommands['Select-Object'] -ExpandProperty Extent |
+                          & $SafeCommands['Select-Object'] -ExpandProperty Text
 
             return $statements -join "`r`n"
         }
@@ -1090,7 +1265,7 @@ function Get-DynamicParametersForCmdlet
 
     try
     {
-        $command = Get-Command -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
+        $command = & $SafeCommands['Get-Command'] -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
 
         if (@($command).Count -gt 1)
         {
@@ -1102,7 +1277,7 @@ function Get-DynamicParametersForCmdlet
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    $cmdlet = New-Object $command.ImplementingType.FullName
+    $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
     if ($cmdlet -isnot [System.Management.Automation.IDynamicParameters])
     {
         return

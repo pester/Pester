@@ -61,10 +61,10 @@ function InModuleScope
         $ScriptBlock
     )
 
-    if ($null -eq (Get-Variable -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
-        $Pester = New-PesterState -Path (Resolve-Path .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $PSCmdlet.SessionState
+        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $PSCmdlet.SessionState
         $script:mockTable = @{}
     }
 
@@ -101,14 +101,14 @@ function Get-ScriptModule
 
     try
     {
-        $modules = @(Get-Module -Name $ModuleName -All -ErrorAction Stop)
+        $modules = @(& $SafeCommands['Get-Module'] -Name $ModuleName -All -ErrorAction Stop)
     }
     catch
     {
         throw "No module named '$ModuleName' is currently loaded."
     }
 
-    $scriptModules = @($modules | Where-Object { $_.ModuleType -eq 'Script' })
+    $scriptModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -eq 'Script' })
 
     if ($scriptModules.Count -gt 1)
     {
@@ -119,8 +119,8 @@ function Get-ScriptModule
     {
         $actualTypes = @(
             $modules |
-            Where-Object { $_.ModuleType -ne 'Script' } |
-            Select-Object -ExpandProperty ModuleType -Unique
+            & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
+            & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
         )
 
         $actualTypes = $actualTypes -join ', '

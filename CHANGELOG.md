@@ -1,4 +1,30 @@
-## Unreleased
+## 3.3.14 (December 16, 2015)
+  - Fixed Coverage analysis output, which broke in 3.3.12.  [GH-440]
+
+## 3.3.13 (December 10, 2015)
+  - Fixed a bug where mocking Get-Command would result in infinite recursion.  [GH-437]
+
+## 3.3.12 (December 8, 2015)
+  - Fixed a bug with mocking dynamic parameters on latest Windows 10 / PSv5 builds.  [GH-419]
+  - Fix for NUnit XML export on .NET core.  [GH-420]
+  - Added Set-TestInconclusive command.  [GH-421]
+  - Mocking improvements for calling original commands with begin/process/end blocks. [GH-422]
+  - Case insensitive replacement of Test in help [GH-428]
+  - Improve stack trace and exception console output [GH-426]
+  - Added support for intercepting module-qualified calls to a mocked command. [GH-432]
+  - Improved Assert-MockCalled to allow it to be passed an alias as the -CommandName.
+
+## 3.3.11 (September 8, 2015)
+  - Fixed a bug where mocking New-Object would cause a stack overflow.  [GH-405]
+
+## 3.3.10 (August 14, 2015)
+  - Fully qualified calls to Get-Content within Mocking code, to avoid triggering client's mocked versions of that command. [GH-362]
+  - Fixed a scoping error when calling the original command if no parameter filters match the call.  [GH-362]
+  - Added Ignore alias for -Skip on the It command, and updated NUnit output to flag these tests as Ignored instead of Skipped, for better integration with things like TeamCity.  [GH-368]
+  - Added support for Unicode to Should Contain. [GH-378]
+  - Added support for side-by-side installations to chocolateyInstall.ps1.  [GH-401]
+
+## 3.3.9 (May 23, 2015)
   - Fixed Describe's handling of TestName filter when multiple strings are passed to Invoke-Pester's -TestName parameter.
   - Failing BeforeEach or AfterEach will fail the test [GH-326]
   - Added BeOfType operator to the Should command. [GH-327]
@@ -11,6 +37,8 @@
   - Added the "bin" folder to the PATH environment variable when installing from Chocolatey.  Also removed the hard-coded -OutputXml and -Strict parameters from this file; only -EnableExit is always used from the bat file now.  [GH-281]
   - PassThru object (when used in conjunction with -CodeCoverage) now includes information about Hit commands in addition to Missed commands.  [GH-341]
   - Improvements to support for mocking advanced fynctions with dynamic parameters.  [GH-346]
+  - Fix for PowerShell v2 bug when mocking commands that have an -ArgumentList parameter with validation attributes.  [GH-354]
+  - Fixed stack trace output when the call to Should is in a file other than the file that contains the It block. [GH-358]
 
 ## 3.3.8 (April 15, 2015)
   - Further mocking fixes around the use of $ExecutionContext in client scope.  [GH-307]
