@@ -19,7 +19,6 @@ else
 
 $script:SafeCommands = @{
     'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Compare-Object'      = Get-Command -Name Compare-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Export-ModuleMember' = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
     'ForEach-Object'      = Get-Command -Name ForEach-Object      -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
@@ -34,7 +33,6 @@ $script:SafeCommands = @{
     'Get-Module'          = Get-Command -Name Get-Module          -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
     'Get-PSDrive'         = Get-Command -Name Get-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Get-Variable'        = Get-Command -Name Get-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Get-WmiObject'       = Get-Command -Name Get-WmiObject       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Group-Object'        = Get-Command -Name Group-Object        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Join-Path'           = Get-Command -Name Join-Path           -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Measure-Object'      = Get-Command -Name Measure-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
@@ -67,6 +65,18 @@ $script:SafeCommands = @{
     'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
 }
+
+if ($PsVersionTable.PsVersion.Major -le 2) 
+{
+	$script:SafeCommands.Add(
+	'Get-WmiObject', (Get-Command -Name Get-WmiObject -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop ))
+}
+else 
+{
+	$script:SafeCommands.Add(
+	'Get-CimInstance', (Get-Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Stop) )
+}
+
 
 # little sanity check to make sure we don't blow up a system with a typo up there
 # (not that I've EVER done that by, for example, mapping New-Item to Remove-Item...)

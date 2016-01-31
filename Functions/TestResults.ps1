@@ -409,7 +409,15 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     }
 }
 function Get-RunTimeEnvironment() {
-    $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
+    #Get-WmiObject does not exist on Windows Nano Server
+    if ($psVersionTable.PSVersion.Major -le 2) 
+    {
+        $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
+    } 
+    else
+    {
+        $osSystemInformation = (& $SafeCommands['Get-CimInstance'] Win32_OperatingSystem)
+    }
     @{
         'nunit-version' = '2.5.8.0'
         'os-version' = $osSystemInformation.Version
