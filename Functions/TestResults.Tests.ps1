@@ -194,42 +194,56 @@ InModuleScope Pester {
             $xmlEnvironment.'machine-name'  | Should Be $env:ComputerName
         }
 
-        it "Should validate test results against the nunit 2.5 schema" {
-            #create state
-            $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe #1')
-            $TestResults.AddTestResult("Successful testcase","Passed",(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-            $testResults.EnterDescribe('Describe #2')
-            $TestResults.AddTestResult("Failed testcase","Failed",(New-TimeSpan -Seconds 2))
+        $xmlSupportsSchemas  = $null -ne (([xml]"<xml/>") | gm get_schemas -force )
 
-            #export and validate the file
-            $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile -LegacyFormat
-            $xml = [xml] (Get-Content $testFile)
+        if ($xmlSupportsSchemas)
+        {
+            it "Should validate test results against the nunit 2.5 schema" {
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $xml.Schemas.Add($null,$schemePath) > $null
-            { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+                #create state
+                $TestResults = New-PesterState -Path TestDrive:\
+                $testResults.EnterDescribe('Describe #1')
+                $TestResults.AddTestResult("Successful testcase","Passed",(New-TimeSpan -Seconds 1))
+                $TestResults.LeaveDescribe()
+                $testResults.EnterDescribe('Describe #2')
+                $TestResults.AddTestResult("Failed testcase","Failed",(New-TimeSpan -Seconds 2))
+
+                #export and validate the file
+                $testFile = "$TestDrive\Results\Tests.xml"
+                Write-Host $testFile  -ForegroundColor Cyan
+
+
+                Export-NunitReport $testResults $testFile -LegacyFormat
+                Write-Host (gc $testFile) -ForegroundColor Cyan
+                Write-Host ( $testresults) -ForegroundColor Cyan
+
+                Write-Host (Get-Content $testFile) -ForegroundColor Magenta
+                $global:xm = gc $testFile
+                $xml = [xml] (Get-Content $testFile)
+
+
+                $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                $xml.Schemas.Add($null,$schemePath) > $null
+                { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+            }
+
+            it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+                #create state
+                $TestResults = New-PesterState -Path TestDrive:\
+                $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
+                $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-","Passed",(New-TimeSpan -Seconds 1))
+                $TestResults.LeaveDescribe()
+
+                #export and validate the file
+                $testFile = "$TestDrive\Results\Tests.xml"
+                Export-NunitReport $testResults $testFile -LegacyFormat
+                $xml = [xml] (Get-Content $testFile)
+
+                $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                $xml.Schemas.Add($null,$schemePath) > $null
+                { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+            }
         }
-
-        it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
-            #create state
-            $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
-            $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-","Passed",(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-
-            #export and validate the file
-            $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile -LegacyFormat
-            $xml = [xml] (Get-Content $testFile)
-
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $xml.Schemas.Add($null,$schemePath) > $null
-            { $xml.Validate({throw $args.Exception }) } | Should Not Throw
-        }
-
         Context 'Exporting Parameterized Tests (New Legacy)' {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
@@ -284,10 +298,13 @@ InModuleScope Pester {
                 }
             }
 
-            it 'Should validate test results against the nunit 2.5 schema' {
-                $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-                $null = $xmlResult.Schemas.Add($null,$schemaPath)
-                { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
+            if ($xmlSupportsSchemas)
+            {
+                it 'Should validate test results against the nunit 2.5 schema' {
+                    $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                    $null = $xmlResult.Schemas.Add($null,$schemaPath)
+                    { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
+                }
             }
         }
     }
@@ -413,40 +430,44 @@ InModuleScope Pester {
             $xmlEnvironment.'machine-name'  | Should Be $env:ComputerName
         }
 
-        it "Should validate test results against the nunit 2.5 schema" {
-            #create state
-            $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe #1')
-            $TestResults.AddTestResult("Successful testcase",'Passed',(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-            $testResults.EnterDescribe('Describe #2')
-            $TestResults.AddTestResult("Failed testcase",'Failed',(New-TimeSpan -Seconds 2))
+        $xmlSupportsSchemas  = $null -ne (([xml]"<xml/>") | gm get_schemas -force )
+        if ($xmlSupportsSchemas)
+        {
+            it "Should validate test results against the nunit 2.5 schema" {
+                #create state
+                $TestResults = New-PesterState -Path TestDrive:\
+                $testResults.EnterDescribe('Describe #1')
+                $TestResults.AddTestResult("Successful testcase",'Passed',(New-TimeSpan -Seconds 1))
+                $TestResults.LeaveDescribe()
+                $testResults.EnterDescribe('Describe #2')
+                $TestResults.AddTestResult("Failed testcase",'Failed',(New-TimeSpan -Seconds 2))
 
-            #export and validate the file
-            $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
-            $xml = [xml] (Get-Content $testFile)
+                #export and validate the file
+                $testFile = "$TestDrive\Results\Tests.xml"
+                Export-NunitReport $testResults $testFile
+                $xml = [xml] (Get-Content $testFile)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $xml.Schemas.Add($null,$schemePath) > $null
-            { $xml.Validate({throw $args.Exception }) } | Should Not Throw
-        }
+                $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                $xml.Schemas.Add($null,$schemePath) > $null
+                { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+            }
 
-        it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
-            #create state
-            $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
-            $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",'Passed',(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
+            it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+                #create state
+                $TestResults = New-PesterState -Path TestDrive:\
+                $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
+                $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",'Passed',(New-TimeSpan -Seconds 1))
+                $TestResults.LeaveDescribe()
 
-            #export and validate the file
-            $testFile = "$TestDrive\Results\Tests.xml"
-            Export-NunitReport $testResults $testFile
-            $xml = [xml] (Get-Content $testFile)
+                #export and validate the file
+                $testFile = "$TestDrive\Results\Tests.xml"
+                Export-NunitReport $testResults $testFile
+                $xml = [xml] (Get-Content $testFile)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $xml.Schemas.Add($null,$schemePath) > $null
-            { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+                $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                $xml.Schemas.Add($null,$schemePath) > $null
+                { $xml.Validate({throw $args.Exception }) } | Should Not Throw
+            }
         }
 
         Context 'Exporting Parameterized Tests (Newer format)' {
@@ -504,10 +525,13 @@ InModuleScope Pester {
                 $testCase2.Time | Should Be 1
             }
 
-            it 'Should validate test results against the nunit 2.5 schema' {
-                $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-                $null = $xmlResult.Schemas.Add($null,$schemaPath)
-                { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
+            if ($xmlSupportsSchemas)
+            {
+                it 'Should validate test results against the nunit 2.5 schema' {
+                    $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+                    $null = $xmlResult.Schemas.Add($null,$schemaPath)
+                    { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
+                }
             }
         }
     }

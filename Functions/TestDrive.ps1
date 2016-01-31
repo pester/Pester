@@ -1,23 +1,20 @@
 #
 function New-TestDrive ([Switch]$PassThru) {
-    $Path = New-RandomTempDirectory
+    $Path = New-RandomTempDirectoryPath
     $DriveName = "TestDrive"
 
-    if (-not (& $SafeCommands['Test-Path'] -Path $Path))
-    {
-        & $SafeCommands['New-Item'] -ItemType Container -Path $Path | & $SafeCommands['Out-Null']
-    }
+    $Directory = & $SafeCommands['New-Item'] -ItemType Container -Path $Path
 
     #setup the test drive
     if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") )
     {
-        & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $Path -Scope Global -Description "Pester test drive" | & $SafeCommands['Out-Null']
+        & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $Directory.FullName -Scope Global -Description "Pester test drive" | & $SafeCommands['Out-Null']
     }
 
     #publish the global TestDrive variable used in few places within the module
     if (-not (& $SafeCommands['Test-Path'] "Variable:Global:DriveName"))
     {
-        & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $Path
+        & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $Directory.FullName
     }
 
     if ( $PassThru ) { & $SafeCommands['Get-PSDrive'] -Name $DriveName }
@@ -36,13 +33,13 @@ function Clear-TestDrive ([String[]]$Exclude) {
     }
 }
 
-function New-RandomTempDirectory {
+function New-RandomTempDirectoryPath {
     do
     {
         $Path = & $SafeCommands['Join-Path'] -Path $env:TEMP -ChildPath ([Guid]::NewGuid())
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
 
-    & $SafeCommands['New-Item'] -ItemType Container -Path $Path
+    return $Path
 }
 
 function Get-TestDriveItem {

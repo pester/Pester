@@ -213,7 +213,6 @@ Describe 'Get-PesterResult' {
     }
     Context 'failed tests in another file' {
         $errorRecord = $null
-
         $testPath = Join-Path $TestDrive test.ps1
         $escapedTestPath = [regex]::Escape($testPath)
 

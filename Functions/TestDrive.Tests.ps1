@@ -148,15 +148,12 @@ Describe "Cleanup when Remove-Item is mocked" {
 }
 
 InModuleScope Pester {
-    Describe "New-RandomTempDirectory" {
-        It "creates randomly named directory" {
-            $first = New-RandomTempDirectory
-            $second = New-RandomTempDirectory
+    Describe "New-RandomTempDirectoryPath" {
+        It "creates randomly named path" {
+            $first = New-RandomTempDirectoryPath
+            $second = New-RandomTempDirectoryPath
 
-            $first | Remove-Item -Force
-            $second | Remove-Item -Force
-
-            $first.name | Should Not Be $second.name
+            $first | Should Not Be $second
 
         }
     }
