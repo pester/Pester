@@ -177,8 +177,17 @@ about_Mocking
         $ModuleName = ''
     }
 
-    $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
-    Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+    if (Test-IsClosure -ScriptBlock $MockWith)
+    {
+        # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
+        # dynamic module's scope.
+        $mockWithCopy = $MockWith
+    }
+    else
+    {
+        $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+        Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+    }
 
     $block = @{
         Mock       = $mockWithCopy
