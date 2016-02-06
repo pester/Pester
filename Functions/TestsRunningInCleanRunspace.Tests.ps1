@@ -1,16 +1,26 @@
-﻿function Invoke-PesterInJob ($ScriptBlock)
+﻿function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport)
 {
-    #TODO: there must be a safer way to determine this while I am in describe
-    $PesterPath = Get-Module -Name Pester | Select -First 1 -ExpandProperty Path
+    $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 
     $job = Start-Job {
-        param ($PesterPath, $TestDrive, $ScriptBlock)
+        param ($PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport)
         Import-Module $PesterPath -Force | Out-Null
         $ScriptBlock | Set-Content $TestDrive\Temp.Tests.ps1 | Out-Null
 
-        Invoke-Pester -PassThru -Path $TestDrive
+        $params = @{
+            PassThru = $true
+            Path = $TestDrive
+        }
 
-    } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock
+        if ($GenerateNUnitReport)
+        {
+            $params['OutputFile'] = "$TestDrive\Temp.Tests.xml"
+            $params['OutputFormat'] = 'NUnitXml'
+        }
+
+        Invoke-Pester @params
+
+    } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport
     $job | Wait-Job | Out-Null
 
     #not using Recieve-Job to ignore any output to Host
@@ -83,6 +93,26 @@ Describe "Tests running in clean runspace" {
         $result.PendingCount | Should Be 1
 
         $result.TotalCount | Should Be 4
+    }
+
+    It 'Produces valid NUnit output when syntax errors occur in test scripts' {
+        $invalidScript = '
+            Describe "Something" {
+                It "Works" {
+                    $true | Should Be $true
+                }
+            # Deliberately missing closing brace to trigger syntax error
+        '
+
+        $result = Invoke-PesterInJob -ScriptBlock $invalidScript -GenerateNUnitReport
+
+        $result.FailedCount | Should Be 1
+        $result.TotalCount | Should Be 1
+        'TestDrive:\Temp.Tests.xml' | Should Exist
+
+        $xml = [xml](Get-Content TestDrive:\Temp.Tests.xml)
+
+        $xml.'test-results'.'test-suite'.results.'test-suite'.name | Should Not BeNullOrEmpty
     }
 }
 
