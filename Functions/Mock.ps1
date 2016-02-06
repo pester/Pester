@@ -177,8 +177,17 @@ about_Mocking
         $ModuleName = ''
     }
 
-    $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
-    Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+    if (Test-IsClosure -ScriptBlock $MockWith)
+    {
+        # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
+        # dynamic module's scope.
+        $mockWithCopy = $MockWith
+    }
+    else
+    {
+        $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+        Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+    }
 
     $block = @{
         Mock       = $mockWithCopy
@@ -1349,4 +1358,25 @@ function Get-DynamicParametersForMockedFunction
         $splat = @{ 'P S Cmdlet' = $Cmdlet }
         return & $mock.DynamicParamScriptBlock @Parameters @splat
     }
+}
+
+function Test-IsClosure
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)
+
+    return (
+        $null -ne $module -and
+        $module.Name -match '^__DynamicModule_([a-f\d-]+)$' -and
+        $null -ne ($matches[1] -as [guid])
+    )
 }

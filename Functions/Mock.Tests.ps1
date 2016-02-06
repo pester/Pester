@@ -1516,3 +1516,20 @@ Describe 'Mocking Get-Command' {
         { Mock Get-Command } | Should Not Throw
     }
 }
+
+Describe 'Mocks with closures' {
+    $closureVariable = 'from closure'
+    $scriptBlock = { "Variable resolved $closureVariable" }
+    $closure = $scriptBlock.GetNewClosure()
+    $closureVariable = 'from script'
+
+    function TestClosure([switch] $Closure) { 'Not mocked' }
+
+    Mock TestClosure $closure -ParameterFilter { $Closure }
+    Mock TestClosure $scriptBlock
+
+    It 'Resolves variables in the closure rather than Pester''s current scope' {
+        TestClosure | Should Be 'Variable resolved from script'
+        TestClosure -Closure | Should Be 'Variable resolved from closure'
+    }
+}
