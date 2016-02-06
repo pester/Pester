@@ -289,6 +289,12 @@ about_pester
         {
             $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
             $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+
+            # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
+            # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
+            # planned for v4.0
+            $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
+
             $pester.TestResult[-1] | Write-PesterResult
         }
     }
