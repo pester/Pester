@@ -1,6 +1,6 @@
 ﻿function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport)
 {
-    $PesterPath = $ExecutionContext.SessionState.Module.ModuleBase
+    $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 
     $job = Start-Job {
         param ($PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport)
