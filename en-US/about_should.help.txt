@@ -32,6 +32,22 @@ SHOULD MEMBERS
         $actual | Should BeExactly "Actual value" # Test will pass
         $actual | Should BeExactly "actual value" # Test will fail
         
+    BeLike
+        Users a wildcard to compare two objects. The comparision is not case sensitive.
+        
+        "I am a value" | Should BeLike "*value"  # Test will pass
+        "I am a value" | Should BeLike "value"  # Test will fail
+        
+        Tip: use [Management.Automation.WildcardPattern]::Escape() to escape wildcard-characters.
+        
+    BeLikeExactly
+        Users a wildcard to compare two objects. The comparision is case sensitive.
+        
+        "I am a value" | Should BeLike "*value"  # Test will pass
+        "I am a value" | Should BeLike "*VALUE"  # Test will fail
+        
+        Tip: use [Management.Automation.WildcardPattern]::Escape() to escape wildcard-characters.
+        
     BeGreaterThan
         Asserts that a number is greater than an expected value. Uses PowerShell's -gt operator to compare the two values.
         
