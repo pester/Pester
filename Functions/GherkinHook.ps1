@@ -10,7 +10,7 @@ function Hook {
     )
     $Name = $MyInvocation.InvocationName
 
-    $Script:GherkinHooks.${Name} += @{ Tags = $Tags; Script = $Script }
+    $Script:GherkinHooks.${Name} += @( @{ Tags = $Tags; Script = $Script } )
 }
 
 Set-Alias BeforeAllFeatures Hook
