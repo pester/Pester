@@ -1533,3 +1533,49 @@ Describe 'Mocks with closures' {
         TestClosure -Closure | Should Be 'Variable resolved from closure'
     }
 }
+
+Describe '$args handling' {
+
+    function AdvancedFunction {
+        [CmdletBinding()]
+        param()
+        'orig'
+    }
+    function SimpleFunction {
+        . AdvancedFunction
+    }
+    function AdvancedFunctionWithArgs {
+        [CmdletBinding()]
+        param($Args)
+        'orig'
+    }
+    Add-Type -TypeDefinition '
+        using System.Management.Automation;
+        [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithArgs")]
+        public class InvokeCmdletWithArgs : Cmdlet {
+            public InvokeCmdletWithArgs() { }
+            [Parameter]
+            public object Args {
+                set { }
+            }
+            protected override void EndProcessing() {
+                WriteObject("orig");
+            }
+        }
+    ' -PassThru | Select-Object -ExpandProperty Assembly | Import-Module
+
+    Mock AdvancedFunction { 'mock' }
+    Mock AdvancedFunctionWithArgs { 'mock' }
+    Mock Invoke-CmdletWithArgs { 'mock' }
+
+    It 'Advanced function mock should be callable with dot operator' {
+        SimpleFunction garbage | Should Be mock
+    }
+    It 'Advanced function with Args parameter should be mockable' {
+        AdvancedFunctionWithArgs -Args garbage | Should Be mock
+    }
+    It 'Cmdlet with Args parameter should be mockable' {
+        Invoke-CmdletWithArgs -Args garbage | Should Be mock
+    }
+
+}

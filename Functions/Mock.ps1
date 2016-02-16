@@ -277,6 +277,13 @@ about_Mocking
         $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
         $newContent = $newContent -replace '#MODULENAME#', $ModuleName
 
+        $canCaptureArgs = 'true'
+        if ($contextInfo.Command.CommandType -eq 'Cmdlet' -or
+            ($contextInfo.Command.CommandType -eq 'Function' -and $contextInfo.Command.CmdletBinding)) {
+            $canCaptureArgs = 'false'
+        }
+        $newContent = $newContent -replace '#CANCAPTUREARGS#', $canCaptureArgs
+
         $code = @"
             $cmdletBinding
             param ( $paramBlock )
@@ -804,7 +811,10 @@ function MockPrototype {
 
     ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
-    [object] ${a r g s} = & ${get Variable Command} -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+    [object] ${a r g s} = $null
+    if (${#CANCAPTUREARGS#}) {
+        ${a r g s} = & ${get Variable Command} -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+    }
     if ($null -eq ${a r g s}) { ${a r g s} = @() }
 
     ${p s cmdlet} = & ${get Variable Command} -Name PSCmdlet -ValueOnly -Scope Local -ErrorAction ${ignore preference}
