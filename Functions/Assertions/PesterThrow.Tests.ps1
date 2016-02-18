@@ -199,7 +199,7 @@ InModuleScope Pester {
                     `$null
                 )
                 throw `$errorRecord
-            "  
+            "
 
             PesterThrow { & $testScriptPath } -ErrorId $expectedErrorId > $null
             $result = PesterThrowFailureMessage $null -ExpectedErrorId $expectedErrorId
@@ -217,7 +217,7 @@ InModuleScope Pester {
                     `$null
                 )
                 throw `$errorRecord
-            "  
+            "
 
             PesterThrow { & $testScriptPath } -ErrorId $expectedErrorId > $null
             $result = PesterThrowFailureMessage $null -ErrorId $expectedErrorId
@@ -318,7 +318,7 @@ InModuleScope Pester {
                     `$null
                 )
                 throw `$errorRecord
-            "  
+            "
 
             $result = PesterThrow { & $testScriptPath } -ErrorId $expectedErrorId -Negate
             $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
@@ -336,7 +336,7 @@ InModuleScope Pester {
                     `$null
                 )
                 throw `$errorRecord
-            "  
+            "
 
             $result = PesterThrow { & $testScriptPath } $expectedErrorMessage -ErrorId $expectedErrorId -Negate
             $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
