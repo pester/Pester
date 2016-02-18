@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 function FunctionUnderTest
 {
@@ -1576,6 +1576,24 @@ Describe '$args handling' {
     }
     It 'Cmdlet with Args parameter should be mockable' {
         Invoke-CmdletWithArgs -Args garbage | Should Be mock
+    }
+
+}
+
+Describe 'Single quote in command/module name' {
+
+    New-Module "Module '‘’‚‛" {
+        Function NormalCommandName { 'orig' }
+        New-Item "Function::Command '‘’‚‛" -Value { 'orig' }
+    } | Import-Module
+
+    It 'Command with single quote in module name should be mockable' {
+        Mock NormalCommandName { 'mock' }
+        NormalCommandName | Should Be mock
+    }
+    It 'Command with single quote in name should be mockable' {
+        Mock "Command '‘’‚‛" { 'mock' }
+        & "Command '‘’‚‛" | Should Be mock
     }
 
 }
