@@ -1,4 +1,4 @@
-function Mock {
+﻿function Mock {
 
 <#
 .SYNOPSIS
@@ -273,9 +273,16 @@ about_Mocking
             }
         }
 
+        $EscapeSingleQuotedStringContent =
+            if ($global:PSVersionTable.PSVersion.Major -ge 5) {
+                { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
+            } else {
+                { $args[0] -replace "['‘’‚‛]", '$&$&' }
+            }
+
         $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
-        $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
-        $newContent = $newContent -replace '#MODULENAME#', $ModuleName
+        $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
+        $newContent = $newContent -replace '#MODULENAME#', (& $EscapeSingleQuotedStringContent $ModuleName)
 
         $canCaptureArgs = 'true'
         if ($contextInfo.Command.CommandType -eq 'Cmdlet' -or
