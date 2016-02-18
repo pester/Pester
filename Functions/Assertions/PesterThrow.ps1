@@ -60,13 +60,16 @@ function PesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErro
     $StringBuilder = Microsoft.PowerShell.Utility\New-Object System.Text.StringBuilder
     $null = $StringBuilder.Append('Expected: the expression to throw an exception')
 
-    if ($ExpectedMessage -or $ExpectedErrorId) {
+    if ($ExpectedMessage -or $ExpectedErrorId)
+    {
         $null = $StringBuilder.Append(' with ')
-        $Expected = switch ($null) {
+        $Expected = switch ($null)
+        {
             { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
             { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
         }
-        $Actual = switch ($null) {
+        $Actual = switch ($null)
+        {
             { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
             { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
         }
@@ -85,13 +88,16 @@ function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedE
     $StringBuilder = New-Object System.Text.StringBuilder
     $null = $StringBuilder.Append('Expected: the expression not to throw an exception')
 
-    if ($ExpectedMessage -or $ExpectedErrorId) {
+    if ($ExpectedMessage -or $ExpectedErrorId)
+    {
         $null = $StringBuilder.Append(' with ')
-        $Expected = switch ($null) {
+        $Expected = switch ($null)
+        {
             { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
             { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
         }
-        $Actual = switch ($null) {
+        $Actual = switch ($null)
+        {
             { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
             { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
         }
@@ -101,7 +107,9 @@ function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedE
             ($Actual -join ' and '),
             ($ActualExceptionLine  -replace "`n","`n    ")
         ))
-    } else {
+    }
+    else
+    {
       $null = $StringBuilder.Append((". Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage, ($ActualExceptionLine -replace "`n","`n    ")))
     }
 

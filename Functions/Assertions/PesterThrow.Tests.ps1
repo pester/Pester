@@ -29,7 +29,7 @@ InModuleScope Pester {
             { throw 'expected error' } | Should Throw 'error'
             { throw 'expected error' } | Should -Throw 'error'
         }
-        
+
         It "returns true if the statement throws an exception and the actual fully-qualified error id matches the expected error id" {
             $expectedErrorId = "expected error id"
             $ScriptBlock = {
@@ -41,18 +41,18 @@ InModuleScope Pester {
                 )
                 throw $errorRecord
             }
-          
+
             # This syntax only. Not supported by Legacy.
             $ScriptBlock | Should -Throw -ErrorId $expectedErrorId
         }
-        
+
         It "returns false if the statement throws an exception and the actual fully-qualified error id does not match the expected error id" {
             $unexpectedErrorId = "unexpected error id"
             $expectedErrorId = "some expected error id"
             # Likely a known artefact. There's an edge case that breaks the Contains-based comparison.
             # $unexpectedErrorId = "unexpected error id"
             # $expectedErrorId = "expected error id"
-            
+
             $ScriptBlock = {
                 $errorRecord = New-Object System.Management.Automation.ErrorRecord(
                     (New-Object Exception),
@@ -62,10 +62,10 @@ InModuleScope Pester {
                 )
                 throw $errorRecord
             }
-          
+
             $ScriptBlock | Should -Not -Throw -ErrorId $expectedErrorId
         }
-        
+
         It "returns true if the statement throws an exception and the actual error text and the fully-qualified error id match the expected error text and error id" {
             $expectedErrorMessage = "expected error message"
             $expectedErrorId = "some expected error id"
@@ -78,10 +78,10 @@ InModuleScope Pester {
                 )
                 throw $errorRecord
             }
-          
+
             $ScriptBlock | Should -Throw $expectedErrorMessage -ErrorId $expectedErrorId
         }
-        
+
         It "returns false if the statement throws an exception and the actual error text and fully-qualified error id do not match the expected error text and error id" {
             $unexpectedErrorMessage = "unexpected error message"
             $unexpectedErrorId = "unexpected error id"
@@ -96,10 +96,10 @@ InModuleScope Pester {
                 )
                 throw $errorRecord
             }
-          
+
             $ScriptBlock | Should -Not -Throw $expectedErrorMessage -ErrorId $expectedErrorId
         }
-        
+
         It "returns false if the statement throws an exception and the actual fully-qualified error id does not match the expected error id when the actual error text does match the expected error text" {
             $unexpectedErrorId = "unexpected error id"
             $expectedErrorMessage = "some expected error message"
@@ -113,10 +113,10 @@ InModuleScope Pester {
                 )
                 throw $errorRecord
             }
-          
+
             $ScriptBlock | Should -Not -Throw $expectedErrorMessage -ErrorId $expectedErrorId
         }
-        
+
         It "returns false if the statement throws an exception and the actual error text does not match the expected error text when the actual error id does match the expected error id" {
             $unexpectedErrorMessage = "unexpected error message"
             $expectedErrorMessage = "some expected error message"
@@ -130,7 +130,7 @@ InModuleScope Pester {
                 )
                 throw $errorRecord
             }
-          
+
             $ScriptBlock | Should -Not -Throw $expectedErrorMessage -ErrorId $expectedErrorId
         }
     }
@@ -187,7 +187,7 @@ InModuleScope Pester {
             $result | Should Be 'Expected: the expression to throw an exception'
             $result | Should -Be 'Expected: the expression to throw an exception'
         }
-        
+
         It 'returns false if the actual error id is not the same as the expected error id' {
             $unexpectedErrorId = 'unexpected error id'
             $expectedErrorId = 'some expected error id'
@@ -206,7 +206,7 @@ InModuleScope Pester {
             $result | Should Match "^Expected: the expression to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
             $result | Should -Match "^Expected: the expression to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
-        
+
         It 'returns true if the actual error id is the same as the expected error id' {
             $expectedErrorId = 'some expected error id'
             Set-Content -Path $testScriptPath -Value "
@@ -224,7 +224,7 @@ InModuleScope Pester {
             $result | Should Match "^Expected: the expression to throw an exception"
             $result | Should -Match "^Expected: the expression to throw an exception"
         }
-        
+
         It 'returns false if the actual message and error id are not the same as the expected message and error id' {
             $unexpectedErrorMessage = 'unexpected'
             $unexpectedErrorId = 'unexpected error id'
@@ -245,7 +245,7 @@ InModuleScope Pester {
             $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
             $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
-        
+
         It 'returns false if the actual message is not the same as the expected message when the actual error id and expected error id match' {
             $unexpectedErrorMessage = 'unexpected'
             $expectedErrorMessage = 'some expected message'
@@ -265,7 +265,7 @@ InModuleScope Pester {
             $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
             $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
-        
+
         It 'returns false if the actual error id is not the same as the expected error id when the actual message and expected message match' {
             $unexpectedErrorId = 'unexpected error id'
             $expectedErrorMessage = 'some expected message'
@@ -324,7 +324,7 @@ InModuleScope Pester {
             $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
             $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
-        
+
         It 'returns false if the actual message or actual error id is the same as the expected message or expected error id' {
             $expectedErrorMessage = 'some expected message'
             $expectedErrorId = 'some expected error id'
