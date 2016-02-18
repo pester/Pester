@@ -57,18 +57,18 @@ function Get-ExceptionLineInfo($info) {
 }
 
 function PesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErrorId) {
-    $StringBuilder = New-Object System.Text.StringBuilder
+    $StringBuilder = Microsoft.PowerShell.Utility\New-Object System.Text.StringBuilder
     $null = $StringBuilder.Append('Expected: the expression to throw an exception')
-    
+
     if ($ExpectedMessage -or $ExpectedErrorId) {
         $null = $StringBuilder.Append(' with ')
         $Expected = switch ($null) {
-          { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
-          { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
+            { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
+            { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
         }
         $Actual = switch ($null) {
-          { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
-          { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
+            { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
+            { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
         }
         $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}`n    {3}" -f
             ($Expected -join ' and '),
@@ -77,23 +77,23 @@ function PesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErro
             ($ActualExceptionLine  -replace "`n","`n    ")
         ))
     }
-    
-    return $StringBuilder.ToString() 
+
+    return $StringBuilder.ToString()
 }
 
 function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErrorId) {
     $StringBuilder = New-Object System.Text.StringBuilder
     $null = $StringBuilder.Append('Expected: the expression not to throw an exception')
-    
+
     if ($ExpectedMessage -or $ExpectedErrorId) {
         $null = $StringBuilder.Append(' with ')
         $Expected = switch ($null) {
-          { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
-          { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
+            { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
+            { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
         }
         $Actual = switch ($null) {
-          { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
-          { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
+            { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
+            { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
         }
         $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}`n    {3}" -f
             ($Expected -join ' and '),
@@ -104,7 +104,7 @@ function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedE
     } else {
       $null = $StringBuilder.Append((". Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage, ($ActualExceptionLine -replace "`n","`n    ")))
     }
-    
+
     return $StringBuilder.ToString()
 }
 
