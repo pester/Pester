@@ -304,6 +304,7 @@ about_Mocking
             $dynamicParamBlock
             begin
             {
+                `${mock call state} = @{}
                 $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
             }
 
@@ -835,7 +836,8 @@ function MockPrototype {
 
     ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' #INPUT#
+    # @{mock call state} initialization is injected only into the begin block by the code that uses this prototype.
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' -MockCallState ${mock call state} #INPUT#
 }
 
 function Invoke-Mock {
@@ -849,6 +851,9 @@ function Invoke-Mock {
         [Parameter(Mandatory = $true)]
         [string]
         $CommandName,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable] $MockCallState,
 
         [string]
         $ModuleName,
@@ -880,10 +885,10 @@ function Invoke-Mock {
     {
         Begin
         {
-            $mock.InputObjects = & $SafeCommands['New-Object'] System.Collections.ArrayList
-            $mock.ShouldExecuteOriginalCommand = $false
-            $mock.BeginBoundParameters = $BoundParameters.Clone()
-            $mock.BeginArgumentList = $ArgumentList
+            $MockCallState['InputObjects'] = & $SafeCommands['New-Object'] System.Collections.ArrayList
+            $MockCallState['ShouldExecuteOriginalCommand'] = $false
+            $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
+            $MockCallState['BeginArgumentList'] = $ArgumentList
 
             return
         }
@@ -909,10 +914,10 @@ function Invoke-Mock {
             }
             else
             {
-                $mock.ShouldExecuteOriginalCommand = $true
+                $MockCallState['ShouldExecuteOriginalCommand'] = $true
                 if ($null -ne $InputObject)
                 {
-                    $null = $mock.InputObjects.AddRange(@($InputObject))
+                    $null = $MockCallState['InputObjects'].AddRange(@($InputObject))
                 }
 
                 return
@@ -921,9 +926,9 @@ function Invoke-Mock {
 
         End
         {
-            if ($mock.ShouldExecuteOriginalCommand)
+            if ($MockCallState['ShouldExecuteOriginalCommand'])
             {
-                if ($mock.InputObjects.Count -gt 0)
+                if ($MockCallState['InputObjects'].Count -gt 0)
                 {
                     $scriptBlock = {
                         param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
@@ -943,9 +948,9 @@ function Invoke-Mock {
                 Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
 
                 & $scriptBlock -Command $mock.OriginalCommand `
-                               -ArgumentList $mock.BeginArgumentList `
-                               -BoundParameters $mock.BeginBoundParameters `
-                               -InputObjects $mock.InputObjects
+                               -ArgumentList $MockCallState['BeginArgumentList'] `
+                               -BoundParameters $MockCallState['BeginBoundParameters'] `
+                               -InputObjects $MockCallState['InputObjects']
             }
         }
     }
