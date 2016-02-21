@@ -1581,11 +1581,16 @@ Describe '$args handling' {
 }
 
 Describe 'Single quote in command/module name' {
+    BeforeAll {
+        $module = New-Module "Module '‘’‚‛" {
+            Function NormalCommandName { 'orig' }
+            New-Item "Function::Command '‘’‚‛" -Value { 'orig' }
+        } | Import-Module -PassThru
+    }
 
-    New-Module "Module '‘’‚‛" {
-        Function NormalCommandName { 'orig' }
-        New-Item "Function::Command '‘’‚‛" -Value { 'orig' }
-    } | Import-Module
+    AfterAll {
+        if ($module) { Remove-Module $module; $module = $null }
+    }
 
     It 'Command with single quote in module name should be mockable' {
         Mock NormalCommandName { 'mock' }
@@ -1650,5 +1655,19 @@ if ($global:PSVersionTable.PSVersion.Major -ge 3) {
             Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should Be '; asd, fgh, jkl'
         }
 
+    }
+}
+
+Describe 'Nested Mock calls' {
+    $testDate = New-Object DateTime(2012,6,13)
+
+    Mock Get-Date -ParameterFilter { $null -eq $Date } {
+        Get-Date -Date $testDate -Format o
+    }
+
+    It 'Properly handles nested mocks' {
+        $result = @(Get-Date)
+        $result.Count | Should Be 1
+        $result[0] | Should Be '2012-06-13T00:00:00.0000000'
     }
 }
