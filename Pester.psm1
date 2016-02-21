@@ -240,7 +240,9 @@ about_pester
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
         [string] $OutputFormat,
 
-        [Switch]$Quiet
+        [Switch]$Quiet,
+
+        [object]$PesterOption = (New-PesterOption)
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
@@ -255,7 +257,7 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     Write-Screen "`r`n`r`n`r`n`r`n"
@@ -323,6 +325,18 @@ about_pester
     }
 
     if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
+}
+
+function New-PesterOption
+{
+    [CmdletBinding()]
+    param (
+        [switch] $IncludeVSCodeMarker
+    )
+
+    return & $script:SafeCommands['New-Object'] psobject -Property @{
+        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+    }
 }
 
 function ResolveTestScripts
@@ -474,4 +488,4 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
-& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand
+& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption

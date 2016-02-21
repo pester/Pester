@@ -6,7 +6,8 @@ function New-PesterState
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
-        [Switch]$Quiet
+        [Switch]$Quiet,
+        [object]$PesterOption
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -18,7 +19,8 @@ function New-PesterState
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
-            [Switch]$Quiet
+            [Switch]$Quiet,
+            [object]$PesterOption
         )
 
         #public read-only
@@ -49,6 +51,8 @@ function New-PesterState
         $script:SkippedCount = 0
         $script:PendingCount = 0
         $script:InconclusiveCount = 0
+
+        $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
 
         $script:SafeCommands = @{}
 
@@ -210,7 +214,8 @@ function New-PesterState
         "FailedCount",
         "SkippedCount",
         "PendingCount",
-        "InconclusiveCount"
+        "InconclusiveCount",
+        "IncludeVSCodeMarker"
 
         $ExportedFunctions = "EnterContext",
         "LeaveContext",
@@ -221,7 +226,7 @@ function New-PesterState
         "AddTestResult"
 
         & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet |
+    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet, $PesterOption |
     & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
         elseif ($this.CurrentContext)  { 'Context' }
@@ -289,8 +294,19 @@ function Write-PesterResult
             }
             Failed {
                 "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
-                $TestResult.ErrorRecord |
-                    ConvertTo-FailureLines |
+
+                $failureLines = $TestResult.ErrorRecord | ConvertTo-FailureLines
+
+                if ($Pester.IncludeVSCodeMarker)
+                {
+                    $marker = $failureLines |
+                              & $script:SafeCommands['Select-Object'] -First 1 -ExpandProperty Trace |
+                              & $script:SafeCommands['Select-Object'] -First 1
+
+                    Write-Screen -OutputType Failed $($marker -replace '(?m)^',$error_margin)
+                }
+
+                $failureLines |
                     & $SafeCommands['ForEach-Object'] {$_.Message + $_.Trace} |
                     & $SafeCommands['ForEach-Object'] { Write-Screen -OutputType Failed $($_ -replace '(?m)^',$error_margin) }
             }
@@ -322,7 +338,7 @@ function ConvertTo-FailureLines
         $ErrorRecord
     )
     process {
-        $lines = @{
+        $lines = & $script:SafeCommands['New-Object'] psobject -Property @{
             Message = @()
             Trace = @()
         }
