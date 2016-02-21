@@ -1597,3 +1597,58 @@ Describe 'Single quote in command/module name' {
     }
 
 }
+
+if ($global:PSVersionTable.PSVersion.Major -ge 3) {
+    Describe 'Mocking cmdlet without positional parameters' {
+
+        Add-Type -TypeDefinition '
+            using System.Management.Automation;
+            [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithoutPositionalParameters")]
+            public class InvokeCmdletWithoutPositionalParameters : Cmdlet {
+                public InvokeCmdletWithoutPositionalParameters() { }
+                [Parameter]
+                public object Parameter {
+                    set { }
+                }
+            }
+            [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithValueFromRemainingArguments")]
+            public class InvokeCmdletWithValueFromRemainingArguments : Cmdlet {
+                private string parameter;
+                private string[] remainings;
+                public InvokeCmdletWithValueFromRemainingArguments() { }
+                [Parameter]
+                public string Parameter {
+                    set {
+                        parameter=value;
+                    }
+                }
+                [Parameter(ValueFromRemainingArguments=true)]
+                public string[] Remainings {
+                    set {
+                        remainings=value;
+                    }
+                }
+                protected override void EndProcessing() {
+                    WriteObject(string.Concat(parameter, "; ", string.Join(", ", remainings)));
+                }
+            }
+        ' -PassThru | Select-Object -First 1 -ExpandProperty Assembly | Import-Module
+
+        It 'Original cmdlet does not have positional parameters' {
+            { Invoke-CmdletWithoutPositionalParameters garbage } | Should Throw
+        }
+        Mock Invoke-CmdletWithoutPositionalParameters
+        It 'Mock of cmdlet should not make parameters to be positional' {
+            { Invoke-CmdletWithoutPositionalParameters garbage } | Should Throw
+        }
+
+        It 'Original cmdlet bind all to Remainings' {
+            Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should Be '; asd, fgh, jkl'
+        }
+        Mock Invoke-CmdletWithValueFromRemainingArguments { -join ($Parameter, '; ', ($Remainings -join ', ')) }
+        It 'Mock of cmdlet should bind all to Remainings' {
+            Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should Be '; asd, fgh, jkl'
+        }
+
+    }
+}
