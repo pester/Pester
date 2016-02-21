@@ -227,6 +227,13 @@ about_Mocking
             }
 
             $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
+            if ($global:PSVersionTable.PSVersion.Major -ge 3 -and $contextInfo.Command.CommandType -eq 'Cmdlet') {
+                if ($cmdletBinding -ne '[CmdletBinding()]') {
+                    $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length-2, ',')
+                }
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length-2, 'PositionalBinding=$false')
+            }
+
             $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet')
