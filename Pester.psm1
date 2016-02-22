@@ -242,7 +242,7 @@ about_pester
 
         [Switch]$Quiet,
 
-        [object]$PesterOption = (New-PesterOption)
+        [object]$PesterOption
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
