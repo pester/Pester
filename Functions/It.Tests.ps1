@@ -183,7 +183,7 @@ InModuleScope Pester {
 $thisScriptRegex = [regex]::Escape($MyInvocation.MyCommand.Path)
 
 Describe 'Get-PesterResult' {
-    $getPesterResult = InModuleScope Pester { ${function:Get-PesterResult} }
+    $getPesterResult = InModuleScope Pester { & $SafeCommands['Get-Content'] function::Get-PesterResult }
 
     Context 'failed tests in Tests file' {
         #the $script scriptblock below is used as a position marker to determine

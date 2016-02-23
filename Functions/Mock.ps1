@@ -287,7 +287,7 @@ about_Mocking
                 { $args[0] -replace "['‘’‚‛]", '$&$&' }
             }
 
-        $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
+        $newContent = & $SafeCommands['Get-Content'] function::MockPrototype
         $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
         $newContent = $newContent -replace '#MODULENAME#', (& $EscapeSingleQuotedStringContent $ModuleName)
 
@@ -344,16 +344,16 @@ about_Mocking
             {
                 param ( [string] $CommandName )
 
-                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName"))
+                if ($ExecutionContext.InvokeProvider.Item.Exists("Function::$CommandName"))
                 {
-                    $ExecutionContext.InvokeProvider.Item.Rename("Function:\$CommandName", "script:PesterIsMocking_$CommandName", $true)
+                    $ExecutionContext.InvokeProvider.Item.Rename("Function::$CommandName", "script:PesterIsMocking_$CommandName", $true)
                 }
             }
 
             $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName
         }
 
-        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
+        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.New('Function::',"script:$($args[0])", 'function', $args[1], $true) }
         $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mockScript
 
         if ($mock.OriginalCommand.ModuleName)
@@ -710,15 +710,15 @@ function Exit-MockScope {
             [string] $Alias
         )
 
-        $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
-        if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
+        $ExecutionContext.InvokeProvider.Item.Remove("Function::$CommandName", $false, $true, $true)
+        if ($ExecutionContext.InvokeProvider.Item.Exists("Function::PesterIsMocking_$CommandName", $true, $true))
         {
-            $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "$Scope$CommandName", $true)
+            $ExecutionContext.InvokeProvider.Item.Rename("Function::PesterIsMocking_$CommandName", "$Scope$CommandName", $true)
         }
 
-        if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias:$Alias", $true, $true))
+        if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias::$Alias", $true, $true))
         {
-            $ExecutionContext.InvokeProvider.Item.Remove("Alias:$Alias", $false, $true, $true)
+            $ExecutionContext.InvokeProvider.Item.Remove("Alias::$Alias", $false, $true, $true)
         }
     }
 
@@ -766,13 +766,13 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
 
         if ($null -ne $command -and $command.CommandType -eq 'Function')
         {
-            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)") -and
-                (& $getContentCommand "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
+            if ($ExecutionContext.InvokeProvider.Item.Exists("function::global:$($command.Name)") -and
+                (& $getContentCommand "function::global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'global:'
             }
-            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)") -and
-                    (& $getContentCommand "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
+            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function::script:$($command.Name)") -and
+                    (& $getContentCommand "function::script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'script:'
             }

@@ -8,7 +8,7 @@ try
 {
     Describe 'Mocking Global Functions - Part Two' {
         It 'Restored the global function properly' {
-            $globalFunctionExists = Test-Path Function:\global:$functionName
+            $globalFunctionExists = Test-Path Function::global:$functionName
             $globalFunctionExists | Should Be $true
             & $functionName | Should Be 'Original Function'
         }
@@ -16,8 +16,8 @@ try
 }
 finally
 {
-    if (Test-Path Function:\$functionName)
+    if (Test-Path Function::$functionName)
     {
-        Remove-Item Function:\$functionName -Force
+        Remove-Item Function::$functionName -Force
     }
 }

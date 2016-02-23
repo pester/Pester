@@ -14,7 +14,7 @@ Describe "Module scope separation" {
         # TODO : come up with a better way of verifying that only the desired commands from the Pester
         # module are visible to the SUT.
 
-        (Get-Item function:\Get-PesterResult -ErrorAction SilentlyContinue) | Should Be $null
+        (Get-Item function::Get-PesterResult -ErrorAction SilentlyContinue) | Should Be $null
     }
 }
 

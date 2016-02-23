@@ -4,9 +4,9 @@
 
 $functionName = '01c1a57716fe4005ac1a7bf216f38ad0'
 
-if (Test-Path Function:\$functionName)
+if (Test-Path Function::$functionName)
 {
-    Remove-Item Function:\$functionName -Force -ErrorAction Stop
+    Remove-Item Function::$functionName -Force -ErrorAction Stop
 }
 
 function global:01c1a57716fe4005ac1a7bf216f38ad0
