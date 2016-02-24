@@ -93,8 +93,6 @@ Whenever possible, it's better to run Invoke-Pester directly (either in an inter
 
 For Further Learning:
 -----------------------------------
-* [Getting started with Pester](http://www.powershellmagazine.com/2014/03/12/get-started-with-pester-powershell-unit-testing-framework/)
-* [Testing your scripts with Pester, Assertions and more](http://www.powershellmagazine.com/2014/03/27/testing-your-powershell-scripts-with-pester-assertions-and-more/)
 * [Pester Wiki](https://github.com/pester/Pester/wiki)
 * [Google Discussion Group](https://groups.google.com/forum/?fromgroups#!forum/pester)
 * `C:\PS> Import-Module ./pester.psm1; Get-Help about_pester`
