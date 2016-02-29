@@ -155,6 +155,10 @@ Makes Pending and Skipped tests to Failed tests. Useful for continuous integrati
 .PARAMETER Quiet
 Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
 
+.PARAMETER PesterOption
+Sets advanced options for the session.  Enter a PesterOption object, such as one that you create by using the New-PSPesterOption cmdlet, or a hash table in which the keys are session option names and the values are session option values.
+For more information on the options available, see the help for New-PesterOption.
+
 .Example
 Invoke-Pester
 
@@ -203,6 +207,7 @@ Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage 
 .LINK
 Describe
 about_pester
+New-PesterOption
 
 #>
     [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
@@ -329,6 +334,21 @@ about_pester
 
 function New-PesterOption
 {
+<#
+.SYNOPSIS
+   Creates an object that contains advanced options for Invoke-Pester
+.PARAMETER IncludeVSCodeMarker
+   When this switch is set, an extra line of output will be written to the console for test failures, making it easier
+   for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
+.INPUTS
+   None
+   You cannot pipe input to this command.
+.OUTPUTS
+   System.Management.Automation.PSObject
+.LINK
+   Invoke-Pester
+#>
+
     [CmdletBinding()]
     param (
         [switch] $IncludeVSCodeMarker

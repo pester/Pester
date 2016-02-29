@@ -11,7 +11,22 @@ function New-PesterState
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
-    if ($null -eq $PesterOption) { $PesterOption = New-PesterOption }
+
+    if ($null -eq $PesterOption)
+    {
+        $PesterOption = New-PesterOption
+    }
+    elseif ($PesterOption -is [System.Collections.IDictionary])
+    {
+        try
+        {
+            $PesterOption = New-PesterOption @PesterOption
+        }
+        catch
+        {
+            throw
+        }
+    }
 
     & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ScriptBlock {
         param (
