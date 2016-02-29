@@ -155,6 +155,10 @@ Makes Pending and Skipped tests to Failed tests. Useful for continuous integrati
 .PARAMETER Quiet
 Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
 
+.PARAMETER PesterOption
+Sets advanced options for the session.  Enter a PesterOption object, such as one that you create by using the New-PSPesterOption cmdlet, or a hash table in which the keys are session option names and the values are session option values.
+For more information on the options available, see the help for New-PesterOption.
+
 .Example
 Invoke-Pester
 
@@ -203,6 +207,7 @@ Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage 
 .LINK
 Describe
 about_pester
+New-PesterOption
 
 #>
     [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
@@ -240,7 +245,9 @@ about_pester
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
         [string] $OutputFormat,
 
-        [Switch]$Quiet
+        [Switch]$Quiet,
+
+        [object]$PesterOption
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
@@ -255,7 +262,7 @@ about_pester
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     Write-Screen "`r`n`r`n`r`n`r`n"
@@ -323,6 +330,33 @@ about_pester
     }
 
     if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
+}
+
+function New-PesterOption
+{
+<#
+.SYNOPSIS
+   Creates an object that contains advanced options for Invoke-Pester
+.PARAMETER IncludeVSCodeMarker
+   When this switch is set, an extra line of output will be written to the console for test failures, making it easier
+   for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
+.INPUTS
+   None
+   You cannot pipe input to this command.
+.OUTPUTS
+   System.Management.Automation.PSObject
+.LINK
+   Invoke-Pester
+#>
+
+    [CmdletBinding()]
+    param (
+        [switch] $IncludeVSCodeMarker
+    )
+
+    return & $script:SafeCommands['New-Object'] psobject -Property @{
+        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+    }
 }
 
 function ResolveTestScripts
@@ -474,4 +508,4 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
-& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand
+& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
