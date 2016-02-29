@@ -1,3 +1,15 @@
+## Unreleased
+  - Bug fix for PSv2 when no matching scripts are found by Invoke-Pester.  [GH-441]
+  - Added "Should BeLike" assertion.  [GH-456]
+  - Discarded unwanted pipeline output from BeforeEach / AfterEach / BeforeAll / AfterAll.  [GH-468]
+  - Allowed closures to be used as mocks.  [GH-465]
+  - Fixed invalid NUnit XML output if test script had a syntax error. [GH-467]
+  - Fix for mocking advanced functions that define a parameter named 'Args'.  [GH-471]
+  - Fixed bug when trying to mock a command with a weird name containing a single quotation mark.  [GH-474]
+  - Fixed bug for mocking Cmdlets that do not contain any positional parameters.  [GH-477]
+  - Fixed bug when calling a mocked command from inside the mock.  [GH-478]
+  - Added PesterOption parameter, and a switch to tweak console output for better VSCode extension functionality.  [GH-479]
+
 ## 3.3.14 (December 16, 2015)
   - Fixed Coverage analysis output, which broke in 3.3.12.  [GH-440]
 
