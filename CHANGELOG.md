@@ -1,4 +1,4 @@
-## Unreleased
+## 3.4.0 (February 29, 2016)
   - Bug fix for PSv2 when no matching scripts are found by Invoke-Pester.  [GH-441]
   - Added "Should BeLike" assertion.  [GH-456]
   - Discarded unwanted pipeline output from BeforeEach / AfterEach / BeforeAll / AfterAll.  [GH-468]

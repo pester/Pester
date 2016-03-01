@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.3.14'
+ModuleVersion = '3.4.0'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -16,7 +16,7 @@ Author = 'Pester Team'
 CompanyName = 'Pester'
 
 # Copyright statement for this module
-Copyright = 'Copyright (c) 2015 by Pester Team, licensed under Apache 2.0 License.'
+Copyright = 'Copyright (c) 2016 by Pester Team, licensed under Apache 2.0 License.'
 
 # Description of the functionality provided by this module
 Description = 'Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of powershell code being tested. Pester tests can execute any command or script that is accesible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.'
