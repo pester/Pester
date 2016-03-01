@@ -55,7 +55,7 @@ InModuleScope Pester {
     }
 
     Describe 'PesterThrowFailureMessage' {
-        $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+        $testScriptPath = Join-Path $TestDrive test.ps1
 
         It 'returns false if the actual message is not the same as the expected message' {
             $unexpectedErrorMessage = 'unexpected'
@@ -75,7 +75,7 @@ InModuleScope Pester {
     }
 
     Describe 'NotPesterThrowFailureMessage' {
-        $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+        $testScriptPath = Join-Path $TestDrive test.ps1
 
         It 'returns false if the actual message is not the same as the expected message' {
             $unexpectedErrorMessage = 'unexpected'
