@@ -156,7 +156,7 @@ Makes Pending and Skipped tests to Failed tests. Useful for continuous integrati
 Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
 
 .PARAMETER PesterOption
-Sets advanced options for the session.  Enter a PesterOption object, such as one that you create by using the New-PSPesterOption cmdlet, or a hash table in which the keys are session option names and the values are session option values.
+Sets advanced options for the test execution. Enter a PesterOption object, such as one that you create by using the New-PesterOption cmdlet, or a hash table in which the keys are option names and the values are option values.
 For more information on the options available, see the help for New-PesterOption.
 
 .Example
