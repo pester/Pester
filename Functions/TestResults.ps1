@@ -409,7 +409,22 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     }
 }
 function Get-RunTimeEnvironment() {
-    $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
+    # based on what we found during startup, use the appropriate cmdlet
+    if ( $SafeCommands['Get-CimInstance'] -ne $null )
+    {
+        $osSystemInformation = (& $SafeCommands['Get-CimInstance'] Win32_OperatingSystem)
+    }
+    elseif ( $SafeCommands['Get-WmiObject'] -ne $null )
+    {
+        $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
+    }
+    else
+    {
+        $osSystemInformation = @{
+            Name = "Unknown"
+            Version = "0.0.0.0"
+            }
+    }
     @{
         'nunit-version' = '2.5.8.0'
         'os-version' = $osSystemInformation.Version
