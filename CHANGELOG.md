@@ -1,3 +1,6 @@
+## Unreleased
+  - Updated code to use Get-CimInstance if possible, then Get-WmiObject, for Nano compatibility.  [GH-484]
+
 ## 3.4.0 (February 29, 2016)
   - Bug fix for PSv2 when no matching scripts are found by Invoke-Pester.  [GH-441]
   - Added "Should BeLike" assertion.  [GH-456]
