@@ -28,6 +28,15 @@ function BuildIfChanged {
   if($thisVersion -ne $nextVersion) {Build $nextVersion}
   return $nextVersion
 }
+
+# Imagine that the following functions have heavy side-effect
+function Get-Version {
+  throw New-Object NotImplementedException
+}
+
+function Get-NextVersion {
+  throw New-Object NotImplementedException
+}
 ```
 
 BuildChanges.Tests.ps1
