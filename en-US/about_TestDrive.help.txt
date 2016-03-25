@@ -2,7 +2,7 @@ TOPIC
 	TestDrive
 
 SYNOPSIS
-	A PSDrive for file activity limited to the scope of a singe Describe or 
+	A PSDrive for file activity limited to the scope of a single Describe or 
 	Context block.
 
 DESCRIPTION	
