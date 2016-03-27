@@ -3,11 +3,11 @@ function PesterBeLikeExactly($value, $expectedMatch) {
     return ($value -clike $expectedMatch)
 }
 
-function PesterBeLikeFailureMessage($value, $expectedMatch) {
+function PesterBeLikeExactlyFailureMessage($value, $expectedMatch) {
     return "Expected: {$value} to be exactly like the wildcard {$expectedMatch}"
 }
 
-function NotPesterBeLikeFailureMessage($value, $expectedMatch) {
+function NotPesterBeLikeExactlyFailureMessage($value, $expectedMatch) {
     return "Expected: ${value} to not be exactly like the wildcard ${expectedMatch}"
 }
 
