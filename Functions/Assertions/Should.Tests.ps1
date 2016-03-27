@@ -158,5 +158,23 @@ InModuleScope Pester {
             }
         }
 
+        It 'All failure message functions are present' {
+            $assertionFunctions = Get-Command -CommandType Function -Module Pester |
+                                  Select-Object -ExpandProperty Name |
+                                  Where-Object { $_ -like 'Pester*' -and $_ -notlike '*FailureMessage' }
+
+            $missingFunctions = @(
+                foreach ($assertionFunction in $assertionFunctions)
+                {
+                    $positiveFailureMessage = "${assertionFunction}FailureMessage"
+                    $negativeFailureMessage = "Not${assertionFunction}FailureMessage"
+
+                    if (-not (Test-Path function:$positiveFailureMessage)) { $positiveFailureMessage }
+                    if (-not (Test-Path function:$negativeFailureMessage)) { $negativeFailureMessage }
+                }
+            )
+
+            [string]$missingFunctions | Should BeNullOrEmpty
+        }
     }
 }
