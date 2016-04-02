@@ -1,25 +1,24 @@
 TOPIC
-	Should
+    about_Should
 
-SYNOPSIS
-	Provides assertion convenience methods for comparing objects and throwing 
-	test failures when test expectations fail.
+SHORT DESCRIPTION
+    Provides assertion convenience methods for comparing objects and throwing 
+    test failures when test expectations fail.
 
-DESCRIPTION
-	Should is an Extension of System.Object and can be used as a native type 
-	inside Describe blocks. The various Should member methods can be invoked 
-	directly from an object being compared. It is typically used in individual 
-	It blocks to verify the results of an expectation. The Should method is 
-	typically called from the "actual" object being compared and takes the 
-	"expected" object as a parameter. Should includes several members that 
-	perform various comparisons of objects and will throw a PesterFailure when 
-	the objects do not evaluate to be comparable.
+LONG DESCRIPTION
+    Should is an Extension of System.Object and can be used as a native type 
+    inside Describe blocks. The various Should member methods can be invoked 
+    directly from an object being compared. It is typically used in individual 
+    It blocks to verify the results of an expectation. The Should method is 
+    typically called from the "actual" object being compared and takes the 
+    expected" object as a parameter. Should includes several members that 
+    perform various comparisons of objects and will throw a PesterFailure when 
+    the objects do not evaluate to be comparable.
 
-SHOULD MEMBERS
-
-	Be
-		Compares one object with another for equality and throws if the two 
-		objects are not the same.
+  SHOULD MEMBERS
+    Be
+        Compares one object with another for equality and throws if the two 
+        objects are not the same.
 
         $actual="Actual value"
         $actual | Should Be "actual value" # Test will pass
@@ -31,22 +30,6 @@ SHOULD MEMBERS
         $actual="Actual value"
         $actual | Should BeExactly "Actual value" # Test will pass
         $actual | Should BeExactly "actual value" # Test will fail
-        
-    BeLike
-        Users a wildcard to compare two objects. The comparision is not case sensitive.
-        
-        "I am a value" | Should BeLike "*value"  # Test will pass
-        "I am a value" | Should BeLike "value"  # Test will fail
-        
-        Tip: use [Management.Automation.WildcardPattern]::Escape() to escape wildcard-characters.
-        
-    BeLikeExactly
-        Users a wildcard to compare two objects. The comparision is case sensitive.
-        
-        "I am a value" | Should BeLike "*value"  # Test will pass
-        "I am a value" | Should BeLike "*VALUE"  # Test will fail
-        
-        Tip: use [Management.Automation.WildcardPattern]::Escape() to escape wildcard-characters.
         
     BeGreaterThan
         Asserts that a number is greater than an expected value. Uses PowerShell's -gt operator to compare the two values.
@@ -107,7 +90,7 @@ SHOULD MEMBERS
         "I am a value" | Should MatchExactly "I Am" # Test will fail
 
     Throw
-        Checks if an exception was thrown in the input ScriptBlock.
+        Checks if an exception was thrown. Enclose input in a script block.
 
         { foo } | Should Throw # Test will pass
         { $foo = 1 } | Should Throw # Test will fail
@@ -126,7 +109,7 @@ SHOULD MEMBERS
         @()   | Should BeNullOrEmpty # Test will pass
         ""    | Should BeNullOrEmpty # Test will pass
 
-USING SHOULD IN A TEST
+  USING SHOULD IN A TEST
 
 	function Add-Numbers($a, $b) {
 	    return $a + $b
@@ -143,6 +126,6 @@ USING SHOULD IN A TEST
 	This test will fail since 3 will not be equal to the sum of 2 and 3.
 
 SEE ALSO
-	Describe
-    Context
-	It
+  Describe
+  Context
+  It
