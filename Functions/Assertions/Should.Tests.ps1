@@ -141,8 +141,8 @@ InModuleScope Pester {
             $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
                 "PesterMatch", "PesterContain")
             $assertionFunctions | % {
-                "function:$($_)FailureMessage" | Should Exist
-                "function:Not$($_)FailureMessage" | Should Exist
+                "function::$($_)FailureMessage" | Should Exist
+                "function::Not$($_)FailureMessage" | Should Exist
             }
         }
 

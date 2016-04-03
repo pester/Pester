@@ -81,7 +81,7 @@ Describe "When calling Mock on existing function" {
     $result = FunctionUnderTest "boundArg"
 
     It "Should rename function under test" {
-        $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
+        $renamed = (Test-Path function::PesterIsMocking_FunctionUnderTest)
         $renamed | Should Be $true
     }
 
@@ -282,7 +282,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
 Describe "When calling Mock on existing cmdlet with Common params" {
     Mock CommonParamFunction
 
-    $result=[string](Get-Content function:\CommonParamFunction)
+    $result=[string](Get-Content function::CommonParamFunction)
 
     It "Should strip verbose" {
         $result.contains("`${Verbose}") | Should Be $false
@@ -1494,7 +1494,7 @@ Describe 'After a mock goes out of scope' {
 
 Describe 'Assert-MockCalled with Aliases' {
     AfterEach {
-        if (Test-Path alias:PesterTF) { Remove-Item Alias:PesterTF }
+        if (Test-Path alias::PesterTF) { Remove-Item Alias::PesterTF }
     }
 
     It 'Allows calls to Assert-MockCalled to use both aliases and the original command name' {

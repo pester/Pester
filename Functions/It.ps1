@@ -114,7 +114,7 @@ about_should
         [Switch] $Skip
     )
 
-    ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
+    ItImpl -Pester $pester -OutputScriptBlock (& $SafeCommands['Get-Content'] function::Write-PesterResult) @PSBoundParameters
 }
 
 function ItImpl
@@ -390,13 +390,13 @@ function Get-ParameterDictionary
 
     try
     {
-        & $SafeCommands['Set-Content'] function:\$guid $ScriptBlock
+        & $SafeCommands['Set-Content'] function::$guid $ScriptBlock
         $metadata = [System.Management.Automation.CommandMetadata](& $SafeCommands['Get-Command'] -Name $guid -CommandType Function)
 
         return $metadata.Parameters
     }
     finally
     {
-        if (& $SafeCommands['Test-Path'] function:\$guid) { & $SafeCommands['Remove-Item'] function:\$guid }
+        if (& $SafeCommands['Test-Path'] function::$guid) { & $SafeCommands['Remove-Item'] function::$guid }
     }
 }

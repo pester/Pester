@@ -15,10 +15,10 @@ InModuleScope Pester {
             "TestDrive:\``[test``].txt"  | Should Exist
         }
 
-        It 'returns correct result for function drive' {
+        It 'returns correct result for function provider' {
             function f1 {}
 
-            'function:f1' | Should Exist
+            'function::f1' | Should Exist
         }
 
         It 'returns correct result for env drive' {
