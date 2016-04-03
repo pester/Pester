@@ -1671,3 +1671,22 @@ Describe 'Nested Mock calls' {
         $result[0] | Should Be '2012-06-13T00:00:00.0000000'
     }
 }
+
+Describe 'Globbing characters in command name' {
+
+    function f[f]f { 'orig1' }
+    function f?f { 'orig2' }
+    function f*f { 'orig3' }
+    function fff { 'orig4' }
+
+    It 'Command with globbing characters in name should be mockable' {
+        Mock f[f]f { 'mock1' }
+        Mock f?f { 'mock2' }
+        Mock f*f { 'mock3' }
+        f[f]f | Should Be mock1
+        f?f | Should Be mock2
+        f*f | Should Be mock3
+        fff | Should Be orig4
+    }
+
+}
