@@ -26,11 +26,5 @@ InModuleScope Pester {
 
             'env:test' | Should Exist
         }
-
-        It 'returns correct result for env drive' {
-            $env:test = 'somevalue'
-
-            'env:test' | Should Exist
-        }
     }
 }
