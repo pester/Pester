@@ -344,9 +344,9 @@ about_Mocking
             {
                 param ( [string] $CommandName )
 
-                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName"))
+                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName", $true, $true))
                 {
-                    $ExecutionContext.InvokeProvider.Item.Rename("Function:\$CommandName", "script:PesterIsMocking_$CommandName", $true)
+                    $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\$CommandName"), "script:PesterIsMocking_$CommandName", $true)
                 }
             }
 
@@ -713,7 +713,7 @@ function Exit-MockScope {
         $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
         if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
         {
-            $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "$Scope$CommandName", $true)
+            $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\PesterIsMocking_$CommandName"), "$Scope$CommandName", $true)
         }
 
         if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias:$Alias", $true, $true))
@@ -766,13 +766,13 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
 
         if ($null -ne $command -and $command.CommandType -eq 'Function')
         {
-            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)") -and
-                (& $getContentCommand "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
+            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)", $true, $true) -and
+                (& $getContentCommand -LiteralPath "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'global:'
             }
-            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)") -and
-                    (& $getContentCommand "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
+            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)", $true, $true) -and
+                    (& $getContentCommand -LiteralPath "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'script:'
             }
