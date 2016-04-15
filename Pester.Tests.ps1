@@ -44,9 +44,11 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
     }
 
-    if (Get-Command git.exe -ErrorAction SilentlyContinue) {
+    if (Get-Command git.exe -ErrorAction SilentlyContinue)
+    {
+        $skipVersionTest = -not [bool]((git remote -v 2>&1) -match "github.com/Pester/")
         $script:tagVersion = $null
-        It "is tagged with a valid version" {
+        It "is tagged with a valid version" -skip:$skipVersionTest {
             $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
 
             if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
@@ -58,7 +60,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
             $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
         }
 
-        It "all versions are the same" {
+        It "all versions are the same" -skip:$skipVersionTest {
             $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
             $script:manifest.Version -as [Version] | Should be ( $script:tagVersion -as [Version] )
         }
