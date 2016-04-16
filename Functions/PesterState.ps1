@@ -397,6 +397,8 @@ function ConvertTo-FailureLines
         ## convert the stack trace
         $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
 
+        $count = 0
+
         # omit the lines internal to Pester
         foreach ( $line in $traceLines )
         {
