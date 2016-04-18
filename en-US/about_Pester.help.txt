@@ -2,45 +2,53 @@
     about_Pester
 
 SHORT DESCRIPTION
-    Pester is a test framework for Windows PowerShell. Use the Pester language and its commands
-    to write and run tests that verify that your scripts and modules work as designed.
+    Pester is a test framework for Windows PowerShell. Use the Pester language and its
+    commands to write and run tests that verify that your scripts and modules work as
+    designed.
 
 LONG DESCRIPTION
     Pester introduces a professional test framework for Windows PowerShell commands. You
-    can use Pester to test commands of any supported type, including scripts, cmdlets, functions, CIM
-    commands, workflows, and DSC resources, and test these commands in modules of all types.
+    can use Pester to test commands of any supported type, including scripts, cmdlets, 
+    functions, CIM commands, workflows, and DSC resources, and test these commands in 
+    modules of all types.
 
-    Once the tests are written are verified to work correctly, you can run them automatically or
-    on demand at any time to verify that the output didn't change and that any code changes did not 
-    introduce errors. You can also add your tests to the build scripts of a continuous integration 
-    system, and add new tests at any time.
+    Once the tests are written are verified to work correctly, you can run them automatically
+    or on demand at any time to verify that the output didn't change and that any code 
+    changes did not introduce errors. You can also add your tests to the build scripts of a 
+    continuous integration system, and add new tests at any time.
 
-    Each Pester test compares actual to expected output using a collection of comparison operators
-    that mirrors the familiar operators in Windows PowerShell. In this way, Pester supports
-    "dynamic testing", that is, it tests the code while it's running, instead of just looking at
-    code syntax ("static testing"). 
+    Each Pester test compares actual to expected output using a collection of comparison 
+    operators that mirrors the familiar operators in Windows PowerShell. In this way, Pester
+    supports "dynamic testing", that is, it tests the code while it's running, instead of 
+    just looking at code syntax ("static testing"). 
 
-    Pester is designed to support "test-driven development" (TDD), in which you write and run tests 
-    before writing your code, thereby using the test as a code specification. It also supports
-    "behavior-driven development" (BDD), in which the tests verify the behavior and output of the code,
-    and the user experience, independent of its implementation. This lets you change the implementation
-    and use the test to verify that the behavior is unchanged.
 
-    You can use Pester to write "unit tests" that test individual functions in isolation and "integration
-    tests" that verify that functions can be used together to generate expected results. Pester manages
-    a temporary drive (PSDrive named TestDrive:) that you can use to simulate a file system. 
+ WHAT CAN PESTER TEST?
+    Pester is designed to support "test-driven development" (TDD), in which you write and run
+    tests before writing your code, thereby using the test as a code specification. It also 
+    supports "behavior-driven development" (BDD), in which the tests verify the behavior and 
+    output of the code, and the user experience, independent of its implementation. This lets 
+    you change the implementation and use the test to verify that the behavior is unchanged.
 
-    Pester also has "mocking" commands that replace the actual output of commands with output that you 
-    specify. Mocking lets you test your commands with input that exercised all of its features without 
-    creating and maintaining fake entries in a file, directory, or database, or commenting-out and inserting 
-    code just for testing. For more information, see about_Mocking.
+     You can use Pester to write "unit tests" that test individual functions in isolation and
+    "integration tests" that verify that functions can be used together to generate expected
+    results. Pester manages a temporary drive (PSDrive named TestDrive:) that you can use to
+    simulate a file system. 
+
+    Pester also has "mocking" commands that replace the actual output of commands with output
+    that you specify. Mocking lets you test your commands with input that exercised all of
+    its features without 
+    creating and maintaining fake entries in a file, directory, or database, or commenting-
+    out and inserting code just for testing. For more information, see about_Mocking.
 
 
  THE PESTER LANGUAGE
-    To make it easier to write tests, Pester uses a language especially designed for testing. This 
-    "domain-specific language" (DSL) hides the standard verb-noun syntax of PowerShell commands. 
-    To make it more fluent, the command parameters are positional, so you don't typically use parameter 
-    names.	
+    To make it easier to write tests, Pester uses a language especially designed for testing.
+    This "domain-specific language" (DSL) hides the standard verb-noun syntax of PowerShell
+    commands. 
+
+    To make it more fluent, the command parameters are positional, so you don't typically use
+    parameter names.	
 
     For example, the "gets all widgets" test uses the Pester language, including its
     "It", "Should", and "Be" commands. The 
@@ -50,8 +58,8 @@ LONG DESCRIPTION
             }
 
 
-    The "gets all widgets" test is enclosed in a Describe block, which typically contains multiple
-    related tests.
+    The "gets all widgets" test is enclosed in a Describe block, which typically contains
+    multiple related tests.
 
 	Describe "Get-Widget" {
             It "gets all widgets" {
@@ -59,7 +67,8 @@ LONG DESCRIPTION
             }
         }
 
-    To learn the Pester language, start by reading the following About and cmdlet help topics:
+    To learn the Pester language, start by reading the following About and cmdlet help
+    topics:
 
     -- Describe:     Creates a required test container.
     -- Context:      Creates an optional scoped test sub-container.
@@ -67,23 +76,19 @@ LONG DESCRIPTION
     -- about_Should  Compares actual to expected values. This topic also lists all valid 
                      values of Be, which specify the comparison operator used in the test.
 
-   TIP:  Because the script blocks that enclose tests are the values of unnamed positional parameters, 
-         the opening brace of each script block must appear on the same line as the command. 
-
-
 
 
  CREATE TEST FILES
-    Pester test files are Windows PowerShell scripts with a .Tests.ps1 filename that enables Pester
-    to identify and distinguish tests from other scripts. 
+    Pester test files are Windows PowerShell scripts with a .Tests.ps1 filename that enables
+    Pester to identify and distinguish tests from other scripts. 
 
     Typically, the test file and file it tests have the same base file name, such as:
 
         New-Log.ps1
         New-Log.Tests.ps1
 
-    You can create test files manually or with testing tools, or use the New-Fixture cmdlet in the 
-    Pester module to create a script and a matching test file. For example:
+    You can create test files manually or with testing tools, or use the New-Fixture cmdlet
+    in the Pester module to create a script and a matching test file. For example:
         
 	New-Fixture -Path C:\ps-test -Name New-Log
 
@@ -133,33 +138,35 @@ LONG DESCRIPTION
     
 
  RUNNING PESTER TESTS
-    Pester tests are Windows PowerShell scripts (.ps1 files), so you can run them at the command line,
-    or in any editor.
+    Pester tests are Windows PowerShell scripts (.ps1 files), so you can run them at the 
+    command line, or in any editor.
 
-    Pester also has an Invoke-Pester cmdlet with useful parameters. For example, by default, 
-    Invoke-Pester runs all the tests in a directory and all of its subdirectories, but you can 
-    run selected tests by specifying a script name or name pattern, a test name, or a test tag. 
+    Pester also has an Invoke-Pester cmdlet with useful parameters. For example, by default,
+    Invoke-Pester runs all the tests in a directory and all of its subdirectories, but you
+    can run selected tests by specifying a script name or name pattern, a test name, or a 
+    test tag. 
+
     Invoke-Pester parameters also let you save the test output in NUnitXml or LegacyNUnitXml 
     formats that are commonly used by reporting tools.
 
-    For example, the following command runs all tests in the current directory and all subdirectories 
-    recursively. It writes output to the host, but does not generate any objects. 
+    For example, the following command runs all tests in the current directory and all
+    subdirectories recursively. It writes output to the host, but does not generate any 
+    objects. 
 
 	Invoke-Pester 
     
-    In contrast, this command runs only the tests in the New-Log.Tests.ps1 file that have the 'Advanced'
-    tag. It writes the test results as custom objects and saves them in NUnitXml format in the NewLogTests.xml
-    file.
+    In contrast, this command runs only the tests in the New-Log.Tests.ps1 file that have the
+    'EventVwr' tag. It writes the test results as custom objects and saves them in NUnitXml 
+    format in the NewLogTests.xml file.
 
-	Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 -Tag Advanced -OutputFile .\NewLogTests.xml `
-            -OutputFormat NUnitXml -CodeCoverage
+	Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 ` 
+           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml -CodeCoverage
  
     For more information about Invoke-Pester, type:  
         Get-Help Invoke-Pester
 
 
  PESTER TEST OUTPUT
-
     When you run a test, Pester use a variation of Write-Host to write color-coded text to
     the console. You'll quickly learn to recognize the purple test names and green (passing)
     and red (failing) test results with the elapsed time of the test.
@@ -176,31 +183,31 @@ LONG DESCRIPTION
     However, because Pester uses Write-Host, it does not write to the output stream (stdout), 
     so there are no output objects to save in a variable or redirect to a file. 
 
-    To direct Pester to create custom objects, use its PassThru parameter. The result is a single
-    PSCustomObject with a TestResult property that contains a collection of nested TestResult custom 
-    objects.
+    To direct Pester to create custom objects, use its PassThru parameter. The result is a
+    single PSCustomObject with a TestResult property that contains a collection of nested
+    TestResult custom objects.
 
-    To save the custom objects in a file, use the OutputFile and OutputFormat parameters, which
-    save the output in NUnitXml and LegacyNUnitXml formats that are easy to parse and commonly
-    used by reporting tools.
+    To save the custom objects in a file, use the OutputFile and OutputFormat parameters,
+    which save the output in NUnitXml and LegacyNUnitXml formats that are easy to parse and
+    commonly used by reporting tools.
 
 
   REAL-WORLD EXAMPLES
-    
-    For help in writing Pester tests, you can examine the extensive collection of tests that Pester uses 
-    to verify its Windows PowerShell code.
+    For help in writing Pester tests, you can examine the extensive collection of tests that 
+    Pester uses to verify its Windows PowerShell code.
 
     To find the Pester tests in the Pester module directory, type:
 
-        Get-ChildItem <Pester_module_path>\*Tests.ps1 -Recurse
+        dir <Pester_module_path>\*Tests.ps1 -Recurse
 
        -or-
 
-	Get-ChildItem (Get-Module Pester -ListAvailable).ModuleBase -Include *Tests.ps1 -Recurse
+	dir (Get-Module Pester -ListAvailable).ModuleBase -Include *Tests.ps1 -Recurse
 
     
-    Also, Chocolatey, a popular PowerShell based Windows package management system, uses Pester 
-    tests to validate its functionality. If you have Chocolately, be sure to examine its tests.
+    Also, Chocolatey, a popular PowerShell based Windows package management system, uses
+    Pester tests to validate its functionality. If you have Chocolately, you can examine
+    its tests.
 
 
 SEE ALSO
