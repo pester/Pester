@@ -157,7 +157,6 @@ LONG DESCRIPTION
     format in the NewLogTests.xml file.
 
 	Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 ` 
-<<<<<<< HEAD
            -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml -CodeCoverage
 
 
@@ -166,9 +165,6 @@ LONG DESCRIPTION
     Invoke-Pester to run only the New-Log.Tests.ps1 test.           
 
         PS C:\Scripts> Invoke-Pester -Script .\New-Log.Tests.ps1
-=======
-           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml
->>>>>>> upstream/master
  
     For more information about Invoke-Pester, type:  
         Get-Help Invoke-Pester
