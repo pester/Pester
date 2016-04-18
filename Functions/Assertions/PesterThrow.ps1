@@ -9,8 +9,12 @@ function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
     $Script:ActualExceptionWasThrown = $false
 
     try {
-        # Redirect to $null so script output does not enter the pipeline
-        & $script > $null
+        # Assign to $null so script output does not enter the pipeline
+        # Script block is dot-sourced so callers may do things like this:
+        # { $result = Do-Something } | Should Not Throw
+        # $result | Should Be 'Successful output test'
+
+        $null = . $script
     } catch {
         $Script:ActualExceptionWasThrown = $true
         $Script:ActualExceptionMessage = $_.Exception.Message

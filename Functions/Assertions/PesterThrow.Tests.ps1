@@ -95,3 +95,16 @@ InModuleScope Pester {
         }
     }
 }
+
+Describe 'Should Throw - Scope test' {
+    # This test can't be placed into an "InModuleScope Pester" block, because the whole internal Pester
+    # call stack becomes part of the chain between the test script and the script block that's passed
+    # to "Should Not Throw".  This isn't a problem for any other InModuleScope situation; just when
+    # Pester is testing itself.
+
+    It 'Dot-sources the script block' {
+        $result = 'Set in It scope'
+        { $result = 'Set in Should scope' } | Should Not Throw
+        $result | Should Be 'Set in Should scope'
+    }
+}
