@@ -160,7 +160,7 @@ LONG DESCRIPTION
     format in the NewLogTests.xml file.
 
 	Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 ` 
-           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml -CodeCoverage
+           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml
  
     For more information about Invoke-Pester, type:  
         Get-Help Invoke-Pester
