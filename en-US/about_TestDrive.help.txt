@@ -1,5 +1,5 @@
-TOPIC
-    TestDrive
+﻿TOPIC
+    about_TestDrive
 
 SHORT DESCRIPTION
     A PSDrive for file activity limited to the scope of a singe Describe or 

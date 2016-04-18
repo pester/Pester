@@ -1,5 +1,5 @@
-TOPIC
-    Pester
+﻿TOPIC
+    about_Pester
 
 SHORT DESCRIPTION
     Pester is a behavior-driven development (BDD) test framework for Windows PowerShell.
