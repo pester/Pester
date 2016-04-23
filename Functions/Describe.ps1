@@ -15,7 +15,7 @@ typically holds the arrange and act sections. The Asserts will also lie in this 
 typically nested each in its own It block. Assertions are typically performed by the Should
 command within the It blocks.
 
-.PARAMETER Tags
+.PARAMETER Tag
 Optional parameter containing an array of strings.  When calling Invoke-Pester, it is possible to
 specify a -Tag parameter which will only execute Describe blocks containing the same Tag.
 
@@ -59,7 +59,10 @@ about_TestDrive
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string] $Name,
-        $Tags=@(),
+
+        [Alias('Tags')]
+        $Tag=@(),
+
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
@@ -79,8 +82,8 @@ about_TestDrive
     }
 
     #TODO add test to test tags functionality
-    if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-    if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+    if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+    if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
 
     $Pester.EnterDescribe($Name)
 
