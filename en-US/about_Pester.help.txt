@@ -33,13 +33,13 @@ LONG DESCRIPTION
      You can use Pester to write "unit tests" that test individual functions in isolation and
     "integration tests" that verify that functions can be used together to generate expected
     results. Pester manages a temporary drive (PSDrive named TestDrive:) that you can use to
-    simulate a file system. 
+    simulate a file system. For more information, see about_TestDrive.
 
     Pester also has "mocking" commands that replace the actual output of commands with output
     that you specify. Mocking lets you test your commands with input that exercised all of
-    its features without 
-    creating and maintaining fake entries in a file, directory, or database, or commenting-
-    out and inserting code just for testing. For more information, see about_Mocking.
+    its features without creating and maintaining fake entries in a file, directory, or
+    database, or commenting-out and inserting code just for testing. For more information,
+    see about_Mocking.
 
 
  THE PESTER LANGUAGE
@@ -79,20 +79,27 @@ LONG DESCRIPTION
 
 
  CREATE TEST FILES
-    Pester test files are Windows PowerShell scripts with a .Tests.ps1 filename that enables
-    Pester to identify and distinguish tests from other scripts. 
+    To start using Pester, create a script and a test file that tests the script. If you
+    already have a script, you can create a test file for it.
+
+    Pester test files are Windows PowerShell scripts with a .Tests.ps1 file name extension.   
+    The distinctive file name extension enables Pester to identify tests and distinguish them
+    from other scripts. 
 
     Typically, the test file and file it tests have the same base file name, such as:
 
         New-Log.ps1
         New-Log.Tests.ps1
+  
+    For a quick start, use the New-Fixture cmdlet in the Pester module. It creates a script
+    with an empty function and a matching test file with a valid test. 
 
-    You can create test files manually or with testing tools, or use the New-Fixture cmdlet
-    in the Pester module to create a script and a matching test file. For example:
+    For example, this command creates a New-Log.ps1 script and a New-Log.Tests.ps1 test
+    script in the C:\Scripts\LogScripts directory.
         
-	New-Fixture -Path C:\ps-test -Name New-Log
+	New-Fixture -Path C:\Scripts\LogScripts -Name New-Log
 
-	    Directory: C:\ps-test
+	    Directory: C:\Scripts\LogScripts
 
 
         Mode                LastWriteTime         Length Name
@@ -100,51 +107,41 @@ LONG DESCRIPTION
         -a----        4/18/2016   9:51 AM             30 New-Log.ps1
         -a----        4/18/2016   9:51 AM            262 New-Log.Tests.ps1
 
-    The New-Log.ps1 file contains an empty New-Log function.
-        
-        function New-Log { }
 
-    The New-Log.Tests.ps1 file contains an empty Pester test that is named
-    for the New-Log function.
+    The similar names do not automatically associate the test file and script file. The test
+    file must include code to import ("dot-source") the functions, aliases, and variables in
+    the script being tested into the scope of the test script.
+
+    For example:
+       . .\New-Log.ps1
+    -or-
+       . C:\Scripts\LogScripts\New-Log.ps1
+ 
     
-        Describe "New-Log" {
-            It "does something useful" {
-                $true | Should Be $false
-            }
-        }
-
-    The New-Log.Tests.ps1 file begins with statements that associate the test file with the
-    New-Log.ps1 file, and dot-source the New-Log.ps1 file into its scope so it can run the 
-    functions in the file during the test.
-
+    You'll often see this code at the beginning of a Pester test file and in Pester snippets.
+    
         $here = Split-Path -Parent $MyInvocation.MyCommand.Path
         $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
         . "$here\$sut"
 
-    TIP:  $here is the path of the .Tests.ps1 file at run time.
-          $sut (for "script under test") is the file name of the script that's being tested.
+    This code finds the current path of the test file at run time and saves it in 
+    the $here variable. Then, it finds the script based on the path in $here. This code
+    assumes that the script has the same base name and is located in the same directory as
+    the test file.
 
-    WARNING: 
-    These statements assume that the .Tests.ps1 file and the .ps1 file (script that you're
-    testing) are in the same directory. So, if you move them, be sure to replace these 
-    statements with code that dot-sources the script file into the test file scope.
+    You can use any code in the test file that finds the script, but be sure that the
+    test file has the required *.Tests.ps1 file name extension.
 
 
-    Although you can change the name of the .Tests.ps1 file and the script file by adjusting
-    the code that associates them, it's best to use standard names so that anyone who runs
-    the tests can easily identify the files.
-
-    Remeber that the .Tests.ps1 file name extension is required for Pester tests.   
-    
 
  RUNNING PESTER TESTS
     Pester tests are Windows PowerShell scripts (.ps1 files), so you can run them at the 
     command line, or in any editor.
 
-    Pester also has an Invoke-Pester cmdlet with useful parameters. For example, by default,
-    Invoke-Pester runs all the tests in a directory and all of its subdirectories, but you
-    can run selected tests by specifying a script name or name pattern, a test name, or a 
-    test tag. 
+    Pester also has an Invoke-Pester cmdlet with useful parameters. By default,
+    Invoke-Pester runs all the tests in a directory and all of its subdirectories
+    recursively, but you can run selected tests by specifying a script name or name pattern,
+    a test name, or a test tag. 
 
     Invoke-Pester parameters also let you save the test output in NUnitXml or LegacyNUnitXml 
     formats that are commonly used by reporting tools.
@@ -154,16 +151,24 @@ LONG DESCRIPTION
     objects. 
 
 	Invoke-Pester 
-    
+
     In contrast, this command runs only the tests in the New-Log.Tests.ps1 file that have the
     'EventVwr' tag. It writes the test results as custom objects and saves them in NUnitXml 
     format in the NewLogTests.xml file.
 
 	Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 ` 
-           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml
+           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml -CodeCoverage
+
+
+    To run the New-Log.Tests.ps1 file that New-Fixture created, change to its local directory
+    or a parent directory, and run Invoke-Pester. You can also use the Script parameter of
+    Invoke-Pester to run only the New-Log.Tests.ps1 test.           
+
+        PS C:\Scripts> Invoke-Pester -Script .\New-Log.Tests.ps1
  
     For more information about Invoke-Pester, type:  
         Get-Help Invoke-Pester
+
 
 
  PESTER TEST OUTPUT
@@ -177,8 +182,8 @@ LONG DESCRIPTION
 
     The output ends with a summary of the test results.
 
-         Tests completed in 7.47s
-         Passed: 40 Failed: 1 Skipped: 0 Pending: 0 Inconclusive: 0
+         Tests completed in 3.47s
+         Passed: 20 Failed: 1 Skipped: 0 Pending: 0 Inconclusive: 0
     
     However, because Pester uses Write-Host, it does not write to the output stream (stdout), 
     so there are no output objects to save in a variable or redirect to a file. 
@@ -187,13 +192,72 @@ LONG DESCRIPTION
     single PSCustomObject with a TestResult property that contains a collection of nested
     TestResult custom objects.
 
-    To save the custom objects in a file, use the OutputFile and OutputFormat parameters,
-    which save the output in NUnitXml and LegacyNUnitXml formats that are easy to parse and
-    commonly used by reporting tools.
+    To save the custom objects in a file, use the OutputFile and OutputFormat parameters
+    of Invoke-Pester, which save the output in NUnitXml and LegacyNUnitXml formats that are
+    easy to parse and commonly used by reporting tools.
+
+
+ EXAMPLE
+    For your first Pester test, use the New-Fixture cmdlet to create a script file
+    and matching test file.    
+
+    For example:
+
+        New-Fixture -Path C:\TestPester -Name Get-Hello
+
+	    Directory: C:\TestPester
+
+
+        Mode                LastWriteTime         Length Name
+        ----                -------------         ------ ----
+        -a----        4/18/2016   9:51 AM             30 Get-Hello.ps1
+        -a----        4/18/2016   9:51 AM            262 Get-Hello.Tests.ps1
+
+
+    The Get-Hello.ps1 script contains an empty Get-Hello.ps1 function.
+
+        function Get-Hello {}
+
+    The Get-Hello.Tests.ps1 file contains an empty Pester test that is named
+    for the Get-Hello function.
+
+        Describe "Get-Hello" {
+            It "does something useful" {
+                $true | Should Be $false
+            }
+        }
+
+    To run the test, use Invoke-Pester. For example,
+
+       Invoke-Pester C:\TestPester
+
+    When you run the test, it will fail by design, because Should compares $True to 
+    $False using the equal operator ("Be") and $True doesn't equal $False.  
+
+ 
+    To start testing the Get-Hello function, change $True to Get-Hello and $False
+    to "Hello". Now, the test compares the output of Get-Hello output to 'hello'.
+
+    It should still fail, because Get-Hello doesn't return anything.
+
+        Describe "New-Log" {
+            It "does something useful" {
+                Get-Hello | Should Be 'Hello'
+            }
+        }
+
+
+    To make the test pass, change the Get-Hello function so it returns 'hello'. Then, in
+    steps, change $False to more interesting values, then change the Get-Hello function
+    output to make the test pass.
+
+    You can also experiment with other comparison operators, such as the BeLike (supports
+    wildcards) and BeExactly (case sensitive), and BeLikeExactly operators. For more,
+    information about comparison operators in Pester, see about_Should.
 
 
   REAL-WORLD EXAMPLES
-    For help in writing Pester tests, you can examine the extensive collection of tests that 
+    For help in writing Pester tests, examine the extensive collection of tests that 
     Pester uses to verify its Windows PowerShell code.
 
     To find the Pester tests in the Pester module directory, type:
