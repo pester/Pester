@@ -1,8 +1,9 @@
 ## Unreleased
   - Updated code to use Get-CimInstance if possible, then Get-WmiObject, for Nano compatibility.  [GH-484]
   - Fixed failure message output of Should BeLike / BeLikeExactly.  [GH-497]
-  - Added some missing information to about_Should help.
-  - Made -OutputFormat parameter optional, defaulting to NUnitXml.
+  - Added some missing information to about_Should help. [GH-519]
+  - Made -OutputFormat parameter optional, defaulting to NUnitXml. [GH-503]
+  - Fix error messsage of Should Throw when null input is provided [GH-521]
 
 ## 3.4.0 (February 29, 2016)
   - Bug fix for PSv2 when no matching scripts are found by Invoke-Pester.  [GH-441]
