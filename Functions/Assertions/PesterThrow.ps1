@@ -5,6 +5,11 @@ $ActualExceptionWasThrown = $false
 # because this is a script block, the user will have to
 # wrap the code they want to assert on in { }
 function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
+
+    if ($null -eq $script) {
+        throw (New-Object -TypeName ArgumentNullException -ArgumentList "script","Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
+    }
+
     $Script:ActualExceptionMessage = ""
     $Script:ActualExceptionWasThrown = $false
 

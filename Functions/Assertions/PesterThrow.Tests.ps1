@@ -24,6 +24,16 @@ InModuleScope Pester {
         It "returns true if the statement throws an exception and the actual error text matches the expected error pattern" {
             Test-PositiveAssertion (PesterThrow { throw "expected error"} "error")
         }
+
+        It "throws ArgumentException if null ScriptBlock is provided" {
+            try {
+                Test-PositiveAssertion (PesterThrow $null)
+                throw "Should throw exception, but no exception was thrown."
+            }
+            catch [ArgumentException] {
+                #do nothing. we expect argument exception to happen
+            }
+        }
     }
 
     Describe "Get-DoMessagesMatch" {
