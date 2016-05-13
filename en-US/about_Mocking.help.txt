@@ -187,3 +187,21 @@ SEE ALSO
   Describe
   Context
   It
+  
+  The following articles are useful for further understanding of Pester Mocks.
+    Pester Mock and Test Drive, by Jakub Jareš:
+      http://www.powershellmagazine.com/2014/09/30/pester-mock-and-testdrive/
+    Pester and Mocking, by Mickey Gousset:
+      http://www.systemcentercentral.com/day-53-pester-mocking/
+    Mocking Missing Cmdlets with Pester, by Iain Brighton:
+      http://virtualengine.co.uk/2015/mocking-missing-cmdlets-with-pester/
+    Testing Mocked Output with Pester, by Steven Murawski:
+      http://stevenmurawski.com/powershell/2014/02/testing-returned-objects-with-pester/
+      
+  The following articles are useful for deeper understanding of Mocking in general.
+    Answer to the Question "What is the Purpose of Mock Objects" by Bert F:
+      http://stackoverflow.com/a/3623574/5514075
+    Mocks Aren't Stubs, by Martin Fowler:
+      http://martinfowler.com/articles/mocksArentStubs.html
+    The Art of Mocking, by Gil Zilberfeld:
+      http://www.methodsandtools.com/archive/archive.php?id=122
