@@ -151,6 +151,17 @@ function Invoke-Gherkin {
         $Location = Get-Location
         $FileLocation = Get-Location -PSProvider FileSystem
 
+        $script:GherkinSteps = @{}
+        $script:GherkinHooks = @{
+            BeforeAllFeatures = @()
+            BeforeFeature = @()
+            BeforeScenario = @()
+            BeforeStep = @()
+            AfterAllFeatures = @()
+            AfterFeature = @()
+            AfterScenario = @()
+            AfterStep = @()
+        }
     }
     end {
 
@@ -166,7 +177,7 @@ function Invoke-Gherkin {
         # Clear mocks
         $script:mockTable = @{}
 
-        $Script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
+        $script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
             Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
                 $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
@@ -231,7 +242,7 @@ function Invoke-Gherkin {
                 $Scenarios = $Scenarios | Get-Unique
             }
 
-            if($Scenarios) {
+            if($Scenarios -and !$Quiet) {
                 Write-Describe $Feature
             }
 
@@ -240,7 +251,7 @@ function Invoke-Gherkin {
                 $Pester.EnterContext($Scenario.Name)
                 $TestDriveContent = Get-TestDriveChildItem
 
-                Invoke-GherkinScenario $Pester $Scenario $Feature.Background
+                Invoke-GherkinScenario $Pester $Scenario $Feature.Background -Quiet:$Quiet
 
                 Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
                 # Exit-MockScope
@@ -332,7 +343,7 @@ function Invoke-GherkinScenario {
                     }
 
     foreach($Step in $TableSteps) {
-        Invoke-GherkinStep $Pester $Step $Scenario.Tags
+        Invoke-GherkinStep $Pester $Step $Scenario.Tags -Quiet:$Quiet
     }
 
     Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
@@ -342,7 +353,7 @@ function Invoke-GherkinScenario {
 function Invoke-GherkinStep {
     [CmdletBinding()]
     param (
-        $Pester, $Step, $Tags
+        $Pester, $Step, $Tags, [Switch]$Quiet
     )
     #  Pick the match with the least grouping wildcards in it...
     $StepCommand = $(
@@ -388,7 +399,9 @@ function Invoke-GherkinStep {
         $Pester.AddTestResult($StepName, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
     }
 
-    $Pester.testresult[-1] | Write-PesterResult
+    if(!$Quiet) {
+        $Pester.testresult[-1] | Write-PesterResult
+    }
 }
 
 function Get-StepParameters {
