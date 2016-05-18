@@ -1,6 +1,6 @@
 if ($PSVersionTable.PSVersion.Major -le 2) { return }
 
-Add-Type -Path "${Script:PesterRoot}\lib\PowerCuke.dll"
+Add-Type -Path "${Script:PesterRoot}\lib\Gherkin.dll"
 
 $StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
@@ -162,6 +162,7 @@ function Invoke-Gherkin {
             AfterScenario = @()
             AfterStep = @()
         }
+
     }
     end {
 
@@ -178,7 +179,7 @@ function Invoke-Gherkin {
         $script:mockTable = @{}
 
         $script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
-            Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[PoshCode.PowerCuke.ObjectModel.Feature]) -PassThru |
+            Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[Gherkin.Ast.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
                 $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
                 $this.Features.Scenarios | Where { $Names -contains $_.Name }
@@ -192,6 +193,7 @@ function Invoke-Gherkin {
 
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
+        $parser = [Gherkin.Parser]::new()
         $BeforeAllFeatures = $false
         foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
 
@@ -210,7 +212,13 @@ function Invoke-Gherkin {
                 $BeforeAllFeatures = $true
             }
 
-            $Feature = [PoshCode.PowerCuke.Parser]::Parse((Get-Content $FeatureFile.FullName -Delim ([char]0)))
+            try {
+                $Feature = $parser.Parse($FeatureFile.FullName).Feature | Convert-Tags
+            } catch [Gherkin.ParserException] {
+                Write-Warning "Skipped '$($FeatureFile.FullName)' because of parser errors:`n$(($_.Exception.Errors | Select-Object -Expand Message) -join "`n`n")"
+                continue
+            }
+
             $null = $Pester.Features.Add($Feature)
 
             ## This is Pesters "Describe" function
@@ -222,7 +230,67 @@ function Invoke-Gherkin {
             # Add-SetupAndTeardown -ScriptBlock $Fixture
             # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
 
-            $Scenarios = $Feature.Scenarios
+            $Background = $null
+            $Scenarios = foreach($Scenario in $Feature.Children) {
+                            switch($Scenario.Keyword.Trim())
+                            {
+                                "Scenario" {
+                                    $Scenario = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
+                                }
+                                "Scenario Outline" {
+                                    $Scenario = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
+                                }
+                                "Background" {
+                                    $Background = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
+                                    continue
+                                }
+                                default {
+                                    Write-Warning "Unexpected Feature Child: $_"
+                                }
+                            }
+
+                            if($Scenario.Examples) {
+                                foreach($ExampleSet in $Scenario.Examples) {
+                                    $Names = @($ExampleSet.TableHeader.Cells | Select -Expand Value)
+                                    $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
+                                    $Steps = foreach($Example in $ExampleSet.TableBody) {
+                                                foreach ($Step in $Scenario.Steps) {
+                                                    [string]$StepText = $Step.Text
+                                                    $StepArgument = $Step.Argument
+                                                    if($StepText -match $NamesPattern) {
+                                                        for($n = 0; $n -lt $Names.Length; $n++) {
+                                                            $Name = $Names[$n]
+                                                            if($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                                                $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
+                                                            }
+                                                        }
+                                                    }
+                                                    if($StepText -ne $Step.Text) {
+                                                        New-Object Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                                    } else {
+                                                        $Step
+                                                    }
+                                                }
+                                            }
+                                    $ScenarioName = $Scenario.Name
+                                    if($ExampleSet.Name) {
+                                        $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
+                                    }
+                                    New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
+                                }
+                            } else {
+                                $Scenario
+                            }
+                        }
+            Add-Member -Input $Feature -Type NoteProperty -Name Scenarios -Value $Scenarios -Force
+
+            # Move the test name filter first, since it'll likely return only a single item
+            if($pester.TestNameFilter) {
+                $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
+                    $Scenarios | Where { $_.Name -like $NameFilter }
+                }
+                $Scenarios = $Scenarios | Get-Unique
+            }
 
             # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
             if($pester.TagFilter) {
@@ -234,14 +302,6 @@ function Invoke-Gherkin {
                 $Scenarios = $Scenarios | Where { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
             }
 
-
-            if($pester.TestNameFilter) {
-                $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
-                    $Scenarios | Where { $_.Name -like $NameFilter }
-                }
-                $Scenarios = $Scenarios | Get-Unique
-            }
-
             if($Scenarios -and !$Quiet) {
                 Write-Describe $Feature
             }
@@ -251,7 +311,7 @@ function Invoke-Gherkin {
                 $Pester.EnterContext($Scenario.Name)
                 $TestDriveContent = Get-TestDriveChildItem
 
-                Invoke-GherkinScenario $Pester $Scenario $Feature.Background -Quiet:$Quiet
+                Invoke-GherkinScenario $Pester $Scenario $Background -Quiet:$Quiet
 
                 Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
                 # Exit-MockScope
@@ -314,36 +374,8 @@ function Invoke-GherkinScenario {
 
     Invoke-GherkinHook BeforeScenario $Scenario.Name $Scenario.Tags
 
-    $TableSteps =   if($Scenario.Examples) {
-                        foreach($ExampleSet in $Scenario.Examples) {
-                            $Names = $ExampleSet | Get-Member -Type Properties | Select -Expand Name
-                            $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
-                            foreach($Example in $ExampleSet) {
-                                foreach ($Step in $Scenario.Steps) {
-                                    $StepName = $Step.Name
-                                    if($StepName -match $NamesPattern) {
-                                        foreach($Name in $Names) {
-                                            if($Example.$Name -and $StepName -match "<${Name}>") {
-                                                $StepName = $StepName -replace "<${Name}>", $Example.$Name
-                                            }
-                                        }
-                                    }
-                                    if($StepName -ne $Step.Name) {
-                                        $S = New-Object PoshCode.PowerCuke.ObjectModel.Step $Step
-                                        $S.Name = $StepName
-                                        $S
-                                    } else {
-                                        $Step
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        $Scenario.Steps
-                    }
-
-    foreach($Step in $TableSteps) {
-        Invoke-GherkinStep $Pester $Step $Scenario.Tags -Quiet:$Quiet
+    foreach($Step in $Scenario.Steps) {
+        Invoke-GherkinStep $Pester $Step -Quiet:$Quiet
     }
 
     Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
@@ -353,29 +385,29 @@ function Invoke-GherkinScenario {
 function Invoke-GherkinStep {
     [CmdletBinding()]
     param (
-        $Pester, $Step, $Tags, [Switch]$Quiet
+        $Pester, $Step, [Switch]$Quiet
     )
     #  Pick the match with the least grouping wildcards in it...
     $StepCommand = $(
         foreach($StepCommand in $Script:GherkinSteps.Keys) {
-            if($Step.Name -match "^${StepCommand}$") {
+            if($Step.Text -match "^${StepCommand}$") {
                 $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
             }
         }
     ) | Sort MatchCount | Select -First 1
-    $StepName = "{0} {1}" -f $Step.Keyword, $Step.Name
+    $StepText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
 
     if(!$StepCommand) {
-        $Pester.AddTestResult($Step.Name, "Skipped", $null, "Could not find test for step!", $null )
+        $Pester.AddTestResult($StepText, "Skipped", $null, "Could not find test for step!", $null )
     } else {
         $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
 
-        $Pester.EnterTest($StepName)
+        $Pester.EnterTest($StepText)
         $PesterException = $null
         $watch = New-Object System.Diagnostics.Stopwatch
         $watch.Start()
         try{
-            Invoke-GherkinHook BeforeStep $Step.Name $Tags
+            Invoke-GherkinHook BeforeStep $Step.Text $Step.Tags
 
             if($NamedArguments.Count) {
                 $ScriptBlock = { & $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters }
@@ -385,7 +417,7 @@ function Invoke-GherkinStep {
             # Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $PSCmdlet.SessionState
             $null = & $ScriptBlock
 
-            Invoke-GherkinHook AfterStep $Step.Name $Tags
+            Invoke-GherkinHook AfterStep $Step.Text $Step.Tags
 
             $Success = "Passed"
         } catch {
@@ -396,7 +428,7 @@ function Invoke-GherkinStep {
         $watch.Stop()
         $Pester.LeaveTest()
 
-        $Pester.AddTestResult($StepName, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
+        $Pester.AddTestResult($StepText, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
     }
 
     if(!$Quiet) {
@@ -406,7 +438,7 @@ function Invoke-GherkinStep {
 
 function Get-StepParameters {
     param($Step, $CommandName)
-    $Null = $Step.Name -match $CommandName
+    $Null = $Step.Text -match $CommandName
 
     $NamedArguments = @{}
     $Parameters = @{}
@@ -419,14 +451,64 @@ function Get-StepParameters {
     }
     $Parameters = @($Parameters.GetEnumerator() | Sort Name | Select -Expand Value)
 
-    if($Step.TableArgument) {
-        $NamedArguments.Table = $Step.TableArgument
+    # TODO: Convert parsed tables to tables....
+    if($Step.Argument -is [Gherkin.Ast.DataTable]) {
+        $NamedArguments.Table = $Step.Argument.Rows | ConvertTo-HashTableArray
     }
-    if($Step.DocStringArgument) {
+    if($Step.Argument -is [Gherkin.Ast.DocString]) {
         # trim empty matches if we're attaching DocStringArgument
-        $Parameters = @( $Parameters | Where { $_.Length } ) + $Step.DocStringArgument
+        $Parameters = @( $Parameters | Where { $_.Length } ) + $Step.Argument.Content
     }
 
     return @($NamedArguments, $Parameters)
 }
 
+function Convert-Tags {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline=$true)]
+        $InputObject,
+
+        [Parameter(Position=0)]
+        [string[]]$BaseTags = @()
+    )
+    process {
+        # Adapt the Gherkin .Tags property to the way we prefer it...
+        [string[]]$Tags = foreach($tag in $InputObject.Tags){ $tag.Name.TrimStart("@") }
+        Add-Member -Input $InputObject -Type NoteProperty -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force
+        Write-Output $InputObject
+    }
+}
+
+function ConvertTo-HashTableArray {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline=$true)]
+        [Gherkin.Ast.TableRow[]]$InputObject
+    )
+    begin {
+        $Names = @()
+        $Table = @()
+    }
+    process {
+        # Convert the first table row into headers:
+        $Rows = @($InputObject)
+        if(!$Names) {
+            Write-Verbose "Reading Names from Header"
+            $Header, $Rows = $Rows
+            $Names = $Header.Cells | Select-Object -Expand Value
+        }
+
+        Write-Verbose "Processing $($Rows.Length) Rows"
+        foreach($row in $Rows) {
+            $result = @{}
+            for($n = 0; $n -lt $Names.Length; $n++) {
+                $result.Add($Names[$n], $row.Cells[$n].Value)
+            }
+            $Table += @($result)
+        }
+    }
+    end {
+        Write-Output $Table
+    }
+}

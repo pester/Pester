@@ -30,17 +30,14 @@ Describe 'Testing Gerkin Hook' {
         $command | Should Be "AfterAllFeatures", "AfterFeature", "AfterScenario", "AfterStep", "BeforeAllFeatures", "BeforeFeature", "BeforeScenario", "BeforeStep"
     }
     It 'Populates the GherkinHooks module variable' {
-        & ( Get-Module Pester ) { 
+        & ( Get-Module Pester ) {
             BeforeScenario "I Click" { }
             $GherkinHooks["BeforeScenario"].Tags
-        } | Select -Last 1 | Should Be "I Click" 
+        } | Select -Last 1 | Should Be "I Click"
 
-        & ( Get-Module Pester ) { 
+        & ( Get-Module Pester ) {
             AfterStep "I Click" { }
             $GherkinHooks["AfterStep"].Tags
         } | Select -Last 1 | Should Be "I Click"
     }
-}   
-
-
-
+}
