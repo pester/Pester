@@ -1,7 +1,3 @@
 build/
 Test.xml
 vendor/packages/
-Source/PowerCuke/bin/
-Source/PowerCuke/obj/
-Source/packages/
-Source/PowerCuke.sln.GhostDoc.xml
