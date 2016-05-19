@@ -18,7 +18,7 @@ $GherkinHooks = @{
 function Invoke-GherkinHook {
     [CmdletBinding()]
     param([string]$Hook, [string]$Name, [string[]]$Tags)
-    
+
     if($GherkinHooks.${Hook}) {
         foreach($GherkinHook in $GherkinHooks.${Hook}) {
             if($GherkinHook.Tags -and $Tags) {
@@ -331,7 +331,7 @@ function Invoke-Gherkin {
 
         # Remove all the steps
         $Script:GherkinSteps.Clear()
-        
+
         $Location | Set-Location
         [Environment]::CurrentDirectory = Convert-Path $FileLocation
 
