@@ -193,7 +193,7 @@ function Invoke-Gherkin {
 
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-        $parser = [Gherkin.Parser]::new()
+        $parser = New-Object Gherkin.Parser
         $BeforeAllFeatures = $false
         foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
 
