@@ -388,6 +388,8 @@ function ResolveTestScripts
                 $arguments      = @(Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a')
                 $parameters     = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
 
+                if ($null -eq $Parameters) { $Parameters = @{} }
+
                 if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S')
                 {
                     throw 'When passing hashtables to the -Path parameter, the Path key is mandatory, and must contain a single string.'
