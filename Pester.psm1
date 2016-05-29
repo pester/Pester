@@ -105,37 +105,78 @@ $moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 function Invoke-Pester {
 <#
 .SYNOPSIS
-Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under the Path
+Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under
+the Path
 
 .DESCRIPTION
-Upon calling Invoke-Pester, all files that have a name containing
-"*.Tests.ps1" will have the tests defined in their Describe blocks
-executed. Invoke-Pester begins at the location of Path and
-runs recursively through each sub directory looking for
-"*.Tests.ps1" files containing tests. If a TestName is provided,
-Invoke-Pester will only run tests that have a describe block with a
-matching name. By default, Invoke-Pester will end the test run with a
-simple report of the number of tests passed and failed output to the
-console. One may want pester to "fail a build" in the event that any
-tests fail. To accomodate this, Invoke-Pester will return an exit
-code equal to the number of failed tests if the EnableExit switch is
-set. Invoke-Pester will also write a NUnit style log of test results
-if the OutputXml parameter is provided. In these cases, Invoke-Pester
-will write the result log to the path provided in the OutputXml
-parameter.
+The Invoke-Pester function runs Pester tests, including *.Tests.ps1 files and 
+Pester tests in PowerShell scripts.
 
-Optionally, Pester can generate a report of how much code is covered
-by the tests, and information about any commands which were not
-executed.
+You can run scripts that include Pester tests just as you would any other 
+Windows PowerShell script, including typing the full path at the command line 
+and running in a script editing program. Typically, you use Invoke-Pester to run 
+all Pester tests in a directory, or to use its many helpful parameters, 
+including parameters that generate custom objects or XML files.
+
+By default, Invoke-Pester runs all *.Tests.ps1 files in the current directory 
+and all subdirectories recursively. You can use its parameters to select tests 
+by file name, test name, or tag. 
+
+To run Pester tests in scripts that take parameter values, use the Script 
+parameter with a hash table value. 
+
+Also, by default, Pester tests write test results to the host program, much like 
+Write-Host does, but you can use the Quiet parameter to supress the host 
+messages, use the PassThru parameter to generate a custom object 
+(PSCustomObject) that contains the test results, use the OutputXml and 
+OutputFormat parameters to write the test results to an XML file, and use the 
+EnableExit parameter to return an exit code that contains the number of failed 
+tests. 
+
+You can also use the Strict parameter to fail all pending and skipped tests. 
+This feature is ideal for build systems and other processes that require success 
+on every test. 
+
+To help with test design, Invoke-Pester includes a CodeCoverage parameter that 
+lists commands, functions, and lines of code that did not run during test 
+execution and returns the code that ran as a percentage of all tested code.
+
+Invoke-Pester, and the Pester module that exports it, are products of an 
+open-source project hosted on GitHub. To view, comment, or contribute to the 
+repository, see https://github.com/Pester.
 
 .PARAMETER Script
-This parameter indicates which test scripts should be run.
-This parameter may be passed simple strings (wildcards are allowed), or hashtables containing Path, Arguments and Parameters keys.
-If hashtables are used, the Parameters key must refer to a hashtable, and the Arguments key must refer to an array; these will be splatted to the test script(s) indicated in the Path key.
+Specifies test files by path or file name or name pattern. You can also use the 
+Script parameter to pass parameter names and values to a script that contains 
+Pester tests.
 
-Note:  If the path contains any wildcards, or if it refers to a directory, then Pester will search for and execute all test scripts named *.Tests.ps1 in the target path; the search is recursive.  If the path contains no wildcards and refers to a file, Pester will just try to execute that file regardless of its name.
+The Script parameter is optional. If you omit it, Invoke-Pester runs all 
+*.Tests.ps1 files in the local directory and its subdirectories recursively. Use 
+the TestName, Tag, and ExcludeTag parameters with or without the Script 
+parameter, to specify the tests to run.
 
-Aliased to 'Path' and 'relative_path' for backwards compatibility.
+The value of the Script parameter can be a string, a hash table, or a collection 
+of hash tables and strings.
+
+To specify test files by path or name, enter a string with the path or path\name, 
+or a name pattern. Wildcards characters are supported. You can specify the name 
+of any file that includes Pester tests. This value is not limited to files with 
+the *.Tests.ps1 file name pattern.
+
+To run a Pester test with parameter names and values, use a hash table as the 
+value of the script parameter. The keys in the hash table are:
+
+-- Path [string] (required): Specifies a test to run. The value is a path\file 
+   name or name pattern. Wildcards are permitted. All hash tables in a Script 
+   parameter value must have a Path key. 
+	
+-- Parameters [hashtable]: Runs the script with the specified parameters. The 
+   value is hash table with parameter name and value pairs, such as 
+   @{UserName = 'User01'; Id = '28'}. 
+	
+-- Arguments [array]: An array or comma-separated list of parameter values 
+   without names. Use this key to pass values to positional parameters.
+	
 
 .PARAMETER TestName
 Informs Invoke-Pester to only run Describe blocks that match this name.
@@ -181,31 +222,31 @@ Invoke-Pester
 This will find all *.Tests.ps1 files and run their tests. No exit code will be returned and no log file will be saved.
 
 .Example
-Invoke-Pester -Script ./tests/Utils*
+Invoke-Pester -Script .\Util*
 
-This will run all tests in files under ./Tests that begin with Utils and alsocontains .Tests.
-
+This commands runs all *.Tests.ps1 files in subdirectories with names that begin
+with 'Util' and their subdirectories.
+	
 .Example
-Invoke-Pester -Script @{ Path = './tests/Utils*'; Parameters = @{ NamedParameter = 'Passed By Name' }; Arguments = @('Passed by position') }
+Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
 
-Executes the same tests as in Example 1, but will run them with the equivalent of the following command line:  & $testScriptPath -NamedParameter 'Passed By Name' 'Passed by position'
+This command runs all *.Tests.ps1 files in D:\MyModule and its subdirectories. 
+It also runs the tests in the ModuleUnit.Tests.ps1 file using the following
+parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01 
 
 .Example
 Invoke-Pester -TestName "Add Numbers"
 
-This will only run the Describe block named "Add Numbers"
+This command runs only the tests in the Describe block named "Add Numbers".
 
 .Example
-Invoke-Pester -EnableExit -OutputXml "./artifacts/TestResults.xml"
+Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
 
-This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifacts/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+This command runs all tests in the current directory and its subdirectories. It
+writes the results to the TestResults.xml file using the NUnitXml schema. The 
+test returns an exit code equal to the number of test failures.
 
-.Example
-Invoke-Pester -EnableExit -OutputFile "./artifacts/TestResults.xml" -OutputFormat NUnitxml
-
-This runs all tests from the current directory downwards and writes the results to an output file and NUnitxml output format
-
-.EXAMPLE
+ .EXAMPLE
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
 
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
