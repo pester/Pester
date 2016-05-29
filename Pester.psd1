@@ -34,6 +34,7 @@ FunctionsToExport = @(
     'Assert-MockCalled',
     'Assert-VerifiableMocks',
     'New-Fixture',
+    'Set-Fixture',
     'Get-TestDriveItem',
     'Invoke-Pester',
     'Setup',

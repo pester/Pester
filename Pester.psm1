@@ -564,7 +564,7 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 }
 
 & $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
-& $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
+& $script:SafeCommands['Export-ModuleMember'] New-Fixture, Set-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
