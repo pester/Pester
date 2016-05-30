@@ -12,17 +12,17 @@ Describe "Set-Fixture" {
     Context "Only Name parameter is specified:" {
         It "Creates fixture in current directory:" {
             $name = "Test-Fixture"
-            $path = "TestDrive:\"       
-            
+            $path = "TestDrive:\"
+
             pushd  $path
-            New-Item -path "$path$name"
+            New-Item -path "$path$name" -ItemType File
             Set-Fixture -Name $name | Out-Null
             popd
 
             Join-Path -Path $path -ChildPath "$name.ps1" | Should Exist
             Join-Path -Path $path -ChildPath "$name.Tests.ps1" | Should Exist
             Remove-Item -path "$path$name"
-            
+
         }
 
     }

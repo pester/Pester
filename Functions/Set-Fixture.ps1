@@ -2,7 +2,7 @@ function Set-Fixture {
     <#
     .SYNOPSIS
     This function generates a test scaffold based off an existing function.
-    
+
     .DESCRIPTION
     This function generates a test scaffold based off an existing function. The test file is by default
     placed in the same directory as the function and are called and populated as such:
@@ -45,17 +45,16 @@ function Set-Fixture {
         [String]
         $Name
     )
-    
+
     # Test if file exists, if not, fall back to New-Fixture
-    if(!(Test-Path -path ./$name.ps1))    
+    if(!(Test-Path -path ./$name.ps1))
         {
             New-Fixture -name $name -path $($pwd)
-            Return 
-        }    
-        
+            Return
+        }
+
     $path = Split-Path (get-item "./$name.ps1").FullName -Parent
-    
-            
+
     #region File contents
     #keep this formatted as is. the format is output to the file as is, including indentation
 
