@@ -4,6 +4,8 @@ Pester 3.0 has been released!  To see a list of changes in this version, refer t
 
 ---
 
+[![Join the chat at https://gitter.im/pester/Pester](https://badges.gitter.im/pester/Pester.svg)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Pester
 =======
 Pester provides a framework for **running unit tests to execute and validate PowerShell commands from within PowerShell**. Pester consists of a simple set of functions that expose a testing domain-specific language (DSL) for isolating, running, evaluating and reporting the results of PowerShell commands.
