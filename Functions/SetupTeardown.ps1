@@ -131,7 +131,7 @@ function Invoke-Blocks
     foreach ($block in $ScriptBlock)
     {
         if ($null -eq $block) { continue }
-        . $block
+        $null = . $block
     }
 }
 

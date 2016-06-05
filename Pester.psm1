@@ -34,7 +34,6 @@ $script:SafeCommands = @{
     'Get-Module'          = Get-Command -Name Get-Module          -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
     'Get-PSDrive'         = Get-Command -Name Get-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Get-Variable'        = Get-Command -Name Get-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Get-WmiObject'       = Get-Command -Name Get-WmiObject       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Group-Object'        = Get-Command -Name Group-Object        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Join-Path'           = Get-Command -Name Join-Path           -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'Measure-Object'      = Get-Command -Name Measure-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
@@ -68,6 +67,23 @@ $script:SafeCommands = @{
     'Write-Progress'      = Get-Command -Name Write-Progress      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+}
+
+# Not all platforms have Get-WmiObject (Nano)
+# Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
+# Moreover, it shouldn't really be fatal if neither of those cmdlets
+# exist 
+if ( Get-Command -ea SilentlyContinue Get-CimInstance )
+{
+    $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Stop
+}
+elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
+{
+    $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+}
+else
+{
+    Write-Warning "OS Information retrieval is not possible, reports will contain only partial system data"
 }
 
 # little sanity check to make sure we don't blow up a system with a typo up there
@@ -316,6 +332,10 @@ Makes Pending and Skipped tests to Failed tests. Useful for continuous integrati
 .PARAMETER Quiet
 Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
 
+.PARAMETER PesterOption
+Sets advanced options for the test execution. Enter a PesterOption object, such as one that you create by using the New-PesterOption cmdlet, or a hash table in which the keys are option names and the values are option values.
+For more information on the options available, see the help for New-PesterOption.
+
 .Example
 Invoke-Pester
 
@@ -364,6 +384,7 @@ Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage 
 .LINK
 Describe
 about_pester
+New-PesterOption
 
 #>
     [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
@@ -397,11 +418,13 @@ about_pester
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
         [string] $OutputFile,
 
-        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [Parameter(ParameterSetName = 'NewOutputSet')]
         [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
-        [string] $OutputFormat,
+        [string] $OutputFormat = 'NUnitXml',
 
-        [Switch]$Quiet
+        [Switch]$Quiet,
+
+        [object]$PesterOption
     )
     begin {
         # Ensure when running Pester that we're using RSpec strings
@@ -421,8 +444,7 @@ about_pester
 
 
         $script:mockTable = @{}
-
-        $Script:Pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet
+        $Script:Pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
         Write-PesterStart $pester $Script
@@ -456,6 +478,12 @@ about_pester
             {
                 $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
                 $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+                
+                # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
+                # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
+                # planned for v4.0
+                $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
+                
                 $pester.TestResult[-1] | Write-PesterResult
             }
         }
@@ -487,6 +515,33 @@ about_pester
     }
 }
 
+function New-PesterOption
+{
+<#
+.SYNOPSIS
+   Creates an object that contains advanced options for Invoke-Pester
+.PARAMETER IncludeVSCodeMarker
+   When this switch is set, an extra line of output will be written to the console for test failures, making it easier
+   for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
+.INPUTS
+   None
+   You cannot pipe input to this command.
+.OUTPUTS
+   System.Management.Automation.PSObject
+.LINK
+   Invoke-Pester
+#>
+
+    [CmdletBinding()]
+    param (
+        [switch] $IncludeVSCodeMarker
+    )
+
+    return & $script:SafeCommands['New-Object'] psobject -Property @{
+        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+    }
+}
+
 function ResolveTestScripts
 {
     param ([object[]] $Path)
@@ -499,6 +554,8 @@ function ResolveTestScripts
                 $unresolvedPath = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Path', 'p'
                 $arguments      = @(Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a')
                 $parameters     = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
+
+                if ($null -eq $Parameters) { $Parameters = @{} }
 
                 if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S')
                 {
@@ -636,5 +693,5 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
-& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand
+& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, When -Alias And, But, Given, Then

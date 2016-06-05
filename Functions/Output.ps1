@@ -331,3 +331,283 @@ function Write-CoverageReport {
         & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
     }
 }
+
+<#
+function Write-Describe
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+    )
+    process {
+        Write-Screen Describing $Name -OutputType Header
+    }
+}
+
+function Write-Context
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
+    )
+    process {
+        $margin = " " * 3
+        Write-Screen ${margin}Context $Name -OutputType Header
+    }
+}
+
+function Write-PesterResult
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $TestResult
+    )
+    process {
+        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
+
+        $margin = " " * $TestDepth
+        $error_margin = $margin + "  "
+        $output = $TestResult.name
+        $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
+
+        switch ($TestResult.Result)
+        {
+            Passed {
+                "$margin[+] $output $humanTime" | Write-Screen -OutputType Passed
+                break
+            }
+            Failed {
+                "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
+
+                $failureLines = $TestResult.ErrorRecord | ConvertTo-FailureLines
+
+                if ($Pester.IncludeVSCodeMarker)
+                {
+                    $marker = $failureLines |
+                              & $script:SafeCommands['Select-Object'] -First 1 -ExpandProperty Trace |
+                              & $script:SafeCommands['Select-Object'] -First 1
+
+                    Write-Screen -OutputType Failed $($marker -replace '(?m)^',$error_margin)
+                }
+
+                $failureLines |
+                    & $SafeCommands['ForEach-Object'] {$_.Message + $_.Trace} |
+                    & $SafeCommands['ForEach-Object'] { Write-Screen -OutputType Failed $($_ -replace '(?m)^',$error_margin) }
+            }
+            Skipped {
+                "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
+                break
+            }
+            Pending {
+                "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
+                break
+            }
+            Inconclusive {
+                "$margin[?] $output $humanTime" | Write-Screen -OutputType Inconclusive
+                if ($testresult.FailureMessage) {
+                    Write-Screen -OutputType Inconclusive $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                }
+
+                Write-Screen -OutputType Inconclusive $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                break
+            }
+        }
+    }
+}
+
+function ConvertTo-FailureLines
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $ErrorRecord
+    )
+    process {
+        $lines = & $script:SafeCommands['New-Object'] psobject -Property @{
+            Message = @()
+            Trace = @()
+        }
+
+        ## convert the exception messages
+        $exception = $ErrorRecord.Exception
+        $exceptionLines = @()
+        while ($exception)
+        {
+            $exceptionName = $exception.GetType().Name
+            $thisLines = $exception.Message.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed')
+            {
+                $thisLines[0] = "$exceptionName`: $($thisLines[0])"
+            }
+            [array]::Reverse($thisLines)
+            $exceptionLines += $thisLines
+            $exception = $exception.InnerException
+        }
+        [array]::Reverse($exceptionLines)
+        $lines.Message += $exceptionLines
+        if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
+        {
+            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
+
+        if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) )
+        {
+            if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+            {
+                $lines.Trace += "at line: $($ErrorRecord.TargetObject.Line) in $($ErrorRecord.TargetObject.File)"
+            }
+            else
+            {
+                $lines.Trace += "at line: $($ErrorRecord.InvocationInfo.ScriptLineNumber) in $($ErrorRecord.InvocationInfo.ScriptName)"
+            }
+            return $lines
+        }
+
+        ## convert the stack trace
+        $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+
+        $count = 0
+
+        # omit the lines internal to Pester
+        foreach ( $line in $traceLines )
+        {
+            if ( $line -match '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$' )
+            {
+                break
+            }
+            $count ++
+        }
+        $lines.Trace += $traceLines |
+            & $SafeCommands['Select-Object'] -First $count |
+            & $SafeCommands['Where-Object'] {
+                $_ -notmatch '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$' -and
+                $_ -notmatch '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+            }
+
+        return $lines
+    }
+}
+
+function Write-PesterReport
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $PesterState
+    )
+
+    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
+    Write-Screen ("Passed: {0} Failed: {1} Skipped: {2} Pending: {3} Inconclusive: {4}" -f
+                  $PesterState.PassedCount,
+                  $PesterState.FailedCount,
+                  $PesterState.SkippedCount,
+                  $PesterState.PendingCount,
+                  $PesterState.InconclusiveCount)
+}
+
+function Write-Screen {
+    #wraps the Write-Host cmdlet to control if the output is written to screen from one place
+    param(
+        #Write-Host parameters
+        [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
+        [Object] $Object,
+        [Switch] $NoNewline,
+        [Object] $Separator,
+        #custom parameters
+        [Switch] $Quiet = $pester.Quiet,
+        [ValidateSet("Failed","Passed","Skipped","Pending","Inconclusive","Header","Standard")]
+        [String] $OutputType = "Standard"
+    )
+
+    begin
+    {
+        if ($Quiet) { return }
+
+        #make the bound parameters compatible with Write-Host
+        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | & $SafeCommands['Out-Null'] }
+        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | & $SafeCommands['Out-Null'] }
+
+        if ($OutputType -ne "Standard")
+        {
+            #create the key first to make it work in strict mode
+            if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
+            {
+                $PSBoundParameters.Add('ForegroundColor', $null)
+            }
+
+
+
+            switch ($Host.Name)
+            {
+                #light background
+                "PowerGUIScriptEditorHost" {
+                    $ColorSet = @{
+                        Failed       = [ConsoleColor]::Red
+                        Passed       = [ConsoleColor]::DarkGreen
+                        Skipped      = [ConsoleColor]::DarkGray
+                        Pending      = [ConsoleColor]::DarkCyan
+                        Inconclusive = [ConsoleColor]::DarkCyan
+                        Header       = [ConsoleColor]::Magenta
+                    }
+                }
+                #dark background
+                { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
+                    $ColorSet = @{
+                        Failed       = [ConsoleColor]::Red
+                        Passed       = [ConsoleColor]::Green
+                        Skipped      = [ConsoleColor]::Gray
+                        Pending      = [ConsoleColor]::Cyan
+                        Inconclusive = [ConsoleColor]::Cyan
+                        Header       = [ConsoleColor]::Magenta
+                    }
+                }
+                default {
+                    $ColorSet = @{
+                        Failed       = [ConsoleColor]::Red
+                        Passed       = [ConsoleColor]::DarkGreen
+                        Skipped      = [ConsoleColor]::Gray
+                        Pending      = [ConsoleColor]::Gray
+                        Inconclusive = [ConsoleColor]::Gray
+                        Header       = [ConsoleColor]::Magenta
+                    }
+                }
+
+             }
+
+
+            $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
+        }
+
+        try {
+            $outBuffer = $null
+            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+            {
+                $PSBoundParameters['OutBuffer'] = 1
+            }
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Write-Host', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+            $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
+            $steppablePipeline.Begin($PSCmdlet)
+        } catch {
+            throw
+        }
+    }
+
+    process
+    {
+        if ($Quiet) { return }
+        try {
+            $steppablePipeline.Process($_)
+        } catch {
+            throw
+        }
+    }
+
+    end
+    {
+        if ($Quiet) { return }
+        try {
+            $steppablePipeline.End()
+        } catch {
+            throw
+        }
+    }
+}
+
+#>

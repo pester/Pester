@@ -8,7 +8,8 @@ Describe 'Testing Context' {
         $parameter = $command.Parameters['Fixture']
         $parameter | Should Not Be $null
 
-        $attribute = $parameter.Attributes | Where-Object { $_.TypeId -eq [System.Management.Automation.ParameterAttribute] }
+        # Some environments (Nano/CoreClr) don't have all the type extensions
+        $attribute = $parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
         $isMandatory = $null -ne $attribute -and $attribute.Mandatory
 
         $isMandatory | Should Be $false

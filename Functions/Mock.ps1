@@ -1,4 +1,4 @@
-function Mock {
+﻿function Mock {
 
 <#
 .SYNOPSIS
@@ -177,8 +177,17 @@ about_Mocking
         $ModuleName = ''
     }
 
-    $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
-    Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+    if (Test-IsClosure -ScriptBlock $MockWith)
+    {
+        # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
+        # dynamic module's scope.
+        $mockWithCopy = $MockWith
+    }
+    else
+    {
+        $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+        Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
+    }
 
     $block = @{
         Mock       = $mockWithCopy
@@ -218,6 +227,13 @@ about_Mocking
             }
 
             $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
+            if ($global:PSVersionTable.PSVersion.Major -ge 3 -and $contextInfo.Command.CommandType -eq 'Cmdlet') {
+                if ($cmdletBinding -ne '[CmdletBinding()]') {
+                    $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length-2, ',')
+                }
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length-2, 'PositionalBinding=$false')
+            }
+
             $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet')
@@ -264,9 +280,23 @@ about_Mocking
             }
         }
 
+        $EscapeSingleQuotedStringContent =
+            if ($global:PSVersionTable.PSVersion.Major -ge 5) {
+                { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
+            } else {
+                { $args[0] -replace "['‘’‚‛]", '$&$&' }
+            }
+
         $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
-        $newContent = $newContent -replace '#FUNCTIONNAME#', $CommandName
-        $newContent = $newContent -replace '#MODULENAME#', $ModuleName
+        $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
+        $newContent = $newContent -replace '#MODULENAME#', (& $EscapeSingleQuotedStringContent $ModuleName)
+
+        $canCaptureArgs = 'true'
+        if ($contextInfo.Command.CommandType -eq 'Cmdlet' -or
+            ($contextInfo.Command.CommandType -eq 'Function' -and $contextInfo.Command.CmdletBinding)) {
+            $canCaptureArgs = 'false'
+        }
+        $newContent = $newContent -replace '#CANCAPTUREARGS#', $canCaptureArgs
 
         $code = @"
             $cmdletBinding
@@ -274,6 +304,7 @@ about_Mocking
             $dynamicParamBlock
             begin
             {
+                `${mock call state} = @{}
                 $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
             }
 
@@ -314,9 +345,9 @@ about_Mocking
             {
                 param ( [string] $CommandName )
 
-                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName"))
+                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName", $true, $true))
                 {
-                    $ExecutionContext.InvokeProvider.Item.Rename("Function:\$CommandName", "script:PesterIsMocking_$CommandName", $true)
+                    $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\$CommandName"), "script:PesterIsMocking_$CommandName", $true)
                 }
             }
 
@@ -683,7 +714,7 @@ function Exit-MockScope {
         $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
         if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
         {
-            $ExecutionContext.InvokeProvider.Item.Rename("Function:\PesterIsMocking_$CommandName", "$Scope$CommandName", $true)
+            $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\PesterIsMocking_$CommandName"), "$Scope$CommandName", $true)
         }
 
         if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias:$Alias", $true, $true))
@@ -742,13 +773,13 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
 
         if ($null -ne $command -and $command.CommandType -eq 'Function')
         {
-            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)") -and
-                (& $getContentCommand "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
+            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)", $true, $true) -and
+                (& $getContentCommand -LiteralPath "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'global:'
             }
-            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)") -and
-                    (& $getContentCommand "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
+            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)", $true, $true) -and
+                    (& $getContentCommand -LiteralPath "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
             {
                 $properties['Scope'] = 'script:'
             }
@@ -802,14 +833,18 @@ function MockPrototype {
 
     ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
-    [object] ${a r g s} = & ${get Variable Command} -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+    [object] ${a r g s} = $null
+    if (${#CANCAPTUREARGS#}) {
+        ${a r g s} = & ${get Variable Command} -Name args -ValueOnly -Scope Local -ErrorAction ${ignore preference}
+    }
     if ($null -eq ${a r g s}) { ${a r g s} = @() }
 
     ${p s cmdlet} = & ${get Variable Command} -Name PSCmdlet -ValueOnly -Scope Local -ErrorAction ${ignore preference}
 
     ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
 
-    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' #INPUT#
+    # @{mock call state} initialization is injected only into the begin block by the code that uses this prototype.
+    Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' -MockCallState ${mock call state} #INPUT#
 }
 
 function Invoke-Mock {
@@ -823,6 +858,9 @@ function Invoke-Mock {
         [Parameter(Mandatory = $true)]
         [string]
         $CommandName,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable] $MockCallState,
 
         [string]
         $ModuleName,
@@ -854,10 +892,10 @@ function Invoke-Mock {
     {
         Begin
         {
-            $mock.InputObjects = & $SafeCommands['New-Object'] System.Collections.ArrayList
-            $mock.ShouldExecuteOriginalCommand = $false
-            $mock.BeginBoundParameters = $BoundParameters.Clone()
-            $mock.BeginArgumentList = $ArgumentList
+            $MockCallState['InputObjects'] = & $SafeCommands['New-Object'] System.Collections.ArrayList
+            $MockCallState['ShouldExecuteOriginalCommand'] = $false
+            $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
+            $MockCallState['BeginArgumentList'] = $ArgumentList
 
             return
         }
@@ -883,10 +921,10 @@ function Invoke-Mock {
             }
             else
             {
-                $mock.ShouldExecuteOriginalCommand = $true
+                $MockCallState['ShouldExecuteOriginalCommand'] = $true
                 if ($null -ne $InputObject)
                 {
-                    $null = $mock.InputObjects.AddRange(@($InputObject))
+                    $null = $MockCallState['InputObjects'].AddRange(@($InputObject))
                 }
 
                 return
@@ -895,9 +933,9 @@ function Invoke-Mock {
 
         End
         {
-            if ($mock.ShouldExecuteOriginalCommand)
+            if ($MockCallState['ShouldExecuteOriginalCommand'])
             {
-                if ($mock.InputObjects.Count -gt 0)
+                if ($MockCallState['InputObjects'].Count -gt 0)
                 {
                     $scriptBlock = {
                         param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
@@ -917,9 +955,9 @@ function Invoke-Mock {
                 Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
 
                 & $scriptBlock -Command $mock.OriginalCommand `
-                               -ArgumentList $mock.BeginArgumentList `
-                               -BoundParameters $mock.BeginBoundParameters `
-                               -InputObjects $mock.InputObjects
+                               -ArgumentList $MockCallState['BeginArgumentList'] `
+                               -BoundParameters $MockCallState['BeginBoundParameters'] `
+                               -InputObjects $MockCallState['InputObjects']
             }
         }
     }
@@ -1356,4 +1394,25 @@ function Get-DynamicParametersForMockedFunction
         $splat = @{ 'P S Cmdlet' = $Cmdlet }
         return & $mock.DynamicParamScriptBlock @Parameters @splat
     }
+}
+
+function Test-IsClosure
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)
+
+    return (
+        $null -ne $module -and
+        $module.Name -match '^__DynamicModule_([a-f\d-]+)$' -and
+        $null -ne ($matches[1] -as [guid])
+    )
 }

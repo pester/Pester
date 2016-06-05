@@ -133,6 +133,16 @@ InModuleScope Pester {
 
             $ScriptBlock | Should -Not -Throw $expectedErrorMessage -ErrorId $expectedErrorId
         }
+
+        It "throws ArgumentException if null ScriptBlock is provided" {
+            try {
+                Test-PositiveAssertion (PesterThrow $null)
+                throw "Should throw exception, but no exception was thrown."
+            }
+            catch [ArgumentException] {
+                #do nothing. we expect argument exception to happen
+            }
+        }
     }
 
     Describe "Get-DoMessagesMatch" {

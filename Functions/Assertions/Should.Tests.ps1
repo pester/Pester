@@ -130,5 +130,30 @@ InModuleScope Pester {
                 { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Throw
             }
         }
+
+        # Assertion messages aren't convention-based anymore, but we should probably still make sure
+        # that our tests are complete (including negative tests) to verify the proper messages get
+        # returned.  Those will need to exist in other tests files.
+
+        <#
+        It 'All failure message functions are present' {
+            $assertionFunctions = Get-Command -CommandType Function -Module Pester |
+                                  Select-Object -ExpandProperty Name |
+                                  Where-Object { $_ -like 'Pester*' -and $_ -notlike '*FailureMessage' }
+
+            $missingFunctions = @(
+                foreach ($assertionFunction in $assertionFunctions)
+                {
+                    $positiveFailureMessage = "${assertionFunction}FailureMessage"
+                    $negativeFailureMessage = "Not${assertionFunction}FailureMessage"
+
+                    if (-not (Test-Path function:$positiveFailureMessage)) { $positiveFailureMessage }
+                    if (-not (Test-Path function:$negativeFailureMessage)) { $negativeFailureMessage }
+                }
+            )
+
+            [string]$missingFunctions | Should BeNullOrEmpty
+        }
+        #>
     }
 }
