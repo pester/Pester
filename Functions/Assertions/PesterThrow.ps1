@@ -2,6 +2,10 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [sw
     $script:ActualExceptionMessage = ""
     $script:ActualExceptionWasThrown = $false
 
+    if ($null -eq $ActualValue) {
+        throw (New-Object -TypeName ArgumentNullException -ArgumentList "ActualValue","Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
+    }
+
     # This is superfluous, here for now.
     $ExpectedErrorId = $ErrorId
 

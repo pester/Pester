@@ -135,13 +135,18 @@ InModuleScope Pester {
         }
 
         It "throws ArgumentException if null ScriptBlock is provided" {
-            try {
-                Test-PositiveAssertion (PesterThrow $null)
-                throw "Should throw exception, but no exception was thrown."
+            $e = $null
+            try
+            {
+                $null | Should Throw
             }
-            catch [ArgumentException] {
-                #do nothing. we expect argument exception to happen
+            catch
+            {
+                $e = $_
             }
+
+            $e | Should Not Be $null
+            $e.Exception | Should BeOfType ArgumentException
         }
     }
 
