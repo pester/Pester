@@ -105,8 +105,7 @@ $moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 function Invoke-Pester {
 <#
 .SYNOPSIS
-Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under
-the Path
+Runs Pester tests
 
 .DESCRIPTION
 The Invoke-Pester function runs Pester tests, including *.Tests.ps1 files and 
@@ -146,24 +145,19 @@ open-source project hosted on GitHub. To view, comment, or contribute to the
 repository, see https://github.com/Pester.
 
 .PARAMETER Script
-Specifies test files by path or file name or name pattern. You can also use the 
-Script parameter to pass parameter names and values to a script that contains 
-Pester tests.
+Specifies the test files that Pester runs. You can also use the Script parameter 
+to pass parameter names and values to a script that contains Pester tests. The 
+value of the Script parameter can be a string, a hash table, or a collection 
+of hash tables and strings. Wildcard characters are supported.
 
 The Script parameter is optional. If you omit it, Invoke-Pester runs all 
-*.Tests.ps1 files in the local directory and its subdirectories recursively. Use 
-the TestName, Tag, and ExcludeTag parameters with or without the Script 
-parameter, to specify the tests to run.
+*.Tests.ps1 files in the local directory and its subdirectories recursively. 
+	
+To run tests in other files, such as .ps1 files, enter the path and file name of
+the file. (The file name is required. Name patterns that end in "*.ps1" run only
+*.Tests.ps1 files.) 
 
-The value of the Script parameter can be a string, a hash table, or a collection 
-of hash tables and strings.
-
-To specify test files by path or name, enter a string with the path or path\name, 
-or a name pattern. Wildcards characters are supported. You can specify the name 
-of any file that includes Pester tests. This value is not limited to files with 
-the *.Tests.ps1 file name pattern.
-
-To run a Pester test with parameter names and values, use a hash table as the 
+To run a Pester test with parameter names and/or values, use a hash table as the 
 value of the script parameter. The keys in the hash table are:
 
 -- Path [string] (required): Specifies a test to run. The value is a path\file 
@@ -171,16 +165,21 @@ value of the script parameter. The keys in the hash table are:
    parameter value must have a Path key. 
 	
 -- Parameters [hashtable]: Runs the script with the specified parameters. The 
-   value is hash table with parameter name and value pairs, such as 
+   value is a nested hash table with parameter name and value pairs, such as 
    @{UserName = 'User01'; Id = '28'}. 
 	
 -- Arguments [array]: An array or comma-separated list of parameter values 
-   without names. Use this key to pass values to positional parameters.
+   without names, such as 'User01', 28. Use this key to pass values to positional 
+   parameters.
 	
 
 .PARAMETER TestName
-Informs Invoke-Pester to only run Describe blocks that match this name.
-
+Runs only tests in Describe blocks that have the specified name or name pattern.
+Wildcard characters are supported. 
+	
+If you specify multiple TestName values, Invoke-Pester runs tests that have any of 
+the values in the Describe name (it ORs the TestName values).
+	
 .PARAMETER EnableExit
 Will cause Invoke-Pester to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
@@ -188,10 +187,28 @@ Will cause Invoke-Pester to exit with a exit code equal to the number of failed 
 The path where Invoke-Pester will save a NUnit formatted test results log file. If this path is not provided, no log will be generated.
 
 .PARAMETER Tag
-Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
+Runs only tests in Describe blocks with the specified Tag parameter values. Wildcard
+characters and Tag values that include spaces or whitespace characters are not 
+supported.
+	
+When you specify multiple Tag values, Invoke-Pester runs tests that have any of the 
+listed tags (it ORs the tags). However, when you specify TestName and Tag values,
+Invoke-Pester runs only describe blocks that have one of the specified TestName values
+and one of the specified Tag values.
 
+If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
+	
 .PARAMETER ExcludeTag
-Informs Invoke-Pester to not run blocks tagged with the tags specified.
+Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
+characters and Tag values that include spaces or whitespace characters are not 
+supported.
+	
+When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have any 
+of the listed tags (it ORs the tags). However, when you specify TestName and ExcludeTag values,
+Invoke-Pester omits only describe blocks that have one of the specified TestName values
+and one of the specified Tag values.
+
+If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
 
 .PARAMETER PassThru
 Returns a Pester result object containing the information about the whole test run, and each test.
@@ -261,6 +278,11 @@ Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; End
 
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
 
+.EXAMPLE
+Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
+	
+This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those files, it runs only tests that have UnitTest or Newest tags, unless the test also has a Bug tag.
+	
 .LINK
 Describe
 about_pester
