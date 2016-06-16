@@ -211,7 +211,13 @@ and one of the specified Tag values.
 If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
 
 .PARAMETER PassThru
-Returns a Pester result object containing the information about the whole test run, and each test.
+Returns a custom object (PSCustomObject) that contains the test results. 
+	
+By default, Invoke-Pester writes to the host program, not to the output stream (stdout). 
+If you try to save the result in a variable, the variable is empty unless you use the PassThru
+parameter.
+	
+To suppress the host output, use the Quiet parameter.
 
 .PARAMETER CodeCoverage
 Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
@@ -227,7 +233,11 @@ Both Function and Path (as well as simple strings passed instead of hashtables) 
 Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
 
 .PARAMETER Quiet
-Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
+Suppresses the output that Pester writes to the host program, including the 
+result summary and CodeCoverage output.
+	
+This parameter does not affect the PassThru custom object or the XML output that is 
+written when you use the Output parameters.
 
 .PARAMETER PesterOption
 Sets advanced options for the test execution. Enter a PesterOption object, such as one that you create by using the New-PesterOption cmdlet, or a hash table in which the keys are option names and the values are option values.
@@ -236,7 +246,7 @@ For more information on the options available, see the help for New-PesterOption
 .Example
 Invoke-Pester
 
-This will find all *.Tests.ps1 files and run their tests. No exit code will be returned and no log file will be saved.
+This command runs all *.Tests.ps1 files in the current directory and its subdirectories.
 
 .Example
 Invoke-Pester -Script .\Util*
@@ -255,6 +265,47 @@ parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01
 Invoke-Pester -TestName "Add Numbers"
 
 This command runs only the tests in the Describe block named "Add Numbers".
+	
+.EXAMPLE
+$results = Invoke-Pester -Script D:\MyModule -PassThru -Quiet
+$failed = $results.TestResult | where Result -eq 'Failed'
+
+$failed.Name
+cannot find help for parameter: Force : in Compress-Archive
+help for Force parameter in Compress-Archive has wrong Mandatory value
+help for Compress-Archive has wrong parameter type for Force
+help for Update parameter in Compress-Archive has wrong Mandatory value
+help for DestinationPath parameter in Expand-Archive has wrong Mandatory value
+	
+$failed[0]
+Describe               : Test help for Compress-Archive in Microsoft.PowerShell.Archive (1.0.0.0)
+Context                : Test parameter help for Compress-Archive
+Name                   : cannot find help for parameter: Force : in Compress-Archive
+Result                 : Failed
+Passed                 : False
+Time                   : 00:00:00.0193083
+FailureMessage         : Expected: value to not be empty
+StackTrace             : at line: 279 in C:\GitHub\PesterTdd\Module.Help.Tests.ps1
+                         279:                     $parameterHelp.Description.Text | Should Not BeNullOrEmpty
+ErrorRecord            : Expected: value to not be empty
+ParameterizedSuiteName :
+Parameters             : {}
+	
+This examples uses the PassThru parameter to return a custom object with the 
+Pester test results. By default, Invoke-Pester writes to the host program, but not 
+to the output stream. It also uses the Quiet parameter to suppress the host output.
+	
+The first command runs Invoke-Pester with the PassThru and Quiet parameters and
+saves the PassThru output in the $results variable.
+	
+The second command gets only failing results and saves them in the $failed variable.
+	
+The third command gets the names of the failing results. The result name is the 
+name of the It block that contains the test.
+
+The fourth command uses an array index to get the first failing result. The
+property values describe the test, the expected result, the actual result, and
+useful values, including a stack tace.
 
 .Example
 Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
