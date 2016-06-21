@@ -253,7 +253,7 @@ One of the following: Function or StartLine/EndLine
 	
 -- StartLine (S): Performs code coverage analysis beginning with the specified line. Default
    is line 1.
--- EndLine (S): Performs code coverage analysis ending with the specified line. Default is
+-- EndLine (E): Performs code coverage analysis ending with the specified line. Default is
    the last line of the script.
 	
 
