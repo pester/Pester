@@ -124,7 +124,7 @@ by file name, test name, or tag.
 To run Pester tests in scripts that take parameter values, use the Script 
 parameter with a hash table value. 
 
-Also, by default, Pester tests write test results to the host program, much like 
+Also, by default, Pester tests write test results to the console host, much like 
 Write-Host does, but you can use the Quiet parameter to supress the host 
 messages, use the PassThru parameter to generate a custom object 
 (PSCustomObject) that contains the test results, use the OutputXml and 
@@ -220,14 +220,42 @@ parameter.
 To suppress the host output, use the Quiet parameter.
 
 .PARAMETER CodeCoverage
-Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
-If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
-By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
-Hashtables must contain a Path key (which can be abbreviated to just "P"), and may contain Function (or "F"), StartLine (or "S"), and EndLine ("E") keys to narrow down the commands to be analyzed.
-If Function is specified, StartLine and EndLine are ignored.
-If only StartLine is defined, the entire script file starting with StartLine is analyzed.
-If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
-Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
+Adds a code coverage report to the Pester tests. Takes strings or hash table values.
+	
+A code coverage report lists the lines of code that did and did not run during a Pester test. 
+This report does not tell whether code was tested; only whether the code ran during 
+the test.
+
+By default, the code coverage report is written to the host program (like Write-Host). When you
+use the PassThru parameter, the custom object that Invoke-Pester returns has an additional 
+CodeCoverage property that contains a custom object with detailed results of the code coverage
+test, including lines hit, lines missed, and helpful statistics.
+	
+However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include any
+code coverage information, because it's not supported by the schema.
+	
+Enter the path to the files of code under test (not the test file). Wildcard characters are supported. 
+If you omit the path, the default is local directory, not the directory specified by the Script 
+parameter.
+
+To run a code coverage test only on selected functions or lines in a script, enter a 
+hash table value with the following keys:
+	
+-- Path (P)(mandatory) <string>. Enter one path to the files. Wildcard characters
+   are supported, but only one string is permitted.
+
+One of the following: Function or StartLine/EndLine
+	
+-- Function (F) <string>: Enter the function name. Wildcard characters are supported, 
+   but only one string is permitted.
+	
+-or-
+	
+-- StartLine (S): Performs code coverage analysis beginning with the specified line. Default
+   is line 1.
+-- EndLine (E): Performs code coverage analysis ending with the specified line. Default is
+   the last line of the script.
+	
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
@@ -335,8 +363,9 @@ Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
 This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those files, it runs only tests that have UnitTest or Newest tags, unless the test also has a Bug tag.
 	
 .LINK
+https://github.com/pester/Pester/wiki/Invoke-Pester
 Describe
-about_pester
+about_Pester
 New-PesterOption
 
 #>
