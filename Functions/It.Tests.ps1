@@ -7,33 +7,12 @@ InModuleScope Pester {
     Describe 'It - Implementation' {
         $testState = New-PesterState -Path $TestDrive
 
-        It 'Throws an error if It is called outside of Describe' {
-            $scriptBlock = { ItImpl -Pester $testState 'Tries to enter a test without entering a Describe first' { } }
-            $scriptBlock | Should Throw 'The It command may only be used inside a Describe block.'
-        }
-
-        $testState.EnterDescribe('Mocked Describe')
-
-        # We call EnterTest() directly here because if we actually nest calls to ItImpl, the outer call will catch the error we're trying to
-        # verify with Should Throw.  (Another option would be to nest the ItImpl calls, and look for a failed test result in $testState.)
-        $testState.EnterTest('Outer Test')
-
-        It 'Throws an error if you try to enter It from inside another It' {
-            $scriptBlock = {
-                ItImpl -Pester $testState 'Enters the second It' { }
-            }
-
-            $scriptBlock | Should Throw 'You already are in It, you cannot enter It twice'
-        }
-
-        $testState.LeaveTest()
-
         It 'Throws an error if you fail to pass in a test block' {
             $scriptBlock = { ItImpl -Pester $testState 'Some Name' }
             $scriptBlock | Should Throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
         }
 
-        It 'Does not throw an error if It is called inside a Describe, and adds a successful test result.' {
+        It 'Does not throw an error if It is passed a script block, and adds a successful test result.' {
             $scriptBlock = { ItImpl -Pester $testState 'Enters an It block inside a Describe' { } }
             $scriptBlock | Should Not Throw
 

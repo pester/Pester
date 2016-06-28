@@ -6,11 +6,13 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
     $outNullModule = 'Microsoft.PowerShell.Core'
+    $outHostModule = 'Microsoft.PowerShell.Core'
 }
 else
 {
     $script:IgnoreErrorPreference = 'SilentlyContinue'
     $outNullModule = 'Microsoft.PowerShell.Utility'
+    $outHostModule = $null
 }
 
 # Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
@@ -42,7 +44,7 @@ $script:SafeCommands = @{
     'New-Object'          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Out-Host'            = Get-Command -Name Out-Host            -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Out-Host'            = Get-Command -Name Out-Host            -Module $outHostModule                  -CommandType Cmdlet -ErrorAction Stop
     'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  -CommandType Cmdlet -ErrorAction Stop
     'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
@@ -72,7 +74,7 @@ $script:SafeCommands = @{
 # Not all platforms have Get-WmiObject (Nano)
 # Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
-# exist 
+# exist
 if ( Get-Command -ea SilentlyContinue Get-CimInstance )
 {
     $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Stop
@@ -442,56 +444,69 @@ New-PesterOption
             $OutputFormat = 'LegacyNUnitXml'
         }
 
-
         $script:mockTable = @{}
         $Script:Pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
-        Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-        Write-PesterStart $pester $Script
-
-        $invokeTestScript = {
-            param (
-                [Parameter(Position = 0)]
-                [string] $Path,
-
-                [object[]] $Arguments = @(),
-                [System.Collections.IDictionary] $Parameters = @{}
-            )
-
-            & $Path @Parameters @Arguments
-        }
-
-        Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
-
-        $testScripts = @(ResolveTestScripts $Script)
-
-        foreach ($testScript in $testScripts)
+        try
         {
-            try
-            {
-                do
-                {
-                    & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-                } until ($true)
-            }
-            catch
-            {
-                $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
-                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-                
-                # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
-                # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
-                # planned for v4.0
-                $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
-                
-                $pester.TestResult[-1] | Write-PesterResult
-            }
-        }
+            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-        $pester | Write-PesterReport
-        $coverageReport = Get-CoverageReport -PesterState $pester
-        Write-CoverageReport -CoverageReport $coverageReport
-        Exit-CoverageAnalysis -PesterState $pester
+            Write-PesterStart $pester $Script
+
+            $invokeTestScript = {
+                param (
+                    [Parameter(Position = 0)]
+                    [string] $Path,
+
+                    [object[]] $Arguments = @(),
+                    [System.Collections.IDictionary] $Parameters = @{}
+                )
+
+                & $Path @Parameters @Arguments
+            }
+
+            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
+
+            $testScripts = @(ResolveTestScripts $Script)
+
+            foreach ($testScript in $testScripts)
+            {
+                try
+                {
+                    $pester.EnterTestGroup($testScript.Path, 'Script')
+                    do
+                    {
+                        & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                    } until ($true)
+                }
+                catch
+                {
+                    $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+                    $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+
+                    # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
+                    # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
+                    # planned for v4.0
+                    $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
+
+                    $pester.TestResult[-1] | Write-PesterResult
+                }
+                finally
+                {
+                    Exit-MockScope
+                    $pester.LeaveTestGroup($testScript.Path, 'Script')
+                }
+            }
+
+            $pester | Write-PesterReport
+            $coverageReport = Get-CoverageReport -PesterState $pester
+            Write-CoverageReport -CoverageReport $coverageReport
+            Exit-CoverageAnalysis -PesterState $pester
+        }
+        finally
+        {
+            Exit-MockScope
+        }
 
         if (& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
             Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat

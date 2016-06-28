@@ -229,8 +229,6 @@ function Invoke-Test
 
     if ($null -eq $Parameters) { $Parameters = @{} }
 
-    $Pester.EnterTest($Name)
-
     if ($Skip)
     {
         $Pester.AddTestResult($Name, "Skipped", $null)
@@ -273,7 +271,6 @@ function Invoke-Test
             }
         }
 
-
         $result = Get-PesterResult -ErrorRecord $errorRecord
         $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
         $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
@@ -285,8 +282,7 @@ function Invoke-Test
         $Pester.testresult[-1] | & $OutputScriptBlock
     }
 
-    Exit-MockScope
-    $Pester.LeaveTest()
+    Exit-MockScope -ExitTestCaseOnly
 }
 
 function Get-PesterResult {

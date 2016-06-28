@@ -26,7 +26,7 @@ InModuleScope Pester {
 
         Context 'Handling errors in the Fixture' {
             $testState = New-PesterState -Path $TestDrive
-            $testState.EnterDescribe('A describe block')
+            $testState.EnterTestGroup('A describe block', 'Describe')
 
             $blockWithError = {
                 throw 'Bad stuff happened!'
@@ -51,7 +51,6 @@ InModuleScope Pester {
 
         Context 'Calls to the output blocks' {
             $testState = New-PesterState -Path $TestDrive
-            $testState.EnterDescribe('A describe block')
 
             $contextOutput = { MockMe -Name Context }
             $testOutput = { MockMe -Name Test }

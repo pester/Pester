@@ -7,7 +7,7 @@ InModuleScope Pester {
         It "should write a successful test result" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Successful testcase","Passed",(New-TimeSpan -Seconds 1))
 
             #export and validate the file
@@ -23,7 +23,7 @@ InModuleScope Pester {
         It "should write a failed test result" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $time = [TimeSpan]::FromSeconds(2.5)
             $TestResults.AddTestResult("Failed testcase","Failed",$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
 
@@ -42,7 +42,7 @@ InModuleScope Pester {
          It "should write the test summary" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Testcase","Passed",(New-TimeSpan -Seconds 1))
 
             #export and validate the file
@@ -59,7 +59,7 @@ InModuleScope Pester {
         it "should write the test-suite information" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Successful testcase","Passed",[timespan]10000000) #1.0 seconds
             $TestResults.AddTestResult("Successful testcase","Passed",[timespan]11000000) #1.1 seconds
 
@@ -87,10 +87,10 @@ InModuleScope Pester {
         it "should write two test-suite elements for two describes" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe #1')
+            $testResults.EnterTestGroup('Describe #1', 'Describe')
             $TestResults.AddTestResult("Successful testcase","Passed",(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-            $testResults.EnterDescribe('Describe #2')
+            $testResults.LeaveTestGroup('Describe #1', 'Describe')
+            $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.AddTestResult("Failed testcase","Failed",(New-TimeSpan -Seconds 2))
 
             #export and validate the file
@@ -129,27 +129,27 @@ InModuleScope Pester {
         it "should write parent results in tree correctly" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Failed')
+            $testResults.EnterTestGroup('Failed', 'Describe')
             $TestResults.AddTestResult("Failed","Failed")
             $TestResults.AddTestResult("Skipped","Skipped")
             $TestResults.AddTestResult("Pending","Pending")
             $TestResults.AddTestResult("Passed","Passed")
-            $TestResults.LeaveDescribe()
+            $TestResults.LeaveTestGroup('Failed', 'Describe')
 
-            $testResults.EnterDescribe('Skipped')
+            $testResults.EnterTestGroup('Skipped', 'Describe')
             $TestResults.AddTestResult("Skipped","Skipped")
             $TestResults.AddTestResult("Pending","Pending")
             $TestResults.AddTestResult("Passed","Passed")
-            $TestResults.LeaveDescribe()
+            $TestResults.LeaveTestGroup('Skipped', 'Describe')
 
-            $testResults.EnterDescribe('Pending')
+            $testResults.EnterTestGroup('Pending', 'Describe')
             $TestResults.AddTestResult("Pending","Pending")
             $TestResults.AddTestResult("Passed","Passed")
-            $TestResults.LeaveDescribe()
+            $TestResults.LeaveTestGroup('Pending', 'Describe')
 
-            $testResults.EnterDescribe('Passed')
+            $testResults.EnterTestGroup('Passed', 'Describe')
             $TestResults.AddTestResult("Passed","Passed")
-            $TestResults.LeaveDescribe()
+            $TestResults.LeaveTestGroup('Passed', 'Describe')
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -197,10 +197,10 @@ InModuleScope Pester {
         it "Should validate test results against the nunit 2.5 schema" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe #1')
+            $testResults.EnterTestGroup('Describe #1', 'Describe')
             $TestResults.AddTestResult("Successful testcase","Passed",(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-            $testResults.EnterDescribe('Describe #2')
+            $TestResults.LeaveTestGroup('Describe #1', 'Describe')
+            $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.AddTestResult("Failed testcase","Failed",(New-TimeSpan -Seconds 2))
 
             #export and validate the file
@@ -216,9 +216,9 @@ InModuleScope Pester {
         it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
+            $testResults.EnterTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
             $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-","Passed",(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
+            $TestResults.LeaveTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -233,7 +233,7 @@ InModuleScope Pester {
         Context 'Exporting Parameterized Tests (New Legacy)' {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
 
             $TestResults.AddTestResult(
                 'Parameterized Testcase One',
@@ -298,7 +298,7 @@ InModuleScope Pester {
         It "should write a successful test result" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Successful testcase",'Passed',(New-TimeSpan -Seconds 1))
 
             #export and validate the file
@@ -314,7 +314,7 @@ InModuleScope Pester {
         It "should write a failed test result" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $time = [TimeSpan]25000000 #2.5 seconds
             $TestResults.AddTestResult("Failed testcase",'Failed',$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
 
@@ -333,7 +333,7 @@ InModuleScope Pester {
          It "should write the test summary" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Testcase",'Passed',(New-TimeSpan -Seconds 1))
 
             #export and validate the file
@@ -350,7 +350,7 @@ InModuleScope Pester {
         it "should write the test-suite information" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Successful testcase",'Passed',[timespan]10000000) #1.0 seconds
             $TestResults.AddTestResult("Successful testcase",'Passed',[timespan]11000000) #1.1 seconds
 
@@ -371,10 +371,10 @@ InModuleScope Pester {
         it "should write two test-suite elements for two describes" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe #1')
+            $testResults.EnterTestGroup('Describe #1', 'Describe')
             $TestResults.AddTestResult("Successful testcase",'Passed',(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-            $testResults.EnterDescribe('Describe #2')
+            $TestResults.LeaveTestGroup('Describe #1', 'Describe')
+            $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.AddTestResult("Failed testcase",'Failed',(New-TimeSpan -Seconds 2))
 
             #export and validate the file
@@ -416,10 +416,10 @@ InModuleScope Pester {
         it "Should validate test results against the nunit 2.5 schema" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe #1')
+            $testResults.EnterTestGroup('Describe #1', 'Describe')
             $TestResults.AddTestResult("Successful testcase",'Passed',(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
-            $testResults.EnterDescribe('Describe #2')
+            $testResults.LeaveTestGroup('Describe #1', 'Describe')
+            $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.AddTestResult("Failed testcase",'Failed',(New-TimeSpan -Seconds 2))
 
             #export and validate the file
@@ -435,9 +435,9 @@ InModuleScope Pester {
         it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
+            $testResults.EnterTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
             $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-",'Passed',(New-TimeSpan -Seconds 1))
-            $TestResults.LeaveDescribe()
+            $TestResults.LeaveTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -452,7 +452,7 @@ InModuleScope Pester {
         Context 'Exporting Parameterized Tests (Newer format)' {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterDescribe('Mocked Describe')
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
 
             $TestResults.AddTestResult(
                 'Parameterized Testcase One',

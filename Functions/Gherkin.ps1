@@ -222,7 +222,7 @@ function Invoke-Gherkin {
             $null = $Pester.Features.Add($Feature)
 
             ## This is Pesters "Describe" function
-            $Pester.EnterDescribe($Feature)
+            $Pester.EnterTestGroup($Feature.Name, 'Describe')
             New-TestDrive
 
             Invoke-GherkinHook BeforeFeature $Feature.Name $Feature.Tags
@@ -308,14 +308,14 @@ function Invoke-Gherkin {
 
             foreach($Scenario in $Scenarios) {
                 # This is Pester's Context function
-                $Pester.EnterContext($Scenario.Name)
+                $Pester.EnterTestGroup($Scenario.Name, 'Context')
                 $TestDriveContent = Get-TestDriveChildItem
 
                 Invoke-GherkinScenario $Pester $Scenario $Background -Quiet:$Quiet
 
                 Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
                 # Exit-MockScope
-                $Pester.LeaveContext()
+                $Pester.LeaveTestGroup($Scenario.Name, 'Context')
             }
 
             ## This is Pesters "Describe" function again
@@ -325,7 +325,7 @@ function Invoke-Gherkin {
             ## Hypothetically, we could add FEATURE setup/teardown?
             # Clear-SetupAndTeardown
             Exit-MockScope
-            $Pester.LeaveDescribe()
+            $Pester.LeaveTestGroup($Feature.Name, 'Describe')
         }
         Invoke-GherkinHook AfterAllFeatures
 
@@ -402,7 +402,6 @@ function Invoke-GherkinStep {
     } else {
         $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
 
-        $Pester.EnterTest($StepText)
         $PesterException = $null
         $watch = New-Object System.Diagnostics.Stopwatch
         $watch.Start()
@@ -426,7 +425,6 @@ function Invoke-GherkinStep {
         }
 
         $watch.Stop()
-        $Pester.LeaveTest()
 
         $Pester.AddTestResult($StepText, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
     }

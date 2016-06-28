@@ -68,18 +68,18 @@ function ContextImpl
 
     Assert-DescribeInProgress -CommandName Context
 
-    $Pester.EnterContext($Name)
+    $Pester.EnterTestGroup($Name, 'Context')
     $TestDriveContent = Get-TestDriveChildItem
 
     if ($null -ne $ContextOutputBlock)
     {
-        $Pester.CurrentContext | & $ContextOutputBlock
+        & $ContextOutputBlock $Name
     }
 
     try
     {
         Add-SetupAndTeardown -ScriptBlock $Fixture
-        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
+        Invoke-TestGroupSetupBlocks
 
         do
         {
@@ -98,12 +98,11 @@ function ContextImpl
     }
     finally
     {
-        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        Invoke-TestGroupTeardownBlocks
     }
 
-    Clear-SetupAndTeardown
     Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
     Exit-MockScope
 
-    $Pester.LeaveContext()
+    $Pester.LeaveTestGroup($Name, 'Context')
 }

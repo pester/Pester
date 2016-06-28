@@ -106,11 +106,11 @@ function DescribeImpl {
     if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
     if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
 
-    $Pester.EnterDescribe($Name)
+    $Pester.EnterTestGroup($Name, 'Describe')
 
     if ($null -ne $DescribeOutputBlock)
     {
-        $Pester.CurrentDescribe | & $DescribeOutputBlock
+        & $DescribeOutputBlock $Name
     }
 
     # If we're unit testing Describe, we have to restore the original PSDrive when we're done here;
@@ -127,7 +127,7 @@ function DescribeImpl {
         $testDriveAdded = $true
 
         Add-SetupAndTeardown -ScriptBlock $Fixture
-        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
+        Invoke-TestGroupSetupBlocks
 
         do
         {
@@ -140,16 +140,15 @@ function DescribeImpl {
         $Pester.AddTestResult('Error occurred in Describe block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
         if ($null -ne $TestOutputBlock)
         {
-            $Pester.TestResult[-1] | & $TestOutputBlock
+            & $TestOutputBlock $Pester.TestResult[-1]
         }
     }
     finally
     {
-        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        Invoke-TestGroupTeardownBlocks
         if ($testDriveAdded) { Remove-TestDrive }
     }
 
-    Clear-SetupAndTeardown
     Exit-MockScope
 
     if ($oldTestDrive)
@@ -157,14 +156,15 @@ function DescribeImpl {
         New-TestDrive -Path $oldTestDrive
     }
 
-    $Pester.LeaveDescribe()
+    $Pester.LeaveTestGroup($Name, 'Describe')
 }
 
+# Name is now misleading; rename later.  (Many files touched to change this.)
 function Assert-DescribeInProgress
 {
     param ($CommandName)
-    if ($null -eq $Pester -or [string]::IsNullOrEmpty($Pester.CurrentDescribe))
+    if ($null -eq $Pester)
     {
-        throw "The $CommandName command may only be used inside a Describe block."
+        throw "The $CommandName command may only be used from a Pester test script."
     }
 }
