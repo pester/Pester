@@ -389,7 +389,7 @@ about_pester
 New-PesterOption
 
 #>
-    [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
+    [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
         [Parameter(Position=0,Mandatory=0)]
         [Alias('Path', 'relative_path')]
@@ -401,9 +401,6 @@ New-PesterOption
 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
-
-        [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
-        [string]$OutputXml,
 
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
@@ -421,7 +418,7 @@ New-PesterOption
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
+        [ValidateSet('NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Switch]$Quiet,
@@ -507,6 +504,8 @@ New-PesterOption
         {
             Exit-MockScope
         }
+
+        Set-PesterStatistics
 
         if (& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
             Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
@@ -693,6 +692,42 @@ function SafeGetCommand
     #>
 
     return $script:SafeCommands['Get-Command']
+}
+
+function Set-PesterStatistics($Node)
+{
+    if ($null -eq $Node) { $Node = $pester.TestActions }
+
+    foreach ($action in $Node.Actions)
+    {
+        if ($action.Type -eq 'TestGroup')
+        {
+            Set-PesterStatistics -Node $action
+
+            $Node.TotalCount        += $action.TotalCount
+            $Node.Time              += $action.Time
+            $Node.PassedCount       += $action.PassedCount
+            $Node.FailedCount       += $action.FailedCount
+            $Node.SkippedCount      += $action.SkippedCount
+            $Node.PendingCount      += $action.PendingCount
+            $Node.InconclusiveCount += $action.InconclusiveCount
+        }
+        elseif ($action.Type -eq 'TestCase')
+        {
+            $node.TotalCount++
+
+            switch ($action.Result)
+            {
+                Passed       { $Node.PassedCount++;       break; }
+                Failed       { $Node.FailedCount++;       break; }
+                Skipped      { $Node.SkippedCount++;      break; }
+                Pending      { $Node.PendingCount++;      break; }
+                Inconclusive { $Node.InconclusiveCount++; break; }
+            }
+
+            $Node.Time += $action.Time
+        }
+    }
 }
 
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"

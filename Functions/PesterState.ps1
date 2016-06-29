@@ -73,15 +73,21 @@ function New-PesterState
         function New-TestGroup([string] $Name, [string] $Hint)
         {
             & $SafeCommands['New-Object'] psobject -Property @{
-                Name = $Name
-                Type = 'TestGroup'
-                Hint = $Hint
-
-                Actions    = [System.Collections.ArrayList]@()
-                BeforeEach = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
-                AfterEach  = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
-                BeforeAll  = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
-                AfterAll   = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                Name              = $Name
+                Type              = 'TestGroup'
+                Hint              = $Hint
+                Actions           = [System.Collections.ArrayList]@()
+                BeforeEach        = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                AfterEach         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                BeforeAll         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                AfterAll          = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                TotalCount        = 0
+                Time              = [timespan]0
+                PassedCount       = 0
+                FailedCount       = 0
+                SkippedCount      = 0
+                PendingCount      = 0
+                InconclusiveCount = 0
             }
         }
 
@@ -188,7 +194,7 @@ function New-PesterState
                 }
             }
 
-            $context = $contests -join '/'
+            $context = $contexts -join '/'
 
             $script:TestResult += & $SafeCommands['New-Object'] psobject -Property @{
                 Describe               = $describe
