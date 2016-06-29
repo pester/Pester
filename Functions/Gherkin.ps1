@@ -131,12 +131,10 @@ function Invoke-Gherkin {
         [Switch]$Strict,
 
         # The path to write a report file to. If this path is not provided, no log will be generated.
-        # Aliased to 'OutputXml' for backwards compatibility
-        [Alias('OutputXml')]
         [string] $OutputFile,
 
         # The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
-        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
+        [ValidateSet('NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         # Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
@@ -167,7 +165,7 @@ function Invoke-Gherkin {
     end {
 
         if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
-            if((Test-Path variable:script:pester) -and $script:Pester.FailedScenarios.Count -gt 0 ) {
+            if((Test-Path variable:script:pester) -and $pester.FailedScenarios.Count -gt 0 ) {
                 $ScenarioName = $Pester.FailedScenarios | Select-Object -Expand Name
             }
             else {
@@ -178,7 +176,7 @@ function Invoke-Gherkin {
         # Clear mocks
         $script:mockTable = @{}
 
-        $script:pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
+        $pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
             Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[Gherkin.Ast.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
                 $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name

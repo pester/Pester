@@ -82,7 +82,7 @@ function Write-Describe {
         $Describe
     )
     process {
-        if($script:Pester.Quiet) { return }
+        if($pester.Quiet) { return }
 
         $Text = if($Describe.PSObject.Properties['Name'] -and $Describe.Name) {
             $ReportStrings.Describe -f $Describe.Name
@@ -107,7 +107,7 @@ function Write-Context {
         $Context
     )
     process {
-        if($script:Pester.Quiet) { return }
+        if($pester.Quiet) { return }
         $Text = if($Context.PSObject.Properties['Name'] -and $Context.Name) {
                 $ReportStrings.Context -f $Context.Name
             } else {
@@ -203,7 +203,7 @@ function Write-PesterResult {
     )
 
     process {
-        if($script:Pester.Quiet) { return }
+        if($pester.Quiet) { return }
 
         $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
 
@@ -294,7 +294,7 @@ function Write-PesterReport {
 function Write-CoverageReport {
     param ([object] $CoverageReport)
 
-    if ($null -eq $CoverageReport -or $script:Pester.Quiet -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
+    if ($null -eq $CoverageReport -or $pester.Quiet -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
     {
         return
     }
