@@ -14,7 +14,7 @@
     FilePlural      = 'Files'
 
     Describe = 'Describing {0}'
-        Script   = 'Executing script {0}'
+    Script   = 'Executing script {0}'
     Context  = 'Context {0}'
     Margin   = '  '
     Timing   = 'Tests completed in {0}'
