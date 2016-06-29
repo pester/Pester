@@ -84,6 +84,8 @@ function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
+
+
     # Write Root Element
     $xmlWriter.WriteStartElement('test-results')
 
@@ -116,18 +118,10 @@ function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $X
     Write-NUnitEnvironmentInformation @PSBoundParameters
     Write-NUnitCultureInformation @PSBoundParameters
 
-    $XmlWriter.WriteStartElement('test-suite')
-    Write-NUnitGlobalTestSuiteAttributes @PSBoundParameters
-
-    $XmlWriter.WriteStartElement('results')
-
     foreach ($action in $PesterState.TestActions.Actions)
     {
         Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $action
     }
-
-    $XmlWriter.WriteEndElement()
-    $XmlWriter.WriteEndElement()
 }
 
 function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter)
@@ -150,21 +144,6 @@ function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $Xml
     $XmlWriter.WriteAttributeString('current-uiculture', ([System.Threading.Thread]::CurrentThread.CurrentUiCulture).Name)
 
     $XmlWriter.WriteEndElement()
-}
-
-function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter)
-{
-    $XmlWriter.WriteAttributeString('type', 'Powershell')
-
-    $XmlWriter.WriteAttributeString('name', 'Pester')
-    $XmlWriter.WriteAttributeString('executed', 'True')
-
-    $isSuccess = $PesterState.FailedCount -eq 0
-    $result = Get-GroupResult $PesterState
-    $XmlWriter.WriteAttributeString('result', $result)
-    $XmlWriter.WriteAttributeString('success',[string]$isSuccess)
-    $XmlWriter.WriteAttributeString('time',(Convert-TimeSpan $PesterState.Time))
-    $XmlWriter.WriteAttributeString('asserts','0')
 }
 
 function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
@@ -201,9 +180,6 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
             $XmlWriter.WriteStartElement('test-suite')
 
-            $separator = if ($newPath) { '.' } else { '' }
-            $parameterizedSuiteInfo.Name = "${newPath}${separator}$($suite.Name)"
-
             Write-NUnitTestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter
 
             $XmlWriter.WriteStartElement('results')
@@ -220,7 +196,6 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
             $XmlWriter.WriteEndElement()
         }
     }
-
 
     $XmlWriter.WriteEndElement()
     $XmlWriter.WriteEndElement()
