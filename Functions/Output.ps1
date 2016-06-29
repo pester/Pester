@@ -15,8 +15,9 @@ $Script:ReportStrings = DATA {
         FilePlural      = 'Files'
 
         Describe = 'Describing {0}'
+        Script   = 'Executing script {0}'
         Context  = 'Context {0}'
-        Margin   = '   '
+        Margin   = '  '
         Timing   = 'Tests completed in {0}'
 
         # If this is set to an empty string, the count won't be printed
@@ -79,23 +80,27 @@ function Write-PesterStart {
 function Write-Describe {
     param (
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $Describe
+        $Describe,
+
+        [string] $CommandUsed = 'Describe'
     )
     process {
         if($pester.Quiet) { return }
 
+        $margin = $ReportStrings.Margin * $pester.IndentLevel
+
         $Text = if($Describe.PSObject.Properties['Name'] -and $Describe.Name) {
-            $ReportStrings.Describe -f $Describe.Name
+            $ReportStrings.$CommandUsed -f $Describe.Name
         } else {
-            $ReportStrings.Describe -f $Describe
+            $ReportStrings.$CommandUsed -f $Describe
         }
 
         & $SafeCommands['Write-Host']
-        & $SafeCommands['Write-Host'] $Text -ForegroundColor $ReportTheme.Describe
+        & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
         if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
             $Describe.Description -split '\n' | % {
-                & $SafeCommands['Write-Host'] ($ReportStrings.Margin * 2) $_ -ForegroundColor $ReportTheme.DescribeDetail
+                & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
         }
     }
@@ -205,10 +210,8 @@ function Write-PesterResult {
     process {
         if($pester.Quiet) { return }
 
-        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
-
-        $margin = ' ' * $TestDepth
-        $error_margin = $margin + '  '
+        $margin = $ReportStrings.Margin * ($pester.IndentLevel + 1)
+        $error_margin = $margin + $ReportStrings.Margin
         $output = $TestResult.name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 

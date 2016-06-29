@@ -329,5 +329,9 @@ function New-PesterState
         $array = $this.TestGroupStack.ToArray()
         [Array]::Reverse($array)
         return $array
+    } |
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name IndentLevel -Value {
+        # We ignore the root node of the stack here, and don't start indenting until after the Script nodes inside the root
+        return [Math]::Max(0, $this.TestGroupStack.Count - 2)
     }
 }

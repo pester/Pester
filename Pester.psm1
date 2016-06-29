@@ -471,6 +471,7 @@ New-PesterOption
                 try
                 {
                     $pester.EnterTestGroup($testScript.Path, 'Script')
+                    Write-Describe $testScript.Path -CommandUsed Script
                     do
                     {
                         & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
