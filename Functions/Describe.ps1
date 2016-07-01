@@ -105,14 +105,24 @@ function DescribeImpl {
 
     Assert-DescribeInProgress -CommandName $CommandUsed
 
-    if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
+    if ($Pester.TestGroupStack.Count -eq 2)
     {
-        #skip this test
-        return
-    }
+        if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
+        {
+            #skip this test
+            return
+        }
 
-    if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-    if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+        if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+        if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+    }
+    else
+    {
+        if ($PSBoundParameters.ContainsKey('Tag'))
+        {
+            Write-Warning "${CommandUsed}: Tags are only effective on the outermost test group, for now."
+        }
+    }
 
     $Pester.EnterTestGroup($Name, $CommandUsed)
 
