@@ -237,7 +237,7 @@ function Get-TestSuiteInfo ($TestSuite)
 {
     $suite = @{
         resultMessage = 'Failure'
-        success       = if ($TestSuitGroup.FailedCount -eq 0) { 'True' } else { 'False' }
+        success       = if ($TestSuite.FailedCount -eq 0) { 'True' } else { 'False' }
         totalTime     = Convert-TimeSpan $TestSuite.Time
         name          = $TestSuite.Name
         description   = $TestSuite.Name
