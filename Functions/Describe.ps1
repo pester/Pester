@@ -65,7 +65,9 @@ about_TestDrive
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
-        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+
+        [string] $CommandUsed = 'Describe'
     )
 
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
@@ -90,44 +92,63 @@ function DescribeImpl {
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
 
+        [string] $CommandUsed = 'Describe',
+
         $Pester,
 
         [scriptblock] $DescribeOutputBlock,
 
-        [scriptblock] $TestOutputBlock
+        [scriptblock] $TestOutputBlock,
+
+        [switch] $NoTestDrive
     )
 
-    if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
+    Assert-DescribeInProgress -CommandName $CommandUsed
+
+    if ($Pester.TestGroupStack.Count -eq 2)
     {
-        #skip this test
-        return
+        if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
+        {
+            #skip this test
+            return
+        }
+
+        if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+        if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+    }
+    else
+    {
+        if ($PSBoundParameters.ContainsKey('Tag'))
+        {
+            Write-Warning "${CommandUsed}: Tags are only effective on the outermost test group, for now."
+        }
     }
 
-    if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-    if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
-
-    $Pester.EnterDescribe($Name)
+    $Pester.EnterTestGroup($Name, $CommandUsed)
 
     if ($null -ne $DescribeOutputBlock)
     {
-        $Pester.CurrentDescribe | & $DescribeOutputBlock
+        & $DescribeOutputBlock $Name $CommandUsed
     }
 
-    # If we're unit testing Describe, we have to restore the original PSDrive when we're done here;
-    # this doesn't affect normal client code, who can't nest Describes anyway.
-    $oldTestDrive = $null
-    if (Test-Path TestDrive:\)
-    {
-        $oldTestDrive = (Get-PSDrive TestDrive).Root
-    }
-
+    $testDriveAdded = $false
     try
     {
-        New-TestDrive
-        $testDriveAdded = $true
+        if (-not $NoTestDrive)
+        {
+            if (-not (Test-Path TestDrive:\))
+            {
+                New-TestDrive
+                $testDriveAdded = $true
+            }
+            else
+            {
+                $TestDriveContent = Get-TestDriveChildItem
+            }
+        }
 
         Add-SetupAndTeardown -ScriptBlock $Fixture
-        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
+        Invoke-TestGroupSetupBlocks
 
         do
         {
@@ -137,34 +158,39 @@ function DescribeImpl {
     catch
     {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
-        $Pester.AddTestResult('Error occurred in Describe block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+        $Pester.AddTestResult("Error occurred in $CommandUsed block", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
         if ($null -ne $TestOutputBlock)
         {
-            $Pester.TestResult[-1] | & $TestOutputBlock
+            & $TestOutputBlock $Pester.TestResult[-1]
         }
     }
     finally
     {
-        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
-        if ($testDriveAdded) { Remove-TestDrive }
+        Invoke-TestGroupTeardownBlocks
+        if (-not $NoTestDrive)
+        {
+            if ($testDriveAdded)
+            {
+                Remove-TestDrive
+            }
+            else
+            {
+                Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+            }
+        }
     }
 
-    Clear-SetupAndTeardown
     Exit-MockScope
 
-    if ($oldTestDrive)
-    {
-        New-TestDrive -Path $oldTestDrive
-    }
-
-    $Pester.LeaveDescribe()
+    $Pester.LeaveTestGroup($Name, $CommandUsed)
 }
 
+# Name is now misleading; rename later.  (Many files touched to change this.)
 function Assert-DescribeInProgress
 {
     param ($CommandName)
-    if ($null -eq $Pester -or [string]::IsNullOrEmpty($Pester.CurrentDescribe))
+    if ($null -eq $Pester)
     {
-        throw "The $CommandName command may only be used inside a Describe block."
+        throw "The $CommandName command may only be used from a Pester test script."
     }
 }

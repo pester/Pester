@@ -33,7 +33,7 @@ InModuleScope Pester {
             }
 
             It 'Does not rethrow terminating exceptions from the Fixture block' {
-                { DescribeImpl -Pester $testState -Name 'A test' -Fixture $blockWithError } | Should Not Throw
+                { DescribeImpl -Pester $testState -Name 'A test' -Fixture $blockWithError -NoTestDrive } | Should Not Throw
             }
 
             It 'Adds a failed test result when errors occur in the Describe block' {
@@ -57,7 +57,7 @@ InModuleScope Pester {
             It 'Calls the Describe output block once, and does not call the test output block when no errors occur' {
                 $block = { $null = $null }
 
-                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput
+                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive
 
                 Assert-MockCalled MockMe -Exactly 0 -ParameterFilter { $Name -eq 'Test' } -Scope It
                 Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
@@ -66,7 +66,7 @@ InModuleScope Pester {
             It 'Calls the Describe output block once, and the test output block once if an error occurs.' {
                 $block = { throw 'up' }
 
-                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput
+                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive
 
                 Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Test' } -Scope It
                 Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
@@ -86,14 +86,14 @@ InModuleScope Pester {
 
             It -TestCases $cases 'Calls the test block when the test name <Description>' {
                 param ($Name)
-                DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock -NoTestDrive
                 Assert-MockCalled MockMe -Scope It -Exactly 1
             }
 
             It 'Does not call the test block when the test name doesn''t match a filter' {
-                DescribeImpl -Name 'Test On' -Pester $testState -Fixture $testBlock
-                DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock
-                DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name 'Test On' -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock -NoTestDrive
 
                 Assert-MockCalled MockMe -Scope It -Exactly 0
             }
@@ -114,13 +114,13 @@ InModuleScope Pester {
             It -TestCases $cases 'Calls the test block when the tag filter <Description>' {
                 param ($Tags)
 
-                DescribeImpl -Name 'Blah' -Tags $Tags -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name 'Blah' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
                 Assert-MockCalled MockMe -Scope It -Exactly 1
             }
 
             It 'Does not call the test block when the test tags don''t match the pester state''s tags.' {
                 # Unlike the test name filter, tags are literal matches and not interpreted as wildcards.
-                DescribeImpl -Name 'Blah' -Tags 'TestTwoTest' -Pester $testState -Fixture $testBlock
+                DescribeImpl -Name 'Blah' -Tags 'TestTwoTest' -Pester $testState -Fixture $testBlock -NoTestDrive
 
                 Assert-MockCalled MockMe -Scope It -Exactly 0
             }

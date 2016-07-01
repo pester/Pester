@@ -6,11 +6,13 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
     $outNullModule = 'Microsoft.PowerShell.Core'
+    $outHostModule = 'Microsoft.PowerShell.Core'
 }
 else
 {
     $script:IgnoreErrorPreference = 'SilentlyContinue'
     $outNullModule = 'Microsoft.PowerShell.Utility'
+    $outHostModule = $null
 }
 
 # Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
@@ -42,7 +44,7 @@ $script:SafeCommands = @{
     'New-Object'          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
     'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Out-Host'            = Get-Command -Name Out-Host            -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
+    'Out-Host'            = Get-Command -Name Out-Host            -Module $outHostModule                  -CommandType Cmdlet -ErrorAction Stop
     'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  -CommandType Cmdlet -ErrorAction Stop
     'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
     'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
@@ -72,7 +74,7 @@ $script:SafeCommands = @{
 # Not all platforms have Get-WmiObject (Nano)
 # Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
-# exist 
+# exist
 if ( Get-Command -ea SilentlyContinue Get-CimInstance )
 {
     $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Stop
@@ -387,7 +389,7 @@ about_pester
 New-PesterOption
 
 #>
-    [CmdletBinding(DefaultParameterSetName = 'LegacyOutputXml')]
+    [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
         [Parameter(Position=0,Mandatory=0)]
         [Alias('Path', 'relative_path')]
@@ -399,9 +401,6 @@ New-PesterOption
 
         [Parameter(Position=2,Mandatory=0)]
         [switch]$EnableExit,
-
-        [Parameter(Position=3,Mandatory=0, ParameterSetName = 'LegacyOutputXml')]
-        [string]$OutputXml,
 
         [Parameter(Position=4,Mandatory=0)]
         [Alias('Tags')]
@@ -419,7 +418,7 @@ New-PesterOption
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('LegacyNUnitXml', 'NUnitXml')]
+        [ValidateSet('NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Switch]$Quiet,
@@ -442,56 +441,72 @@ New-PesterOption
             $OutputFormat = 'LegacyNUnitXml'
         }
 
-
         $script:mockTable = @{}
-        $Script:Pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
-        Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
 
-        Write-PesterStart $pester $Script
-
-        $invokeTestScript = {
-            param (
-                [Parameter(Position = 0)]
-                [string] $Path,
-
-                [object[]] $Arguments = @(),
-                [System.Collections.IDictionary] $Parameters = @{}
-            )
-
-            & $Path @Parameters @Arguments
-        }
-
-        Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
-
-        $testScripts = @(ResolveTestScripts $Script)
-
-        foreach ($testScript in $testScripts)
+        try
         {
-            try
+            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+
+            Write-PesterStart $pester $Script
+
+            $invokeTestScript = {
+                param (
+                    [Parameter(Position = 0)]
+                    [string] $Path,
+
+                    [object[]] $Arguments = @(),
+                    [System.Collections.IDictionary] $Parameters = @{}
+                )
+
+                & $Path @Parameters @Arguments
+            }
+
+            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
+
+            $testScripts = @(ResolveTestScripts $Script)
+
+            foreach ($testScript in $testScripts)
             {
-                do
+                try
                 {
-                    & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-                } until ($true)
+                    $pester.EnterTestGroup($testScript.Path, 'Script')
+                    Write-Describe $testScript.Path -CommandUsed Script
+                    do
+                    {
+                        & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                    } until ($true)
+                }
+                catch
+                {
+                    $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+                    $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+
+                    # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
+                    # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
+                    # planned for v4.0
+                    $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
+
+                    $pester.TestResult[-1] | Write-PesterResult
+                }
+                finally
+                {
+                    Exit-MockScope
+                    $pester.LeaveTestGroup($testScript.Path, 'Script')
+                }
             }
-            catch
-            {
-                $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
-                $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-                
-                # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
-                # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
-                # planned for v4.0
-                $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
-                
-                $pester.TestResult[-1] | Write-PesterResult
-            }
+
+            $pester | Write-PesterReport
+            $coverageReport = Get-CoverageReport -PesterState $pester
+            Write-CoverageReport -CoverageReport $coverageReport
+            Exit-CoverageAnalysis -PesterState $pester
+        }
+        finally
+        {
+            Exit-MockScope
         }
 
-        $pester | Write-PesterReport
-        $coverageReport = Get-CoverageReport -PesterState $pester
-        Write-CoverageReport -CoverageReport $coverageReport
-        Exit-CoverageAnalysis -PesterState $pester
+        Set-PesterStatistics
 
         if (& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
             Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
@@ -678,6 +693,42 @@ function SafeGetCommand
     #>
 
     return $script:SafeCommands['Get-Command']
+}
+
+function Set-PesterStatistics($Node)
+{
+    if ($null -eq $Node) { $Node = $pester.TestActions }
+
+    foreach ($action in $Node.Actions)
+    {
+        if ($action.Type -eq 'TestGroup')
+        {
+            Set-PesterStatistics -Node $action
+
+            $Node.TotalCount        += $action.TotalCount
+            $Node.Time              += $action.Time
+            $Node.PassedCount       += $action.PassedCount
+            $Node.FailedCount       += $action.FailedCount
+            $Node.SkippedCount      += $action.SkippedCount
+            $Node.PendingCount      += $action.PendingCount
+            $Node.InconclusiveCount += $action.InconclusiveCount
+        }
+        elseif ($action.Type -eq 'TestCase')
+        {
+            $node.TotalCount++
+
+            switch ($action.Result)
+            {
+                Passed       { $Node.PassedCount++;       break; }
+                Failed       { $Node.FailedCount++;       break; }
+                Skipped      { $Node.SkippedCount++;      break; }
+                Pending      { $Node.PendingCount++;      break; }
+                Inconclusive { $Node.InconclusiveCount++; break; }
+            }
+
+            $Node.Time += $action.Time
+        }
+    }
 }
 
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
