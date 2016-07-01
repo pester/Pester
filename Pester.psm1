@@ -102,6 +102,31 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
+
+function Test-NullOrWhiteSpace {
+    param ([string]$String)
+
+    $String -match "^\s*$"
+}
+
+function Assert-ValidAssertionName
+{
+    param([string]$Name)
+    if ($Name -notmatch '^\S+$')
+    {
+        throw "Assertion name '$name' is invalid, assertion name must be a single word."
+    }
+}
+
+function Assert-ValidAssertionAlias
+{
+    param([string]$Alias)
+    if ($Alias -notmatch '^\S+$')
+    {
+        throw "Assertion alias '$string' is invalid, assertion alias must be a single word."
+    }
+}
+
 function Add-AssertionOperator
 {
     [CmdletBinding()]
@@ -134,9 +159,9 @@ function Add-AssertionOperator
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias)
+    foreach ($string in $Alias | where { -not (Test-NullOrWhiteSpace $_)})
     {
-        if ($string -notmatch '\S') { continue }
+        Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
 
@@ -149,9 +174,9 @@ function Assert-AssertionOperatorNameIsUnique
         [string[]] $Name
     )
 
-    foreach ($string in $name)
+    foreach ($string in $name | where { -not (Test-NullOrWhiteSpace $_)})
     {
-        if ($string -notmatch '\S') { continue }
+        Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string))
         {
@@ -181,9 +206,9 @@ function Add-AssertionDynamicParameterSet
 
     $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
-
-    if ($AssertionEntry.Alias -match '\S')
+    if (-not (Test-NullOrWhiteSpace $AssertionEntry.Alias))
     {
+        Assert-ValidAssertionAlias -Alias $AssertionEntry.Alias
         $attribute = New-Object System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
         $attributeCollection.Add($attribute)
     }
