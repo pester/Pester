@@ -120,7 +120,7 @@ function DescribeImpl {
     {
         if ($PSBoundParameters.ContainsKey('Tag'))
         {
-            Write-Warning "${CommandUsed}: Tags are only effective on the outermost test group, for now."
+            Write-Warning "${CommandUsed} '$Name': Tags are only effective on the outermost test group, for now."
         }
     }
 
