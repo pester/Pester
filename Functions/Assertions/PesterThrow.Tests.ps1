@@ -18,6 +18,13 @@ InModuleScope Pester {
             { throw $expectedErrorMessage } | Should -Throw $expectedErrorMessage
         }
 
+        It "returns true if the statement throws an exception and the actual error text matches the expected error text (case insensitive)" {
+            $expectedErrorMessage = "expected error message"
+            $errorMessage = $expectedErrorMessage.ToUpperInvariant()
+            { throw $errorMessage } | Should Throw $expectedErrorMessage
+            { throw $errorMessage } | Should -Throw $expectedErrorMessage
+        }
+
         It "returns false if the statement throws an exception and the actual error does not match the expected error text" {
             $unexpectedErrorMessage = "unexpected error message"
             $expectedErrorMessage = "some expected error message"

@@ -51,7 +51,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [sw
 
 function Get-DoMessagesMatch($ActualValue, $ExpectedMessage, $ExpectedErrorId) {
     if ($ExpectedMessage -eq "") { return $false }
-    return $ActualValue.Contains($ExpectedMessage)
+    return $ActualValue -like "*$ExpectedMessage*"
 }
 
 function Get-ExceptionLineInfo($info) {
