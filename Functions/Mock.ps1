@@ -1023,41 +1023,42 @@ function ExecuteBlock
         param (
             [Parameter(Mandatory = $true)]
             [scriptblock]
-            $ScriptBlock,
+            ${Script Block},
 
             [hashtable]
-            $BoundParameters = @{},
+            $___BoundParameters___ = @{},
 
             [object[]]
-            $ArgumentList = @(),
+            $___ArgumentList___ = @(),
 
             [System.Management.Automation.CommandMetadata]
-            $Metadata,
+            ${Meta data},
 
             [System.Management.Automation.SessionState]
-            $SessionState
+            ${Session State}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
         # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
-        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
+        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterVariables,
         # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
         # by doing it inside this temporary script block, those variables don't stick around longer than they
         # should.
 
-        # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
-        # we'll stash them in names unlikely to be overwritten.
-
-        $___ScriptBlock___ = $ScriptBlock
-        $___BoundParameters___ = $BoundParameters
-        $___ArgumentList___ = $ArgumentList
-
-        Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
-        & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+        Set-DynamicParameterVariables -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-    & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
+    $splat = @{
+        'Script Block' = $block.Mock
+        '___ArgumentList___' = $ArgumentList
+        '___BoundParameters___' = $BoundParameters
+        'Meta data' = $mock.Metadata
+        'Session State' = $mock.SessionState
+    }
+
+    & $scriptBlock @splat
 }
 
 function Invoke-InMockScope
