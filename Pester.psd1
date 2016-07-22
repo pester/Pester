@@ -90,7 +90,7 @@ PrivateData = @{
         Category = "Scripting Techniques"
 
         # Keyword tags to help users find this module via navigations and search.
-        Tags = @('powershell','unit testing','bdd','tdd','mocking')
+        Tags = @('powershell','unit_testing','bdd','tdd','mocking')
 
         # The web address of an icon which can be used in galleries to represent this module
         IconUri = "http://pesterbdd.com/images/Pester.png"
