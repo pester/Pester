@@ -168,9 +168,11 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         }
     }
 
-    $suites = $Node.Actions |
-              & $SafeCommands['Where-Object'] { $_.Type -eq 'TestCase' } |
-              & $SafeCommands['Group-Object'] -Property ParameterizedSuiteName
+    $suites = @(
+        $Node.Actions |
+        & $SafeCommands['Where-Object'] { $_.Type -eq 'TestCase' } |
+        & $SafeCommands['Group-Object'] -Property ParameterizedSuiteName
+    )
 
     foreach ($suite in $suites)
     {
