@@ -1690,3 +1690,22 @@ Describe 'Globbing characters in command name' {
     }
 
 }
+
+Describe 'Naming conflicts in mocked functions' {
+    function Sample {
+        param(
+            [string]
+            ${Metadata}
+        )
+    }
+
+    function Wrapper {
+        Sample -Metadata 'test'
+    }
+
+    Mock -CommandName Sample { 'mocked' }
+
+    It 'Works with commands that contain variables named Metadata' {
+        Wrapper | Should Be 'mocked'
+    }
+}

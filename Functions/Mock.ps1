@@ -1113,10 +1113,10 @@ function ExecuteBlock
             ${Script Block},
 
             [hashtable]
-            ${Bound Parameters} = @{},
+            $___BoundParameters___ = @{},
 
             [object[]]
-            ${Argument List} = @(),
+            $___ArgumentList___ = @(),
 
             [System.Management.Automation.CommandMetadata]
             ${Meta data},
@@ -1132,18 +1132,15 @@ function ExecuteBlock
         # by doing it inside this temporary script block, those variables don't stick around longer than they
         # should.
 
-        $___BoundParameters___ = ${Bound Parameters}
-        $___ArgumentList___ = ${Argument List}
-
-        Set-DynamicParameterVariables -SessionState ${Session State} -Parameters ${Bound Parameters} -Metadata ${Meta data}
+        Set-DynamicParameterVariables -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
     $splat = @{
         'Script Block' = $block.Mock
-        'Argument List' = $ArgumentList
-        'Bound Parameters' = $BoundParameters
+        '___ArgumentList___' = $ArgumentList
+        '___BoundParameters___' = $BoundParameters
         'Meta data' = $mock.Metadata
         'Session State' = $mock.SessionState
     }
