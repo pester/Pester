@@ -1,3 +1,6 @@
+## 3.4.2 (August 2, 2016)
+  - Bug fix when multiple cmdlets with the same name exist in PowerShell 5.1.  [GH-588]
+
 ## 3.4.1 (July 22, 2016)
   - Updated code to use Get-CimInstance if possible, then Get-WmiObject, for Nano compatibility.  [GH-484]
   - Fixed failure message output of Should BeLike / BeLikeExactly.  [GH-497]

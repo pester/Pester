@@ -22,9 +22,14 @@ else
 # name as the safe cmdlets, Get-Command will return null.
 $safeCommandLookupParameters = @{
     CommandType = [System.Management.Automation.CommandTypes]::Cmdlet
-            All = $true
     ErrorAction = [System.Management.Automation.ActionPreference]::Stop
 }
+
+if ($PSVersionTable.PSVersion.Major -gt 2)
+{
+    $safeCommandLookupParameters['All'] = $true
+}
+
 $script:SafeCommands = @{
     'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
