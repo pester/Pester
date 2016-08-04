@@ -226,20 +226,23 @@ InModuleScope Pester {
 
     Describe 'Stripping common parent paths' {
         $paths = @(
-            'C:\Common\Folder\UniqueSubfolder1\File.ps1'
-            'C:\Common\Folder\UniqueSubfolder2\File2.ps1'
-            'C:\Common\Folder\UniqueSubfolder3\File3.ps1'
+            Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
+            Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
+            Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
         )
 
         $commonPath = Get-CommonParentPath -Path $paths
+        $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
 
         It 'Identifies the correct parent path' {
-            $commonPath | Should Be 'C:\Common\Folder'
+            $commonPath | Should Be $expectedCommonPath
         }
 
+        $expectedRelativePath = Normalize-Path 'UniqueSubfolder1/File.ps1'
+        $relativePath = Get-RelativePath -Path $paths[0] -RelativeTo $commonPath
+
         It 'Strips the common path correctly' {
-            Get-RelativePath -Path $paths[0] -RelativeTo $commonPath |
-            Should Be 'UniqueSubfolder1\File.ps1'
+            $relativePath | Should Be $expectedRelativePath
         }
     }
 
