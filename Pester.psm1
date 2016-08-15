@@ -490,7 +490,7 @@ New-PesterOption
     if ($PassThru) {
         #remove all runtime properties like current* and Scope
         $properties = @(
-            "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
+            "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
 
             if ($CodeCoverage)
             {
