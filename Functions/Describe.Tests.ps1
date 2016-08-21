@@ -27,6 +27,10 @@ InModuleScope Pester {
         Context 'Handling errors in the Fixture' {
             $testState = New-PesterState -Path $TestDrive
 
+            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
+            # "2".  ("1" being the Tests.ps1 script that's active.)
+            $testState.EnterTestGroup('Mocked Script', 'Script')
+
             $blockWithError = {
                 throw 'Bad stuff happened!'
                 MockMe
@@ -50,6 +54,10 @@ InModuleScope Pester {
 
         Context 'Calls to the output blocks' {
             $testState = New-PesterState -Path $TestDrive
+
+            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
+            # "2".  ("1" being the Tests.ps1 script that's active.)
+            $testState.EnterTestGroup('Mocked Script', 'Script')
 
             $describeOutput = { MockMe -Name Describe }
             $testOutput = { MockMe -Name Test }
@@ -76,6 +84,10 @@ InModuleScope Pester {
         Context 'Test Name Filter' {
             $testState = New-PesterState -Path $TestDrive -TestNameFilter '*One*', 'Test Two'
 
+            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
+            # "2".  ("1" being the Tests.ps1 script that's active.)
+            $testState.EnterTestGroup('Mocked Script', 'Script')
+
             $testBlock = { MockMe }
 
             $cases = @(
@@ -101,6 +113,11 @@ InModuleScope Pester {
 
         Context 'Tags Filter' {
             $testState = New-PesterState -Path $TestDrive -TagFilter 'One', '*Two*'
+
+            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
+            # "2".  ("1" being the Tests.ps1 script that's active.)
+            $testState.EnterTestGroup('Mocked Script', 'Script')
+
             $testBlock = { MockMe }
 
             $cases = @(

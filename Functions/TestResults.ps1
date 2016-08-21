@@ -84,8 +84,6 @@ function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
-
-
     # Write Root Element
     $xmlWriter.WriteStartElement('test-results')
 
@@ -118,10 +116,21 @@ function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $X
     Write-NUnitEnvironmentInformation @PSBoundParameters
     Write-NUnitCultureInformation @PSBoundParameters
 
+    $suiteInfo = Get-TestSuiteInfo -TestSuite $PesterState -TestSuiteName $PesterState.TestSuiteName
+
+    $XmlWriter.WriteStartElement('test-suite')
+
+    Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
+
+    $XmlWriter.WriteStartElement('results')
+
     foreach ($action in $PesterState.TestActions.Actions)
     {
         Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $action
     }
+
+    $XmlWriter.WriteEndElement()
+    $XmlWriter.WriteEndElement()
 }
 
 function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter)
@@ -182,7 +191,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
             $XmlWriter.WriteStartElement('test-suite')
 
-            Write-NUnitTestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter
+            Write-NUnitTestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -TestSuiteType 'ParameterizedTest' -XmlWriter $XmlWriter -Path $newPath
 
             $XmlWriter.WriteStartElement('results')
         }
@@ -235,14 +244,16 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
     return Get-TestSuiteInfo -TestSuite $node
 }
 
-function Get-TestSuiteInfo ($TestSuite)
+function Get-TestSuiteInfo ($TestSuite, $TestSuiteName)
 {
+    if (-not $PSBoundParameters.ContainsKey('TestSuiteName')) { $TestSuiteName = $TestSuite.Name }
+
     $suite = @{
         resultMessage = 'Failure'
         success       = if ($TestSuite.FailedCount -eq 0) { 'True' } else { 'False' }
         totalTime     = Convert-TimeSpan $TestSuite.Time
-        name          = $TestSuite.Name
-        description   = $TestSuite.Name
+        name          = $TestSuiteName
+        description   = $TestSuiteName
     }
 
     $suite.resultMessage = Get-GroupResult $TestSuite
@@ -289,10 +300,17 @@ function Get-TestSuccess($tests) {
     }
     [String]$result
 }
-function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter)
+function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
 {
+    $name = $TestSuiteInfo.Name
+
+    if ($TestSuiteType -eq 'ParameterizedTest' -and $Path)
+    {
+        $name = "$Path.$name"
+    }
+
     $XmlWriter.WriteAttributeString('type', $TestSuiteType)
-    $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
+    $XmlWriter.WriteAttributeString('name', $name)
     $XmlWriter.WriteAttributeString('executed', 'True')
     $XmlWriter.WriteAttributeString('result', $TestSuiteInfo.resultMessage)
     $XmlWriter.WriteAttributeString('success', $TestSuiteInfo.success)

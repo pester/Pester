@@ -62,6 +62,9 @@ InModuleScope Pester {
             $testResults.EnterTestGroup('Mocked Describe', 'Describe')
             $TestResults.AddTestResult("Successful testcase",'Passed',[timespan]10000000) #1.0 seconds
             $TestResults.AddTestResult("Successful testcase",'Passed',[timespan]11000000) #1.1 seconds
+            $testResults.LeaveTestGroup('Mocked Describe', 'Describe')
+
+            Set-PesterStatistics -Node $TestResults.TestActions
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"
@@ -85,6 +88,9 @@ InModuleScope Pester {
             $TestResults.LeaveTestGroup('Describe #1', 'Describe')
             $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.AddTestResult("Failed testcase",'Failed',(New-TimeSpan -Seconds 2))
+            $TestResults.LeaveTestGroup('Describe #2', 'Describe')
+
+            Set-PesterStatistics -Node $TestResults.TestActions
 
             #export and validate the file
             $testFile = "$TestDrive\Results\Tests.xml"

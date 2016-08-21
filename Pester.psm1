@@ -563,6 +563,8 @@ function New-PesterOption
 .PARAMETER IncludeVSCodeMarker
    When this switch is set, an extra line of output will be written to the console for test failures, making it easier
    for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
+.PARAMETER TestSuiteName
+   When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
 .INPUTS
    None
    You cannot pipe input to this command.
@@ -574,11 +576,15 @@ function New-PesterOption
 
     [CmdletBinding()]
     param (
-        [switch] $IncludeVSCodeMarker
+        [switch] $IncludeVSCodeMarker,
+
+        [ValidateNotNullOrEmpty()]
+        [string] $TestSuiteName = 'Pester'
     )
 
     return & $script:SafeCommands['New-Object'] psobject -Property @{
         IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+        TestSuiteName       = $TestSuiteName
     }
 }
 

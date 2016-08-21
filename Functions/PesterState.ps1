@@ -62,6 +62,7 @@ function New-PesterState
         $script:InconclusiveCount = 0
 
         $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
+        $script:TestSuiteName       = $PesterOption.TestSuiteName
 
         $script:SafeCommands = @{}
 
@@ -309,7 +310,8 @@ function New-PesterState
         "InconclusiveCount",
         "IncludeVSCodeMarker",
         "TestActions",
-        "TestGroupStack"
+        "TestGroupStack",
+        "TestSuiteName"
 
         $ExportedFunctions = "EnterTestGroup",
                              "LeaveTestGroup",
