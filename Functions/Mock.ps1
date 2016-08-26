@@ -1298,7 +1298,10 @@ function Get-DynamicParametersForCmdlet
         [string] $CmdletName,
 
         [ValidateScript({
-            if ($null -ne $_ -and $_.GetType().FullName -ne 'System.Management.Automation.PSBoundParametersDictionary') {
+            if ($PSVersionTable.PSVersion.Major -ge 3 -and
+                $null -ne $_ -and
+                $_.GetType().FullName -ne 'System.Management.Automation.PSBoundParametersDictionary')
+            {
                 throw 'The -Parameters argument must be a PSBoundParametersDictionary object ($PSBoundParameters).'
             }
 

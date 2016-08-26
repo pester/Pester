@@ -1244,14 +1244,21 @@ Describe 'DynamicParam blocks in other scopes' {
             DynamicParam {
                 if ($script:DoDynamicParam)
                 {
-                    # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
-                    # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
-                    # to make a new one.
+                    if ($PSVersionTable.PSVersion.Major -ge 3)
+                    {
+                        # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
+                        # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
+                        # to make a new one.
 
-                    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-                    $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+                        $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+                        $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+                    }
+                    else
+                    {
+                        $params = @{}
+                    }
+
                     $params['Path'] = [string[]]'Cert:\'
-
                     Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
                 }
             }
