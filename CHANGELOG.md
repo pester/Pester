@@ -1,3 +1,6 @@
+## 3.4.3 (August 25, 2016)
+  - Fixed mocking for certain cmdlets containing dynamic parameters in PowerShell 5.1.  [GH-599]
+
 ## 3.4.2 (August 2, 2016)
   - Bug fix when multiple cmdlets with the same name exist in PowerShell 5.1.  [GH-588]
 
