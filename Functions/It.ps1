@@ -16,7 +16,7 @@ In addition to using your own logic to test expectations and throw exceptions,
 you may also use Pester's Should command to perform assertions in plain language.
 
 .PARAMETER Name
-An expressive phsae describing the expected test outcome.
+An expressive phrase describing the expected test outcome.
 
 .PARAMETER Test
 The script block that should throw an exception if the

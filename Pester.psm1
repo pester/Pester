@@ -138,7 +138,7 @@ To run Pester tests in scripts that take parameter values, use the Script
 parameter with a hash table value. 
 
 Also, by default, Pester tests write test results to the console host, much like 
-Write-Host does, but you can use the Quiet parameter to supress the host 
+Write-Host does, but you can use the Quiet parameter to suppress the host 
 messages, use the PassThru parameter to generate a custom object 
 (PSCustomObject) that contains the test results, use the OutputXml and 
 OutputFormat parameters to write the test results to an XML file, and use the 

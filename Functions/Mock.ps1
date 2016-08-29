@@ -39,7 +39,7 @@ Each module's mock maintains a separate call history and verified status.
 The name of the command to be mocked.
 
 .PARAMETER MockWith
-A ScriptBlock specifying the behvior that will be used to mock CommandName.
+A ScriptBlock specifying the behavior that will be used to mock CommandName.
 The default is an empty ScriptBlock.
 NOTE: Do not specify param or dynamicparam blocks in this script block.
 These will be injected automatically based on the signature of the command
@@ -108,7 +108,7 @@ Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem $env:temp\me
 
-Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
+Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardless of their creation order.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule
@@ -218,7 +218,7 @@ about_Mocking
             $null = $metadata.Parameters.Remove('OutVariable')
             $null = $metadata.Parameters.Remove('OutBuffer')
 
-            # Some versions of powershell may include dynamic parameters here
+            # Some versions of PowerShell may include dynamic parameters here
             # We will filter them out and add them at the end to be
             # compatible with both earlier and later versions
             $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
@@ -468,7 +468,7 @@ An optional filter to qualify wich calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
 
-.PARAMETER ExlusiveFilter
+.PARAMETER ExclusiveFilter
 Like ParameterFilter, except when you use ExclusiveFilter, and there
 were any calls to the mocked command which do not match the filter,
 an exception will be thrown.  This is a convenient way to avoid needing

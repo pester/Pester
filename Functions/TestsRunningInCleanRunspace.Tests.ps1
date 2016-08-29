@@ -23,7 +23,7 @@
     } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport
     $job | Wait-Job | Out-Null
 
-    #not using Recieve-Job to ignore any output to Host
+    #not using Receive-Job to ignore any output to Host
     #TODO: how should this handle errors?
     #$job.Error | foreach { throw $_.Exception  }
     $job.Output

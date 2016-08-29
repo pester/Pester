@@ -1,13 +1,13 @@
 
-function PesterContain($file, $contentExpecation) {
-    return ((& $SafeCommands['Get-Content'] -Encoding UTF8 $file) -match $contentExpecation)
+function PesterContain($file, $contentExpectation) {
+    return ((& $SafeCommands['Get-Content'] -Encoding UTF8 $file) -match $contentExpectation)
 }
 
-function PesterContainFailureMessage($file, $contentExpecation) {
-    return "Expected: file ${file} to contain {$contentExpecation}"
+function PesterContainFailureMessage($file, $contentExpectation) {
+    return "Expected: file ${file} to contain {$contentExpectation}"
 }
 
-function NotPesterContainFailureMessage($file, $contentExpecation) {
-    return "Expected: file {$file} to not contain ${contentExpecation} but it did"
+function NotPesterContainFailureMessage($file, $contentExpectation) {
+    return "Expected: file {$file} to not contain ${contentExpectation} but it did"
 }
 
