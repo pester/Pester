@@ -37,13 +37,13 @@ Describe "describe 2" {
             $pesterBase = (get-module pester).modulebase
             # isolate this in a new runspace because we're running
             # invoke-pester, which will create a new TESTDRIVE
-            $ps = [powershell]::Create([System.Management.Automation.RunspaceMode]::NewRunspace)
+            $ps = [powershell]::Create()
         }
         AfterAll {
             $ps.dispose()
         }
         It "Pester should return a failure in the case of a error in AfterAll" {
-            $r = $ps.AddScript("import-module $pesterBase; invoke-pester '$TESTDRIVE/ptest' -quiet -pass").Invoke()
+            $r = $ps.AddScript("import-module $pesterBase; invoke-pester '$TESTDRIVE/ptest' -quiet -pass").Invoke() | select-object -first 1
             $r.TotalCount  | should be 5
             $r.PassedCount | should be 4
             $r.FailedCount | should be 1
