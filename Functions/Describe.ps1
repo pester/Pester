@@ -111,7 +111,20 @@ about_TestDrive
     }
     finally
     {
-        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        # if a teardown block throws seriously bad things can happen
+        # to PesterState, including that you won't know that you've exited
+        # a describe, and testDrive will not be cleaned up.
+        # Now we produce an error and continue
+        try
+        {
+            Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        }
+        catch
+        {
+            $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
+            $Pester.AddTestResult("Error occurred in $firstStackTraceLine", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+            $Pester.TestResult[-1] | Write-PesterResult
+        }
         if ($testDriveAdded) { Remove-TestDrive }
     }
 
