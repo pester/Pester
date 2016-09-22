@@ -259,14 +259,11 @@ InModuleScope Pester {
 
                 configuration MyTestConfig   # does NOT trigger breakpoint
                 {
-                    # add this line to avoid a warning during test
-                    Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint
                     Node localhost    # Triggers breakpoint
                     {
-                        Environment MyEnvironmentResource   # Triggers breakpoint
+                        WindowsFeature XPSViewer   # Triggers breakpoint
                         {
-                            Name = 'PesterTest'  # does NOT trigger breakpoint
-                            Value = 'IsTheBest'  # does NOT trigger breakpoint
+                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
                             Ensure = 'Present'   # does NOT trigger breakpoint
                         }
                     }
@@ -288,21 +285,21 @@ InModuleScope Pester {
             Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should Be 8
+                $testState.CommandCoverage.Count | Should Be 7
             }
 
             $null = . "$root\TestScriptWithConfiguration.ps1"
 
             $coverageReport = Get-CoverageReport -PesterState $testState
             It 'Reports the proper number of missed commands before running the configuration' {
-                $coverageReport.MissedCommands.Count | Should Be 5
+                $coverageReport.MissedCommands.Count | Should Be 4
             }
 
             MyTestConfig -OutputPath $root
 
             $coverageReport = Get-CoverageReport -PesterState $testState
             It 'Reports the proper number of missed commands after running the configuration' {
-                $coverageReport.MissedCommands.Count | Should Be 3
+                $coverageReport.MissedCommands.Count | Should Be 2
             }
 
             Exit-CoverageAnalysis -PesterState $testState

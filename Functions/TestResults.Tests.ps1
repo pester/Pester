@@ -1,16 +1,6 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    # Don't perform the schema validations unless the Validate method exists
-    # XmlDocument.Validate does not exist on Nano
-    if ( [xml].GetMethods()|?{$_.Name -eq "Validate"} )
-    {
-        $skipValidationTests = $false
-    }
-    else
-    {
-        $skipValidationTests = $true
-    }
     Describe "Write nunit test results (Legacy)" {
         Setup -Dir "Results"
 
@@ -204,7 +194,7 @@ InModuleScope Pester {
             $xmlEnvironment.'machine-name'  | Should Be $env:ComputerName
         }
 
-        it -skip:$SkipValidationTests "Should validate test results against the nunit 2.5 schema" {
+        it "Should validate test results against the nunit 2.5 schema" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe #1')
@@ -223,7 +213,7 @@ InModuleScope Pester {
             { $xml.Validate({throw $args.Exception }) } | Should Not Throw
         }
 
-        it -skip:$SkipValidationTests "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+        it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
@@ -294,7 +284,7 @@ InModuleScope Pester {
                 }
             }
 
-            it -skip:$SkipValidationTests 'Should validate test results against the nunit 2.5 schema' {
+            it 'Should validate test results against the nunit 2.5 schema' {
                 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
                 $null = $xmlResult.Schemas.Add($null,$schemaPath)
                 { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
@@ -423,7 +413,7 @@ InModuleScope Pester {
             $xmlEnvironment.'machine-name'  | Should Be $env:ComputerName
         }
 
-        it -skip:$SkipValidationTests "Should validate test results against the nunit 2.5 schema" {
+        it "Should validate test results against the nunit 2.5 schema" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe #1')
@@ -442,7 +432,7 @@ InModuleScope Pester {
             { $xml.Validate({throw $args.Exception }) } | Should Not Throw
         }
 
-        it -skip:$SkipValidationTests "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+        it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterDescribe('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1')
@@ -514,7 +504,7 @@ InModuleScope Pester {
                 $testCase2.Time | Should Be 1
             }
 
-            it -skip:$SkipValidationTests 'Should validate test results against the nunit 2.5 schema' {
+            it 'Should validate test results against the nunit 2.5 schema' {
                 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
                 $null = $xmlResult.Schemas.Add($null,$schemaPath)
                 { $xmlResult.Validate({throw $args.Exception }) } | Should Not Throw
