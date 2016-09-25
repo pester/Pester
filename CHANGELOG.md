@@ -9,7 +9,7 @@
   - Fixed failure message output of Should BeLike / BeLikeExactly.  [GH-497]
   - Added some missing information to about_Should help. [GH-519]
   - Made -OutputFormat parameter optional, defaulting to NUnitXml. [GH-503]
-  - Fix error messsage of Should Throw when null input is provided [GH-521]
+  - Fix error message of Should Throw when null input is provided [GH-521]
   - Fix mocking bug on functions that contain certain parameter names (Metadata, etc).  [GH-583]
 
 ## 3.4.0 (February 29, 2016)
@@ -62,7 +62,7 @@
   - Added -ExclusiveFilter parameter to Assert-MockCalled.  Works like -ParameterFilter, except there also must not be any calls to the mocked command which do _not_ match the filter.
   - Added the "bin" folder to the PATH environment variable when installing from Chocolatey.  Also removed the hard-coded -OutputXml and -Strict parameters from this file; only -EnableExit is always used from the bat file now.  [GH-281]
   - PassThru object (when used in conjunction with -CodeCoverage) now includes information about Hit commands in addition to Missed commands.  [GH-341]
-  - Improvements to support for mocking advanced fynctions with dynamic parameters.  [GH-346]
+  - Improvements to support for mocking advanced functions with dynamic parameters.  [GH-346]
   - Fix for PowerShell v2 bug when mocking commands that have an -ArgumentList parameter with validation attributes.  [GH-354]
   - Fixed stack trace output when the call to Should is in a file other than the file that contains the It block. [GH-358]
 
@@ -208,7 +208,7 @@
   - Fixed issues when mocking Out-File [GH-71]
   - Exposing TestDrive with Get-TestDriveItem [GH-70]
   - Fixed bug where mocking Remove-Item caused cleanup to break [GH-68]
-  - Added -Passthu to Setup to obtain file system object references [GH-69]
+  - Added -Passthru to Setup to obtain file system object references [GH-69]
   - Can assert on exception messages from Throw assertions [GH-58]
   - Fixed assertions on empty functions [GH-50]
   - Fixed New-Fixture so it creates proper syntax in tests [GH-49]

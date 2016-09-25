@@ -12,7 +12,7 @@ InModuleScope Pester {
                 Test-NegativeAssertion (PesterContainExactly "$TestDrive\test.txt" "pESTER")
             }
 
-            It "returns true if the file contains the specified Unicode content exactyle" {
+            It "returns true if the file contains the specified Unicode content exactly" {
                 Test-PositiveAssertion (PesterContainExactly "$TestDrive\test.txt" "☺")
             }
         }

@@ -154,7 +154,7 @@ function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $Xml
 
 function Write-NUnitGlobalTestSuiteAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter, [switch] $LegacyFormat)
 {
-    $XmlWriter.WriteAttributeString('type', 'Powershell')
+    $XmlWriter.WriteAttributeString('type', 'PowerShell')
 
     # TODO: This used to be writing $PesterState.Path, back when that was a single string (and existed.)
     #       Better would be to produce a test suite for each resolved file, rather than for the value

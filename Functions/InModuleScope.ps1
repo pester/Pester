@@ -45,7 +45,7 @@ function InModuleScope
     }
 
     Normally you would not be able to access "PrivateFunction" from
-    the powershell session, because the module only exported
+    the PowerShell session, because the module only exported
     "PublicFunction".  Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
 #>

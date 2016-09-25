@@ -76,7 +76,7 @@ InModuleScope Pester {
                 $description = $xmlTestResult.description
             }
 
-            $xmlTestResult.type    | Should Be "Powershell"
+            $xmlTestResult.type    | Should Be "PowerShell"
             $xmlTestResult.name    | Should Be "Mocked Describe"
             $description           | Should BeNullOrEmpty
             $xmlTestResult.result  | Should Be "Success"
