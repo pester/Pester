@@ -5,6 +5,8 @@ $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
 $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
     param ($scriptRoot)
+    Get-Module Pester | Remove-Module -Force
+    Import-Module $scriptRoot\Pester.psd1 -Force
 
     New-Object psobject -Property @{
         Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Quiet
@@ -20,7 +22,7 @@ $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
 $gherkin = $job | Wait-Job | Receive-Job
 Remove-Job $job
 
-Describe 'Invoke-Gerkin' {
+Describe 'Invoke-Gherkin' {
     It 'Works on the Validator example' {
         $gherkin.Results.PassedCount | Should Be $gherkin.Results.TotalCount
     }
