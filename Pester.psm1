@@ -19,56 +19,69 @@ else
 # Get-Command does.  Since this is at import time, before any mocks have been defined, that's probably acceptable.
 # If someone monkeys with Get-Command before they import Pester, they may break something.
 
+# The -All parameter is required when calling Get-Command to ensure that PowerShell can find the command it is
+# looking for. Otherwise, if you have modules loaded that define proxy cmdlets or that have cmdlets with the same
+# name as the safe cmdlets, Get-Command will return null.
+$safeCommandLookupParameters = @{
+    CommandType = [System.Management.Automation.CommandTypes]::Cmdlet
+    ErrorAction = [System.Management.Automation.ActionPreference]::Stop
+}
+
+if ($PSVersionTable.PSVersion.Major -gt 2)
+{
+    $safeCommandLookupParameters['All'] = $true
+}
+
 $script:SafeCommands = @{
-    'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Compare-Object'      = Get-Command -Name Compare-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Export-ModuleMember' = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'ForEach-Object'      = Get-Command -Name ForEach-Object      -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'Format-Table'        = Get-Command -Name Format-Table        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Get-ChildItem'       = Get-Command -Name Get-ChildItem       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Get-Command'         = Get-Command -Name Get-Command         -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'Get-Content'         = Get-Command -Name Get-Content         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Get-Date'            = Get-Command -Name Get-Date            -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Get-Item'            = Get-Command -Name Get-Item            -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Get-Location'        = Get-Command -Name Get-Location        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Get-Member'          = Get-Command -Name Get-Member          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Get-Module'          = Get-Command -Name Get-Module          -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'Get-PSDrive'         = Get-Command -Name Get-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Get-Variable'        = Get-Command -Name Get-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Group-Object'        = Get-Command -Name Group-Object        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Join-Path'           = Get-Command -Name Join-Path           -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Measure-Object'      = Get-Command -Name Measure-Object      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'New-Item'            = Get-Command -Name New-Item            -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'New-Module'          = Get-Command -Name New-Module          -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'New-Object'          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Out-Host'            = Get-Command -Name Out-Host            -Module $outHostModule                  -CommandType Cmdlet -ErrorAction Stop
-    'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  -CommandType Cmdlet -ErrorAction Stop
-    'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Push-Location'       = Get-Command -Name Push-Location       -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Remove-Item'         = Get-Command -Name Remove-Item         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Remove-PSBreakpoint' = Get-Command -Name Remove-PSBreakpoint -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Remove-PSDrive'      = Get-Command -Name Remove-PSDrive      -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Remove-Variable'     = Get-Command -Name Remove-Variable     -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Resolve-Path'        = Get-Command -Name Resolve-Path        -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Select-Object'       = Get-Command -Name Select-Object       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Set-Content'         = Get-Command -Name Set-Content         -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint    -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Set-StrictMode'      = Get-Command -Name Set-StrictMode      -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'Set-Variable'        = Get-Command -Name Set-Variable        -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Sort-Object'         = Get-Command -Name Sort-Object         -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Split-Path'          = Get-Command -Name Split-Path          -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Start-Sleep'         = Get-Command -Name Start-Sleep         -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Test-Path'           = Get-Command -Name Test-Path           -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
-    'Where-Object'        = Get-Command -Name Where-Object        -Module Microsoft.PowerShell.Core       -CommandType Cmdlet -ErrorAction Stop
-    'Write-Error'         = Get-Command -Name Write-Error         -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Write-Host'          = Get-Command -Name Write-Host          -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Write-Progress'      = Get-Command -Name Write-Progress      -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
-    'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet -ErrorAction Stop
+    'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Compare-Object'      = Get-Command -Name Compare-Object      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Export-ModuleMember' = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'ForEach-Object'      = Get-Command -Name ForEach-Object      -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Format-Table'        = Get-Command -Name Format-Table        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-ChildItem'       = Get-Command -Name Get-ChildItem       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Command'         = Get-Command -Name Get-Command         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Get-Content'         = Get-Command -Name Get-Content         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Date'            = Get-Command -Name Get-Date            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Item'            = Get-Command -Name Get-Item            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Location'        = Get-Command -Name Get-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Member'          = Get-Command -Name Get-Member          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Module'          = Get-Command -Name Get-Module          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Get-PSDrive'         = Get-Command -Name Get-PSDrive         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Variable'        = Get-Command -Name Get-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Group-Object'        = Get-Command -Name Group-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Join-Path'           = Get-Command -Name Join-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Measure-Object'      = Get-Command -Name Measure-Object      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'New-Item'            = Get-Command -Name New-Item            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-Module'          = Get-Command -Name New-Module          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'New-Object'          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Out-Host'            = Get-Command -Name Out-Host            -Module $outHostModule                  @safeCommandLookupParameters
+    'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  @safeCommandLookupParameters
+    'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Push-Location'       = Get-Command -Name Push-Location       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-Item'         = Get-Command -Name Remove-Item         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-PSBreakpoint' = Get-Command -Name Remove-PSBreakpoint -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Remove-PSDrive'      = Get-Command -Name Remove-PSDrive      -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-Variable'     = Get-Command -Name Remove-Variable     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Resolve-Path'        = Get-Command -Name Resolve-Path        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Select-Object'       = Get-Command -Name Select-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-Content'         = Get-Command -Name Set-Content         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint    -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-StrictMode'      = Get-Command -Name Set-StrictMode      -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Set-Variable'        = Get-Command -Name Set-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Sort-Object'         = Get-Command -Name Sort-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Split-Path'          = Get-Command -Name Split-Path          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Start-Sleep'         = Get-Command -Name Start-Sleep         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Test-Path'           = Get-Command -Name Test-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Where-Object'        = Get-Command -Name Where-Object        -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Write-Error'         = Get-Command -Name Write-Error         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+	'Write-Host'          = Get-Command -Name Write-Host          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Progress'      = Get-Command -Name Write-Progress      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
 # Not all platforms have Get-WmiObject (Nano)
@@ -77,11 +90,11 @@ $script:SafeCommands = @{
 # exist
 if ( Get-Command -ea SilentlyContinue Get-CimInstance )
 {
-    $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Stop
+    $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets @safeCommandLookupParameters
 }
 elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
 {
-    $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Stop
+    $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
 }
 else
 {
@@ -293,41 +306,81 @@ $moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 function Invoke-Pester {
 <#
 .SYNOPSIS
-Invokes Pester to run all tests (files containing *.Tests.ps1) recursively under the Path
+Runs Pester tests
 
 .DESCRIPTION
-Upon calling Invoke-Pester, all files that have a name containing
-"*.Tests.ps1" will have the tests defined in their Describe blocks
-executed. Invoke-Pester begins at the location of Path and
-runs recursively through each sub directory looking for
-"*.Tests.ps1" files containing tests. If a TestName is provided,
-Invoke-Pester will only run tests that have a describe block with a
-matching name. By default, Invoke-Pester will end the test run with a
-simple report of the number of tests passed and failed output to the
-console. One may want pester to "fail a build" in the event that any
-tests fail. To accomodate this, Invoke-Pester will return an exit
-code equal to the number of failed tests if the EnableExit switch is
-set. Invoke-Pester will also write a NUnit style log of test results
-if the OutputXml parameter is provided. In these cases, Invoke-Pester
-will write the result log to the path provided in the OutputXml
-parameter.
+The Invoke-Pester function runs Pester tests, including *.Tests.ps1 files and 
+Pester tests in PowerShell scripts.
 
-Optionally, Pester can generate a report of how much code is covered
-by the tests, and information about any commands which were not
-executed.
+You can run scripts that include Pester tests just as you would any other 
+Windows PowerShell script, including typing the full path at the command line 
+and running in a script editing program. Typically, you use Invoke-Pester to run 
+all Pester tests in a directory, or to use its many helpful parameters, 
+including parameters that generate custom objects or XML files.
+
+By default, Invoke-Pester runs all *.Tests.ps1 files in the current directory 
+and all subdirectories recursively. You can use its parameters to select tests 
+by file name, test name, or tag. 
+
+To run Pester tests in scripts that take parameter values, use the Script 
+parameter with a hash table value. 
+
+Also, by default, Pester tests write test results to the console host, much like 
+Write-Host does, but you can use the Quiet parameter to suppress the host 
+messages, use the PassThru parameter to generate a custom object 
+(PSCustomObject) that contains the test results, use the OutputXml and 
+OutputFormat parameters to write the test results to an XML file, and use the 
+EnableExit parameter to return an exit code that contains the number of failed 
+tests. 
+
+You can also use the Strict parameter to fail all pending and skipped tests. 
+This feature is ideal for build systems and other processes that require success 
+on every test. 
+
+To help with test design, Invoke-Pester includes a CodeCoverage parameter that 
+lists commands, functions, and lines of code that did not run during test 
+execution and returns the code that ran as a percentage of all tested code.
+
+Invoke-Pester, and the Pester module that exports it, are products of an 
+open-source project hosted on GitHub. To view, comment, or contribute to the 
+repository, see https://github.com/Pester.
 
 .PARAMETER Script
-This parameter indicates which test scripts should be run.
-This parameter may be passed simple strings (wildcards are allowed), or hashtables containing Path, Arguments and Parameters keys.
-If hashtables are used, the Parameters key must refer to a hashtable, and the Arguments key must refer to an array; these will be splatted to the test script(s) indicated in the Path key.
+Specifies the test files that Pester runs. You can also use the Script parameter 
+to pass parameter names and values to a script that contains Pester tests. The 
+value of the Script parameter can be a string, a hash table, or a collection 
+of hash tables and strings. Wildcard characters are supported.
 
-Note:  If the path contains any wildcards, or if it refers to a directory, then Pester will search for and execute all test scripts named *.Tests.ps1 in the target path; the search is recursive.  If the path contains no wildcards and refers to a file, Pester will just try to execute that file regardless of its name.
+The Script parameter is optional. If you omit it, Invoke-Pester runs all 
+*.Tests.ps1 files in the local directory and its subdirectories recursively. 
+	
+To run tests in other files, such as .ps1 files, enter the path and file name of
+the file. (The file name is required. Name patterns that end in "*.ps1" run only
+*.Tests.ps1 files.) 
 
-Aliased to 'Path' and 'relative_path' for backwards compatibility.
+To run a Pester test with parameter names and/or values, use a hash table as the 
+value of the script parameter. The keys in the hash table are:
+
+-- Path [string] (required): Specifies a test to run. The value is a path\file 
+   name or name pattern. Wildcards are permitted. All hash tables in a Script 
+   parameter value must have a Path key. 
+	
+-- Parameters [hashtable]: Runs the script with the specified parameters. The 
+   value is a nested hash table with parameter name and value pairs, such as 
+   @{UserName = 'User01'; Id = '28'}. 
+	
+-- Arguments [array]: An array or comma-separated list of parameter values 
+   without names, such as 'User01', 28. Use this key to pass values to positional 
+   parameters.
+	
 
 .PARAMETER TestName
-Informs Invoke-Pester to only run Describe blocks that match these names.  The strings passed to TestName may contain wildcards
-
+Runs only tests in Describe blocks that have the specified name or name pattern.
+Wildcard characters are supported. 
+	
+If you specify multiple TestName values, Invoke-Pester runs tests that have any of 
+the values in the Describe name (it ORs the TestName values).
+	
 .PARAMETER EnableExit
 Will cause Invoke-Pester to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
@@ -335,29 +388,85 @@ Will cause Invoke-Pester to exit with a exit code equal to the number of failed 
 The path where Invoke-Pester will save a NUnit formatted test results log file. If this path is not provided, no log will be generated.
 
 .PARAMETER Tag
-Informs Invoke-Pester to only run Describe blocks tagged with the tags specified. Aliased 'Tags' for backwards compatibility.
+Runs only tests in Describe blocks with the specified Tag parameter values. Wildcard
+characters and Tag values that include spaces or whitespace characters are not 
+supported.
+	
+When you specify multiple Tag values, Invoke-Pester runs tests that have any of the 
+listed tags (it ORs the tags). However, when you specify TestName and Tag values,
+Invoke-Pester runs only describe blocks that have one of the specified TestName values
+and one of the specified Tag values.
 
+If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
+	
 .PARAMETER ExcludeTag
-Informs Invoke-Pester to not run blocks tagged with the tags specified.
+Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
+characters and Tag values that include spaces or whitespace characters are not 
+supported.
+	
+When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have any 
+of the listed tags (it ORs the tags). However, when you specify TestName and ExcludeTag values,
+Invoke-Pester omits only describe blocks that have one of the specified TestName values
+and one of the specified Tag values.
+
+If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
 
 .PARAMETER PassThru
-Returns a Pester result object containing the information about the whole test run, and each test.
+Returns a custom object (PSCustomObject) that contains the test results. 
+	
+By default, Invoke-Pester writes to the host program, not to the output stream (stdout). 
+If you try to save the result in a variable, the variable is empty unless you use the PassThru
+parameter.
+	
+To suppress the host output, use the Quiet parameter.
 
 .PARAMETER CodeCoverage
-Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
-If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
-By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
-Hashtables must contain a Path key (which can be abbreviated to just "P"), and may contain Function (or "F"), StartLine (or "S"), and EndLine ("E") keys to narrow down the commands to be analyzed.
-If Function is specified, StartLine and EndLine are ignored.
-If only StartLine is defined, the entire script file starting with StartLine is analyzed.
-If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
-Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
+Adds a code coverage report to the Pester tests. Takes strings or hash table values.
+	
+A code coverage report lists the lines of code that did and did not run during a Pester test. 
+This report does not tell whether code was tested; only whether the code ran during 
+the test.
+
+By default, the code coverage report is written to the host program (like Write-Host). When you
+use the PassThru parameter, the custom object that Invoke-Pester returns has an additional 
+CodeCoverage property that contains a custom object with detailed results of the code coverage
+test, including lines hit, lines missed, and helpful statistics.
+	
+However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include any
+code coverage information, because it's not supported by the schema.
+	
+Enter the path to the files of code under test (not the test file). Wildcard characters are supported. 
+If you omit the path, the default is local directory, not the directory specified by the Script 
+parameter.
+
+To run a code coverage test only on selected functions or lines in a script, enter a 
+hash table value with the following keys:
+	
+-- Path (P)(mandatory) <string>. Enter one path to the files. Wildcard characters
+   are supported, but only one string is permitted.
+
+One of the following: Function or StartLine/EndLine
+	
+-- Function (F) <string>: Enter the function name. Wildcard characters are supported, 
+   but only one string is permitted.
+	
+-or-
+	
+-- StartLine (S): Performs code coverage analysis beginning with the specified line. Default
+   is line 1.
+-- EndLine (E): Performs code coverage analysis ending with the specified line. Default is
+   the last line of the script.
+	
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
 
 .PARAMETER Quiet
-Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
+Suppresses the output that Pester writes to the host program, including the 
+result summary and CodeCoverage output.
+	
+This parameter does not affect the PassThru custom object or the XML output that is 
+written when you use the Output parameters.
 
 .PARAMETER PesterOption
 Sets advanced options for the test execution. Enter a PesterOption object, such as one that you create by using the New-PesterOption cmdlet, or a hash table in which the keys are option names and the values are option values.
@@ -366,34 +475,75 @@ For more information on the options available, see the help for New-PesterOption
 .Example
 Invoke-Pester
 
-This will find all *.Tests.ps1 files and run their tests. No exit code will be returned and no log file will be saved.
+This command runs all *.Tests.ps1 files in the current directory and its subdirectories.
 
 .Example
-Invoke-Pester -Script ./tests/Utils*
+Invoke-Pester -Script .\Util*
 
-This will run all tests in files under ./Tests that begin with Utils and alsocontains .Tests.
-
+This commands runs all *.Tests.ps1 files in subdirectories with names that begin
+with 'Util' and their subdirectories.
+	
 .Example
-Invoke-Pester -Script @{ Path = './tests/Utils*'; Parameters = @{ NamedParameter = 'Passed By Name' }; Arguments = @('Passed by position') }
+Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
 
-Executes the same tests as in Example 1, but will run them with the equivalent of the following command line:  & $testScriptPath -NamedParameter 'Passed By Name' 'Passed by position'
+This command runs all *.Tests.ps1 files in D:\MyModule and its subdirectories. 
+It also runs the tests in the ModuleUnit.Tests.ps1 file using the following
+parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01 
 
 .Example
 Invoke-Pester -TestName "Add Numbers"
 
-This will only run the Describe block named "Add Numbers"
-
-.Example
-Invoke-Pester -EnableExit -OutputXml "./artifacts/TestResults.xml"
-
-This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifacts/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
-
-.Example
-Invoke-Pester -EnableExit -OutputFile "./artifacts/TestResults.xml" -OutputFormat NUnitxml
-
-This runs all tests from the current directory downwards and writes the results to an output file and NUnitxml output format
-
+This command runs only the tests in the Describe block named "Add Numbers".
+	
 .EXAMPLE
+$results = Invoke-Pester -Script D:\MyModule -PassThru -Quiet
+$failed = $results.TestResult | where Result -eq 'Failed'
+
+$failed.Name
+cannot find help for parameter: Force : in Compress-Archive
+help for Force parameter in Compress-Archive has wrong Mandatory value
+help for Compress-Archive has wrong parameter type for Force
+help for Update parameter in Compress-Archive has wrong Mandatory value
+help for DestinationPath parameter in Expand-Archive has wrong Mandatory value
+	
+$failed[0]
+Describe               : Test help for Compress-Archive in Microsoft.PowerShell.Archive (1.0.0.0)
+Context                : Test parameter help for Compress-Archive
+Name                   : cannot find help for parameter: Force : in Compress-Archive
+Result                 : Failed
+Passed                 : False
+Time                   : 00:00:00.0193083
+FailureMessage         : Expected: value to not be empty
+StackTrace             : at line: 279 in C:\GitHub\PesterTdd\Module.Help.Tests.ps1
+                         279:                     $parameterHelp.Description.Text | Should Not BeNullOrEmpty
+ErrorRecord            : Expected: value to not be empty
+ParameterizedSuiteName :
+Parameters             : {}
+	
+This examples uses the PassThru parameter to return a custom object with the 
+Pester test results. By default, Invoke-Pester writes to the host program, but not 
+to the output stream. It also uses the Quiet parameter to suppress the host output.
+	
+The first command runs Invoke-Pester with the PassThru and Quiet parameters and
+saves the PassThru output in the $results variable.
+	
+The second command gets only failing results and saves them in the $failed variable.
+	
+The third command gets the names of the failing results. The result name is the 
+name of the It block that contains the test.
+
+The fourth command uses an array index to get the first failing result. The
+property values describe the test, the expected result, the actual result, and
+useful values, including a stack tace.
+
+.Example
+Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
+
+This command runs all tests in the current directory and its subdirectories. It
+writes the results to the TestResults.xml file using the NUnitXml schema. The 
+test returns an exit code equal to the number of test failures.
+
+ .EXAMPLE
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
 
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
@@ -408,9 +558,15 @@ Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; End
 
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
 
+.EXAMPLE
+Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
+	
+This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those files, it runs only tests that have UnitTest or Newest tags, unless the test also has a Bug tag.
+	
 .LINK
+https://github.com/pester/Pester/wiki/Invoke-Pester
 Describe
-about_pester
+about_Pester
 New-PesterOption
 
 #>
@@ -537,10 +693,10 @@ New-PesterOption
             Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
         }
 
-        if ($PassThru) {
-            #remove all runtime properties like current* and Scope
-            $properties = @(
-                "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount","Time","TestResult"
+    if ($PassThru) {
+        #remove all runtime properties like current* and Scope
+        $properties = @(
+            "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
 
                 if ($CodeCoverage)
                 {

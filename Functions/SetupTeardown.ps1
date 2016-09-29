@@ -176,7 +176,7 @@ function Add-SetupAndTeardownV2
         if ($type -eq [System.Management.Automation.PSTokenType]::Command -and
             (IsSetupOrTeardownCommand -CommandName $token.Content))
         {
-            $openBraceIndex, $closeBraceIndex = Get-BraceIndecesForCommand -Tokens $tokens -CommandIndex $i
+            $openBraceIndex, $closeBraceIndex = Get-BraceIndicesForCommand -Tokens $tokens -CommandIndex $i
 
             $block = Get-ScriptBlockFromTokens -Tokens $Tokens -OpenBraceIndex $openBraceIndex -CloseBraceIndex $closeBraceIndex -CodeText $codeText
             Add-SetupOrTeardownScriptBlock -CommandName $token.Content -ScriptBlock $block
@@ -234,7 +234,7 @@ function IsTestGroupCommand
     return $CommandName -eq 'BeforeAll' -or $CommandName -eq 'AfterAll'
 }
 
-function Get-BraceIndecesForCommand
+function Get-BraceIndicesForCommand
 {
     param (
         [System.Management.Automation.PSToken[]] $Tokens,
