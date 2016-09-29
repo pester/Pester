@@ -16,7 +16,7 @@ function New-Fixture {
 
     }
 
-    The script containg the example test .\Clean.Tests.ps1:
+    The script containing the example test .\Clean.Tests.ps1:
 
     $here = Split-Path -Parent $MyInvocation.MyCommand.Path
     $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")

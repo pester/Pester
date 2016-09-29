@@ -226,20 +226,23 @@ InModuleScope Pester {
 
     Describe 'Stripping common parent paths' {
         $paths = @(
-            'C:\Common\Folder\UniqueSubfolder1\File.ps1'
-            'C:\Common\Folder\UniqueSubfolder2\File2.ps1'
-            'C:\Common\Folder\UniqueSubfolder3\File3.ps1'
+            Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
+            Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
+            Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
         )
 
         $commonPath = Get-CommonParentPath -Path $paths
+        $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
 
         It 'Identifies the correct parent path' {
-            $commonPath | Should Be 'C:\Common\Folder'
+            $commonPath | Should Be $expectedCommonPath
         }
 
+        $expectedRelativePath = Normalize-Path 'UniqueSubfolder1/File.ps1'
+        $relativePath = Get-RelativePath -Path $paths[0] -RelativeTo $commonPath
+
         It 'Strips the common path correctly' {
-            Get-RelativePath -Path $paths[0] -RelativeTo $commonPath |
-            Should Be 'UniqueSubfolder1\File.ps1'
+            $relativePath | Should Be $expectedRelativePath
         }
     }
 
@@ -256,7 +259,7 @@ InModuleScope Pester {
 
                 configuration MyTestConfig   # does NOT trigger breakpoint
                 {
-                    Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint
+                    Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
 
                     Node localhost    # Triggers breakpoint
                     {
@@ -283,22 +286,30 @@ InModuleScope Pester {
 
             Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState
 
+            #the AST does not parse Import-DscResource -ModuleName PSDesiredStateConfiguration on PowerShell 4
+            $runsInPowerShell4 = $PSVersionTable.PSVersion.Major -eq 4
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should Be 8
+                if($runsInPowerShell4) { $expected = 7 } else { $expected = 8 }
+
+                $testState.CommandCoverage.Count | Should Be $expected
             }
 
             $null = . "$root\TestScriptWithConfiguration.ps1"
 
             $coverageReport = Get-CoverageReport -PesterState $testState
             It 'Reports the proper number of missed commands before running the configuration' {
-                $coverageReport.MissedCommands.Count | Should Be 5
+                if($runsInPowerShell4) { $expected = 4 } else { $expected = 5 }
+
+                $coverageReport.MissedCommands.Count | Should Be $expected
             }
 
             MyTestConfig -OutputPath $root
 
             $coverageReport = Get-CoverageReport -PesterState $testState
             It 'Reports the proper number of missed commands after running the configuration' {
-                $coverageReport.MissedCommands.Count | Should Be 3
+                if($runsInPowerShell4) { $expected = 2 } else { $expected = 3 }
+
+                $coverageReport.MissedCommands.Count | Should Be $expected
             }
 
             Exit-CoverageAnalysis -PesterState $testState

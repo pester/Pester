@@ -61,7 +61,7 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        $Tag=@(),
+        [string[]] $Tag=@(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]

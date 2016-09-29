@@ -213,7 +213,7 @@ Describe 'When calling Mock on an external script' {
 
         $result = & tempExternalScript.ps1
         It 'Should Invoke the mocked script using the command-invocation operator' {
-            #the command invocation operator is (&). Moved this to comment because it breaks the contionuous builds.
+            #the command invocation operator is (&). Moved this to comment because it breaks the continuous builds.
             #there is issue for this on GH
 
             $result | Should Be 'I am not tempExternalScript.ps1'
@@ -677,7 +677,7 @@ Describe "When Calling Assert-MockCalled without exactly" {
     FunctionUnderTest "one"
     FunctionUnderTest "two"
 
-    It "Should throw if mock was not called atleast the number of times specified" {
+    It "Should throw if mock was not called at least the number of times specified" {
         $scriptBlock = { Assert-MockCalled FunctionUnderTest 4 }
         $scriptBlock | Should Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
     }
@@ -1244,7 +1244,22 @@ Describe 'DynamicParam blocks in other scopes' {
             DynamicParam {
                 if ($script:DoDynamicParam)
                 {
-                    Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters @{ Path = [string[]]'Cert:\' }
+                    if ($PSVersionTable.PSVersion.Major -ge 3)
+                    {
+                        # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
+                        # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
+                        # to make a new one.
+
+                        $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+                        $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+                    }
+                    else
+                    {
+                        $params = @{}
+                    }
+
+                    $params['Path'] = [string[]]'Cert:\'
+                    Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
                 }
             }
 
@@ -1325,7 +1340,7 @@ Describe 'When mocking a command with parameters that match internal variable na
     }
 }
 
-Describe 'Mocking commands with potentially ambigious parameter sets' {
+Describe 'Mocking commands with potentially ambiguous parameter sets' {
     function SomeFunction
     {
         [CmdletBinding()]

@@ -1,3 +1,5 @@
+if ($PSVersionTable.PSVersion.Major -le 2) { return }
+
 Set-StrictMode -Version Latest
 $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
