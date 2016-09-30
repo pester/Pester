@@ -23,8 +23,8 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [sw
     [bool] $succeeded = $false
 
     if ($ActualExceptionWasThrown) {
-        $succeeded = (Get-DoMessagesMatch $script:ActualExceptionMessage $ExpectedMessage) -and
-                     (Get-DoMessagesMatch $script:ActualErrorId $ExpectedErrorId)
+        $succeeded = (Get-DoValuesMatch $script:ActualExceptionMessage $ExpectedMessage) -and
+                     (Get-DoValuesMatch $script:ActualErrorId $ExpectedErrorId)
     }
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -49,9 +49,11 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [sw
     }
 }
 
-function Get-DoMessagesMatch($ActualValue, $ExpectedMessage, $ExpectedErrorId) {
-    if ($ExpectedMessage -eq "") { return $false }
-    return $ActualValue.Contains($ExpectedMessage)
+function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
+    #user did not specify any message filter, so any message matches
+    if ($null -eq $ExpectedValue ) { return $true }
+
+    return $ActualValue.ToString().IndexOf($ExpectedValue, [System.StringComparison]::InvariantCultureIgnoreCase) -ge 0
 }
 
 function Get-ExceptionLineInfo($info) {

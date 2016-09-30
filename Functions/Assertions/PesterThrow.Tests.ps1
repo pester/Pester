@@ -18,6 +18,13 @@ InModuleScope Pester {
             { throw $expectedErrorMessage } | Should -Throw $expectedErrorMessage
         }
 
+        It "returns true if the statement throws an exception and the actual error text matches the expected error text (case insensitive)" {
+            $expectedErrorMessage = "expected error message"
+            $errorMessage = $expectedErrorMessage.ToUpperInvariant()
+            { throw $errorMessage } | Should Throw $expectedErrorMessage
+            { throw $errorMessage } | Should -Throw $expectedErrorMessage
+        }
+
         It "returns false if the statement throws an exception and the actual error does not match the expected error text" {
             $unexpectedErrorMessage = "unexpected error message"
             $expectedErrorMessage = "some expected error message"
@@ -154,7 +161,7 @@ InModuleScope Pester {
         It "returns true if the actual message is the same as the expected message" {
             $expectedErrorMessage = "expected"
             $actualErrorMessage = "expected"
-            $result = Get-DoMessagesMatch $actualErrorMessage $expectedErrorMessage
+            $result = Get-DoValuesMatch $actualErrorMessage $expectedErrorMessage
             $result | Should Be $True
             $result | Should -Be $True
         }
@@ -162,21 +169,33 @@ InModuleScope Pester {
         It "returns false if the actual message is not the same as the expected message" {
             $expectedErrorMessage = "some expected message"
             $actualErrorMessage = "unexpected"
-            $result = Get-DoMessagesMatch $actualErrorMessage $expectedErrorMessage
+            $result = Get-DoValuesMatch $actualErrorMessage $expectedErrorMessage
             $result | Should Be $False
             $result | Should -Be $False
         }
 
-        It "returns false is there's no expectation" {
-            $result = Get-DoMessagesMatch "" ""
-            $result | Should Be $False
-            $result | Should -Be $False
+        It "returns true is there's no expectation" {
+            $result = Get-DoValuesMatch "any error message" #expectation is null
+            $result | Should Be $True
+            $result | Should -Be $True
+        }
+
+        It "returns true if the message is empty and the expectation is empty" {
+            $result = Get-DoValuesMatch "" ""
+            $result | Should Be $True
+            $result | Should -Be $True
+        }
+
+        It "returns true if the message is empty and there is no expectation" {
+            $result = Get-DoValuesMatch "" #expectation is null
+            $result | Should Be $True
+            $result | Should -Be $True
         }
 
         It "returns true if the expected error is contained in the actual message" {
             $actualErrorMessage = "this is a long error message"
             $expectedText = "long error"
-            $result = Get-DoMessagesMatch $actualErrorMessage $expectedText
+            $result = Get-DoValuesMatch $actualErrorMessage $expectedText
             $result | Should Be $True
             $result | Should -Be $True
         }
