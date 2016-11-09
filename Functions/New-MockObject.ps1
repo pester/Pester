@@ -8,7 +8,7 @@ function New-MockObject {
         The .NET type to create an object from.
 
     .EXAMPLE
-        PS> $obj = New-MockObject -Type 'System.Diagnostics.Process'   
+        PS> $obj = New-MockObject -Type 'System.Diagnostics.Process'
         PS> $obj.GetType().FullName
             System.Diagnostics.Process
     #>
@@ -18,7 +18,7 @@ function New-MockObject {
         [ValidateNotNullOrEmpty()]
         [type]$Type
     )
-    
+
     [System.Runtime.Serialization.Formatterservices]::GetUninitializedObject($Type)
-    
+
 }
