@@ -48,7 +48,8 @@ FunctionsToExport = @(
     'Set-DynamicParameterVariables',
     'Set-TestInconclusive',
     'SafeGetCommand',
-    'New-PesterOption'
+    'New-PesterOption',
+    'New-MockObject'
 )
 
 # # Cmdlets to export from this module
