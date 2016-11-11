@@ -646,31 +646,6 @@ function Set-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($ScriptBlock, $SessionStateInternal, $null)
 }
 
-function New-MockObject {
-    <#
-    .SYNOPSIS
-        This function instantiates a .NET object from a type. The assembly for the particular type must be
-        loaded.
-
-    .PARAMETER Type
-        The .NET type to create an object from.
-
-    .EXAMPLE
-        PS> $obj = New-MockObject -Type 'System.Diagnostics.Process'
-        PS> $obj.GetType().FullName
-            System.Diagnostics.Process
-    #>
-
-    param (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [type]$Type
-    )
-
-    [System.Runtime.Serialization.Formatterservices]::GetUninitializedObject($Type)
-
-}
-
 function Get-ScriptBlockScope
 {
     [CmdletBinding()]
@@ -708,3 +683,4 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject
