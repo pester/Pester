@@ -1,3 +1,6 @@
+## 3.4.4 (November 12, 2016)
+  - Add New-MockObject function that creates empty objects for almost any .NET class [GH-635]
+
 ## 3.4.3 (August 25, 2016)
   - Fixed mocking for certain cmdlets containing dynamic parameters in PowerShell 5.1.  [GH-599]
 
