@@ -1,6 +1,10 @@
 Set-StrictMode -Version Latest
 
-$tempPath = (Get-Item $env:temp).FullName
+if ($PSVersionTable.PSEdition -eq 'Core') {
+    $tempPath = '/tmp'
+} else {
+    $tempPath = (Get-Item $env:temp).FullName
+}
 
 Describe "Setup" {
     It "returns a location that is in a temp area" {
