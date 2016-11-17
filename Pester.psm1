@@ -664,26 +664,18 @@ function Get-OperatingSystem
     [CmdletBinding()]
     param()
 
-    if (Get-Command -Name 'uname' -ErrorAction Ignore)
-    {
-        if ((Invoke-Uname) -eq 'Darwin')
-        {
-            'MacOS'
-        }
-        else
-        {
-            'Linux'
-        }
-    } 
-    else 
+    if ($PSVersionTable.PSVersion.Major -lt 6)
     {
         'Windows'
+    } 
+    elseif ($IsOSX)
+    {
+        'OSX'
     }
-}
-
-function Invoke-Uname {
-    param()
-    uname
+    elseif ($IsLinux)
+    {
+        'Linux'
+    }
 }
 
 function Get-TempDiretory
