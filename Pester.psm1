@@ -666,7 +666,7 @@ function Get-OperatingSystem
 
     if (Get-Command -Name 'uname' -ErrorAction Ignore)
     {
-        if ((uname) -eq 'Darwin')
+        if ((Invoke-Uname) -eq 'Darwin')
         {
             'MacOS'
         }
@@ -679,6 +679,11 @@ function Get-OperatingSystem
     {
         'Windows'
     }
+}
+
+function Invoke-Uname {
+    param()
+    uname
 }
 
 function Get-TempDiretory
