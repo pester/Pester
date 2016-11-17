@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-$tempPath = (Get-Item $env:temp).FullName
+$tempPath = Get-TempDirectory
 
 Describe "Setup" {
     It "returns a location that is in a temp area" {

@@ -659,6 +659,43 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function Get-OperatingSystem
+{
+    [CmdletBinding()]
+    param()
+
+    if (Get-Command -Name 'uname' -ErrorAction Ignore)
+    {
+        if ((uname) -eq 'Darwin')
+        {
+            'MacOS'
+        }
+        else
+        {
+            'Linux'
+        }
+    } 
+    else 
+    {
+        'Windows'
+    }
+}
+
+function Get-TempDiretory
+{
+    [CmdletBinding()]
+    param()
+
+    if ((Get-OperatingSystem) -eq 'Windows')
+    {
+        $env:TEMP
+    }
+    else
+    {
+        '/tmp'
+    }
+}
+
 function SafeGetCommand
 {
     <#
