@@ -288,21 +288,17 @@ InModuleScope Pester {
     describe 'Get-OperatingSystem' {
 
         it 'returns MacOS' {
-            mock 'Invoke-Uname' {
-                'Darwin'
-            }
+
             Get-OperatingSystem | should be 'MacOS'
         }
 
         it 'returns Linux' {
-            mock 'Invoke-Uname' {
-                'Somethingelse'
-            }
+            
             Get-OperatingSystem | should be 'Linux'
         }
 
         it 'returns Windows' {
-            mock 'Get-Command'
+
             Get-OperatingSystem | should be 'Windows'
         }
     }

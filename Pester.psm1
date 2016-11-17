@@ -664,7 +664,7 @@ function Get-OperatingSystem
     [CmdletBinding()]
     param()
 
-    if ($PSVersionTable.PSVersion.Major -lt 6)
+    if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows)
     {
         'Windows'
     } 
@@ -678,7 +678,7 @@ function Get-OperatingSystem
     }
 }
 
-function Get-TempDiretory
+function Get-TempDirectory
 {
     [CmdletBinding()]
     param()
