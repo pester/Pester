@@ -722,6 +722,41 @@ function Get-ScriptBlockScope
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
 }
 
+function Get-OperatingSystem
+{
+    [CmdletBinding()]
+    param()
+
+    ## Prior to v6, PowerShell was solely Windows. In v6, the $IsWindows var was introduced.
+    if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows)
+    {
+        'Windows'
+    } 
+    elseif ($IsOSX)
+    {
+        'OSX'
+    }
+    elseif ($IsLinux)
+    {
+        'Linux'
+    }
+}
+
+function Get-TempDirectory
+{
+    [CmdletBinding()]
+    param()
+
+    if ((Get-OperatingSystem) -eq 'Windows')
+    {
+        $env:TEMP
+    }
+    else
+    {
+        '/tmp'
+    }
+}
+
 function SafeGetCommand
 {
     <#
