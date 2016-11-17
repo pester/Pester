@@ -287,16 +287,6 @@ InModuleScope Pester {
 
     describe 'Get-OperatingSystem' {
 
-        it 'returns MacOS' {
-
-            Get-OperatingSystem | should be 'MacOS'
-        }
-
-        it 'returns Linux' {
-            
-            Get-OperatingSystem | should be 'Linux'
-        }
-
         it 'returns Windows' {
 
             Get-OperatingSystem | should be 'Windows'
