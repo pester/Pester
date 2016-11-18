@@ -664,6 +664,7 @@ function Get-OperatingSystem
     [CmdletBinding()]
     param()
 
+    ## Prior to v6, PowerShell was solely Windows. In v6, the $IsWindows var was introduced.
     if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows)
     {
         'Windows'
