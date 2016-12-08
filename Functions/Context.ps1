@@ -75,11 +75,10 @@ about_TestDrive
     finally
     {
         Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
+        Clear-SetupAndTeardown
+        Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+        Exit-MockScope
+        $Pester.LeaveContext()
     }
-
-    Clear-SetupAndTeardown
-    Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
-    Exit-MockScope
-    $Pester.LeaveContext()
 }
 
