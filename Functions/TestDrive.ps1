@@ -39,7 +39,12 @@ function Clear-TestDrive ([String[]]$Exclude) {
 function New-RandomTempDirectory {
     do
     {
-        $Path = & $SafeCommands['Join-Path'] -Path $env:TEMP -ChildPath ([Guid]::NewGuid())
+        if ($PSVersionTable.PSEdition -eq 'Core') {
+            $tempPath = '/tmp'
+        } else {
+            $tempPath = $env:TEMP
+        }
+        $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
 
     & $SafeCommands['New-Item'] -ItemType Container -Path $Path
