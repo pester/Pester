@@ -115,6 +115,42 @@ $moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
+Add-Type -TypeDefinition @"
+using System;
+
+namespace Pester
+{
+	[Flags]
+	public enum OutputTypes
+	{
+        None = 0,
+        Default = 1,
+        Passed = 2,
+        Failed = 4,
+        Pending = 8,
+        Skipped = 16,
+        Inconclusive = 32,
+        Describe = 64,
+        Context = 128,
+        Summary = 256,
+        All = Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary,
+        Fails = Default | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary
+	}
+}
+"@
+
+function Has-Flag  {
+     param
+     (
+         [Parameter(Mandatory = $true)]
+         $Setting,
+         [Parameter(Mandatory = $true, ValueFromPipeline=$true)]
+         $Value
+     )
+
+  0 -ne ($Setting -band $Value) 
+}
+
 function Invoke-Pester {
 <#
 .SYNOPSIS
@@ -439,7 +475,9 @@ New-PesterOption
 
         [Switch]$Quiet,
 
-        [object]$PesterOption
+        [object]$PesterOption,
+
+        [Pester.OutputTypes]$Show = 'All'
     )
 
     if ($PSBoundParameters.ContainsKey('OutputXml'))
@@ -454,7 +492,12 @@ New-PesterOption
 
     $script:mockTable = @{}
 
-    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
+    if ($Quiet)
+    {
+        $Show = [Pester.OutputTypes]::None  
+    }
+
+    $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
     Write-Screen "`r`n`r`n`r`n`r`n"
