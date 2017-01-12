@@ -427,7 +427,7 @@ function Write-PesterReport
     )
 
     Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)" -OutputType "Summary"
-    Write-Screen ("Passed: {0} Failed: {1} Skipped: {2} Pending: {3} Inconclusive: {4}" -f
+    Write-Screen ("Passed: {0}, Failed: {1}, Skipped: {2}, Pending: {3}, Inconclusive: {4}" -f
                   $PesterState.PassedCount,
                   $PesterState.FailedCount,
                   $PesterState.SkippedCount,
