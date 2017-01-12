@@ -1,3 +1,8 @@
+## 3.4.5 (January 12, 2017)
+  - Add -Show parameter to filter on-screen output [GH-647]
+  - Add BeIn assertion to assert an item is part of an array [GH-646]
+  - Fix test drive to work on PSCore [GH-643]
+ 
 ## 3.4.4 (November 12, 2016)
   - Add New-MockObject function that creates empty objects for almost any .NET class [GH-635]
 
