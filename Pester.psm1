@@ -143,8 +143,10 @@ function Has-Flag  {
      param
      (
          [Parameter(Mandatory = $true)]
+         [Pester.OutputTypes]
          $Setting,
          [Parameter(Mandatory = $true, ValueFromPipeline=$true)]
+         [Pester.OutputTypes]
          $Value
      )
 
