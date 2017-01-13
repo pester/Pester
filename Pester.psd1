@@ -103,7 +103,7 @@ PrivateData = @{
         LicenseUri = "http://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
-        # ReleaseNotes = False
+        ReleaseNotes = 'https://github.com/pester/Pester/blob/master/CHANGELOG.md'
 
         # If true, the LicenseUrl points to an end-user license (not just a source license) which requires the user agreement before use.
         # RequireLicenseAcceptance = ""
