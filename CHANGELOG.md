@@ -1,3 +1,13 @@
+## 4.0.0-beta
+  - Add Gherkin support
+  - Add new should syntax to Should -Not -Be 1 to enable more extensibility
+  - Add more unified output
+  - Add colors to summary
+  - (experimental) Add nested Describe and Context
+
+  -Missing: Different color profiles based on host
+  -Missing: Latest features from v3
+
 ## 3.4.4 (November 12, 2016)
   - Add New-MockObject function that creates empty objects for almost any .NET class [GH-635]
 
