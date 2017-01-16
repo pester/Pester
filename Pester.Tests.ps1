@@ -284,4 +284,36 @@ InModuleScope Pester {
             }
         }
     }
+
+    describe 'Get-OperatingSystem' {
+
+        it 'returns Windows' {
+
+            Get-OperatingSystem | should be 'Windows'
+        }
+    }
+
+    describe 'Get-TempDirectory' {
+
+        it 'returns the correct temp directory for Windows' {
+            mock 'Get-OperatingSystem' {
+                'Windows'
+            }
+            Get-TempDirectory | should be $env:TEMP
+        }
+
+        it 'returns the correct temp directory for MacOS' {
+            mock 'Get-OperatingSystem' {
+                'MacOS'
+            }
+            Get-TempDirectory | should be '/tmp'
+        }
+
+        it 'returns the correct temp directory for Linux' {
+            mock 'Get-OperatingSystem' {
+                'Linux'
+            }
+            Get-TempDirectory | should be '/tmp'
+        }
+    }
 }

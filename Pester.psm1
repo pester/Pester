@@ -303,6 +303,44 @@ $moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
+Add-Type -TypeDefinition @"
+using System;
+
+namespace Pester
+{
+	[Flags]
+	public enum OutputTypes
+	{
+        None = 0,
+        Default = 1,
+        Passed = 2,
+        Failed = 4,
+        Pending = 8,
+        Skipped = 16,
+        Inconclusive = 32,
+        Describe = 64,
+        Context = 128,
+        Summary = 256,
+        All = Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary,
+        Fails = Default | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary
+	}
+}
+"@
+
+function Has-Flag  {
+     param
+     (
+         [Parameter(Mandatory = $true)]
+         [Pester.OutputTypes]
+         $Setting,
+         [Parameter(Mandatory = $true, ValueFromPipeline=$true)]
+         [Pester.OutputTypes]
+         $Value
+     )
+
+  0 -ne ($Setting -band $Value) 
+}
+
 function Invoke-Pester {
 <#
 .SYNOPSIS
@@ -353,7 +391,7 @@ of hash tables and strings. Wildcard characters are supported.
 
 The Script parameter is optional. If you omit it, Invoke-Pester runs all 
 *.Tests.ps1 files in the local directory and its subdirectories recursively. 
-	
+    
 To run tests in other files, such as .ps1 files, enter the path and file name of
 the file. (The file name is required. Name patterns that end in "*.ps1" run only
 *.Tests.ps1 files.) 
@@ -364,112 +402,129 @@ value of the script parameter. The keys in the hash table are:
 -- Path [string] (required): Specifies a test to run. The value is a path\file 
    name or name pattern. Wildcards are permitted. All hash tables in a Script 
    parameter value must have a Path key. 
-	
+    
 -- Parameters [hashtable]: Runs the script with the specified parameters. The 
    value is a nested hash table with parameter name and value pairs, such as 
    @{UserName = 'User01'; Id = '28'}. 
-	
+    
 -- Arguments [array]: An array or comma-separated list of parameter values 
    without names, such as 'User01', 28. Use this key to pass values to positional 
    parameters.
-	
+    
 
 .PARAMETER TestName
 Runs only tests in Describe blocks that have the specified name or name pattern.
 Wildcard characters are supported. 
-	
-If you specify multiple TestName values, Invoke-Pester runs tests that have any of 
-the values in the Describe name (it ORs the TestName values).
-	
+    
+If you specify multiple TestName values, Invoke-Pester runs tests that have any 
+of the values in the Describe name (it ORs the TestName values).
+    
 .PARAMETER EnableExit
-Will cause Invoke-Pester to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
+Will cause Invoke-Pester to exit with a exit code equal to the number of failed 
+tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
+.PARAMETER OutputFile
+The path where Invoke-Pester will save formatted test results log file. 
+If this path is not provided, no log will be generated.
+
+.PARAMETER OutputFormat
+The format of output. Two formats of output are supported: NUnitXML and
+LegacyNUnitXML.
+    
 .PARAMETER OutputXml
-The path where Invoke-Pester will save a NUnit formatted test results log file. If this path is not provided, no log will be generated.
+The parameter OutputXml is deprecated, please use OutputFile and OutputFormat 
+instead.
+    
+The path where Invoke-Pester will save a NUnit formatted test results log file. 
+If this path is not provided, no log will be generated.
 
 .PARAMETER Tag
-Runs only tests in Describe blocks with the specified Tag parameter values. Wildcard
-characters and Tag values that include spaces or whitespace characters are not 
-supported.
-	
-When you specify multiple Tag values, Invoke-Pester runs tests that have any of the 
-listed tags (it ORs the tags). However, when you specify TestName and Tag values,
-Invoke-Pester runs only describe blocks that have one of the specified TestName values
-and one of the specified Tag values.
+Runs only tests in Describe blocks with the specified Tag parameter values. 
+Wildcard characters and Tag values that include spaces or whitespace characters 
+are not supported.
+    
+When you specify multiple Tag values, Invoke-Pester runs tests that have any 
+of the listed tags (it ORs the tags). However, when you specify TestName 
+and Tag values, Invoke-Pester runs only describe blocks that have one of the 
+specified TestName values and one of the specified Tag values.
 
-If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
-	
+If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
+    
 .PARAMETER ExcludeTag
 Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
 characters and Tag values that include spaces or whitespace characters are not 
 supported.
-	
-When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have any 
-of the listed tags (it ORs the tags). However, when you specify TestName and ExcludeTag values,
-Invoke-Pester omits only describe blocks that have one of the specified TestName values
-and one of the specified Tag values.
+    
+When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
+any of the listed tags (it ORs the tags). However, when you specify TestName 
+and ExcludeTag values, Invoke-Pester omits only describe blocks that have one 
+of the specified TestName values and one of the specified Tag values.
 
-If you use both Tag and ExcludeTag, ExcludeTag takes precedence.	
+If you use both Tag and ExcludeTag, ExcludeTag takes precedence
 
 .PARAMETER PassThru
 Returns a custom object (PSCustomObject) that contains the test results. 
-	
+    
 By default, Invoke-Pester writes to the host program, not to the output stream (stdout). 
-If you try to save the result in a variable, the variable is empty unless you use the PassThru
-parameter.
-	
+If you try to save the result in a variable, the variable is empty unless you 
+use the PassThru parameter.
+    
 To suppress the host output, use the Quiet parameter.
 
 .PARAMETER CodeCoverage
 Adds a code coverage report to the Pester tests. Takes strings or hash table values.
-	
-A code coverage report lists the lines of code that did and did not run during a Pester test. 
-This report does not tell whether code was tested; only whether the code ran during 
-the test.
+    
+A code coverage report lists the lines of code that did and did not run during 
+a Pester test. This report does not tell whether code was tested; only whether 
+the code ran during the test.
 
-By default, the code coverage report is written to the host program (like Write-Host). When you
-use the PassThru parameter, the custom object that Invoke-Pester returns has an additional 
-CodeCoverage property that contains a custom object with detailed results of the code coverage
-test, including lines hit, lines missed, and helpful statistics.
-	
-However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include any
-code coverage information, because it's not supported by the schema.
-	
-Enter the path to the files of code under test (not the test file). Wildcard characters are supported. 
-If you omit the path, the default is local directory, not the directory specified by the Script 
-parameter.
+By default, the code coverage report is written to the host program 
+(like Write-Host). When you use the PassThru parameter, the custom object 
+that Invoke-Pester returns has an additional CodeCoverage property that contains 
+a custom object with detailed results of the code coverage test, including lines 
+hit, lines missed, and helpful statistics.
+    
+However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include 
+any code coverage information, because it's not supported by the schema.
+    
+Enter the path to the files of code under test (not the test file). 
+Wildcard characters are supported. If you omit the path, the default is local 
+directory, not the directory specified by the Script parameter.
 
-To run a code coverage test only on selected functions or lines in a script, enter a 
-hash table value with the following keys:
-	
+To run a code coverage test only on selected functions or lines in a script, 
+enter a hash table value with the following keys:
+    
 -- Path (P)(mandatory) <string>. Enter one path to the files. Wildcard characters
    are supported, but only one string is permitted.
 
 One of the following: Function or StartLine/EndLine
-	
--- Function (F) <string>: Enter the function name. Wildcard characters are supported, 
-   but only one string is permitted.
-	
+    
+-- Function (F) <string>: Enter the function name. Wildcard characters are 
+   supported, but only one string is permitted.
+    
 -or-
-	
--- StartLine (S): Performs code coverage analysis beginning with the specified line. Default
-   is line 1.
--- EndLine (E): Performs code coverage analysis ending with the specified line. Default is
-   the last line of the script.
-	
+    
+-- StartLine (S): Performs code coverage analysis beginning with the specified 
+   line. Default is line 1.
+-- EndLine (E): Performs code coverage analysis ending with the specified line. 
+   Default is the last line of the script.
+    
 
 .PARAMETER Strict
-Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
+Makes Pending and Skipped tests to Failed tests. Useful for continuous 
+integration where you need to make sure all tests passed.
 
 .PARAMETER Quiet
 Suppresses the output that Pester writes to the host program, including the 
 result summary and CodeCoverage output.
-	
-This parameter does not affect the PassThru custom object or the XML output that is 
-written when you use the Output parameters.
+    
+This parameter does not affect the PassThru custom object or the XML output that
+is written when you use the Output parameters.
 
 .PARAMETER PesterOption
-Sets advanced options for the test execution. Enter a PesterOption object, such as one that you create by using the New-PesterOption cmdlet, or a hash table in which the keys are option names and the values are option values.
+Sets advanced options for the test execution. Enter a PesterOption object, 
+such as one that you create by using the New-PesterOption cmdlet, or a hash table
+in which the keys are option names and the values are option values.
 For more information on the options available, see the help for New-PesterOption.
 
 .Example
@@ -482,7 +537,7 @@ Invoke-Pester -Script .\Util*
 
 This commands runs all *.Tests.ps1 files in subdirectories with names that begin
 with 'Util' and their subdirectories.
-	
+    
 .Example
 Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
 
@@ -494,7 +549,7 @@ parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01
 Invoke-Pester -TestName "Add Numbers"
 
 This command runs only the tests in the Describe block named "Add Numbers".
-	
+    
 .EXAMPLE
 $results = Invoke-Pester -Script D:\MyModule -PassThru -Quiet
 $failed = $results.TestResult | where Result -eq 'Failed'
@@ -505,7 +560,7 @@ help for Force parameter in Compress-Archive has wrong Mandatory value
 help for Compress-Archive has wrong parameter type for Force
 help for Update parameter in Compress-Archive has wrong Mandatory value
 help for DestinationPath parameter in Expand-Archive has wrong Mandatory value
-	
+    
 $failed[0]
 Describe               : Test help for Compress-Archive in Microsoft.PowerShell.Archive (1.0.0.0)
 Context                : Test parameter help for Compress-Archive
@@ -519,16 +574,16 @@ StackTrace             : at line: 279 in C:\GitHub\PesterTdd\Module.Help.Tests.p
 ErrorRecord            : Expected: value to not be empty
 ParameterizedSuiteName :
 Parameters             : {}
-	
+    
 This examples uses the PassThru parameter to return a custom object with the 
 Pester test results. By default, Invoke-Pester writes to the host program, but not 
 to the output stream. It also uses the Quiet parameter to suppress the host output.
-	
+    
 The first command runs Invoke-Pester with the PassThru and Quiet parameters and
 saves the PassThru output in the $results variable.
-	
+    
 The second command gets only failing results and saves them in the $failed variable.
-	
+    
 The third command gets the names of the failing results. The result name is the 
 name of the It block that contains the test.
 
@@ -546,23 +601,26 @@ test returns an exit code equal to the number of test failures.
  .EXAMPLE
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage 
+report for all commands in the "ScriptUnderTest.ps1" file.
 
 .EXAMPLE
 Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage 
+report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
 
 .EXAMPLE
 Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage 
+report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
 
 .EXAMPLE
 Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
-	
+    
 This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those files, it runs only tests that have UnitTest or Newest tags, unless the test also has a Bug tag.
-	
+    
 .LINK
 https://github.com/pester/Pester/wiki/Invoke-Pester
 Describe
@@ -604,7 +662,9 @@ New-PesterOption
 
         [Switch]$Quiet,
 
-        [object]$PesterOption
+        [object]$PesterOption,
+
+        [Pester.OutputTypes]$Show = 'All'
     )
     begin {
         # Ensure when running Pester that we're using RSpec strings
@@ -624,6 +684,10 @@ New-PesterOption
 
         $script:mockTable = @{}
         $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet -PesterOption $PesterOption
+		if ($Quiet)
+		{
+			$Show = [Pester.OutputTypes]::None  
+		}
 
         try
         {
@@ -870,6 +934,41 @@ function Get-ScriptBlockScope
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+}
+
+function Get-OperatingSystem
+{
+    [CmdletBinding()]
+    param()
+
+    ## Prior to v6, PowerShell was solely Windows. In v6, the $IsWindows var was introduced.
+    if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows)
+    {
+        'Windows'
+    } 
+    elseif ($IsOSX)
+    {
+        'OSX'
+    }
+    elseif ($IsLinux)
+    {
+        'Linux'
+    }
+}
+
+function Get-TempDirectory
+{
+    [CmdletBinding()]
+    param()
+
+    if ((Get-OperatingSystem) -eq 'Windows')
+    {
+        $env:TEMP
+    }
+    else
+    {
+        '/tmp'
+    }
 }
 
 function SafeGetCommand

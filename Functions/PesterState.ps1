@@ -6,7 +6,7 @@ function New-PesterState
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
-        [Switch]$Quiet,
+        [Pester.OutputTypes]$Show = 'All',
         [object]$PesterOption
     )
 
@@ -35,7 +35,7 @@ function New-PesterState
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
-            [Switch]$Quiet,
+            [Pester.OutputTypes]$Show,
             [object]$PesterOption
         )
 
@@ -49,7 +49,7 @@ function New-PesterState
         $script:MostRecentTimestamp = 0
         $script:CommandCoverage = @()
         $script:Strict = $Strict
-        $script:Quiet = $Quiet
+        $script:Show = $Show
 
         $script:TestResult = @()
 

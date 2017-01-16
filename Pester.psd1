@@ -45,7 +45,7 @@ FunctionsToExport = @(
     'BeforeAll',
     'AfterAll'
     'Get-MockDynamicParameters',
-    'Set-DynamicParameterVariables'
+    'Set-DynamicParameterVariables',
     'Set-TestInconclusive',
     'SafeGetCommand',
     'New-PesterOption',

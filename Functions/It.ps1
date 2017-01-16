@@ -229,60 +229,68 @@ function Invoke-Test
 
     if ($null -eq $Parameters) { $Parameters = @{} }
 
-    if ($Skip)
-    {
-        $Pester.AddTestResult($Name, "Skipped", $null)
-    }
-    elseif ($Pending)
-    {
-        $Pester.AddTestResult($Name, "Pending", $null)
-    }
-    else
-    {
-        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
+    $Pester.EnterTest($Name)
 
-        $errorRecord = $null
-        try
+    try
+    {
+        if ($Skip)
         {
-            Invoke-TestCaseSetupBlocks
+            $Pester.AddTestResult($Name, "Skipped", $null)
+        }
+        elseif ($Pending)
+        {
+            $Pester.AddTestResult($Name, "Pending", $null)
+        }
+        else
+        {
+            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
 
-            do
-            {
-                $null = & $ScriptBlock @Parameters
-            } until ($true)
-        }
-        catch
-        {
-            $errorRecord = $_
-        }
-        finally
-        {
-            #guarantee that the teardown action will run and prevent it from failing the whole suite
+            $errorRecord = $null
             try
             {
-                if (-not ($Skip -or $Pending))
+                Invoke-TestCaseSetupBlocks
+
+                do
                 {
-                    Invoke-TestCaseTeardownBlocks
-                }
+                    $null = & $ScriptBlock @Parameters
+                } until ($true)
             }
             catch
             {
                 $errorRecord = $_
             }
-        }
+            finally
+            {
+                #guarantee that the teardown action will run and prevent it from failing the whole suite
+                try
+                {
+                    if (-not ($Skip -or $Pending))
+                    {
+                        Invoke-TestCaseTeardownBlocks
+                    }
+                }
+                catch
+                {
+                    $errorRecord = $_
+                }
+            }
 
-        $result = Get-PesterResult -ErrorRecord $errorRecord
-        $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
-        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
-        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
+            $result = Get-PesterResult -ErrorRecord $errorRecord
+            $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
+            $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
+            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
+        }
+    }
+    finally
+    {
+        Exit-MockScope -ExitTestCaseOnly
+        $Pester.LeaveTest()
     }
 
     if ($null -ne $OutputScriptBlock)
     {
         $Pester.testresult[-1] | & $OutputScriptBlock
     }
-
-    Exit-MockScope -ExitTestCaseOnly
 }
 
 function Get-PesterResult {
