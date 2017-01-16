@@ -5,8 +5,8 @@
   - Add colors to summary
   - (experimental) Add nested Describe and Context
 
-  -Missing: Different color profiles based on host
-  -Missing: Latest features from v3
+  - Deprecated: Quiet parameter is depracated, use -Show none
+  - Gone: OutputXml is gone, it was deprecated before, use -OutputFormat and -OutputFile
 
 ## 3.4.6 (January 13, 2017)
   - Fix bug with -Show parameter on PowerShell v4 and older [GH-677]

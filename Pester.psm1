@@ -321,8 +321,9 @@ namespace Pester
         Describe = 64,
         Context = 128,
         Summary = 256,
-        All = Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary,
-        Fails = Default | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary
+        Header = 512,
+        All = Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header,
+        Fails = Default | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header
 	}
 }
 "@
@@ -430,13 +431,6 @@ If this path is not provided, no log will be generated.
 .PARAMETER OutputFormat
 The format of output. Two formats of output are supported: NUnitXML and
 LegacyNUnitXML.
-    
-.PARAMETER OutputXml
-The parameter OutputXml is deprecated, please use OutputFile and OutputFormat 
-instead.
-    
-The path where Invoke-Pester will save a NUnit formatted test results log file. 
-If this path is not provided, no log will be generated.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values. 
@@ -514,9 +508,18 @@ One of the following: Function or StartLine/EndLine
 Makes Pending and Skipped tests to Failed tests. Useful for continuous 
 integration where you need to make sure all tests passed.
 
-.PARAMETER Quiet
-Suppresses the output that Pester writes to the host program, including the 
-result summary and CodeCoverage output.
+.PARAMETER Show
+Customizes the output Pester writes to the screen. Available options are None, Default,
+Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+
+The options can be combined to define presets. 
+Common use cases are:
+
+None - to write no output to the screen.
+All - to write all available information (this is default option).
+Fails - to write everything except Passed (but including Describes etc.).
+
+A common setting is also Failed, Summary, to write only failed tests and test summary.
     
 This parameter does not affect the PassThru custom object or the XML output that
 is written when you use the Output parameters.
@@ -551,7 +554,7 @@ Invoke-Pester -TestName "Add Numbers"
 This command runs only the tests in the Describe block named "Add Numbers".
     
 .EXAMPLE
-$results = Invoke-Pester -Script D:\MyModule -PassThru -Quiet
+$results = Invoke-Pester -Script D:\MyModule -PassThru -Show None
 $failed = $results.TestResult | where Result -eq 'Failed'
 
 $failed.Name
@@ -672,14 +675,10 @@ New-PesterOption
     }
 
     end {
-        if ($PSBoundParameters.ContainsKey('OutputXml'))
+        if ($PSBoundParameters.ContainsKey('Quiet'))
         {
-            & $script:SafeCommands['Write-Warning'] 'The -OutputXml parameter has been deprecated; please use the new -OutputFile and -OutputFormat parameters instead.  To get the same type of export that the -OutputXml parameter currently provides, use an -OutputFormat of "LegacyNUnitXml".'
-
-            & $script:SafeCommands['Start-Sleep'] -Seconds 2
-
-            $OutputFile = $OutputXml
-            $OutputFormat = 'LegacyNUnitXml'
+            & $script:SafeCommands['Write-Warning'] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
+           & $script:SafeCommands['Start-Sleep'] -Seconds 2
         }
 
         $script:mockTable = @{}
@@ -692,8 +691,8 @@ New-PesterOption
         try
         {
             Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
-
             Write-PesterStart $pester $Script
+            
 
             $invokeTestScript = {
                 param (

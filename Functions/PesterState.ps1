@@ -300,7 +300,7 @@ function New-PesterState
         "SessionState",
         "CommandCoverage",
         "Strict",
-        "Quiet",
+        "Show",
         "Time",
         "TotalCount",
         "PassedCount",
