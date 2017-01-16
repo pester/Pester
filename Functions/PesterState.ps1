@@ -209,7 +209,7 @@ function New-PesterState
                 ErrorRecord            = $ErrorRecord
                 ParameterizedSuiteName = $ParameterizedSuiteName
                 Parameters             = $Parameters
-                Quiet                  = $script:Quiet
+                Show                  = $script:Show
             }
         }
 
