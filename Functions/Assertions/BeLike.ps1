@@ -1,13 +1,34 @@
+function PesterBeLike($ActualValue, $ExpectedValue, [switch] $Negate)
+{
+    [bool] $succeeded = $ActualValue -like $ExpectedValue
+    if ($Negate) { $succeeded = -not $succeeded }
 
-function PesterBeLike($value, $expectedMatch) {
-    return ($value -like $expectedMatch)
+    $failureMessage = ''
+
+    if (-not $succeeded)
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterBeLikeFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+        }
+        else
+        {
+            $failureMessage = PesterBeLikeFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $succeeded
+        FailureMessage = $failureMessage
+    }
 }
 
-function PesterBeLikeFailureMessage($value, $expectedMatch) {
-    return "Expected: {$value} to be like the wildcard {$expectedMatch}"
+function PesterBeLikeFailureMessage($ActualValue, $ExpectedValue) {
+    return "Expected: {$ActualValue} to be like the wildcard {$ExpectedValue}"
 }
 
-function NotPesterBeLikeFailureMessage($value, $expectedMatch) {
+function NotPesterBeLikeFailureMessage($ActualValue, $ExpectedValue) {
     return "Expected: ${value} to not be like the wildcard ${expectedMatch}"
 }
 
+Add-AssertionOperator -Name BeLike -Test  $function:PesterBeLike

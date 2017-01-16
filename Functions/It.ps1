@@ -229,8 +229,6 @@ function Invoke-Test
 
     if ($null -eq $Parameters) { $Parameters = @{} }
 
-    $Pester.EnterTest($Name)
-
     try
     {
         if ($Skip)
@@ -284,7 +282,6 @@ function Invoke-Test
     finally
     {
         Exit-MockScope -ExitTestCaseOnly
-        $Pester.LeaveTest()
     }
 
     if ($null -ne $OutputScriptBlock)

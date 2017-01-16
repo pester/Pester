@@ -28,7 +28,7 @@ function New-PesterState
         }
     }
 
-    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
@@ -323,7 +323,7 @@ function New-PesterState
                              "GetCurrentTestGroupTeardownBlocks"
 
         & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet, $PesterOption |
+    }  |
     & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name CurrentTestGroup -Value {
         $this.TestGroupStack.Peek()
     } |
