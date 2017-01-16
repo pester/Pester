@@ -1,23 +1,29 @@
 function Describe {
 <#
 .SYNOPSIS
+Creates a logical group of tests.
+
+.DESCRIPTION
 Creates a logical group of tests.  All Mocks and TestDrive contents
 defined within a Describe block are scoped to that Describe; they
 will no longer be present when the Describe block exits.  A Describe
 block may contain any number of Context and It blocks.
 
 .PARAMETER Name
-The name of the test group. This is often an expressive phrase describing the scenario being tested.
+The name of the test group. This is often an expressive phrase describing
+the scenario being tested.
 
 .PARAMETER Fixture
-The actual test script. If you are following the AAA pattern (Arrange-Act-Assert), this
-typically holds the arrange and act sections. The Asserts will also lie in this block but are
-typically nested each in its own It block. Assertions are typically performed by the Should
-command within the It blocks.
+The actual test script. If you are following the AAA pattern (Arrange-Act-Assert),
+this typically holds the arrange and act sections. The Asserts will also lie
+in this block but are typically nested each in its own It block. Assertions are
+typically performed by the Should command within the It blocks.
+
 
 .PARAMETER Tag
-Optional parameter containing an array of strings.  When calling Invoke-Pester, it is possible to
-specify a -Tag parameter which will only execute Describe blocks containing the same Tag.
+Optional parameter containing an array of strings.  When calling Invoke-Pester,
+it is possible to specify a -Tag parameter which will only execute Describe blocks
+containing the same Tag.
 
 .EXAMPLE
 function Add-Numbers($a, $b) {
