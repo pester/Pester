@@ -80,8 +80,7 @@ function Get-TestDriveItem {
     #moved here from Pester.psm1
     param ([string]$Path)
 
-    #Warining introduced in Pester v. 4.0. Please remove the function Get-TestDriveItem in Pester v.5.0
-    & $SafeCommands['Write-Warning'] -Message "The function Get-TestDriveItem is deprecated since Pester v. 4.0 and will be deleted in the next major version of Pester."
+    & $SafeCommands['Write-Warning'] -Message "The function Get-TestDriveItem is deprecated since Pester 4.0.0 and will be removed from Pester 5.0.0."
 
     Assert-DescribeInProgress -CommandName Get-TestDriveItem
     & $SafeCommands['Get-Item'] $(& $SafeCommands['Join-Path'] $TestDrive $Path )
