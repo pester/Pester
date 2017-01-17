@@ -6,6 +6,7 @@
   - (experimental) Add nested Describe and Context
 
   - Deprecated: Quiet parameter is depracated, use -Show none
+  - Deprecated: New-TestDriveItem as most of the people do not even know it exists
   - Gone: OutputXml is gone, it was deprecated before, use -OutputFormat and -OutputFile
 
 ## 3.4.6 (January 13, 2017)
