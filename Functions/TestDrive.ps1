@@ -55,8 +55,33 @@ function New-RandomTempDirectory {
 }
 
 function Get-TestDriveItem {
+<#
+    .SYNOPSIS
+    The Get-TestDriveItem cmdlet gets the item in Pester test drive.
+
+    .DESCRIPTION
+    The Get-TestDriveItem cmdlet gets the item in Pester test drive. It does not
+    get the contents of the item at the location unless you use a wildcard
+    character (*) to request all the contents of the item.
+
+    The function Get-TestDriveItem is deprecated since Pester v. 4.0
+    and will be deleted in the next major version of Pester.
+
+    .PARAMETER Path
+    Specifies the path to an item. The path need to be relative to TestDrive:.
+    This cmdlet gets the item at the specified location. Wildcards are permitted.
+    This parameter is required, but the parameter name ("Path") is optional.
+
+    .LINK
+    https://github.com/pester/Pester/wiki/TestDrive
+    about_TestDrive
+#>
+
     #moved here from Pester.psm1
-    param( [string]$Path )
+    param ([string]$Path)
+
+    #Warining introduced in Pester v. 4.0. Please remove the function Get-TestDriveItem in Pester v.5.0
+    & $SafeCommands['Write-Warning'] -Message "The function Get-TestDriveItem is deprecated since Pester v. 4.0 and will be deleted in the next major version of Pester."
 
     Assert-DescribeInProgress -CommandName Get-TestDriveItem
     & $SafeCommands['Get-Item'] $(& $SafeCommands['Join-Path'] $TestDrive $Path )
