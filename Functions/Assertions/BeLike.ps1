@@ -28,7 +28,7 @@ function PesterBeLikeFailureMessage($ActualValue, $ExpectedValue) {
 }
 
 function NotPesterBeLikeFailureMessage($ActualValue, $ExpectedValue) {
-    return "Expected: ${value} to not be like the wildcard ${expectedMatch}"
+    return "Expected: ${ActualValue} to not be like the wildcard ${ExpectedValue}"
 }
 
 Add-AssertionOperator -Name BeLike -Test  $function:PesterBeLike

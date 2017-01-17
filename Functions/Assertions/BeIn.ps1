@@ -25,13 +25,13 @@ function PesterBeIn($ActualValue, $ExpectedValue, [switch] $Negate)
 
 function PesterBeInFailureMessage($ActualValue, $ExpectedValue) {
     if(-not ([bool]($ExpectedValue -contains $ActualValue))) {
-        return "Expected: ${value} to be in collection [$($ExpectedValue -join ',')] but was not found."
+        return "Expected: ${ActualValue} to be in collection [$($ExpectedValue -join ',')] but was not found."
     }
 }
 
 function NotPesterBeInFailureMessage($ActualValue, $ExpectedValue) {
     if([bool]($ExpectedValue -contains $ActualValue)) {
-        return "Expected: ${value} to not be in collection [$($ExpectedValue -join ',')] but was found."
+        return "Expected: ${ActualValue} to not be in collection [$($ExpectedValue -join ',')] but was found."
     }
 }
 
