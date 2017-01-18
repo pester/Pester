@@ -1,3 +1,6 @@
+## 4.0.0-rc2 (January 18, 2017)
+  - Fix nuget package to include gherkin library
+
 ## 4.0.0-rc1 (January 18, 2017)
   - Add Gherkin support
   - Add new should syntax to Should -Not -Be 1 to enable more extensibility
