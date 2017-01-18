@@ -1,3 +1,6 @@
+## 4.0.1-rc (January 18, 2017)
+  - Pushing 4.0.0-rc again, because the PowerShell gallery does not allow the same version to be pushed again
+
 ## 4.0.0-rc2 (January 18, 2017)
   - Fix nuget package to include gherkin library
 
