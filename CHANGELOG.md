@@ -1,3 +1,6 @@
+## 4.0.2-rc (January 18, 2017)
+  - Fix build script that builds the package for PowerShell gallery to include lib
+
 ## 4.0.1-rc (January 18, 2017)
   - Pushing 4.0.0-rc again, because the PowerShell gallery does not allow the same version to be pushed again
 
