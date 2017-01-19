@@ -55,8 +55,25 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
     return $errorRecord
 }
 
-function Should
-{
+function Should {
+<#
+    .SYNOPSIS
+    Should is a keyword what is used to define an assertion inside It block.
+
+    .DESCRIPTION
+    Should is a keyword what is used to define an assertion inside the It block.
+    Should provides assertion methods for verify assertion e.g. comparing objects.
+    If assertion is not met the test fails and an exception is throwed up.
+
+    Should can be used more than once in the It block if more than one assertion
+    need to be verified. Each Should keywords need to be located in a new line.
+    Test will be passed only when all assertion will be met (logical conjuction).
+
+    .LINK
+    about_Should
+    about_Pester
+#>
+
     [CmdletBinding(DefaultParameterSetName = 'Legacy')]
     param (
         [Parameter(ParameterSetName = 'Legacy', Position = 0)]
