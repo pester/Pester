@@ -400,6 +400,7 @@ function ConvertTo-FailureLines
         $count = 0
 
         # omit the lines internal to Pester
+        $count = 0
         foreach ( $line in $traceLines )
         {
             if ( $line -match '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$' )
