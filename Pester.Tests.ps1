@@ -165,6 +165,53 @@ Describe 'Style rules' {
     }
 }
 
+Describe 'PSScriptAnalyzer rules' -Tag "PSScriptAnalyzer" {
+
+    #Check if the PSScriptAnalyzer module is available need to be added (?)
+
+    $IncludeRules = @('PSAvoidUsingCmdletAliases', 'PSUseDeclaredVarsMoreThanAssignments', 'PSUseOutputTypeCorrectly', 'PSAvoidDefaultValueForMandatoryParameter', 'PSUseCmdletCorrectly')
+
+    $pesterRoot = (Get-Module Pester).ModuleBase
+
+    $files = @(
+        Get-ChildItem $pesterRoot\* -Include *.ps1, *.psm1
+        Get-ChildItem $pesterRoot\Functions -Include *.ps1, *.psm1 -Recurse
+    )
+
+    foreach ($rule in $IncludeRules) {
+
+        It "Pester source code doesn't violate the PSScriptAnalzyer rule $rule" {
+
+            $badLines = @(
+
+                foreach ($file in $files) {
+
+                    $violations = Invoke-ScriptAnalyzer -Path $file.FullName -IncludeRule $rule
+
+                    If ($violations.count -gt 0) {
+
+                        foreach ($violation in $violations) {
+
+                            'File: {0}, Line: {1}' -f $file.FullName, $violation.Line
+
+                        }
+                    }
+
+                }
+
+            )
+
+            if ($badLines.Count -gt 0) {
+
+                throw "The following $($badLines.Count) lines violate PSScriptAnalyzer rule $($rule): `r`n`r`n$($badLines -join "`r`n")"
+
+            }
+
+        }
+
+    }
+    }
+
 InModuleScope Pester {
     Describe 'ResolveTestScripts' {
         Setup -File SomeFile.ps1
