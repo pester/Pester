@@ -2,7 +2,7 @@ function Hook {
     [CmdletBinding(DefaultParameterSetName="All")]
     param(
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="Tags")]
-        [String[]]$Tags = @(),
+        [String[]]$Tags,
 
         [Parameter(Mandatory=$True, Position=1, ParameterSetName="Tags")]
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="All")]
