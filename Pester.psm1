@@ -172,7 +172,7 @@ function Add-AssertionOperator
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | where { -not (Test-NullOrWhiteSpace $_)})
+    foreach ($string in $Alias | Where-Object -FilterScript { -not (Test-NullOrWhiteSpace $_)})
     {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
@@ -187,7 +187,7 @@ function Assert-AssertionOperatorNameIsUnique
         [string[]] $Name
     )
 
-    foreach ($string in $name | where { -not (Test-NullOrWhiteSpace $_)})
+    foreach ($string in $name | Where-Object -FilterScript { -not (Test-NullOrWhiteSpace $_)})
     {
         Assert-ValidAssertionName -Name $string
 
@@ -297,7 +297,6 @@ function Get-AssertionDynamicParams
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 $moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 & $script:SafeCommands['Resolve-Path'] |
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
