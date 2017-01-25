@@ -72,6 +72,18 @@ InModuleScope Pester {
             $array1 | Should -Not -Be $array3
             $array1 | Should -Not -EQ $array3
         }
+
+        It "returns true if the actual value can be cast to the expected value and they are the same value" {
+            {abc} | Should Be "aBc"
+            {abc} | Should -Be "aBc"
+            {abc} | Should -EQ "aBc"
+        }
+
+        It "returns true if the actual value can be cast to the expected value and they are the same value (case sensitive)" {
+            {abc} | Should BeExactly "abc"
+            {abc} | Should -BeExactly "abc"
+            {abc} | Should -CEQ "abc"
+        }
     }
 
     Describe "PesterBeFailureMessage" {

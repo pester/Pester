@@ -207,11 +207,11 @@ function ArraysAreEqual
         {
             if ($CaseSensitive)
             {
-                $comparer = { $args[0] -ceq $args[1] }
+                $comparer = { param($Actual, $Expected) $Expected -ceq $Actual }
             }
             else
             {
-                $comparer = { $args[0] -eq $args[1] }
+                $comparer = { param($Actual, $Expected) $Expected -eq $Actual }
             }
 
             if (-not (& $comparer $First[$i] $Second[$i]))
