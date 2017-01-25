@@ -10,9 +10,9 @@ Describe "New-Fixture" {
             $name = "Test-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
+            Push-Location -Path $path
             New-Fixture -Name $name | Out-Null
-            popd
+            Pop-Location
 
             Join-Path -Path $path -ChildPath "$name.ps1" | Should Exist
             Join-Path -Path $path -ChildPath "$name.Tests.ps1" | Should Exist
@@ -40,9 +40,9 @@ Describe "New-Fixture" {
             $name = "Relative1-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
+            Push-Location -Path $path
             New-Fixture -Name $name -Path relative | Out-Null
-            popd
+            Pop-Location
 
             Join-Path -Path "$path\relative" -ChildPath "$name.ps1" | Should Exist
             Join-Path -Path "$path\relative" -ChildPath "$name.Tests.ps1" | Should Exist
@@ -51,9 +51,9 @@ Describe "New-Fixture" {
             $name = "Relative2-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
+            Push-Location -Path $path
             New-Fixture -Name $name -Path . | Out-Null
-            popd
+            Pop-Location
 
             Join-Path -Path "$path" -ChildPath "$name.ps1" | Should Exist
             Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should Exist
@@ -62,9 +62,9 @@ Describe "New-Fixture" {
             $name = "Relative3-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
-            New-Fixture -Name $name -Path (pwd) | Out-Null
-            popd
+            Push-Location -Path $path
+            New-Fixture -Name $name -Path (Get-Location) | Out-Null
+            Pop-Location
 
             Join-Path -Path "$path" -ChildPath "$name.ps1" | Should Exist
             Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should Exist

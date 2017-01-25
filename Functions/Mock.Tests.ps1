@@ -272,7 +272,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     }
 
     $result = ''
-    "a", "b" | Get-ChildItem | % { $result += $_ }
+    "a", "b" | Get-ChildItem | ForEach-Object -Process { $result += $_ }
 
     It "Should process the pipeline in the mocked script" {
         $result | Should Be "AABB"
@@ -1317,7 +1317,7 @@ Describe 'Parameter Filters and Common Parameters' {
 Describe "Mocking Get-ItemProperty" {
     Mock Get-ItemProperty { New-Object -typename psobject -property @{ Name = "fakeName" } }
     It "Does not fail with NotImplementedException" {
-        Get-ItemProperty -Path "HKLM:\Software\Key\" -Name "Property" | Select -ExpandProperty Name | Should Be fakeName
+        Get-ItemProperty -Path "HKLM:\Software\Key\" -Name "Property" | Select-Object -ExpandProperty Name | Should Be fakeName
     }
 }
 
@@ -1412,7 +1412,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function with an array' {
         $result = @(1,2) | PipelineInputFunction
         it 'Returns actual implementation' {
-            $result[0].keys | % {
+            $result[0].keys | ForEach-Object -Process {
                 $result[0][$_] | Should Be $noMockArrayResult[0][$_]
                 $result[1][$_] | Should Be $noMockArrayResult[1][$_]
             }
@@ -1422,7 +1422,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function with an int' {
         $result = 1 | PipelineInputFunction
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach-Object -Process {
                 $result[$_] | Should Be $noMockIntResult[$_]
             }
         }
@@ -1431,7 +1431,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function with a string' {
         $result = '1' | PipelineInputFunction
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach-Object -Process {
                 $result[$_] | Should Be $noMockStringResult[$_]
             }
         }
@@ -1440,7 +1440,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function and pipeline is bound by property name' {
         $result = $psobj | PipelineInputFunction -PipeStr 'val'
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach-Object -Process {
                 $result[$_] | Should Be $noMockResultByProperty[$_]
             }
         }
@@ -1463,7 +1463,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function and pipeline is bound by property name with array values' {
         $result = $psArrayobj | PipelineInputFunction -PipeStr 'val'
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach-Object -Process {
                 $result[$_] | Should Be $noMockArrayResultByProperty[$_]
             }
         }

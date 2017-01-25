@@ -179,12 +179,12 @@ function Invoke-Gherkin {
         $pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
             Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[Gherkin.Ast.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
-                $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
-                $this.Features.Scenarios | Where { $Names -contains $_.Name }
+                $Names = $this.TestResult | Group-Object -Property Context | Where-Object -FilterScript { $_.Group | Where-Object -FilterScript { -not $_.Passed } } | Select-Object -Expand Name
+                $this.Features.Scenarios | Where-Object -FilterScript { $Names -contains $_.Name }
             } -PassThru |
             Add-Member -MemberType ScriptProperty -Name PassedScenarios -Value {
-                $Names = $this.TestResult | Group Context | Where { -not ($_.Group | Where { -not $_.Passed }) } | Select-Object -Expand Name
-                $this.Features.Scenarios | Where { $Names -contains $_.Name }
+                $Names = $this.TestResult | Group-Object -Property Context | Where-Object -FilterScript { -not ($_.Group | Where-Object -FilterScript { -not $_.Passed }) } | Select-Object -Expand Name
+                $this.Features.Scenarios | Where-Object -FilterScript { $Names -contains $_.Name }
             } -PassThru
 
         Write-PesterStart $pester $Path
@@ -249,7 +249,7 @@ function Invoke-Gherkin {
 
                             if($Scenario.Examples) {
                                 foreach($ExampleSet in $Scenario.Examples) {
-                                    $Names = @($ExampleSet.TableHeader.Cells | Select -Expand Value)
+                                    $Names = @($ExampleSet.TableHeader.Cells | Select-Object -Expand Value)
                                     $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
                                     $Steps = foreach($Example in $ExampleSet.TableBody) {
                                                 foreach ($Step in $Scenario.Steps) {
@@ -285,19 +285,19 @@ function Invoke-Gherkin {
             # Move the test name filter first, since it'll likely return only a single item
             if($pester.TestNameFilter) {
                 $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
-                    $Scenarios | Where { $_.Name -like $NameFilter }
+                    $Scenarios | Where-Object -FilterScript { $_.Name -like $NameFilter }
                 }
                 $Scenarios = $Scenarios | Get-Unique
             }
 
             # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
             if($pester.TagFilter) {
-                $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
+                $Scenarios = $Scenarios | Where-Object -FilterScript { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
             }
 
             # if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
             if($Pester.ExcludeTagFilter) {
-                $Scenarios = $Scenarios | Where { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
+                $Scenarios = $Scenarios | Where-Object { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
             }
 
             if($Scenarios -and !$Quiet) {
@@ -311,7 +311,7 @@ function Invoke-Gherkin {
 
                 Invoke-GherkinScenario $Pester $Scenario $Background -Quiet:$Quiet
 
-                Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+                Clear-TestDrive -Exclude ($TestDriveContent | Select-Object -ExpandProperty FullName)
                 # Exit-MockScope
                 $Pester.LeaveTestGroup($Scenario.Name, 'Context')
             }
@@ -352,7 +352,7 @@ function Invoke-Gherkin {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
                 }
             )
-            $pester | Select -Property $properties
+            $pester | Select-Object -Property $properties
         }
         if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
     }
@@ -392,7 +392,7 @@ function Invoke-GherkinStep {
                 $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
             }
         }
-    ) | Sort MatchCount | Select -First 1
+    ) | Sort-Object -Property MatchCount | Select-Object -First 1
     $StepText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
 
     if(!$StepCommand) {
@@ -445,7 +445,7 @@ function Get-StepParameters {
             default { $Parameters.([int]$kv.Name) = $ExecutionContext.InvokeCommand.ExpandString($kv.Value) }
         }
     }
-    $Parameters = @($Parameters.GetEnumerator() | Sort Name | Select -Expand Value)
+    $Parameters = @($Parameters.GetEnumerator() | Sort-Object -Property Name | Select-Object -Expand Value)
 
     # TODO: Convert parsed tables to tables....
     if($Step.Argument -is [Gherkin.Ast.DataTable]) {
@@ -453,7 +453,7 @@ function Get-StepParameters {
     }
     if($Step.Argument -is [Gherkin.Ast.DocString]) {
         # trim empty matches if we're attaching DocStringArgument
-        $Parameters = @( $Parameters | Where { $_.Length } ) + $Step.Argument.Content
+        $Parameters = @( $Parameters | Where-Object -FilterScript { $_.Length } ) + $Step.Argument.Content
     }
 
     return @($NamedArguments, $Parameters)
