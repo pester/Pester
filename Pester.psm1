@@ -671,7 +671,14 @@ New-PesterOption
     )
     begin {
         # Ensure when running Pester that we're using RSpec strings
-        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1
+        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
+
+        #Fallback to en-US culture strings
+        If ([String]::IsNullOrEmpty($ReportStrings)) {
+
+            Import-LocalizedData -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
+
+        }
     }
 
     end {

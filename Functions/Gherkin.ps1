@@ -143,7 +143,14 @@ function Invoke-Gherkin {
         [switch]$PassThru
     )
     begin {
-        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1
+        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1 -ErrorAction SilentlyContinue
+
+        #Fallback to en-US culture strings
+        If ([String]::IsNullOrEmpty($ReportStrings)) {
+
+            Import-LocalizedData -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName Gherkin.psd1 -ErrorAction Stop
+
+        }
 
         # Make sure broken tests don't leave you in space:
         $Location = Get-Location
