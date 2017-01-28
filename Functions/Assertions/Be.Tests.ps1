@@ -72,5 +72,13 @@ InModuleScope Pester {
             PesterBeExactlyFailureMessage "a" "A" | Should Be "String lengths are both 1. Strings differ at index 0.`nExpected: {A}`nBut was:  {a}`n-----------^"
         }
     }
+
+    It "returns true if the 2 string arguments are of equal casing" {
+        Test-PositiveAssertion (PesterBe 'a' 'a')
+    }
+
+    It "returns false if the 2 string arguments are not of equal casing" {
+        Test-NegativeAssertion (PesterBe 'a' 'A')
+    }
 }
 
