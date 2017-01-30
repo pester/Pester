@@ -425,7 +425,9 @@ Will cause Invoke-Pester to exit with a exit code equal to the number of failed
 tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
 .PARAMETER OutputFile
-The path where Invoke-Pester will save formatted test results log file. 
+The path where Invoke-Pester will save formatted test results log file.
+The path must include the location and name of the folder and file name with
+the xml extension.
 If this path is not provided, no log will be generated.
 
 .PARAMETER OutputFormat
@@ -507,6 +509,17 @@ One of the following: Function or StartLine/EndLine
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous 
 integration where you need to make sure all tests passed.
+
+.PARAMETER Quiet
+The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
+in the next major version of Pester. Please use the parameter Show
+with value 'None' instead.
+
+The parameter Quiet suppresses the output that Pester writes to the host program,
+including the result summary and CodeCoverage output.
+
+This parameter does not affect the PassThru custom object or the XML output that
+is written when you use the Output parameters.
 
 .PARAMETER Show
 Customizes the output Pester writes to the screen. Available options are None, Default,
