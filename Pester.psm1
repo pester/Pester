@@ -236,7 +236,9 @@ Will cause Invoke-Pester to exit with a exit code equal to the number of failed
 tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
 .PARAMETER OutputFile
-The path where Invoke-Pester will save formatted test results log file. 
+The path where Invoke-Pester will save formatted test results log file.
+The path must include the location and name of the folder and file name with
+the xml extension.
 If this path is not provided, no log will be generated.
 
 .PARAMETER OutputFormat
@@ -244,10 +246,12 @@ The format of output. Two formats of output are supported: NUnitXML and
 LegacyNUnitXML.
     
 .PARAMETER OutputXml
-The parameter OutputXml is deprecated, please use OutputFile and OutputFormat 
+The parameter OutputXml is deprecated, please use OutputFile and OutputFormat
 instead.
-    
-The path where Invoke-Pester will save a NUnit formatted test results log file. 
+
+The path where Invoke-Pester will save a NUnit formatted test results log file.
+The path must include the location and name of the folder and file name with
+the xml extension.
 If this path is not provided, no log will be generated.
 
 .PARAMETER Tag
@@ -332,6 +336,23 @@ result summary and CodeCoverage output.
     
 This parameter does not affect the PassThru custom object or the XML output that
 is written when you use the Output parameters.
+
+.PARAMETER Show
+Customizes the output Pester writes to the screen. Available options are None, Default,
+Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+
+The options can be combined to define presets. 
+Common use cases are:
+
+None - to write no output to the screen.
+All - to write all available information (this is default option).
+Fails - to write everything except Passed (but including Describes etc.).
+
+A common setting is also Failed, Summary, to write only failed tests and test summary.
+    
+This parameter does not affect the PassThru custom object or the XML output that
+is written when you use the Output parameters.
+
 
 .PARAMETER PesterOption
 Sets advanced options for the test execution. Enter a PesterOption object, 
