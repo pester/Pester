@@ -679,14 +679,15 @@ New-PesterOption
         {
             & $script:SafeCommands['Write-Warning'] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
            & $script:SafeCommands['Start-Sleep'] -Seconds 2
+
+            if (!$PSBoundParameters.ContainsKey('Show'))
+		{
+			$Show = [Pester.OutputTypes]::None  
+		}
         }
 
         $script:mockTable = @{}
         $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption
-		if ($Quiet)
-		{
-			$Show = [Pester.OutputTypes]::None  
-		}
 
         try
         {

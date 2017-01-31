@@ -140,6 +140,28 @@ function Invoke-Gherkin {
         # Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
         [Switch]$Quiet,
 
+        # Sets advanced options for the test execution. Enter a PesterOption object,
+        # such as one that you create by using the New-PesterOption cmdlet, or a hash table
+        # in which the keys are option names and the values are option values.
+        # For more information on the options available, see the help for New-PesterOption.
+        [object]$PesterOption,
+
+        # Customizes the output Pester writes to the screen. Available options are None, Default,
+        # Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+
+        # The options can be combined to define presets.
+        # Common use cases are:
+
+        # None - to write no output to the screen.
+        # All - to write all available information (this is default option).
+        # Fails - to write everything except Passed (but including Describes etc.).
+
+        # A common setting is also Failed, Summary, to write only failed tests and test summary.
+
+        # This parameter does not affect the PassThru custom object or the XML output that
+        # is written when you use the Output parameters.
+        [Pester.OutputTypes]$Show = 'All',
+
         [switch]$PassThru
     )
     begin {
@@ -163,6 +185,16 @@ function Invoke-Gherkin {
 
     }
     end {
+        if ($PSBoundParameters.ContainsKey('Quiet'))
+        {
+            & $script:SafeCommands['Write-Warning'] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
+            & $script:SafeCommands['Start-Sleep'] -Seconds 2
+
+            if (!$PSBoundParameters.ContainsKey('Show'))
+    		{
+	    		$Show = [Pester.OutputTypes]::None
+		    }
+        }
 
         if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
             if((Test-Path variable:script:pester) -and $pester.FailedScenarios.Count -gt 0 ) {
@@ -176,7 +208,7 @@ function Invoke-Gherkin {
         # Clear mocks
         $script:mockTable = @{}
 
-        $pester = New-PesterState -TestNameFilter $ScenarioName -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Quiet:$Quiet |
+        $pester = New-PesterState -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -TestNameFilter $ScenarioName -SessionState $PSCmdlet.SessionState -Strict:$Strict  -Show:$Show -PesterOption $PesterOption |
             Add-Member -MemberType NoteProperty -Name Features -Value (New-Object System.Collections.Generic.List[Gherkin.Ast.Feature]) -PassThru |
             Add-Member -MemberType ScriptProperty -Name FailedScenarios -Value {
                 $Names = $this.TestResult | Group Context | Where { $_.Group | Where { -not $_.Passed } } | Select-Object -Expand Name
