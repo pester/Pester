@@ -5,15 +5,11 @@ Add-Type -Path "${Script:PesterRoot}\lib\Gherkin.dll"
 $StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
 $GherkinHooks = @{
-    BeforeAllFeatures = @()
-    BeforeFeature = @()
-    BeforeScenario = @()
-    BeforeStep = @()
-    AfterAllFeatures = @()
-    AfterFeature = @()
-    AfterScenario = @()
-    AfterStep = @()
-}
+            BeforeEachFeature = @()
+            BeforeEachScenario = @()
+            AfterEachFeature = @()
+            AfterEachScenario = @()
+        }
 
 function Invoke-GherkinHook {
     [CmdletBinding()]
@@ -173,14 +169,10 @@ function Invoke-Gherkin {
 
         $script:GherkinSteps = @{}
         $script:GherkinHooks = @{
-            BeforeAllFeatures = @()
-            BeforeFeature = @()
-            BeforeScenario = @()
-            BeforeStep = @()
-            AfterAllFeatures = @()
-            AfterFeature = @()
-            AfterScenario = @()
-            AfterStep = @()
+            BeforeEachFeature = @()
+            BeforeEachScenario = @()
+            AfterEachFeature = @()
+            AfterEachScenario = @()
         }
 
     }
@@ -227,27 +219,27 @@ function Invoke-Gherkin {
         $BeforeAllFeatures = $false
         foreach($FeatureFile in Get-ChildItem $Path -Filter "*.feature" -Recurse ) {
 
-            # Remove all the steps
-            $Script:GherkinSteps.Clear()
+        # Remove all the steps
+        $Script:GherkinSteps.Clear()
             # Import all the steps that are at the same level or a subdirectory
             $StepPath = Split-Path $FeatureFile.FullName
             $StepFiles = Get-ChildItem $StepPath -Filter "*.steps.ps1" -Recurse
             foreach($StepFile in $StepFiles){
                 . $StepFile.FullName
-            }
+        }
             Write-Verbose "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
 
             if(!$BeforeAllFeatures) {
                 Invoke-GherkinHook BeforeAllFeatures
                 $BeforeAllFeatures = $true
-            }
+}
 
             try {
                 $Feature = $parser.Parse($FeatureFile.FullName).Feature | Convert-Tags
             } catch [Gherkin.ParserException] {
                 Write-Warning "Skipped '$($FeatureFile.FullName)' because of parser errors:`n$(($_.Exception.Errors | Select-Object -Expand Message) -join "`n`n")"
                 continue
-            }
+    }
 
             $null = $Pester.Features.Add($Feature)
 
@@ -261,102 +253,102 @@ function Invoke-Gherkin {
             # Invoke-TestGroupSetupBlocks -Scope $pester.Scope
 
             $Background = $null
-            $Scenarios = foreach($Scenario in $Feature.Children) {
-                            switch($Scenario.Keyword.Trim())
-                            {
-                                "Scenario" {
-                                    $Scenario = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
-                                }
-                                "Scenario Outline" {
-                                    $Scenario = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
-                                }
-                                "Background" {
-                                    $Background = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
-                                    continue
-                                }
-                                default {
-                                    Write-Warning "Unexpected Feature Child: $_"
-                                }
-                            }
+    $Scenarios = foreach($Scenario in $Feature.Children) {
+        switch($Scenario.Keyword.Trim())
+        {
+            "Scenario" {
+                $Scenario = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
+            }
+            "Scenario Outline" {
+                $Scenario = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
+            }
+            "Background" {
+                $Background = Convert-Tags -Input $Scenario -BaseTags $Feature.Tags
+                continue
+            }
+            default {
+                Write-Warning "Unexpected Feature Child: $_"
+            }
+        }
 
-                            if($Scenario.Examples) {
-                                foreach($ExampleSet in $Scenario.Examples) {
-                                    $Names = @($ExampleSet.TableHeader.Cells | Select -Expand Value)
-                                    $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
-                                    $Steps = foreach($Example in $ExampleSet.TableBody) {
-                                                foreach ($Step in $Scenario.Steps) {
-                                                    [string]$StepText = $Step.Text
-                                                    $StepArgument = $Step.Argument
-                                                    if($StepText -match $NamesPattern) {
-                                                        for($n = 0; $n -lt $Names.Length; $n++) {
-                                                            $Name = $Names[$n]
-                                                            if($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
-                                                                $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
-                                                            }
-                                                        }
-                                                    }
-                                                    if($StepText -ne $Step.Text) {
-                                                        New-Object Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
-                                                    } else {
-                                                        $Step
-                                                    }
-                                                }
-                                            }
-                                    $ScenarioName = $Scenario.Name
-                                    if($ExampleSet.Name) {
-                                        $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
+        if($Scenario.Examples) {
+            foreach($ExampleSet in $Scenario.Examples) {
+                $Names = @($ExampleSet.TableHeader.Cells | Select -Expand Value)
+                $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
+                $Steps = foreach($Example in $ExampleSet.TableBody) {
+                            foreach ($Step in $Scenario.Steps) {
+                                [string]$StepText = $Step.Text
+                                $StepArgument = $Step.Argument
+                                if($StepText -match $NamesPattern) {
+                                    for($n = 0; $n -lt $Names.Length; $n++) {
+                                        $Name = $Names[$n]
+                                        if($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                            $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
+                                        }
                                     }
-                                    New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                                 }
-                            } else {
-                                $Scenario
+                                if($StepText -ne $Step.Text) {
+                                    New-Object Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                } else {
+                                    $Step
+                                }
                             }
                         }
-            Add-Member -Input $Feature -Type NoteProperty -Name Scenarios -Value $Scenarios -Force
+                $ScenarioName = $Scenario.Name
+                if($ExampleSet.Name) {
+                    $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
+                }
+                New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
+            }
+        } else {
+            $Scenario
+        }
+    }
+    Add-Member -Input $Feature -Type NoteProperty -Name Scenarios -Value $Scenarios -Force
 
-            # Move the test name filter first, since it'll likely return only a single item
+    # Move the test name filter first, since it'll likely return only a single item
             if($pester.TestNameFilter) {
                 $Scenarios = foreach($nameFilter in $pester.TestNameFilter) {
-                    $Scenarios | Where { $_.Name -like $NameFilter }
-                }
-                $Scenarios = $Scenarios | Get-Unique
-            }
+            $Scenarios | Where { $_.Name -like $NameFilter }
+        }
+        $Scenarios = $Scenarios | Get-Unique
+    }
 
-            # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
+    # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
             if($pester.TagFilter) {
                 $Scenarios = $Scenarios | Where { Compare-Object $_.Tags $pester.TagFilter -IncludeEqual -ExcludeDifferent }
-            }
+    }
 
-            # if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
-            if($Pester.ExcludeTagFilter) {
-                $Scenarios = $Scenarios | Where { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
-            }
+    # if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+    if($Pester.ExcludeTagFilter) {
+        $Scenarios = $Scenarios | Where { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
+    }
 
-            if($Scenarios -and !$Quiet) {
-                Write-Describe $Feature
-            }
+    if($Scenarios -and !$Quiet) {
+        Write-Describe $Feature
+    }
 
-            foreach($Scenario in $Scenarios) {
-                # This is Pester's Context function
-                $Pester.EnterTestGroup($Scenario.Name, 'Context')
-                $TestDriveContent = Get-TestDriveChildItem
+        foreach($Scenario in $Scenarios) {
+            # This is Pester's Context function
+            $Pester.EnterTestGroup($Scenario.Name, 'Context')
+            $TestDriveContent = Get-TestDriveChildItem
 
-                Invoke-GherkinScenario $Pester $Scenario $Background -Quiet:$Quiet
+            Invoke-GherkinScenario $Pester $Scenario $Background -Quiet:$Quiet
 
-                Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
-                # Exit-MockScope
-                $Pester.LeaveTestGroup($Scenario.Name, 'Context')
-            }
+            Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
+            # Exit-MockScope
+            $Pester.LeaveTestGroup($Scenario.Name, 'Context')
+        }
 
             ## This is Pesters "Describe" function again
             Invoke-GherkinHook AfterFeature $Feature.Name $Feature.Tags
 
-            Remove-TestDrive
-            ## Hypothetically, we could add FEATURE setup/teardown?
-            # Clear-SetupAndTeardown
-            Exit-MockScope
+        Remove-TestDrive
+        ## Hypothetically, we could add FEATURE setup/teardown?
+        # Clear-SetupAndTeardown
+        Exit-MockScope
             $Pester.LeaveTestGroup($Feature.Name, 'Describe')
-        }
+    }
         Invoke-GherkinHook AfterAllFeatures
 
         # Remove all the steps

@@ -52,8 +52,12 @@ FunctionsToExport = @(
 	'New-MockObject'
 
     # Gherkin Support:
-    'Invoke-Gherkin',
-    'When'
+    'Invoke-Gherkin'
+    'GherkinStep'
+    'BeforeEachFeature'
+    'AfterEachFeature'
+    'BeforeEachScenario'
+    'AfterEachScenario'
 )
 
 # # Cmdlets to export from this module
@@ -78,10 +82,11 @@ VariablesToExport = @(
 
 # # Aliases to export from this module
 AliasesToExport = @(
-    'And',
-    'But',
     'Given'
+    'When'
     'Then'
+    'And'
+    'But'
 )
 
 

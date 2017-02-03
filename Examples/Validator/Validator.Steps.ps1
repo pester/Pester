@@ -1,12 +1,12 @@
 $global:ValidatorRoot = Split-Path $MyInvocation.MyCommand.Path
 
-BeforeAllFeatures {
+BeforeEachFeature {
     New-Module -Name ValidatorTest {
         . $global:ValidatorRoot\Validator.ps1 -Verbose
     } | Import-Module -Scope Global
 }
 
-AfterAllFeatures {
+AfterEachFeature {
     Remove-Module ValidatorTest
 }
 
