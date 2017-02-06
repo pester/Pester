@@ -470,7 +470,7 @@ function Invoke-GherkinScenario {
 function Invoke-GherkinStep {
     [CmdletBinding()]
     param (
-        $Step, [Switch]$Quiet, $Pester
+        $Step, [Switch]$Background, $Pester
     )
     #  Pick the match with the least grouping wildcards in it...
     $StepCommand = $(
@@ -479,11 +479,11 @@ function Invoke-GherkinStep {
                 $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
             }
         }
-    ) | Sort MatchCount | Select -First 1
+    ) | Sort-Object MatchCount | Select-Object -First 1
     $StepText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
 
     if(!$StepCommand) {
-        $Pester.AddTestResult($StepText, "Skipped", $null, "Could not find test for step!", $null )
+        $Pester.AddTestResult("MISSING: " +$StepText, "Skipped", $null, "Could not find test for step!", $null )
     } else {
         $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
 
@@ -507,16 +507,24 @@ function Invoke-GherkinStep {
 
             $Success = "Passed"
         } catch {
+            $StepText += ' (at ' + $Script:GherkinSteps[$StepCommand].Source + ')'
             $Success = "Failed"
             $PesterException = $_
         }
 
         $watch.Stop()
 
-        $Pester.AddTestResult($StepText, $Success, $watch.Elapsed, $PesterException.Exception.Message, ($PesterException.ScriptStackTrace -split "`n")[1] )
+        for($p = 0; $p -lt $Parameters.Count; $p++) {
+            $NamedArguments."Unnamed-$p" = $Parameters[$p]
+        }
+
+        # TODO: I'm hiding Pester from the stack trace. I shouldn't have to do that.
+        # If we make Should use $PSCmdlet.ThrowTerminatingError it should take Should out of the stack trace
+        $Stack = ($PesterException.ScriptStackTrace -split "`n" -notmatch "\\Pester\\Functions\\Assertions\\Should\.ps1")
+        $Pester.AddTestResult($StepText, $Success, $watch.Elapsed, $PesterException.Exception.Message, $Stack[0], ($Script:GherkinSteps[$StepCommand].Source), $NamedArguments, $PesterException.ErrorRecord )
     }
 
-    if(!$Quiet) {
+    if(!$Background) {
         $Pester.testresult[-1] | Write-PesterResult
     }
 }
