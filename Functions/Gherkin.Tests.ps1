@@ -11,13 +11,13 @@ $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
     Import-Module $scriptRoot\Pester.psd1 -Force
 
     New-Object psobject -Property @{
-        Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Quiet
-        Mockery       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery -Quiet
-        Examples      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples -Quiet
-        Example1      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 -Quiet
-        Example2      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 -Quiet
-        NamedScenario = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" -Quiet
-        NotMockery    = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery -Quiet
+        Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Show None
+        Mockery       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery -Show None
+        Examples      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples -Show None
+        Example1      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 -Show None
+        Example2      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 -Show None
+        NamedScenario = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" -Show None
+        NotMockery    = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery -Show None
     }
 }
 
@@ -55,7 +55,8 @@ Describe 'Invoke-Gherkin' {
     }
 
     It 'Outputs the correct number of passed scenarios' {
-        $gherkin.Results.PassedScenarios | Should Be 2
-        $gherkin.NamedScenario.PassedScenarios | Should Be 1
+        # Note that each example outputs as a scenario ...
+        @($gherkin.Results.PassedScenarios).Count | Should Be 3
+        @($gherkin.NamedScenario.PassedScenarios).Count | Should Be 1
     }
 }
