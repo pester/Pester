@@ -1030,5 +1030,5 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
-& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Invoke-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
+& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Invoke-GherkinStep, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject
