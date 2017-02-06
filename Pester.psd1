@@ -53,6 +53,7 @@ FunctionsToExport = @(
 
     # Gherkin Support:
     'Invoke-Gherkin'
+    'Invoke-GherkinStep'
     'GherkinStep'
     'BeforeEachFeature'
     'AfterEachFeature'

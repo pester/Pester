@@ -395,8 +395,8 @@ function Invoke-GherkinFeature {
         $Scenarios = $Scenarios | Where { !(Compare-Object $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
     }
 
-    if($Scenarios -and !$Quiet) {
-        Write-Describe $Feature -CommandUsed 'Feature'
+    if($Scenarios) {
+        Write-Describe $Feature
     }
 
     try {
@@ -405,7 +405,7 @@ function Invoke-GherkinFeature {
             $Pester.EnterTestGroup($Scenario.Name, 'Context')
             $TestDriveContent = Get-TestDriveChildItem
 
-            Invoke-GherkinScenario $Pester $Scenario $Background -Quiet:$Quiet
+            Invoke-GherkinScenario $Pester $Scenario $Background
 
             Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
             # Exit-MockScope
@@ -442,11 +442,11 @@ function Invoke-GherkinFeature {
 function Invoke-GherkinScenario {
     [CmdletBinding()]
     param(
-        $Pester, $Scenario, $Background, [Switch]$Quiet
+        $Pester, $Scenario, $Background
     )
     $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
 
-    if(!$Quiet) { Write-Context $Scenario }
+    Write-Context $Scenario
 
     $script:GherkinScenarioScope = {}
 
@@ -454,15 +454,17 @@ function Invoke-GherkinScenario {
 
     # If there's a background, run that before the test, but after hooks
     if($Background) {
-        Invoke-GherkinScenario $Background -Quiet -Pester:$Pester
+        foreach($Step in $Background.Steps) {
+            # Run Background steps -Background so they don't output in each scenario
+            . Invoke-GherkinStep $Step -Background -Pester:$Pester
+        }
     }
 
     foreach($Step in $Scenario.Steps) {
-        . Invoke-GherkinStep $Step -Quiet:$Quiet -Pester:$Pester
+        . Invoke-GherkinStep $Step -Pester:$Pester
     }
 
     Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
-
 
     $Pester.LeaveTestGroup($Scenario.Name, 'Scenario')
 }
