@@ -1,6 +1,7 @@
 if ($PSVersionTable.PSVersion.Major -le 2) { return }
 
-Add-Type -Path "${Script:PesterRoot}\lib\Gherkin.dll"
+# Work around bug in PowerShell 2 type loading...
+Import-Module -Name "${Script:PesterRoot}\lib\Gherkin.dll"
 
 $StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
