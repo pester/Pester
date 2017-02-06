@@ -469,6 +469,49 @@ function Invoke-GherkinScenario {
     $Pester.LeaveTestGroup($Scenario.Name, 'Scenario')
 }
 
+function Find-GherkinStep {
+    [CmdletBinding()]
+    param(
+        # The text from feature file
+        [string]$Step,
+        # The path to search for step implementations
+        [string]$BasePath = $Pwd
+    )
+
+    $OriginalGherkinSteps = $Script:GherkinSteps
+    try {
+        Import-GherkinSteps $BasePath -Pester $PSCmdlet
+
+        $KeyWord, $StepText = $Step -split "(?<=^(?:Given|When|Then|And|But))\s+"
+        if(!$StepText) { $StepText = $KeyWord }
+
+        Write-Verbose "Searching for '$StepText' in $($Script:GherkinSteps.Count) steps"
+        $(
+            foreach($StepCommand in $Script:GherkinSteps.Keys) {
+                Write-Verbose "... $StepCommand"
+                if($StepText -match "^${StepCommand}$") {
+                    Write-Verbose "Found match: $StepCommand"
+                    $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
+                }
+            }
+        ) | Sort-Object MatchCount | Select-Object @{
+            Name = 'Step'
+            Expression = { $Step }
+        }, @{
+            Name = 'Source'
+            Expression = { $Script:GherkinSteps["$_"].Source }
+        }, @{
+            Name = 'Implementation'
+            Expression = { $Script:GherkinSteps["$_"] }
+        } -First 1
+
+        # $StepText = "{0} {1} {2}" -f $Step.Keyword.Trim(), $Step.Text, $Script:GherkinSteps[$StepCommand].Source
+
+    } finally {
+        $Script:GherkinSteps = $OriginalGherkinSteps
+    }
+}
+
 function Invoke-GherkinStep {
     [CmdletBinding()]
     param (
