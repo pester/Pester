@@ -528,7 +528,7 @@ function Invoke-GherkinStep {
     $StepText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
 
     if(!$StepCommand) {
-        $Pester.AddTestResult("MISSING: " +$StepText, "Skipped", $null, "Could not find test for step!", $null )
+        $Pester.AddTestResult($StepText, "Inconclusive", $null, "Could not find implementation for step!", $null )
     } else {
         $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
 
