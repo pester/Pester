@@ -289,12 +289,19 @@ function Import-GherkinSteps {
     }
 }
 
-function Import-GherkinScenario {
+function Import-GherkinFeature {
     [CmdletBinding()]
-    param($Feature,  [PSObject]$Pester)
-
+    param($Path,  [PSObject]$Pester)
     $Background = $null
+
+    $parser = New-Object Gherkin.Parser
+    $Feature = $parser.Parse($Path).Feature | Convert-Tags
     $Scenarios = foreach($Scenario in $Feature.Children) {
+        $null = Add-Member -InputObject $Scenario.Location -MemberType "NoteProperty" -Name "Path" -Value $Path
+        foreach($Step in $Scenario.Steps) {
+             $null = Add-Member -InputObject $Step.Location -MemberType "NoteProperty" -Name "Path" -Value $Path
+        }
+
         switch($Scenario.Keyword.Trim())
         {
             "Scenario" {
@@ -329,7 +336,7 @@ function Import-GherkinScenario {
                                     }
                                 }
                                 if($StepText -ne $Step.Text) {
-                                    New-Object Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                    New-Object Gherkin.Ast.Step ($Step.Location  | Add-Member -MemberType "NoteProperty" -Name "Path" -Value $Path -PassThru), $Step.Keyword.Trim(), $StepText, $Step.Argument
                                 } else {
                                     $Step
                                 }
@@ -339,7 +346,7 @@ function Import-GherkinScenario {
                 if($ExampleSet.Name) {
                     $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
                 }
-                New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
+                New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, ($Scenario.Location  | Add-Member -MemberType "NoteProperty" -Name "Path" -Value $Path -PassThru), $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
         } else {
             $Scenario
@@ -347,7 +354,7 @@ function Import-GherkinScenario {
     }
 
     Add-Member -Input $Feature -Type NoteProperty -Name Scenarios -Value $Scenarios -Force
-    return $Background, $Scenarios
+    return $Feature, $Background, $Scenarios
 }
 
 function Invoke-GherkinFeature {
@@ -361,14 +368,11 @@ function Invoke-GherkinFeature {
 
         [PSObject]$Pester
     )
-    $parser = New-Object Gherkin.Parser
-
     $Pester.EnterTestGroup($FeatureFile.FullName, 'Script')
 
     try {
-        $Feature = $parser.Parse($FeatureFile.FullName).Feature | Convert-Tags
         Import-GherkinSteps (Split-Path $FeatureFile.FullName) -Pester $pester
-        $Background, $Scenarios = Import-GherkinScenario $Feature -Pester $Pester
+        $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
     } catch [Gherkin.ParserException] {
         Write-Error -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | Select-Object -Expand Message) -join "`n`n")"
         continue
@@ -402,15 +406,7 @@ function Invoke-GherkinFeature {
 
     try {
         foreach($Scenario in $Scenarios) {
-            # This is Pester's Context function
-            $Pester.EnterTestGroup($Scenario.Name, 'Context')
-            $TestDriveContent = Get-TestDriveChildItem
-
             Invoke-GherkinScenario $Pester $Scenario $Background
-
-            Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
-            # Exit-MockScope
-            $Pester.LeaveTestGroup($Scenario.Name, 'Context')
         }
     }
     catch
@@ -445,29 +441,53 @@ function Invoke-GherkinScenario {
     param(
         $Pester, $Scenario, $Background
     )
+    Write-Trace "$($Pester -ne $Null) $($Scenario.Name)" -Tag "Trace", "Invoke-GherkinScenario", "Enter"
+
     $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
+    $TestDriveContent = Get-TestDriveChildItem
+    try {
+        Write-Context $Scenario
 
-    Write-Context $Scenario
+        $script:GherkinScenarioScope = {}
 
-    $script:GherkinScenarioScope = {}
+        Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
-    Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
-
-    # If there's a background, run that before the test, but after hooks
-    if($Background) {
-        foreach($Step in $Background.Steps) {
-            # Run Background steps -Background so they don't output in each scenario
-            . Invoke-GherkinStep $Step -Background -Pester:$Pester
+        # If there's a background, run that before the test, but after hooks
+        if($Background) {
+            foreach($Step in $Background.Steps) {
+                # Run Background steps -Background so they don't output in each scenario
+                . Invoke-GherkinStep -Step $Step -Pester:$Pester
+            }
         }
+
+        Write-Trace "$($Pester -ne $Null) $($Scenario.Name)" -Tag "Trace", "Invoke-GherkinScenario"
+
+        foreach($Step in $Scenario.Steps) {
+            Write-Trace "$($Pester -ne $Null) $($Step.Text)" -Tag "Trace", "Invoke-GherkinScenario"
+            . Invoke-GherkinStep -Step $Step -Pester:$Pester -Visible
+            Write-Trace "$($Pester -ne $Null) $($Step.Text)" -Tag "Trace", "Invoke-GherkinScenario"
+        }
+
+        Write-Trace "$($Pester -ne $Null) $($Scenario.Name)" -Tag "Trace", "Invoke-GherkinScenario"
+
+        Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
+    }
+    catch {
+        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+        $Pester.AddTestResult("Error occurred in scenario '$($Scenario.Name)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+
+        # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
+        # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
+        # planned for v4.0
+        $Pester.TestResult[-1].Describe = "Error in $($Scenario.Name)"
+
+        $Pester.TestResult[-1] | Write-PesterResult
     }
 
-    foreach($Step in $Scenario.Steps) {
-        . Invoke-GherkinStep $Step -Pester:$Pester
-    }
-
-    Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
-
+    Clear-TestDrive -Exclude ($TestDriveContent | Select-Object -ExpandProperty FullName)
     $Pester.LeaveTestGroup($Scenario.Name, 'Scenario')
+
+    Write-Trace "$($Pester -ne $Null) $($Scenario.Name)" -Tag "Trace", "Invoke-GherkinScenario", "Exit"
 }
 
 function Find-GherkinStep {
@@ -514,64 +534,108 @@ function Find-GherkinStep {
 }
 
 function Invoke-GherkinStep {
+    #.Synopsis
+    #   Run a single gherkin step, given the text from the feature file
     [CmdletBinding()]
     param (
-        $Step, [Switch]$Background, $Pester
+        # The text of the step for matching against regex patterns in step implementations
+        $Step,
+
+        # If Visible is true, the results of this step will be shown in the test report
+        [Switch]$Visible,
+
+        # Pester state object. For internal use only
+        $Pester
     )
-    #  Pick the match with the least grouping wildcards in it...
-    $StepCommand = $(
-        foreach($StepCommand in $Script:GherkinSteps.Keys) {
-            if($Step.Text -match "^${StepCommand}$") {
-                $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
+    if($Step -is [string]) {
+        $KeyWord, $StepText = $Step -split "(?<=^(?:Given|When|Then|And|But))\s+"
+        if(!$StepText) {
+            $StepText = $KeyWord
+            $Keyword = "Step"
+        }
+        $Step = @{ Text = $StepText; Keyword = $Keyword }
+    }
+    $DisplayText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
+
+    Write-Trace "$($Pester -ne $Null)($([bool]$Visible)) ${DisplayText}" -Tag "Trace", "Invoke-GherkinStep"
+
+    $PesterException = $null
+    $Source = $null
+    $Elapsed = $null
+    $NamedArguments = @{}
+    $Success = "Failed"
+
+    try {
+        Write-Trace "Invoke-GherkinStep $DisplayText" -Tag "Trace", "Invoke-GherkinStep"
+
+        #  Pick the match with the least grouping wildcards in it...
+        $StepCommand = $(
+            foreach($StepCommand in $Script:GherkinSteps.Keys) {
+                if($Step.Text -match "^${StepCommand}$") {
+                    $StepCommand | Add-Member MatchCount $Matches.Count -PassThru
+                }
+            }
+        ) | Sort-Object MatchCount | Select-Object -First 1
+
+        if(!$StepCommand) {
+            Write-Trace "StepCommand Not Found: $DisplayText" -Tag "Debug", "Failure", "Invoke-GherkinStep"
+            $PesterException = @{ Exception = @{ Message = "Could not find implementation for step!" } }
+            $Success = "Inconclusive"
+
+            if(!$Pester) { Write-Warning "Cannot find $DisplayText" }
+        } else {
+            Write-Trace "StepCommand: $StepCommand" -Tag "Debug", "Invoke-GherkinStep"
+
+            $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
+            $watch = New-Object System.Diagnostics.Stopwatch
+            $watch.Start()
+            try {
+                # Invoke-GherkinHook BeforeStep $Step.Text $Step.Tags
+
+                if($NamedArguments.Count) {
+                    $ScriptBlock = { . $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters }
+                } else {
+                    $ScriptBlock = { . $Script:GherkinSteps.$StepCommand @Parameters }
+                }
+                Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionStateInternal (Get-ScriptBlockScope $GherkinScenarioScope)
+
+                $null = . $ScriptBlock
+
+                $Success = "Passed"
+            } catch {
+                $Success = "Failed"
+                $PesterException = $_
+            }
+            $watch.Stop()
+            $Elapsed = $watch.Elapsed
+
+            if($Visible) {
+                for($p = 0; $p -lt $Parameters.Count; $p++) {
+                    $NamedArguments."Unnamed-$p" = $Parameters[$p]
+                }
+
+                # TODO: I'm hiding Pester from the stack trace. I shouldn't have to do that.
+                # If we make Should use $PSCmdlet.ThrowTerminatingError it should take Should out of the stack trace
+                $Source = $Script:GherkinSteps[$StepCommand].Source
             }
         }
-    ) | Sort-Object MatchCount | Select-Object -First 1
-    $StepText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
+    }
+    catch {
+        Write-Trace "Exception: $_" -Tag "Exception", "Invoke-GherkinStep"
 
-    if(!$StepCommand) {
-        $Pester.AddTestResult($StepText, "Inconclusive", $null, "Could not find implementation for step!", $null )
-    } else {
-        $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
-
-        $PesterException = $null
-        $watch = New-Object System.Diagnostics.Stopwatch
-        $watch.Start()
-        try{
-            # Invoke-GherkinHook BeforeStep $Step.Text $Step.Tags
-
-            if($NamedArguments.Count) {
-                $ScriptBlock = { . $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters }
-            } else {
-                $ScriptBlock = { . $Script:GherkinSteps.$StepCommand @Parameters }
-            }
-            # Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionStateInternal (Get-ScriptBlockScope $GherkinScenarioScope)
-            Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionStateInternal (Get-ScriptBlockScope $GherkinScenarioScope)
-
-            $null = . $ScriptBlock
-
-            # Invoke-GherkinHook AfterStep $Step.Text $Step.Tags
-
-            $Success = "Passed"
-        } catch {
-            $StepText += ' (at ' + $Script:GherkinSteps[$StepCommand].Source + ')'
-            $Success = "Failed"
-            $PesterException = $_
-        }
-
-        $watch.Stop()
-
-        for($p = 0; $p -lt $Parameters.Count; $p++) {
-            $NamedArguments."Unnamed-$p" = $Parameters[$p]
-        }
-
-        # TODO: I'm hiding Pester from the stack trace. I shouldn't have to do that.
-        # If we make Should use $PSCmdlet.ThrowTerminatingError it should take Should out of the stack trace
-        $Stack = ($PesterException.ScriptStackTrace -split "`n" -notmatch "\\Pester\\Functions\\Assertions\\Should\.ps1")
-        $Pester.AddTestResult($StepText, $Success, $watch.Elapsed, $PesterException.Exception.Message, $Stack[0], ($Script:GherkinSteps[$StepCommand].Source), $NamedArguments, $PesterException.ErrorRecord )
+        $Success = "Failed"
+        $PesterException = $_
     }
 
-    if(!$Background) {
-        $Pester.testresult[-1] | Write-PesterResult
+    Write-Trace "$($Pester -ne $Null)($([bool]$Visible)) ${DisplayText}" -Tag "Trace", "Invoke-GherkinStep"
+
+    if($Pester -and $Visible) {
+        # TODO: I'm hiding Pester from the stack trace. I shouldn't have to do that.
+        # If we make Should use $PSCmdlet.ThrowTerminatingError it should take Should out of the stack trace
+        $Stack = @($PesterException.ScriptStackTrace -split "`n" -notmatch "\\Pester\\Functions\\Assertions\\Should\.ps1")[0] + "`n" +
+                 "From " + $Step.Location.Path + ': line ' + $Step.Location.Line
+        $Pester.AddTestResult($DisplayText, $Success, $Elapsed, $PesterException.Exception.Message, $Stack, $Source, $NamedArguments, $PesterException.ErrorRecord )
+        $Pester.TestResult[-1] | Write-PesterResult
     }
 }
 
