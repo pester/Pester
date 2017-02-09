@@ -236,8 +236,14 @@ function Write-PesterResult {
                 Failed {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output " -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime $humanTime
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                    if($pester.IncludeVSCodeMarker) {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                    }
+                    else {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                    }
                     break
 	            }
 
