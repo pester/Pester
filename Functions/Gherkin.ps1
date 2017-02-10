@@ -600,7 +600,7 @@ function Invoke-GherkinStep {
         for($p = 0; $p -lt $Parameters.Count; $p++) {
             $NamedArguments."Unnamed-$p" = $Parameters[$p]
         }
-        $result = Get-PesterResult -ErrorRecord $PesterException
+        $result = ConvertTo-PesterResult -ErrorRecord $PesterException
 
         # For Gherkin, we want to show the step, but not pretend to be a StackTrace
         if($result.Result -eq 'Inconclusive') {
