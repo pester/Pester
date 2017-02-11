@@ -324,15 +324,15 @@ function Import-GherkinFeature {
 
         if($Scenario.Examples) {
             foreach($ExampleSet in $Scenario.Examples) {
-                $Names = @($ExampleSet.TableHeader.Cells | Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Value)
-                $NamesPattern = "<(?:" + ($Names -join "|") + ")>"
+                ${Column Names} = @($ExampleSet.TableHeader.Cells | Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Value)
+                $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
                 $Steps = foreach($Example in $ExampleSet.TableBody) {
                             foreach ($Step in $Scenario.Steps) {
                                 [string]$StepText = $Step.Text
                                 $StepArgument = $Step.Argument
                                 if($StepText -match $NamesPattern) {
-                                    for($n = 0; $n -lt $Names.Length; $n++) {
-                                        $Name = $Names[$n]
+                                    for($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                                        $Name = ${Column Names}[$n]
                                         if($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
                                             $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
                                         }
@@ -600,16 +600,16 @@ function Invoke-GherkinStep {
         for($p = 0; $p -lt $Parameters.Count; $p++) {
             $NamedArguments."Unnamed-$p" = $Parameters[$p]
         }
-        $result = ConvertTo-PesterResult -ErrorRecord $PesterException
+        ${Pester Result} = ConvertTo-PesterResult -ErrorRecord $PesterException
 
         # For Gherkin, we want to show the step, but not pretend to be a StackTrace
-        if($result.Result -eq 'Inconclusive') {
-            $result.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
+        if(${Pester Result}.Result -eq 'Inconclusive') {
+            ${Pester Result}.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
         } else {
             # Unless we really are a StackTrace...
-            $result.StackTrace =  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
+            ${Pester Result}.StackTrace =  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
-        $Pester.AddTestResult($DisplayText, $result.Result, $Elapsed, $PesterException.Exception.Message, $result.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
+        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterException.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
@@ -665,29 +665,29 @@ function ConvertTo-HashTableArray {
         [Gherkin.Ast.TableRow[]]$InputObject
     )
     begin {
-        $Names = @()
-        $Table = @()
+        ${Column Names} = @()
+        ${Result Table} = @()
     }
     process {
         # Convert the first table row into headers:
-        $Rows = @($InputObject)
-        if(!$Names) {
+        ${InputObject Rows} = @($InputObject)
+        if(!${Column Names}) {
             Microsoft.PowerShell.Utility\Write-Verbose "Reading Names from Header"
-            $Header, $Rows = $Rows
-            $Names = $Header.Cells | Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Value
+            ${InputObject Header}, ${InputObject Rows} = ${InputObject Rows}
+            ${Column Names} = ${InputObject Header}.Cells | Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Value
         }
 
-        Microsoft.PowerShell.Utility\Write-Verbose "Processing $($Rows.Length) Rows"
-        foreach($row in $Rows) {
-            $result = @{}
-            for($n = 0; $n -lt $Names.Length; $n++) {
-                $result.Add($Names[$n], $row.Cells[$n].Value)
+        Microsoft.PowerShell.Utility\Write-Verbose "Processing $(${InputObject Rows}.Length) Rows"
+        foreach(${InputObject row} in ${InputObject Rows}) {
+            ${Pester Result} = @{}
+            for($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                ${Pester Result}.Add(${Column Names}[$n], ${InputObject row}.Cells[$n].Value)
             }
-            $Table += @($result)
+            ${Result Table} += @(${Pester Result})
         }
     }
     end {
-        Microsoft.PowerShell.Utility\Write-Output $Table
+        Microsoft.PowerShell.Utility\Write-Output ${Result Table}
     }
 }
 
