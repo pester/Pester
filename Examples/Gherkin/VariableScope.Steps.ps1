@@ -56,7 +56,10 @@ BeforeEachFeature {
 # Not using this BACKGROUND Given anymore, we're using a BeforeEachFeature instead
 # That way we only clear the variable at the beginning of the test
 Given "I ensure variables ([\w:]+) and ([\w:]+) are not set" {
-    param([Parameter(ValueFromRemainingArguments)][string[]]$names)
+    param(
+        [Parameter(ValueFromRemainingArguments=$True)]
+        [string[]]$names
+    )
 
     foreach($name in $Names) {
         Remove-Variable -Name $Name -ErrorAction Ignore

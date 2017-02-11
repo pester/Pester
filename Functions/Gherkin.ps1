@@ -92,22 +92,22 @@ function Invoke-Gherkin {
 
         # This parameter indicates which feature files should be tested.
         # Aliased to 'Script' for compatibility with Pester, but does not support hashtables, since feature files don't take parameters.
-        [Parameter(Position=0,Mandatory=0)]
+        [Parameter(Position=0,Mandatory=$False)]
         [Alias('Script','relative_path')]
         [string]$Path = $Pwd,
 
         # When set, invokes testing of scenarios which match this name.
         # Aliased to 'Name' and 'TestName' for compatibility with Pester.
-        [Parameter(Position=1,Mandatory=0)]
+        [Parameter(Position=1,Mandatory=$False)]
         [Alias("Name","TestName")]
         [string[]]$ScenarioName,
 
         # Will cause Invoke-Gherkin to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
-        [Parameter(Position=2,Mandatory=0)]
+        [Parameter(Position=2,Mandatory=$False)]
         [switch]$EnableExit,
 
         # Filters Scenarios and Features and runs only the ones tagged with the specified tags.
-        [Parameter(Position=4,Mandatory=0)]
+        [Parameter(Position=4,Mandatory=$False)]
         [Alias('Tags')]
         [string[]]$Tag,
 
@@ -259,7 +259,7 @@ function Import-GherkinSteps {
     param(
         # The folder which contains step files
         [Alias("PSPath")]
-        [Parameter(Mandatory,Position=0,ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory=$True, Position=0, ValueFromPipelineByPropertyName=$True)]
         $StepPath,
 
         [PSObject]$Pester
@@ -363,7 +363,7 @@ function Invoke-GherkinFeature {
     [CmdletBinding()]
     param(
         [Alias("PSPath")]
-        [Parameter(Mandatory,Position=0,ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory=$True, Position=0, ValueFromPipelineByPropertyName=$True)]
         [IO.FileInfo]$FeatureFile,
 
         [PSObject]$Pester
