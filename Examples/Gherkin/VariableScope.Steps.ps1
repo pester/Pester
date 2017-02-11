@@ -48,9 +48,9 @@ Then "the variable ([\w:]+) should not exist" {
 }
 
 BeforeEachFeature {
-    Remove-Variable One -ErrorAction Ignore
-    Remove-Variable Two -ErrorAction Ignore
-    Remove-Variable Two -Scope Script -ErrorAction Ignore
+    Remove-Variable One -ErrorAction SilentlyContinue
+    Remove-Variable Two -ErrorAction SilentlyContinue
+    Remove-Variable Two -Scope Script -ErrorAction SilentlyContinue
 }
 
 # Not using this BACKGROUND Given anymore, we're using a BeforeEachFeature instead
@@ -62,6 +62,6 @@ Given "I ensure variables ([\w:]+) and ([\w:]+) are not set" {
     )
 
     foreach($name in $Names) {
-        Remove-Variable -Name $Name -ErrorAction Ignore
+        Remove-Variable -Name $Name -ErrorAction SilentlyContinue
     }
 }

@@ -3,7 +3,7 @@ $global:ValidatorRoot = Split-Path $MyInvocation.MyCommand.Path
 BeforeEachFeature {
     New-Module -Name ValidatorTest {
         . $global:ValidatorRoot\Validator.ps1 -Verbose
-    } | Import-Module -Scope Global
+    } | Import-Module -Global
 }
 
 AfterEachFeature {
@@ -26,11 +26,11 @@ Given 'MyValidator' {}
 
 When 'MyValidator is called with (?<word>\w+)' {
     param($word)
-    $script:result = MyValidator $word
+    $Validation = MyValidator $word
 }
 
 Then 'MyValidator should return (?<expected>\w+)' {
     param($expected)
     $expected = $expected -eq "true"
-    $result | Should Be $expected
+    $Validation | Should Be $expected
 }
