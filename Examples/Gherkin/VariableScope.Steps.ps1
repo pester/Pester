@@ -30,21 +30,24 @@ Then 'the variable ([\w:]+) should be "([^"]+)"' {
         "Two" { $Two  }
         "Script:Two" { $Script:Two }
     }
-
     $Result | Should Be $Value
 }
 
 Then "the variable ([\w:]+) should not exist" {
     param($Name)
 
-    $Result = switch($Name)
+    switch($Name)
     {
-        "One" { Test-Path Variable:One }
-        "Two" { Test-Path Variable:Two  }
-        "Script:Two" { Test-Path Variable:Script:Two }
+        "One" {
+            Test-Path Variable:One | Should Be $False
+        }
+        "Two" {
+            Test-Path Variable:Two | Should Be $False
+        }
+        "Script:Two" {
+            Test-Path Variable:Script:Two | Should Be $False
+        }
     }
-
-    $Result | Should Be $False
 }
 
 BeforeEachFeature {

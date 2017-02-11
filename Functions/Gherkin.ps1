@@ -202,15 +202,16 @@ function Invoke-Gherkin {
         $pester = New-PesterState -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -TestNameFilter $ScenarioName -SessionState $PSCmdlet.SessionState -Strict $Strict  -Show $Show -PesterOption $PesterOption |
             Microsoft.PowerShell.Utility\Add-Member -MemberType NoteProperty -Name Features -Value (Microsoft.PowerShell.Utility\New-Object System.Collections.Generic.List[Gherkin.Ast.Feature]) -PassThru |
             Microsoft.PowerShell.Utility\Add-Member -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
-                $Names = $this.TestResult | Microsoft.PowerShell.Utility\Group-Object Context |
-                                            Microsoft.PowerShell.Core\Where-Object { $_.Group | Microsoft.PowerShell.Core\Where-Object { -not $_.Passed } } |
+                $Names = $this.TestResult | Microsoft.PowerShell.Utility\Group-Object Describe |
+                                            Microsoft.PowerShell.Core\Where-Object { $_.Group |
+                                                Microsoft.PowerShell.Core\Where-Object { -not $_.Passed } } |
                                             Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Name
                 $this.Features.Scenarios | Microsoft.PowerShell.Core\Where-Object { $Names -contains $_.Name }
             } |
             Microsoft.PowerShell.Utility\Add-Member -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
-                $Names = $this.TestResult | Microsoft.PowerShell.Utility\Group-Object Context |
+                $Names = $this.TestResult | Microsoft.PowerShell.Utility\Group-Object Describe |
                                             Microsoft.PowerShell.Core\Where-Object { -not ($_.Group |
-                                            Microsoft.PowerShell.Core\Where-Object { -not $_.Passed }) } |
+                                                Microsoft.PowerShell.Core\Where-Object { -not $_.Passed }) } |
                                             Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Name
                 $this.Features.Scenarios | Microsoft.PowerShell.Core\Where-Object { $Names -contains $_.Name }
             }
@@ -338,7 +339,7 @@ function Import-GherkinFeature {
                                     }
                                 }
                                 if($StepText -ne $Step.Text) {
-                                    Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Step ($Step.Location  | Microsoft.PowerShell.Utility\Add-Member -MemberType "NoteProperty" -Name "Path" -Value $Path -PassThru), $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                    Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
                                 } else {
                                     $Step
                                 }
@@ -348,7 +349,7 @@ function Import-GherkinFeature {
                 if($ExampleSet.Name) {
                     $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
                 }
-                Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, ($Scenario.Location  | Microsoft.PowerShell.Utility\Add-Member -MemberType "NoteProperty" -Name "Path" -Value $Path -PassThru), $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
+                Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
         } else {
             $Scenario
@@ -588,6 +589,7 @@ function Invoke-GherkinStep {
             }
             $watch.Stop()
             $Elapsed = $watch.Elapsed
+            $Source = $Script:GherkinSteps[$StepCommand].Source
         }
     }
     catch {
@@ -595,6 +597,19 @@ function Invoke-GherkinStep {
     }
 
     if($Pester -and $Visible) {
+        for($p = 0; $p -lt $Parameters.Count; $p++) {
+            $NamedArguments."Unnamed-$p" = $Parameters[$p]
+        }
+        $result = Get-PesterResult -ErrorRecord $PesterException
+
+        # For Gherkin, we want to show the step, but not pretend to be a StackTrace
+        if($result.Result -eq 'Inconclusive') {
+            $result.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
+        } else {
+            # Unless we really are a StackTrace...
+            $result.StackTrace =  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
+        }
+        $Pester.AddTestResult($DisplayText, $result.Result, $Elapsed, $PesterException.Exception.Message, $result.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
