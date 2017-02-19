@@ -607,7 +607,7 @@ function Invoke-GherkinStep {
             ${Pester Result}.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
         } else {
             # Unless we really are a StackTrace...
-            ${Pester Result}.StackTrace =  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
+            ${Pester Result}.StackTrace +=  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
         $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterException.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
         $Pester.TestResult[-1] | Write-PesterResult
