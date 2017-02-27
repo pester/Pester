@@ -113,11 +113,10 @@ about_TestDrive
     {
         Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
         if ($testDriveAdded) { Remove-TestDrive }
+        Clear-SetupAndTeardown
+        Exit-MockScope
+        $Pester.LeaveDescribe()
     }
-
-    Clear-SetupAndTeardown
-    Exit-MockScope
-    $Pester.LeaveDescribe()
 }
 
 function Assert-DescribeInProgress

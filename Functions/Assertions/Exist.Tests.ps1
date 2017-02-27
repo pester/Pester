@@ -7,7 +7,7 @@ InModuleScope Pester {
         }
 
         It "returns false for paths do not exist" {
-            Test-NegativeAssertion (PesterExist "$TestDrive\nonexistant")
+            Test-NegativeAssertion (PesterExist "$TestDrive\nonexistent")
         }
 
         It 'works for path with escaped [ ] characters' {

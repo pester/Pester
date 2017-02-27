@@ -6,7 +6,7 @@ function New-PesterState
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
-        [Switch]$Quiet,
+        [Pester.OutputTypes]$Show = 'All',
         [object]$PesterOption
     )
 
@@ -35,7 +35,7 @@ function New-PesterState
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
-            [Switch]$Quiet,
+            [Pester.OutputTypes]$Show,
             [object]$PesterOption
         )
 
@@ -56,7 +56,7 @@ function New-PesterState
         $script:BeforeAll = @()
         $script:AfterAll = @()
         $script:Strict = $Strict
-        $script:Quiet = $Quiet
+        $script:Show = $Show
 
         $script:TestResult = @()
 
@@ -223,7 +223,7 @@ function New-PesterState
         "BeforeAll",
         "AfterAll",
         "Strict",
-        "Quiet",
+        "Show",
         "Time",
         "TotalCount",
         "PassedCount",
@@ -242,7 +242,7 @@ function New-PesterState
         "AddTestResult"
 
         & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet, $PesterOption |
+    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption |
     & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name Scope -Value {
         if ($this.CurrentTest) { 'It' }
         elseif ($this.CurrentContext)  { 'Context' }
@@ -273,7 +273,7 @@ function Write-Describe
         [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
     )
     process {
-        Write-Screen Describing $Name -OutputType Header
+        Write-Screen Describing $Name -OutputType Describe
     }
 }
 
@@ -284,7 +284,7 @@ function Write-Context
     )
     process {
         $margin = " " * 3
-        Write-Screen ${margin}Context $Name -OutputType Header
+        Write-Screen ${margin}Context $Name -OutputType Context
     }
 }
 
@@ -426,13 +426,13 @@ function Write-PesterReport
         $PesterState
     )
 
-    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
-    Write-Screen ("Passed: {0} Failed: {1} Skipped: {2} Pending: {3} Inconclusive: {4}" -f
+    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)" -OutputType "Summary"
+    Write-Screen ("Passed: {0}, Failed: {1}, Skipped: {2}, Pending: {3}, Inconclusive: {4}" -f
                   $PesterState.PassedCount,
                   $PesterState.FailedCount,
                   $PesterState.SkippedCount,
                   $PesterState.PendingCount,
-                  $PesterState.InconclusiveCount)
+                  $PesterState.InconclusiveCount) -OutputType "Summary"
 }
 
 function Write-Screen {
@@ -444,28 +444,32 @@ function Write-Screen {
         [Switch] $NoNewline,
         [Object] $Separator,
         #custom parameters
-        [Switch] $Quiet = $pester.Quiet,
-        [ValidateSet("Failed","Passed","Skipped","Pending","Inconclusive","Header","Standard")]
-        [String] $OutputType = "Standard"
+        [Pester.OutputTypes] $OutputFilter = $pester.Show,
+        [Pester.OutputTypes] $OutputType = 'Default'
     )
 
     begin
     {
-        if ($Quiet) { return }
+        $quiet = $OutputFilter -eq [Pester.OutputTypes]::None
+        $writeToScreen = $OutputFilter | Has-Flag $OutputType
+        $skipOutput = $quiet -or (-not $writeToScreen)
+
+        if ($skipOutput)
+        {
+            return
+        }
 
         #make the bound parameters compatible with Write-Host
-        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | & $SafeCommands['Out-Null'] }
+        if ($PSBoundParameters.ContainsKey('OutputFilter')) { $PSBoundParameters.Remove('OutputFilter') | & $SafeCommands['Out-Null'] }
         if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | & $SafeCommands['Out-Null'] }
 
-        if ($OutputType -ne "Standard")
+        if (-not ($OutputType | Has-Flag 'Default, Summary'))
         {
             #create the key first to make it work in strict mode
             if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
             {
                 $PSBoundParameters.Add('ForegroundColor', $null)
             }
-
-
 
             switch ($Host.Name)
             {
@@ -477,7 +481,8 @@ function Write-Screen {
                         Skipped      = [ConsoleColor]::DarkGray
                         Pending      = [ConsoleColor]::DarkCyan
                         Inconclusive = [ConsoleColor]::DarkCyan
-                        Header       = [ConsoleColor]::Magenta
+                        Describe     = [ConsoleColor]::Magenta
+                        Context      = [ConsoleColor]::Magenta
                     }
                 }
                 #dark background
@@ -488,7 +493,8 @@ function Write-Screen {
                         Skipped      = [ConsoleColor]::Gray
                         Pending      = [ConsoleColor]::Cyan
                         Inconclusive = [ConsoleColor]::Cyan
-                        Header       = [ConsoleColor]::Magenta
+                        Describe     = [ConsoleColor]::Magenta
+                        Context      = [ConsoleColor]::Magenta
                     }
                 }
                 default {
@@ -498,14 +504,15 @@ function Write-Screen {
                         Skipped      = [ConsoleColor]::Gray
                         Pending      = [ConsoleColor]::Gray
                         Inconclusive = [ConsoleColor]::Gray
-                        Header       = [ConsoleColor]::Magenta
+                        Describe     = [ConsoleColor]::Magenta
+                        Context      = [ConsoleColor]::Magenta
                     }
                 }
 
              }
 
-
-            $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
+            # the output type must be forced to become string, otherwise the color is not found
+            $PSBoundParameters.ForegroundColor = $ColorSet[$OutputType.ToString()]
         }
 
         try {
@@ -525,7 +532,7 @@ function Write-Screen {
 
     process
     {
-        if ($Quiet) { return }
+        if ($skipOutput) { return }
         try {
             $steppablePipeline.Process($_)
         } catch {
@@ -535,7 +542,7 @@ function Write-Screen {
 
     end
     {
-        if ($Quiet) { return }
+        if ($skipOutput) { return }
         try {
             $steppablePipeline.End()
         } catch {

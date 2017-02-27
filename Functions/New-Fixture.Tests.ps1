@@ -21,7 +21,7 @@ Describe "New-Fixture" {
 
     Context "Name and Path parameter is specified:" {
         #use different fixture names to avoid interference among the test cases
-        #claning up would be also possible, but difficult if the assertion fails
+        #cleaning up would be also possible, but difficult if the assertion fails
         It "Creates fixture in full Path:" {
             $name = "Test-Fixture"
             $path = "TestDrive:\full"

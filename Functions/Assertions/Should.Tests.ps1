@@ -74,7 +74,7 @@ InModuleScope Pester {
             function PesterTestFailureMessage($v, $e) { return "slime $e $v" }
             $shouldArgs = Parse-ShouldArgs Test, 1
 
-            It "should return the postive assertion failure message" {
+            It "should return the positive assertion failure message" {
                 Get-FailureMessage $shouldArgs 2 | Should Be "slime 1 2"
             }
         }

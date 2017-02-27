@@ -16,7 +16,7 @@ In addition to using your own logic to test expectations and throw exceptions,
 you may also use Pester's Should command to perform assertions in plain language.
 
 .PARAMETER Name
-An expressive phsae describing the expected test outcome.
+An expressive phrase describing the expected test outcome.
 
 .PARAMETER Test
 The script block that should throw an exception if the
@@ -231,62 +231,66 @@ function Invoke-Test
 
     $Pester.EnterTest($Name)
 
-    if ($Skip)
+    try
     {
-        $Pester.AddTestResult($Name, "Skipped", $null)
-    }
-    elseif ($Pending)
-    {
-        $Pester.AddTestResult($Name, "Pending", $null)
-    }
-    else
-    {
-        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
-
-        $errorRecord = $null
-        try
+        if ($Skip)
         {
-            Invoke-TestCaseSetupBlocks
-
-            do
-            {
-                $null = & $ScriptBlock @Parameters
-            } until ($true)
+            $Pester.AddTestResult($Name, "Skipped", $null)
         }
-        catch
+        elseif ($Pending)
         {
-            $errorRecord = $_
+            $Pester.AddTestResult($Name, "Pending", $null)
         }
-        finally
+        else
         {
-            #guarantee that the teardown action will run and prevent it from failing the whole suite
+            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
+
+            $errorRecord = $null
             try
             {
-                if (-not ($Skip -or $Pending))
+                Invoke-TestCaseSetupBlocks
+
+                do
                 {
-                    Invoke-TestCaseTeardownBlocks
-                }
+                    $null = & $ScriptBlock @Parameters
+                } until ($true)
             }
             catch
             {
                 $errorRecord = $_
             }
+            finally
+            {
+                #guarantee that the teardown action will run and prevent it from failing the whole suite
+                try
+                {
+                    if (-not ($Skip -or $Pending))
+                    {
+                        Invoke-TestCaseTeardownBlocks
+                    }
+                }
+                catch
+                {
+                    $errorRecord = $_
+                }
+            }
+
+            $result = Get-PesterResult -ErrorRecord $errorRecord
+            $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
+            $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
+            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
         }
-
-
-        $result = Get-PesterResult -ErrorRecord $errorRecord
-        $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
-        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
-        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
+    }
+    finally
+    {
+        Exit-MockScope
+        $Pester.LeaveTest()
     }
 
     if ($null -ne $OutputScriptBlock)
     {
         $Pester.testresult[-1] | & $OutputScriptBlock
     }
-
-    Exit-MockScope
-    $Pester.LeaveTest()
 }
 
 function Get-PesterResult {

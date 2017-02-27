@@ -39,7 +39,7 @@ Each module's mock maintains a separate call history and verified status.
 The name of the command to be mocked.
 
 .PARAMETER MockWith
-A ScriptBlock specifying the behvior that will be used to mock CommandName.
+A ScriptBlock specifying the behavior that will be used to mock CommandName.
 The default is an empty ScriptBlock.
 NOTE: Do not specify param or dynamicparam blocks in this script block.
 These will be injected automatically based on the signature of the command
@@ -108,7 +108,7 @@ Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem $env:temp\me
 
-Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardlss of their creation order.
+Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardless of their creation order.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule
@@ -218,7 +218,7 @@ about_Mocking
             $null = $metadata.Parameters.Remove('OutVariable')
             $null = $metadata.Parameters.Remove('OutBuffer')
 
-            # Some versions of powershell may include dynamic parameters here
+            # Some versions of PowerShell may include dynamic parameters here
             # We will filter them out and add them at the end to be
             # compatible with both earlier and later versions
             $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
@@ -247,9 +247,9 @@ about_Mocking
                 if ($dynamicParamStatements -match '\S')
                 {
                     $metadataSafeForDynamicParams = [System.Management.Automation.CommandMetaData]$contextInfo.Command
-                    foreach ($parameter in $metadataSafeForDynamicParams.Parameters.Values)
+                    foreach ($param in $metadataSafeForDynamicParams.Parameters.Values)
                     {
-                        $parameter.ParameterSets.Clear()
+                        $param.ParameterSets.Clear()
                     }
 
                     $paramBlockSafeForDynamicParams = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataSafeForDynamicParams)
@@ -468,7 +468,7 @@ An optional filter to qualify wich calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
 
-.PARAMETER ExlusiveFilter
+.PARAMETER ExclusiveFilter
 Like ParameterFilter, except when you use ExclusiveFilter, and there
 were any calls to the mocked command which do not match the filter,
 an exception will be thrown.  This is a convenient way to avoid needing
@@ -1023,41 +1023,42 @@ function ExecuteBlock
         param (
             [Parameter(Mandatory = $true)]
             [scriptblock]
-            $ScriptBlock,
+            ${Script Block},
 
             [hashtable]
-            $BoundParameters = @{},
+            $___BoundParameters___ = @{},
 
             [object[]]
-            $ArgumentList = @(),
+            $___ArgumentList___ = @(),
 
             [System.Management.Automation.CommandMetadata]
-            $Metadata,
+            ${Meta data},
 
             [System.Management.Automation.SessionState]
-            $SessionState
+            ${Session State}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
         # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
-        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterValues,
+        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterVariables,
         # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
         # by doing it inside this temporary script block, those variables don't stick around longer than they
         # should.
 
-        # Because Set-DynamicParameterVariables might potentially overwrite our $ScriptBlock, $BoundParameters and/or $ArgumentList variables,
-        # we'll stash them in names unlikely to be overwritten.
-
-        $___ScriptBlock___ = $ScriptBlock
-        $___BoundParameters___ = $BoundParameters
-        $___ArgumentList___ = $ArgumentList
-
-        Set-DynamicParameterVariables -SessionState $SessionState -Parameters $BoundParameters -Metadata $Metadata
-        & $___ScriptBlock___ @___BoundParameters___ @___ArgumentList___
+        Set-DynamicParameterVariables -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
-    & $scriptBlock -ScriptBlock $block.Mock -ArgumentList $ArgumentList -BoundParameters $BoundParameters -Metadata $mock.Metadata -SessionState $mock.SessionState
+    $splat = @{
+        'Script Block' = $block.Mock
+        '___ArgumentList___' = $ArgumentList
+        '___BoundParameters___' = $BoundParameters
+        'Meta data' = $mock.Metadata
+        'Session State' = $mock.SessionState
+    }
+
+    & $scriptBlock @splat
 }
 
 function Invoke-InMockScope
@@ -1270,7 +1271,7 @@ function Get-MockDynamicParameters
         [Parameter(ParameterSetName = 'Function')]
         [string] $ModuleName,
 
-        [hashtable] $Parameters,
+        [System.Collections.IDictionary] $Parameters,
 
         [object] $Cmdlet
     )
@@ -1296,10 +1297,18 @@ function Get-DynamicParametersForCmdlet
         [Parameter(Mandatory = $true)]
         [string] $CmdletName,
 
+        [ValidateScript({
+            if ($PSVersionTable.PSVersion.Major -ge 3 -and
+                $null -ne $_ -and
+                $_.GetType().FullName -ne 'System.Management.Automation.PSBoundParametersDictionary')
+            {
+                throw 'The -Parameters argument must be a PSBoundParametersDictionary object ($PSBoundParameters).'
+            }
+
+            return $true
+        })]
         [System.Collections.IDictionary] $Parameters
     )
-
-    if ($null -eq $Parameters) { $Parameters = @{} }
 
     try
     {
@@ -1315,45 +1324,72 @@ function Get-DynamicParametersForCmdlet
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
-    if ($cmdlet -isnot [System.Management.Automation.IDynamicParameters])
+    if ($null -eq $command.ImplementingType.GetInterface('IDynamicParameters', $true))
     {
         return
     }
 
-    $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
-    $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
-    [System.Management.Automation.Cmdlet].GetProperty('Context', $flags).SetValue($cmdlet, $context, $null)
-
-    foreach ($keyValuePair in $Parameters.GetEnumerator())
+    if ($PSVersionTable.PSVersion -ge '5.0.10586.122')
     {
-        $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
-        if ($null -eq $property -or -not $property.CanWrite) { continue }
+        # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
+        # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
 
-        $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
-        if (-not $isParameter) { continue }
+        if ($null -eq $Parameters) { $paramsArg = @() } else { $paramsArg = @($Parameters) }
 
-        $property.SetValue($cmdlet, $keyValuePair.Value, $null)
+        $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
+        $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+
+        foreach ($param in $command.Parameters.Values)
+        {
+            if (-not $param.IsDynamic) { continue }
+            if ($Parameters.ContainsKey($param.Name)) { continue }
+
+            $dynParam = [System.Management.Automation.RuntimeDefinedParameter]::new($param.Name, $param.ParameterType, $param.Attributes)
+            $paramDictionary.Add($param.Name, $dynParam)
+        }
+
+        return $paramDictionary
     }
-
-    try
+    else
     {
-        # This unary comma is important in some cases.  On Windows 7 systems, the ActiveDirectory module cmdlets
-        # return objects from this method which implement IEnumerable for some reason, and even cause PowerShell
-        # to throw an exception when it tries to cast the object to that interface.
+        if ($null -eq $Parameters) { $Parameters = @{} }
 
-        # We avoid that problem by wrapping the result of GetDynamicParameters() in a one-element array with the
-        # unary comma.  PowerShell enumerates that array instead of trying to enumerate the goofy object, and
-        # everyone's happy.
+        $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
 
-        # Love the comma.  Don't delete it.  We don't have a test for this yet, unless we can get the AD module
-        # on a Server 2008 R2 build server, or until we write some C# code to reproduce its goofy behavior.
+        $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
+        $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
+        [System.Management.Automation.Cmdlet].GetProperty('Context', $flags).SetValue($cmdlet, $context, $null)
 
-        ,$cmdlet.GetDynamicParameters()
-    }
-    catch [System.NotImplementedException]
-    {
-        # Some cmdlets implement IDynamicParameters but then throw a NotImplementedException.  I have no idea why.  Ignore them.
+        foreach ($keyValuePair in $Parameters.GetEnumerator())
+        {
+            $property = $cmdlet.GetType().GetProperty($keyValuePair.Key)
+            if ($null -eq $property -or -not $property.CanWrite) { continue }
+
+            $isParameter = [bool]($property.GetCustomAttributes([System.Management.Automation.ParameterAttribute], $true))
+            if (-not $isParameter) { continue }
+
+            $property.SetValue($cmdlet, $keyValuePair.Value, $null)
+        }
+
+        try
+        {
+            # This unary comma is important in some cases.  On Windows 7 systems, the ActiveDirectory module cmdlets
+            # return objects from this method which implement IEnumerable for some reason, and even cause PowerShell
+            # to throw an exception when it tries to cast the object to that interface.
+
+            # We avoid that problem by wrapping the result of GetDynamicParameters() in a one-element array with the
+            # unary comma.  PowerShell enumerates that array instead of trying to enumerate the goofy object, and
+            # everyone's happy.
+
+            # Love the comma.  Don't delete it.  We don't have a test for this yet, unless we can get the AD module
+            # on a Server 2008 R2 build server, or until we write some C# code to reproduce its goofy behavior.
+
+            ,$cmdlet.GetDynamicParameters()
+        }
+        catch [System.NotImplementedException]
+        {
+            # Some cmdlets implement IDynamicParameters but then throw a NotImplementedException.  I have no idea why.  Ignore them.
+        }
     }
 }
 

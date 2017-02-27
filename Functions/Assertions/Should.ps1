@@ -70,6 +70,13 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
 }
 
 function Should {
+    <#
+    .SYNOPSIS
+        Should is a command that provides assertion convenience methods for comparing objects and throwing test
+        failures when test expectations fail. Should is used inside It blocks of a Pester test script.
+    .DESCRIPTION
+        For a detailed description see about_Should or https://github.com/pester/Pester/wiki/Should.
+    #>
     begin {
         Assert-DescribeInProgress -CommandName Should
         $parsedArgs = Parse-ShouldArgs $args
