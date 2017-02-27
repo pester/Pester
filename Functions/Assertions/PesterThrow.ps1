@@ -1,6 +1,7 @@
 
 $ActualExceptionMessage = ""
 $ActualExceptionWasThrown = $false
+$ActualFullyQualifiedErrorId = ""
 
 # because this is a script block, the user will have to
 # wrap the code they want to assert on in { }
@@ -11,6 +12,7 @@ function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
     }
 
     $Script:ActualExceptionMessage = ""
+    $Script:ActualFullyQualifiedErrorId = ""
     $Script:ActualExceptionWasThrown = $false
 
     try {
@@ -19,10 +21,16 @@ function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
     } catch {
         $Script:ActualExceptionWasThrown = $true
         $Script:ActualExceptionMessage = $_.Exception.Message
+        $Script:ActualFullyQualifiedErrorId = $_.FullyQualifiedErrorId
         $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
     }
 
     if ($ActualExceptionWasThrown) {
+        # check first against FullyQualifiedErrorId
+        # if this fails, then check the message
+        if ( $ActualFullyQualifiedErrorId -eq $expectedErrorMessage ) {
+            return $true
+        }
         return Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage
     }
     return $false
@@ -41,8 +49,8 @@ function Get-ExceptionLineInfo($info) {
 
 function PesterThrowFailureMessage($value, $expected) {
     if ($expected) {
-        return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
-               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
+        return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}} with FullyQualifiedErrorId = {{{4}}}`n    {3}" -f
+               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    "),$ActualFullyQualifiedErrorId
     } else {
       return "Expected: the expression to throw an exception"
     }

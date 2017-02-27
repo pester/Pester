@@ -15,6 +15,11 @@ InModuleScope Pester {
             Test-PositiveAssertion (PesterThrow { throw $expectedErrorMessage } $expectedErrorMessage)
         }
 
+        It "returns true if the statement throws an exception and the FullyQualifiedErrorId matches the expected error text" {
+            $expectedErrorMessage = "PathNotFound,Microsoft.PowerShell.Commands.GetItemCommand"
+            Test-PositiveAssertion (PesterThrow { get-item -ea stop "TESTDRIVE:/filedoesnotexist.txt" } $expectedErrorMessage)
+        }
+
         It "returns false if the statement throws an exception and the actual error does not match the expected error text" {
             $unexpectedErrorMessage = "unexpected error message"
             $expectedErrorMessage = "some expected error message"
@@ -74,7 +79,7 @@ InModuleScope Pester {
 
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage} with FullyQualifiedErrorId = {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
