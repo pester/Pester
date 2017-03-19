@@ -1103,8 +1103,8 @@ function ExecuteBlock
 
     $Block.Verifiable = $false
 
-    # We set Scope to $null here to indicate the call came from the current Test Case.  It'll get assigned to a test group scope when Exit-MockScope is called.
-    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $null }
+    $scope = if ($pester.InTest) { $null } else { $pester.CurrentTestGroup }
+    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $scope }
 
     $scriptBlock = {
         param (
