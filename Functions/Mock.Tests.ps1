@@ -1734,3 +1734,15 @@ Describe 'Passing unbound script blocks as mocks' {
         TestMe | Should -Be Mocked
     }
 }
+
+Describe 'Case sensitive?' {
+    function TestMe { 'Original ' }
+    mock TestMe { 'Mocked' }
+
+    $null = TestMe
+
+    It 'Should work fine' {
+        TestMe | Should -Be Mocked
+        Assert-MockCalled TestMe -Scope It -Exactly -Times 1
+    }
+}
