@@ -1,30 +1,59 @@
 
-function PesterBeOfType($value, $expectedType) {
-    trap [System.Management.Automation.PSInvalidCastException] { return $false }
-    if($expectedType -is [string] -and !($expectedType -as [Type])) {
-        $expectedType = $expectedType -replace '^\[(.*)\]$','$1'
+function PesterBeOfType($ActualValue, $ExpectedType, [switch] $Negate) {
+    $hash = @{ Succeeded = $true }
+
+    trap [System.Management.Automation.PSInvalidCastException] { $hash['Succeeded'] = $false; continue }
+
+    if($ExpectedType -is [string] -and !($ExpectedType -as [Type])) {
+        $ExpectedType = $ExpectedType -replace '^\[(.*)\]$','$1'
     }
-    return [bool]($value -is $expectedType)
+
+    $hash['Succeeded'] = $ActualValue -is $ExpectedType
+
+    if ($Negate) { $hash['Succeeded'] = -not $hash['Succeeded'] }
+
+    $failureMessage = ''
+
+    if (-not $hash['Succeeded'])
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterBeOfTypeFailureMessage -ActualValue $ActualValue -ExpectedType $ExpectedType
+        }
+        else
+        {
+            $failureMessage = PesterBeOfTypeFailureMessage -ActualValue $ActualValue -ExpectedType $ExpectedType
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $hash['Succeeded']
+        FailureMessage = $failureMessage
+    }
 }
 
-function PesterBeOfTypeFailureMessage($value, $expectedType) {
-    if($expectedType -is [string] -and !($expectedType -as [Type])) {
-        $expectedType = $expectedType -replace '^\[(.*)\]$','$1'
+function PesterBeOfTypeFailureMessage($ActualValue, $ExpectedType) {
+    if($ExpectedType -is [string] -and !($ExpectedType -as [Type])) {
+        $ExpectedType = $ExpectedType -replace '^\[(.*)\]$','$1'
     }
-    if($Type = $expectedType -as [type]) {
-        return "Expected: ${value} to be of type [$Type]"
+
+    if($Type = $ExpectedType -as [type]) {
+        return "Expected: {$ActualValue} to be of type [$Type]"
     } else {
-        return "Expected: ${value} to be of type [$expectedType], but unable to find type [$expectedType]. Make sure that the assembly that contains that type is loaded."
+        return "Expected: {$ActualValue} to be of type [$ExpectedType], but unable to find type [$ExpectedType]. Make sure that the assembly that contains that type is loaded."
     }
 }
 
-function NotPesterBeOfTypeFailureMessage($value, $expectedType) {
-    if($expectedType -is [string] -and -not $expectedType -as [Type]) {
-        $expectedType = $expectedType -replace '^\[(.*)\]$','$1'
+function NotPesterBeOfTypeFailureMessage($ActualValue, $ExpectedType) {
+    if($ExpectedType -is [string] -and -not $ExpectedType -as [Type]) {
+        $ExpectedType = $ExpectedType -replace '^\[(.*)\]$','$1'
     }
-    if($Type = $expectedType -as [type]) {
-        return "Expected: {$value} to be of any type except [${Type}], but it's a [${Type}]"
+    if($Type = $ExpectedType -as [type]) {
+        return "Expected: {$ActualValue} to be of any type except [${Type}], but it's a [${Type}]"
     } else {
-        return "Expected: ${value} to be of any type except [$expectedType], but unable to find type [$expectedType]. Make sure that the assembly that contains that type is loaded."
+        return "Expected: {$ActualValue} to be of any type except [$ExpectedType], but unable to find type [$ExpectedType]. Make sure that the assembly that contains that type is loaded."
     }
 }
+
+Add-AssertionOperator -Name BeOfType `
+                      -Test $function:PesterBeOfType

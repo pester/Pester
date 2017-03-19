@@ -193,7 +193,7 @@ about_Mocking
         Mock       = $mockWithCopy
         Filter     = $ParameterFilter
         Verifiable = $Verifiable
-        Scope      = Get-ScopeForMock -PesterState $pester
+        Scope      = $pester.CurrentTestGroup
     }
 
     $mock = $mockTable["$ModuleName||$CommandName"]
@@ -326,7 +326,8 @@ about_Mocking
             Blocks                  = @()
             CommandName             = $CommandName
             SessionState            = $contextInfo.Session
-            Scope                   = $pester.Scope
+            Scope                   = $pester.CurrentTestGroup
+            PesterState             = $pester
             Metadata                = $metadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
@@ -585,7 +586,17 @@ param(
     [string] $ModuleName,
 
     [Parameter(Position = 4)]
-    [ValidateSet('Describe','Context','It')]
+    [ValidateScript({
+        if ([uint32]::TryParse($_, [ref] $null) -or
+            $_ -eq 'Describe' -or
+            $_ -eq 'Context' -or
+            $_ -eq 'It')
+        {
+            return $true
+        }
+
+        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Scope', or 'It'."
+    })]
     [string] $Scope,
 
     [switch]$Exactly
@@ -625,16 +636,9 @@ param(
         throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     }
 
-    if (-not $Scope)
+    if (-not $PSBoundParameters.ContainsKey('Scope'))
     {
-        if ($pester.CurrentContext)
-        {
-            $Scope = 'Context'
-        }
-        else
-        {
-            $Scope = 'Describe'
-        }
+        $scope = 1
     }
 
     $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
@@ -686,23 +690,70 @@ function Test-MockCallScope
 {
     [CmdletBinding()]
     param (
-        [string] $CallScope,
+        [object] $CallScope,
         [string] $DesiredScope
     )
 
-    # It would probably be cleaner to replace all of these scope strings with an enumerated type at some point.
-    $scopes = 'Describe', 'Context', 'It'
+    if ($null -eq $CallScope)
+    {
+        # This indicates a call from the current test case ("It" block), which always passes Test-MockCallScope
+        return $true
+    }
 
-    return ([array]::IndexOf($scopes, $CallScope) -ge [array]::IndexOf($scopes, $DesiredScope))
+    $testGroups = $pester.TestGroups
+    [Array]::Reverse($testGroups)
+
+    $target = 0
+    $isNumberedScope = [int]::TryParse($DesiredScope, [ref] $target)
+
+    # The Describe / Context stuff here is for backward compatibility.  May be deprecated / removed in the future.
+    $actualScopeNumber = -1
+    $describe = -1
+    $context = -1
+
+    for ($i = 0; $i -lt $testGroups.Count; $i++)
+    {
+        if ($CallScope -eq $testGroups[$i])
+        {
+            $actualScopeNumber = $i
+            if ($isNumberedScope) { break }
+        }
+
+        if ($describe -lt 0 -and $testGroups[$i].Hint -eq 'Describe') { $describe = $i }
+        if ($context -lt 0 -and $testGroups[$i].Hint -eq 'Context') { $context = $i }
+    }
+
+    if ($actualScopeNumber -lt 0)
+    {
+        # this should never happen; if we get here, it's a Pester bug.
+
+        throw "Pester error: Corrupted mock call history table."
+    }
+
+    if ($isNumberedScope)
+    {
+        # For this, we consider scope 0 to be the current test case / It block, scope 1 to be the first Test Group up the stack, etc.
+        # $actualScopeNumber currently off by one from that scale (zero-indexed for test groups only; we already checked for the 0 case
+        # farther up, which only applies if $CallScope is $null).
+        return $target -gt $actualScopeNumber
+    }
+    else
+    {
+        if ($DesiredScope -eq 'Describe') { return $describe -ge $actualScopeNumber }
+        if ($DesiredScope -eq 'Context')  { return $context -ge $actualScopeNumber }
+    }
+
+    return $false
 }
 
 function Exit-MockScope {
+    param (
+        [switch] $ExitTestCaseOnly
+    )
+
     if ($null -eq $mockTable) { return }
 
-    $currentScope = $pester.Scope
-    $parentScope = $pester.ParentScope
-
-    $scriptBlock =
+    $removeMockStub =
     {
         param (
             [string] $CommandName,
@@ -727,21 +778,55 @@ function Exit-MockScope {
     foreach ($mockKey in $mockKeys)
     {
         $mock = $mockTable[$mockKey]
-        $mock.Blocks = @($mock.Blocks | & $SafeCommands['Where-Object'] {$_.Scope -ne $currentScope})
 
-        if ($null -eq $parentScope)
+        $shouldRemoveMock = (-not $ExitTestCaseOnly) -and (ShouldRemoveMock -Mock $mock -ActivePesterState $pester)
+        if ($shouldRemoveMock)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName, $mock.FunctionScope, $mock.Alias
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.CommandName, $mock.FunctionScope, $mock.Alias
             $mockTable.Remove($mockKey)
         }
-        else
+        elseif ($mock.PesterState -eq $pester)
         {
+            if (-not $ExitTestCaseOnly)
+            {
+                $mock.Blocks = @($mock.Blocks | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.CurrentTestGroup })
+            }
+
+            $testGroups = @($pester.TestGroups)
+
+            $parentTestGroup = $null
+
+            if ($testGroups.Count -gt 1)
+            {
+                $parentTestGroup = $testGroups[-2]
+            }
+
             foreach ($historyEntry in $mock.CallHistory)
             {
-                if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
+                if ($ExitTestCaseOnly)
+                {
+                    if ($historyEntry.Scope -eq $null) { $historyEntry.Scope = $pester.CurrentTestGroup }
+                }
+                elseif ($parentTestGroup)
+                {
+                    if ($historyEntry.Scope -eq $pester.CurrentTestGroup) { $historyEntry.Scope = $parentTestGroup }
+                }
             }
         }
     }
+}
+
+function ShouldRemoveMock($Mock, $ActivePesterState)
+{
+    if ($ActivePesterState -ne $mock.PesterState) { return $false }
+    if ($mock.Scope -eq $ActivePesterState.CurrentTestGroup) { return $true }
+
+    # These two should conditions should _probably_ never happen, because the above condition should
+    # catch it, but just in case:
+    if ($ActivePesterState.TestGroups.Count -eq 1) { return $true }
+    if ($ActivePesterState.TestGroups[-2].Hint -eq 'Root') { return $true }
+
+    return $false
 }
 
 function Validate-Command([string]$CommandName, [string]$ModuleName) {
@@ -1017,7 +1102,9 @@ function ExecuteBlock
     )
 
     $Block.Verifiable = $false
-    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+
+    # We set Scope to $null here to indicate the call came from the current Test Case.  It'll get assigned to a test group scope when Exit-MockScope is called.
+    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $null }
 
     $scriptBlock = {
         param (
@@ -1172,16 +1259,6 @@ function IsCommonParameter
     }
 
     return $false
-}
-
-function Get-ScopeForMock
-{
-    param ($PesterState)
-
-    $scope = $PesterState.Scope
-    if ($scope -eq 'It') { $scope = $PesterState.ParentScope }
-
-    return $scope
 }
 
 function Set-DynamicParameterVariables
@@ -1435,6 +1512,7 @@ function Test-IsClosure
     )
 
     $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+    if ($null -eq $sessionStateInternal) { return $false }
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)

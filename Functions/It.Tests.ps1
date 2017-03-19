@@ -1,39 +1,16 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe 'Get-PesterResult' {
-    }
 
     Describe 'It - Implementation' {
         $testState = New-PesterState -Path $TestDrive
-
-        It 'Throws an error if It is called outside of Describe' {
-            $scriptBlock = { ItImpl -Pester $testState 'Tries to enter a test without entering a Describe first' { } }
-            $scriptBlock | Should Throw 'The It command may only be used inside a Describe block.'
-        }
-
-        $testState.EnterDescribe('Mocked Describe')
-
-        # We call EnterTest() directly here because if we actually nest calls to ItImpl, the outer call will catch the error we're trying to
-        # verify with Should Throw.  (Another option would be to nest the ItImpl calls, and look for a failed test result in $testState.)
-        $testState.EnterTest('Outer Test')
-
-        It 'Throws an error if you try to enter It from inside another It' {
-            $scriptBlock = {
-                ItImpl -Pester $testState 'Enters the second It' { }
-            }
-
-            $scriptBlock | Should Throw 'You already are in It, you cannot enter It twice'
-        }
-
-        $testState.LeaveTest()
 
         It 'Throws an error if you fail to pass in a test block' {
             $scriptBlock = { ItImpl -Pester $testState 'Some Name' }
             $scriptBlock | Should Throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
         }
 
-        It 'Does not throw an error if It is called inside a Describe, and adds a successful test result.' {
+        It 'Does not throw an error if It is passed a script block, and adds a successful test result.' {
             $scriptBlock = { ItImpl -Pester $testState 'Enters an It block inside a Describe' { } }
             $scriptBlock | Should Not Throw
 
@@ -176,67 +153,6 @@ InModuleScope Pester {
         It 'Removes multi line comments' {
             Remove-Comments -Text 'code <#comment
             comment#> code' | Should Be 'code  code'
-        }
-    }
-}
-
-$thisScriptRegex = [regex]::Escape($MyInvocation.MyCommand.Path)
-
-Describe 'Get-PesterResult' {
-    $getPesterResult = InModuleScope Pester { ${function:Get-PesterResult} }
-
-    Context 'failed tests in Tests file' {
-        #the $script scriptblock below is used as a position marker to determine
-        #on which line the test failed.
-        $errorRecord = $null
-        try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
-        $result = & $getPesterResult 0 $errorRecord
-        It 'records the correct stack line number' {
-            $result.Stacktrace | should match "at line: $($script.startPosition.StartLine) in $thisScriptRegex"
-        }
-        It 'records the correct error record' {
-            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should be $true
-            $result.ErrorRecord.Exception.Message | Should match 'Expected: {nothing}'
-        }
-    }
-    It 'Does not modify the error message from the original exception' {
-        $object = New-Object psobject
-        $message = 'I am an error.'
-        Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
-
-        $errorRecord = $null
-        try { $object.ThrowSomething() } catch { $errorRecord = $_ }
-
-        $pesterResult = & $getPesterResult 0 $errorRecord
-
-        $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
-    }
-    Context 'failed tests in another file' {
-        $errorRecord = $null
-
-        $testPath = Join-Path $TestDrive test.ps1
-        $escapedTestPath = [regex]::Escape($testPath)
-
-        Set-Content -Path $testPath -Value "`r`n'One' | Should Be 'Two'"
-
-        try
-        {
-            & $testPath
-        }
-        catch
-        {
-            $errorRecord = $_
-        }
-
-        $result = & $getPesterResult 0 $errorRecord
-
-
-        It 'records the correct stack line number' {
-            $result.Stacktrace | should match "at line: 2 in $escapedTestPath"
-        }
-        It 'records the correct error record' {
-            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should be $true
-            $result.ErrorRecord.Exception.Message | Should match 'Expected: {Two}'
         }
     }
 }

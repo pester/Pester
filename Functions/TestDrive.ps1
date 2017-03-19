@@ -1,23 +1,31 @@
 #
-function New-TestDrive ([Switch]$PassThru) {
-    $Path = New-RandomTempDirectory
-    $DriveName = "TestDrive"
-
-    if (-not (& $SafeCommands['Test-Path'] -Path $Path))
+function New-TestDrive ([Switch]$PassThru, [string] $Path) {
+    if ($Path -notmatch '\S')
     {
-        & $SafeCommands['New-Item'] -ItemType Container -Path $Path | & $SafeCommands['Out-Null']
+        $directory = New-RandomTempDirectory
     }
+    else
+    {
+        if (-not (& $SafeCommands['Test-Path'] -Path $Path))
+        {
+            & $SafeCommands['New-Item'] -ItemType Container -Path $Path | & $SafeCommands['Out-Null']
+        }
+
+        $directory = & $SafeCommands['Get-Item'] $Path
+    }
+
+    $DriveName = "TestDrive"
 
     #setup the test drive
     if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") )
     {
-        & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $Path -Scope Global -Description "Pester test drive" | & $SafeCommands['Out-Null']
+        & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description "Pester test drive" | & $SafeCommands['Out-Null']
     }
 
     #publish the global TestDrive variable used in few places within the module
-    if (-not (& $SafeCommands['Test-Path'] "Variable:Global:DriveName"))
+    if (-not (& $SafeCommands['Test-Path'] "Variable:Global:$DriveName"))
     {
-        & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $Path
+        & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $directory
     }
 
     if ( $PassThru ) { & $SafeCommands['Get-PSDrive'] -Name $DriveName }
@@ -47,8 +55,32 @@ function New-RandomTempDirectory {
 }
 
 function Get-TestDriveItem {
+<#
+    .SYNOPSIS
+    The Get-TestDriveItem cmdlet gets the item in Pester test drive.
+
+    .DESCRIPTION
+    The Get-TestDriveItem cmdlet gets the item in Pester test drive. It does not
+    get the contents of the item at the location unless you use a wildcard
+    character (*) to request all the contents of the item.
+
+    The function Get-TestDriveItem is deprecated since Pester v. 4.0
+    and will be deleted in the next major version of Pester.
+
+    .PARAMETER Path
+    Specifies the path to an item. The path need to be relative to TestDrive:.
+    This cmdlet gets the item at the specified location. Wildcards are permitted.
+    This parameter is required, but the parameter name ("Path") is optional.
+
+    .LINK
+    https://github.com/pester/Pester/wiki/TestDrive
+    about_TestDrive
+#>
+
     #moved here from Pester.psm1
-    param( [string]$Path )
+    param ([string]$Path)
+
+    & $SafeCommands['Write-Warning'] -Message "The function Get-TestDriveItem is deprecated since Pester 4.0.0 and will be removed from Pester 5.0.0."
 
     Assert-DescribeInProgress -CommandName Get-TestDriveItem
     & $SafeCommands['Get-Item'] $(& $SafeCommands['Join-Path'] $TestDrive $Path )

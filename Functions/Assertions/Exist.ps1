@@ -1,12 +1,35 @@
+function PesterExist($ActualValue, [switch] $Negate) {
+    [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
 
-function PesterExist($value) {
-    & $SafeCommands['Test-Path'] $value
+    if ($Negate) { $succeeded = -not $succeeded }
+
+    $failureMessage = ''
+
+    if (-not $succeeded)
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterExistFailureMessage -ActualValue $ActualValue
+        }
+        else
+        {
+            $failureMessage = PesterExistFailureMessage -ActualValue $ActualValue
+        }
+    }
+
+    return & $SafeCommands['New-Object'] psobject -Property @{
+        Succeeded      = $succeeded
+        FailureMessage = $failureMessage
+    }
 }
 
-function PesterExistFailureMessage($value) {
-    return "Expected: {$value} to exist"
+function PesterExistFailureMessage($ActualValue) {
+    return "Expected: {$ActualValue} to exist"
 }
 
-function NotPesterExistFailureMessage($value) {
-    return "Expected: ${value} to not exist, but it was found"
+function NotPesterExistFailureMessage($ActualValue) {
+    return "Expected: {$ActualValue} to not exist, but it was found"
 }
+
+Add-AssertionOperator -Name Exist `
+                      -Test $function:PesterExist
