@@ -75,21 +75,6 @@ function PipelineInputFunction {
     }
 }
 
-Describe "When calling Mock on existing function" {
-    Mock FunctionUnderTest { return "I am the mock test that was passed $param1"}
-
-    $result = FunctionUnderTest "boundArg"
-
-    It "Should rename function under test" {
-        $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
-        $renamed | Should Be $true
-    }
-
-    It "Should Invoke the mocked script" {
-        $result | Should Be "I am the mock test that was passed boundArg"
-    }
-}
-
 Describe "When the caller mocks a command Pester uses internally" {
     Mock Write-Host { }
 
@@ -282,7 +267,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
 Describe "When calling Mock on existing cmdlet with Common params" {
     Mock CommonParamFunction
 
-    $result=[string](Get-Content function:\CommonParamFunction)
+    $result=[string](Get-Command CommonParamFunction).ResolvedCommand.ScriptBlock
 
     It "Should strip verbose" {
         $result.contains("`${Verbose}") | Should Be $false

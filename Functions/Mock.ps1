@@ -234,7 +234,7 @@ about_Mocking
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length-2, 'PositionalBinding=$false')
             }
 
-            $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet')
             {
@@ -332,41 +332,35 @@ about_Mocking
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
             FunctionScope           = ''
-            Alias                   = $null
+            Aliases                 = @()
+            BootstrapFunctionName   = [Guid]::NewGuid().ToString()
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
 
-        if ($contextInfo.Command.CommandType -eq 'Function')
-        {
-            $mock['FunctionScope'] = $contextInfo.Scope
+        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
+        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $Mock.BootstrapFunctionName, $mockScript
 
-            $scriptBlock =
-            {
-                param ( [string] $CommandName )
+        $mock.Aliases += $CommandName
 
-                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName", $true, $true))
-                {
-                    $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\$CommandName"), "script:PesterIsMocking_$CommandName", $true)
-                }
-            }
-
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName
+        $scriptBlock = {
+            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+            & $setAlias -Name $args[0] -Value $args[1] -Scope Script
         }
 
-        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
-        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mockScript
+        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mock.BootstrapFunctionName
 
         if ($mock.OriginalCommand.ModuleName)
         {
-            $mock.Alias = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+            $aliasName = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+            $mock.Aliases += $aliasName
 
             $scriptBlock = {
                 $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
                 & $setAlias -Name $args[0] -Value $args[1] -Scope Script
             }
 
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.Alias, $CommandName
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $mock.BootstrapFunctionName
         }
     }
 
@@ -758,18 +752,17 @@ function Exit-MockScope {
         param (
             [string] $CommandName,
             [string] $Scope,
-            [string] $Alias
+            [string[]] $Aliases
         )
 
         $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
-        if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
-        {
-            $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\PesterIsMocking_$CommandName"), "$Scope$CommandName", $true)
-        }
 
-        if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias:$Alias", $true, $true))
+        foreach ($alias in $Aliases)
         {
-            $ExecutionContext.InvokeProvider.Item.Remove("Alias:$Alias", $false, $true, $true)
+            if ($ExecutionContext.InvokeProvider.Item.Exists("Alias:$alias", $true, $true))
+            {
+                $ExecutionContext.InvokeProvider.Item.Remove("Alias:$alias", $false, $true, $true)
+            }
         }
     }
 
@@ -782,7 +775,7 @@ function Exit-MockScope {
         $shouldRemoveMock = (-not $ExitTestCaseOnly) -and (ShouldRemoveMock -Mock $mock -ActivePesterState $pester)
         if ($shouldRemoveMock)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.CommandName, $mock.FunctionScope, $mock.Alias
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.BootstrapFunctionName, $mock.FunctionScope, $mock.Aliases
             $mockTable.Remove($mockKey)
         }
         elseif ($mock.PesterState -eq $pester)
@@ -893,7 +886,24 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $hash = @{Command = $commandInfo.Command; Session = $session}
     if ($commandInfo.Command.CommandType -eq 'Function')
     {
-        $hash['Scope'] = $commandInfo.Scope
+        $foundExistingMock = $false
+
+        foreach ($mock in $mockTable.Values)
+        {
+            if ($commandInfo.Command.Name -eq $mock.BootstrapFunctionName)
+            {
+                $foundExistingMock = $true
+                $hash = @{
+                    Command = $mock.OriginalCommand
+                    Session = $mock.SessionState
+                }
+            }
+        }
+
+        if (-not $foundExistingMock)
+        {
+            $hash['Scope'] = $commandInfo.Scope
+        }
     }
 
     return $hash
