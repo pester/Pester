@@ -1744,5 +1744,6 @@ Describe 'Case sensitive?' {
     It 'Should work fine' {
         TestMe | Should -Be Mocked
         Assert-MockCalled TestMe -Scope It -Exactly -Times 1
+        Assert-MockCalled TestMe -Scope Describe -Exactly -Times 2
     }
 }
