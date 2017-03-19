@@ -1724,3 +1724,13 @@ Describe 'Naming conflicts in mocked functions' {
         Wrapper | Should Be 'mocked'
     }
 }
+
+Describe 'Passing unbound script blocks as mocks' {
+    It 'Does not produce an error' {
+        function TestMe { 'Original' }
+        $scriptBlock = [scriptblock]::Create('"Mocked"')
+
+        { Mock TestMe $scriptBlock } | Should -Not -Throw
+        TestMe | -Should -Be Mocked
+    }
+}
