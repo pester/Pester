@@ -331,7 +331,6 @@ about_Mocking
             Metadata                = $metadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
-            FunctionScope           = ''
             Aliases                 = @()
             BootstrapFunctionName   = [Guid]::NewGuid().ToString()
         }
@@ -751,7 +750,6 @@ function Exit-MockScope {
     {
         param (
             [string] $CommandName,
-            [string] $Scope,
             [string[]] $Aliases
         )
 
@@ -775,7 +773,7 @@ function Exit-MockScope {
         $shouldRemoveMock = (-not $ExitTestCaseOnly) -and (ShouldRemoveMock -Mock $mock -ActivePesterState $pester)
         if ($shouldRemoveMock)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.BootstrapFunctionName, $mock.FunctionScope, $mock.Aliases
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.BootstrapFunctionName, $mock.Aliases
             $mockTable.Remove($mockKey)
         }
         elseif ($mock.PesterState -eq $pester)
@@ -824,58 +822,31 @@ function ShouldRemoveMock($Mock, $ActivePesterState)
 
 function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
-    $origCommand = $null
-
-    $commandInfo = & $SafeCommands['New-Object'] psobject -Property @{ Command = $null; Scope = '' }
+    $command = $null
 
     $scriptBlock = {
-        $getContentCommand = & (Pester\SafeGetCommand) Get-Content -Module Microsoft.PowerShell.Management -CommandType Cmdlet
-        $newObjectCommand  = & (Pester\SafeGetCommand) New-Object  -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet
-
         $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
         while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias)
         {
             $command = $command.ResolvedCommand
         }
 
-        $properties = @{
-            Command = $command
-        }
-
-        if ($null -ne $command -and $command.CommandType -eq 'Function')
-        {
-            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)", $true, $true) -and
-                (& $getContentCommand -LiteralPath "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
-            {
-                $properties['Scope'] = 'global:'
-            }
-            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)", $true, $true) -and
-                    (& $getContentCommand -LiteralPath "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
-            {
-                $properties['Scope'] = 'script:'
-            }
-            else
-            {
-                $properties['Scope'] = ''
-            }
-        }
-
-        return & $newObjectCommand psobject -Property $properties
+        return $command
     }
 
     if ($ModuleName) {
         $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
-        $commandInfo = & $module $scriptBlock $CommandName
+        $command = & $module $scriptBlock $CommandName
     }
 
     $session = $pester.SessionState
 
-    if (-not $commandInfo.Command) {
+    if (-not $command) {
         Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $session
-        $commandInfo = & $scriptBlock $commandName
+        $command = & $scriptBlock $commandName
     }
 
-    if (-not $commandInfo.Command) {
+    if (-not $command) {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $commandName")
     }
 
@@ -883,26 +854,19 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         $session = & $module { $ExecutionContext.SessionState }
     }
 
-    $hash = @{Command = $commandInfo.Command; Session = $session}
-    if ($commandInfo.Command.CommandType -eq 'Function')
-    {
-        $foundExistingMock = $false
+    $hash = @{Command = $command; Session = $session}
 
+    if ($command.CommandType -eq 'Function')
+    {
         foreach ($mock in $mockTable.Values)
         {
-            if ($commandInfo.Command.Name -eq $mock.BootstrapFunctionName)
+            if ($command.Name -eq $mock.BootstrapFunctionName)
             {
-                $foundExistingMock = $true
-                $hash = @{
+                return @{
                     Command = $mock.OriginalCommand
                     Session = $mock.SessionState
                 }
             }
-        }
-
-        if (-not $foundExistingMock)
-        {
-            $hash['Scope'] = $commandInfo.Scope
         }
     }
 
