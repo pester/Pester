@@ -1734,3 +1734,32 @@ Describe 'Passing unbound script blocks as mocks' {
         TestMe | Should -Be Mocked
     }
 }
+
+Describe "Restoring original commands when mock scopes exit" {
+    function a (){}
+    Context "first context" {
+        Mock a { "mock" }
+
+        # Deliberately not using "Should Exist" here because that executes in
+        # Pester's module scope, where function:\a does not exist
+        It "original function exists" {
+            $function:a | Should -Not -Be $null
+        }
+
+        It "passes in first context" {
+            a | Should Be "mock"
+        }
+    }
+
+    Context "second context" {
+        Mock a { "mock" }
+
+        It "original function exists" {
+            $function:a | Should -Not -Be $null
+        }
+
+        It "passes in second context" {
+            a | Should Be "mock"
+        }
+    }
+}
