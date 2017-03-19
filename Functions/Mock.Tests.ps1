@@ -267,7 +267,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
 Describe "When calling Mock on existing cmdlet with Common params" {
     Mock CommonParamFunction
 
-    $result=[string](Get-Command CommonParamFunction).ResolvedCommand.ScriptBlock
+    $result=[string](Get-Alias CommonParamFunction).ResolvedCommand.ScriptBlock
 
     It "Should strip verbose" {
         $result.contains("`${Verbose}") | Should Be $false
