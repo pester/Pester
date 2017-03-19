@@ -1731,6 +1731,6 @@ Describe 'Passing unbound script blocks as mocks' {
         $scriptBlock = [scriptblock]::Create('"Mocked"')
 
         { Mock TestMe $scriptBlock } | Should -Not -Throw
-        TestMe | -Should -Be Mocked
+        TestMe | Should -Be Mocked
     }
 }
