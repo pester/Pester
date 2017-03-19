@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.4.6'
+ModuleVersion = '4.0.2'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -16,7 +16,7 @@ Author = 'Pester Team'
 CompanyName = 'Pester'
 
 # Copyright statement for this module
-Copyright = 'Copyright (c) 2016 by Pester Team, licensed under Apache 2.0 License.'
+Copyright = 'Copyright (c) 2017 by Pester Team, licensed under Apache 2.0 License.'
 
 # Description of the functionality provided by this module
 Description = 'Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of PowerShell code being tested. Pester tests can execute any command or script that is accessible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.'
@@ -25,31 +25,41 @@ Description = 'Pester provides a framework for running BDD style Tests to execut
 PowerShellVersion = '2.0'
 
 # Functions to export from this module
-FunctionsToExport = @( 
-    'Describe',
-    'Context',
-    'It',
-    'Should',
-    'Mock',
-    'Assert-MockCalled',
-    'Assert-VerifiableMocks',
-    'New-Fixture',
-    'Get-TestDriveItem',
-    'Invoke-Pester',
-    'Setup',
-    'In',
-    'InModuleScope',
-    'Invoke-Mock',
-    'BeforeEach',
-    'AfterEach',
-    'BeforeAll',
+FunctionsToExport = @(
+    'Describe'
+    'Context'
+    'It'
+    'Should'
+    'Mock'
+    'Assert-MockCalled'
+    'Assert-VerifiableMocks'
+    'New-Fixture'
+    'Get-TestDriveItem'
+    'Invoke-Pester'
+    'Setup'
+    'In'
+    'InModuleScope'
+    'Invoke-Mock'
+    'BeforeEach'
+    'AfterEach'
+    'BeforeAll'
     'AfterAll'
-    'Get-MockDynamicParameters',
-    'Set-DynamicParameterVariables',
-    'Set-TestInconclusive',
-    'SafeGetCommand',
-    'New-PesterOption',
-    'New-MockObject'
+    'Get-MockDynamicParameters'
+    'Set-DynamicParameterVariables'
+    'Set-TestInconclusive'
+    'SafeGetCommand'
+    'New-PesterOption'
+	'New-MockObject'
+
+    # Gherkin Support:
+    'Invoke-Gherkin'
+    'Invoke-GherkinStep'
+    'Find-GherkinStep'
+    'GherkinStep'
+    'BeforeEachFeature'
+    'AfterEachFeature'
+    'BeforeEachScenario'
+    'AfterEachScenario'
 )
 
 # # Cmdlets to export from this module
@@ -57,23 +67,30 @@ FunctionsToExport = @(
 
 # Variables to export from this module
 VariablesToExport = @(
-    'Path',
-    'TagFilter',
-    'ExcludeTagFilter',
-    'TestNameFilter',
-    'TestResult',
-    'CurrentContext',
-    'CurrentDescribe',
-    'CurrentTest',
-    'SessionState',
-    'CommandCoverage',
-    'BeforeEach',
-    'AfterEach',
+    'Path'
+    'TagFilter'
+    'ExcludeTagFilter'
+    'TestNameFilter'
+    'TestResult'
+    'CurrentContext'
+    'CurrentDescribe'
+    'CurrentTest'
+    'SessionState'
+    'CommandCoverage'
+    'BeforeEach'
+    'AfterEach'
     'Strict'
 )
 
 # # Aliases to export from this module
-# AliasesToExport = '*'
+AliasesToExport = @(
+    'Given'
+    'When'
+    'Then'
+    'And'
+    'But'
+)
+
 
 # List of all modules packaged with this module
 # ModuleList = @()

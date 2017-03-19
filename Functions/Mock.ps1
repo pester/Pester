@@ -193,7 +193,7 @@ about_Mocking
         Mock       = $mockWithCopy
         Filter     = $ParameterFilter
         Verifiable = $Verifiable
-        Scope      = Get-ScopeForMock -PesterState $pester
+        Scope      = $pester.CurrentTestGroup
     }
 
     $mock = $mockTable["$ModuleName||$CommandName"]
@@ -234,7 +234,7 @@ about_Mocking
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length-2, 'PositionalBinding=$false')
             }
 
-            $paramBlock    = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet')
             {
@@ -326,46 +326,40 @@ about_Mocking
             Blocks                  = @()
             CommandName             = $CommandName
             SessionState            = $contextInfo.Session
-            Scope                   = $pester.Scope
+            Scope                   = $pester.CurrentTestGroup
+            PesterState             = $pester
             Metadata                = $metadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
-            FunctionScope           = ''
-            Alias                   = $null
+            Aliases                 = @()
+            BootstrapFunctionName   = [Guid]::NewGuid().ToString()
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
 
-        if ($contextInfo.Command.CommandType -eq 'Function')
-        {
-            $mock['FunctionScope'] = $contextInfo.Scope
+        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
+        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $Mock.BootstrapFunctionName, $mockScript
 
-            $scriptBlock =
-            {
-                param ( [string] $CommandName )
+        $mock.Aliases += $CommandName
 
-                if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName", $true, $true))
-                {
-                    $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\$CommandName"), "script:PesterIsMocking_$CommandName", $true)
-                }
-            }
-
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName
+        $scriptBlock = {
+            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+            & $setAlias -Name $args[0] -Value $args[1] -Scope Script
         }
 
-        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
-        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mockScript
+        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mock.BootstrapFunctionName
 
         if ($mock.OriginalCommand.ModuleName)
         {
-            $mock.Alias = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+            $aliasName = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+            $mock.Aliases += $aliasName
 
             $scriptBlock = {
                 $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
                 & $setAlias -Name $args[0] -Value $args[1] -Scope Script
             }
 
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.Alias, $CommandName
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $mock.BootstrapFunctionName
         }
     }
 
@@ -585,7 +579,17 @@ param(
     [string] $ModuleName,
 
     [Parameter(Position = 4)]
-    [ValidateSet('Describe','Context','It')]
+    [ValidateScript({
+        if ([uint32]::TryParse($_, [ref] $null) -or
+            $_ -eq 'Describe' -or
+            $_ -eq 'Context' -or
+            $_ -eq 'It')
+        {
+            return $true
+        }
+
+        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Scope', or 'It'."
+    })]
     [string] $Scope,
 
     [switch]$Exactly
@@ -625,16 +629,9 @@ param(
         throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     }
 
-    if (-not $Scope)
+    if (-not $PSBoundParameters.ContainsKey('Scope'))
     {
-        if ($pester.CurrentContext)
-        {
-            $Scope = 'Context'
-        }
-        else
-        {
-            $Scope = 'Describe'
-        }
+        $scope = 1
     }
 
     $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
@@ -686,39 +683,84 @@ function Test-MockCallScope
 {
     [CmdletBinding()]
     param (
-        [string] $CallScope,
+        [object] $CallScope,
         [string] $DesiredScope
     )
 
-    # It would probably be cleaner to replace all of these scope strings with an enumerated type at some point.
-    $scopes = 'Describe', 'Context', 'It'
+    if ($null -eq $CallScope)
+    {
+        # This indicates a call from the current test case ("It" block), which always passes Test-MockCallScope
+        return $true
+    }
 
-    return ([array]::IndexOf($scopes, $CallScope) -ge [array]::IndexOf($scopes, $DesiredScope))
+    $testGroups = $pester.TestGroups
+    [Array]::Reverse($testGroups)
+
+    $target = 0
+    $isNumberedScope = [int]::TryParse($DesiredScope, [ref] $target)
+
+    # The Describe / Context stuff here is for backward compatibility.  May be deprecated / removed in the future.
+    $actualScopeNumber = -1
+    $describe = -1
+    $context = -1
+
+    for ($i = 0; $i -lt $testGroups.Count; $i++)
+    {
+        if ($CallScope -eq $testGroups[$i])
+        {
+            $actualScopeNumber = $i
+            if ($isNumberedScope) { break }
+        }
+
+        if ($describe -lt 0 -and $testGroups[$i].Hint -eq 'Describe') { $describe = $i }
+        if ($context -lt 0 -and $testGroups[$i].Hint -eq 'Context') { $context = $i }
+    }
+
+    if ($actualScopeNumber -lt 0)
+    {
+        # this should never happen; if we get here, it's a Pester bug.
+
+        throw "Pester error: Corrupted mock call history table."
+    }
+
+    if ($isNumberedScope)
+    {
+        # For this, we consider scope 0 to be the current test case / It block, scope 1 to be the first Test Group up the stack, etc.
+        # $actualScopeNumber currently off by one from that scale (zero-indexed for test groups only; we already checked for the 0 case
+        # farther up, which only applies if $CallScope is $null).
+        return $target -gt $actualScopeNumber
+    }
+    else
+    {
+        if ($DesiredScope -eq 'Describe') { return $describe -ge $actualScopeNumber }
+        if ($DesiredScope -eq 'Context')  { return $context -ge $actualScopeNumber }
+    }
+
+    return $false
 }
 
 function Exit-MockScope {
+    param (
+        [switch] $ExitTestCaseOnly
+    )
+
     if ($null -eq $mockTable) { return }
 
-    $currentScope = $pester.Scope
-    $parentScope = $pester.ParentScope
-
-    $scriptBlock =
+    $removeMockStub =
     {
         param (
             [string] $CommandName,
-            [string] $Scope,
-            [string] $Alias
+            [string[]] $Aliases
         )
 
         $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
-        if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\PesterIsMocking_$CommandName", $true, $true))
-        {
-            $ExecutionContext.InvokeProvider.Item.Rename([System.Management.Automation.WildcardPattern]::Escape("Function:\PesterIsMocking_$CommandName"), "$Scope$CommandName", $true)
-        }
 
-        if ($Alias -and $ExecutionContext.InvokeProvider.Item.Exists("Alias:$Alias", $true, $true))
+        foreach ($alias in $Aliases)
         {
-            $ExecutionContext.InvokeProvider.Item.Remove("Alias:$Alias", $false, $true, $true)
+            if ($ExecutionContext.InvokeProvider.Item.Exists("Alias:$alias", $true, $true))
+            {
+                $ExecutionContext.InvokeProvider.Item.Remove("Alias:$alias", $false, $true, $true)
+            }
         }
     }
 
@@ -727,77 +769,84 @@ function Exit-MockScope {
     foreach ($mockKey in $mockKeys)
     {
         $mock = $mockTable[$mockKey]
-        $mock.Blocks = @($mock.Blocks | & $SafeCommands['Where-Object'] {$_.Scope -ne $currentScope})
 
-        if ($null -eq $parentScope)
+        $shouldRemoveMock = (-not $ExitTestCaseOnly) -and (ShouldRemoveMock -Mock $mock -ActivePesterState $pester)
+        if ($shouldRemoveMock)
         {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $mock.CommandName, $mock.FunctionScope, $mock.Alias
+            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.BootstrapFunctionName, $mock.Aliases
             $mockTable.Remove($mockKey)
         }
-        else
+        elseif ($mock.PesterState -eq $pester)
         {
+            if (-not $ExitTestCaseOnly)
+            {
+                $mock.Blocks = @($mock.Blocks | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.CurrentTestGroup })
+            }
+
+            $testGroups = @($pester.TestGroups)
+
+            $parentTestGroup = $null
+
+            if ($testGroups.Count -gt 1)
+            {
+                $parentTestGroup = $testGroups[-2]
+            }
+
             foreach ($historyEntry in $mock.CallHistory)
             {
-                if ($historyEntry.Scope -eq $currentScope) { $historyEntry.Scope = $parentScope }
+                if ($ExitTestCaseOnly)
+                {
+                    if ($historyEntry.Scope -eq $null) { $historyEntry.Scope = $pester.CurrentTestGroup }
+                }
+                elseif ($parentTestGroup)
+                {
+                    if ($historyEntry.Scope -eq $pester.CurrentTestGroup) { $historyEntry.Scope = $parentTestGroup }
+                }
             }
         }
     }
 }
 
+function ShouldRemoveMock($Mock, $ActivePesterState)
+{
+    if ($ActivePesterState -ne $mock.PesterState) { return $false }
+    if ($mock.Scope -eq $ActivePesterState.CurrentTestGroup) { return $true }
+
+    # These two should conditions should _probably_ never happen, because the above condition should
+    # catch it, but just in case:
+    if ($ActivePesterState.TestGroups.Count -eq 1) { return $true }
+    if ($ActivePesterState.TestGroups[-2].Hint -eq 'Root') { return $true }
+
+    return $false
+}
+
 function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $module = $null
-    $origCommand = $null
-
-    $commandInfo = & $SafeCommands['New-Object'] psobject -Property @{ Command = $null; Scope = '' }
+    $command = $null
 
     $scriptBlock = {
-        $getContentCommand = & (Pester\SafeGetCommand) Get-Content -Module Microsoft.PowerShell.Management -CommandType Cmdlet
-        $newObjectCommand  = & (Pester\SafeGetCommand) New-Object  -Module Microsoft.PowerShell.Utility    -CommandType Cmdlet
-
         $command = $ExecutionContext.InvokeCommand.GetCommand($args[0], 'All')
         while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias)
         {
             $command = $command.ResolvedCommand
         }
 
-        $properties = @{
-            Command = $command
-        }
-
-        if ($null -ne $command -and $command.CommandType -eq 'Function')
-        {
-            if ($ExecutionContext.InvokeProvider.Item.Exists("function:\global:$($command.Name)", $true, $true) -and
-                (& $getContentCommand -LiteralPath "function:\global:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
-            {
-                $properties['Scope'] = 'global:'
-            }
-            elseif ($ExecutionContext.InvokeProvider.Item.Exists("function:\script:$($command.Name)", $true, $true) -and
-                    (& $getContentCommand -LiteralPath "function:\script:$($command.Name)" -ErrorAction Stop) -eq $command.ScriptBlock)
-            {
-                $properties['Scope'] = 'script:'
-            }
-            else
-            {
-                $properties['Scope'] = ''
-            }
-        }
-
-        return & $newObjectCommand psobject -Property $properties
+        return $command
     }
 
     if ($ModuleName) {
         $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
-        $commandInfo = & $module $scriptBlock $CommandName
+        $command = & $module $scriptBlock $CommandName
     }
 
     $session = $pester.SessionState
 
-    if (-not $commandInfo.Command) {
+    if (-not $command) {
         Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $session
-        $commandInfo = & $scriptBlock $commandName
+        $command = & $scriptBlock $commandName
     }
 
-    if (-not $commandInfo.Command) {
+    if (-not $command) {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $commandName")
     }
 
@@ -805,10 +854,20 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         $session = & $module { $ExecutionContext.SessionState }
     }
 
-    $hash = @{Command = $commandInfo.Command; Session = $session}
-    if ($commandInfo.Command.CommandType -eq 'Function')
+    $hash = @{Command = $command; Session = $session}
+
+    if ($command.CommandType -eq 'Function')
     {
-        $hash['Scope'] = $commandInfo.Scope
+        foreach ($mock in $mockTable.Values)
+        {
+            if ($command.Name -eq $mock.BootstrapFunctionName)
+            {
+                return @{
+                    Command = $mock.OriginalCommand
+                    Session = $mock.SessionState
+                }
+            }
+        }
     }
 
     return $hash
@@ -1017,7 +1076,9 @@ function ExecuteBlock
     )
 
     $Block.Verifiable = $false
-    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $pester.Scope }
+
+    # We set Scope to $null here to indicate the call came from the current Test Case.  It'll get assigned to a test group scope when Exit-MockScope is called.
+    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $null }
 
     $scriptBlock = {
         param (
@@ -1172,16 +1233,6 @@ function IsCommonParameter
     }
 
     return $false
-}
-
-function Get-ScopeForMock
-{
-    param ($PesterState)
-
-    $scope = $PesterState.Scope
-    if ($scope -eq 'It') { $scope = $PesterState.ParentScope }
-
-    return $scope
 }
 
 function Set-DynamicParameterVariables

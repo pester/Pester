@@ -3,15 +3,17 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "BeLike" {
         It "returns true for things that are like wildcard" {
-            PesterBeLike "foobar" "*ob*" | Should Be $true
+
+            "foobar" | Should BeLike "*ob*"
+            "foobar" | Should -BeLike "*ob*"
         }
 
         It "returns false for things that do not match" {
-            PesterBeLike "foobar" "oob" | Should Be $false
+            { "foobar" | Should BeLike "oob" } | Should Throw
         }
 
         It "passes for strings with different case" {
-            PesterBeLike "foobar" "FOOBAR" | Should Be $true
+            "foobar" | Should BeLike "FOOBAR"
         }
     }
 }

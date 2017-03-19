@@ -1,36 +1,59 @@
+function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [switch] $Negate) {
+    $script:ActualExceptionMessage = ""
+    $script:ActualExceptionWasThrown = $false
 
-$ActualExceptionMessage = ""
-$ActualExceptionWasThrown = $false
-
-# because this is a script block, the user will have to
-# wrap the code they want to assert on in { }
-function PesterThrow([scriptblock] $script, $expectedErrorMessage) {
-
-    if ($null -eq $script) {
-        throw (New-Object -TypeName ArgumentNullException -ArgumentList "script","Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
+    if ($null -eq $ActualValue) {
+        throw (New-Object -TypeName ArgumentNullException -ArgumentList "ActualValue","Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
     }
 
-    $Script:ActualExceptionMessage = ""
-    $Script:ActualExceptionWasThrown = $false
+    # This is superfluous, here for now.
+    $ExpectedErrorId = $ErrorId
 
     try {
-        # Redirect to $null so script output does not enter the pipeline
-        & $script > $null
+        do {
+            $null = & $ActualValue
+        } until ($true)
     } catch {
-        $Script:ActualExceptionWasThrown = $true
-        $Script:ActualExceptionMessage = $_.Exception.Message
-        $Script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
+        $script:ActualExceptionWasThrown = $true
+        $script:ActualExceptionMessage = $_.Exception.Message
+        $script:ActualErrorId = $_.FullyQualifiedErrorId
+        $script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
     }
+
+    [bool] $succeeded = $false
 
     if ($ActualExceptionWasThrown) {
-        return Get-DoMessagesMatch $ActualExceptionMessage $expectedErrorMessage
+        $succeeded = (Get-DoValuesMatch $script:ActualExceptionMessage $ExpectedMessage) -and
+                     (Get-DoValuesMatch $script:ActualErrorId $ExpectedErrorId)
     }
-    return $false
+
+    if ($Negate) { $succeeded = -not $succeeded }
+
+    $failureMessage = ''
+
+    if (-not $succeeded)
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterThrowFailureMessage -ActualValue $ActualValue -ExpectedMessage $ExpectedMessage -ExpectedErrorId $ExpectedErrorId
+        }
+        else
+        {
+            $failureMessage = PesterThrowFailureMessage -ActualValue $ActualValue -ExpectedMessage $ExpectedMessage -ExpectedErrorId $ExpectedErrorId
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $succeeded
+        FailureMessage = $failureMessage
+    }
 }
 
-function Get-DoMessagesMatch($value, $expected) {
-    if ($expected -eq "") { return $false }
-    return $value.Contains($expected)
+function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
+    #user did not specify any message filter, so any message matches
+    if ($null -eq $ExpectedValue ) { return $true }
+
+    return $ActualValue.ToString().IndexOf($ExpectedValue, [System.StringComparison]::InvariantCultureIgnoreCase) -ge 0
 }
 
 function Get-ExceptionLineInfo($info) {
@@ -39,20 +62,65 @@ function Get-ExceptionLineInfo($info) {
     return ($positionMessage -replace "^At ","from ")
 }
 
-function PesterThrowFailureMessage($value, $expected) {
-    if ($expected) {
-        return "Expected: the expression to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
-               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
-    } else {
-      return "Expected: the expression to throw an exception"
+function PesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErrorId) {
+    $StringBuilder = Microsoft.PowerShell.Utility\New-Object System.Text.StringBuilder
+    $null = $StringBuilder.Append('Expected: the expression to throw an exception')
+
+    if ($ExpectedMessage -or $ExpectedErrorId)
+    {
+        $null = $StringBuilder.Append(' with ')
+        $Expected = switch ($null)
+        {
+            { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
+            { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
+        }
+        $Actual = switch ($null)
+        {
+            { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
+            { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
+        }
+        $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}`n    {3}" -f
+            ($Expected -join ' and '),
+            @{$true="";$false="not "}[$ActualExceptionWasThrown],
+            ($Actual -join ' and '),
+            ($ActualExceptionLine  -replace "`n","`n    ")
+        ))
     }
+
+    return $StringBuilder.ToString()
 }
 
-function NotPesterThrowFailureMessage($value, $expected) {
-    if ($expected) {
-        return "Expected: the expression not to throw an exception with message {{{0}}}, an exception was {2}raised, message was {{{1}}}`n    {3}" -f
-               $expected, $ActualExceptionMessage,(@{$true="";$false="not "}[$ActualExceptionWasThrown]),($ActualExceptionLine  -replace "`n","`n    ")
-    } else {
-        return "Expected: the expression not to throw an exception. Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage,($ActualExceptionLine  -replace "`n","`n    ")
+function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErrorId) {
+    $StringBuilder = New-Object System.Text.StringBuilder
+    $null = $StringBuilder.Append('Expected: the expression not to throw an exception')
+
+    if ($ExpectedMessage -or $ExpectedErrorId)
+    {
+        $null = $StringBuilder.Append(' with ')
+        $Expected = switch ($null)
+        {
+            { $ExpectedMessage } { 'message {{{0}}}' -f $ExpectedMessage }
+            { $ExpectedErrorId } { 'error id {{{0}}}' -f $ExpectedErrorId }
+        }
+        $Actual = switch ($null)
+        {
+            { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
+            { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
+        }
+        $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}`n    {3}" -f
+            ($Expected -join ' and '),
+            (@{$true="";$false="not "}[$ActualExceptionWasThrown]),
+            ($Actual -join ' and '),
+            ($ActualExceptionLine  -replace "`n","`n    ")
+        ))
     }
+    else
+    {
+      $null = $StringBuilder.Append((". Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage, ($ActualExceptionLine -replace "`n","`n    ")))
+    }
+
+    return $StringBuilder.ToString()
 }
+
+Add-AssertionOperator -Name Throw `
+                      -Test $function:PesterThrow
