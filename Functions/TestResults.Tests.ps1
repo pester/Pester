@@ -284,7 +284,10 @@ InModuleScope Pester {
         }
 
         It "Resolves full path correctly" {
-            GetFullPath C:\Windows\System32\notepad.exe | Should Be C:\Windows\System32\notepad.exe
+            $powershellPath = Get-Command 'powershell' | select -ExpandProperty 'Definition'
+            $powershellPath | Should -Not -BeNullOrEmpty
+
+            GetFullPath $powershellPath | Should Be $powershellPath
         }
     }
 }
