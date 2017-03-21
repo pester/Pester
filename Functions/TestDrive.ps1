@@ -1,4 +1,3 @@
-#
 function New-TestDrive ([Switch]$PassThru) {
     $Path = New-RandomTempDirectory
     $DriveName = "TestDrive"
@@ -47,6 +46,32 @@ function New-RandomTempDirectory {
 }
 
 function Get-TestDriveItem {
+<#
+    .SYNOPSIS
+    The Get-TestDriveItem cmdlet gets the item in Pester test drive.
+
+    .DESCRIPTION
+    The Get-TestDriveItem cmdlet gets the item in Pester test drive. It does not
+    get the contents of the item at the location unless you use a wildcard
+    character (*) to request all the contents of the item.
+
+    .PARAMETER Path
+    Specifies the path to an item. The path need to be relative to TestDrive:.
+    This cmdlet gets the item at the specified location. Wildcards are permitted.
+    This parameter is required, but the parameter name ("Path") is optional.
+
+    .EXAMPLE
+
+    Get-TestDriveItem MyTestFolder\MyTestFile.txt
+
+    This command returns the file MyTestFile.txt located in the folder MyTestFolder
+    what is located under TestDrive.
+
+    .LINK
+    https://github.com/pester/Pester/wiki/TestDrive
+    about_TestDrive
+#>
+
     #moved here from Pester.psm1
     param( [string]$Path )
 
