@@ -3,8 +3,8 @@ if ($PSVersionTable.PSVersion.Major -le 2) { return }
 Set-StrictMode -Version Latest
 
 Describe 'Testing Gerkin Step' {
-    It 'Generates a function named "When" with mandatory name and test parameters' {
-        $command = &(Get-Module Pester) { Get-Command When -Module Pester }
+    It 'Generates a function named "GherkinStep" with mandatory name and test parameters' {
+        $command = &(Get-Module Pester) { Get-Command GherkinStep -Module Pester }
         $command | Should Not Be $null
 
         $parameter = $command.Parameters['Name']
@@ -27,9 +27,9 @@ Describe 'Testing Gerkin Step' {
 
         $isMandatory | Should Be $true
     }
-    It 'Generates aliases And, But, Given, Then for When' {
-        $command = &(Get-Module Pester) { Get-Alias -Definition When | Select -Expand Name }
-        $command | Should Be "And", "But", "Given", "Then"
+    It 'Generates aliases Given, When, Then, And, But for GherkinStep' {
+        $command = &(Get-Module Pester) { Get-Alias -Definition GherkinStep | Select -Expand Name }
+        $command | Should Be "And", "But", "Given", "Then", "When"
     }
     It 'Populates the GherkinSteps module variable' {
         When "I Click" { }

@@ -25,35 +25,41 @@ Description = 'Pester provides a framework for running BDD style Tests to execut
 PowerShellVersion = '2.0'
 
 # Functions to export from this module
-FunctionsToExport = @( 
-    'Describe',
-    'Context',
-    'It',
-    'Should',
-    'Mock',
-    'Assert-MockCalled',
-    'Assert-VerifiableMocks',
-    'New-Fixture',
-    'Get-TestDriveItem',
-    'Invoke-Pester',
-    'Setup',
-    'In',
-    'InModuleScope',
-    'Invoke-Mock',
-    'BeforeEach',
-    'AfterEach',
-    'BeforeAll',
+FunctionsToExport = @(
+    'Describe'
+    'Context'
+    'It'
+    'Should'
+    'Mock'
+    'Assert-MockCalled'
+    'Assert-VerifiableMocks'
+    'New-Fixture'
+    'Get-TestDriveItem'
+    'Invoke-Pester'
+    'Setup'
+    'In'
+    'InModuleScope'
+    'Invoke-Mock'
+    'BeforeEach'
+    'AfterEach'
+    'BeforeAll'
     'AfterAll'
-    'Get-MockDynamicParameters',
-    'Set-DynamicParameterVariables',
-    'Set-TestInconclusive',
-    'SafeGetCommand',
-    'New-PesterOption',
+    'Get-MockDynamicParameters'
+    'Set-DynamicParameterVariables'
+    'Set-TestInconclusive'
+    'SafeGetCommand'
+    'New-PesterOption'
 	'New-MockObject'
 
     # Gherkin Support:
-    'Invoke-Gherkin',
-    'When'
+    'Invoke-Gherkin'
+    'Invoke-GherkinStep'
+    'Find-GherkinStep'
+    'GherkinStep'
+    'BeforeEachFeature'
+    'AfterEachFeature'
+    'BeforeEachScenario'
+    'AfterEachScenario'
 )
 
 # # Cmdlets to export from this module
@@ -61,27 +67,28 @@ FunctionsToExport = @(
 
 # Variables to export from this module
 VariablesToExport = @(
-    'Path',
-    'TagFilter',
-    'ExcludeTagFilter',
-    'TestNameFilter',
-    'TestResult',
-    'CurrentContext',
-    'CurrentDescribe',
-    'CurrentTest',
-    'SessionState',
-    'CommandCoverage',
-    'BeforeEach',
-    'AfterEach',
+    'Path'
+    'TagFilter'
+    'ExcludeTagFilter'
+    'TestNameFilter'
+    'TestResult'
+    'CurrentContext'
+    'CurrentDescribe'
+    'CurrentTest'
+    'SessionState'
+    'CommandCoverage'
+    'BeforeEach'
+    'AfterEach'
     'Strict'
 )
 
 # # Aliases to export from this module
 AliasesToExport = @(
-    'And',
-    'But',
     'Given'
+    'When'
     'Then'
+    'And'
+    'But'
 )
 
 

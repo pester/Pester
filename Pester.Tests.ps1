@@ -1,7 +1,7 @@
 ﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$manifestPath   = "$here\Pester.psd1"
-$changeLogPath = "$here\CHANGELOG.md"
+$manifestPath   = (Join-Path $here 'Pester.psd1')
+$changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
 
@@ -120,7 +120,7 @@ Describe 'Style rules' {
 
     $files = @(
         Get-ChildItem $pesterRoot -Include *.ps1,*.psm1
-        Get-ChildItem $pesterRoot\Functions -Include *.ps1,*.psm1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
@@ -173,19 +173,19 @@ InModuleScope Pester {
         Setup -File SomeOtherFile.Tests.ps1
 
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
-            $result = @(ResolveTestScripts $TestDrive\SomeOtherFile.ps1)
+            $result = @(ResolveTestScripts (Join-Path $TestDrive 'SomeOtherFile.ps1'))
             $result.Count | Should Be 1
-            $result[0].Path | Should Be "$TestDrive\SomeOtherFile.ps1"
+            $result[0].Path | Should Be (Join-Path $TestDrive 'SomeOtherFile.ps1')
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
-            $result = @(ResolveTestScripts $TestDrive\*.ps1)
+            $result = @(ResolveTestScripts (Join-Path $TestDrive '*.ps1'))
             $result.Count | Should Be 2
 
             $paths = $result | Select-Object -ExpandProperty Path
 
-            ($paths -contains "$TestDrive\SomeFile.Tests.ps1") | Should Be $true
-            ($paths -contains "$TestDrive\SomeOtherFile.Tests.ps1") | Should Be $true
+            ($paths -contains (Join-Path $TestDrive 'SomeFile.Tests.ps1')) | Should Be $true
+            ($paths -contains (Join-Path $TestDrive 'SomeOtherFile.Tests.ps1')) | Should Be $true
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
@@ -195,15 +195,15 @@ InModuleScope Pester {
 
             $paths = $result | Select-Object -ExpandProperty Path
 
-            ($paths -contains "$TestDrive\SomeFile.Tests.ps1") | Should Be $true
-            ($paths -contains "$TestDrive\SomeOtherFile.Tests.ps1") | Should Be $true
+            ($paths -contains ( Join-Path $TestDrive 'SomeFile.Tests.ps1')) | Should Be $true
+            ($paths -contains ( Join-Path $TestDrive 'SomeOtherFile.Tests.ps1')) | Should Be $true
         }
 
         It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
-            $result = @(ResolveTestScripts "$TestDrive\SomeFile.ps1")
+            $result = @(ResolveTestScripts (Join-Path $TestDrive 'SomeFile.ps1'))
 
             $result.Count | Should Be 1
-            $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+            $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
 
             ,$result[0].Arguments | Should Not Be $null
             ,$result[0].Parameters | Should Not Be $null
@@ -217,38 +217,38 @@ InModuleScope Pester {
 
         Context 'Passing in Dictionaries instead of Strings' {
             It 'Allows the use of a "P" key instead of "Path"' {
-                $result = @(ResolveTestScripts @{ P = "$TestDrive\SomeFile.ps1" })
+                $result = @(ResolveTestScripts @{ P = (Join-Path $TestDrive 'SomeFile.ps1') })
 
                 $result.Count | Should Be 1
-                $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+                $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
             }
 
             $testArgs = @('I am a string')
             It 'Allows the use of an "Arguments" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = "$TestDrive\SomeFile.ps1"; Arguments = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Arguments = $testArgs })
 
                 $result.Count | Should Be 1
-                $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+                $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
 
                 $result[0].Arguments.Count | Should Be 1
                 $result[0].Arguments[0] | Should Be 'I am a string'
             }
 
             It 'Allows the use of an "Args" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = "$TestDrive\SomeFile.ps1"; Args = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Args = $testArgs })
 
                 $result.Count | Should Be 1
-                $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+                $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
 
                 $result[0].Arguments.Count | Should Be 1
                 $result[0].Arguments[0] | Should Be 'I am a string'
             }
 
             It 'Allows the use of an "A" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = "$TestDrive\SomeFile.ps1"; A = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); A = $testArgs })
 
                 $result.Count | Should Be 1
-                $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+                $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
 
                 $result[0].Arguments.Count | Should Be 1
                 $result[0].Arguments[0] | Should Be 'I am a string'
@@ -256,20 +256,20 @@ InModuleScope Pester {
 
             $testParams = @{ MyKey = 'MyValue' }
             It 'Allows the use of a "Parameters" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = "$TestDrive\SomeFile.ps1"; Parameters = $testParams })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Parameters = $testParams })
 
                 $result.Count | Should Be 1
-                $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+                $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
 
                 $result[0].Parameters.PSBase.Count | Should Be 1
                 $result[0].Parameters['MyKey'] | Should Be 'MyValue'
             }
 
             It 'Allows the use of a "Params" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = "$TestDrive\SomeFile.ps1"; Params = $testParams })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Params = $testParams })
 
                 $result.Count | Should Be 1
-                $result[0].Path | Should Be "$TestDrive\SomeFile.ps1"
+                $result[0].Path | Should Be (Join-Path $TestDrive 'SomeFile.ps1')
 
                 $result[0].Parameters.PSBase.Count | Should Be 1
                 $result[0].Parameters['MyKey'] | Should Be 'MyValue'
@@ -282,38 +282,6 @@ InModuleScope Pester {
             It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
                 { ResolveTestScripts @{ P='P'; Params = 'A string' } } | Should Throw
             }
-        }
-    }
-
-    describe 'Get-OperatingSystem' {
-
-        it 'returns Windows' {
-
-            Get-OperatingSystem | should be 'Windows'
-        }
-    }
-
-    describe 'Get-TempDirectory' {
-
-        it 'returns the correct temp directory for Windows' {
-            mock 'Get-OperatingSystem' {
-                'Windows'
-            }
-            Get-TempDirectory | should be $env:TEMP
-        }
-
-        it 'returns the correct temp directory for MacOS' {
-            mock 'Get-OperatingSystem' {
-                'MacOS'
-            }
-            Get-TempDirectory | should be '/tmp'
-        }
-
-        it 'returns the correct temp directory for Linux' {
-            mock 'Get-OperatingSystem' {
-                'Linux'
-            }
-            Get-TempDirectory | should be '/tmp'
         }
     }
 }
