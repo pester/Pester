@@ -24,5 +24,6 @@
     <file src="Functions\**\*.*" target="$targetBase$\Functions" />
     <file src="Snippets\*.*" target="$targetBase$\Snippets" />
     <file src="en-US\*.*" target="$targetBase$\en-US" />
+    <file src="lib\*.*" target="$targetBase$\lib" />
   </files>
 </package>

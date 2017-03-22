@@ -36,6 +36,11 @@ LONG DESCRIPTION
 
         $Error.Count | Should BeGreaterThan 0
 
+    BeIn
+        Asserts that a collection of values contain a specific value. Uses PowerShell's -contains operator to confirm.
+
+        1 | Should BeIn @(1,2,3,'a','b','c')
+
     BeLessThan
         Asserts that a number is less than an expected value. Uses PowerShell's -gt operator to compare the two values.
 

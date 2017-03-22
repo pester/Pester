@@ -168,7 +168,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
         }
 
         $beforeEachBlock = InModuleScope Pester {
-            $pester.BeforeEach[0].ScriptBlock
+            $pester.CurrentTestGroup.BeforeEach[0]
         }
 
         It 'Creates script block objects associated with the proper file' {

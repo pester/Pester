@@ -1,6 +1,13 @@
 Set-StrictMode -Version Latest
 
-$tempPath = (Get-Item $env:temp).FullName
+if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows)
+{
+    $tempPath = $env:TEMP
+}
+else
+{
+    $tempPath = '/tmp'
+}
 
 Describe "Setup" {
     It "returns a location that is in a temp area" {

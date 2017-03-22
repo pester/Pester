@@ -74,54 +74,24 @@ function AfterAll
     Assert-DescribeInProgress -CommandName AfterAll
 }
 
-function Clear-SetupAndTeardown
-{
-    $pester.BeforeEach = @( $pester.BeforeEach | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
-    $pester.AfterEach  = @( $pester.AfterEach  | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
-    $pester.BeforeAll  = @( $pester.BeforeAll  | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
-    $pester.AfterAll   = @( $pester.AfterAll   | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.Scope } )
-}
-
 function Invoke-TestCaseSetupBlocks
 {
-    $orderedSetupBlocks = @(
-        $pester.BeforeEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Describe' } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
-        $pester.BeforeEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Context'  } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
-    )
-
-    Invoke-Blocks -ScriptBlock $orderedSetupBlocks
+    Invoke-Blocks -ScriptBlock $pester.GetTestCaseSetupBlocks()
 }
 
 function Invoke-TestCaseTeardownBlocks
 {
-    $orderedTeardownBlocks = @(
-        $pester.AfterEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Context'  } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
-        $pester.AfterEach | & $SafeCommands['Where-Object'] { $_.Scope -eq 'Describe' } | & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
-    )
-
-    Invoke-Blocks -ScriptBlock $orderedTeardownBlocks
+    Invoke-Blocks -ScriptBlock $pester.GetTestCaseTeardownBlocks()
 }
 
 function Invoke-TestGroupSetupBlocks
 {
-    param ([string] $Scope)
-
-    $scriptBlocks = $pester.BeforeAll |
-                    & $SafeCommands['Where-Object'] { $_.Scope -eq $Scope } |
-                    & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
-
-    Invoke-Blocks -ScriptBlock $scriptBlocks
+    Invoke-Blocks -ScriptBlock $pester.GetCurrentTestGroupSetupBlocks()
 }
 
 function Invoke-TestGroupTeardownBlocks
 {
-    param ([string] $Scope)
-
-    $scriptBlocks = $pester.AfterAll |
-                    & $SafeCommands['Where-Object'] { $_.Scope -eq $Scope } |
-                    & $SafeCommands['Select-Object'] -ExpandProperty ScriptBlock
-
-    Invoke-Blocks -ScriptBlock $scriptBlocks
+    Invoke-Blocks -ScriptBlock $pester.GetCurrentTestGroupTeardownBlocks()
 }
 
 function Invoke-Blocks
@@ -232,7 +202,8 @@ function ParseCodeIntoTokens
 
     if ($parseErrors.Count -gt 0)
     {
-        $currentScope = $pester.Scope
+        $currentScope = $pester.CurrentTestGroup.Hint
+        if (-not $currentScope) { $currentScope = 'test group' }
         throw "The current $currentScope block contains syntax errors."
     }
 
@@ -375,97 +346,5 @@ function Add-SetupOrTeardownScriptBlock
         [scriptblock] $ScriptBlock
     )
 
-    $isSetupCommand = IsSetupCommand -CommandName $CommandName
-    $isGroupCommand = IsTestGroupCommand -CommandName $CommandName
-
-    if ($isSetupCommand)
-    {
-        if ($isGroupCommand)
-        {
-            Add-BeforeAll -ScriptBlock $ScriptBlock
-        }
-        else
-        {
-            Add-BeforeEach -ScriptBlock $ScriptBlock
-        }
-    }
-    else
-    {
-        if ($isGroupCommand)
-        {
-            Add-AfterAll -ScriptBlock $ScriptBlock
-        }
-        else
-        {
-            Add-AfterEach -ScriptBlock $ScriptBlock
-        }
-    }
-}
-
-function Add-BeforeEach
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $props = @{
-        Scope       = $pester.Scope
-        ScriptBlock = $ScriptBlock
-    }
-
-    $pester.BeforeEach += @(& $SafeCommands['New-Object'] psobject -Property $props)
-}
-
-function Add-AfterEach
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $props = @{
-        Scope       = $pester.Scope
-        ScriptBlock = $ScriptBlock
-    }
-
-    $pester.AfterEach += @(& $SafeCommands['New-Object'] psobject -Property $props)
-}
-
-function Add-BeforeAll
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $props = @{
-        Scope       = $pester.Scope
-        ScriptBlock = $ScriptBlock
-    }
-
-    $pester.BeforeAll += @(& $SafeCommands['New-Object'] psobject -Property $props)
-}
-
-function Add-AfterAll
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $props = @{
-        Scope       = $pester.Scope
-        ScriptBlock = $ScriptBlock
-    }
-
-    $pester.AfterAll += @(& $SafeCommands['New-Object'] psobject -Property $props)
+    $Pester.AddSetupOrTeardownBlock($ScriptBlock, $CommandName)
 }

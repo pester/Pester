@@ -6,7 +6,7 @@ function New-PesterState
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
-        [Switch]$Quiet,
+        [Pester.OutputTypes]$Show = 'All',
         [object]$PesterOption
     )
 
@@ -28,14 +28,14 @@ function New-PesterState
         }
     }
 
-    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
-            [Switch]$Quiet,
+            [Pester.OutputTypes]$Show,
             [object]$PesterOption
         )
 
@@ -45,18 +45,11 @@ function New-PesterState
         $TestNameFilter = $_testNameFilter
 
         $script:SessionState = $_sessionState
-        $script:CurrentContext = ""
-        $script:CurrentDescribe = ""
-        $script:CurrentTest = ""
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:MostRecentTimestamp = 0
         $script:CommandCoverage = @()
-        $script:BeforeEach = @()
-        $script:AfterEach = @()
-        $script:BeforeAll = @()
-        $script:AfterAll = @()
         $script:Strict = $Strict
-        $script:Quiet = $Quiet
+        $script:Show = $Show
 
         $script:TestResult = @()
 
@@ -69,6 +62,7 @@ function New-PesterState
         $script:InconclusiveCount = 0
 
         $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
+        $script:TestSuiteName       = $PesterOption.TestSuiteName
 
         $script:SafeCommands = @{}
 
@@ -77,72 +71,46 @@ function New-PesterState
         $script:SafeCommands['Export-ModuleMember'] = & (Pester\SafeGetCommand) -Name Export-ModuleMember -Module Microsoft.PowerShell.Core    -CommandType Cmdlet
         $script:SafeCommands['Add-Member']          = & (Pester\SafeGetCommand) -Name Add-Member          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
-        function EnterDescribe([string]$Name)
+        function New-TestGroup([string] $Name, [string] $Hint)
         {
-            if ($CurrentDescribe)
-            {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in Describe, you cannot enter Describe twice"
+            & $SafeCommands['New-Object'] psobject -Property @{
+                Name              = $Name
+                Type              = 'TestGroup'
+                Hint              = $Hint
+                Actions           = [System.Collections.ArrayList]@()
+                BeforeEach        = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                AfterEach         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                BeforeAll         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                AfterAll          = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
+                TotalCount        = 0
+                Time              = [timespan]0
+                PassedCount       = 0
+                FailedCount       = 0
+                SkippedCount      = 0
+                PendingCount      = 0
+                InconclusiveCount = 0
             }
-            $script:CurrentDescribe = $Name
         }
 
-        function LeaveDescribe
-        {
-            if ( $CurrentContext ) {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot leave Describe before leaving Context"
-            }
+        $script:TestActions = New-TestGroup -Name Pester -Hint Root
+        $script:TestGroupStack = & $SafeCommands['New-Object'] System.Collections.Stack
+        $script:TestGroupStack.Push($script:TestActions)
 
-            $script:CurrentDescribe = $null
+        function EnterTestGroup([string] $Name, [string] $Hint)
+        {
+            $newGroup = New-TestGroup @PSBoundParameters
+            $null = $script:TestGroupStack.Peek().Actions.Add($newGroup)
+            $script:TestGroupStack.Push($newGroup)
         }
 
-        function EnterContext([string]$Name)
+        function LeaveTestGroup([string] $Name, [string] $Hint)
         {
-            if ( -not $CurrentDescribe )
+            $currentGroup = $script:TestGroupStack.Pop()
+
+            if ($currentGroup.Name -ne $Name -or $currentGroup.Hint -ne $Hint)
             {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot enter Context before entering Describe"
+                throw "TestGroups stack corrupted:  Expected name/hint of '$Name','$Hint'.  Found '$($currentGroup.Name)', '$($currentGroup.Hint)'."
             }
-
-            if ( $CurrentContext )
-            {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in Context, you cannot enter Context twice"
-            }
-
-            if ($CurrentTest)
-            {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in It, you cannot enter Context inside It"
-            }
-
-            $script:CurrentContext = $Name
-        }
-
-        function LeaveContext
-        {
-            if ($CurrentTest)
-            {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot leave Context before leaving It"
-            }
-
-            $script:CurrentContext = $null
-        }
-
-        function EnterTest([string]$Name)
-        {
-            if (-not $script:CurrentDescribe)
-            {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "Cannot enter It before entering Describe"
-            }
-
-            if ( $CurrentTest )
-            {
-                throw & $SafeCommands['New-Object'] InvalidOperationException "You already are in It, you cannot enter It twice"
-            }
-
-            $script:CurrentTest = $Name
-        }
-
-        function LeaveTest
-        {
-            $script:CurrentTest = $null
         }
 
         function AddTestResult
@@ -194,9 +162,48 @@ function New-PesterState
                 Inconclusive { $script:InconclusiveCount++; break; }
             }
 
-            $Script:TestResult += & $SafeCommands['New-Object'] -TypeName PsObject -Property @{
-                Describe               = $CurrentDescribe
-                Context                = $CurrentContext
+            $resultRecord = & $SafeCommands['New-Object'] -TypeName PsObject -Property @{
+                Name                   = $Name
+                Type                   = 'TestCase'
+                Passed                 = $Passed
+                Result                 = $Result
+                Time                   = $Time
+                FailureMessage         = $FailureMessage
+                StackTrace             = $StackTrace
+                ErrorRecord            = $ErrorRecord
+                ParameterizedSuiteName = $ParameterizedSuiteName
+                Parameters             = $Parameters
+                Show                   = $script:Show
+            }
+
+            $null = $script:TestGroupStack.Peek().Actions.Add($resultRecord)
+
+            # Attempting some degree of backward compatibility for the TestResult collection for now; deprecated and will be removed in the future
+            $describe = ''
+            $contexts = [System.Collections.ArrayList]@()
+
+            # make a copy of the stack and reverse it
+            $reversedStack = $script:TestGroupStack.ToArray()
+            [array]::Reverse($reversedStack)
+
+            foreach ($group in $reversedStack)
+            {
+                if ($group.Hint -eq 'Root' -or $group.Hint -eq 'Script') { continue }
+                if ($describe -eq '')
+                {
+                    $describe = $group.Name
+                }
+                else
+                {
+                    $null = $contexts.Add($group.Name)
+                }
+            }
+
+            $context = $contexts -join '\'
+
+            $script:TestResult += & $SafeCommands['New-Object'] psobject -Property @{
+                Describe               = $describe
+                Context                = $context
                 Name                   = $Name
                 Passed                 = $Passed
                 Result                 = $Result
@@ -206,24 +213,98 @@ function New-PesterState
                 ErrorRecord            = $ErrorRecord
                 ParameterizedSuiteName = $ParameterizedSuiteName
                 Parameters             = $Parameters
-            } | & $SafeCommands['Select-Object'] Describe, Context, Name, Result, Passed, Time, FailureMessage, StackTrace, ErrorRecord, ParameterizedSuiteName, Parameters
+                Show                  = $script:Show
+            }
+        }
+
+        function AddSetupOrTeardownBlock([scriptblock] $ScriptBlock, [string] $CommandName)
+        {
+            $currentGroup = $script:TestGroupStack.Peek()
+
+            $isSetupCommand = IsSetupCommand -CommandName $CommandName
+            $isGroupCommand = IsTestGroupCommand -CommandName $CommandName
+
+            if ($isSetupCommand)
+            {
+                if ($isGroupCommand)
+                {
+                    $currentGroup.BeforeAll.Add($ScriptBlock)
+                }
+                else
+                {
+                    $currentGroup.BeforeEach.Add($ScriptBlock)
+                }
+            }
+            else
+            {
+                if ($isGroupCommand)
+                {
+                    $currentGroup.AfterAll.Add($ScriptBlock)
+                }
+                else
+                {
+                    $currentGroup.AfterEach.Add($ScriptBlock)
+                }
+            }
+        }
+
+        function IsSetupCommand
+        {
+            param ([string] $CommandName)
+            return $CommandName -eq 'BeforeEach' -or $CommandName -eq 'BeforeAll'
+        }
+
+        function IsTestGroupCommand
+        {
+            param ([string] $CommandName)
+            return $CommandName -eq 'BeforeAll' -or $CommandName -eq 'AfterAll'
+        }
+
+        function GetTestCaseSetupBlocks
+        {
+            $blocks = @(
+                foreach ($group in $this.TestGroups)
+                {
+                    $group.BeforeEach
+                }
+            )
+
+            return $blocks
+        }
+
+        function GetTestCaseTeardownBlocks
+        {
+            $groups = @($this.TestGroups)
+            [Array]::Reverse($groups)
+
+            $blocks = @(
+                foreach ($group in $groups)
+                {
+                    $group.AfterEach
+                }
+            )
+
+            return $blocks
+        }
+
+        function GetCurrentTestGroupSetupBlocks
+        {
+            return $script:TestGroupStack.Peek().BeforeAll
+        }
+
+        function GetCurrentTestGroupTeardownBlocks
+        {
+            return $script:TestGroupStack.Peek().AfterAll
         }
 
         $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
         "TestResult",
-        "CurrentContext",
-        "CurrentDescribe",
-        "CurrentTest",
         "SessionState",
         "CommandCoverage",
-        "BeforeEach",
-        "AfterEach",
-        "BeforeAll",
-        "AfterAll",
         "Strict",
-        "Quiet",
+        "Show",
         "Time",
         "TotalCount",
         "PassedCount",
@@ -231,315 +312,32 @@ function New-PesterState
         "SkippedCount",
         "PendingCount",
         "InconclusiveCount",
-        "IncludeVSCodeMarker"
+        "IncludeVSCodeMarker",
+        "TestActions",
+        "TestGroupStack",
+        "TestSuiteName"
 
-        $ExportedFunctions = "EnterContext",
-        "LeaveContext",
-        "EnterDescribe",
-        "LeaveDescribe",
-        "EnterTest",
-        "LeaveTest",
-        "AddTestResult"
+        $ExportedFunctions = "EnterTestGroup",
+                             "LeaveTestGroup",
+                             "AddTestResult",
+                             "AddSetupOrTeardownBlock",
+                             "GetTestCaseSetupBlocks",
+                             "GetTestCaseTeardownBlocks",
+                             "GetCurrentTestGroupSetupBlocks",
+                             "GetCurrentTestGroupTeardownBlocks"
 
         & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
-    } -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Quiet, $PesterOption |
-    & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name Scope -Value {
-        if ($this.CurrentTest) { 'It' }
-        elseif ($this.CurrentContext)  { 'Context' }
-        elseif ($this.CurrentDescribe) { 'Describe' }
-        else { $null }
-    } -Passthru |
-    & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name ParentScope -Value {
-        $parentScope = $null
-        $scope = $this.Scope
-
-        if ($scope -eq 'It' -and $this.CurrentContext)
-        {
-            $parentScope = 'Context'
-        }
-
-        if ($null -eq $parentScope -and $scope -ne 'Describe' -and $this.CurrentDescribe)
-        {
-            $parentScope = 'Describe'
-        }
-
-        return $parentScope
-    } -PassThru
-}
-
-function Write-Describe
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
-    )
-    process {
-        Write-Screen Describing $Name -OutputType Header
-    }
-}
-
-function Write-Context
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]$Name
-    )
-    process {
-        $margin = " " * 3
-        Write-Screen ${margin}Context $Name -OutputType Header
-    }
-}
-
-function Write-PesterResult
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $TestResult
-    )
-    process {
-        $testDepth = if ( $TestResult.Context ) { 4 } elseif ( $TestResult.Describe ) { 1 } else { 0 }
-
-        $margin = " " * $TestDepth
-        $error_margin = $margin + "  "
-        $output = $TestResult.name
-        $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
-
-        switch ($TestResult.Result)
-        {
-            Passed {
-                "$margin[+] $output $humanTime" | Write-Screen -OutputType Passed
-                break
-            }
-            Failed {
-                "$margin[-] $output $humanTime" | Write-Screen -OutputType Failed
-
-                $failureLines = $TestResult.ErrorRecord | ConvertTo-FailureLines
-
-                if ($Pester.IncludeVSCodeMarker)
-                {
-                    $marker = $failureLines |
-                              & $script:SafeCommands['Select-Object'] -First 1 -ExpandProperty Trace |
-                              & $script:SafeCommands['Select-Object'] -First 1
-
-                    Write-Screen -OutputType Failed $($marker -replace '(?m)^',$error_margin)
-                }
-
-                $failureLines |
-                    & $SafeCommands['ForEach-Object'] {$_.Message + $_.Trace} |
-                    & $SafeCommands['ForEach-Object'] { Write-Screen -OutputType Failed $($_ -replace '(?m)^',$error_margin) }
-            }
-            Skipped {
-                "$margin[!] $output $humanTime" | Write-Screen -OutputType Skipped
-                break
-            }
-            Pending {
-                "$margin[?] $output $humanTime" | Write-Screen -OutputType Pending
-                break
-            }
-            Inconclusive {
-                "$margin[?] $output $humanTime" | Write-Screen -OutputType Inconclusive
-                if ($testresult.FailureMessage) {
-                    Write-Screen -OutputType Inconclusive $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                }
-
-                Write-Screen -OutputType Inconclusive $($TestResult.stackTrace -replace '(?m)^',$error_margin)
-                break
-            }
-        }
-    }
-}
-
-function ConvertTo-FailureLines
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $ErrorRecord
-    )
-    process {
-        $lines = & $script:SafeCommands['New-Object'] psobject -Property @{
-            Message = @()
-            Trace = @()
-        }
-
-        ## convert the exception messages
-        $exception = $ErrorRecord.Exception
-        $exceptionLines = @()
-        while ($exception)
-        {
-            $exceptionName = $exception.GetType().Name
-            $thisLines = $exception.Message.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
-            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed')
-            {
-                $thisLines[0] = "$exceptionName`: $($thisLines[0])"
-            }
-            [array]::Reverse($thisLines)
-            $exceptionLines += $thisLines
-            $exception = $exception.InnerException
-        }
-        [array]::Reverse($exceptionLines)
-        $lines.Message += $exceptionLines
-        if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
-        {
-            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
-        }
-
-        if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) )
-        {
-            if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
-            {
-                $lines.Trace += "at line: $($ErrorRecord.TargetObject.Line) in $($ErrorRecord.TargetObject.File)"
-            }
-            else
-            {
-                $lines.Trace += "at line: $($ErrorRecord.InvocationInfo.ScriptLineNumber) in $($ErrorRecord.InvocationInfo.ScriptName)"
-            }
-            return $lines
-        }
-
-        ## convert the stack trace
-        $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
-
-        $count = 0
-
-        # omit the lines internal to Pester
-        foreach ( $line in $traceLines )
-        {
-            if ( $line -match '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$' )
-            {
-                break
-            }
-            $count ++
-        }
-        $lines.Trace += $traceLines |
-            & $SafeCommands['Select-Object'] -First $count |
-            & $SafeCommands['Where-Object'] {
-                $_ -notmatch '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$' -and
-                $_ -notmatch '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-            }
-
-        return $lines
-    }
-}
-
-function Write-PesterReport
-{
-    param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
-        $PesterState
-    )
-
-    Write-Screen "Tests completed in $(Get-HumanTime $PesterState.Time.TotalSeconds)"
-    Write-Screen ("Passed: {0} Failed: {1} Skipped: {2} Pending: {3} Inconclusive: {4}" -f
-                  $PesterState.PassedCount,
-                  $PesterState.FailedCount,
-                  $PesterState.SkippedCount,
-                  $PesterState.PendingCount,
-                  $PesterState.InconclusiveCount)
-}
-
-function Write-Screen {
-    #wraps the Write-Host cmdlet to control if the output is written to screen from one place
-    param(
-        #Write-Host parameters
-        [Parameter(Position=0, ValueFromPipeline=$true, ValueFromRemainingArguments=$true)]
-        [Object] $Object,
-        [Switch] $NoNewline,
-        [Object] $Separator,
-        #custom parameters
-        [Switch] $Quiet = $pester.Quiet,
-        [ValidateSet("Failed","Passed","Skipped","Pending","Inconclusive","Header","Standard")]
-        [String] $OutputType = "Standard"
-    )
-
-    begin
-    {
-        if ($Quiet) { return }
-
-        #make the bound parameters compatible with Write-Host
-        if ($PSBoundParameters.ContainsKey('Quiet')) { $PSBoundParameters.Remove('Quiet') | & $SafeCommands['Out-Null'] }
-        if ($PSBoundParameters.ContainsKey('OutputType')) { $PSBoundParameters.Remove('OutputType') | & $SafeCommands['Out-Null'] }
-
-        if ($OutputType -ne "Standard")
-        {
-            #create the key first to make it work in strict mode
-            if (-not $PSBoundParameters.ContainsKey('ForegroundColor'))
-            {
-                $PSBoundParameters.Add('ForegroundColor', $null)
-            }
-
-
-
-            switch ($Host.Name)
-            {
-                #light background
-                "PowerGUIScriptEditorHost" {
-                    $ColorSet = @{
-                        Failed       = [ConsoleColor]::Red
-                        Passed       = [ConsoleColor]::DarkGreen
-                        Skipped      = [ConsoleColor]::DarkGray
-                        Pending      = [ConsoleColor]::DarkCyan
-                        Inconclusive = [ConsoleColor]::DarkCyan
-                        Header       = [ConsoleColor]::Magenta
-                    }
-                }
-                #dark background
-                { "Windows PowerShell ISE Host", "ConsoleHost" -contains $_ } {
-                    $ColorSet = @{
-                        Failed       = [ConsoleColor]::Red
-                        Passed       = [ConsoleColor]::Green
-                        Skipped      = [ConsoleColor]::Gray
-                        Pending      = [ConsoleColor]::Cyan
-                        Inconclusive = [ConsoleColor]::Cyan
-                        Header       = [ConsoleColor]::Magenta
-                    }
-                }
-                default {
-                    $ColorSet = @{
-                        Failed       = [ConsoleColor]::Red
-                        Passed       = [ConsoleColor]::DarkGreen
-                        Skipped      = [ConsoleColor]::Gray
-                        Pending      = [ConsoleColor]::Gray
-                        Inconclusive = [ConsoleColor]::Gray
-                        Header       = [ConsoleColor]::Magenta
-                    }
-                }
-
-             }
-
-
-            $PSBoundParameters.ForegroundColor = $ColorSet.$OutputType
-        }
-
-        try {
-            $outBuffer = $null
-            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
-            {
-                $PSBoundParameters['OutBuffer'] = 1
-            }
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Write-Host', [System.Management.Automation.CommandTypes]::Cmdlet)
-            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
-            $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
-            $steppablePipeline.Begin($PSCmdlet)
-        } catch {
-            throw
-        }
-    }
-
-    process
-    {
-        if ($Quiet) { return }
-        try {
-            $steppablePipeline.Process($_)
-        } catch {
-            throw
-        }
-    }
-
-    end
-    {
-        if ($Quiet) { return }
-        try {
-            $steppablePipeline.End()
-        } catch {
-            throw
-        }
+    }  |
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name CurrentTestGroup -Value {
+        $this.TestGroupStack.Peek()
+    } |
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name TestGroups -Value {
+        $array = $this.TestGroupStack.ToArray()
+        [Array]::Reverse($array)
+        return $array
+    } |
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name IndentLevel -Value {
+        # We ignore the root node of the stack here, and don't start indenting until after the Script nodes inside the root
+        return [Math]::Max(0, $this.TestGroupStack.Count - 2)
     }
 }
