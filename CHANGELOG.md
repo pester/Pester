@@ -1,3 +1,12 @@
+## 4.0.3-rc (March 22, 2017)
+  - Fix context and describe in test results [GH-755]
+  - Fix mocking functions in two consequitive contexts [GH-744]
+  - Fix import localized data on non en-US systems [GH-711]
+  - Fix IncludeVSCodeMarker [GH-726]
+  - Fix should be when working with distinct types [GH-704]
+  - Add commas to output [GH-690]
+  - Updated help and other small fixes
+
 ## 4.0.2-rc (January 18, 2017)
   - Fix build script that builds the package for PowerShell gallery to include lib
 
