@@ -1755,7 +1755,7 @@ Describe 'Assert-MockCalled when mock called outside of It block' {
             TestMe | Should -Be Mocked
             Assert-MockCalled TestMe -Scope It -Exactly -Times 1
             Assert-MockCalled TestMe -Scope Context -Exactly -Times 3
-            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4        
+            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4
         }
     }
 }

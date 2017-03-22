@@ -24,6 +24,14 @@ InModuleScope Pester {
         function MockMe { param ($Name) }
         Mock MockMe
 
+        BeforeEach {
+            $testState.EnterTest()
+        }
+
+        AfterEach {
+            $testState.LeaveTest()
+        }
+
         Context 'Handling errors in the Fixture' {
             $testState = New-PesterState -Path $TestDrive
 
