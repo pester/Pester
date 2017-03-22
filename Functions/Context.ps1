@@ -1,17 +1,22 @@
 function Context {
 <#
 .SYNOPSIS
-Provides logical grouping of It blocks within a single Describe block. Any Mocks defined
-inside a Context are removed at the end of the Context scope, as are any files or folders
-added to the TestDrive during the Context block's execution. Any BeforeEach or AfterEach
-blocks defined inside a Context also only apply to tests within that Context .
+Provides logical grouping of It blocks within a single Describe block.
+
+.DESCRIPTION
+Provides logical grouping of It blocks within a single Describe block.
+Any Mocks defined inside a Context are removed at the end of the Context scope,
+as are any files or folders added to the TestDrive during the Context block's
+execution. Any BeforeEach or AfterEach blocks defined inside a Context also only
+apply to tests within that Context.
 
 .PARAMETER Name
-The name of the Context. This is a phrase describing a set of tests within a describe.
+The name of the Context. This is a phrase describing a set of tests within
+a Describe block.
 
 .PARAMETER Fixture
-Script that is executed. This may include setup specific to the context and one or more It
-blocks that validate the expected outcomes.
+Script that is executed. This may include setup specific to the context
+and one or more It blocks that validate the expected outcomes.
 
 .EXAMPLE
 function Add-Numbers($a, $b) {
