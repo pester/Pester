@@ -1512,6 +1512,7 @@ function Test-IsClosure
     )
 
     $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+    if ($null -eq $sessionStateInternal) { return $false }
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)

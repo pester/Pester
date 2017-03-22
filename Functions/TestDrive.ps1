@@ -72,6 +72,13 @@ function Get-TestDriveItem {
     This cmdlet gets the item at the specified location. Wildcards are permitted.
     This parameter is required, but the parameter name ("Path") is optional.
 
+    .EXAMPLE
+
+    Get-TestDriveItem MyTestFolder\MyTestFile.txt
+
+    This command returns the file MyTestFile.txt located in the folder MyTestFolder
+    what is located under TestDrive.
+
     .LINK
     https://github.com/pester/Pester/wiki/TestDrive
     about_TestDrive
