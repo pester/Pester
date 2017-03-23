@@ -246,6 +246,7 @@ function Invoke-Test
             $errorRecord = $null
             try
             {
+                $pester.EnterTest()
                 Invoke-TestCaseSetupBlocks
 
                 do
@@ -271,6 +272,8 @@ function Invoke-Test
                 {
                     $errorRecord = $_
                 }
+
+                $pester.LeaveTest()
             }
 
             $result = ConvertTo-PesterResult -ErrorRecord $errorRecord

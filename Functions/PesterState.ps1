@@ -50,6 +50,7 @@ function New-PesterState
         $script:CommandCoverage = @()
         $script:Strict = $Strict
         $script:Show = $Show
+        $script:InTest = $false
 
         $script:TestResult = @()
 
@@ -297,6 +298,21 @@ function New-PesterState
             return $script:TestGroupStack.Peek().AfterAll
         }
 
+        function EnterTest
+        {
+            if ($script:InTest)
+            {
+                throw 'You are already in a test case.'
+            }
+
+            $script:InTest = $true
+        }
+
+        function LeaveTest
+        {
+            $script:InTest = $false
+        }
+
         $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
@@ -315,7 +331,8 @@ function New-PesterState
         "IncludeVSCodeMarker",
         "TestActions",
         "TestGroupStack",
-        "TestSuiteName"
+        "TestSuiteName",
+        "InTest"
 
         $ExportedFunctions = "EnterTestGroup",
                              "LeaveTestGroup",
@@ -324,7 +341,9 @@ function New-PesterState
                              "GetTestCaseSetupBlocks",
                              "GetTestCaseTeardownBlocks",
                              "GetCurrentTestGroupSetupBlocks",
-                             "GetCurrentTestGroupTeardownBlocks"
+                             "GetCurrentTestGroupTeardownBlocks",
+                             "EnterTest",
+                             "LeaveTest"
 
         & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
     }  |

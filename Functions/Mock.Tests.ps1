@@ -1720,6 +1720,31 @@ Describe 'Passing unbound script blocks as mocks' {
     }
 }
 
+Describe 'Assert-MockCalled when mock called outside of It block' {
+    function TestMe { 'Original ' }
+    mock TestMe { 'Mocked' }
+
+    $null = TestMe
+
+    Context 'Context' {
+        $null = TestMe
+
+        It 'Should log the correct number of calls' {
+            TestMe | Should -Be Mocked
+            Assert-MockCalled TestMe -Scope It -Exactly -Times 1
+            Assert-MockCalled TestMe -Scope Context -Exactly -Times 2
+            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 3
+        }
+
+        It 'Should log the correct number of calls (second test)' {
+            TestMe | Should -Be Mocked
+            Assert-MockCalled TestMe -Scope It -Exactly -Times 1
+            Assert-MockCalled TestMe -Scope Context -Exactly -Times 3
+            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4
+        }
+    }
+}
+
 Describe "Restoring original commands when mock scopes exit" {
     function a (){}
     Context "first context" {
