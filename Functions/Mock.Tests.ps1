@@ -75,21 +75,6 @@ function PipelineInputFunction {
     }
 }
 
-Describe "When calling Mock on existing function" {
-    Mock FunctionUnderTest { return "I am the mock test that was passed $param1"}
-
-    $result = FunctionUnderTest "boundArg"
-
-    It "Should rename function under test" {
-        $renamed = (Test-Path function:PesterIsMocking_FunctionUnderTest)
-        $renamed | Should Be $true
-    }
-
-    It "Should Invoke the mocked script" {
-        $result | Should Be "I am the mock test that was passed boundArg"
-    }
-}
-
 Describe "When the caller mocks a command Pester uses internally" {
     Mock Write-Host { }
 
@@ -282,7 +267,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
 Describe "When calling Mock on existing cmdlet with Common params" {
     Mock CommonParamFunction
 
-    $result=[string](Get-Content function:\CommonParamFunction)
+    $result=[string](Get-Alias CommonParamFunction).ResolvedCommand.ScriptBlock
 
     It "Should strip verbose" {
         $result.contains("`${Verbose}") | Should Be $false
@@ -1756,6 +1741,35 @@ Describe 'Assert-MockCalled when mock called outside of It block' {
             Assert-MockCalled TestMe -Scope It -Exactly -Times 1
             Assert-MockCalled TestMe -Scope Context -Exactly -Times 3
             Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4
+        }
+    }
+}
+
+Describe "Restoring original commands when mock scopes exit" {
+    function a (){}
+    Context "first context" {
+        Mock a { "mock" }
+
+        # Deliberately not using "Should Exist" here because that executes in
+        # Pester's module scope, where function:\a does not exist
+        It "original function exists" {
+            $function:a | Should -Not -Be $null
+        }
+
+        It "passes in first context" {
+            a | Should Be "mock"
+        }
+    }
+
+    Context "second context" {
+        Mock a { "mock" }
+
+        It "original function exists" {
+            $function:a | Should -Not -Be $null
+        }
+
+        It "passes in second context" {
+            a | Should Be "mock"
         }
     }
 }

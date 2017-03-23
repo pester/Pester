@@ -183,7 +183,11 @@ function New-PesterState
             $describe = ''
             $contexts = [System.Collections.ArrayList]@()
 
-            foreach ($group in $script:TestGroupStack.GetEnumerator())
+            # make a copy of the stack and reverse it
+            $reversedStack = $script:TestGroupStack.ToArray()
+            [array]::Reverse($reversedStack)
+
+            foreach ($group in $reversedStack)
             {
                 if ($group.Hint -eq 'Root' -or $group.Hint -eq 'Script') { continue }
                 if ($describe -eq '')
@@ -196,7 +200,7 @@ function New-PesterState
                 }
             }
 
-            $context = $contexts -join '/'
+            $context = $contexts -join '\'
 
             $script:TestResult += & $SafeCommands['New-Object'] psobject -Property @{
                 Describe               = $describe
