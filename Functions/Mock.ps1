@@ -588,7 +588,7 @@ param(
             return $true
         }
 
-        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Scope', or 'It'."
+        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', or 'It'."
     })]
     [string] $Scope,
 
