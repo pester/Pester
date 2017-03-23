@@ -705,9 +705,9 @@ New-PesterOption
             & $script:SafeCommands['Start-Sleep'] -Seconds 2
 
             if (!$PSBoundParameters.ContainsKey('Show'))
-    		{
-	    		$Show = [Pester.OutputTypes]::None
-		    }
+            {
+                $Show = [Pester.OutputTypes]::None
+            }
         }
 
         $script:mockTable = @{}
