@@ -6,7 +6,15 @@ function PesterBeNullOrEmpty([object[]] $ActualValue, [switch] $Negate) {
     }
     elseif ($ActualValue.Count -eq 1)
     {
-        $succeeded = [String]::IsNullOrEmpty($ActualValue[0])
+        $expandedValue = $ActualValue[0]
+        if ($expandedValue -is [hashtable])
+        {
+            $succeeded = $expandedValue.Count -eq 0
+        }
+        else
+        {
+            $succeeded = [String]::IsNullOrEmpty($expandedValue)
+        }
     }
     else
     {
