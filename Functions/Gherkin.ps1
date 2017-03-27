@@ -189,9 +189,9 @@ function Invoke-Gherkin {
             Microsoft.PowerShell.Utility\Start-Sleep -Seconds 2
 
             if (!$PSBoundParameters.ContainsKey('Show'))
-    		{
-	    		$Show = [Pester.OutputTypes]::None
-		    }
+            {
+                $Show = [Pester.OutputTypes]::None
+            }
         }
 
         if($PSCmdlet.ParameterSetName -eq "RetestFailed") {

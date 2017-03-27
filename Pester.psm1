@@ -78,7 +78,7 @@ $script:SafeCommands = @{
     'Test-Path'           = Get-Command -Name Test-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Where-Object'        = Get-Command -Name Where-Object        -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Write-Error'         = Get-Command -Name Write-Error         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-	'Write-Host'          = Get-Command -Name Write-Host          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Host'          = Get-Command -Name Write-Host          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Progress'      = Get-Command -Name Write-Progress      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
@@ -308,9 +308,9 @@ using System;
 
 namespace Pester
 {
-	[Flags]
-	public enum OutputTypes
-	{
+    [Flags]
+    public enum OutputTypes
+    {
         None = 0,
         Default = 1,
         Passed = 2,
@@ -324,7 +324,7 @@ namespace Pester
         Header = 512,
         All = Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header,
         Fails = Default | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header
-	}
+    }
 }
 "@
 
@@ -637,7 +637,9 @@ report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file
 .EXAMPLE
 Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
 
-This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those files, it runs only tests that have UnitTest or Newest tags, unless the test also has a Bug tag.
+This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those
+files, it runs only tests that have UnitTest or Newest tags, unless the test
+also has a Bug tag.
 
 .LINK
 https://github.com/pester/Pester/wiki/Invoke-Pester
@@ -703,9 +705,9 @@ New-PesterOption
             & $script:SafeCommands['Start-Sleep'] -Seconds 2
 
             if (!$PSBoundParameters.ContainsKey('Show'))
-    		{
-	    		$Show = [Pester.OutputTypes]::None
-		    }
+            {
+                $Show = [Pester.OutputTypes]::None
+            }
         }
 
         $script:mockTable = @{}
