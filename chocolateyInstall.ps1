@@ -16,7 +16,7 @@ end
     }
 
     Update-Directory -Source $sourceDirectory -Destination $targetDirectory
-    
+
     $binPath = Join-Path -Path $targetDirectory -ChildPath bin
     Install-ChocolateyPath $binPath
 
