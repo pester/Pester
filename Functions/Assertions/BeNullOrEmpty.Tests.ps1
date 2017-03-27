@@ -17,6 +17,16 @@ InModuleScope Pester {
             @() | Should -BeNullOrEmpty
         }
 
+        It "should pass if empty hashtable" {
+            @{} | Should BeNullOrEmpty
+            @{} | Should -BeNullOrEmpty
+        }
+
+        It "should throw if not-empty hashtable" {
+            { @{ Name = 'pester' } | Should BeNullOrEmpty  } | Should Throw
+            { @{ Name = 'pester' } | Should -BeNullOrEmpty } | Should Throw
+        }
+
         It 'Should return false for non-empty strings or arrays' {
             'String' | Should Not BeNullOrEmpty
             1..5 | Should Not BeNullOrEmpty
