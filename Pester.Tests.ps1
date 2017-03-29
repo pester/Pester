@@ -146,7 +146,7 @@ Describe 'Style rules' {
         }
     }
 
-    It 'Pester source files lines start with a tab character' {
+    It 'Spaces are used for indentation in all code files, not tabs' {
         $badLines = @(
             foreach ($file in $files)
             {
