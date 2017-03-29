@@ -144,7 +144,7 @@ Describe 'Style rules' {
             throw "The following $($badLines.Count) lines contain trailing whitespace: `r`n`r`n$($badLines -join "`r`n")"
         }
     }
-    It 'Pester source files lines start with a tab character' {
+    It 'Spaces are used for indentation in all code files, not tabs' {
         $badLines = @(
             foreach ($file in $files)
             {
