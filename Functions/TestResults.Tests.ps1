@@ -271,17 +271,17 @@ InModuleScope Pester {
 
     Describe "GetFullPath" {
         It "Resolves non existing path correctly" {
-            pushd TestDrive:\
+            Push-Location -Path TestDrive:\
             $p = GetFullPath notexistingfile.txt
-            popd
+            Pop-Location
             $p | Should Be (Join-Path $TestDrive notexistingfile.txt)
         }
 
         It "Resolves existing path correctly" {
-            pushd TestDrive:\
+            Push-Location -Path TestDrive:\
             New-Item -ItemType File -Name existingfile.txt
             $p = GetFullPath existingfile.txt
-            popd
+            Pop-Location
             $p | Should Be (Join-Path $TestDrive existingfile.txt)
         }
 
