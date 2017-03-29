@@ -76,7 +76,7 @@ function BeforeEachScenario {
     param(
         # Optional tags. If set, this hook only runs for features with matching tags
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="Tags")]
-        [String[]]$Tags = @(),
+         [String[]]$Tags = @(),
 
         # The ScriptBlock to run for the hook
         [Parameter(Mandatory=$True, Position=1, ParameterSetName="Tags")]
