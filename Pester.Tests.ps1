@@ -119,8 +119,8 @@ Describe 'Style rules' {
     $pesterRoot = (Get-Module Pester).ModuleBase
 
     $files = @(
-        Get-ChildItem $pesterRoot -Include *.ps1,*.psm1
-        Get-ChildItem $pesterRoot\Functions -Include *.ps1,*.psm1 -Recurse
+        Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
@@ -143,6 +143,28 @@ Describe 'Style rules' {
         if ($badLines.Count -gt 0)
         {
             throw "The following $($badLines.Count) lines contain trailing whitespace: `r`n`r`n$($badLines -join "`r`n")"
+        }
+    }
+
+    It 'Spaces are used for indentation in all code files, not tabs' {
+        $badLines = @(
+            foreach ($file in $files)
+            {
+                $lines = [System.IO.File]::ReadAllLines($file.FullName)
+                $lineCount = $lines.Count
+
+                for ($i = 0; $i -lt $lineCount; $i++)
+                {
+                    if ($lines[$i] -match '^[  ]*\t|^\t|^\t[  ]*') {
+                        'File: {0}, Line: {1}' -f $file.FullName, ($i + 1)
+                    }
+                }
+            }
+        )
+
+        if ($badLines.Count -gt 0)
+        {
+            throw "The following $($badLines.Count) lines start with a tab character: `r`n`r`n$($badLines -join "`r`n")"
         }
     }
 
