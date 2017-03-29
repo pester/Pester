@@ -1489,7 +1489,16 @@ function Test-IsClosure
     if ($null -eq $sessionStateInternal) { return $false }
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)
+    $module = $null
+    if( $sessionStateInternal )
+    {
+        $sessionStateType = $sessionStateInternal.GetType()
+        $moduleProperty = $sessionStateType.GetProperty('Module', $flags)
+        if( $moduleProperty -ne $null )
+        {
+            $module = $moduleProperty.GetValue($sessionStateInternal, $null)
+        }
+    }
 
     return (
         $null -ne $module -and
