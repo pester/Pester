@@ -140,7 +140,7 @@ function Assert-ValidAssertionAlias
     }
 }
 
-#<#
+<#
 .SYNOPSIS
     Register an Assertion Operator with Pester
 .DESCRIPTION
