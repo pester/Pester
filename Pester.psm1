@@ -140,6 +140,51 @@ function Assert-ValidAssertionAlias
     }
 }
 
+#<#
+.SYNOPSIS
+    Register an Assertion Operator with Pester
+.DESCRIPTION
+    This function allows you to create custom Should assertions.
+.EXAMPLE
+    function BeAwesome($ActualValue, [switch] $Negate)
+    {
+
+        [bool] $succeeded = $ActualValue -eq 'Awesome'
+        if ($Negate) { $succeeded = -not $succeeded }
+
+        if (-not $succeeded)
+        {
+            if ($Negate)
+            {
+                $failureMessage = "{$ActualValue} is not Awesome"
+            }
+            else
+            {
+                $failureMessage = "{$ActualValue} is not Awesome"
+            }
+        }
+
+        return New-Object psobject -Property @{
+            Succeeded      = $succeeded
+            FailureMessage = $failureMessage
+        }
+    }
+
+    Add-AssertionOperator -Name  BeAwesome `
+                        -Test  $function:BeAwesome `
+                        -Alias 'BA'
+
+    PS C:\> "bad" | should -BeAwesome
+    {bad} is not Awesome
+.PARAMETER Name
+    The name of the assetion. This will become a Named Parameter of Should.
+.PARAMETER Test
+    The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
+.PARAMETER Alias
+    A list of aliases for the Named Parameter.
+.PARAMETER SupportsArrayInput
+    Does the test function support the passing an array of values to test.
+#>
 function Add-AssertionOperator
 {
     [CmdletBinding()]
