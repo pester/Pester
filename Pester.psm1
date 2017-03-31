@@ -296,7 +296,6 @@ function Get-AssertionDynamicParams
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-$moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 & $script:SafeCommands['Resolve-Path'] |
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
