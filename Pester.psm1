@@ -172,7 +172,7 @@ function Add-AssertionOperator
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where-Object -FilterScript { -not (Test-NullOrWhiteSpace $_)})
+    foreach ($string in $Alias | Where-Object { -not (Test-NullOrWhiteSpace $_)})
     {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
@@ -187,7 +187,7 @@ function Assert-AssertionOperatorNameIsUnique
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where-Object -FilterScript { -not (Test-NullOrWhiteSpace $_)})
+    foreach ($string in $name | Where-Object { -not (Test-NullOrWhiteSpace $_)})
     {
         Assert-ValidAssertionName -Name $string
 

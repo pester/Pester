@@ -27,7 +27,7 @@
     #TODO: how should this handle errors?
     #$job.Error | foreach { throw $_.Exception  }
     $job.Output
-    $job.ChildJobs| ForEach-Object -Process {
+    $job.ChildJobs| ForEach-Object {
         $childJob = $_
         #$childJob.Error | foreach { throw $_.Exception }
         $childJob.Output
