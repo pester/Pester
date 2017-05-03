@@ -1692,21 +1692,24 @@ Describe 'Globbing characters in command name' {
 }
 
 Describe 'Naming conflicts in mocked functions' {
-    function Sample {
-        param(
-            [string]
-            ${Metadata}
-        )
+    Context 'parameter named Metadata' {
+        function Sample { param( [string] ${Metadata} ) }
+        function Wrapper { Sample -Metadata 'test' }
+
+        Mock Sample { 'mocked' }
+        It 'Works with commands with parameter named Metadata' {
+            Wrapper | Should Be 'mocked'
+        }
     }
+    Context 'parameter named Keys' {
+        function g { [CmdletBinding()] param($Keys,$H) }
+        function Wrapper { g -Keys 'value' }
 
-    function Wrapper {
-        Sample -Metadata 'test'
-    }
-
-    Mock -CommandName Sample { 'mocked' }
-
-    It 'Works with commands that contain variables named Metadata' {
-        Wrapper | Should Be 'mocked'
+        Mock g { $Keys }
+        It 'Works with command with parameter named Keys' {
+            $r = Wrapper
+            $r | Should be 'value'
+        }
     }
 }
 

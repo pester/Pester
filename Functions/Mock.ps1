@@ -1193,7 +1193,7 @@ function Get-ParamBlockFromBoundParameters
         [System.Management.Automation.CommandMetadata] $Metadata
     )
 
-    $params = foreach ($paramName in $BoundParameters.Keys)
+    $params = foreach ($paramName in $BoundParameters.get_Keys())
     {
         if (IsCommonParameter -Name $paramName -Metadata $Metadata)
         {
