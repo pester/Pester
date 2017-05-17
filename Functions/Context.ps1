@@ -1,17 +1,21 @@
 function Context {
 <#
 .SYNOPSIS
-Provides logical grouping of It blocks within a single Describe block. Any Mocks defined
-inside a Context are removed at the end of the Context scope, as are any files or folders
-added to the TestDrive during the Context block's execution. Any BeforeEach or AfterEach
-blocks defined inside a Context also only apply to tests within that Context .
+Provides logical grouping of It blocks within a single Describe block.
+
+.DESCRIPTION
+Provides logical grouping of It blocks within a single Describe block.
+Any Mocks defined inside a Context are removed at the end of the Context scope,
+as are any files or folders added to the TestDrive during the Context block's
+execution. Any BeforeEach or AfterEach blocks defined inside a Context also only
+apply to tests within that Context .
 
 .PARAMETER Name
 The name of the Context. This is a phrase describing a set of tests within a describe.
 
 .PARAMETER Fixture
-Script that is executed. This may include setup specific to the context and one or more It
-blocks that validate the expected outcomes.
+Script that is executed. This may include setup specific to the context
+and one or more It blocks that validate the expected outcomes.
 
 .EXAMPLE
 function Add-Numbers($a, $b) {
@@ -42,44 +46,16 @@ about_TestDrive
 
 #>
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [string] $Name,
 
+        [Alias('Tags')]
+        $Tag=@(),
+
+        [Parameter(Position = 1)]
         [ValidateNotNull()]
-        [ScriptBlock] $Fixture  = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    Assert-DescribeInProgress -CommandName Context
-
-    $Pester.EnterContext($Name )
-    $TestDriveContent = Get-TestDriveChildItem
-
-    $Pester.CurrentContext | Write-Context
-
-    try
-    {
-        Add-SetupAndTeardown -ScriptBlock $Fixture
-        Invoke-TestGroupSetupBlocks -Scope $pester.Scope
-
-        do
-        {
-            $null = & $Fixture
-        } until ($true)
-    }
-    catch
-    {
-        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
-        $Pester.AddTestResult('Error occurred in Context block', "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-        $Pester.TestResult[-1] | Write-PesterResult
-    }
-    finally
-    {
-        Invoke-TestGroupTeardownBlocks -Scope $pester.Scope
-    }
-
-    Clear-SetupAndTeardown
-    Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
-    Exit-MockScope
-    $Pester.LeaveContext()
+    Describe @PSBoundParameters -CommandUsed Context
 }
-

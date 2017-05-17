@@ -1,3 +1,41 @@
+## 4.0.3-rc (March 22, 2017)
+  - Fix context and describe in test results [GH-755]
+  - Fix mocking functions in two consequitive contexts [GH-744]
+  - Fix import localized data on non en-US systems [GH-711]
+  - Fix IncludeVSCodeMarker [GH-726]
+  - Fix should be when working with distinct types [GH-704]
+  - Add commas to output [GH-690]
+  - Updated help and other small fixes
+
+## 4.0.2-rc (January 18, 2017)
+  - Fix build script that builds the package for PowerShell gallery to include lib
+
+## 4.0.1-rc (January 18, 2017)
+  - Pushing 4.0.0-rc again, because the PowerShell gallery does not allow the same version to be pushed again
+
+## 4.0.0-rc2 (January 18, 2017)
+  - Fix nuget package to include gherkin library
+
+## 4.0.0-rc1 (January 18, 2017)
+  - Add Gherkin support
+  - Add new should syntax to Should -Not -Be 1 to enable more extensibility
+  - Add more unified output
+  - Add colors to summary
+  - (experimental) Add nested Describe and Context
+
+  - Deprecated: Quiet parameter is depracated, use -Show none
+  - Deprecated: New-TestDriveItem as most of the people do not even know it exists
+  - Gone: OutputXml is gone, it was deprecated before, use -OutputFormat and -OutputFile
+
+## 3.4.6 (January 13, 2017)
+  - Fix bug with -Show parameter on PowerShell v4 and older [GH-677]
+  - Add commas to test run summary [GH-676]
+
+## 3.4.5 (January 12, 2017)
+  - Add -Show parameter to filter on-screen output [GH-647]
+  - Add BeIn assertion to assert an item is part of an array [GH-646]
+  - Fix test drive to work on PSCore [GH-643]
+ 
 ## 3.4.4 (November 12, 2016)
   - Add New-MockObject function that creates empty objects for almost any .NET class [GH-635]
 

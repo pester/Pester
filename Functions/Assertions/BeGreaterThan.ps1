@@ -1,14 +1,38 @@
-function PesterBeGreaterThan($value, $expected)
+function PesterBeGreaterThan($ActualValue, $ExpectedValue, [switch] $Negate)
 {
-    return [bool]($value -gt $expected)
+    [bool] $succeeded = $ActualValue -gt $ExpectedValue
+    if ($Negate) { $succeeded = -not $succeeded }
+
+    $failureMessage = ''
+
+    if (-not $succeeded)
+    {
+        if ($Negate)
+        {
+            $failureMessage = NotPesterBeGreaterThanFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+        }
+        else
+        {
+            $failureMessage = PesterBeGreaterThanFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $succeeded
+        FailureMessage = $failureMessage
+    }
 }
 
-function PesterBeGreaterThanFailureMessage($value,$expected)
+function PesterBeGreaterThanFailureMessage($ActualValue,$ExpectedValue)
 {
-    return "Expected {$value} to be greater than {$expected}"
+    return "Expected {$ActualValue} to be greater than {$ExpectedValue}"
 }
 
-function NotPesterBeGreaterThanFailureMessage($value,$expected)
+function NotPesterBeGreaterThanFailureMessage($ActualValue,$ExpectedValue)
 {
-    return "Expected {$value} to be less than or equal to {$expected}"
+    return "Expected {$ActualValue} to be less than or equal to {$ExpectedValue}"
 }
+
+Add-AssertionOperator -Name  BeGreaterThan `
+                      -Test  $function:PesterBeGreaterThan `
+                      -Alias 'GT'

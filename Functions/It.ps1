@@ -229,129 +229,68 @@ function Invoke-Test
 
     if ($null -eq $Parameters) { $Parameters = @{} }
 
-    $Pester.EnterTest($Name)
-
-    if ($Skip)
+    try
     {
-        $Pester.AddTestResult($Name, "Skipped", $null)
-    }
-    elseif ($Pending)
-    {
-        $Pester.AddTestResult($Name, "Pending", $null)
-    }
-    else
-    {
-        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
-
-        $errorRecord = $null
-        try
+        if ($Skip)
         {
-            Invoke-TestCaseSetupBlocks
-
-            do
-            {
-                $null = & $ScriptBlock @Parameters
-            } until ($true)
+            $Pester.AddTestResult($Name, "Skipped", $null)
         }
-        catch
+        elseif ($Pending)
         {
-            $errorRecord = $_
+            $Pester.AddTestResult($Name, "Pending", $null)
         }
-        finally
+        else
         {
-            #guarantee that the teardown action will run and prevent it from failing the whole suite
+            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
+
+            $errorRecord = $null
             try
             {
-                if (-not ($Skip -or $Pending))
+                $pester.EnterTest()
+                Invoke-TestCaseSetupBlocks
+
+                do
                 {
-                    Invoke-TestCaseTeardownBlocks
-                }
+                    $null = & $ScriptBlock @Parameters
+                } until ($true)
             }
             catch
             {
                 $errorRecord = $_
             }
+            finally
+            {
+                #guarantee that the teardown action will run and prevent it from failing the whole suite
+                try
+                {
+                    if (-not ($Skip -or $Pending))
+                    {
+                        Invoke-TestCaseTeardownBlocks
+                    }
+                }
+                catch
+                {
+                    $errorRecord = $_
+                }
+
+                $pester.LeaveTest()
+            }
+
+            $result = ConvertTo-PesterResult -ErrorRecord $errorRecord
+            $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
+            $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
+            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
         }
-
-
-        $result = Get-PesterResult -ErrorRecord $errorRecord
-        $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
-        $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
-        & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
+    }
+    finally
+    {
+        Exit-MockScope -ExitTestCaseOnly
     }
 
     if ($null -ne $OutputScriptBlock)
     {
         $Pester.testresult[-1] | & $OutputScriptBlock
     }
-
-    Exit-MockScope
-    $Pester.LeaveTest()
-}
-
-function Get-PesterResult {
-    param(
-        [Nullable[TimeSpan]] $Time,
-        [System.Management.Automation.ErrorRecord] $ErrorRecord
-    )
-
-    $testResult = @{
-        name = $name
-        time = $time
-        failureMessage = ""
-        stackTrace = ""
-        ErrorRecord = $null
-        success = $false
-        result = "Failed"
-    };
-
-    if(-not $ErrorRecord)
-    {
-        $testResult.Result = "Passed"
-        $testResult.success = $true
-        return $testResult
-    }
-
-    if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
-    {
-        # we use TargetObject to pass structured information about the error.
-        $details = $ErrorRecord.TargetObject
-
-        $failureMessage = $details.Message
-        $file = $details.File
-        $line = $details.Line
-        $lineText = "`n$line`: $($details.LineText)"
-    }
-    elseif ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestInconclusive')
-    {
-        # we use TargetObject to pass structured information about the error.
-        $details = $ErrorRecord.TargetObject
-
-        $failureMessage = $details.Message
-        $file = $details.File
-        $line = $details.Line
-        $lineText = "`n$line`: $($details.LineText)"
-
-        $testResult.Result = 'Inconclusive'
-    }
-    else
-    {
-        $failureMessage = $ErrorRecord.ToString()
-        $file = $ErrorRecord.InvocationInfo.ScriptName
-        $line = $ErrorRecord.InvocationInfo.ScriptLineNumber
-        $lineText = ''
-    }
-
-    $testResult.failureMessage = $failureMessage
-    $testResult.stackTrace = "at line: $line in ${file}${lineText}"
-    $testResult.ErrorRecord = $ErrorRecord
-
-    return $testResult
-}
-
-function Remove-Comments ($Text)
-{
-    $text -replace "(?s)(<#.*#>)" -replace "\#.*"
 }
 
 function Get-OrderedParameterDictionary

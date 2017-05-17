@@ -3,21 +3,21 @@ param ( )
 
 end
 {
-    $modulePath      = Join-Path $env:ProgramFiles WindowsPowerShell\Modules
-    $targetDirectory = Join-Path $modulePath Pester
-    $scriptRoot      = Split-Path $MyInvocation.MyCommand.Path -Parent
-    $sourceDirectory = Join-Path $scriptRoot Tools
+    $modulePath      = Join-Path -Path $env:ProgramFiles -ChildPath WindowsPowerShell\Modules
+    $targetDirectory = Join-Path -Path $modulePath -ChildPath Pester
+    $scriptRoot      = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
+    $sourceDirectory = Join-Path -Path $scriptRoot -ChildPath Tools
 
     if ($PSVersionTable.PSVersion.Major -ge 5)
     {
-        $manifestFile    = Join-Path $sourceDirectory Pester.psd1
+        $manifestFile    = Join-Path -Path $sourceDirectory -ChildPath Pester.psd1
         $manifest        = Test-ModuleManifest -Path $manifestFile -WarningAction Ignore -ErrorAction Stop
-        $targetDirectory = Join-Path $targetDirectory $manifest.Version.ToString()
+        $targetDirectory = Join-Path -Path $targetDirectory -ChildPath $manifest.Version.ToString()
     }
 
     Update-Directory -Source $sourceDirectory -Destination $targetDirectory
-    
-    $binPath = Join-Path $targetDirectory bin
+
+    $binPath = Join-Path -Path $targetDirectory -ChildPath bin
     Install-ChocolateyPath $binPath
 
     if ($PSVersionTable.PSVersion.Major -lt 4)
@@ -25,7 +25,7 @@ end
         $modulePaths = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine') -split ';'
         if ($modulePaths -notcontains $modulePath)
         {
-            Write-Verbose "Adding '$modulePath' to PSModulePath."
+            Write-Verbose -Message "Adding '$modulePath' to PSModulePath."
 
             $modulePaths = @(
                 $modulePath
@@ -77,41 +77,41 @@ begin
         }
 
         $sourceFiles = Get-ChildItem -Path $Source -Recurse |
-                       Where-Object { -not $_.PSIsContainer }
+                       Where-Object -FilterScript { -not $_.PSIsContainer }
 
         foreach ($sourceFile in $sourceFiles)
         {
             $relativePath = Get-RelativePath $sourceFile.FullName -RelativeTo $Source
-            $targetPath = Join-Path $Destination $relativePath
+            $targetPath = Join-Path -Path $Destination -ChildPath $relativePath
 
             $sourceHash = Get-FileHash -Path $sourceFile.FullName
             $destHash = Get-FileHash -Path $targetPath
 
             if ($sourceHash -ne $destHash)
             {
-                $targetParent = Split-Path $targetPath -Parent
+                $targetParent = Split-Path -Path $targetPath -Parent
 
                 if (-not (Test-Path -Path $targetParent -PathType Container))
                 {
                     $null = New-Item -Path $targetParent -ItemType Directory -ErrorAction Stop
                 }
 
-                Write-Verbose "Updating file $relativePath to new version."
-                Copy-Item $sourceFile.FullName -Destination $targetPath -Force -ErrorAction Stop
+                Write-Verbose -Message "Updating file $relativePath to new version."
+                Copy-Item -Path $sourceFile.FullName -Destination $targetPath -Force -ErrorAction Stop
             }
         }
 
         $targetFiles = Get-ChildItem -Path $Destination -Recurse |
-                       Where-Object { -not $_.PSIsContainer }
+                       Where-Object -FilterScript { -not $_.PSIsContainer }
 
         foreach ($targetFile in $targetFiles)
         {
             $relativePath = Get-RelativePath $targetFile.FullName -RelativeTo $Destination
-            $sourcePath = Join-Path $Source $relativePath
+            $sourcePath = Join-Path -Path $Source -ChildPath $relativePath
 
             if (-not (Test-Path $sourcePath -PathType Leaf))
             {
-                Write-Verbose "Removing unknown file $relativePath from module folder."
+                Write-Verbose -Message "Removing unknown file $relativePath from module folder."
                 Remove-Item -LiteralPath $targetFile.FullName -Force -ErrorAction Stop
             }
         }
@@ -143,7 +143,7 @@ begin
 
         try
         {
-            $sha = New-Object System.Security.Cryptography.SHA256CryptoServiceProvider
+            $sha = New-Object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
             $stream = $item.OpenRead()
             $bytes = $sha.ComputeHash($stream)
             return [convert]::ToBase64String($bytes)
