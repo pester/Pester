@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    if ((Get-OperatingSystem) -eq 'Windows') {
+    if ((GetPesterOs) -eq 'Windows') {
         Describe "Write nunit test results" {
             Setup -Dir "Results"
 
