@@ -574,3 +574,92 @@ function Normalize-Path
         }
     }
 }
+
+function Get-JaCoCoReportXml {
+    param (
+        [parameter(Mandatory=$true)]
+        $PesterState,
+        [parameter(Mandatory=$true)]
+        [object] $CoverageReport
+    )
+
+    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
+    {
+        return
+    }
+
+    $allCommands = $CoverageReport.MissedCommands + $CoverageReport.HitCommands
+    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$missedFunctions = $totalFunctions - $hitFunctions
+
+    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$missedLines = $totalLines - $hitLines
+
+    [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
+    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
+    [long]$missedFiles = $totalFiles - $hitFiles
+    $jaCoCoReport += "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>`n"
+    $jaCoCoReport += "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">`n"
+    $now = & $SafeCommands['Get-Date']
+    $jaCoCoReport +=  "<report name=""Pester ($now)"">`n"
+    $nineteenseventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
+    [long]$endTime =  [math]::Floor((new-timespan -start $nineteenseventy -end $now).TotalSeconds * 1000)
+    [long]$startTime = [math]::Floor($endTime - $PesterState.Time.TotalSeconds*1000)
+    $jaCoCoReport += "<sessioninfo id=""this"" start=""$startTime"" dump=""$endTime""/>`n"
+    $jaCoCoReport += "<counter type=""INSTRUCTION"" missed=""$($CoverageReport.MissedCommands.Count)"" covered=""$($CoverageReport.HitCommands.Count)""/>`n"
+    $jaCoCoReport += "<counter type=""LINE"" missed=""$missedLines"" covered=""$hitLines""/>`n"
+    $jaCoCoReport += "<counter type=""METHOD"" missed=""$missedFunctions"" covered=""$hitFunctions""/>`n"
+    $jaCoCoReport += "<counter type=""CLASS"" missed=""$missedFiles"" covered=""$hitFiles""/>`n"
+    $jaCoCoReport += "</report>"
+    return $jaCocoReport
+}
+
+function Test-DtdSchema {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $XmlString
+    )
+
+    # Create delegate for handling/reporting errors
+    [System.Xml.Schema.ValidationEventHandler] $onValidationError = {
+        param($sender,[System.Xml.Schema.ValidationEventArgs]$eventArgs)
+        $global:isValid = $false;
+        $errorText = "Validation error in XML string on line $($eventArgs.Exception.LineNumber), position $($eventArgs.Exception.LinePosition): $($eventArgs.Message)`n"
+        # Get the line where the validation error occurred
+        $errorText +=  "$($global:XmlFilePath.Split(""`n"")[$eventArgs.Exception.LineNumber-1])`n"
+        # Add an arrow
+        $errorText += "^".PadLeft($eventArgs.Exception.LinePosition,"-")
+        & $SafeCommands['Write-Error'] $errorText
+    }
+
+    # Set while loop flag
+    $global:isValid = $true
+    $global:XmlFilePath = $XmlString
+    # Instantiate ValidatingReader and set ValidationType
+    $XmlValidatingReader = & $SafeCommands['New-Object'] -TypeName System.Xml.XmlValidatingReader($XmlString, [System.Xml.XmlNodeType]::Document, $null)
+    $XmlValidatingReader.ValidationType = [System.Xml.ValidationType]::DTD;
+     
+    # Add handler to Validating Reader 
+    $XmlValidatingReader.add_ValidationEventHandler($onValidationError)
+
+    # Validate file
+    try {
+        while ($XmlValidatingReader.Read()) {}
+    }
+    catch  {
+        throw [System.Exception] $_.Exception
+    }
+    finally {
+        # Close handles
+        $XmlValidatingReader.Close()
+    }
+   
+  
+    # Output whether the document is valid or invalid.
+    return $global:isValid
+}
+
