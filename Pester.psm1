@@ -802,6 +802,7 @@ New-PesterOption
         }
 
         Set-PesterStatistics
+        
         if (& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
             Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
         }
