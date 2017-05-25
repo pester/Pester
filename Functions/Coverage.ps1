@@ -627,23 +627,25 @@ function Test-DtdSchema {
     # Create delegate for handling/reporting errors
     [System.Xml.Schema.ValidationEventHandler] $onValidationError = {
         param($sender,[System.Xml.Schema.ValidationEventArgs]$eventArgs)
+        # Interestingly the linting tool can't see it is a global, but this variable is used to track if there are errors in the XML file.
         $global:isValid = $false;
         $errorText = "Validation error in XML string on line $($eventArgs.Exception.LineNumber), position $($eventArgs.Exception.LinePosition): $($eventArgs.Message)`n"
         # Get the line where the validation error occurred
         $errorText +=  "$($global:XmlFilePath.Split(""`n"")[$eventArgs.Exception.LineNumber-1])`n"
-        # Add an arrow
+        # Add an arrow to point at the place in the line where the validation error occurred
         $errorText += "^".PadLeft($eventArgs.Exception.LinePosition,"-")
-        & $SafeCommands['Write-Error'] $errorText
+        $global:errorText += $errorText
     }
 
     # Set while loop flag
     $global:isValid = $true
+    $global:errorText = ""
     $global:XmlFilePath = $XmlString
     # Instantiate ValidatingReader and set ValidationType
     $XmlValidatingReader = & $SafeCommands['New-Object'] -TypeName System.Xml.XmlValidatingReader($XmlString, [System.Xml.XmlNodeType]::Document, $null)
     $XmlValidatingReader.ValidationType = [System.Xml.ValidationType]::DTD;
-     
-    # Add handler to Validating Reader 
+
+    # Add handler to Validating Reader
     $XmlValidatingReader.add_ValidationEventHandler($onValidationError)
 
     # Validate file
@@ -657,9 +659,8 @@ function Test-DtdSchema {
         # Close handles
         $XmlValidatingReader.Close()
     }
-   
-  
+
     # Output whether the document is valid or invalid.
-    return $global:isValid
+    return $global:isValid,$global:errorText
 }
 

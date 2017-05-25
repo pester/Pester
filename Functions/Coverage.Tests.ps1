@@ -72,6 +72,14 @@ InModuleScope Pester {
                 $coverageReport.HitCommands[0].Command | Should Be "'I am the nested function.'"
             }
 
+            It 'JaCoCo report must be correct'{
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -PesterState $testState -CoverageReport $coverageReport
+                $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
+                $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
+                $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
+                $jaCoCoReportXml = $jaCoCoReportXml -replace '\n',''
+                $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump=""/><counter type="INSTRUCTION" missed="1" covered="6"/><counter type="LINE" missed="1" covered="6"/><counter type="METHOD" missed="1" covered="3"/><counter type="CLASS" missed="0" covered="1"/></report>'
+            }
             Exit-CoverageAnalysis -PesterState $testState
         }
 
@@ -223,7 +231,35 @@ InModuleScope Pester {
             Exit-CoverageAnalysis -PesterState $testState
         }
     }
-
+    Describe 'Testing DTD Validator' {
+        Context 'Custom documents' {
+            $jaCoCoReplortXml = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump=""/><counter type="INSTRUCTION" missed="1" covered="6"/><counter type="LINE" missed="1" covered="6"/><counter type="METHOD" missed="1" covered="3"/><counter type="CLASS" missed="0" covered="1"/></report>'
+            It 'Dtd Validator on normal document' {
+                Test-DtdSchema $jaCoCoReplortXml | should be $true,""
+            }
+            It 'Provided invalid XML' {
+                $jaCoCoReplortXml = $jaCoCoReplortXml -replace "/>","/>`n"
+                $jaCoCoReplortXml = $jaCoCoReplortXml -replace "CLASS","CLASS2"
+                $expectedErrorTest = "Validation error in XML string on line 5, position 10: 'CLASS2' is not in the enumeration list.`n"
+                $expectedErrorTest += '<counter type="CLASS2" missed="0" covered="1"/>' + "`n"
+                $expectedErrorTest += "---------^"
+                Test-DtdSchema $jaCoCoReplortXml | should be $false,$expectedErrorTest
+            }
+            It 'Provided missing DTD' {
+                # this causes an underlying error which is not easy to understand, as the exception will not should the right stack trace.
+                # Therefore an extra try catch has been added in the Test-DtdSchema function that wraps the exception. Therefore we test that the Test-DtdSchema is part of the stack trace.
+                $jaCoCoReplortXml = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report2.dtd"><report/>'
+                try{
+                    Test-DtdSchema $jaCoCoReplortXml
+                    $true | should be $false
+                }
+                catch{
+                    $_.Exception.Message | Should BeLike 'Exception calling "Read" with "0" argument(s): "Could not find file*'
+                    $_.ScriptStackTrace | Should BeLike 'At Test-DtdSchema*'
+                }
+            }
+        }
+    }
     Describe 'Stripping common parent paths' {
         $paths = @(
             Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'

@@ -787,11 +787,12 @@ New-PesterOption
             Write-CoverageReport -CoverageReport $coverageReport
             if (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
                 $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
-                if (Test-DtdSchema $jaCoCoReport){
+                $isValid,$errorText = Test-DtdSchema $jaCoCoReport
+                if ($isValid){
                     $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
                 }
                 else {
-                    throw "Unable to create valid XML for JaCoCo report."
+                    throw "Unable to create valid XML for JaCoCo report. `n$errorText"
                 }
             }
             Exit-CoverageAnalysis -PesterState $pester
