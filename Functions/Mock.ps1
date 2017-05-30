@@ -154,7 +154,7 @@ It
 about_Should
 about_Mocking
 #>
-
+    [CmdletBinding()]
     param(
         [string]$CommandName,
         [ScriptBlock]$MockWith={},
@@ -405,6 +405,7 @@ Assert-VerifiableMocks
 This will not throw an exception because the mock was invoked.
 
 #>
+    [CmdletBinding()]param()
     Assert-DescribeInProgress -CommandName Assert-VerifiableMocks
 
     $unVerified=@{}
