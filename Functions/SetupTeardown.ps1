@@ -15,6 +15,15 @@ function BeforeEach
 .LINK
     about_BeforeEach_AfterEach
 #>
+    [CmdletBinding()]
+    param
+    (
+        # the scriptblock to execute
+        [Parameter(Mandatory = $true,
+                   Position = 1)]
+        [Scriptblock]
+        $Scriptblock
+    )
     Assert-DescribeInProgress -CommandName BeforeEach
 }
 
@@ -35,6 +44,15 @@ function AfterEach
 .LINK
     about_BeforeEach_AfterEach
 #>
+    [CmdletBinding()]
+    param
+    (
+        # the scriptblock to execute
+        [Parameter(Mandatory = $true,
+                   Position = 1)]
+        [Scriptblock]
+        $Scriptblock
+    )
     Assert-DescribeInProgress -CommandName AfterEach
 }
 
@@ -53,6 +71,15 @@ function BeforeAll
 .LINK
     about_BeforeEach_AfterEach
 #>
+    [CmdletBinding()]
+    param
+    (
+        # the scriptblock to execute
+        [Parameter(Mandatory = $true,
+                   Position = 1)]
+        [Scriptblock]
+        $Scriptblock
+    )
     Assert-DescribeInProgress -CommandName BeforeAll
 }
 
@@ -71,6 +98,15 @@ function AfterAll
 .LINK
     about_BeforeEach_AfterEach
 #>
+    [CmdletBinding()]
+    param
+    (
+        # the scriptblock to execute
+        [Parameter(Mandatory = $true,
+                   Position = 1)]
+        [Scriptblock]
+        $Scriptblock
+    )
     Assert-DescribeInProgress -CommandName AfterAll
 }
 
