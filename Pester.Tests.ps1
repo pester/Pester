@@ -115,6 +115,22 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
     }
 }
 
+Describe 'Public API' {
+    It 'all non-deprecated public commands use CmdletBinding' {
+        $r = Get-Command -Module Pester |
+        ? { -not $_.CmdletBinding } |
+        % Name |
+        ? {
+            $_ -notin @(
+                'Get-TestDriveItem' # deprecated in 4.0
+                'SafeGetCommand' # Pester internal
+                'Setup' # deprecated
+            )
+        }
+        $r | Should beNullOrEmpty
+    }
+}
+
 Describe 'Style rules' {
     $pesterRoot = (Get-Module Pester).ModuleBase
 
