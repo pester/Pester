@@ -116,16 +116,17 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 }
 
 Describe 'Public API' {
-    It 'all non-deprecated public commands use CmdletBinding' {
+    It 'all non-deprecated, non-internal public commands use CmdletBinding' {
         $r = Get-Command -Module Pester |
         ? { -not $_.CmdletBinding } |
-        % Name |
+        ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
+        % { $_.Name } |
         ? {
-            $_ -notin @(
+            @(
                 'Get-TestDriveItem' # deprecated in 4.0
                 'SafeGetCommand' # Pester internal
                 'Setup' # deprecated
-            )
+            ) -notcontains $_
         }
         $r | Should beNullOrEmpty
     }
