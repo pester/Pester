@@ -118,8 +118,8 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 Describe 'Public API' {
     It 'all non-deprecated, non-internal public commands use CmdletBinding' {
         $r = Get-Command -Module Pester |
-        ? { -not $_.CmdletBinding } |
         ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
+        ? { -not $_.CmdletBinding } |
         % { $_.Name } |
         ? {
             @(
