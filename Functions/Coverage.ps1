@@ -574,3 +574,61 @@ function Normalize-Path
         }
     }
 }
+
+function Get-JaCoCoReportXml {
+    param (
+        [parameter(Mandatory=$true)]
+        $PesterState,
+        [parameter(Mandatory=$true)]
+        [object] $CoverageReport
+    )
+
+    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
+    {
+        return
+    }
+
+    $allCommands = $CoverageReport.MissedCommands + $CoverageReport.HitCommands
+    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$missedFunctions = $totalFunctions - $hitFunctions
+
+    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$missedLines = $totalLines - $hitLines
+
+    [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
+    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
+    [long]$missedFiles = $totalFiles - $hitFiles
+
+    $now = & $SafeCommands['Get-Date']
+    $nineteenseventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
+    [long]$endTime =  [math]::Floor((new-timespan -start $nineteenseventy -end $now).TotalSeconds * 1000)
+    [long]$startTime = [math]::Floor($endTime - $PesterState.Time.TotalSeconds*1000)
+
+    # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
+    $jaCoCoReport += "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>`n"
+    $jaCoCoReport += "<report name="""">`n"
+    $jaCoCoReport += "<sessioninfo id=""this"" start="""" dump="""" />`n"
+    $jaCoCoReport += "<counter type=""INSTRUCTION"" missed="""" covered=""""/>`n"
+    $jaCoCoReport += "<counter type=""LINE"" missed="""" covered=""""/>`n"
+    $jaCoCoReport += "<counter type=""METHOD"" missed="""" covered=""""/>`n"
+    $jaCoCoReport += "<counter type=""CLASS"" missed="""" covered=""""/>`n"
+    $jaCoCoReport += "</report>"
+
+    [xml] $jaCoCoReportXml = $jaCoCoReport
+    $jaCoCoReportXml.report.name = "Pester ($now)"
+    $jaCoCoReportXml.report.sessioninfo.start=$startTime.ToString()
+    $jaCoCoReportXml.report.sessioninfo.dump=$endTime.ToString()
+    $jaCoCoReportXml.report.counter[0].missed = $CoverageReport.MissedCommands.Count.ToString()
+    $jaCoCoReportXml.report.counter[0].covered = $CoverageReport.HitCommands.Count.ToString()
+    $jaCoCoReportXml.report.counter[1].missed = $missedLines.ToString()
+    $jaCoCoReportXml.report.counter[1].covered = $hitLines.ToString()
+    $jaCoCoReportXml.report.counter[2].missed = $missedFunctions.ToString()
+    $jaCoCoReportXml.report.counter[2].covered = $hitFunctions.ToString()
+    $jaCoCoReportXml.report.counter[3].missed = $missedFiles.ToString()
+    $jaCoCoReportXml.report.counter[3].covered = $hitFiles.ToString()
+    # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
+    $jaCoCoReportDocType = "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">`n"
+    return $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
+}

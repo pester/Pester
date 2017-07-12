@@ -72,6 +72,14 @@ InModuleScope Pester {
                 $coverageReport.HitCommands[0].Command | Should Be "'I am the nested function.'"
             }
 
+            It 'JaCoCo report must be correct'{
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -PesterState $testState -CoverageReport $coverageReport
+                $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
+                $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
+                $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
+                $jaCoCoReportXml = $jaCoCoReportXml -replace '\n',''
+                $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
+            }
             Exit-CoverageAnalysis -PesterState $testState
         }
 

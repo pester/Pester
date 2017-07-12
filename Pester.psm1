@@ -58,6 +58,7 @@ $script:SafeCommands = @{
     'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Out-Host'            = Get-Command -Name Out-Host            -Module $outHostModule                  @safeCommandLookupParameters
+    'Out-File'            = Get-Command -Name Out-File            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  @safeCommandLookupParameters
     'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -507,6 +508,14 @@ One of the following: Function or StartLine/EndLine
 -- EndLine (E): Performs code coverage analysis ending with the specified line.
    Default is the last line of the script.
 
+.PARAMETER CodeCoverageOutputFile
+The path where Invoke-Pester will save formatted code coverage results file in JaCoCo format.
+
+The path must include the location and name of the folder and file name with
+the xml extension.
+
+If this path is not provided, no xml file will be generated.
+
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
@@ -628,6 +637,13 @@ Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'Functio
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
 report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
 
+ .EXAMPLE
+Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1' -CodeCoverageOutputFile '.\artifacts\TestOutput.xml'
+
+Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
+report for all commands in the "ScriptUnderTest.ps1" file, and writes the coverage report to TestOutput.xml
+file using the JaCoCo XML Report DTD.
+
 .EXAMPLE
 Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
 
@@ -670,6 +686,8 @@ New-PesterOption
         [switch]$PassThru,
 
         [object[]] $CodeCoverage = @(),
+
+        [string] $CodeCoverageOutputFile,
 
         [Switch]$Strict,
 
@@ -767,6 +785,10 @@ New-PesterOption
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
             Write-CoverageReport -CoverageReport $coverageReport
+            if (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
+                $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
+            }
             Exit-CoverageAnalysis -PesterState $pester
         }
         finally
