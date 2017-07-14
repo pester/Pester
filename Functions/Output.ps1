@@ -65,7 +65,7 @@ function Write-PesterStart {
 
         $OFS = $ReportStrings.MessageOfs
 
-        if ($Path.Path) {
+        if ($Path.PSObject.Properties.Match('Path')) {
             $message = $ReportStrings.StartMessage -f "$($Path.Path -join ', ')"
         } else {
             $message = $ReportStrings.StartMessage -f "$($Path -join ', ')"
