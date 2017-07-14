@@ -116,3 +116,73 @@ Describe 'ConvertTo-PesterResult' {
         }
     }
 }
+
+InModuleScope -Module Pester {
+    Describe 'Write-PesterStart' {
+        $TemporaryFile = New-TemporaryFile
+        Context 'StartMessage' {
+            $StartMessage = $ReportStrings.StartMessage
+            $TestCases = @(
+                @{
+                    Name = "a single string"
+                    Value = "C:\TestPath"
+                },
+                @{
+                    Name = "an array of strings"
+                    Value = ("C:\TestPath","C:\TestPath2")
+                },
+                @{
+                    Name = "a hashtable"
+                    Value = @{
+                        Path = "C:\TestPath"
+                    }
+                }
+                @{
+                    Name = "an array of hashtables"
+                    Value = (
+                        @{
+                            Path = "C:\TestPath"
+                        },
+                        @{
+                            Path = "C:\TestPath2"
+                        }
+                    )
+                }
+            )
+
+            It 'Accepts <Name> with correct output' -TestCases $TestCases {
+                param($Name,$Value)
+                Start-Transcript -Path $TemporaryFile
+                Write-PesterStart -PesterState @{} -Path $Value
+                $LastLine = (Get-Content $TemporaryFile)[-1]
+                Stop-Transcript
+
+                $LastLine | Should Match $StartMessage
+                $LastLine | Should Not Match "System.Collections.Hashtable"
+            }
+        }
+        Context 'FilterMessage' {
+            $FilterMessage = $ReportStrings.FilterMessage
+            It 'Displays FilterMessage if included in $PesterState' {
+                Start-Transcript -Path $TemporaryFile
+                Write-PesterStart -PesterState @{TestNameFilter='Test'} -Path 'Test'
+                $LastLine = (Get-Content $TemporaryFile)[-1]
+                Stop-Transcript
+
+                $LastLine | Should Match ("$StartMessage$FilterMessage" -f 'Test')
+            }
+        }
+        Context 'TagMessage' {
+            $TagMessage = $ReportStrings.TagMessage
+            It 'Displays TagMessage[s] if included in $PesterState' {
+                Start-Transcript -Path $TemporaryFile
+                Write-PesterStart -PesterState @{TagFilter='Test'} -Path 'Test'
+                $LastLine = (Get-Content $TemporaryFile)[-1]
+                Stop-Transcript
+
+                $LastLine | Should Match ("$StartMessage$TagMessage" -f 'Test')
+            }
+        }
+        Remove-Item -Path $TemporaryFile
+    }
+}
