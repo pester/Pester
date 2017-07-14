@@ -39,6 +39,8 @@ Task Pack-Nuget {
       Remove-Item "$baseDir\build" -Recurse -Force
     }
 
+    Get-childitem $baseDir -Recurse -Filter *.tests.ps1 | Remove-Item -Force
+
     mkdir "$baseDir\build"
     exec {
       . $nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory "$baseDir\build" `
