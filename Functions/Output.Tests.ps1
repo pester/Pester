@@ -119,7 +119,7 @@ Describe 'ConvertTo-PesterResult' {
 
 InModuleScope -Module Pester {
     Describe 'Write-PesterStart' {
-        $TemporaryFile = New-TemporaryFile
+        $TemporaryFile = Join-Path -Path $env:Temp -ChildPath "WritePesterStart_Test.txt"
         Context 'StartMessage' {
             $StartMessage = $ReportStrings.StartMessage
             $TestCases = @(
