@@ -1,3 +1,10 @@
+## 4.0.4-rc (July 14, 2017)
+  - Fix BeNullOrEmpty for empty hashtable [GH-760]
+  - Fix style rules [GH-691]
+  - Fix mock scope error message [GH-759]
+  - Fix mocking in consecutive scopes [GH-747]
+  - Add JaCoCo code coverage output [GH-782]
+
 ## 4.0.3-rc (March 22, 2017)
   - Fix context and describe in test results [GH-755]
   - Fix mocking functions in two consequitive contexts [GH-744]
