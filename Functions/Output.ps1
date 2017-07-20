@@ -1,8 +1,8 @@
 $Script:ReportStrings = DATA {
     @{
-        StartMessage   = 'Executing all tests in {0}'
-        FilterMessage  = ' matching test name {0}'
-        TagMessage     = ' with Tags {0}'
+        StartMessage   = "Executing all tests in '{0}'"
+        FilterMessage  = " matching test name '{0}'"
+        TagMessage     = " with Tags '{0}'"
         MessageOfs     = "', '"
 
         CoverageTitle   = 'Code coverage report:'
@@ -65,11 +65,19 @@ function Write-PesterStart {
 
         $OFS = $ReportStrings.MessageOfs
 
-        if ($Path.PSObject.Properties.Match('Path')) {
-            $message = $ReportStrings.StartMessage -f "$($Path.Path -join ', ')"
-        } else {
-            $message = $ReportStrings.StartMessage -f "$($Path -join ', ')"
-        }
+        $message = $ReportStrings.StartMessage -f "$(
+            foreach ($Item in $Path) {
+                switch ($Item.GetType().Name) {
+                    'String' {
+                        $Item
+                    }
+                    default {
+                        $Item.Path
+                    }
+                }
+            }
+        )"
+
         if ($PesterState.TestNameFilter) {
            $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }
