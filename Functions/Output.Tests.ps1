@@ -118,13 +118,12 @@ Describe 'ConvertTo-PesterResult' {
 }
 Describe 'Write-PesterStart' {
     InModuleScope -Module Pester {
-        $TemporaryFile = Join-Path -Path $env:Temp -ChildPath "WritePesterStart_Test.txt"
+        $TemporaryHostOutput = Join-Path -Path (Get-TempDirectory) -ChildPath "WritePesterStart_v$($PSVersionTable.PSVersion.Major)_Test.txt"
         $StartMessage = $ReportStrings.StartMessage
-        BeforeAll {
-            if ($PSVersionTable.PSVersion.Major -lt 5) {
-                Start-Transcript -Path $TemporaryFile
-            }
+        if ($PSVersionTable.PSVersion.Major -lt 5) {
+            Start-Transcript -Path $TemporaryHostOutput
         }
+
         $BlankPesterState = @{
             TestNameFilter = ''
             TagFilter      = ''
@@ -176,7 +175,7 @@ Describe 'Write-PesterStart' {
                     It 'Accepts <Name> with correct output' -TestCases $TestCases {
                         param($Name, $Value)
                         Write-PesterStart -PesterState $BlankPesterState -Path $Value
-                        $LastLine = (Get-Content $TemporaryFile)[-1]
+                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
                         $LastLine | Should Match ("$StartMessage" -f 'C:\\TestPath')
                         $LastLine | Should Not Match 'System\.Collections\.Hashtable'
                     }
@@ -199,7 +198,7 @@ Describe 'Write-PesterStart' {
                 {$_ -lt 5} {
                     It 'Displays FilterMessage if included in $PesterState' {
                         Write-PesterStart -PesterState $PesterFilterTest -Path 'Test'
-                        $LastLine = (Get-Content $TemporaryFile)[-1]
+                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
                         $LastLine | Should Match ("$StartMessage$FilterMessage" -f 'Test')
                     }
                 }
@@ -221,7 +220,7 @@ Describe 'Write-PesterStart' {
                 {$_ -lt 5} {
                     It 'Displays TagMessage[s] if included in $PesterState' {
                         Write-PesterStart -PesterState $PesterTagTest -Path 'Test'
-                        $LastLine = (Get-Content $TemporaryFile)[-1]
+                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
                         $LastLine | Should Match ("$StartMessage$TagMessage" -f 'Test')
                     }
                 }
@@ -230,7 +229,7 @@ Describe 'Write-PesterStart' {
         Context 'No Header' {
             switch ($PSVersionTable.PSVersion.Major) {
                 {$_ -ge 5} {
-                    It 'Outputs nothing if Show Header is $false' {
+                    It 'Outputs nothing if $Pester.Show does not require Header' {
                         $StorePesterShow = $Pester.Show
                         $Pester.Show = 'None'
                         & {[CmdletBinding()]param() Write-PesterStart -PesterState $BlankPesterState -Path 'Test'} -InformationVariable 'Info'
@@ -239,24 +238,21 @@ Describe 'Write-PesterStart' {
                     }
                 }
                 {$_ -lt 5} {
-                    It 'Outputs nothing if Show Header is $false' {
+                    It 'Outputs nothing if $Pester.Show does not require Header' {
                         $StorePesterShow = $Pester.Show
                         $Pester.Show = 'None'
                         Write-Host 'Previous Output'
                         Write-PesterStart -PesterState $BlankPesterState -Path 'Test'
-                        $LastLine = (Get-Content $TemporaryFile)[-1]
+                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
                         $Pester.Show = $StorePesterShow
                         $LastLine | Should Be 'Previous Output'
                     }
                 }
             }
         }
-        AfterAll {
-            if (Test-Path $TemporaryFile) {
-                Stop-Transcript
-                Remove-Item -Path $TemporaryFile
-            }
+        if (Test-Path $TemporaryHostOutput) {
+            Stop-Transcript
+            Remove-Item -Path $TemporaryHostOutput
         }
-
     }
 }
