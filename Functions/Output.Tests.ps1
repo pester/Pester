@@ -65,7 +65,7 @@ Describe 'ConvertTo-PesterResult' {
         #the $script scriptblock below is used as a position marker to determine
         #on which line the test failed.
         $errorRecord = $null
-        try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
+        try {'something' | should be 'nothing'}catch { $errorRecord = $_} ; $script = {}
         $result = & $getPesterResult 0 $errorRecord
         It 'records the correct stack line number' {
             $result.Stacktrace | should match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
@@ -95,12 +95,9 @@ Describe 'ConvertTo-PesterResult' {
 
         Set-Content -Path $testPath -Value "`r`n'One' | Should Be 'Two'"
 
-        try
-        {
+        try {
             & $testPath
-        }
-        catch
-        {
+        } catch {
             $errorRecord = $_
         }
 
@@ -118,141 +115,88 @@ Describe 'ConvertTo-PesterResult' {
 }
 Describe 'Write-PesterStart' {
     InModuleScope -Module Pester {
-        $TemporaryHostOutput = Join-Path -Path (Get-TempDirectory) -ChildPath "WritePesterStart_v$($PSVersionTable.PSVersion.Major)_Test.txt"
-        $StartMessage = $ReportStrings.StartMessage
-        if ($PSVersionTable.PSVersion.Major -lt 5) {
-            Start-Transcript -Path $TemporaryHostOutput
-        }
-
         $BlankPesterState = @{
             TestNameFilter = ''
             TagFilter      = ''
         }
-        Context 'StartMessage' {
-            $TestCases = @(
-                @{
-                    Name  = "a single string"
-                    Value = "C:\TestPath"
-                },
-                @{
-                    Name  = "an array of strings"
-                    Value = ("C:\TestPath", "C:\TestPath")
-                },
-                @{
-                    Name  = "a hashtable"
-                    Value = @{
-                        Path = "C:\TestPath"
-                    }
-                }
-                @{
-                    Name  = "an array of hashtables"
-                    Value = (
-                        @{
-                            Path = "C:\TestPath"
-                        },
-                        @{
+        It "Runs without errors" {
+            {Write-PesterStart -PesterState $BlankPesterState -Path 'Test'} | Should Not Throw
+        }
+
+        if ($PSVersionTable.PSVersion.Major -ge 5) {
+            $StartMessage = $ReportStrings.StartMessage
+            Context 'StartMessage' {
+                $TestCases = @(
+                    @{
+                        Name  = "a single string"
+                        Value = "C:\TestPath"
+                    },
+                    @{
+                        Name  = "an array of strings"
+                        Value = ("C:\TestPath", "C:\TestPath")
+                    },
+                    @{
+                        Name  = "a hashtable"
+                        Value = @{
                             Path = "C:\TestPath"
                         }
-                    )
-                }
-                @{
-                    Name  = "a psobject"
-                    Value = New-Object -TypeName PSObject -Property @{
-                        Path = "C:\TestPath"
                     }
-                }
-            )
-            switch ($PSVersionTable.PSVersion.Major) {
-                {$_ -ge 5} {
-                    It 'Accepts <Name> with correct output' -TestCases $TestCases {
-                        param($Name, $Value)
-                        & {[CmdletBinding()]param() Write-PesterStart -PesterState $BlankPesterState -Path $Value} -InformationVariable 'Info'
-                        $Info | Should Match ($StartMessage -f 'C:\\TestPath')
-                        $Info | Should Not Match 'System\.Collections\.Hashtable'
+                    @{
+                        Name  = "an array of hashtables"
+                        Value = (
+                            @{
+                                Path = "C:\TestPath"
+                            },
+                            @{
+                                Path = "C:\TestPath"
+                            }
+                        )
                     }
-                }
-                {$_ -lt 5} {
-                    It 'Accepts <Name> with correct output' -TestCases $TestCases {
-                        param($Name, $Value)
-                        Write-PesterStart -PesterState $BlankPesterState -Path $Value
-                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
-                        $LastLine | Should Match ("$StartMessage" -f 'C:\\TestPath')
-                        $LastLine | Should Not Match 'System\.Collections\.Hashtable'
+                    @{
+                        Name  = "a psobject"
+                        Value = New-Object -TypeName PSObject -Property @{
+                            Path = "C:\TestPath"
+                        }
                     }
+                )
+                It 'Accepts <Name> with correct output' -TestCases $TestCases {
+                    param($Name, $Value)
+                    & {[CmdletBinding()]param() Write-PesterStart -PesterState $BlankPesterState -Path $Value} -InformationVariable 'Info'
+                    $Info | Should Match ($StartMessage -f 'C:\\TestPath')
+                    $Info | Should Not Match 'System\.Collections\.Hashtable'
                 }
             }
-        }
-        Context 'FilterMessage' {
-            $FilterMessage = $ReportStrings.FilterMessage
-            $PesterFilterTest = @{
-                TestNameFilter = 'Test'
-                TagFilter      = ''
-            }
-            switch ($PSVersionTable.PSVersion.Major) {
-                {$_ -ge 5} {
-                    It 'Displays FilterMessage if included in $PesterState' {
-                        & {[CmdletBinding()]param() Write-PesterStart -PesterState $PesterFilterTest -Path 'Test'} -InformationVariable 'Info'
-                        $Info | Should Match ("$StartMessage$FilterMessage" -f 'Test')
-                    }
+            Context 'FilterMessage' {
+                $FilterMessage = $ReportStrings.FilterMessage
+                $PesterFilterTest = @{
+                    TestNameFilter = 'Test'
+                    TagFilter      = ''
                 }
-                {$_ -lt 5} {
-                    It 'Displays FilterMessage if included in $PesterState' {
-                        Write-PesterStart -PesterState $PesterFilterTest -Path 'Test'
-                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
-                        $LastLine | Should Match ("$StartMessage$FilterMessage" -f 'Test')
-                    }
+                It 'Displays FilterMessage if included in $PesterState' {
+                    & {[CmdletBinding()]param() Write-PesterStart -PesterState $PesterFilterTest -Path 'Test'} -InformationVariable 'Info'
+                    $Info | Should Match ("$StartMessage$FilterMessage" -f 'Test')
                 }
             }
-        }
-        Context 'TagMessage' {
-            $TagMessage = $ReportStrings.TagMessage
-            $PesterTagTest = @{
-                TestNameFilter = ''
-                TagFilter      = 'Test'
-            }
-            switch ($PSVersionTable.PSVersion.Major) {
-                {$_ -ge 5} {
-                    It 'Displays TagMessage[s] if included in $PesterState' {
-                        & {[CmdletBinding()]param() Write-PesterStart -PesterState $PesterTagTest -Path 'Test'} -InformationVariable 'Info'
-                        $Info | Should Match ("$StartMessage$TagMessage" -f 'Test')
-                    }
+            Context 'TagMessage' {
+                $TagMessage = $ReportStrings.TagMessage
+                $PesterTagTest = @{
+                    TestNameFilter = ''
+                    TagFilter      = 'Test'
                 }
-                {$_ -lt 5} {
-                    It 'Displays TagMessage[s] if included in $PesterState' {
-                        Write-PesterStart -PesterState $PesterTagTest -Path 'Test'
-                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
-                        $LastLine | Should Match ("$StartMessage$TagMessage" -f 'Test')
-                    }
+                It 'Displays TagMessage[s] if included in $PesterState' {
+                    & {[CmdletBinding()]param() Write-PesterStart -PesterState $PesterTagTest -Path 'Test'} -InformationVariable 'Info'
+                    $Info | Should Match ("$StartMessage$TagMessage" -f 'Test')
                 }
             }
-        }
-        Context 'No Header' {
-            switch ($PSVersionTable.PSVersion.Major) {
-                {$_ -ge 5} {
-                    It 'Outputs nothing if $Pester.Show does not require Header' {
-                        $StorePesterShow = $Pester.Show
-                        $Pester.Show = 'None'
-                        & {[CmdletBinding()]param() Write-PesterStart -PesterState $BlankPesterState -Path 'Test'} -InformationVariable 'Info'
-                        $Pester.Show = $StorePesterShow
-                        $Info | Should Be $null
-                    }
-                }
-                {$_ -lt 5} {
-                    It 'Outputs nothing if $Pester.Show does not require Header' {
-                        $StorePesterShow = $Pester.Show
-                        $Pester.Show = 'None'
-                        Write-Host 'Previous Output'
-                        Write-PesterStart -PesterState $BlankPesterState -Path 'Test'
-                        $LastLine = (Get-Content $TemporaryHostOutput)[-1]
-                        $Pester.Show = $StorePesterShow
-                        $LastLine | Should Be 'Previous Output'
-                    }
+            Context 'No Header' {
+                It 'Outputs nothing if $Pester.Show does not require Header' {
+                    $StorePesterShow = $Pester.Show
+                    $Pester.Show = 'None'
+                    & {[CmdletBinding()]param() Write-PesterStart -PesterState $BlankPesterState -Path 'Test'} -InformationVariable 'Info'
+                    $Pester.Show = $StorePesterShow
+                    $Info | Should Be $null
                 }
             }
-        }
-        if (Test-Path $TemporaryHostOutput) {
-            Stop-Transcript
-            Remove-Item -Path $TemporaryHostOutput
         }
     }
 }
