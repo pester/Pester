@@ -1,7 +1,6 @@
 # Work around bug in PowerShell 2 type loading...
 Microsoft.PowerShell.Core\Import-Module -Name "${Script:PesterRoot}\lib\Gherkin.dll"
 
-$StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
 $GherkinHooks = @{
             BeforeEachFeature = @()
@@ -336,7 +335,6 @@ function Import-GherkinFeature {
                 $Steps = foreach($Example in $ExampleSet.TableBody) {
                             foreach ($Step in $Scenario.Steps) {
                                 [string]$StepText = $Step.Text
-                                $StepArgument = $Step.Argument
                                 if($StepText -match $NamesPattern) {
                                     for($n = 0; $n -lt ${Column Names}.Length; $n++) {
                                         $Name = ${Column Names}[$n]
