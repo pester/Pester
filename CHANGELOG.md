@@ -1,3 +1,6 @@
+## 4.0.5-rc (July 25, 2017)
+  - Publish Add-AssertionOperator [GH-765]
+
 ## 4.0.4-rc (July 14, 2017)
   - Fix BeNullOrEmpty for empty hashtable [GH-760]
   - Fix style rules [GH-691]
