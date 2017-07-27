@@ -22,7 +22,7 @@ function PesterMatchArrayUnordered($ActualValue, $ExpectedValue, [switch] $Negat
         Succeeded      = $success
         FailureMessage = $message
     }
-} 
+}
 function FindMismatchedValueUnordered($ActualValue, $ExpectedValue) {
     $ActualValue = @($ActualValue)
     for ($i = 0; $i -lt $ExpectedValue.Length; $i++) {
@@ -43,7 +43,7 @@ function FindMismatchedValueUnordered($ActualValue, $ExpectedValue) {
 
 Add-AssertionOperator -Name  MatchArrayUnordered `
     -Test  $function:PesterMatchArrayUnordered
-                      
+
 ###################################################################################################
 function PesterMatchArrayOrdered($ActualValue, $ExpectedValue, [switch] $Negate) {
 
@@ -70,7 +70,7 @@ function PesterMatchArrayOrdered($ActualValue, $ExpectedValue, [switch] $Negate)
         Succeeded      = $success
         FailureMessage = $message
     }
-} 
+}
 
 function FindMismatchedValueOrdered($ActualValue, $ExpectedValue) {
     $ActualValue = @($ActualValue)

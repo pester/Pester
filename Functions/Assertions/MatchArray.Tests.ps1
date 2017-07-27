@@ -1,6 +1,7 @@
 ﻿Set-StrictMode -Version Latest
 
 InModuleScope Pester {
+
     Describe "PesterMatchArrayUnordered" {
         It "returns true for matching single item arrays" {
             , @("a") | Should MatchArrayUnordered @("a")

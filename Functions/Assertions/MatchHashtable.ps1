@@ -54,4 +54,3 @@ function NotPesterMatchHashtableFailureMessage($ActualValue, $ExpectedValue) {
 
 Add-AssertionOperator -Name  MatchHashtable `
     -Test  $function:PesterMatchHashtable
-    
