@@ -16,11 +16,11 @@ The path that the execute block will be executed in.
 The script to be executed in the path provided.
 
 #>
-
-param(
-    $path,
-    [ScriptBlock] $execute
-)
+    [CmdletBinding()]
+    param(
+        $path,
+        [ScriptBlock] $execute
+    )
     Assert-DescribeInProgress -CommandName In
 
     $old_pwd = $pwd
