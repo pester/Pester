@@ -15,6 +15,9 @@ the expectation of the test.
 In addition to using your own logic to test expectations and throw exceptions,
 you may also use Pester's Should command to perform assertions in plain language.
 
+You can intentionally mark It block result as inconclusive by using Set-TestInconclusive
+command as the first tested statement in the It block.
+
 .PARAMETER Name
 An expressive phrase describing the expected test outcome.
 
@@ -94,6 +97,7 @@ Describe "Add-Numbers" {
 .LINK
 Describe
 Context
+Set-TestInconclusive
 about_should
 #>
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
