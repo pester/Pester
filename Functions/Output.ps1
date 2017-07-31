@@ -99,7 +99,7 @@ function Write-Describe {
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
         if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
-            $Describe.Description -split '\n' | % {
+            $Describe.Description -split '\n' | ForEach {
                 & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
         }
@@ -123,7 +123,7 @@ function Write-Context {
         & $SafeCommands['Write-Host'] ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
         # If the scenario has a longer description, write that too
         if($Context.PSObject.Properties['Description'] -and $Context.Description) {
-            $Context.Description -split '\n' | % {
+            $Context.Description -split '\n' | ForEach {
                 & $SafeCommands['Write-Host'] (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
             }
         }
