@@ -106,7 +106,11 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 
             $uniqueSafeCommands = $callsToSafeCommands | ForEach-Object { $_.CommandElements[0].Index.Value } | Select-Object -Unique
 
-            $missingSafeCommands = $uniqueSafeCommands | Where-Object { -not $script:SafeCommands.ContainsKey($_) }
+            $missingSafeCommands = $uniqueSafeCommands | Where { -not $script:SafeCommands.ContainsKey($_) }
+
+            # These commands are conditionally added to the safeCommands table due to Nano / Core versus PSv2 compatibility; one will always
+            # be missing, and can be ignored.
+            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance') -notcontains $_ }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
                 $missingSafeCommands | Should Be $null

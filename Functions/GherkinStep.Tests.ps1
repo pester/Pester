@@ -28,7 +28,7 @@ Describe 'Testing Gerkin Step' {
         $isMandatory | Should Be $true
     }
     It 'Generates aliases Given, When, Then, And, But for GherkinStep' {
-        $command = &(Get-Module Pester) { Get-Alias -Definition GherkinStep | Select-Object -Expand Name }
+        $command = &(Get-Module Pester) { Get-Alias -Definition GherkinStep | Select -Expand Name }
         $command | Should Be "And", "But", "Given", "Then", "When"
     }
     It 'Populates the GherkinSteps module variable' {

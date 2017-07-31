@@ -286,7 +286,7 @@ InModuleScope Pester {
         }
 
         It "Resolves full path correctly" {
-            $powershellPath = Get-Command 'powershell' | Select-Object -ExpandProperty 'Definition'
+            $powershellPath = Get-Command 'powershell' | Select -ExpandProperty 'Definition'
             $powershellPath | Should -Not -BeNullOrEmpty
 
             GetFullPath $powershellPath | Should Be $powershellPath

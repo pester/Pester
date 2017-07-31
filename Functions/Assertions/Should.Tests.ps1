@@ -109,7 +109,7 @@ InModuleScope Pester {
         It "ensures all assertion functions provide failure messages" {
             $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
                 "PesterMatch", "PesterContain")
-            $assertionFunctions | ForEach-Object {
+            $assertionFunctions | ForEach {
                 "function:$($_)FailureMessage" | Should Exist
                 "function:Not$($_)FailureMessage" | Should Exist
                 "function:$($_)FailureMessage" | Should -Exist
@@ -138,8 +138,8 @@ InModuleScope Pester {
         <#
         It 'All failure message functions are present' {
             $assertionFunctions = Get-Command -CommandType Function -Module Pester |
-                                  Select-Object -ExpandProperty Name |
-                                  Where-Object { $_ -like 'Pester*' -and $_ -notlike '*FailureMessage' }
+                                  Select -ExpandProperty Name |
+                                  Where { $_ -like 'Pester*' -and $_ -notlike '*FailureMessage' }
 
             $missingFunctions = @(
                 foreach ($assertionFunction in $assertionFunctions)
