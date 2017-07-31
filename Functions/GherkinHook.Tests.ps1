@@ -103,11 +103,11 @@ Describe 'Testing Gerkin Hook' {
         & ( Get-Module Pester ) {
             BeforeEachScenario "I Click" { }
             $GherkinHooks["BeforeEachScenario"].Tags
-        } | Select -Last 1 | Should Be "I Click"
+        } | Select-Object -Last 1 | Should Be "I Click"
 
         & ( Get-Module Pester ) {
             AfterEachFeature "I Click" { }
             $GherkinHooks["AfterEachFeature"].Tags
-        } | Select -Last 1 | Should Be "I Click"
+        } | Select-Object -Last 1 | Should Be "I Click"
     }
 }

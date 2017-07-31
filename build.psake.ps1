@@ -23,8 +23,8 @@ Task Version-Module{
     $v = git.exe describe --abbrev=0 --tags
     $changeset=(git.exe log -1 $($v + '..') --pretty=format:%H)
     (Get-Content "$baseDir\Pester.psm1") `
-      | % {$_ -replace "\`$version\`$", "$version" } `
-      | % {$_ -replace "\`$sha\`$", "$changeset" } `
+      | Where-Object {$_ -replace "\`$version\`$", "$version" } `
+      | Where-Object {$_ -replace "\`$sha\`$", "$changeset" } `
       | Set-Content "$baseDir\Pester.psm1"
 }
 

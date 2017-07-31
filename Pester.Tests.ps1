@@ -88,7 +88,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
             $path = $ExecutionContext.SessionState.Module.ModuleBase
             $filesToCheck = Get-ChildItem -Path $path -Recurse -Include *.ps1,*.psm1 -Exclude *.Tests.ps1
             $callsToSafeCommands = @(
-                foreach ($file in $files)
+                foreach ($file in $filesToCheck)
                 {
                     $tokens = $parseErrors = $null
                     $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref] $tokens, [ref] $parseErrors)
