@@ -263,8 +263,10 @@ function Write-PesterResult {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
                     }
                     else {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
+                        $TestResult.ErrorRecord |
+                        ConvertTo-FailureLines |
+                        foreach {$_.Message + $_.Trace} |
+                        foreach { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^',$error_margin) }
                     }
                     break
                 }
@@ -371,5 +373,77 @@ function Write-CoverageReport {
         $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-Host']
     } else {
         & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
+    }
+}
+
+function ConvertTo-FailureLines
+{
+    param (
+        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        $ErrorRecord
+    )
+    process {
+        $lines = & $script:SafeCommands['New-Object'] psobject -Property @{
+            Message = @()
+            Trace = @()
+        }
+
+        ## convert the exception messages
+        $exception = $ErrorRecord.Exception
+        $exceptionLines = @()
+        while ($exception)
+        {
+            $exceptionName = $exception.GetType().Name
+            $thisLines = $exception.Message.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed')
+            {
+                $thisLines[0] = "$exceptionName`: $($thisLines[0])"
+            }
+            [array]::Reverse($thisLines)
+            $exceptionLines += $thisLines
+            $exception = $exception.InnerException
+        }
+        [array]::Reverse($exceptionLines)
+        $lines.Message += $exceptionLines
+        if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
+        {
+            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
+
+        if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) )
+        {
+            if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+            {
+                $lines.Trace += "at line: $($ErrorRecord.TargetObject.Line) in $($ErrorRecord.TargetObject.File)"
+            }
+            else
+            {
+                $lines.Trace += "at line: $($ErrorRecord.InvocationInfo.ScriptLineNumber) in $($ErrorRecord.InvocationInfo.ScriptName)"
+            }
+            return $lines
+        }
+
+        ## convert the stack trace
+        $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+
+        $count = 0
+
+        # omit the lines internal to Pester
+        foreach ( $line in $traceLines )
+        {
+            if ( $line -match '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$' )
+            {
+                break
+            }
+            $count ++
+        }
+        $lines.Trace += $traceLines |
+            & $SafeCommands['Select-Object'] -First $count |
+            & $SafeCommands['Where-Object'] {
+                $_ -notmatch '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$' -and
+                $_ -notmatch '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+            }
+
+        return $lines
     }
 }
