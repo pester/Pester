@@ -1,5 +1,5 @@
 @{
-    StartMessage   = 'Executing all tests in {0}'
+    StartMessage   = "Executing all tests in '{0}'"
     FilterMessage  = ' matching test name {0}'
     TagMessage     = ' with Tags {0}'
     MessageOfs     = "', '"
