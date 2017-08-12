@@ -84,6 +84,12 @@ InModuleScope Pester {
             {abc} | Should -BeExactly "abc"
             {abc} | Should -CEQ "abc"
         }
+
+        It 'Does not overflow on IEnumerable' {
+            # see https://github.com/pester/Pester/issues/785
+            $doc = [xml]''
+            $doc | Should be $doc
+        }
     }
 
     Describe "PesterBeFailureMessage" {

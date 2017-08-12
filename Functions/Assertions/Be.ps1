@@ -235,9 +235,7 @@ function IsCollection
 {
     param ([object] $InputObject)
 
-    return $InputObject -is [System.Collections.IEnumerable] -and
-           $InputObject -isnot [string] -and
-           $InputObject -isnot [System.Collections.IDictionary]
+    return $InputObject -is [Array]
 }
 
 function ReplaceValueInArray
