@@ -87,7 +87,7 @@ InModuleScope Pester {
 
         It 'Does not overflow on IEnumerable' {
             # see https://github.com/pester/Pester/issues/785
-            $doc = [xml]''
+            $doc = [xml]'<?xml version="1.0" encoding="UTF-8" standalone="no" ?>'
             $doc | Should be $doc
         }
     }
