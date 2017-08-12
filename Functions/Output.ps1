@@ -1,6 +1,6 @@
 $Script:ReportStrings = DATA {
     @{
-        StartMessage   = 'Executing all tests in {0}'
+        StartMessage   = "Executing all tests in '{0}'"
         FilterMessage  = ' matching test name {0}'
         TagMessage     = ' with Tags {0}'
         MessageOfs     = "', '"
@@ -54,6 +54,33 @@ $Script:ReportTheme = DATA {
     }
 }
 
+function Format-PesterPath ($Path, [String]$Delimiter) {
+    # -is check is not enough for the arrays, the incoming value will likely be object[]
+    # so we have to check if we can upcast to our required type
+
+    if ($null -eq $Path)
+    {
+        $null
+    }
+    elseif ($Path -is [String])
+    {
+        $Path
+    }
+    elseif ($Path -is [hashtable])
+    {
+        # a well formed pester hashtable contains Path
+        $Path.Path
+    }
+    elseif ($null -ne ($path -as [hashtable[]]))
+    {
+        ($path | foreach { $_.Path }) -join $Delimiter
+    }
+    # needs to stay at the bottom because almost everything can be upcast to array of string
+    elseif ($Path -as [String[]])
+    {
+        $Path -join $Delimiter
+    }
+}
 function Write-PesterStart {
     param(
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
@@ -65,7 +92,7 @@ function Write-PesterStart {
 
         $OFS = $ReportStrings.MessageOfs
 
-        $message = $ReportStrings.StartMessage -f "$($Path)"
+        $message = $ReportStrings.StartMessage -f (Format-PesterPath $Path -Delimiter $OFS)
         if ($PesterState.TestNameFilter) {
            $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }

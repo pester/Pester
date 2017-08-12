@@ -116,3 +116,36 @@ Describe 'ConvertTo-PesterResult' {
         }
     }
 }
+
+InModuleScope -ModuleName Pester -ScriptBlock {
+    Describe "Format-PesterPath" {
+        It "Writes path correctly when it is given `$null" {
+            Format-PesterPath -Path $null | Should -Be $null
+        }
+
+        It "Writes path correctly when it is provided as string" {
+            Format-PesterPath -Path "C:\path" | Should -Be "C:\path"
+        }
+
+        It "Writes path correctly when it is provided as string[]" {
+            Format-PesterPath -Path @("C:\path1", "C:\path2") -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+        }
+
+        It "Writes path correctly when provided through hashtable" {
+            Format-PesterPath -Path @{ Path = "C:\path" } | Should -Be "C:\path"
+        }
+
+        It "Writes path correctly when provided through array of hashtable" {
+            Format-PesterPath -Path @{ Path = "C:\path1" }, @{ Path = "C:\path2" } -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+        }
+    }
+
+    Describe "Write-PesterStart" {
+        It "uses Format-PesterPath with the provided path" {
+            Mock Format-PesterPath
+            $expected = "C:\temp"
+            Write-PesterStart -PesterState (New-PesterState) -Path $expected
+            Assert-MockCalled Format-PesterPath -ParameterFilter {$Path -eq $expected}
+        }
+    }
+}
