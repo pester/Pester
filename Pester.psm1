@@ -50,6 +50,7 @@ $script:SafeCommands = @{
     'Get-PSDrive'         = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Variable'        = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Group-Object'        = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-LocalizedData'= Get-Command -Name Import-LocalizedData -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Join-Path'           = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Measure-Object'      = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'New-Item'            = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -749,12 +750,12 @@ New-PesterOption
     )
     begin {
         # Ensure when running Pester that we're using RSpec strings
-        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
+        & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
         #Fallback to en-US culture strings
         If ([String]::IsNullOrEmpty($ReportStrings)) {
 
-            Import-LocalizedData -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
+            & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
 
         }
     }
