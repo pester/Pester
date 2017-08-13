@@ -14,6 +14,14 @@ Pester tests can execute any command or script that is accessible to a Pester te
 
 **Pester also contains a powerful set of mocking functions** in which tests mimic any command functionality within the tested PowerShell code.
 
+Updating Pester on Windows 10
+-----------
+There's a bit of a covfefe with the version of Pester that ships in Windows 10.  Microsoft signed the files (which they were required to do), but then PowerShellGet blows up when you try to update the module.  Here's the command you need to run in order to get the latest version of Pester the first time on a Windows 10 system:
+
+`Install-Module Pester -Force -SkipPublisherCheck`
+
+Once that's done, you should be able to use a simple `Update-Module Pester` command in the future.
+
 A Pester Test
 -------------
 BuildChanges.ps1
