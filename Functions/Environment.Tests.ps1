@@ -1,22 +1,22 @@
 InModuleScope -ModuleName Pester {
-    Describe 'Get-PowerShellVersion' {
+    Describe 'GetPesterPsVersion' {
         Mock Get-Variable
         It 'Returns value of $PSVersionTable.PsVersion.Major' {
             Mock Get-Variable -ParameterFilter { $Name -eq 'PSVersionTable' -and $ValueOnly } -MockWIth {
                 @{ PSVersion = [Version]'1.0.0' }
             }
 
-            Get-PowerShellVersion | Should -Be 1
+            GetPesterPsVersion | Should -Be 1
         }
     }
 
-    Describe "Get-OperatingSystem" {
+    Describe "GetPesterOs" {
         Mock Get-Variable
         Context "Windows with PowerShell 5 and lower" {
             It "Returns 'Windows' when PowerShell version is lower than 6" {
-                Mock Get-PowerShellVersion { 5 }
+                Mock GetPesterPsVersion { 5 }
 
-                Get-OperatingSystem | Should -Be 'Windows'
+                GetPesterOs | Should -Be 'Windows'
             }
         }
 
@@ -24,9 +24,9 @@ InModuleScope -ModuleName Pester {
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $true }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -MockWith { $false }
-            Mock Get-PowerShellVersion { 6 }
+            Mock GetPesterPsVersion { 6 }
 
-            $os = Get-OperatingSystem
+            $os = GetPesterOs
             It "Returns 'Windows' when `$IsWindows is `$true and powershell version is 6 or higher" {
                 $os | Should -Be 'Windows'
             }
@@ -44,9 +44,9 @@ InModuleScope -ModuleName Pester {
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $true }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -MockWith { $false }
-            Mock Get-PowerShellVersion { 6 }
+            Mock GetPesterPsVersion { 6 }
 
-            $os = Get-OperatingSystem
+            $os = GetPesterOs
             It "Returns 'Linux' when `$IsLinux is `$true and powershell version is 6 or higher" {
                 $os | Should -Be 'Linux'
             }
@@ -60,9 +60,9 @@ InModuleScope -ModuleName Pester {
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -MockWith { $true }
-            Mock Get-PowerShellVersion { 6 }
+            Mock GetPesterPsVersion { 6 }
 
-            $os = Get-OperatingSystem
+            $os = GetPesterOs
             It "Returns 'OSX' when `$IsOSX is `$true and powershell version is 6 or higher" {
                 $os | Should -Be 'OSX'
             }
@@ -76,7 +76,7 @@ InModuleScope -ModuleName Pester {
 
     Describe 'Get-TempDirectory' {
         It 'returns the correct temp directory for Windows' {
-            Mock 'Get-OperatingSystem' {
+            Mock 'GetPesterOs' {
                 'Windows'
             }
             $expected = $env:TEMP = "C:\temp"
@@ -87,14 +87,14 @@ InModuleScope -ModuleName Pester {
         }
 
         It "returns '/tmp' directory for MacOS" {
-            Mock 'Get-OperatingSystem' {
+            Mock 'GetPesterOs' {
                 'MacOS'
             }
             Get-TempDirectory | Should -Be '/tmp'
         }
 
         It "returns '/tmp' directory for Linux" {
-            Mock 'Get-OperatingSystem' {
+            Mock 'GetPesterOs' {
                 'Linux'
             }
             Get-TempDirectory | Should -Be '/tmp'
