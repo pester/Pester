@@ -179,17 +179,14 @@ function ArraysAreEqual
         [object[]] $First,
         [object[]] $Second,
         [switch] $CaseSensitive,
+        [int] $RecursionDepth = 0,
         [int] $RecursionLimit = 100
     )
-    if ( -not (Get-Variable recursionDepth*) ) # PowerShell 2 workaround
-    {
-        $recursionDepth = 1
-    }
     $recursionDepth++
 
     if ( $recursionDepth -gt $RecursionLimit )
     {
-        throw "reached recursion depth limit of $RecursionLimit when comparing arrays $First and $Second"
+        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second.  Is one of your arrays cyclic?"
     }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
@@ -209,7 +206,7 @@ function ArraysAreEqual
     {
         if ((IsArray $First[$i]) -or (IsArray $Second[$i]))
         {
-            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive -RecursionDepth $RecursionDepth))
             {
                 return $false
             }

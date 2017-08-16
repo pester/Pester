@@ -96,7 +96,7 @@ InModuleScope Pester {
             $a2 = @($a1,2)
             $a1[0] = $a2
 
-            { $a1 | Should be $a2 } | Should throw 'reached recursion depth limit'
+            { $a1 | Should be $a2 } | Should throw 'recursion depth limit'
         }
     }
 
