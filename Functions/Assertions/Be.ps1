@@ -243,6 +243,8 @@ function IsArray
 {
     param ([object] $InputObject)
 
+    # Changing this could cause infinite recursion in ArraysAreEqual.
+    # see https://github.com/pester/Pester/issues/785#issuecomment-322794011
     return $InputObject -is [Array]
 }
 
