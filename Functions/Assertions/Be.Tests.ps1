@@ -85,7 +85,7 @@ InModuleScope Pester {
             {abc} | Should -CEQ "abc"
         }
 
-         It 'Does not overflow on IEnumerable' {
+        It 'Does not overflow on IEnumerable' {
             # see https://github.com/pester/Pester/issues/785
             $doc = [xml]'<?xml version="1.0" encoding="UTF-8" standalone="no" ?><root></root>'
             $doc | Should be $doc
