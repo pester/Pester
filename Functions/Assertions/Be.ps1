@@ -181,7 +181,7 @@ function ArraysAreEqual
         [switch] $CaseSensitive,
         [int] $RecursionLimit = 100
     )
-    if ( -not $recursionDepth ) # PowerShell 2 workaround
+    if ( -not (Get-Variable recursionDepth -ea SilentlyContinue) ) # PowerShell 2 workaround
     {
         $recursionDepth = 1
     }
