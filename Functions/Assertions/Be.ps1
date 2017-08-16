@@ -207,7 +207,7 @@ function ArraysAreEqual
 
     for ($i = 0; $i -lt $First.Count; $i++)
     {
-        if ((IsIList $First[$i]) -or (IsIList $Second[$i]))
+        if ((IsArray $First[$i]) -or (IsArray $Second[$i]))
         {
             if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
             {
@@ -242,11 +242,11 @@ function ArrayOrSingleElementIsNullOrEmpty
     return $null -eq $Array -or $Array.Count -eq 0 -or ($Array.Count -eq 1 -and $null -eq $Array[0])
 }
 
-function IsIList
+function IsArray
 {
     param ([object] $InputObject)
 
-    return [bool]$InputObject.GetType().GetInterface('IList')
+    return $InputObject -is [Array]
 }
 
 function ReplaceValueInArray
