@@ -181,7 +181,12 @@ function ArraysAreEqual
         [switch] $CaseSensitive,
         [int] $RecursionLimit = 100
     )
+    if ( -not $recursionDepth ) # PowerShell 2 workaround
+    {
+        $recursionDepth = 1
+    }
     $recursionDepth++
+
     if ( $recursionDepth -gt $RecursionLimit )
     {
         throw "reached recursion depth limit of $RecursionLimit when comparing arrays $First and $Second"
