@@ -91,14 +91,12 @@ InModuleScope Pester {
             $doc | Should be $doc
         }
 
-        Context 'recursion limit' {
-            It 'throws exception when self-imposed recursion limit is reached' {
-                $a1 = @(0,1)
-                $a2 = @($a1,2)
-                $a1[0] = $a2
+        It 'throws exception when self-imposed recursion limit is reached' {
+            $a1 = @(0,1)
+            $a2 = @($a1,2)
+            $a1[0] = $a2
 
-                { $a1 | Should be $a2 } | Should throw 'reached recursion depth limit'
-            }
+            { $a1 | Should be $a2 } | Should throw 'reached recursion depth limit'
         }
     }
 
