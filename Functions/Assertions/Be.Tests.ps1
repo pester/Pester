@@ -85,10 +85,18 @@ InModuleScope Pester {
             {abc} | Should -CEQ "abc"
         }
 
-        It 'Does not overflow on IEnumerable' {
+        It 'Does not overflow on cyclic object graph' {
             # see https://github.com/pester/Pester/issues/785
             $doc = [xml]'<?xml version="1.0" encoding="UTF-8" standalone="no" ?><root></root>'
             $doc | Should be $doc
+        }
+
+        Context 'recursion limit' {
+            Mock IsIList { $true }
+            It 'throws exception when self-imposed recursion limit is reached' {
+                $doc = [xml]''
+                { $doc | Should be $doc } | Should throw 'reached recursion depth limit'
+            }
         }
     }
 

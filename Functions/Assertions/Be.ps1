@@ -178,8 +178,14 @@ function ArraysAreEqual
     param (
         [object[]] $First,
         [object[]] $Second,
-        [switch] $CaseSensitive
+        [switch] $CaseSensitive,
+        [int] $RecursionLimit = 100
     )
+    $recursionDepth++
+    if ( $recursionDepth -gt $RecursionLimit )
+    {
+        throw "reached recursion depth limit of $RecursionLimit when comparing arrays $First and $Second"
+    }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
     # silly error in PowerShell v3.  (Null Reference exception from the PowerShell engine in a
@@ -196,7 +202,7 @@ function ArraysAreEqual
 
     for ($i = 0; $i -lt $First.Count; $i++)
     {
-        if ((IsCollection $First[$i]) -or (IsCollection $Second[$i]))
+        if ((IsIList $First[$i]) -or (IsIList $Second[$i]))
         {
             if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
             {
@@ -231,11 +237,11 @@ function ArrayOrSingleElementIsNullOrEmpty
     return $null -eq $Array -or $Array.Count -eq 0 -or ($Array.Count -eq 1 -and $null -eq $Array[0])
 }
 
-function IsCollection
+function IsIList
 {
     param ([object] $InputObject)
 
-    return $InputObject -is [Array]
+    return [bool]$InputObject.GetType().GetInterface('IList')
 }
 
 function ReplaceValueInArray
