@@ -182,11 +182,11 @@ function ArraysAreEqual
         [int] $RecursionDepth = 0,
         [int] $RecursionLimit = 100
     )
-    $recursionDepth++
+    $RecursionDepth++
 
-    if ( $recursionDepth -gt $RecursionLimit )
+    if ($RecursionDepth -gt $RecursionLimit)
     {
-        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second.  Is one of your arrays cyclic?"
+        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
     }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
@@ -206,7 +206,7 @@ function ArraysAreEqual
     {
         if ((IsArray $First[$i]) -or (IsArray $Second[$i]))
         {
-            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive -RecursionDepth $RecursionDepth))
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive -RecursionDepth $RecursionDepth -RecursionLimit $RecursionLimit))
             {
                 return $false
             }
