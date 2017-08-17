@@ -1,3 +1,11 @@
+## 4.0.6-rc (August 17, 2017)
+  - Add limit for cyclic arrays on Should -Be [GH-824]
+  - Fix infinite recursion on Should -Be [GH-818]
+  - Fix output when passing in hashtables [GH-816]
+  - Fix -Verifiable parameter on Assert-VerifiableMocks [GH-786]
+  - Add Set-TestInconclusive documentation to It [GH-778]
+  - Add script analyzer tests and more internal fixes
+
 ## 4.0.5-rc (July 25, 2017)
   - Publish Add-AssertionOperator [GH-765]
 
