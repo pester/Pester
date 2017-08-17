@@ -90,6 +90,14 @@ InModuleScope Pester {
             $doc = [xml]'<?xml version="1.0" encoding="UTF-8" standalone="no" ?><root></root>'
             $doc | Should be $doc
         }
+
+        It 'throws exception when self-imposed recursion limit is reached' {
+            $a1 = @(0,1)
+            $a2 = @($a1,2)
+            $a1[0] = $a2
+
+            { $a1 | Should be $a2 } | Should throw 'recursion depth limit'
+        }
     }
 
     Describe "PesterBeFailureMessage" {
