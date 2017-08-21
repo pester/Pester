@@ -122,13 +122,16 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 Describe 'Public API' {
     It 'all non-deprecated, non-internal public commands use CmdletBinding' {
         $r = Get-Command -Module Pester |
-        ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
-        ? { -not $_.CmdletBinding } |
-        % { $_.Name } |
-        ? {
+        Where { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
+        Where { -not $_.CmdletBinding } |
+        ForEach { $_.Name } |
+        Where {
             @(
                 'Get-TestDriveItem' # deprecated in 4.0
                 'SafeGetCommand' # Pester internal
+                'GetPesterPsVersion' # Pester internal
+                'GetPesterOs' # Pester internal
+                'Get-TempDirectory' # Pester internal
                 'Setup' # deprecated
             ) -notcontains $_
         }
