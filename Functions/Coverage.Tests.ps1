@@ -233,14 +233,34 @@ InModuleScope Pester {
     }
 
     Describe 'Stripping common parent paths' {
-        $paths = @(
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
-        )
+
+        If ($IsLinux -or $IsOSX) {
+
+            $paths = @(
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder1/File.ps1'
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder2/File2.ps1'
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder3/File3.ps1'
+
+                $expectedCommonPath = Normalize-Path '/usr/lib/Common/Folder'
+
+            )
+
+        }
+        Else {
+
+            $paths = @(
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
+
+                $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+
+            )
+
+        }
 
         $commonPath = Get-CommonParentPath -Path $paths
-        $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+
 
         It 'Identifies the correct parent path' {
             $commonPath | Should Be $expectedCommonPath
@@ -254,40 +274,40 @@ InModuleScope Pester {
         }
     }
 
-    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4)
-    {
+    #Workaround for Linux and MacOS - they don't have DSC by default installed with PowerShell - disable tests on these platforms
+    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4 -and ((GetPesterOS) -eq 'Windows')) {
         Describe 'Analyzing coverage of a DSC configuration' {
             $root = (Get-PSDrive TestDrive).Root
 
             $null = New-Item -Path $root\TestScriptWithConfiguration.ps1 -ItemType File -ErrorAction SilentlyContinue
 
             Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
-                $line1 = $true   # Triggers breakpoint
-                $line2 = $true   # Triggers breakpoint
+            $line1 = $true   # Triggers breakpoint
+            $line2 = $true   # Triggers breakpoint
 
-                configuration MyTestConfig   # does NOT trigger breakpoint
+            configuration MyTestConfig   # does NOT trigger breakpoint
+            {
+                Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
+
+                Node localhost    # Triggers breakpoint
                 {
-                    Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
-
-                    Node localhost    # Triggers breakpoint
+                    WindowsFeature XPSViewer   # Triggers breakpoint
                     {
-                        WindowsFeature XPSViewer   # Triggers breakpoint
-                        {
-                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
-                            Ensure = 'Present'   # does NOT trigger breakpoint
-                        }
+                        Name = 'XPS-Viewer'  # does NOT trigger breakpoint
+                        Ensure = 'Present'   # does NOT trigger breakpoint
                     }
-
-                    return # does NOT trigger breakpoint
-
-                    $doesNotExecute = $true   # Triggers breakpoint
                 }
 
-                $line3 = $true   # Triggers breakpoint
+                return # does NOT trigger breakpoint
 
-                return   # does NOT trigger breakpoint
+                $doesNotExecute = $true   # Triggers breakpoint
+            }
 
-                $doesnotexecute = $true   # Triggers breakpoint
+            $line3 = $true   # Triggers breakpoint
+
+            return   # does NOT trigger breakpoint
+
+            $doesnotexecute = $true   # Triggers breakpoint
 '@
 
             $testState = New-PesterState -Path $root
