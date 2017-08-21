@@ -228,13 +228,30 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
             if ( $e | Get-Member -Name ScriptStackTrace )
             {
-                It 'produces correct trace lines.' {
-                    $r.Trace[0] | Should be "at f1, $testPath`: line 2"
-                    $r.Trace[1] | Should be "at f2, $testPath`: line 5"
-                    $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
-                    $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-                        Should be $true
-                    $r.Trace.Count | Should be 5
+
+                If ((GetPesterOS) -ne 'Windows') {
+
+                    It 'produces correct trace lines.' {
+                        $r.Trace[0] | Should be "at f1, $testPath`: line 2"
+                        $r.Trace[1] | Should be "at f2, $testPath`: line 5"
+                        $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
+                        $r.Trace[3] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$' |
+                            Should be $true
+                        $r.Trace.Count | Should be 5
+                    }
+
+                }
+                Else {
+
+                    It 'produces correct trace lines.' {
+                        $r.Trace[0] | Should be "at f1, $testPath`: line 2"
+                        $r.Trace[1] | Should be "at f2, $testPath`: line 5"
+                        $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
+                        $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
+                            Should be $true
+                        $r.Trace.Count | Should be 5
+                    }
+
                 }
             }
             else
@@ -274,11 +291,26 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
             if ( $e | Get-Member -Name ScriptStackTrace )
             {
-                It 'produces correct trace line.' {
-                    $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
-                    $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
-                    $r.Trace.Count | Should be 3
+
+                If ((GetPesterOS) -ne 'Windows') {
+
+                    It 'produces correct trace line.' {
+                        $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace[1] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$'
+                        $r.Trace.Count | Should be 3
+                    }
+
                 }
+                Else {
+
+                    It 'produces correct trace line.' {
+                        $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
+                        $r.Trace.Count | Should be 3
+                    }
+
+                }
+
             }
             else
             {

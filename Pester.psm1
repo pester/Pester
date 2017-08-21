@@ -86,7 +86,7 @@ $script:SafeCommands = @{
     'Write-Warning'       = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
-# Not all platforms have Get-WmiObject (Nano)
+# Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta-5 on Linux)
 # Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
