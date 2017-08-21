@@ -51,6 +51,9 @@ FunctionsToExport = @(
     'New-PesterOption'
 	'New-MockObject'
     'Add-AssertionOperator'
+    'GetPesterPsVersion'
+    'GetPesterOs'
+    'Get-TempDirectory'
 
     # Gherkin Support:
     'Invoke-Gherkin'
