@@ -158,8 +158,12 @@ function ItImpl
 
     #mark empty Its as Pending
     #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
-    if ($PSCmdlet.ParameterSetName -eq 'Normal' -and
-       [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
+    $testIsEmpty = 
+        [String]::IsNullOrEmpty($test.Ast.BeginBlock.Statements) -and 
+        [String]::IsNullOrEmpty($test.Ast.ProcessBlock.Statements) -and 
+        [String]::IsNullOrEmpty($test.Ast.EndBlock.Statements)
+
+    if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
     {
         $Pending = $true
     }
@@ -175,31 +179,33 @@ function ItImpl
         $pendingSkip['Pending'] = $Pending
     }
 
-    if ($null -ne $TestCases -and $TestCases.Count -gt 0)
-    {
-        foreach ($testCase in $TestCases)
+    if ($PSBoundParameters.ContainsKey('TestCases')) {
+        if ($null -ne $TestCases -and $TestCases.Count -gt 0)
         {
-            $expandedName = [regex]::Replace($name, '<([^>]+)>', {
-                $capture = $args[0].Groups[1].Value
-                if ($testCase.Contains($capture))
-                {
-                    $testCase[$capture]
-                }
-                else
-                {
-                    "<$capture>"
-                }
-            })
+            foreach ($testCase in $TestCases)
+            {
+                $expandedName = [regex]::Replace($name, '<([^>]+)>', {
+                    $capture = $args[0].Groups[1].Value
+                    if ($testCase.Contains($capture))
+                    {
+                        $testCase[$capture]
+                    }
+                    else
+                    {
+                        "<$capture>"
+                    }
+                })
 
-            $splat = @{
-                Name = $expandedName
-                Scriptblock = $test
-                Parameters = $testCase
-                ParameterizedSuiteName = $name
-                OutputScriptBlock = $OutputScriptBlock
+                $splat = @{
+                    Name = $expandedName
+                    Scriptblock = $test
+                    Parameters = $testCase
+                    ParameterizedSuiteName = $name
+                    OutputScriptBlock = $OutputScriptBlock
+                }
+
+                Invoke-Test @splat @pendingSkip
             }
-
-            Invoke-Test @splat @pendingSkip
         }
     }
     else
