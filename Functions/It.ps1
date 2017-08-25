@@ -158,8 +158,12 @@ function ItImpl
 
     #mark empty Its as Pending
     #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
-    if ($PSCmdlet.ParameterSetName -eq 'Normal' -and
-       [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
+    $testIsEmpty = 
+        [String]::IsNullOrEmpty($test.Ast.BeginBlock.Statements) -and 
+        [String]::IsNullOrEmpty($test.Ast.ProcessBlock.Statements) -and 
+        [String]::IsNullOrEmpty($test.Ast.EndBlock.Statements)
+
+    if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
     {
         $Pending = $true
     }
