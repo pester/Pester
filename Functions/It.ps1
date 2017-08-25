@@ -179,31 +179,33 @@ function ItImpl
         $pendingSkip['Pending'] = $Pending
     }
 
-    if ($null -ne $TestCases -and $TestCases.Count -gt 0)
-    {
-        foreach ($testCase in $TestCases)
+    if ($PSBoundParameters.ContainsKey('TestCases')) {
+        if ($null -ne $TestCases -and $TestCases.Count -gt 0)
         {
-            $expandedName = [regex]::Replace($name, '<([^>]+)>', {
-                $capture = $args[0].Groups[1].Value
-                if ($testCase.Contains($capture))
-                {
-                    $testCase[$capture]
-                }
-                else
-                {
-                    "<$capture>"
-                }
-            })
+            foreach ($testCase in $TestCases)
+            {
+                $expandedName = [regex]::Replace($name, '<([^>]+)>', {
+                    $capture = $args[0].Groups[1].Value
+                    if ($testCase.Contains($capture))
+                    {
+                        $testCase[$capture]
+                    }
+                    else
+                    {
+                        "<$capture>"
+                    }
+                })
 
-            $splat = @{
-                Name = $expandedName
-                Scriptblock = $test
-                Parameters = $testCase
-                ParameterizedSuiteName = $name
-                OutputScriptBlock = $OutputScriptBlock
+                $splat = @{
+                    Name = $expandedName
+                    Scriptblock = $test
+                    Parameters = $testCase
+                    ParameterizedSuiteName = $name
+                    OutputScriptBlock = $OutputScriptBlock
+                }
+
+                Invoke-Test @splat @pendingSkip
             }
-
-            Invoke-Test @splat @pendingSkip
         }
     }
     else
