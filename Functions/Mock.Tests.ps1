@@ -230,27 +230,31 @@ Describe 'When calling Mock on an external script' {
     Remove-Item $ps1File -Force -ErrorAction SilentlyContinue
 }
 
-Describe 'When calling Mock on an application command' {
 
-    If ((GetPesterOs) -ne 'Windows') {
+InModuleScope -ModuleName Pester {
+    Describe 'When calling Mock on an application command' {
 
-        Mock visudo {return 'I am not visudo'}
+        If ((GetPesterOs) -ne 'Windows') {
+
+            Mock visudo {return 'I am not visudo'}
 
             $result = visudo
 
             It 'Should Invoke the mocked script' {
                 $result | Should Be 'I am not visudo'
+            }
+
         }
+        Else {
 
-    }
-    Else {
+             Mock schtasks.exe {return 'I am not schtasks.exe'}
 
-        Mock schtasks.exe {return 'I am not schtasks.exe'}
+             $result = schtasks.exe
 
-        $result = schtasks.exe
+            It 'Should Invoke the mocked script' {
+                 $result | Should Be 'I am not schtasks.exe'
+            }
 
-        It 'Should Invoke the mocked script' {
-            $result | Should Be 'I am not schtasks.exe'
         }
 
     }
@@ -871,30 +875,34 @@ Describe 'Dot Source Test' {
     }
 }
 
-Describe 'Mocking Cmdlets with dynamic parameters' {
+InModuleScope -ModuleName Pester {
 
-    If ((GetPesterOs) -ne 'Windows') {
+    Describe 'Mocking Cmdlets with dynamic parameters' {
 
-        $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
-        Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
+        If ((GetPesterOs) -ne 'Windows') {
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { Get-ChildItem -Path / -Hidden } | Should Not Throw
-            Assert-MockCalled Get-ChildItem
+            $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
+            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
+
+            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+                { Get-ChildItem -Path / -Hidden } | Should Not Throw
+                Assert-MockCalled Get-ChildItem
+            }
+
         }
+        Else {
 
-    }
-    Else {
+            $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
+            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
 
-        $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
-        Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
+            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+                { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should Not Throw
+                Assert-MockCalled Get-ChildItem
+            }
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should Not Throw
-            Assert-MockCalled Get-ChildItem
         }
-
     }
+
 }
 
 Describe 'Mocking functions with dynamic parameters' {
@@ -1236,158 +1244,162 @@ Describe 'Mocking functions with dynamic parameters' {
     }
 }
 
-Describe 'Mocking Cmdlets with dynamic parameters in a module' {
+InModuleScope -ModuleName Pester {
 
-    If ((GetPesterOs) -ne 'Windows') {
+    Describe 'Mocking Cmdlets with dynamic parameters in a module' {
 
-        New-Module -Name TestModule {
-            function PublicFunction   { Get-ChildItem -Path \ -Hidden }
-        } | Import-Module -Force
+        If ((GetPesterOs) -ne 'Windows') {
 
-        $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
-        Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Hidden }
+            New-Module -Name TestModule {
+                function PublicFunction   { Get-ChildItem -Path \ -Hidden }
+            } | Import-Module -Force
 
+            $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
+            Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Hidden }
+
+        }
+        Else {
+
+            New-Module -Name TestModule {
+                function PublicFunction   { Get-ChildItem -Path Cert:\ -CodeSigningCert }
+            } | Import-Module -Force
+
+            $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
+            Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$CodeSigningCert }
+
+        }
+
+        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+            { TestModule\PublicFunction } | Should Not Throw
+            Assert-MockCalled Get-ChildItem -ModuleName TestModule
+        }
+
+        AfterAll {
+            Remove-Module TestModule -Force
+        }
     }
-    Else {
 
-        New-Module -Name TestModule {
-            function PublicFunction   { Get-ChildItem -Path Cert:\ -CodeSigningCert }
-        } | Import-Module -Force
+    Describe 'DynamicParam blocks in other scopes' {
 
-        $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
-        Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$CodeSigningCert }
+        If ((GetPesterOs) -ne 'Windows') {
 
-    }
+            New-Module -Name TestModule1 {
+                $script:DoDynamicParam = $true
 
-    It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-        { TestModule\PublicFunction } | Should Not Throw
-        Assert-MockCalled Get-ChildItem -ModuleName TestModule
-    }
+                function DynamicParamFunction {
+                    [CmdletBinding()]
+                    param ( )
 
-    AfterAll {
-        Remove-Module TestModule -Force
-    }
-}
-
-Describe 'DynamicParam blocks in other scopes' {
-
-    If ((GetPesterOs) -ne 'Windows') {
-
-        New-Module -Name TestModule1 {
-            $script:DoDynamicParam = $true
-
-            function DynamicParamFunction {
-                [CmdletBinding()]
-                param ( )
-
-                DynamicParam {
-                    if ($script:DoDynamicParam)
-                    {
-
-                        $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-                        $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
-
-                        $params['Path'] = [string[]]'/'
-                        Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
-                    }
-                }
-
-                end
-                {
-                    'I am the original function'
-                }
-            }
-        } | Import-Module -Force
-
-        New-Module -Name TestModule2 {
-            function CallingFunction
-            {
-                DynamicParamFunction -Hidden
-            }
-
-            function CallingFunction2 {
-                [CmdletBinding()]
-                param (
-                    [ValidateScript({ [bool](DynamicParamFunction -Hidden) })]
-                    [string]
-                    $Whatever
-                )
-            }
-        } | Import-Module -Force
-
-        Mock DynamicParamFunction { if ($Hidden) { 'I am the mocked function' } } -ModuleName TestModule2
-
-    }
-    Else {
-
-        New-Module -Name TestModule1 {
-            $script:DoDynamicParam = $true
-
-            function DynamicParamFunction {
-                [CmdletBinding()]
-                param ( )
-
-                DynamicParam {
-                    if ($script:DoDynamicParam)
-                    {
-                        if ($PSVersionTable.PSVersion.Major -ge 3)
+                    DynamicParam {
+                        if ($script:DoDynamicParam)
                         {
-                            # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
-                            # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
-                            # to make a new one.
 
                             $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
-                        }
-                        else
-                        {
-                            $params = @{}
-                        }
 
-                        $params['Path'] = [string[]]'Cert:\'
-                        Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                            $params['Path'] = [string[]]'/'
+                            Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                        }
+                    }
+
+                    end
+                    {
+                        'I am the original function'
                     }
                 }
+            } | Import-Module -Force
 
-                end
+            New-Module -Name TestModule2 {
+                function CallingFunction
                 {
-                    'I am the original function'
+                    DynamicParamFunction -Hidden
                 }
-            }
-        } | Import-Module -Force
 
-        New-Module -Name TestModule2 {
-            function CallingFunction
-            {
-                DynamicParamFunction -CodeSigningCert
-            }
+                function CallingFunction2 {
+                    [CmdletBinding()]
+                    param (
+                        [ValidateScript({ [bool](DynamicParamFunction -Hidden) })]
+                        [string]
+                        $Whatever
+                    )
+                }
+            } | Import-Module -Force
 
-            function CallingFunction2 {
-                [CmdletBinding()]
-                param (
-                    [ValidateScript({ [bool](DynamicParamFunction -CodeSigningCert) })]
-                    [string]
-                    $Whatever
-                )
-            }
-        } | Import-Module -Force
+            Mock DynamicParamFunction { if ($Hidden) { 'I am the mocked function' } } -ModuleName TestModule2
 
-        Mock DynamicParamFunction { if ($CodeSigningCert) { 'I am the mocked function' } } -ModuleName TestModule2
+        }
+        Else {
 
+            New-Module -Name TestModule1 {
+                $script:DoDynamicParam = $true
+
+                function DynamicParamFunction {
+                    [CmdletBinding()]
+                    param ( )
+
+                    DynamicParam {
+                        if ($script:DoDynamicParam)
+                        {
+                            if ($PSVersionTable.PSVersion.Major -ge 3)
+                            {
+                                # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
+                                # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
+                                # to make a new one.
+
+                                $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+                                $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+                            }
+                            else
+                            {
+                                $params = @{}
+                            }
+
+                            $params['Path'] = [string[]]'Cert:\'
+                            Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                        }
+                    }
+
+                    end
+                    {
+                        'I am the original function'
+                    }
+                }
+            } | Import-Module -Force
+
+            New-Module -Name TestModule2 {
+                function CallingFunction
+                {
+                    DynamicParamFunction -CodeSigningCert
+                }
+
+                function CallingFunction2 {
+                    [CmdletBinding()]
+                    param (
+                        [ValidateScript({ [bool](DynamicParamFunction -CodeSigningCert) })]
+                        [string]
+                        $Whatever
+                    )
+                }
+            } | Import-Module -Force
+
+            Mock DynamicParamFunction { if ($CodeSigningCert) { 'I am the mocked function' } } -ModuleName TestModule2
+
+        }
+
+        It 'Properly evaluates dynamic parameters when called from another scope' {
+            CallingFunction | Should Be 'I am the mocked function'
+        }
+
+        It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
+            CallingFunction2 -Whatever 'Whatever'
+        }
+
+        AfterAll {
+            Remove-Module TestModule1 -Force
+            Remove-Module TestModule2 -Force
+        }
     }
 
-    It 'Properly evaluates dynamic parameters when called from another scope' {
-        CallingFunction | Should Be 'I am the mocked function'
-    }
-
-    It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
-        CallingFunction2 -Whatever 'Whatever'
-    }
-
-    AfterAll {
-        Remove-Module TestModule1 -Force
-        Remove-Module TestModule2 -Force
-    }
 }
 
 Describe 'Parameter Filters and Common Parameters' {
