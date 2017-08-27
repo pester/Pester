@@ -140,26 +140,44 @@ function DescribeImpl {
     $testDriveAdded = $false
     try
     {
-        if (-not $NoTestDrive)
+        try
         {
-            if (-not (Test-Path TestDrive:\))
+            if (-not $NoTestDrive)
             {
-                New-TestDrive
-                $testDriveAdded = $true
+                if (-not (Test-Path TestDrive:\))
+                {
+                    New-TestDrive
+                    $testDriveAdded = $true
+                }
+                else
+                {
+                    $TestDriveContent = Get-TestDriveChildItem
+                }
             }
-            else
+
+            Add-SetupAndTeardown -ScriptBlock $Fixture
+            Invoke-TestGroupSetupBlocks
+
+            do
             {
-                $TestDriveContent = Get-TestDriveChildItem
+                $null = & $Fixture
+            } until ($true)
+        }
+        finally
+        {
+            Invoke-TestGroupTeardownBlocks
+            if (-not $NoTestDrive)
+            {
+                if ($testDriveAdded)
+                {
+                    Remove-TestDrive
+                }
+                else
+                {
+                    Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+                }
             }
         }
-
-        Add-SetupAndTeardown -ScriptBlock $Fixture
-        Invoke-TestGroupSetupBlocks
-
-        do
-        {
-            $null = & $Fixture
-        } until ($true)
     }
     catch
     {
@@ -168,21 +186,6 @@ function DescribeImpl {
         if ($null -ne $TestOutputBlock)
         {
             & $TestOutputBlock $Pester.TestResult[-1]
-        }
-    }
-    finally
-    {
-        Invoke-TestGroupTeardownBlocks
-        if (-not $NoTestDrive)
-        {
-            if ($testDriveAdded)
-            {
-                Remove-TestDrive
-            }
-            else
-            {
-                Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
-            }
         }
     }
 
