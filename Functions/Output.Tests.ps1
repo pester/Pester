@@ -119,31 +119,69 @@ Describe 'ConvertTo-PesterResult' {
 
 InModuleScope -ModuleName Pester -ScriptBlock {
     Describe "Format-PesterPath" {
+
         It "Writes path correctly when it is given `$null" {
             Format-PesterPath -Path $null | Should -Be $null
         }
 
-        It "Writes path correctly when it is provided as string" {
-            Format-PesterPath -Path "C:\path" | Should -Be "C:\path"
-        }
+        If ( (GetPesterOS) -ne 'Windows') {
 
-        It "Writes path correctly when it is provided as string[]" {
-            Format-PesterPath -Path @("C:\path1", "C:\path2") -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
-        }
+            It "Writes path correctly when it is provided as string" {
+                Format-PesterPath -Path "/home/username/folder1" | Should -Be "/home/username/folder1"
+            }
 
-        It "Writes path correctly when provided through hashtable" {
-            Format-PesterPath -Path @{ Path = "C:\path" } | Should -Be "C:\path"
-        }
+            It "Writes path correctly when it is provided as string[]" {
+                Format-PesterPath -Path @("/home/username/folder1", "/home/username/folder2") -Delimiter ', ' | Should -Be "/home/username/folder1, /home/username/folder2"
+            }
 
-        It "Writes path correctly when provided through array of hashtable" {
-            Format-PesterPath -Path @{ Path = "C:\path1" }, @{ Path = "C:\path2" } -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+            It "Writes path correctly when provided through hashtable" {
+                Format-PesterPath -Path @{ Path = "/home/username/folder1" } | Should -Be "/home/username/folder1"
+            }
+
+            It "Writes path correctly when provided through array of hashtable" {
+                Format-PesterPath -Path @{ Path = "/home/username/folder1" }, @{ Path = "/home/username/folder2" } -Delimiter ', ' | Should -Be "/home/username/folder1, /home/username/folder2"
+            }
+
+
+        }
+        Else {
+
+            It "Writes path correctly when it is provided as string" {
+                Format-PesterPath -Path "C:\path" | Should -Be "C:\path"
+            }
+
+            It "Writes path correctly when it is provided as string[]" {
+                Format-PesterPath -Path @("C:\path1", "C:\path2") -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+            }
+
+            It "Writes path correctly when provided through hashtable" {
+                Format-PesterPath -Path @{ Path = "C:\path" } | Should -Be "C:\path"
+            }
+
+            It "Writes path correctly when provided through array of hashtable" {
+                Format-PesterPath -Path @{ Path = "C:\path1" }, @{ Path = "C:\path2" } -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+            }
+
         }
     }
+
+
 
     Describe "Write-PesterStart" {
         It "uses Format-PesterPath with the provided path" {
             Mock Format-PesterPath
-            $expected = "C:\temp"
+
+            If ((GetPesterOS) -ne 'Windows'){
+
+                $expected = "/tmp"
+
+            }
+            Else {
+
+                $expected = "C:\temp"
+
+            }
+
             Write-PesterStart -PesterState (New-PesterState) -Path $expected
             Assert-MockCalled Format-PesterPath -ParameterFilter {$Path -eq $expected}
         }
@@ -162,6 +200,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         }
         It 'failed should produces correct message lines.' {
             try { 'One' | Should be 'Two' } catch { $e = $_ }
+
             $r = $e | ConvertTo-FailureLines
 
             $r.Message[0] | Should be 'String lengths are both 3. Strings differ at index 0.'
@@ -321,4 +360,5 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
         }
     }
+
 }
