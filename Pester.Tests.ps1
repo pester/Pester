@@ -136,12 +136,13 @@ Describe 'Public API' {
     }
 }
 
-Describe 'Style rules' {
+Describe 'Style rules' -Tag StyleRules {
     $pesterRoot = (Get-Module Pester).ModuleBase
 
     $files = @(
-        Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1
-        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1 -Recurse
+        Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
