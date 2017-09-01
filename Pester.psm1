@@ -553,13 +553,20 @@ One of the following: Function or StartLine/EndLine
    Default is the last line of the script.
 
 .PARAMETER CodeCoverageOutputFile
-The path where Invoke-Pester will save formatted code coverage results file in JaCoCo format.
+The path where Invoke-Pester will save formatted code coverage results file.
 
 The path must include the location and name of the folder and file name with
-the xml extension.
+a required extension (ussually the xml).
 
-If this path is not provided, no xml file will be generated.
+If this path is not provided, no file will be generated.
 
+.PARAMETER CodeCoverageOutputFileFormat
+The name of a code coverage report file format.
+
+Default vaule is: JaCoCo.
+
+Currently supported formats are:
+- JaCoCo - this XML file format is compatible with the VSTS/TFS
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
@@ -733,6 +740,9 @@ New-PesterOption
 
         [string] $CodeCoverageOutputFile,
 
+        [ValidateSet('JaCoCo')]
+        [String]$CodeCoverageOutputFileFormat = "JaCoCo",
+
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -829,7 +839,8 @@ New-PesterOption
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
             Write-CoverageReport -CoverageReport $coverageReport
-            if (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+            if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
+                -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
                 $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
