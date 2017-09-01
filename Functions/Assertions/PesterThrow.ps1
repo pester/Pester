@@ -58,7 +58,7 @@ function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
 
 function Get-ExceptionLineInfo($info) {
     # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
-    $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join "`r`n"
+    $positionMessage = $info.PositionMessage -split "$([System.Environment]::NewLine)" -match '\S' -join "$([System.Environment]::NewLine)"
     return ($positionMessage -replace "^At ","from ")
 }
 
@@ -79,11 +79,11 @@ function PesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErro
             { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
             { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
         }
-        $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}`n    {3}" -f
+        $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}$([System.Environment]::NewLine)    {3}" -f
             ($Expected -join ' and '),
             @{$true="";$false="not "}[$ActualExceptionWasThrown],
             ($Actual -join ' and '),
-            ($ActualExceptionLine  -replace "`n","`n    ")
+            ($ActualExceptionLine  -replace "$([System.Environment]::NewLine)","$([System.Environment]::NewLine)    ")
         ))
     }
 
@@ -107,16 +107,16 @@ function NotPesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedE
             { $ExpectedMessage } { 'message was {{{0}}}' -f $ActualExceptionMessage }
             { $ExpectedErrorId } { 'error id was {{{0}}}' -f $ActualErrorId }
         }
-        $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}`n    {3}" -f
+        $null = $StringBuilder.Append(("{0}, an exception was {1}raised, {2}$([System.Environment]::NewLine)    {3}" -f
             ($Expected -join ' and '),
             (@{$true="";$false="not "}[$ActualExceptionWasThrown]),
             ($Actual -join ' and '),
-            ($ActualExceptionLine  -replace "`n","`n    ")
+            ($ActualExceptionLine  -replace "$([System.Environment]::NewLine)","$([System.Environment]::NewLine)    ")
         ))
     }
     else
     {
-      $null = $StringBuilder.Append((". Message was {{{0}}}`n    {1}" -f $ActualExceptionMessage, ($ActualExceptionLine -replace "`n","`n    ")))
+      $null = $StringBuilder.Append((". Message was {{{0}}}$([System.Environment]::NewLine)    {1}" -f $ActualExceptionMessage, ($ActualExceptionLine -replace "$([System.Environment]::NewLine)","$([System.Environment]::NewLine)    ")))
     }
 
     return $StringBuilder.ToString()

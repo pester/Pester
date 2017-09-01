@@ -417,7 +417,7 @@ function Import-GherkinFeature {
                         }
                 $ScenarioName = $Scenario.Name
                 if($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
+                    $ScenarioName = $ScenarioName + "$([System.Environment]::NewLine)  Examples:" + $ExampleSet.Name.Trim()
                 }
                 Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
@@ -453,7 +453,7 @@ function Invoke-GherkinFeature {
         Import-GherkinSteps -StepPath $Parent -Pester $pester
         $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
     } catch [Gherkin.ParserException] {
-        Microsoft.PowerShell.Utility\Write-Error -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | Select-Object -Expand Message) -join "`n`n")"
+        Microsoft.PowerShell.Utility\Write-Error -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.$([System.Environment]::NewLine)$(($_.Exception.Errors | Select-Object -Expand Message) -join "$([System.Environment]::NewLine)$([System.Environment]::NewLine)")"
         continue
     }
 
@@ -710,7 +710,7 @@ Pester state object. For internal use only
             ${Pester Result}.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
         } else {
             # Unless we really are a StackTrace...
-            ${Pester Result}.StackTrace +=  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
+            ${Pester Result}.StackTrace +=  "$([System.Environment]::NewLine)From " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
         $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterException.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
         $Pester.TestResult[-1] | Write-PesterResult

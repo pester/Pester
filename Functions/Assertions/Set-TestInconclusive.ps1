@@ -18,7 +18,7 @@ function Set-TestInconclusive {
     .DESCRIPTION
     If an Set-TestInconclusive is used inside It block, the test will always fails
     with an Inconclusive result. It's not a passed result, nor a failed result,
-    but something in between – Inconclusive. It indicates that the results
+    but something in between - Inconclusive. It indicates that the results
     of the test could not be verified.
 
     .PARAMETER Message
@@ -57,7 +57,7 @@ function Set-TestInconclusive {
     )
 
     Assert-DescribeInProgress -CommandName Set-TestInconclusive
-    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $lineText = $MyInvocation.Line.TrimEnd($([System.Environment]::NewLine))
     $line = $MyInvocation.ScriptLineNumber
     $file = $MyInvocation.ScriptName
 

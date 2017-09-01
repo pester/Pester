@@ -93,7 +93,7 @@ Describe 'ConvertTo-PesterResult' {
         $testPath = Join-Path $TestDrive test.ps1
         $escapedTestPath = [regex]::Escape($testPath)
 
-        Set-Content -Path $testPath -Value "`r`n'One' | Should Be 'Two'"
+        Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should Be 'Two'"
 
         try
         {

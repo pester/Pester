@@ -422,7 +422,7 @@ This will not throw an exception because the mock was invoked.
             $function = $array[1]
             $module = $array[0]
 
-            $message = "`r`n Expected $function "
+            $message = "$([System.Environment]::NewLine) Expected $function "
             if ($module) { $message += "in module $module " }
             $message += "to be called with $($unVerified[$mock].Filter)"
         }
@@ -660,7 +660,7 @@ param(
         }
     }
 
-    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
     $line = $MyInvocation.ScriptLineNumber
 
     if($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0)))
@@ -1300,7 +1300,7 @@ function Get-DynamicParamBlock
                           & $SafeCommands['Select-Object'] -ExpandProperty Extent |
                           & $SafeCommands['Select-Object'] -ExpandProperty Text
 
-            return $statements -join "`r`n"
+            return $statements -join "$([System.Environment]::NewLine)"
         }
     }
 }
