@@ -77,7 +77,7 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace '\n',''
+                $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
                 $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
             }
             Exit-CoverageAnalysis -PesterState $testState
@@ -276,39 +276,79 @@ InModuleScope Pester {
 
     #Workaround for Linux and MacOS - they don't have DSC by default installed with PowerShell - disable tests on these platforms
     if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4 -and ((GetPesterOS) -eq 'Windows')) {
+
         Describe 'Analyzing coverage of a DSC configuration' {
             $root = (Get-PSDrive TestDrive).Root
 
             $null = New-Item -Path $root\TestScriptWithConfiguration.ps1 -ItemType File -ErrorAction SilentlyContinue
 
-            Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
-            $line1 = $true   # Triggers breakpoint
-            $line2 = $true   # Triggers breakpoint
+            #On Windows 10 two PSDesiredStateConfiguration modules are available for PSCore
+            If ( $PSVersionTable.PSVersion.Major -eq 6 ) {
 
-            configuration MyTestConfig   # does NOT trigger breakpoint
-            {
-                Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
+                Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
+                $line1 = $true   # Triggers breakpoint
+                $line2 = $true   # Triggers breakpoint
 
-                Node localhost    # Triggers breakpoint
+                configuration MyTestConfig   # does NOT trigger breakpoint
                 {
-                    WindowsFeature XPSViewer   # Triggers breakpoint
+                    Get-Module -Name PSDesiredStateConfiguration -ListAvailable | Where { $_.Path -match "6.0." } | Import-DscResource -ModuleName PSDesiredStateConfiguration
+
+                    Node localhost    # Triggers breakpoint
                     {
-                        Name = 'XPS-Viewer'  # does NOT trigger breakpoint
-                        Ensure = 'Present'   # does NOT trigger breakpoint
+                        WindowsFeature XPSViewer   # Triggers breakpoint
+                        {
+                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
+                            Ensure = 'Present'   # does NOT trigger breakpoint
+                        }
                     }
+
+                    return # does NOT trigger breakpoint
+
+                    $doesNotExecute = $true   # Triggers breakpoint
                 }
 
-                return # does NOT trigger breakpoint
+                $line3 = $true   # Triggers breakpoint
 
-                $doesNotExecute = $true   # Triggers breakpoint
-            }
-
-            $line3 = $true   # Triggers breakpoint
-
-            return   # does NOT trigger breakpoint
+                return   # does NOT trigger breakpoint
 
             $doesnotexecute = $true   # Triggers breakpoint
 '@
+
+
+            }
+
+            Else {
+
+                Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
+                $line1 = $true   # Triggers breakpoint
+                $line2 = $true   # Triggers breakpoint
+
+                configuration MyTestConfig   # does NOT trigger breakpoint
+                {
+                    Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
+
+                    Node localhost    # Triggers breakpoint
+                    {
+                        WindowsFeature XPSViewer   # Triggers breakpoint
+                        {
+                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
+                            Ensure = 'Present'   # does NOT trigger breakpoint
+                        }
+                    }
+
+                    return # does NOT trigger breakpoint
+
+                    $doesNotExecute = $true   # Triggers breakpoint
+                }
+
+                $line3 = $true   # Triggers breakpoint
+
+                return   # does NOT trigger breakpoint
+
+            $doesnotexecute = $true   # Triggers breakpoint
+'@
+
+        }
 
             $testState = New-PesterState -Path $root
 

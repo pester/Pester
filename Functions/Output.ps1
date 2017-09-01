@@ -126,7 +126,7 @@ function Write-Describe {
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
         if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
-            $Describe.Description -split '\n' | ForEach {
+            $Describe.Description -split "$([System.Environment]::NewLine)" | ForEach {
                 & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
         }
@@ -150,7 +150,7 @@ function Write-Context {
         & $SafeCommands['Write-Host'] ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
         # If the scenario has a longer description, write that too
         if($Context.PSObject.Properties['Description'] -and $Context.Description) {
-            $Context.Description -split '\n' | ForEach {
+            $Context.Description -split "$([System.Environment]::NewLine)" | ForEach {
                 & $SafeCommands['Write-Host'] (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
             }
         }
@@ -211,7 +211,7 @@ function ConvertTo-PesterResult {
     }
 
     $testResult.failureMessage = $failureMessage
-    $testResult.stackTrace = "at <ScriptBlock>, ${file}: line ${line}`n${line}: ${Text}"
+    $testResult.stackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
     $testResult.ErrorRecord = $ErrorRecord
 
     return $testResult
@@ -391,10 +391,11 @@ function ConvertTo-FailureLines
         ## convert the exception messages
         $exception = $ErrorRecord.Exception
         $exceptionLines = @()
+
         while ($exception)
         {
             $exceptionName = $exception.GetType().Name
-            $thisLines = $exception.Message.Split([System.Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine),"\n","`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
             if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed')
             {
                 $thisLines[0] = "$exceptionName`: $($thisLines[0])"
@@ -407,7 +408,7 @@ function ConvertTo-FailureLines
         $lines.Message += $exceptionLines
         if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
         {
-            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([System.Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([string[]]($([System.Environment]::NewLine),"\n","`n"),  [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
         if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) )
@@ -424,7 +425,7 @@ function ConvertTo-FailureLines
         }
 
         ## convert the stack trace
-        $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        $traceLines = $ErrorRecord.ScriptStackTrace.Split([string[]]($([System.Environment]::NewLine),"\n","`n"),  [System.StringSplitOptions]::RemoveEmptyEntries)
 
         $count = 0
 
@@ -459,7 +460,7 @@ function ConvertTo-FailureLines
                 $_ -notmatch $pattern3
             }
 
-            return $lines
+        return $lines
 
     }
 }
