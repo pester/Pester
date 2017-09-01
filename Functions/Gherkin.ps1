@@ -309,12 +309,23 @@ https://kevinmarquette.github.io/2017-04-30-Powershell-Gherkin-advanced-features
 }
 
 function Import-GherkinSteps {
-    #.Synopsis
-    #   Import all the steps that are at the same level or a subdirectory
+
+<#
+
+.SYNOPSIS
+ Import all the steps that are at the same level or a subdirectory
+
+.PARAMETER StepPath
+The folder which contains step files
+
+.PARAMETER Pester
+
+#>
+
     [CmdletBinding()]
     param(
-        # The folder which contains step files
-        [Alias("PSPath")]
+
+    [Alias("PSPath")]
         [Parameter(Mandatory=$True, Position=0, ValueFromPipelineByPropertyName=$True)]
         $StepPath,
 
@@ -413,8 +424,13 @@ function Import-GherkinFeature {
 }
 
 function Invoke-GherkinFeature {
-    #.Synopsis
-    #   Parse and run a feature
+
+<#
+
+.SYNOPSIS
+ Parse and run a feature
+
+ #>
     [CmdletBinding()]
     param(
         [Alias("PSPath")]
@@ -537,11 +553,26 @@ function Invoke-GherkinScenario {
 }
 
 function Find-GherkinStep {
+
+<#
+
+.SYNOPSIS
+
+.DESCRIPTION
+
+.PARAMETER Step
+The text from feature file
+
+.PARAMETER BasePath
+The path to search for step implementations.
+
+#>
+
     [CmdletBinding()]
     param(
-        # The text from feature file
+
         [string]$Step,
-        # The path to search for step implementations
+
         [string]$BasePath = $Pwd
     )
 
@@ -580,17 +611,30 @@ function Find-GherkinStep {
 }
 
 function Invoke-GherkinStep {
-    #.Synopsis
-    #   Run a single gherkin step, given the text from the feature file
+
+<#
+
+.SYNOPSIS
+Run a single gherkin step, given the text from the feature file
+
+.PARAMETER Step
+The text of the step for matching against regex patterns in step implementations
+
+.PARAMETER Visible
+If Visible is true, the results of this step will be shown in the test report
+
+.PARAMETER Pester
+Pester state object. For internal use only
+
+#>
+
     [CmdletBinding()]
     param (
-        # The text of the step for matching against regex patterns in step implementations
+
         $Step,
 
-        # If Visible is true, the results of this step will be shown in the test report
         [Switch]$Visible,
 
-        # Pester state object. For internal use only
         $Pester
     )
     if($Step -is [string]) {
