@@ -13,6 +13,11 @@ apply to tests within that Context .
 .PARAMETER Name
 The name of the Context. This is a phrase describing a set of tests within a describe.
 
+.PARAMETER Tag
+Optional parameter containing an array of strings.  When calling Invoke-Pester,
+it is possible to specify a -Tag parameter which will only execute Context blocks
+containing the same Tag.
+
 .PARAMETER Fixture
 Script that is executed. This may include setup specific to the context
 and one or more It blocks that validate the expected outcomes.
