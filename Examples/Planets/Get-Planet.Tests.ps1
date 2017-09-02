@@ -101,7 +101,11 @@ Describe 'Get-Planet' {
             $planets = Get-Planet -Name $Filter
             # We validate that the returned name is equal to $Expected. 
             # That is Neptune, in our second test.
-            $planets.Name | Should -Be $Expected
+            $planets | Select -ExpandProperty Name | Should -Be $Expected
+            
+            # again we are jumping thru hoops to keep PowerShell v2 compatibility
+            # in PowerShell v3 you would just do this, as seen in readme:
+            # $planets.Name | Should -Be $Expected
         }
 
         # Testing just the positive cases is usually not enough. Our tests
