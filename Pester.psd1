@@ -49,7 +49,7 @@ FunctionsToExport = @(
     'Set-TestInconclusive'
     'SafeGetCommand'
     'New-PesterOption'
-	'New-MockObject'
+    'New-MockObject'
     'Add-AssertionOperator'
 
     # Gherkin Support:
