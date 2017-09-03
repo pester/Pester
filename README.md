@@ -64,9 +64,6 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://github.com/pester/Pester/wiki/Installation-and-Update).
 
-todo: add page with all the info for installation. most likely we will split it by versions of PowerShell, not by windows. But I am using compatibility with windows in here , how to install, update, why those steps are needed, and how to remove the old Pester version from windows.
-Do not use the `-Scope User` parameter.
-
 ## Features
 
 ### Test runner
@@ -155,4 +152,3 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 [![Pester on StackOverflow](doc/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
 [![Testing channel on Powershell Slack](doc/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
 [![Pester Gitter](doc/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
