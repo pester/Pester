@@ -31,5 +31,5 @@ function NotPesterFileContentMatchMultilineFailureMessage($ActualValue, $Expecte
     return "Expected: file {$ActualValue} to not contain {$ExpectedContent} but it did"
 }
 
-Add-AssertionOperator -Name  ContainMultiline `
+Add-AssertionOperator -Name  FileContentMatchMultiline `
                       -Test  $function:PesterFileContentMatchMultiline
