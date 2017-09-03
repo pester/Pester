@@ -1,4 +1,4 @@
-function PesterContainExactly($ActualValue, $ExpectedContent, [switch] $Negate) {
+function PesterFileContentMatchExactly($ActualValue, $ExpectedContent, [switch] $Negate) {
     $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -cmatch $ExpectedContent).Count -gt 0
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +9,11 @@ function PesterContainExactly($ActualValue, $ExpectedContent, [switch] $Negate) 
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterContainExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = NotPesterFileContentMatchExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
         }
         else
         {
-            $failureMessage = PesterContainExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = PesterFileContentMatchExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
         }
     }
 
@@ -23,13 +23,13 @@ function PesterContainExactly($ActualValue, $ExpectedContent, [switch] $Negate) 
     }
 }
 
-function PesterContainExactlyFailureMessage($ActualValue, $ExpectedContent) {
+function PesterFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedContent) {
     return "Expected: file {$ActualValue} to contain exactly {$ExpectedContent}"
 }
 
-function NotPesterContainExactlyFailureMessage($ActualValue, $ExpectedContent) {
+function NotPesterFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedContent) {
     return "Expected: file {$ActualValue} to not contain exactly {$ExpectedContent} but it did"
 }
 
-Add-AssertionOperator -Name ContainExactly `
-                      -Test $function:PesterContainExactly
+Add-AssertionOperator -Name FileContentMatchExactly `
+                      -Test $function:PesterFileContentMatchExactly

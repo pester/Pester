@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterContainMultiline" {
+    Describe "PesterFileContentMatchMultiline" {
         Context "when testing file contents" {
             Setup -File "test.txt" "this is line 1`nthis is line 2`nPester is awesome"
             It "returns true if the file matches the specified content on one line" {

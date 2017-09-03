@@ -1,4 +1,4 @@
-function PesterContainMultiline($ActualValue, $ExpectedContent, [switch] $Negate) {
+function PesterFileContentMatchMultiline($ActualValue, $ExpectedContent, [switch] $Negate) {
     $succeeded = [bool] ((Get-Content $ActualValue -delim ([char]0)) -match $ExpectedContent)
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +9,11 @@ function PesterContainMultiline($ActualValue, $ExpectedContent, [switch] $Negate
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterContainMultilineFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = NotPesterFileContentMatchMultilineFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
         }
         else
         {
-            $failureMessage = PesterContainMultilineFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = PesterFileContentMatchMultilineFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
         }
     }
 
@@ -23,13 +23,13 @@ function PesterContainMultiline($ActualValue, $ExpectedContent, [switch] $Negate
     }
 }
 
-function PesterContainMultilineFailureMessage($ActualValue, $ExpectedContent) {
+function PesterFileContentMatchMultilineFailureMessage($ActualValue, $ExpectedContent) {
     return "Expected: file {$ActualValue} to contain {$ExpectedContent}"
 }
 
-function NotPesterContainMultilineFailureMessage($ActualValue, $ExpectedContent) {
+function NotPesterFileContentMatchMultilineFailureMessage($ActualValue, $ExpectedContent) {
     return "Expected: file {$ActualValue} to not contain {$ExpectedContent} but it did"
 }
 
 Add-AssertionOperator -Name  ContainMultiline `
-                      -Test  $function:PesterContainMultiline
+                      -Test  $function:PesterFileContentMatchMultiline
