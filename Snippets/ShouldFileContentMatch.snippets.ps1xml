@@ -3,7 +3,7 @@
         <Snippet Version='1.0.0'>
             <Header>
                 <Title>Should Contain</Title>
-                <Description>Add Pester Should Contain assertion</Description>
+                <Description>Add Pester Should FileContentMatch assertion</Description>
                 <Shortcut>sc</Shortcut> 
                 <Keywords>Pipeline,ScriptBlock,Editor,Console</Keywords>
                 <Author>nohwnd</Author>
@@ -14,7 +14,7 @@
 
             <Code>
                 <Script Language='PowerShell' CaretOffset='17'>
-                    <![CDATA[| Should Contain ]]>
+                    <![CDATA[| Should FileContentMatch ]]>
                 </Script>
             </Code>
 
