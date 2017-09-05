@@ -1381,25 +1381,7 @@ function Get-DynamicParametersForCmdlet
         return
     }
 
-    #Workaround for PSCore what doesn't handle PSVersion '5.0.10586.122' directly
-    #because follows semantic versioning - it cause errors on PSCore 6.0.0 beta 5 (at least on Linux)
-
-    If ( ($PSVersionTable.PSVersion.gettype()).Name -eq 'SemanticVersion' ) {
-
-        [Bool]$NewerMethod = $true
-
-    }
-    Else {
-
-        If (  $PSVersionTable.PSVersion -ge '5.0.10586.122' ) {
-
-            [Bool]$NewerMethod = $true
-
-        }
-
-    }
-
-    if ($NewerMethod)
+    if ('5.0.10586.122' -lt $PSVersionTable.PSVersion)
     {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
