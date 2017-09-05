@@ -1381,7 +1381,7 @@ function Get-DynamicParametersForCmdlet
         return
     }
 
-    if ($PSVersionTable.PSVersion -ge '5.0.10586.122')
+    if ('5.0.10586.122' -lt $PSVersionTable.PSVersion)
     {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
