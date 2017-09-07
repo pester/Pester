@@ -1,5 +1,3 @@
-if ($PSVersionTable.PSVersion.Major -le 2) { return }
-
 Set-StrictMode -Version Latest
 
 Describe 'Testing Gerkin Step' {
