@@ -2,7 +2,7 @@
   - Add limit for cyclic arrays on Should -Be [GH-824]
   - Fix infinite recursion on Should -Be [GH-818]
   - Fix output when passing in hashtables [GH-816]
-  - Fix -Verifiable parameter on Assert-VerifiableMock [GH-786]
+  - Fix -Verifiable parameter on Assert-VerifiableMocks [GH-786]
   - Add Set-TestInconclusive documentation to It [GH-778]
   - Add script analyzer tests and more internal fixes
 
@@ -131,7 +131,7 @@
 ## 3.3.7 (April 15, 2015)
   - Added workaround for GetDynamicParameters() bug that was affecting mocks on the ActiveDirectory module in Windows 7. [GH-295]
   - Revised Mocking code to avoid potential bugs when functions define parameters named $ExecutionContext or $MyInvocation. [GH-304]
-  - Mocked functions no longer call Get-MockDynamicParameter if the original function had no dynamicparam block. [GH-306]
+  - Mocked functions no longer call Get-MockDynamicParameters if the original function had no dynamicparam block. [GH-306]
 
 ## 3.3.6 (March 19, 2015)
   - Fix for mocking aliases for commands that are in scopes that Pester can't normally see. [GH-267]
