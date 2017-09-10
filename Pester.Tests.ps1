@@ -7,6 +7,9 @@ $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:manifest = $null
+    $script:tagVersion = $null
+    $script:changelogVersion = $null
+
     It "has a valid manifest" {
         {
             $script:manifest = Test-ModuleManifest -Path $manifestPath -ErrorAction Stop -WarningAction SilentlyContinue
@@ -21,33 +24,9 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         $script:manifest.Guid | Should Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
     }
 
-    It "has a valid version in the manifest" {
-        $script:manifest.Version -as [Version] | Should Not BeNullOrEmpty
-    }
-
-    $script:changelogVersion = $null
-    It "has a valid version in the changelog" {
-
-        foreach ($line in (Get-Content $changeLogPath))
-        {
-            if ($line -match "^\D*(?<Version>(\d+\.){1,3}\d+)")
-            {
-                $script:changelogVersion = $matches.Version
-                break
-            }
-        }
-        $script:changelogVersion                | Should Not BeNullOrEmpty
-        $script:changelogVersion -as [Version]  | Should Not BeNullOrEmpty
-    }
-
-    It "changelog and manifest versions are the same" {
-        $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
-    }
-
-    if (Get-Command git.exe -ErrorAction SilentlyContinue)
-    {
+    if (Get-Command git.exe -ErrorAction SilentlyContinue) {
         $skipVersionTest = -not [bool]((git remote -v 2>&1) -match "github.com/Pester/")
-        $script:tagVersion = $null
+
         It "is tagged with a valid version" -skip:$skipVersionTest {
             $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
 
@@ -61,10 +40,31 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         }
 
         It "all versions are the same" -skip:$skipVersionTest {
-            $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
-            $script:manifest.Version -as [Version] | Should be ( $script:tagVersion -as [Version] )
+            $script:changelogVersion -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
+            $script:manifest.Version -as [Version] | Should -Be (($script:tagVersion -replace "-.*$", '') -as [Version] )
         }
+    }
 
+    It "has valid release notes in the manifest" {
+        $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+    }
+
+    It "has a valid version in the changelog" {
+
+        foreach ($line in (Get-Content $changeLogPath))
+        {
+            if ($line -match "^\s*##\s+(?<Version>.*?)\s")
+            {
+                $script:changelogVersion = $matches.Version
+                break
+            }
+        }
+        $script:changelogVersion                | Should Not BeNullOrEmpty
+        ($script:changelogVersion -replace "-.*$", '') -as [Version]  | Should Not BeNullOrEmpty
+    }
+
+    It "tag and changelog versions are the same" {
+        $script:changelogVersion | Should -Be $script:tagVersion
     }
 }
 
@@ -122,10 +122,10 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 Describe 'Public API' {
     It 'all non-deprecated, non-internal public commands use CmdletBinding' {
         $r = Get-Command -Module Pester |
-        ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
-        ? { -not $_.CmdletBinding } |
-        % { $_.Name } |
-        ? {
+            ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
+            ? { -not $_.CmdletBinding } |
+            % { $_.Name } |
+            ? {
             @(
                 'Get-TestDriveItem' # deprecated in 4.0
                 'SafeGetCommand' # Pester internal
