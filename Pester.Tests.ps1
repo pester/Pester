@@ -40,8 +40,8 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         }
 
         It "all versions are the same" -skip:$skipVersionTest {
-            $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
-            $script:manifest.Version -as [Version] | Should be ( $script:tagVersion -as [Version] )
+            $script:changelogVersion -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
+            $script:manifest.Version -as [Version] | Should -Be (($script:tagVersion -replace "-.*$", '') -as [Version] )
         }
     }
 
@@ -53,18 +53,18 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
 
         foreach ($line in (Get-Content $changeLogPath))
         {
-            if ($line -match "^\D*(?<Version>(\d+\.){1,3}\d+)")
+            if ($line -match "^\s*##\s+(?<Version>.*?)\s")
             {
                 $script:changelogVersion = $matches.Version
                 break
             }
         }
         $script:changelogVersion                | Should Not BeNullOrEmpty
-        $script:changelogVersion -as [Version]  | Should Not BeNullOrEmpty
+        ($script:changelogVersion -replace "-.*$", '') -as [Version]  | Should Not BeNullOrEmpty
     }
 
-    It "changelog and tag versions are the same" {
-        $script:changelogVersion -as [Version] | Should be (($script:tagVersion -replace "-.*$", '') -as [Version] )
+    It "tag and changelog versions are the same" {
+        $script:changelogVersion | Should -Be $script:tagVersion
     }
 }
 
