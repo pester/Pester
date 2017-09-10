@@ -282,73 +282,34 @@ InModuleScope Pester {
 
             $null = New-Item -Path $root\TestScriptWithConfiguration.ps1 -ItemType File -ErrorAction SilentlyContinue
 
-            #On Windows 10 two PSDesiredStateConfiguration modules are available for PSCore
-            If ( $PSVersionTable.PSVersion.Major -eq 6 ) {
+            Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
+            $line1 = $true   # Triggers breakpoint
+            $line2 = $true   # Triggers breakpoint
 
-                Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
-                $line1 = $true   # Triggers breakpoint
-                $line2 = $true   # Triggers breakpoint
+            configuration MyTestConfig   # does NOT trigger breakpoint
+            {
+                Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
 
-                configuration MyTestConfig   # does NOT trigger breakpoint
+                Node localhost    # Triggers breakpoint
                 {
-                    Get-Module -Name PSDesiredStateConfiguration -ListAvailable | Where { $_.Path -match "6.0." } | Import-DscResource -ModuleName PSDesiredStateConfiguration
-
-                    Node localhost    # Triggers breakpoint
+                    WindowsFeature XPSViewer   # Triggers breakpoint
                     {
-                        WindowsFeature XPSViewer   # Triggers breakpoint
-                        {
-                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
-                            Ensure = 'Present'   # does NOT trigger breakpoint
-                        }
+                        Name = 'XPS-Viewer'  # does NOT trigger breakpoint
+                        Ensure = 'Present'   # does NOT trigger breakpoint
                     }
-
-                    return # does NOT trigger breakpoint
-
-                    $doesNotExecute = $true   # Triggers breakpoint
                 }
 
-                $line3 = $true   # Triggers breakpoint
+                return # does NOT trigger breakpoint
 
-                return   # does NOT trigger breakpoint
-
-            $doesnotexecute = $true   # Triggers breakpoint
-'@
-
-
+                $doesNotExecute = $true   # Triggers breakpoint
             }
 
-            Else {
+            $line3 = $true   # Triggers breakpoint
 
-                Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
-                $line1 = $true   # Triggers breakpoint
-                $line2 = $true   # Triggers breakpoint
-
-                configuration MyTestConfig   # does NOT trigger breakpoint
-                {
-                    Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
-
-                    Node localhost    # Triggers breakpoint
-                    {
-                        WindowsFeature XPSViewer   # Triggers breakpoint
-                        {
-                            Name = 'XPS-Viewer'  # does NOT trigger breakpoint
-                            Ensure = 'Present'   # does NOT trigger breakpoint
-                        }
-                    }
-
-                    return # does NOT trigger breakpoint
-
-                    $doesNotExecute = $true   # Triggers breakpoint
-                }
-
-                $line3 = $true   # Triggers breakpoint
-
-                return   # does NOT trigger breakpoint
+            return   # does NOT trigger breakpoint
 
             $doesnotexecute = $true   # Triggers breakpoint
 '@
-
-        }
 
             $testState = New-PesterState -Path $root
 
