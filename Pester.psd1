@@ -112,7 +112,7 @@ PrivateData = @{
         Tags = @('powershell','unit_testing','bdd','tdd','mocking')
 
         # The web address of an icon which can be used in galleries to represent this module
-        IconUri = "https://github.com/pester/Pester/blob/master/doc/pester.PNG"
+        IconUri = 'https://raw.githubusercontent.com/pester/Pester/master/doc/pester.PNG'
 
         # The web address of this module's project or support homepage.
         ProjectUri = "https://github.com/Pester/Pester"
