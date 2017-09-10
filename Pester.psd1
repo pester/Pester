@@ -112,13 +112,13 @@ PrivateData = @{
         Tags = @('powershell','unit_testing','bdd','tdd','mocking')
 
         # The web address of an icon which can be used in galleries to represent this module
-        IconUri = "http://pesterbdd.com/images/Pester.png"
+        IconUri = "https://pesterbdd.com/images/Pester.png"
 
         # The web address of this module's project or support homepage.
         ProjectUri = "https://github.com/Pester/Pester"
 
         # The web address of this module's license. Points to a page that's embeddable and linkable.
-        LicenseUri = "http://www.apache.org/licenses/LICENSE-2.0.html"
+        LicenseUri = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
         # ReleaseNotes = False
