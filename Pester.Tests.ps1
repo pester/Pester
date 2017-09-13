@@ -8,7 +8,9 @@ $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:manifest = $null
     $script:tagVersion = $null
+    $script:tagVersionShort = $null
     $script:changelogVersion = $null
+    $script:changelogVersionShort = $null
 
     It "has a valid manifest" {
         {
@@ -33,15 +35,11 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
             if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
             {
                 $script:tagVersion = $matches[1]
+                $script:tagVersionShort = $script:tagVersion -replace "-.*$", ''
             }
 
             $script:tagVersion                  | Should Not BeNullOrEmpty
-            $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
-        }
-
-        It "all versions are the same" -skip:$skipVersionTest {
-            $script:changelogVersion -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
-            $script:manifest.Version -as [Version] | Should -Be (($script:tagVersion -replace "-.*$", '') -as [Version] )
+            $script:tagVersionShort -as [Version]    | Should Not BeNullOrEmpty
         }
     }
 
@@ -56,15 +54,21 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
             if ($line -match "^\s*##\s+(?<Version>.*?)\s")
             {
                 $script:changelogVersion = $matches.Version
+                $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
                 break
             }
         }
         $script:changelogVersion                | Should Not BeNullOrEmpty
-        ($script:changelogVersion -replace "-.*$", '') -as [Version]  | Should Not BeNullOrEmpty
+        $script:changelogVersionShort -as [Version]  | Should Not BeNullOrEmpty
     }
 
     It "tag and changelog versions are the same" {
         $script:changelogVersion | Should -Be $script:tagVersion
+    }
+
+    It "all versions are the same" -skip:$skipVersionTest {
+        $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
+        $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
     }
 }
 
