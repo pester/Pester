@@ -22,7 +22,7 @@ LONG DESCRIPTION
 		Mocks the behavior of an existing command with an alternate 
 		implementation.
 
-	Assert-VerifiableMocks
+	Assert-VerifiableMock
 		Checks if any Verifiable Mock has not been invoked. If so, this will 
 		throw an exception.
 
@@ -55,7 +55,7 @@ LONG DESCRIPTION
         $result = BuildIfChanged
 
         It "Builds the next version" {
-          Assert-VerifiableMocks
+          Assert-VerifiableMock
         }
         It "returns the next version number" {
           $result | Should Be 1.2
@@ -123,7 +123,7 @@ LONG DESCRIPTION
         $result = BuildIfChanged
 
         It "Builds the next version and calls Write-Host" {
-          Assert-VerifiableMocks
+          Assert-VerifiableMock
         }
 
         It "returns the next version number" {
@@ -181,7 +181,7 @@ LONG DESCRIPTION
 
 SEE ALSO
   Mock
-  Assert-VerifiableMocks
+  Assert-VerifiableMock
   Assert-MockCalled
   InModuleScope
   Describe

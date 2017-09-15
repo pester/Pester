@@ -599,7 +599,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         FunctionUnderTest "three" | Out-Null
 
         try {
-            Assert-VerifiableMocks
+            Assert-VerifiableMock
         } Catch {
             $result=$_
         }
@@ -618,7 +618,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
         try {
-            Assert-VerifiableMocks
+            Assert-VerifiableMock
         } Catch {
             $result=$_
         }
@@ -636,8 +636,8 @@ Describe "When Creating a Verifiable Mock that is not called" {
 Describe "When Creating a Verifiable Mock that is called" {
     Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "one"
-    It "Assert-VerifiableMocks Should not throw" {
-        { Assert-VerifiableMocks } | Should Not Throw
+    It "Assert-VerifiableMock Should not throw" {
+        { Assert-VerifiableMock } | Should Not Throw
     }
 }
 
@@ -1298,7 +1298,7 @@ InModuleScope -ModuleName Pester {
                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
 
                             $params['Path'] = [string[]]'/'
-                            Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
                         }
                     }
 
@@ -1355,7 +1355,7 @@ InModuleScope -ModuleName Pester {
                             }
 
                             $params['Path'] = [string[]]'Cert:\'
-                            Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
                         }
                     }
 
