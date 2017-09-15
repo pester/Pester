@@ -79,7 +79,7 @@ Describe "New-Fixture" {
             New-Fixture -Name $name -Path $path | Out-Null
             New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
 
-            Assert-VerifiableMocks
+            Assert-VerifiableMock
         }
 
     }
