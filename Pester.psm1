@@ -1120,10 +1120,9 @@ https://github.com/pester/Pester/issues/880
 
 #>
 
-
 [CmdletBinding()]param()
 
-"This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code."
+"This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
 
 }
 
