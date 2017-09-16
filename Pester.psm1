@@ -1103,7 +1103,28 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
-function Assert-VerifiableMocks { [CmdletBinding()]param()  "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4" }
+function Assert-VerifiableMocks {
+
+<#
+.SYNOPSIS
+The function is for backward compatibility only. Please update your code and use 'Assert-VerifiableMock' instead.
+
+.DESCRIPTION
+The function was reintroduced in the version 4.0.8 of Pester to avoid loading older version of Pester when Assert-VerifiableMocks is called.
+
+The function will be removed finally in the next major version of Pester.
+
+.LINK
+https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
+https://github.com/pester/Pester/issues/880
+
+#>
+
+[CmdletBinding()]param()
+
+"This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+
+}
 
 & $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
