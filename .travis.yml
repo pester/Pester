@@ -10,5 +10,5 @@ install:
   - sudo apt-get install -y powershell
 
 script:
-  - powershell -c 'Import-Module ./Pester.psd1; Invoke-Pester -EnableExit'
+  - powershell -c 'Import-Module ./Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks -EnableExit'
   
