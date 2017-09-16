@@ -1,15 +1,16 @@
-﻿function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport)
+﻿function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switch]$UseStrictPesterMode)
 {
     $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 
     $job = Start-Job {
-        param ($PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport)
+        param ($PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport, $UseStrictPesterMode)
         Import-Module $PesterPath -Force | Out-Null
         $ScriptBlock | Set-Content $TestDrive\Temp.Tests.ps1 | Out-Null
 
         $params = @{
             PassThru = $true
             Path = $TestDrive
+            Strict = $UseStrictPesterMode
         }
 
         if ($GenerateNUnitReport)
@@ -20,7 +21,7 @@
 
         Invoke-Pester @params
 
-    } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport
+    } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport, $UseStrictPesterMode
     $job | Wait-Job | Out-Null
 
     #not using Receive-Job to ignore any output to Host
@@ -113,6 +114,24 @@ Describe "Tests running in clean runspace" {
         $xml = [xml](Get-Content TestDrive:\Temp.Tests.xml)
 
         $xml.'test-results'.'test-suite'.results.'test-suite'.name | Should Not BeNullOrEmpty
+    }
+
+    It "Invoke-Pester - Strict mode" {
+        #tests to be run in different runspace using different Pester instance
+        $TestSuite = {
+            Describe 'Mark skipped and pending tests as failed' {
+               It "skip" -Skip { $true | Should -Be $true }
+               It "pending" -Pending { $true | Should -Be $true }
+               # bug: #885 it does not fail in strict mode
+               # It "inconclusive forced" { Set-TestInconclusive ; $true | Should -Be $true }
+            }
+        }
+
+        $result = Invoke-PesterInJob -ScriptBlock $TestSuite -UseStrictPesterMode
+        $result.PassedCount | Should Be 0
+        $result.FailedCount | Should Be 2
+
+        $result.TotalCount | Should Be 2
     }
 }
 

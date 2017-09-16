@@ -423,8 +423,10 @@ function ConvertTo-FailureLines
             return $lines
         }
 
-        ## convert the stack trace
-        $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        ## convert the stack trace if present (there might be none if we are raising the error ourselves)
+        if ($null -ne $ErrorRecord.ScriptStackTrace) {
+            $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
 
         $count = 0
 
