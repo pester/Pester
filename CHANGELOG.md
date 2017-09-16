@@ -1,4 +1,7 @@
-## 4.0.7 (September 13,2017)
+## 4.0.8 (September 15, 2017)
+  - Add Assert-VerifiableMocks that throws [GH-881]
+
+## 4.0.7 (September 13, 2017)
   - Use https in manifest and link to release notes [GH-871]
   - Make commands singular [GH-860]
   - Update help of Gherkin-related functions [GH-861]
