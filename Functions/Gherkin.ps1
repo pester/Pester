@@ -1,6 +1,6 @@
 # Work around bug in PowerShell 2 type loading...
 
-if(!$IsCoreCLR) {
+if ( -not (& $SafeCommands['Get-Variable'] -Name IsCoreCLR -Scope Global -ErrorAction SilentlyContinue )) {
     Microsoft.PowerShell.Core\Import-Module -Name "${Script:PesterRoot}\lib\legacy\gherkin.dll"
 }
 else {
