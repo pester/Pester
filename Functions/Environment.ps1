@@ -15,7 +15,7 @@ function GetPesterOs
     {
         'Windows'
     }
-    elseif (Get-Variable -Name 'IsOSX' -ErrorAction 'SilentlyContinue' -ValueOnly )
+    elseif (Get-Variable -Name 'IsMacOS' -ErrorAction 'SilentlyContinue' -ValueOnly )
     {
         'OSX'
     }
