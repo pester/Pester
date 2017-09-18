@@ -598,7 +598,13 @@ function Get-JaCoCoReportXml {
     [long]$missedLines = $totalLines - $hitLines
 
     [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
-    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
+
+    Try {
+        [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
+    }
+    Catch {
+        [long]$hitFiles = $null
+    }
     [long]$missedFiles = $totalFiles - $hitFiles
 
     $now = & $SafeCommands['Get-Date']
@@ -607,7 +613,7 @@ function Get-JaCoCoReportXml {
     [long]$startTime = [math]::Floor($endTime - $PesterState.Time.TotalSeconds*1000)
 
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
-    $jaCoCoReport += "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>$([System.Environment]::NewLine)"
+    $jaCoCoReport = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>$([System.Environment]::NewLine)"
     $jaCoCoReport += "<report name="""">$([System.Environment]::NewLine)"
     $jaCoCoReport += "<sessioninfo id=""this"" start="""" dump="""" />$([System.Environment]::NewLine)"
     $jaCoCoReport += "<counter type=""INSTRUCTION"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
