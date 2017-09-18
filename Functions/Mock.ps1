@@ -1294,13 +1294,16 @@ function Get-DynamicParamBlock
     }
     else
     {
-        if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+        If ( $ScriptBlock.AST.psobject.Properties.Name -match "Body")
         {
-            $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                          & $SafeCommands['Select-Object'] -ExpandProperty Extent |
-                          & $SafeCommands['Select-Object'] -ExpandProperty Text
+            if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+            {
+                $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Extent |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Text
 
-            return $statements -join "$([System.Environment]::NewLine)"
+                return $statements -join "$([System.Environment]::NewLine)"
+            }
         }
     }
 }

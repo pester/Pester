@@ -78,7 +78,7 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
-                $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
+                $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="1" covered="0" /></report>'
             }
             Exit-CoverageAnalysis -PesterState $testState
         }
@@ -234,7 +234,8 @@ InModuleScope Pester {
 
     Describe 'Stripping common parent paths' {
 
-        If ($IsLinux -or $IsOSX) {
+        If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or
+        (& $SafeCommands['Get-Variable'] -Name IsMacOS -Scope Global -ErrorAction SilentlyContinue)) {
 
             $paths = @(
                 Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder1/File.ps1'
