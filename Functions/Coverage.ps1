@@ -589,22 +589,17 @@ function Get-JaCoCoReportXml {
     }
 
     $allCommands = $CoverageReport.MissedCommands + $CoverageReport.HitCommands
-    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
-    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
+    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
     [long]$missedFunctions = $totalFunctions - $hitFunctions
 
-    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
-    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
+    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
     [long]$missedLines = $totalLines - $hitLines
 
     [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
 
-    Try {
-        [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
-    }
-    Catch {
-        [long]$hitFiles = $null
-    }
+    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -Unique ).Count
     [long]$missedFiles = $totalFiles - $hitFiles
 
     $now = & $SafeCommands['Get-Date']
@@ -635,6 +630,6 @@ function Get-JaCoCoReportXml {
     $jaCoCoReportXml.report.counter[3].missed = $missedFiles.ToString()
     $jaCoCoReportXml.report.counter[3].covered = $hitFiles.ToString()
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
-    $jaCoCoReportDocType = "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">"
+    $jaCoCoReportDocType = "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">$([System.Environment]::NewLine)"
     return $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
 }
