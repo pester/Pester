@@ -245,11 +245,13 @@ function Test-AssertionOperatorIsDuplicate
         $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
         $Operator.Test.ToString() -eq $existing.Test.ToString()
 
-    # Test Alias
-    foreach ($string in $Operator.Alias | Where { -not (Test-NullOrWhiteSpace $_)})
-    {
-        if (-not $existing.Alias -contains $string) {
-            $isDuplicate = $false
+    # Test Aliases
+    if ($Operator.Aliases) {
+        foreach ($string in $Operator.Alias | Where { -not (Test-NullOrWhiteSpace $_)})
+        {
+            if ($existing.Alias -and (-not $existing.Alias -contains $string)) {
+                $isDuplicate = $false
+            }
         }
     }
 
