@@ -328,3 +328,31 @@ InModuleScope Pester {
         }
     }
 }
+Describe 'Assertion operators' {
+    It 'Allows an identical operator to be registered with the same name and scriptblock' {
+        function SameNameAndScript {$true}
+        Add-AssertionOperator -Name SameNameAndScript -Test $function:SameNameAndScript
+
+        { Add-AssertionOperator -Name SameNameAndScript -Test {$true} } | Should -Not -Throw
+    }
+    It 'Allows an identical operator to be registered with the same name and alias multiple times' {
+        function SameNameAndScriptAndAlias {$true}
+        Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
+
+        { Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test {$true} -Alias SameAlias } | Should -Not -Throw
+    }
+    It 'Does not allow an operator with a different scriptblock to use an existing name' {
+        function DifferentScriptBlockA {$true}
+        function DifferentScriptBlockB {$false}
+        Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockA
+
+        { Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
+    }
+    It 'Does not allow an operator with a different test to use an existing alias' {
+        function DifferentAliasA { $true }
+        function DifferentAliasB { $true }
+        Add-AssertionOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
+
+        { Add-AssertionOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
+    }
+}
