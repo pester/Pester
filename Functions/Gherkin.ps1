@@ -386,8 +386,6 @@ function Import-GherkinFeature {
 
         foreach($Step in $Scenario.Steps) {
              $null = Microsoft.PowerShell.Utility\Add-Member -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
-
-             Microsoft.PowerShell.Utility\Add-Member -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
         }
 
         switch($Scenario.Keyword.Trim())
