@@ -23,6 +23,10 @@ function GetPesterOs
     {
         'Linux'
     }
+    elseif (Get-Variable -Name 'IsMacOS' -ErrorAction 'SilentlyContinue' -ValueOnly )
+    {
+        'MacOS'
+    }
     else
     {
         throw "Unsupported Operating system!"
