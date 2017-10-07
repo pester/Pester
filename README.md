@@ -1,6 +1,9 @@
 # Pester
 > :fire: We recently released Pester 4 and there are breaking changes, please see [release notes](https://github.com/pester/Pester/releases/tag/4.0.7) and [migration guide](https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4).
 
+
+> :exclamation: If your intention is to use Pester with PowerShell Core please be aware that work to make Pester compatibile with it is in progress. Before you open a pull request or an issue please verify if your case is addressed in the branch [Dev4-1_PSCore_compatiblity](https://github.com/pester/Pester/tree/Dev4-1_PSCore_compatibility). Thank you.
+
 Pester is the ubiquitous test and mock framework for PowerShell.
 
 ```powershell
