@@ -1,3 +1,6 @@
+## Unreleased
+  - Add-AssertionOperator can be called multiple times for identical parameters without errors.  [GH-893]
+
 ## 4.0.8 (September 15, 2017)
   - Add Assert-VerifiableMocks that throws [GH-881]
 
