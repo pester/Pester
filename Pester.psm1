@@ -235,27 +235,17 @@ function Add-AssertionOperator
 function Test-AssertionOperatorIsDuplicate
 {
     param (
-        [object] $Operator
+        [psobject] $Operator
     )
 
     $existing = $script:AssertionOperators[$Operator.Name]
+    if (-not $existing) { return $false }
 
-    # Test SupportsArrayObject and scriptblock (as string) are identical
-    $isDuplicate = $existing -and
-        $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
-        $Operator.Test.ToString() -eq $existing.Test.ToString()
+    return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
+           $Operator.Test.ToString() -eq $existing.Test.ToString() -and
+           ($Operator.Alias -eq $null -or
+           -not (Compare-Object $Operator.Alias $existing.Alias))
 
-    # Test Aliases
-    if ($Operator.Alias) {
-        foreach ($string in $Operator.Alias | Where { -not (Test-NullOrWhiteSpace $_)})
-        {
-            if ($existing.Alias -and (-not $existing.Alias -contains $string)) {
-                $isDuplicate = $false
-            }
-        }
-    }
-
-    return $isDuplicate
 }
 function Assert-AssertionOperatorNameIsUnique
 {
