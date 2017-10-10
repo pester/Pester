@@ -198,7 +198,8 @@ function Add-AssertionOperator
         [scriptblock] $Test,
 
         [ValidateNotNullOrEmpty()]
-        [string[]] $Alias,
+        [AllowEmptyCollection()]
+        [string[]] $Alias = @(),
 
         [switch] $SupportsArrayInput
     )
@@ -243,9 +244,7 @@ function Test-AssertionOperatorIsDuplicate
 
     return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
            $Operator.Test.ToString() -eq $existing.Test.ToString() -and
-           ($Operator.Alias -eq $null -or
-           -not (Compare-Object $Operator.Alias $existing.Alias))
-
+           -not (Compare-Object $Operator.Alias $existing.Alias)
 }
 function Assert-AssertionOperatorNameIsUnique
 {
