@@ -198,17 +198,11 @@ function Add-AssertionOperator
         [scriptblock] $Test,
 
         [ValidateNotNullOrEmpty()]
-        [string[]] $Alias,
+        [AllowEmptyCollection()]
+        [string[]] $Alias = @(),
 
         [switch] $SupportsArrayInput
     )
-
-    $namesToCheck = @(
-        $Name
-        $Alias
-    )
-
-    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $entry = New-Object psobject -Property @{
         Test                       = $Test
@@ -216,6 +210,18 @@ function Add-AssertionOperator
         Name                       = $Name
         Alias                      = $Alias
     }
+    if (Test-AssertionOperatorIsDuplicate -Operator $entry)
+    {
+        # This is an exact duplicate of an existing assertion operator.
+        return
+    }
+
+    $namesToCheck = @(
+        $Name
+        $Alias
+    )
+
+    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $script:AssertionOperators[$Name] = $entry
 
@@ -227,7 +233,19 @@ function Add-AssertionOperator
 
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
+function Test-AssertionOperatorIsDuplicate
+{
+    param (
+        [psobject] $Operator
+    )
 
+    $existing = $script:AssertionOperators[$Operator.Name]
+    if (-not $existing) { return $false }
+
+    return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
+           $Operator.Test.ToString() -eq $existing.Test.ToString() -and
+           -not (Compare-Object $Operator.Alias $existing.Alias)
+}
 function Assert-AssertionOperatorNameIsUnique
 {
     param (
