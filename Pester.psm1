@@ -235,7 +235,7 @@ function Add-AssertionOperator
 function Test-AssertionOperatorIsDuplicate
 {
     param (
-        [psobject] $Operator
+        [object] $Operator
     )
 
     $existing = $script:AssertionOperators[$Operator.Name]
