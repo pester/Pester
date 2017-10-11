@@ -128,16 +128,16 @@ New-Module -Name ModuleMockExample  -ScriptBlock {
 Describe "ModuleMockExample" {
 
     It "Hidden function is not directly accessible outside the module" {
-        { Hidden } | Should Throw
+        { Hidden } | Should -Throw
     }
 
     It "Original Hidden function is called" {
-        Exported | Should Be "Internal Module Function"
+        Exported | Should -Be "Internal Module Function"
     }
 
     It "Hidden is replaced with our implementation" {
         Mock Hidden { "Mocked" } -ModuleName ModuleMockExample
-        Exported | Should Be "Mocked"
+        Exported | Should -Be "Mocked"
     }
 }
 
