@@ -2,16 +2,16 @@
     about_TestDrive
 
 SHORT DESCRIPTION
-    A PSDrive for file activity limited to the scope of a singe Describe or 
+    A PSDrive for file activity limited to the scope of a singe Describe or
     Context block.
 
-LONG DESCRIPTION	
-    A test may need to work with file operations and validate certain types of 
-    file activities. It is usually desirable not to perform file activity tests 
-    that will produce side effects outside of an individual test. Pester 
-    creates a PSDrive inside the user's temporary drive that is accessible via a 
-    names PSDrive TestDrive:. Pester will remove this drive after the test 
-    completes. You may use this drive to isolate the file operations of your 
+LONG DESCRIPTION
+    A test may need to work with file operations and validate certain types of
+    file activities. It is usually desirable not to perform file activity tests
+    that will produce side effects outside of an individual test. Pester
+    creates a PSDrive inside the user's temporary drive that is accessible via a
+    names PSDrive TestDrive:. Pester will remove this drive after the test
+    completes. You may use this drive to isolate the file operations of your
     test to a temporary store.
 
 EXAMPLE
@@ -29,8 +29,8 @@ EXAMPLE
 	        (-join $result).Should.Be("my test text.-Footer")
 	    }
 	}
-	
-	When this test completes, the contents of the TestDrive PSDrive will 
+
+	When this test completes, the contents of the TestDrive PSDrive will
 	be removed.
 
 SEE ALSO

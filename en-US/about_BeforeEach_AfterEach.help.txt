@@ -38,7 +38,7 @@ LONG DESCRIPTION
         }
       }
 
-    
+
   SYNTAX AND PLACEMENT
     Unlike most of the commands in a Pester script, BeforeEach, AfterEach, BeforeAll and AfterAll blocks
     apply to the entire Describe or Context scope in which they are defined, regardless of the order of
