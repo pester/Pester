@@ -698,6 +698,10 @@ Pester state object. For internal use only
         }
         ${Pester Result} = ConvertTo-PesterResult -ErrorRecord $PesterException
 
+        if ($PesterException.ErrorRecord) {
+            $PesterException = $PesterException.ErrorRecord
+        }
+
         # For Gherkin, we want to show the step, but not pretend to be a StackTrace
         if(${Pester Result}.Result -eq 'Inconclusive') {
             ${Pester Result}.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
@@ -705,7 +709,7 @@ Pester state object. For internal use only
             # Unless we really are a StackTrace...
             ${Pester Result}.StackTrace +=  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
-        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterException.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
+        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterException.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterException )
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
