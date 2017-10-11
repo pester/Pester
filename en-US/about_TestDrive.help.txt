@@ -15,23 +15,23 @@ LONG DESCRIPTION
     test to a temporary store.
 
 EXAMPLE
-	function Add-Footer($path, $footer) {
-	    Add-Content $path -Value $footer
-	}
+    function Add-Footer($path, $footer) {
+        Add-Content $path -Value $footer
+    }
 
-	Describe "Add-Footer" {
-	    $testPath="TestDrive:\test.txt"
-	    Set-Content $testPath -value "my test text."
-	    Add-Footer $testPath "-Footer"
-	    $result = Get-Content $testPath
+    Describe "Add-Footer" {
+        $testPath="TestDrive:\test.txt"
+        Set-Content $testPath -value "my test text."
+        Add-Footer $testPath "-Footer"
+        $result = Get-Content $testPath
 
-	    It "adds a footer" {
-	        (-join $result).Should.Be("my test text.-Footer")
-	    }
-	}
+        It "adds a footer" {
+            (-join $result).Should.Be("my test text.-Footer")
+        }
+    }
 
-	When this test completes, the contents of the TestDrive PSDrive will
-	be removed.
+    When this test completes, the contents of the TestDrive PSDrive will
+    be removed.
 
 SEE ALSO
     Context

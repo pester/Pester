@@ -13,22 +13,22 @@ LONG DESCRIPTION
         - Mock the behavior of ANY PowerShell command.
         - Verify that specific commands were (or were not) called.
         - Verify the number of times a command was called with a set of specified
-	  parameters.
+    parameters.
 
   MOCKING FUNCTIONS
   For detailed information about the functions in the Pester module, use Get-Help.
 
-	Mock
-		Mocks the behavior of an existing command with an alternate
-		implementation.
+  Mock
+    Mocks the behavior of an existing command with an alternate
+    implementation.
 
-	Assert-VerifiableMock
-		Checks if any Verifiable Mock has not been invoked. If so, this will
-		throw an exception.
+  Assert-VerifiableMock
+    Checks if any Verifiable Mock has not been invoked. If so, this will
+    throw an exception.
 
-	Assert-MockCalled
-		Checks if a Mocked command has been called a certain number of times
-		and throws an exception if it has not.
+  Assert-MockCalled
+    Checks if a Mocked command has been called a certain number of times
+    and throws an exception if it has not.
 
   EXAMPLE
     function Build ($version) {

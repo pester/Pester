@@ -66,7 +66,7 @@ LONG DESCRIPTION
     the $allWidgets variables.
 
         It "gets all widgets" {
-	    Get-Widget | Should Be $allWidgets
+        Get-Widget | Should Be $allWidgets
         }
 
 
@@ -103,9 +103,9 @@ LONG DESCRIPTION
     For example, this command creates a New-Log.ps1 script and a
     New-Log.Tests.ps1 test script in the C:\Scripts\LogScripts directory.
 
-	New-Fixture -Path C:\Scripts\LogScripts -Name New-Log
+    New-Fixture -Path C:\Scripts\LogScripts -Name New-Log
 
-	    Directory: C:\Scripts\LogScripts
+        Directory: C:\Scripts\LogScripts
 
 
         Mode                LastWriteTime     Length Name
@@ -158,7 +158,7 @@ LONG DESCRIPTION
     and all subdirectories recursively. It writes output to the host, but does
     not generate any objects.
 
-	Invoke-Pester
+    Invoke-Pester
 
     In contrast, this command runs only the tests in the New-Log.Tests.ps1 file
     that have the 'EventVwr' tag. It writes the test results as custom objects
@@ -166,7 +166,7 @@ LONG DESCRIPTION
     an optional code coverage test to verify that all lines in the script ran
     at least once during the tests.
 
-	Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 `
+    Invoke-Pester -Script C:\Tests\New-Log.Tests.ps1 `
           -Tag EventVwr -OutputFile .\NewLogTests.xml -OutputFormat NUnitXml `
           -CodeCoverage
 
@@ -189,7 +189,7 @@ LONG DESCRIPTION
 
         New-Fixture -Path C:\TestPester -Name Get-Hello
 
-	    Directory: C:\TestPester
+        Directory: C:\TestPester
 
 
         Mode                LastWriteTime         Length Name
@@ -282,7 +282,7 @@ LONG DESCRIPTION
 
        -or-
 
-	dir (Get-Module Pester -ListAvailable).ModuleBase -Include *Tests.ps1 -Recurse
+    dir (Get-Module Pester -ListAvailable).ModuleBase -Include *Tests.ps1 -Recurse
 
 
 SEE ALSO
