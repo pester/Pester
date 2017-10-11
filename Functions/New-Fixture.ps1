@@ -25,7 +25,7 @@ function New-Fixture {
     Describe "Clean" {
 
         It "does something useful" {
-            $false | Should Be $true
+            $false | Should -Be $true
         }
     }
 
@@ -75,7 +75,7 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', '
 
 Describe "#name#" {
     It "does something useful" {
-        $true | Should Be $false
+        $true | Should -Be $false
     }
 }' -replace "#name#",$name
 
