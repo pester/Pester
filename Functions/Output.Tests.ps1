@@ -1,57 +1,57 @@
-﻿InModuleScope -ModuleName Pester -ScriptBlock {
+InModuleScope -ModuleName Pester -ScriptBlock {
     Describe 'Has-Flag' -Fixture {
         It 'Returns true when setting and value are the same' {
             $setting = [Pester.OutputTypes]::Passed
             $value = [Pester.OutputTypes]::Passed
 
-            $value | Has-Flag $setting | Should Be $true
+            $value | Has-Flag $setting | Should -Be $true
         }
 
         It 'Returns false when setting and value are the different' {
             $setting = [Pester.OutputTypes]::Passed
             $value = [Pester.OutputTypes]::Failed
 
-            $value | Has-Flag $setting | Should Be $false
+            $value | Has-Flag $setting | Should -Be $false
         }
 
         It 'Returns true when setting contains value' {
             $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
             $value = [Pester.OutputTypes]::Passed
 
-            $value | Has-Flag $setting | Should Be $true
+            $value | Has-Flag $setting | Should -Be $true
         }
 
         It 'Returns false when setting does not contain the value' {
             $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
             $value = [Pester.OutputTypes]::Summary
 
-            $value | Has-Flag $setting | Should Be $false
+            $value | Has-Flag $setting | Should -Be $false
         }
 
         It 'Returns true when at least one setting is contained in value' {
             $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
             $value = [Pester.OutputTypes]::Summary -bor [Pester.OutputTypes]::Failed
 
-            $value | Has-Flag $setting | Should Be $true
+            $value | Has-Flag $setting | Should -Be $true
         }
 
         It 'Returns false when none of settings is contained in value' {
             $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
             $value = [Pester.OutputTypes]::Summary -bor [Pester.OutputTypes]::Describe
 
-            $value | Has-Flag $setting | Should Be $false
+            $value | Has-Flag $setting | Should -Be $false
         }
     }
 
     Describe 'Default OutputTypes' -Fixture {
         It 'Fails output type contains all except passed' {
             $expected = [Pester.OutputTypes]'Default, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header'
-            [Pester.OutputTypes]::Fails | Should Be $expected
+            [Pester.OutputTypes]::Fails | Should -Be $expected
         }
 
         It 'All output type contains all flags' {
             $expected = [Pester.OutputTypes]'Default, Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header'
-            [Pester.OutputTypes]::All | Should Be $expected
+            [Pester.OutputTypes]::All | Should -Be $expected
         }
     }
 }
@@ -65,14 +65,14 @@ Describe 'ConvertTo-PesterResult' {
         #the $script scriptblock below is used as a position marker to determine
         #on which line the test failed.
         $errorRecord = $null
-        try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
+        try{'something' | should -be 'nothing'}catch{ $errorRecord=$_} ; $script={}
         $result = & $getPesterResult 0 $errorRecord
         It 'records the correct stack line number' {
-            $result.Stacktrace | should match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
+            $result.Stacktrace | should -match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
         }
         It 'records the correct error record' {
-            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should be $true
-            $result.ErrorRecord.Exception.Message | Should match 'Expected: {nothing}'
+            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
+            $result.ErrorRecord.Exception.Message | Should -match 'Expected: {nothing}'
         }
     }
     It 'Does not modify the error message from the original exception' {
@@ -85,7 +85,7 @@ Describe 'ConvertTo-PesterResult' {
 
         $pesterResult = & $getPesterResult 0 $errorRecord
 
-        $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
+        $pesterResult.FailureMessage | Should -Be $errorRecord.Exception.Message
     }
     Context 'failed tests in another file' {
         $errorRecord = $null
@@ -108,11 +108,11 @@ Describe 'ConvertTo-PesterResult' {
 
 
         It 'records the correct stack line number' {
-            $result.Stacktrace | should match "${escapedTestPath}: line 2"
+            $result.Stacktrace | should -match "${escapedTestPath}: line 2"
         }
         It 'records the correct error record' {
-            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should be $true
-            $result.ErrorRecord.Exception.Message | Should match 'Expected: {Two}'
+            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
+            $result.ErrorRecord.Exception.Message | Should -match 'Expected: {Two}'
         }
     }
 }
@@ -157,18 +157,18 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             $r = $e | ConvertTo-FailureLines
 
-            $r.Message[0] | Should be 'RuntimeException: message'
-            $r.Message.Count | Should be 1
+            $r.Message[0] | Should -be 'RuntimeException: message'
+            $r.Message.Count | Should -be 1
         }
         It 'failed should produces correct message lines.' {
-            try { 'One' | Should be 'Two' } catch { $e = $_ }
+            try { 'One' | Should -be 'Two' } catch { $e = $_ }
             $r = $e | ConvertTo-FailureLines
 
-            $r.Message[0] | Should be 'String lengths are both 3. Strings differ at index 0.'
-            $r.Message[1] | Should be 'Expected: {Two}'
-            $r.Message[2] | Should be 'But was:  {One}'
-            $r.Message[3] | Should be '-----------^'
-            $r.Message[4] | Should match "'One' | Should be 'Two'"
+            $r.Message[0] | Should -be 'String lengths are both 3. Strings differ at index 0.'
+            $r.Message[1] | Should -be 'Expected: {Two}'
+            $r.Message[2] | Should -be 'But was:  {One}'
+            $r.Message[3] | Should -be '-----------^'
+            $r.Message[4] | Should -match "'One' | Should be 'Two'"
             $r.Message.Count | Should -be 5
         }
 # # commented out because it does not work becuase of should, hopefully we can fix that later
@@ -224,24 +224,24 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r = $e | ConvertTo-FailureLines
 
             It 'produces correct message lines.' {
-                $r.Message[0] | Should be 'RuntimeException: f1 message'
+                $r.Message[0] | Should -be 'RuntimeException: f1 message'
             }
             if ( $e | Get-Member -Name ScriptStackTrace )
             {
                 It 'produces correct trace lines.' {
-                    $r.Trace[0] | Should be "at f1, $testPath`: line 2"
-                    $r.Trace[1] | Should be "at f2, $testPath`: line 5"
-                    $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
+                    $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
+                    $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
+                    $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
                     $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-                        Should be $true
-                    $r.Trace.Count | Should be 5
+                        Should -be $true
+                    $r.Trace.Count | Should -be 5
                 }
             }
             else
             {
                 It 'produces correct trace lines.' {
-                    $r.Trace[0] | Should be "at line: 2 in $testPath"
-                    $r.Trace.Count | Should be 1
+                    $r.Trace[0] | Should -be "at line: 2 in $testPath"
+                    $r.Trace.Count | Should -be 1
                 }
             }
         }
@@ -268,23 +268,23 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r = $e | ConvertTo-FailureLines
 
             It 'produces correct message lines.' {
-                $r.Message[0] | Should be 'ArgumentException: inner message'
-                $r.Message[1] | Should be 'Parameter name: param_name'
-                $r.Message[2] | Should be 'FormatException: outer message'
+                $r.Message[0] | Should -be 'ArgumentException: inner message'
+                $r.Message[1] | Should -be 'Parameter name: param_name'
+                $r.Message[2] | Should -be 'FormatException: outer message'
             }
             if ( $e | Get-Member -Name ScriptStackTrace )
             {
                 It 'produces correct trace line.' {
-                    $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
+                    $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
                     $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
-                    $r.Trace.Count | Should be 3
+                    $r.Trace.Count | Should -be 3
                 }
             }
             else
             {
                 It 'produces correct trace line.' {
-                    $r.Trace[0] | Should be "at line: 10 in $testPath"
-                    $r.Trace.Count | Should be 1
+                    $r.Trace[0] | Should -be "at line: 10 in $testPath"
+                    $r.Trace.Count | Should -be 1
                 }
             }
         }

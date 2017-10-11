@@ -1,4 +1,4 @@
-ï»¿function Mock {
+function Mock {
 
 <#
 .SYNOPSIS
@@ -284,7 +284,7 @@ about_Mocking
             if ($global:PSVersionTable.PSVersion.Major -ge 5) {
                 { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
             } else {
-                { $args[0] -replace "['â€˜â€™â€šâ€›]", '$&$&' }
+                { $args[0] -replace "['‘’‚?]", '$&$&' }
             }
 
         $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
