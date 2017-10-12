@@ -1298,7 +1298,7 @@ InModuleScope -ModuleName Pester {
                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
 
                             $params['Path'] = [string[]]'/'
-                            Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
                         }
                     }
 
@@ -1355,7 +1355,7 @@ InModuleScope -ModuleName Pester {
                             }
 
                             $params['Path'] = [string[]]'Cert:\'
-                            Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
                         }
                     }
 
