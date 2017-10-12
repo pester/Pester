@@ -1582,9 +1582,9 @@ Describe '$args handling' {
 
 Describe 'Single quote in command/module name' {
     BeforeAll {
-        $module = New-Module "Module '‘’‚?" {
+        $module = New-Module "Module 'â€˜â€™â€šâ€›" {
             Function NormalCommandName { 'orig' }
-            New-Item "Function::Command '‘’‚?" -Value { 'orig' }
+            New-Item "Function::Command 'â€˜â€™â€šâ€›" -Value { 'orig' }
         } | Import-Module -PassThru
     }
 
@@ -1597,8 +1597,8 @@ Describe 'Single quote in command/module name' {
         NormalCommandName | Should -Be mock
     }
     It 'Command with single quote in name should be mockable' {
-        Mock "Command '‘’‚?" { 'mock' }
-        & "Command '‘’‚?" | Should -Be mock
+        Mock "Command 'â€˜â€™â€šâ€›" { 'mock' }
+        & "Command 'â€˜â€™â€šâ€›" | Should -Be mock
     }
 
 }

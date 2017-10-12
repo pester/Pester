@@ -281,11 +281,11 @@ about_Mocking
         }
 
         $EscapeSingleQuotedStringContent =
-            if ($global:PSVersionTable.PSVersion.Major -ge 5) {
-                { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
-            } else {
-                { $args[0] -replace "['‘’‚?]", '$&$&' }
-            }
+        if ($global:PSVersionTable.PSVersion.Major -ge 5) {
+            { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
+        } else {
+            { $args[0] -replace "['â€˜â€™â€šâ€›]", '$&$&' }
+        }
 
         $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
         $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
