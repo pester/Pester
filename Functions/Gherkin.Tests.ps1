@@ -3,12 +3,12 @@ $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
 # Calling this in a job so we don't monkey with the active pester state that's already running
 
-$job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
-    param ($scriptRoot)
-    Get-Module Pester | Remove-Module -Force
-    Import-Module $scriptRoot\Pester.psd1 -Force
+#$job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+#    param ($scriptRoot)
+#    Get-Module Pester | Remove-Module -Force
+#    Import-Module $scriptRoot\Pester.psd1 -Force
 
-    New-Object psobject -Property @{
+    $job = New-Object psobject -Property @{
         Results       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru #-Show None
         Mockery       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery #-Show None
         Examples      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples #-Show None
@@ -17,10 +17,11 @@ $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
         NamedScenario = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" #-Show None
         NotMockery    = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery #-Show None
     }
-}
+#}
 
-$gherkin = $job | Wait-Job | Receive-Job
-Remove-Job $job
+$gherkin = $job #| Wait-Job | Receive-Job
+
+#Remove-Job $job
 
 Describe 'Invoke-Gherkin' {
     It 'Works on the Validator example' {

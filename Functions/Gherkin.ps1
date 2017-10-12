@@ -340,7 +340,7 @@ The folder which contains step files
     [CmdletBinding()]
     param(
 
-    [Alias("PSPath")]
+        [Alias("PSPath")]
         [Parameter(Mandatory=$True, Position=0, ValueFromPipelineByPropertyName=$True)]
         $StepPath,
 
@@ -376,7 +376,12 @@ The folder which contains step files
 
 function Import-GherkinFeature {
     [CmdletBinding()]
-    param($Path,  [PSObject]$Pester)
+    param(
+        $Path,
+
+        [PSObject]$Pester
+    )
+
     $Background = $null
 
     $parser = Microsoft.PowerShell.Utility\New-Object Gherkin.Parser
@@ -430,7 +435,15 @@ function Import-GherkinFeature {
                             }
                         }
                 $ScenarioName = $Scenario.Name
-                if($ExampleSet.Name) {
+
+                Try {
+                    $ExampleSetNameExist = & $SafeCommands['Get-ItemProperty'] -Path $ExampleSet -Name Name -ErrorAction SilentlyContinue
+                }
+                Catch {
+                    $ExampleSetNameExist = $false
+                }
+
+                if($ExampleSetNameExist) {
                     $ScenarioName = $ScenarioName + "$([System.Environment]::NewLine)  Examples:" + $ExampleSet.Name.Trim()
                 }
                 Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
@@ -449,7 +462,7 @@ function Invoke-GherkinFeature {
 <#
 
 .SYNOPSIS
- Parse and run a feature
+ Parse and run a Gherkin feature
 
  #>
     [CmdletBinding()]
