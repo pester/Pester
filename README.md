@@ -156,3 +156,4 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 [![Pester on StackOverflow](doc/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
 [![Testing channel on Powershell Slack](doc/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
 [![Pester Gitter](doc/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Pester on PowerShell.org](doc/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
