@@ -1,4 +1,4 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath   = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')

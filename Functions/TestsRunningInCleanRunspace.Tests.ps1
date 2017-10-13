@@ -1,4 +1,4 @@
-function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport)
+﻿function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport)
 {
     $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 

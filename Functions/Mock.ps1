@@ -1,4 +1,4 @@
-function Mock {
+﻿function Mock {
 
 <#
 .SYNOPSIS
