@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-Describe 'Testing Gerkin Step' {
+Describe 'Testing Gerkin Step'  -Tag 'Gherkin' {
     It 'Generates a function named "GherkinStep" with mandatory name and test parameters' {
         $command = &(Get-Module Pester) { Get-Command GherkinStep -Module Pester }
         $command | Should Not Be $null
