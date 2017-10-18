@@ -45,8 +45,7 @@ $script:SafeCommands = @{
     'Get-Content'          = Get-Command -Name Get-Content             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Date'             = Get-Command -Name Get-Date                -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Item'             = Get-Command -Name Get-Item                -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-ItemProperty'     = Get-Command -Name 'Get-ItemProperty'      -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-ItemPropertyValue'= Get-Command -Name 'Get-ItemPropertyValue' -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-ItemProperty'     = Get-Command -Name Get-ItemProperty        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Location'         = Get-Command -Name Get-Location            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Member'           = Get-Command -Name Get-Member              -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Module'           = Get-Command -Name Get-Module              -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
@@ -86,7 +85,7 @@ $script:SafeCommands = @{
     'Write-Host'           = Get-Command -Name Write-Host              -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Progress'       = Get-Command -Name Write-Progress          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Verbose'        = Get-Command -Name Write-Verbose           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Warning'        = Get-Command -Name Write-Warning          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Warning'        = Get-Command -Name Write-Warning           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
 # Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta-5 on Linux)
