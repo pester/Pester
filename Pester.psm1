@@ -1,7 +1,7 @@
 # Pester
 # Version: $version$
 # Changeset: $sha$
-Set-StrictMode -Version Latest
+#Set-StrictMode -Version Latest
 
 if ($PSVersionTable.PSVersion.Major -ge 3)
 {

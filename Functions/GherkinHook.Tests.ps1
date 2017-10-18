@@ -1,4 +1,5 @@
 Set-StrictMode -Version Latest
+If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core') -or ($PSVersionTable.PSVersion.Major -le 2)) { return }
 
 Describe 'Testing Gerkin Hook'  -Tag 'Gherkin' {
     It 'Generates a function named "BeforeEachFeature" with mandatory Tags and Script parameters' {

@@ -1,30 +1,30 @@
-#Set-StrictMode -Version Latest
-Describe 'Invoke-Gherkin' -Tag 'Gherkin' {
+Set-StrictMode -Version Latest
+If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core') -or ($PSVersionTable.PSVersion.Major -le 2)) { return }
 
-    $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
+$scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
 # Calling this in a job so we don't monkey with the active pester state that's already running
 
-    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
-        param ($scriptRoot)
-        Get-Module Pester | Remove-Module -Force
-        Import-Module $scriptRoot\Pester.psd1 -Force
+$job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+    param ($scriptRoot)
+    Get-Module Pester | Remove-Module -Force
+    Import-Module $scriptRoot\Pester.psd1 -Force
 
-        $job = New-Object psobject -Property @{
-            Results       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru #-Show None
-            Mockery       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery #-Show None
-            Examples      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples #-Show None
-            Example1      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 #-Show None
-            Example2      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 #-Show None
-            NamedScenario = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" #-Show None
-            NotMockery    = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery #-Show None
-        }
+    New-Object psobject -Property @{
+        Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Show None
+        Mockery       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery -Show None
+        Examples      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples -Show None
+        Example1      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 -Show None
+        Example2      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 -Show None
+        NamedScenario = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" -Show None
+        NotMockery    = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery -Show None
     }
+}
 
-    $gherkin = $job | Wait-Job | Receive-Job
+$gherkin = $job | Wait-Job | Receive-Job
+Remove-Job $job
 
-    Remove-Job $job
-
+Describe 'Invoke-Gherkin' {
     It 'Works on the Validator example' {
         $gherkin.Results.PassedCount | Should Be $gherkin.Results.TotalCount
     }

@@ -1,3 +1,5 @@
+If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core') -or ($PSVersionTable.PSVersion.Major -le 2)) { return }
+
 Set-StrictMode -Version Latest
 
 Describe 'Testing Gerkin Step'  -Tag 'Gherkin' {
