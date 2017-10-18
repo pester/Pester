@@ -66,7 +66,7 @@ Describe 'ConvertTo-PesterResult' {
         #on which line the test failed.
         $errorRecord = $null
         try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
-        $result = & $getPesterResult 0 $errorRecord
+        $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
         It 'records the correct stack line number' {
             $result.Stacktrace | should match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
         }
@@ -83,7 +83,7 @@ Describe 'ConvertTo-PesterResult' {
         $errorRecord = $null
         try { $object.ThrowSomething() } catch { $errorRecord = $_ }
 
-        $pesterResult = & $getPesterResult 0 $errorRecord
+        $pesterResult = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
 
         $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
     }
@@ -104,7 +104,7 @@ Describe 'ConvertTo-PesterResult' {
             $errorRecord = $_
         }
 
-        $result = & $getPesterResult 0 $errorRecord
+        $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
 
 
         It 'records the correct stack line number' {

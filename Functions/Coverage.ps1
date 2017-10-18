@@ -599,7 +599,7 @@ function Get-JaCoCoReportXml {
 
     [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
 
-    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -Unique ).Count
+    [long]$hitFiles = $(Measure-Object -InputObject $($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -Unique )).Count
     [long]$missedFiles = $totalFiles - $hitFiles
 
     $now = & $SafeCommands['Get-Date']
