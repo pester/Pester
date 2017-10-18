@@ -247,15 +247,7 @@ https://kevinmarquette.github.io/2017-04-30-Powershell-Gherkin-advanced-features
         }
 
         if($PSCmdlet.ParameterSetName -eq "RetestFailed") {
-
-            Try {
-                $PesterFailedScenariosCount = $Pester.FailedScenarios.Count
-            }
-            Catch {
-                $PesterFailedScenariosCount = 0
-            }
-
-            if((Microsoft.PowerShell.Management\Test-Path variable:script:pester) -and $PesterFailedScenariosCount -gt 0 ) {
+            if((Microsoft.PowerShell.Management\Test-Path variable:script:pester) -and $pester.FailedScenarios.Count -gt 0 ) {
                 $ScenarioName = $Pester.FailedScenarios | Microsoft.PowerShell.Utility\Select-Object -ExpandProperty Name
             }
             else {
@@ -339,7 +331,7 @@ The folder which contains step files
     [CmdletBinding()]
     param(
 
-        [Alias("PSPath")]
+    [Alias("PSPath")]
         [Parameter(Mandatory=$True, Position=0, ValueFromPipelineByPropertyName=$True)]
         $StepPath,
 
@@ -350,10 +342,7 @@ The folder which contains step files
         $Script:GherkinSteps.Clear()
     }
     process {
-
-        $StepFiles = Microsoft.PowerShell.Management\Get-ChildItem $StepPath -Filter "*.steps.ps1" -Recurse
-
-        foreach($StepFile in $StepFiles ) {
+        foreach($StepFile in Microsoft.PowerShell.Management\Get-ChildItem $StepPath -Filter "*.steps.ps1" -Recurse) {
             $invokeTestScript = {
                 [CmdletBinding()]
                 param (
@@ -375,19 +364,13 @@ The folder which contains step files
 
 function Import-GherkinFeature {
     [CmdletBinding()]
-    param(
-        $Path,
-
-        [PSObject]$Pester
-    )
-
+    param($Path,  [PSObject]$Pester)
     $Background = $null
 
     $parser = Microsoft.PowerShell.Utility\New-Object Gherkin.Parser
     $Feature = $parser.Parse($Path).Feature | Convert-Tags
     $Scenarios = foreach($Scenario in $Feature.Children) {
         $null = Microsoft.PowerShell.Utility\Add-Member -MemberType "NoteProperty" -InputObject $Scenario.Location -Name "Path" -Value $Path
-
         foreach($Step in $Scenario.Steps) {
              $null = Microsoft.PowerShell.Utility\Add-Member -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
         }
@@ -408,8 +391,6 @@ function Import-GherkinFeature {
                 Microsoft.PowerShell.Utility\Write-Warning "Unexpected Feature Child: $_"
             }
         }
-
-        #$ScenarioExamplesExist = ( &  $SafeCommands['Get-ItemProperty'] -Path $Scenario -Name Examples -ErrorAction SilentlyContinue )
 
         if($Scenario.Examples) {
             foreach($ExampleSet in $Scenario.Examples) {
@@ -434,16 +415,8 @@ function Import-GherkinFeature {
                             }
                         }
                 $ScenarioName = $Scenario.Name
-
-                Try {
-                    $ExampleSetNameExist = & $SafeCommands['Get-ItemProperty'] -Path $ExampleSet -Name Name -ErrorAction SilentlyContinue
-                }
-                Catch {
-                    $ExampleSetNameExist = $false
-                }
-
-                if($ExampleSetNameExist) {
-                    $ScenarioName = $ScenarioName + "$([System.Environment]::NewLine)  Examples:" + $ExampleSet.Name.Trim()
+                if($ExampleSet.Name) {
+                    $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
                 }
                 Microsoft.PowerShell.Utility\New-Object Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
@@ -461,7 +434,7 @@ function Invoke-GherkinFeature {
 <#
 
 .SYNOPSIS
- Parse and run a Gherkin feature
+ Parse and run a feature
 
  #>
     [CmdletBinding()]
@@ -479,7 +452,7 @@ function Invoke-GherkinFeature {
         Import-GherkinSteps -StepPath $Parent -Pester $pester
         $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
     } catch [Gherkin.ParserException] {
-        Microsoft.PowerShell.Utility\Write-Error -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.$([System.Environment]::NewLine)$(($_.Exception.Errors | Select-Object -Expand Message) -join "$([System.Environment]::NewLine)$([System.Environment]::NewLine)")"
+        Microsoft.PowerShell.Utility\Write-Error -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | Select-Object -Expand Message) -join "`n`n")"
         continue
     }
 
@@ -567,7 +540,7 @@ function Invoke-GherkinScenario {
             . Invoke-GherkinStep -Step $Step -Pester $Pester -Visible
         }
 
-        Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
+        Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
     }
     catch {
         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Microsoft.PowerShell.Utility\Select-Object -First 1
@@ -726,44 +699,19 @@ Pester state object. For internal use only
     }
 
     if($Pester -and $Visible) {
-
-        If ( & $SafeCommands['Get-Variable'] -Name Parameters -ErrorAction SilentlyContinue) {
-            $ParametersCount = $Parameters.Count
-        }
-        Else {
-            $ParametersCount = 0
-        }
-
-        for($p = 0; $p -lt $ParametersCount; $p++) {
+        for($p = 0; $p -lt $Parameters.Count; $p++) {
             $NamedArguments."Unnamed-$p" = $Parameters[$p]
         }
-        ${Pester Result} = ConvertTo-PesterResult -Name $ScenarioName -ErrorRecord $PesterException
+        ${Pester Result} = ConvertTo-PesterResult -ErrorRecord $PesterException
 
         # For Gherkin, we want to show the step, but not pretend to be a StackTrace
         if(${Pester Result}.Result -eq 'Inconclusive') {
             ${Pester Result}.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
         } else {
             # Unless we really are a StackTrace...
-            ${Pester Result}.StackTrace +=  "$([System.Environment]::NewLine)From " + $Step.Location.Path + ': line ' + $Step.Location.Line
+            ${Pester Result}.StackTrace +=  "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
-
-        If ( $PesterException ) {
-            $PesterExceptionMessage = ( &  $SafeCommands['Get-ItemPropertyValue'] -Path $PesterException.Exception -Name Message -ErrorAction SilentlyContinue )
-
-            Try {
-                $PesterExceptionErrorRecord = $PesterException.ErrorRecord
-            }
-            Catch {
-                $PesterExceptionErrorRecord = $null
-            }
-
-        }
-        Else {
-            $PesterExceptionMessage = $null
-            $PesterExceptionErrorRecord = $null
-        }
-
-        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterExceptionMessage, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterExceptionErrorRecord )
+        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterException.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterException.ErrorRecord )
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
