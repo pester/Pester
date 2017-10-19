@@ -761,6 +761,8 @@ New-PesterOption
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
+		[Switch]$DetailedCodeCoverage = $false,
+
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -856,10 +858,13 @@ New-PesterOption
 
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
-            Write-CoverageReport -CoverageReport $coverageReport
+			if ($DetailedCodeCoverage -eq $false)
+			{
+				Write-CoverageReport -CoverageReport $coverageReport
+			}
             if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
                 -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
-                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
+                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
             Exit-CoverageAnalysis -PesterState $pester

@@ -488,6 +488,7 @@ function Get-CoverageReport
 
     $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
+	$allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
     $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
@@ -500,6 +501,7 @@ function Get-CoverageReport
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
+		AllCommands              = $allCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
@@ -580,7 +582,9 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory=$true)]
         $PesterState,
         [parameter(Mandatory=$true)]
-        [object] $CoverageReport
+        [object] $CoverageReport,
+
+        [Switch]$DetailedCodeCoverage
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
@@ -610,6 +614,11 @@ function Get-JaCoCoReportXml {
     $jaCoCoReport += "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>`n"
     $jaCoCoReport += "<report name="""">`n"
     $jaCoCoReport += "<sessioninfo id=""this"" start="""" dump="""" />`n"
+
+    if ($DetailedCodeCoverage)
+    {
+        $jaCoCoReport += "<package name=""Powershell""/>`n"
+    }
     $jaCoCoReport += "<counter type=""INSTRUCTION"" missed="""" covered=""""/>`n"
     $jaCoCoReport += "<counter type=""LINE"" missed="""" covered=""""/>`n"
     $jaCoCoReport += "<counter type=""METHOD"" missed="""" covered=""""/>`n"
@@ -620,6 +629,80 @@ function Get-JaCoCoReportXml {
     $jaCoCoReportXml.report.name = "Pester ($now)"
     $jaCoCoReportXml.report.sessioninfo.start=$startTime.ToString()
     $jaCoCoReportXml.report.sessioninfo.dump=$endTime.ToString()
+
+    if ($DetailedCodeCoverage)
+    {
+
+        $fileName = "";
+        $lineNr = -1;
+        $report = $jaCoCoReportXml.ChildNodes[1]
+        $package = $report.ChildNodes[1]
+        $mi = 0
+        $ci = 0
+        $missed = 0
+        $covered = 0
+	    $line = $null
+        foreach($row in $CoverageReport.AllCommands)
+        {
+            if ($sourceName -ne $row.File)
+            {
+                $xmlFile = $jaCoCoReportXml.CreateElement("sourcefile") 
+                $xmlName = $jaCoCoReportXml.CreateAttribute("name")
+                $xmlName.value = $row.File
+                $null = $xmlFile.Attributes.Append($xmlName) 
+                $null = $package.AppendChild($xmlFile)
+                $sourceName = $row.File
+                $lineNr = -1;
+			    $counter = $jaCoCoReportXml.CreateElement("counter")
+
+				$missed = 0
+				$covered = 0
+
+				$typeCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("type"))
+				$typeCounter.Value = "LINE"
+
+                $miCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("missed"))
+                $miCounter.value = $missed 
+
+                $ciCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("covered"))
+                $ciCounter.value = $covered
+
+			    $null = $xmlFile.AppendChild($counter)
+            }
+
+		    if ($lineNr -ne $row.Line)
+		    {
+			    $line = $jaCoCoReportXml.CreateElement("line")
+                $nr = $jaCoCoReportXml.CreateAttribute("nr")
+                $nr.value = $row.Line
+                $mi = 0
+                $ci = 0
+                $null = $line.Attributes.Append($nr)
+                $ciLine = $line.Attributes.Append($jaCoCoReportXml.CreateAttribute("ci"))
+                $ciLine.value = 0
+                $miLine = $line.Attributes.Append($jaCoCoReportXml.CreateAttribute("mi"))
+                $miLine.value = 0 
+			    $null = $xmlFile.InsertBefore($line, $counter)
+                $lineNr = $row.Line
+		    }
+		
+		    if ($row.Breakpoint.HitCount -eq 0)
+		    {
+			    $mi += 1
+                $miLine.value = $mi
+				$missed += 1
+                $miCounter.value = $missed
+		    }
+		    else
+		    {
+			    $ci += 1
+                $ciLine.value = $ci
+				$covered += 1
+				$ciCounter.value = $covered
+		    }
+        }
+    }
+
     $jaCoCoReportXml.report.counter[0].missed = $CoverageReport.MissedCommands.Count.ToString()
     $jaCoCoReportXml.report.counter[0].covered = $CoverageReport.HitCommands.Count.ToString()
     $jaCoCoReportXml.report.counter[1].missed = $missedLines.ToString()
