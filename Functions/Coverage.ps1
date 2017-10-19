@@ -488,7 +488,7 @@ function Get-CoverageReport
 
     $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
-	$allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
+    $allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
     $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
@@ -501,7 +501,7 @@ function Get-CoverageReport
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
-		AllCommands              = $allCommands
+        AllCommands              = $allCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
@@ -641,38 +641,38 @@ function Get-JaCoCoReportXml {
         $ci = 0
         $missed = 0
         $covered = 0
-	    $line = $null
+        $line = $null
         foreach($row in $CoverageReport.AllCommands)
         {
             if ($sourceName -ne $row.File)
             {
-                $xmlFile = $jaCoCoReportXml.CreateElement("sourcefile") 
+                $xmlFile = $jaCoCoReportXml.CreateElement("sourcefile")
                 $xmlName = $jaCoCoReportXml.CreateAttribute("name")
                 $xmlName.value = $row.File
-                $null = $xmlFile.Attributes.Append($xmlName) 
+                $null = $xmlFile.Attributes.Append($xmlName)
                 $null = $package.AppendChild($xmlFile)
                 $sourceName = $row.File
                 $lineNr = -1;
-			    $counter = $jaCoCoReportXml.CreateElement("counter")
+                $counter = $jaCoCoReportXml.CreateElement("counter")
 
-				$missed = 0
-				$covered = 0
+                $missed = 0
+                $covered = 0
 
-				$typeCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("type"))
-				$typeCounter.Value = "LINE"
+                $typeCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("type"))
+                $typeCounter.Value = "LINE"
 
                 $miCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("missed"))
-                $miCounter.value = $missed 
+                $miCounter.value = $missed
 
                 $ciCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("covered"))
                 $ciCounter.value = $covered
 
-			    $null = $xmlFile.AppendChild($counter)
+                $null = $xmlFile.AppendChild($counter)
             }
 
-		    if ($lineNr -ne $row.Line)
-		    {
-			    $line = $jaCoCoReportXml.CreateElement("line")
+            if ($lineNr -ne $row.Line)
+            {
+                $line = $jaCoCoReportXml.CreateElement("line")
                 $nr = $jaCoCoReportXml.CreateAttribute("nr")
                 $nr.value = $row.Line
                 $mi = 0
@@ -681,25 +681,25 @@ function Get-JaCoCoReportXml {
                 $ciLine = $line.Attributes.Append($jaCoCoReportXml.CreateAttribute("ci"))
                 $ciLine.value = 0
                 $miLine = $line.Attributes.Append($jaCoCoReportXml.CreateAttribute("mi"))
-                $miLine.value = 0 
-			    $null = $xmlFile.InsertBefore($line, $counter)
+                $miLine.value = 0
+                $null = $xmlFile.InsertBefore($line, $counter)
                 $lineNr = $row.Line
-		    }
-		
-		    if ($row.Breakpoint.HitCount -eq 0)
-		    {
-			    $mi += 1
+            }
+
+            if ($row.Breakpoint.HitCount -eq 0)
+            {
+                $mi += 1
                 $miLine.value = $mi
-				$missed += 1
+                $missed += 1
                 $miCounter.value = $missed
-		    }
-		    else
-		    {
-			    $ci += 1
+            }
+            else
+            {
+                $ci += 1
                 $ciLine.value = $ci
-				$covered += 1
-				$ciCounter.value = $covered
-		    }
+                $covered += 1
+                $ciCounter.value = $covered
+            }
         }
     }
 

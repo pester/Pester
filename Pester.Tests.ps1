@@ -4,8 +4,8 @@ $manifestPath   = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
-
-Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
+#
+Describe -Tags 'VersionChecks' -CodeCoverage '.\Pester.psm1' "Pester manifest and changelog" {
     $script:manifest = $null
     $script:tagVersion = $null
     $script:tagVersionShort = $null
