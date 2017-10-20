@@ -3,6 +3,8 @@
 
 Pester is the ubiquitous test and mock framework for PowerShell.
 
+It's the experimental branch compatible with [PowerShell Core](https://github.com/PowerShell/powershell) - tested with version 6.0.0-beta.8.
+
 ```powershell
 # your function
 function Get-Planet ([string]$Name='*')
