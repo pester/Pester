@@ -57,8 +57,8 @@ function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
 }
 
 function Get-ExceptionLineInfo($info) {
-    # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
-    $positionMessage = $info.PositionMessage -split "$([System.Environment]::NewLine)" -match '\S' -join "$([System.Environment]::NewLine)"
+        # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
+    $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join "`r`n"
     return ($positionMessage -replace "^At ","from ")
 }
 
@@ -83,7 +83,7 @@ function PesterThrowFailureMessage($ActualValue, $ExpectedMessage, $ExpectedErro
             ($Expected -join ' and '),
             @{$true="";$false="not "}[$ActualExceptionWasThrown],
             ($Actual -join ' and '),
-            ($ActualExceptionLine  -replace "$([System.Environment]::NewLine)","$([System.Environment]::NewLine)    ")
+            ($ActualExceptionLine -replace "`n","$([System.Environment]::NewLine)    ")
         ))
     }
 
