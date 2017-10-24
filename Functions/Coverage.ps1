@@ -306,7 +306,7 @@ function IsIgnoredCommand
     {
         if ($Command.Extent.Text -eq 'Configuration')
         {
-            # More DSC voodoo.  Calls to "configuration" generate breakpoints, but their HitCount
+            # More DSC specific code.  Calls to "configuration" generate breakpoints, but their HitCount
             # stays zero (even though they are executed.)  For now, ignore them, unless we can come
             # up with a better solution.
             return $true
