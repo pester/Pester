@@ -285,8 +285,15 @@ InModuleScope Pester {
             $p | Should Be (Join-Path $TestDrive existingfile.txt)
         }
 
+        If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
+            $CommandToTest = "pwsh"
+        }
+        Else {
+            $CommandToTest = "powershell"
+        }
+
         It "Resolves full path correctly" {
-            $powershellPath = Get-Command 'powershell' | Select -ExpandProperty 'Definition'
+            $powershellPath = Get-Command -Name $CommandToTest | Select-Object -ExpandProperty 'Definition'
             $powershellPath | Should -Not -BeNullOrEmpty
 
             GetFullPath $powershellPath | Should Be $powershellPath
