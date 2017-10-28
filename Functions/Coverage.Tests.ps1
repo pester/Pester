@@ -233,14 +233,35 @@ InModuleScope Pester {
     }
 
     Describe 'Stripping common parent paths' {
-        $paths = @(
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
-        )
+
+        If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or
+        (& $SafeCommands['Get-Variable'] -Name IsMacOS -Scope Global -ErrorAction SilentlyContinue)) {
+
+            $paths = @(
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder1/File.ps1'
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder2/File2.ps1'
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder3/File3.ps1'
+
+                $expectedCommonPath = Normalize-Path '/usr/lib/Common/Folder'
+
+            )
+
+        }
+        Else {
+
+            $paths = @(
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
+
+                $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+
+            )
+
+        }
 
         $commonPath = Get-CommonParentPath -Path $paths
-        $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+
 
         It 'Identifies the correct parent path' {
             $commonPath | Should Be $expectedCommonPath
@@ -254,8 +275,9 @@ InModuleScope Pester {
         }
     }
 
-    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4)
-    {
+    #Workaround for Linux and MacOS - they don't have DSC by default installed with PowerShell - disable tests on these platforms
+    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4 -and ((GetPesterOS) -eq 'Windows')) {
+
         Describe 'Analyzing coverage of a DSC configuration' {
             $root = (Get-PSDrive TestDrive).Root
 
@@ -289,7 +311,6 @@ InModuleScope Pester {
 
                 $doesnotexecute = $true   # Triggers breakpoint
 '@
-
             $testState = New-PesterState -Path $root
 
             Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState

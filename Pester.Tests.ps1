@@ -26,11 +26,11 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         $script:manifest.Guid | Should Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
     }
 
-    if (Get-Command git.exe -ErrorAction SilentlyContinue) {
+    if (Get-Command -Name git -ErrorAction SilentlyContinue) {
         $skipVersionTest = -not [bool]((git remote -v 2>&1) -match "github.com/Pester/")
 
         It "is tagged with a valid version" -skip:$skipVersionTest {
-            $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
+            $thisCommit = git log --decorate --oneline HEAD~1..HEAD
 
             if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
             {
