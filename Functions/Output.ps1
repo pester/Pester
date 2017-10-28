@@ -159,19 +159,20 @@ function Write-Context {
 
 function ConvertTo-PesterResult {
     param(
+        [String] $Name,
         [Nullable[TimeSpan]] $Time,
         [System.Management.Automation.ErrorRecord] $ErrorRecord
     )
 
     $testResult = @{
-        name = $name
+        name = $Name
         time = $time
         failureMessage = ""
         stackTrace = ""
         ErrorRecord = $null
         success = $false
         result = "Failed"
-    };
+    }
 
     if(-not $ErrorRecord)
     {
@@ -322,9 +323,23 @@ function Write-PesterReport {
     $Pending = if($PesterState.PendingCount -gt 0) { $ReportTheme.Pending } else { $ReportTheme.Information }
     $Inconclusive = if($PesterState.InconclusiveCount -gt 0) { $ReportTheme.Inconclusive } else { $ReportTheme.Information }
 
+    Try {
+        $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
+    }
+    Catch {
+        $PesterStatePassedScenariosCount = 0
+    }
+
+    Try {
+        $PesterStateFailedScenariosCount = $PesterState.FailedScenarios.Count
+    }
+    Catch {
+        $PesterStateFailedScenariosCount = 0
+    }
+
     if($ReportStrings.ContextsPassed) {
-        & $SafeCommands['Write-Host'] ($ReportStrings.ContextsPassed -f $PesterState.PassedScenarios.Count) -Foreground $Success -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterState.FailedScenarios.Count) -Foreground $Failure
+        & $SafeCommands['Write-Host'] ($ReportStrings.ContextsPassed -f $PesterStatePassedScenariosCount) -Foreground $Success -NoNewLine
+        & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
     }
     if($ReportStrings.TestsPassed) {
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $PesterState.PassedCount) -Foreground $Success -NoNewLine

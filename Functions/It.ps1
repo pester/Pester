@@ -280,7 +280,7 @@ function Invoke-Test
                 $pester.LeaveTest()
             }
 
-            $result = ConvertTo-PesterResult -ErrorRecord $errorRecord
+            $result = ConvertTo-PesterResult -Name $Name -ErrorRecord $errorRecord
             $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
             $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
             & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
