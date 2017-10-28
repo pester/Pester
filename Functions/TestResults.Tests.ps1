@@ -12,7 +12,7 @@ InModuleScope Pester {
                 $TestResults.AddTestResult("Successful testcase",'Passed',(New-TimeSpan -Seconds 1))
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -29,7 +29,7 @@ InModuleScope Pester {
                 $TestResults.AddTestResult("Failed testcase",'Failed',$time,'Assert failed: "Expected: Test. But was: Testing"','at line: 28 in  C:\Pester\Result.Tests.ps1')
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -47,7 +47,7 @@ InModuleScope Pester {
                 $TestResults.AddTestResult("Testcase",'Passed',(New-TimeSpan -Seconds 1))
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
                 $xmlTestResult = $xmlResult.'test-results'
@@ -68,7 +68,7 @@ InModuleScope Pester {
                 Set-PesterStatistics -Node $TestResults.TestActions
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
 
@@ -94,7 +94,7 @@ InModuleScope Pester {
                 Set-PesterStatistics -Node $TestResults.TestActions
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
 
@@ -115,7 +115,7 @@ InModuleScope Pester {
 
             it "should write the environment information" {
                 $state = New-PesterState "."
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $state $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
 
@@ -139,7 +139,7 @@ InModuleScope Pester {
                 $TestResults.AddTestResult("Failed testcase",'Failed',(New-TimeSpan -Seconds 2))
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xml = [xml] (Get-Content $testFile)
 
@@ -156,7 +156,7 @@ InModuleScope Pester {
                 $TestResults.LeaveTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xml = [xml] (Get-Content $testFile)
 
@@ -196,7 +196,7 @@ InModuleScope Pester {
                 )
 
                 #export and validate the file
-                $testFile = "$TestDrive\Results\Tests.xml"
+                [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult    = [xml] (Get-Content $testFile)
 

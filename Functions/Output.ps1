@@ -430,9 +430,24 @@ function ConvertTo-FailureLines
         $count = 0
 
         # omit the lines internal to Pester
+
+        If ((GetPesterOS) -ne 'Windows') {
+
+            [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*/Functions/.*.ps1: line [0-9]*$'
+            [String]$pattern2 = '^at Should<End>, .*/Functions/Assertions/Should.ps1: line [0-9]*$'
+            [String]$pattern3 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
+        }
+        Else {
+
+            [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$'
+            [String]$pattern2 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
+            [String]$pattern3 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+
+        }
+
         foreach ( $line in $traceLines )
         {
-            if ( $line -match '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$' )
+            if ( $line -match $pattern1 )
             {
                 break
             }
@@ -441,8 +456,8 @@ function ConvertTo-FailureLines
         $lines.Trace += $traceLines |
             & $SafeCommands['Select-Object'] -First $count |
             & $SafeCommands['Where-Object'] {
-                $_ -notmatch '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$' -and
-                $_ -notmatch '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+                $_ -notmatch $pattern2 -and
+                $_ -notmatch $pattern3
             }
 
         return $lines
