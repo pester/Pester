@@ -211,8 +211,8 @@ InModuleScope Pester {
 
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $unexpectedErrorMessage $expectedErrorMessage
-            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
@@ -237,8 +237,8 @@ InModuleScope Pester {
 
             PesterThrow { & $testScriptPath } -ErrorId $expectedErrorId > $null
             $result = PesterThrowFailureMessage $null -ExpectedErrorId $expectedErrorId
-            $result | Should Match "^Expected: the expression to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result | Should -Match "^Expected: the expression to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should Match "^Expected: the expression to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$unexpectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should -Match "^Expected: the expression to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$unexpectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual error id is the same as the expected error id' {
@@ -276,8 +276,8 @@ InModuleScope Pester {
 
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $null $expectedErrorMessage $expectedErrorId
-            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$unexpectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$unexpectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns false if the actual message is not the same as the expected message when the actual error id and expected error id match' {
@@ -296,8 +296,8 @@ InModuleScope Pester {
 
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $null $expectedErrorMessage $expectedErrorId
-            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$expectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$unexpectedErrorMessage} and error id was {$expectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns false if the actual error id is not the same as the expected error id when the actual message and expected message match' {
@@ -316,8 +316,8 @@ InModuleScope Pester {
 
             PesterThrow { & $testScriptPath } $expectedErrorMessage > $null
             $result = PesterThrowFailureMessage $null $expectedErrorMessage $expectedErrorId
-            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$unexpectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$unexpectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$unexpectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
     }
 
@@ -331,15 +331,15 @@ InModuleScope Pester {
             Set-Content -Path $testScriptPath -Value "throw '$unexpectedErrorMessage'"
 
             $result = PesterThrow { & $testScriptPath } $expectedErrorMessage
-            $result.FailureMessage | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result.FailureMessage | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should -Match "^Expected: the expression to throw an exception with message {$expectedErrorMessage}, an exception was raised, message was {$unexpectedErrorMessage}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns true if the actual message is the same as the expected message' {
             Set-Content -Path $testScriptPath -Value "throw 'error message'"
             $result = PesterThrow { & $testScriptPath } -Negate
-            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception. Message was {error message}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception. Message was {error message}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception. Message was {error message}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns false if the actual error id is the same as the expected error id' {
@@ -355,8 +355,8 @@ InModuleScope Pester {
             "
 
             $result = PesterThrow { & $testScriptPath } -ErrorId $expectedErrorId -Negate
-            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception with error id {$expectedErrorId}, an exception was raised, error id was {$expectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
 
         It 'returns false if the actual message or actual error id is the same as the expected message or expected error id' {
@@ -373,8 +373,8 @@ InModuleScope Pester {
             "
 
             $result = PesterThrow { & $testScriptPath } $expectedErrorMessage -ErrorId $expectedErrorId -Negate
-            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
-            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$expectedErrorId}`n    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$expectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
+            $result.FailureMessage | Should -Match "^Expected: the expression not to throw an exception with message {$expectedErrorMessage} and error id {$expectedErrorId}, an exception was raised, message was {$expectedErrorMessage} and error id was {$expectedErrorId}$([System.Environment]::NewLine)    from $([RegEx]::Escape($testScriptPath)):\d+ char:\d+"
         }
     }
 }

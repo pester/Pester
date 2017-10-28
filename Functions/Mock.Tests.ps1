@@ -581,7 +581,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should Be "`r`n Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+            $result.Exception.Message | Should Be "$([System.Environment]::NewLine) Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
         }
     }
 
@@ -600,7 +600,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should Be "`r`n Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+            $result.Exception.Message | Should Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
         }
 
         AfterAll {

@@ -119,7 +119,7 @@ function Should {
     end
     {
         $lineNumber = $MyInvocation.ScriptLineNumber
-        $lineText   = $MyInvocation.Line.TrimEnd("`n")
+        $lineText   = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
         $file       = $MyInvocation.ScriptName
 
         if ($PSCmdlet.ParameterSetName -eq 'Legacy')

@@ -93,7 +93,7 @@ Describe 'ConvertTo-PesterResult' {
         $testPath = Join-Path $TestDrive test.ps1
         $escapedTestPath = [regex]::Escape($testPath)
 
-        Set-Content -Path $testPath -Value "`r`n'One' | Should Be 'Two'"
+        Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should Be 'Two'"
 
         try
         {
@@ -119,6 +119,7 @@ Describe 'ConvertTo-PesterResult' {
 
 InModuleScope -ModuleName Pester -ScriptBlock {
     Describe "Format-PesterPath" {
+
         It "Writes path correctly when it is given `$null" {
             Format-PesterPath -Path $null | Should -Be $null
         }
@@ -162,6 +163,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         }
         It 'failed should produces correct message lines.' {
             try { 'One' | Should be 'Two' } catch { $e = $_ }
+
             $r = $e | ConvertTo-FailureLines
 
             $r.Message[0] | Should be 'String lengths are both 3. Strings differ at index 0.'

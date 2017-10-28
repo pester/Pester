@@ -3,7 +3,7 @@
 InModuleScope Pester {
     Describe "PesterFileContentMatchExactly" {
         Context "when testing file contents" {
-            Setup -File "test.txt" "this is line 1`nPester is awesome`nAnd this is Unicode: ☺"
+            Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)Pester is awesome$([System.Environment]::NewLine)And this is Unicode: ☺"
             It "returns true if the file contains the specified content exactly" {
                 "$TestDrive\test.txt" | Should FileContentMatchExactly Pester
                 "$TestDrive\test.txt" | Should -FileContentMatchExactly Pester

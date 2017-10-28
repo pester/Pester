@@ -167,7 +167,7 @@ Describe 'Style rules' -Tag StyleRules {
 
         if ($badLines.Count -gt 0)
         {
-            throw "The following $($badLines.Count) lines contain trailing whitespace: `r`n`r`n$($badLines -join "`r`n")"
+            throw "The following $($badLines.Count) lines contain trailing whitespace: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($badLines -join "$([System.Environment]::NewLine)")"
         }
     }
     It 'Spaces are used for indentation in all code files, not tabs' {
@@ -188,7 +188,7 @@ Describe 'Style rules' -Tag StyleRules {
 
         if ($badLines.Count -gt 0)
         {
-            throw "The following $($badLines.Count) lines start with a tab character: `r`n`r`n$($badLines -join "`r`n")"
+            throw "The following $($badLines.Count) lines start with a tab character: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($badLines -join "$([System.Environment]::NewLine)")"
         }
     }
 
@@ -203,7 +203,7 @@ Describe 'Style rules' -Tag StyleRules {
         )
 
         if ($badFiles.Count -gt 0) {
-            throw "The following files do not end with a newline: `r`n`r`n$($badFiles -join "`r`n")"
+            throw "The following files do not end with a newline: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($badFiles -join "$([System.Environment]::NewLine)")"
         }
     }
 }
