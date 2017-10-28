@@ -589,16 +589,17 @@ function Get-JaCoCoReportXml {
     }
 
     $allCommands = $CoverageReport.MissedCommands + $CoverageReport.HitCommands
-    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
-    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
+    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
     [long]$missedFunctions = $totalFunctions - $hitFunctions
 
-    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
-    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
+    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
     [long]$missedLines = $totalLines - $hitLines
 
     [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
-    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
+
+    [long]$hitFiles = $(Measure-Object -InputObject $($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -Unique )).Count
     [long]$missedFiles = $totalFiles - $hitFiles
 
     $now = & $SafeCommands['Get-Date']
