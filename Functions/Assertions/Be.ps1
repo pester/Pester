@@ -178,8 +178,16 @@ function ArraysAreEqual
     param (
         [object[]] $First,
         [object[]] $Second,
-        [switch] $CaseSensitive
+        [switch] $CaseSensitive,
+        [int] $RecursionDepth = 0,
+        [int] $RecursionLimit = 100
     )
+    $RecursionDepth++
+
+    if ($RecursionDepth -gt $RecursionLimit)
+    {
+        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
+    }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
     # silly error in PowerShell v3.  (Null Reference exception from the PowerShell engine in a
@@ -196,9 +204,9 @@ function ArraysAreEqual
 
     for ($i = 0; $i -lt $First.Count; $i++)
     {
-        if ((IsCollection $First[$i]) -or (IsCollection $Second[$i]))
+        if ((IsArray $First[$i]) -or (IsArray $Second[$i]))
         {
-            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive -RecursionDepth $RecursionDepth -RecursionLimit $RecursionLimit))
             {
                 return $false
             }
@@ -231,13 +239,13 @@ function ArrayOrSingleElementIsNullOrEmpty
     return $null -eq $Array -or $Array.Count -eq 0 -or ($Array.Count -eq 1 -and $null -eq $Array[0])
 }
 
-function IsCollection
+function IsArray
 {
     param ([object] $InputObject)
 
-    return $InputObject -is [System.Collections.IEnumerable] -and
-           $InputObject -isnot [string] -and
-           $InputObject -isnot [System.Collections.IDictionary]
+    # Changing this could cause infinite recursion in ArraysAreEqual.
+    # see https://github.com/pester/Pester/issues/785#issuecomment-322794011
+    return $InputObject -is [Array]
 }
 
 function ReplaceValueInArray

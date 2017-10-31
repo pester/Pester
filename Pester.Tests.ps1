@@ -7,6 +7,11 @@ $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:manifest = $null
+    $script:tagVersion = $null
+    $script:tagVersionShort = $null
+    $script:changelogVersion = $null
+    $script:changelogVersionShort = $null
+
     It "has a valid manifest" {
         {
             $script:manifest = Test-ModuleManifest -Path $manifestPath -ErrorAction Stop -WarningAction SilentlyContinue
@@ -21,50 +26,49 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         $script:manifest.Guid | Should Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
     }
 
-    It "has a valid version in the manifest" {
-        $script:manifest.Version -as [Version] | Should Not BeNullOrEmpty
-    }
-
-    $script:changelogVersion = $null
-    It "has a valid version in the changelog" {
-
-        foreach ($line in (Get-Content $changeLogPath))
-        {
-            if ($line -match "^\D*(?<Version>(\d+\.){1,3}\d+)")
-            {
-                $script:changelogVersion = $matches.Version
-                break
-            }
-        }
-        $script:changelogVersion                | Should Not BeNullOrEmpty
-        $script:changelogVersion -as [Version]  | Should Not BeNullOrEmpty
-    }
-
-    It "changelog and manifest versions are the same" {
-        $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
-    }
-
-    if (Get-Command git.exe -ErrorAction SilentlyContinue)
-    {
+    if (Get-Command git.exe -ErrorAction SilentlyContinue) {
         $skipVersionTest = -not [bool]((git remote -v 2>&1) -match "github.com/Pester/")
-        $script:tagVersion = $null
+
         It "is tagged with a valid version" -skip:$skipVersionTest {
             $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
 
             if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
             {
                 $script:tagVersion = $matches[1]
+                $script:tagVersionShort = $script:tagVersion -replace "-.*$", ''
             }
 
             $script:tagVersion                  | Should Not BeNullOrEmpty
-            $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
+            $script:tagVersionShort -as [Version]    | Should Not BeNullOrEmpty
         }
+    }
 
-        It "all versions are the same" -skip:$skipVersionTest {
-            $script:changelogVersion -as [Version] | Should be ( $script:manifest.Version -as [Version] )
-            $script:manifest.Version -as [Version] | Should be ( $script:tagVersion -as [Version] )
+    It "has valid release notes in the manifest" {
+        $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+    }
+
+    It "has a valid version in the changelog" {
+
+        foreach ($line in (Get-Content $changeLogPath))
+        {
+            if ($line -match "^\s*##\s+(?<Version>.*?)\s")
+            {
+                $script:changelogVersion = $matches.Version
+                $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
+                break
+            }
         }
+        $script:changelogVersion                | Should Not BeNullOrEmpty
+        $script:changelogVersionShort -as [Version]  | Should Not BeNullOrEmpty
+    }
 
+    It "tag and changelog versions are the same" {
+        $script:changelogVersion | Should -Be $script:tagVersion
+    }
+
+    It "all versions are the same" -skip:$skipVersionTest {
+        $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
+        $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
     }
 }
 
@@ -88,7 +92,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
             $path = $ExecutionContext.SessionState.Module.ModuleBase
             $filesToCheck = Get-ChildItem -Path $path -Recurse -Include *.ps1,*.psm1 -Exclude *.Tests.ps1
             $callsToSafeCommands = @(
-                foreach ($file in $files)
+                foreach ($file in $filesToCheck)
                 {
                     $tokens = $parseErrors = $null
                     $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref] $tokens, [ref] $parseErrors)
@@ -106,7 +110,11 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 
             $uniqueSafeCommands = $callsToSafeCommands | ForEach-Object { $_.CommandElements[0].Index.Value } | Select-Object -Unique
 
-            $missingSafeCommands = $uniqueSafeCommands | Where-Object { -not $script:SafeCommands.ContainsKey($_) }
+            $missingSafeCommands = $uniqueSafeCommands | Where { -not $script:SafeCommands.ContainsKey($_) }
+
+            # These commands are conditionally added to the safeCommands table due to Nano / Core versus PSv2 compatibility; one will always
+            # be missing, and can be ignored.
+            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance') -notcontains $_ }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
                 $missingSafeCommands | Should Be $null
@@ -115,12 +123,30 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
     }
 }
 
-Describe 'Style rules' {
+Describe 'Public API' {
+    It 'all non-deprecated, non-internal public commands use CmdletBinding' {
+        $r = Get-Command -Module Pester |
+            ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
+            ? { -not $_.CmdletBinding } |
+            % { $_.Name } |
+            ? {
+            @(
+                'Get-TestDriveItem' # deprecated in 4.0
+                'SafeGetCommand' # Pester internal
+                'Setup' # deprecated
+            ) -notcontains $_
+        }
+        $r | Should beNullOrEmpty
+    }
+}
+
+Describe 'Style rules' -Tag StyleRules {
     $pesterRoot = (Get-Module Pester).ModuleBase
 
     $files = @(
-        Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1
-        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1 -Recurse
+        Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
@@ -144,7 +170,7 @@ Describe 'Style rules' {
             throw "The following $($badLines.Count) lines contain trailing whitespace: `r`n`r`n$($badLines -join "`r`n")"
         }
     }
-    It 'Pester source files lines start with a tab character' {
+    It 'Spaces are used for indentation in all code files, not tabs' {
         $badLines = @(
             foreach ($file in $files)
             {
@@ -300,5 +326,33 @@ InModuleScope Pester {
                 { ResolveTestScripts @{ P='P'; Params = 'A string' } } | Should Throw
             }
         }
+    }
+}
+Describe 'Assertion operators' {
+    It 'Allows an operator with an identical name and test to be re-registered' {
+        function SameNameAndScript {$true}
+        Add-AssertionOperator -Name SameNameAndScript -Test $function:SameNameAndScript
+
+        { Add-AssertionOperator -Name SameNameAndScript -Test {$true} } | Should -Not -Throw
+    }
+    It 'Allows an operator with an identical name, test, and alias to be re-registered' {
+        function SameNameAndScriptAndAlias {$true}
+        Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
+
+        { Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test {$true} -Alias SameAlias } | Should -Not -Throw
+    }
+    It 'Does not allow an operator with a different test to be registered using an existing name' {
+        function DifferentScriptBlockA {$true}
+        function DifferentScriptBlockB {$false}
+        Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockA
+
+        { Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
+    }
+    It 'Does not allow an operator with a different test to be registered using an existing alias' {
+        function DifferentAliasA { $true }
+        function DifferentAliasB { $true }
+        Add-AssertionOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
+
+        { Add-AssertionOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
     }
 }

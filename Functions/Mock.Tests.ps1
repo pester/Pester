@@ -257,7 +257,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     }
 
     $result = ''
-    "a", "b" | Get-ChildItem | % { $result += $_ }
+    "a", "b" | Get-ChildItem | ForEach { $result += $_ }
 
     It "Should process the pipeline in the mocked script" {
         $result | Should Be "AABB"
@@ -575,7 +575,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         FunctionUnderTest "three" | Out-Null
 
         try {
-            Assert-VerifiableMocks
+            Assert-VerifiableMock
         } Catch {
             $result=$_
         }
@@ -594,7 +594,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
         TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
         try {
-            Assert-VerifiableMocks
+            Assert-VerifiableMock
         } Catch {
             $result=$_
         }
@@ -612,8 +612,8 @@ Describe "When Creating a Verifiable Mock that is not called" {
 Describe "When Creating a Verifiable Mock that is called" {
     Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
     FunctionUnderTest "one"
-    It "Assert-VerifiableMocks Should not throw" {
-        { Assert-VerifiableMocks } | Should Not Throw
+    It "Assert-VerifiableMock Should not throw" {
+        { Assert-VerifiableMock } | Should Not Throw
     }
 }
 
@@ -1244,7 +1244,7 @@ Describe 'DynamicParam blocks in other scopes' {
                     }
 
                     $params['Path'] = [string[]]'Cert:\'
-                    Get-MockDynamicParameters -CmdletName Get-ChildItem -Parameters $params
+                    Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
                 }
             }
 
@@ -1302,7 +1302,7 @@ Describe 'Parameter Filters and Common Parameters' {
 Describe "Mocking Get-ItemProperty" {
     Mock Get-ItemProperty { New-Object -typename psobject -property @{ Name = "fakeName" } }
     It "Does not fail with NotImplementedException" {
-        Get-ItemProperty -Path "HKLM:\Software\Key\" -Name "Property" | Select -ExpandProperty Name | Should Be fakeName
+        Get-ItemProperty -Path "HKLM:\Software\Key\" -Name "Property" | Select-Object -ExpandProperty Name | Should Be fakeName
     }
 }
 
@@ -1397,7 +1397,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function with an array' {
         $result = @(1,2) | PipelineInputFunction
         it 'Returns actual implementation' {
-            $result[0].keys | % {
+            $result[0].keys | ForEach {
                 $result[0][$_] | Should Be $noMockArrayResult[0][$_]
                 $result[1][$_] | Should Be $noMockArrayResult[1][$_]
             }
@@ -1407,7 +1407,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function with an int' {
         $result = 1 | PipelineInputFunction
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach {
                 $result[$_] | Should Be $noMockIntResult[$_]
             }
         }
@@ -1416,7 +1416,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function with a string' {
         $result = '1' | PipelineInputFunction
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach {
                 $result[$_] | Should Be $noMockStringResult[$_]
             }
         }
@@ -1425,7 +1425,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function and pipeline is bound by property name' {
         $result = $psobj | PipelineInputFunction -PipeStr 'val'
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach {
                 $result[$_] | Should Be $noMockResultByProperty[$_]
             }
         }
@@ -1448,7 +1448,7 @@ Describe 'Mocking a function taking input from pipeline' {
     context 'when calling original function and pipeline is bound by property name with array values' {
         $result = $psArrayobj | PipelineInputFunction -PipeStr 'val'
         it 'Returns actual implementation' {
-            $result.keys | % {
+            $result.keys | ForEach {
                 $result[$_] | Should Be $noMockArrayResultByProperty[$_]
             }
         }
@@ -1692,21 +1692,24 @@ Describe 'Globbing characters in command name' {
 }
 
 Describe 'Naming conflicts in mocked functions' {
-    function Sample {
-        param(
-            [string]
-            ${Metadata}
-        )
+    Context 'parameter named Metadata' {
+        function Sample { param( [string] ${Metadata} ) }
+        function Wrapper { Sample -Metadata 'test' }
+
+        Mock Sample { 'mocked' }
+        It 'Works with commands with parameter named Metadata' {
+            Wrapper | Should Be 'mocked'
+        }
     }
+    Context 'parameter named Keys' {
+        function g { [CmdletBinding()] param($Keys,$H) }
+        function Wrapper { g -Keys 'value' }
 
-    function Wrapper {
-        Sample -Metadata 'test'
-    }
-
-    Mock -CommandName Sample { 'mocked' }
-
-    It 'Works with commands that contain variables named Metadata' {
-        Wrapper | Should Be 'mocked'
+        Mock g { $Keys }
+        It 'Works with command with parameter named Keys' {
+            $r = Wrapper
+            $r | Should be 'value'
+        }
     }
 }
 

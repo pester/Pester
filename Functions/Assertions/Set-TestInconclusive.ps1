@@ -51,6 +51,7 @@ function Set-TestInconclusive {
     .LINK
     https://github.com/pester/Pester/wiki/Set%E2%80%90TestInconclusive
 #>
+    [CmdletBinding()]
     param (
         [string] $Message
     )

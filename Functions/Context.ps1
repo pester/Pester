@@ -13,6 +13,11 @@ apply to tests within that Context .
 .PARAMETER Name
 The name of the Context. This is a phrase describing a set of tests within a describe.
 
+.PARAMETER Tag
+Optional parameter containing an array of strings.  When calling Invoke-Pester,
+it is possible to specify a -Tag parameter which will only execute Context blocks
+containing the same Tag.
+
 .PARAMETER Fixture
 Script that is executed. This may include setup specific to the context
 and one or more It blocks that validate the expected outcomes.
@@ -50,12 +55,19 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        $Tag=@(),
+        [string[]] $Tag=@(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    Describe @PSBoundParameters -CommandUsed Context
+    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    {
+        # User has executed a test script directly instead of calling Invoke-Pester
+        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
+        $script:mockTable = @{}
+    }
+
+    DescribeImpl @PSBoundParameters -CommandUsed 'Context' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
 }

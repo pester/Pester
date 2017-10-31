@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    if ((Get-OperatingSystem) -eq 'Windows') {
+    if ((GetPesterOs) -eq 'Windows') {
         Describe "Write nunit test results" {
             Setup -Dir "Results"
 
@@ -271,22 +271,22 @@ InModuleScope Pester {
 
     Describe "GetFullPath" {
         It "Resolves non existing path correctly" {
-            pushd TestDrive:\
+            Push-Location -Path TestDrive:\
             $p = GetFullPath notexistingfile.txt
-            popd
+            Pop-Location
             $p | Should Be (Join-Path $TestDrive notexistingfile.txt)
         }
 
         It "Resolves existing path correctly" {
-            pushd TestDrive:\
+            Push-Location -Path TestDrive:\
             New-Item -ItemType File -Name existingfile.txt
             $p = GetFullPath existingfile.txt
-            popd
+            Pop-Location
             $p | Should Be (Join-Path $TestDrive existingfile.txt)
         }
 
         It "Resolves full path correctly" {
-            $powershellPath = Get-Command 'powershell' | select -ExpandProperty 'Definition'
+            $powershellPath = Get-Command 'powershell' | Select -ExpandProperty 'Definition'
             $powershellPath | Should -Not -BeNullOrEmpty
 
             GetFullPath $powershellPath | Should Be $powershellPath

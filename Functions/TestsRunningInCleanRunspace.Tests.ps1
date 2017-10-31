@@ -27,7 +27,7 @@
     #TODO: how should this handle errors?
     #$job.Error | foreach { throw $_.Exception  }
     $job.Output
-    $job.ChildJobs| foreach {
+    $job.ChildJobs | ForEach {
         $childJob = $_
         #$childJob.Error | foreach { throw $_.Exception }
         $childJob.Output
@@ -173,5 +173,35 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
 
         $result.FailedCount | Should Be 1
         $result.TestResult[0].FailureMessage | Should Be "test exception"
+    }
+
+    Context 'Teardown fails' {
+        It "Failed teardown does not let exception propagate outside of the scope of Describe/Context in which it failed" {
+            $testSuite = {
+                $teardownFailure = $null
+
+                try {
+                    Context 'This is a test context' {
+                        AfterAll {
+                            throw 'I throw in Afterall'
+                        }
+                    }
+                }
+                catch {
+                    $teardownFailure = $_
+                }
+                It "Failed teardown does not let exception propagate outside of the scope of Describe/Context in which it failed" {
+                    # issue #584, #662
+                    $teardownFailure | Should -BeNullOrEmpty
+                }
+            }
+            $result = Invoke-PesterInJob -ScriptBlock $testSuite
+
+            # the second test should pass because correctly the exception does not propagate
+            $result.PassedCount | Should -Be 1
+
+            # the first test should fail because after all throws
+            $result.FailedCount | Should -Be 1
+        }
     }
 }

@@ -1,13 +1,13 @@
-function Get-PowerShellVersion
+function GetPesterPsVersion
 {
     # accessing the value indirectly so it can be mocked
     (Get-Variable 'PSVersionTable' -ValueOnly).PsVersion.Major
 }
 
-function Get-OperatingSystem
+function GetPesterOs
 {
     # Prior to v6, PowerShell was solely on Windows. In v6, the $IsWindows variable was introduced.
-    if ((Get-PowerShellVersion) -lt 6)
+    if ((GetPesterPsVersion) -lt 6)
     {
         'Windows'
     }
@@ -31,7 +31,7 @@ function Get-OperatingSystem
 
 function Get-TempDirectory
 {
-    if ((Get-OperatingSystem) -eq 'Windows')
+    if ((GetPesterOs) -eq 'Windows')
     {
         $env:TEMP
     }

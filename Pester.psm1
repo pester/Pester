@@ -33,56 +33,57 @@ if ($PSVersionTable.PSVersion.Major -gt 2)
 }
 
 $script:SafeCommands = @{
-    'Add-Member'          = Get-Command -Name Add-Member          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Add-Type'            = Get-Command -Name Add-Type            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Compare-Object'      = Get-Command -Name Compare-Object      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Export-ModuleMember' = Get-Command -Name Export-ModuleMember -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'ForEach-Object'      = Get-Command -Name ForEach-Object      -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Format-Table'        = Get-Command -Name Format-Table        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-ChildItem'       = Get-Command -Name Get-ChildItem       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Command'         = Get-Command -Name Get-Command         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Get-Content'         = Get-Command -Name Get-Content         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Date'            = Get-Command -Name Get-Date            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Item'            = Get-Command -Name Get-Item            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Location'        = Get-Command -Name Get-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Member'          = Get-Command -Name Get-Member          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Module'          = Get-Command -Name Get-Module          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Get-PSDrive'         = Get-Command -Name Get-PSDrive         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Variable'        = Get-Command -Name Get-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Group-Object'        = Get-Command -Name Group-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Join-Path'           = Get-Command -Name Join-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Measure-Object'      = Get-Command -Name Measure-Object      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'New-Item'            = Get-Command -Name New-Item            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'New-Module'          = Get-Command -Name New-Module          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'New-Object'          = Get-Command -Name New-Object          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'New-PSDrive'         = Get-Command -Name New-PSDrive         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'New-Variable'        = Get-Command -Name New-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Out-Host'            = Get-Command -Name Out-Host            -Module $outHostModule                  @safeCommandLookupParameters
-    'Out-File'            = Get-Command -Name Out-File            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Out-Null'            = Get-Command -Name Out-Null            -Module $outNullModule                  @safeCommandLookupParameters
-    'Out-String'          = Get-Command -Name Out-String          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Pop-Location'        = Get-Command -Name Pop-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Push-Location'       = Get-Command -Name Push-Location       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Remove-Item'         = Get-Command -Name Remove-Item         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Remove-PSBreakpoint' = Get-Command -Name Remove-PSBreakpoint -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Remove-PSDrive'      = Get-Command -Name Remove-PSDrive      -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Remove-Variable'     = Get-Command -Name Remove-Variable     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Resolve-Path'        = Get-Command -Name Resolve-Path        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Select-Object'       = Get-Command -Name Select-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Set-Content'         = Get-Command -Name Set-Content         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint    -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Set-StrictMode'      = Get-Command -Name Set-StrictMode      -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Set-Variable'        = Get-Command -Name Set-Variable        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Sort-Object'         = Get-Command -Name Sort-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Split-Path'          = Get-Command -Name Split-Path          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Start-Sleep'         = Get-Command -Name Start-Sleep         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Test-Path'           = Get-Command -Name Test-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Where-Object'        = Get-Command -Name Where-Object        -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Write-Error'         = Get-Command -Name Write-Error         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Host'          = Get-Command -Name Write-Host          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Progress'      = Get-Command -Name Write-Progress      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Verbose'       = Get-Command -Name Write-Verbose       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Warning'       = Get-Command -Name Write-Warning       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Add-Member'          = Get-Command -Name Add-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Add-Type'            = Get-Command -Name Add-Type             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Compare-Object'      = Get-Command -Name Compare-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Export-ModuleMember' = Get-Command -Name Export-ModuleMember  -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'ForEach-Object'      = Get-Command -Name ForEach-Object       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Format-Table'        = Get-Command -Name Format-Table         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-ChildItem'       = Get-Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Command'         = Get-Command -Name Get-Command          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Date'            = Get-Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Item'            = Get-Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Location'        = Get-Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Member'          = Get-Command -Name Get-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Module'          = Get-Command -Name Get-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Get-PSDrive'         = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Variable'        = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Group-Object'        = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-LocalizedData'= Get-Command -Name Import-LocalizedData -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Join-Path'           = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Measure-Object'      = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'New-Item'            = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-Module'          = Get-Command -Name New-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'New-Object'          = Get-Command -Name New-Object           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'New-PSDrive'         = Get-Command -Name New-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-Variable'        = Get-Command -Name New-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Out-Host'            = Get-Command -Name Out-Host             -Module $outHostModule                  @safeCommandLookupParameters
+    'Out-File'            = Get-Command -Name Out-File             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Out-Null'            = Get-Command -Name Out-Null             -Module $outNullModule                  @safeCommandLookupParameters
+    'Out-String'          = Get-Command -Name Out-String           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Pop-Location'        = Get-Command -Name Pop-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Push-Location'       = Get-Command -Name Push-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-Item'         = Get-Command -Name Remove-Item          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-PSBreakpoint' = Get-Command -Name Remove-PSBreakpoint  -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Remove-PSDrive'      = Get-Command -Name Remove-PSDrive       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-Variable'     = Get-Command -Name Remove-Variable      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Resolve-Path'        = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Select-Object'       = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-Content'         = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-StrictMode'      = Get-Command -Name Set-StrictMode       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Set-Variable'        = Get-Command -Name Set-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Sort-Object'         = Get-Command -Name Sort-Object          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Split-Path'          = Get-Command -Name Split-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Start-Sleep'         = Get-Command -Name Start-Sleep          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Test-Path'           = Get-Command -Name Test-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Where-Object'        = Get-Command -Name Where-Object         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Write-Error'         = Get-Command -Name Write-Error          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Host'          = Get-Command -Name Write-Host           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Progress'      = Get-Command -Name Write-Progress       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Verbose'       = Get-Command -Name Write-Verbose        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Warning'       = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
 # Not all platforms have Get-WmiObject (Nano)
@@ -141,6 +142,51 @@ function Assert-ValidAssertionAlias
     }
 }
 
+<#
+.SYNOPSIS
+    Register an Assertion Operator with Pester
+.DESCRIPTION
+    This function allows you to create custom Should assertions.
+.EXAMPLE
+    function BeAwesome($ActualValue, [switch] $Negate)
+    {
+
+        [bool] $succeeded = $ActualValue -eq 'Awesome'
+        if ($Negate) { $succeeded = -not $succeeded }
+
+        if (-not $succeeded)
+        {
+            if ($Negate)
+            {
+                $failureMessage = "{$ActualValue} is not Awesome"
+            }
+            else
+            {
+                $failureMessage = "{$ActualValue} is not Awesome"
+            }
+        }
+
+        return New-Object psobject -Property @{
+            Succeeded      = $succeeded
+            FailureMessage = $failureMessage
+        }
+    }
+
+    Add-AssertionOperator -Name  BeAwesome `
+                        -Test  $function:BeAwesome `
+                        -Alias 'BA'
+
+    PS C:\> "bad" | should -BeAwesome
+    {bad} is not Awesome
+.PARAMETER Name
+    The name of the assetion. This will become a Named Parameter of Should.
+.PARAMETER Test
+    The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
+.PARAMETER Alias
+    A list of aliases for the Named Parameter.
+.PARAMETER SupportsArrayInput
+    Does the test function support the passing an array of values to test.
+#>
 function Add-AssertionOperator
 {
     [CmdletBinding()]
@@ -152,10 +198,23 @@ function Add-AssertionOperator
         [scriptblock] $Test,
 
         [ValidateNotNullOrEmpty()]
-        [string[]] $Alias,
+        [AllowEmptyCollection()]
+        [string[]] $Alias = @(),
 
         [switch] $SupportsArrayInput
     )
+
+    $entry = New-Object psobject -Property @{
+        Test                       = $Test
+        SupportsArrayInput         = [bool]$SupportsArrayInput
+        Name                       = $Name
+        Alias                      = $Alias
+    }
+    if (Test-AssertionOperatorIsDuplicate -Operator $entry)
+    {
+        # This is an exact duplicate of an existing assertion operator.
+        return
+    }
 
     $namesToCheck = @(
         $Name
@@ -164,16 +223,9 @@ function Add-AssertionOperator
 
     Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
-    $entry = New-Object psobject -Property @{
-        Test                       = $Test
-        SupportsArrayInput         = [bool]$SupportsArrayInput
-        Name                       = $Name
-        Alias                      = $Alias
-    }
-
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | where { -not (Test-NullOrWhiteSpace $_)})
+    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_)})
     {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
@@ -181,14 +233,26 @@ function Add-AssertionOperator
 
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
+function Test-AssertionOperatorIsDuplicate
+{
+    param (
+        [psobject] $Operator
+    )
 
+    $existing = $script:AssertionOperators[$Operator.Name]
+    if (-not $existing) { return $false }
+
+    return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
+           $Operator.Test.ToString() -eq $existing.Test.ToString() -and
+           -not (Compare-Object $Operator.Alias $existing.Alias)
+}
 function Assert-AssertionOperatorNameIsUnique
 {
     param (
         [string[]] $Name
     )
 
-    foreach ($string in $name | where { -not (Test-NullOrWhiteSpace $_)})
+    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_)})
     {
         Assert-ValidAssertionName -Name $string
 
@@ -297,8 +361,6 @@ function Get-AssertionDynamicParams
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-$moduleRoot = & $script:SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
 & $script:SafeCommands['Resolve-Path'] |
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
@@ -509,13 +571,20 @@ One of the following: Function or StartLine/EndLine
    Default is the last line of the script.
 
 .PARAMETER CodeCoverageOutputFile
-The path where Invoke-Pester will save formatted code coverage results file in JaCoCo format.
+The path where Invoke-Pester will save formatted code coverage results file.
 
 The path must include the location and name of the folder and file name with
-the xml extension.
+a required extension (ussually the xml).
 
-If this path is not provided, no xml file will be generated.
+If this path is not provided, no file will be generated.
 
+.PARAMETER CodeCoverageOutputFileFormat
+The name of a code coverage report file format.
+
+Default vaule is: JaCoCo.
+
+Currently supported formats are:
+- JaCoCo - this XML file format is compatible with the VSTS/TFS
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
@@ -689,6 +758,9 @@ New-PesterOption
 
         [string] $CodeCoverageOutputFile,
 
+        [ValidateSet('JaCoCo')]
+        [String]$CodeCoverageOutputFileFormat = "JaCoCo",
+
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -706,12 +778,12 @@ New-PesterOption
     )
     begin {
         # Ensure when running Pester that we're using RSpec strings
-        Import-LocalizedData -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
+        & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
         #Fallback to en-US culture strings
         If ([String]::IsNullOrEmpty($ReportStrings)) {
 
-            Import-LocalizedData -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
+            & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
 
         }
     }
@@ -785,7 +857,8 @@ New-PesterOption
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
             Write-CoverageReport -CoverageReport $coverageReport
-            if (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+            if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
+                -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
                 $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
@@ -824,19 +897,30 @@ function New-PesterOption
 {
 <#
 .SYNOPSIS
-   Creates an object that contains advanced options for Invoke-Pester
+Creates an object that contains advanced options for Invoke-Pester
+.DESCRIPTION
+By using New-PesterOption you can set options what allow easier integration with external applications or
+modifies output generated by Invoke-Pester.
+The result of New-PesterOption need to be assigned to the parameter 'PesterOption' of the Invoke-Pester function.
 .PARAMETER IncludeVSCodeMarker
-   When this switch is set, an extra line of output will be written to the console for test failures, making it easier
-   for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
+When this switch is set, an extra line of output will be written to the console for test failures, making it easier
+for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
 .PARAMETER TestSuiteName
-   When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
+When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
 .INPUTS
-   None
-   You cannot pipe input to this command.
+None
+You cannot pipe input to this command.
 .OUTPUTS
-   System.Management.Automation.PSObject
+System.Management.Automation.PSObject
+.EXAMPLE
+    PS > $Options = New-PesterOption -TestSuiteName "Tests - Set A"
+
+    PS > Invoke-Pester -PesterOption $Options -Outputfile ".\Results-Set-A.xml" -OutputFormat NUnitXML
+
+    The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
+    will be named "Tests - Set A".
 .LINK
-   Invoke-Pester
+Invoke-Pester
 #>
 
     [CmdletBinding()]
@@ -1037,10 +1121,33 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
+function Assert-VerifiableMocks {
+
+<#
+.SYNOPSIS
+The function is for backward compatibility only. Please update your code and use 'Assert-VerifiableMock' instead.
+
+.DESCRIPTION
+The function was reintroduced in the version 4.0.8 of Pester to avoid loading older version of Pester when Assert-VerifiableMocks is called.
+
+The function will be removed finally in the next major version of Pester.
+
+.LINK
+https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
+https://github.com/pester/Pester/issues/880
+
+#>
+
+[CmdletBinding()]param()
+
+"This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+
+}
+
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
-& $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameters, Set-DynamicParameterVariables
+& $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Invoke-GherkinStep, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator

@@ -1,7 +1,6 @@
 # Work around bug in PowerShell 2 type loading...
 Microsoft.PowerShell.Core\Import-Module -Name "${Script:PesterRoot}\lib\Gherkin.dll"
 
-$StepPrefix = "Gherkin-Step "
 $GherkinSteps = @{}
 $GherkinHooks = @{
             BeforeEachFeature = @()
@@ -35,126 +34,173 @@ function Invoke-GherkinHook {
 }
 
 function Invoke-Gherkin {
-    <#
-        .Synopsis
-            Invokes Pester to run all tests defined in .feature files
-        .Description
-            Upon calling Invoke-Gherkin, all files that have a name matching *.feature in the current folder (and child folders recursively), will be parsed and executed.
+<#
+.SYNOPSIS
+Invokes Pester to run all tests defined in .feature files
 
-            If ScenarioName is specified, only scenarios which match the provided name(s) will be run. If FailedLast is specified, only scenarios which failed the previous run will be re-executed.
+.DESCRIPTION
+Upon calling Invoke-Gherkin, all files that have a name matching *.feature in the current folder (and child folders recursively), will be parsed and executed.
 
-            Optionally, Pester can generate a report of how much code is covered by the tests, and information about any commands which were not executed.
-        .Example
-            Invoke-Gherkin
+If ScenarioName is specified, only scenarios which match the provided name(s) will be run.
+If FailedLast is specified, only scenarios which failed the previous run will be re-executed.
 
-            This will find all *.feature specifications and execute their tests. No exit code will be returned and no log file will be saved.
+Optionally, Pester can generate a report of how much code is covered by the tests, and information about any commands which were not executed.
 
-        .Example
-            Invoke-Gherkin -Path ./tests/Utils*
+.PARAMETER Path
+This parameter indicates which feature files should be tested.
 
-            This will run all *.feature specifications under ./Tests that begin with Utils.
+Aliased to 'Script' for compatibility with Pester, but does not support hashtables, since feature files don't take parameters.
 
-        .Example
-            Invoke-Gherkin -ScenarioName "Add Numbers"
+.PARAMETER ScenarioName
+When set, invokes testing of scenarios which match this name.
 
-            This will only run the Scenario named "Add Numbers"
+Aliased to 'Name' and 'TestName' for compatibility with Pester.
 
-        .Example
-            Invoke-Gherkin -EnableExit -OutputXml "./artifacts/TestResults.xml"
+.PARAMETER EnableExit
+Will cause Invoke-Gherkin to exit with a exit code equal to the number of failed tests once all tests have been run.
+Use this to "fail" a build when any tests fail.
 
-            This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifatcs/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+.PARAMETER Tag
+Filters Scenarios and Features and runs only the ones tagged with the specified tags.
 
-        .Example
-            Invoke-Gherkin -CodeCoverage 'ScriptUnderTest.ps1'
+.PARAMETER ExcludeTag
+Informs Invoke-Gherkin to not run blocks tagged with the tags specified.
 
-            Runs all *.feature specifications in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
+.PARAMETER CodeCoverage
+Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
 
-        .Example
-            Invoke-Gherkin -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
+If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
 
-            Runs all *.feature specifications in the current directory, and generates a coverage report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
+By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
+Hashtables must contain a Path key (which can be abbreviated to just "P"), and may contain Function (or "F"), StartLine (or "S"),
+and EndLine ("E") keys to narrow down the commands to be analyzed.
+If Function is specified, StartLine and EndLine are ignored.
 
-        .Example
-            Invoke-Gherkin -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
+If only StartLine is defined, the entire script file starting with StartLine is analyzed.
+If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
 
-            Runs all *.feature specifications in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
+Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
 
-        .Link
-            Invoke-Pester
-    #>
+.PARAMETER Strict
+Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need
+to make sure all tests passed.
+
+.PARAMETER OutputFile
+The path to write a report file to. If this path is not provided, no log will be generated.
+
+.PARAMETER OutputFormat
+The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
+
+.PARAMETER Quiet
+Disables the output Pester writes to screen. No other output is generated unless you specify PassThru,
+or one of the Output parameters.
+
+.PARAMETER PesterOption
+Sets advanced options for the test execution. Enter a PesterOption object,
+such as one that you create by using the New-PesterOption cmdlet, or a hash table
+in which the keys are option names and the values are option values.
+For more information on the options available, see the help for New-PesterOption.
+
+.PARAMETER Show
+Customizes the output Pester writes to the screen. Available options are None, Default,
+Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+
+The options can be combined to define presets.
+Common use cases are:
+
+None - to write no output to the screen.
+All - to write all available information (this is default option).
+Fails - to write everything except Passed (but including Describes etc.).
+
+A common setting is also Failed, Summary, to write only failed tests and test summary.
+
+This parameter does not affect the PassThru custom object or the XML output that
+is written when you use the Output parameters.
+
+.PARAMETER PassThru
+Returns a custom object (PSCustomObject) that contains the test results.
+By default, Invoke-Gherkin writes to the host program, not to the output stream (stdout).
+If you try to save the result in a variable, the variable is empty unless you
+use the PassThru parameter.
+To suppress the host output, use the Quiet parameter.
+
+.EXAMPLE
+Invoke-Gherkin
+
+This will find all *.feature specifications and execute their tests. No exit code will be returned and no log file will be saved.
+
+.EXAMPLE
+Invoke-Gherkin -Path ./tests/Utils*
+
+This will run all *.feature specifications under ./Tests that begin with Utils.
+
+.EXAMPLE
+Invoke-Gherkin -ScenarioName "Add Numbers"
+
+This will only run the Scenario named "Add Numbers"
+
+.EXAMPLE
+Invoke-Gherkin -EnableExit -OutputXml "./artifacts/TestResults.xml"
+
+This runs all tests from the current directory downwards and writes the results according to the NUnit schema to artifatcs/TestResults.xml just below the current directory. The test run will return an exit code equal to the number of test failures.
+
+.EXAMPLE
+Invoke-Gherkin -CodeCoverage 'ScriptUnderTest.ps1'
+
+Runs all *.feature specifications in the current directory, and generates a coverage report for all commands in the "ScriptUnderTest.ps1" file.
+
+.EXAMPLE
+Invoke-Gherkin -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
+
+Runs all *.feature specifications in the current directory, and generates a coverage report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
+
+.EXAMPLE
+Invoke-Gherkin -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
+
+Runs all *.feature specifications in the current directory, and generates a coverage report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
+
+.LINK
+Invoke-Pester
+https://kevinmarquette.github.io/2017-03-17-Powershell-Gherkin-specification-validation/
+https://kevinmarquette.github.io/2017-04-30-Powershell-Gherkin-advanced-features/
+
+#>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
         # Rerun only the scenarios which failed last time
         [Parameter(Mandatory = $True, ParameterSetName = "RetestFailed")]
         [switch]$FailedLast,
 
-        # This parameter indicates which feature files should be tested.
-        # Aliased to 'Script' for compatibility with Pester, but does not support hashtables, since feature files don't take parameters.
         [Parameter(Position=0,Mandatory=$False)]
         [Alias('Script','relative_path')]
         [string]$Path = $Pwd,
 
-        # When set, invokes testing of scenarios which match this name.
-        # Aliased to 'Name' and 'TestName' for compatibility with Pester.
         [Parameter(Position=1,Mandatory=$False)]
         [Alias("Name","TestName")]
         [string[]]$ScenarioName,
 
-        # Will cause Invoke-Gherkin to exit with a exit code equal to the number of failed tests once all tests have been run. Use this to "fail" a build when any tests fail.
         [Parameter(Position=2,Mandatory=$False)]
         [switch]$EnableExit,
 
-        # Filters Scenarios and Features and runs only the ones tagged with the specified tags.
         [Parameter(Position=4,Mandatory=$False)]
         [Alias('Tags')]
         [string[]]$Tag,
 
-        # Informs Invoke-Pester to not run blocks tagged with the tags specified.
         [string[]]$ExcludeTag,
 
-        # Instructs Pester to generate a code coverage report in addition to running tests.  You may pass either hashtables or strings to this parameter.
-        # If strings are used, they must be paths (wildcards allowed) to source files, and all commands in the files are analyzed for code coverage.
-        # By passing hashtables instead, you can limit the analysis to specific lines or functions within a file.
-        # Hashtables must contain a Path key (which can be abbreviated to just "P"), and may contain Function (or "F"), StartLine (or "S"), and EndLine ("E") keys to narrow down the commands to be analyzed.
-        # If Function is specified, StartLine and EndLine are ignored.
-        # If only StartLine is defined, the entire script file starting with StartLine is analyzed.
-        # If only EndLine is present, all lines in the script file up to and including EndLine are analyzed.
-        # Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
         [object[]] $CodeCoverage = @(),
 
-        # Makes Pending and Skipped tests to Failed tests. Useful for continuous integration where you need to make sure all tests passed.
         [Switch]$Strict,
 
-        # The path to write a report file to. If this path is not provided, no log will be generated.
         [string] $OutputFile,
 
-        # The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
         [ValidateSet('NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
-        # Disables the output Pester writes to screen. No other output is generated unless you specify PassThru, or one of the Output parameters.
         [Switch]$Quiet,
 
-        # Sets advanced options for the test execution. Enter a PesterOption object,
-        # such as one that you create by using the New-PesterOption cmdlet, or a hash table
-        # in which the keys are option names and the values are option values.
-        # For more information on the options available, see the help for New-PesterOption.
         [object]$PesterOption,
 
-        # Customizes the output Pester writes to the screen. Available options are None, Default,
-        # Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
-
-        # The options can be combined to define presets.
-        # Common use cases are:
-
-        # None - to write no output to the screen.
-        # All - to write all available information (this is default option).
-        # Fails - to write everything except Passed (but including Describes etc.).
-
-        # A common setting is also Failed, Summary, to write only failed tests and test summary.
-
-        # This parameter does not affect the PassThru custom object or the XML output that
-        # is written when you use the Output parameters.
         [Pester.OutputTypes]$Show = 'All',
 
         [switch]$PassThru
@@ -263,12 +309,23 @@ function Invoke-Gherkin {
 }
 
 function Import-GherkinSteps {
-    #.Synopsis
-    #   Import all the steps that are at the same level or a subdirectory
+
+<#
+
+.SYNOPSIS
+ Import all the steps that are at the same level or a subdirectory
+
+.PARAMETER StepPath
+The folder which contains step files
+
+.PARAMETER Pester
+
+#>
+
     [CmdletBinding()]
     param(
-        # The folder which contains step files
-        [Alias("PSPath")]
+
+    [Alias("PSPath")]
         [Parameter(Mandatory=$True, Position=0, ValueFromPipelineByPropertyName=$True)]
         $StepPath,
 
@@ -336,7 +393,6 @@ function Import-GherkinFeature {
                 $Steps = foreach($Example in $ExampleSet.TableBody) {
                             foreach ($Step in $Scenario.Steps) {
                                 [string]$StepText = $Step.Text
-                                $StepArgument = $Step.Argument
                                 if($StepText -match $NamesPattern) {
                                     for($n = 0; $n -lt ${Column Names}.Length; $n++) {
                                         $Name = ${Column Names}[$n]
@@ -368,8 +424,13 @@ function Import-GherkinFeature {
 }
 
 function Invoke-GherkinFeature {
-    #.Synopsis
-    #   Parse and run a feature
+
+<#
+
+.SYNOPSIS
+ Parse and run a feature
+
+ #>
     [CmdletBinding()]
     param(
         [Alias("PSPath")]
@@ -492,11 +553,26 @@ function Invoke-GherkinScenario {
 }
 
 function Find-GherkinStep {
+
+<#
+
+.SYNOPSIS
+
+.DESCRIPTION
+
+.PARAMETER Step
+The text from feature file
+
+.PARAMETER BasePath
+The path to search for step implementations.
+
+#>
+
     [CmdletBinding()]
     param(
-        # The text from feature file
+
         [string]$Step,
-        # The path to search for step implementations
+
         [string]$BasePath = $Pwd
     )
 
@@ -535,17 +611,30 @@ function Find-GherkinStep {
 }
 
 function Invoke-GherkinStep {
-    #.Synopsis
-    #   Run a single gherkin step, given the text from the feature file
+
+<#
+
+.SYNOPSIS
+Run a single gherkin step, given the text from the feature file
+
+.PARAMETER Step
+The text of the step for matching against regex patterns in step implementations
+
+.PARAMETER Visible
+If Visible is true, the results of this step will be shown in the test report
+
+.PARAMETER Pester
+Pester state object. For internal use only
+
+#>
+
     [CmdletBinding()]
     param (
-        # The text of the step for matching against regex patterns in step implementations
+
         $Step,
 
-        # If Visible is true, the results of this step will be shown in the test report
         [Switch]$Visible,
 
-        # Pester state object. For internal use only
         $Pester
     )
     if($Step -is [string]) {

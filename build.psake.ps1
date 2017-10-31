@@ -23,8 +23,8 @@ Task Version-Module{
     $v = git.exe describe --abbrev=0 --tags
     $changeset=(git.exe log -1 $($v + '..') --pretty=format:%H)
     (Get-Content "$baseDir\Pester.psm1") `
-      | % {$_ -replace "\`$version\`$", "$version" } `
-      | % {$_ -replace "\`$sha\`$", "$changeset" } `
+      | Where {$_ -replace "\`$version\`$", "$version" } `
+      | Where {$_ -replace "\`$sha\`$", "$changeset" } `
       | Set-Content "$baseDir\Pester.psm1"
 }
 
@@ -38,6 +38,8 @@ Task Pack-Nuget {
     if (Test-Path "$baseDir\build") {
       Remove-Item "$baseDir\build" -Recurse -Force
     }
+
+    Get-childitem $baseDir -Recurse -Filter *.tests.ps1 | Remove-Item -Force
 
     mkdir "$baseDir\build"
     exec {
