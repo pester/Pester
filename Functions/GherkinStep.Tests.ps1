@@ -2,7 +2,7 @@ if ($PSVersionTable.PSVersion.Major -le 2) { return }
 
 Set-StrictMode -Version Latest
 
-Describe 'Testing Gerkin Step' {
+Describe 'Testing Gherkin Step' {
     It 'Generates a function named "GherkinStep" with mandatory name and test parameters' {
         $command = &(Get-Module Pester) { Get-Command GherkinStep -Module Pester }
         $command | Should Not Be $null

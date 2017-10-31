@@ -35,7 +35,7 @@ Describe "Create filesystem with directories" {
         "TestDrive:\dir1" | Should Exist
     }
 
-    It "creates another directory when called with no file content and doesnt remove first directory" {
+    It "creates another directory when called with no file content and doesn't remove first directory" {
         $result = Test-Path "TestDrive:\dir2"
         $result = $result -and (Test-Path "TestDrive:\dir1")
         $result | Should Be $true

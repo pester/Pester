@@ -75,10 +75,10 @@ Describe 'Get-Planet' {
         # duplicating code.
 
 
-        #There are three steps to make this work: description, paramaters, and testcases.
+        #There are three steps to make this work: description, parameters, and testcases.
 
-        # We put names of our parameters in the description and sorround them by <>. 
-        # Pester will expand test values into desciption, for example:
+        # We put names of our parameters in the description and surround them by <>. 
+        # Pester will expand test values into description, for example:
         # Given valid -Name 'ne*', it returns 'Neptune'
         It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
       
@@ -94,7 +94,7 @@ Describe 'Get-Planet' {
         ) {
       
             # We define parameters in param (), to pass our test data into the test body.
-            # Paremeter names must align with key names in the hashtables.
+            # Parameter names must align with key names in the hashtables.
             param ($Filter, $Expected)
 
             # We pass $Filter to -Name, for example 'ne*' in our second test.

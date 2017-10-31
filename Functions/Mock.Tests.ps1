@@ -686,7 +686,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
     Mock FunctionUnderTest {return "I am the paramless mock test"}
 
     Context "When in the first context" {
-        It "should mock Describe scoped paramles mock" {
+        It "should mock Describe scoped paramless mock" {
             FunctionUnderTest | should be "I am the paramless mock test"
         }
         It "should mock Describe scoped single param mock" {
@@ -695,7 +695,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
     }
 
     Context "When in the second context" {
-        It "should mock Describe scoped paramles mock again" {
+        It "should mock Describe scoped paramless mock again" {
             FunctionUnderTest | should be "I am the paramless mock test"
         }
         It "should mock Describe scoped single param mock again" {
@@ -718,7 +718,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
         Mock FunctionUnderTest {return "I am the context mock"}
         Mock FunctionUnderTest {return "I am the parameterized context mock"} -parameterFilter {$param1 -eq "one"}
 
-        It "should use the context paramles mock" {
+        It "should use the context paramless mock" {
             FunctionUnderTest | should be "I am the context mock"
         }
         It "should use the context parameterized mock" {

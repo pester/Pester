@@ -2,7 +2,7 @@ if ($PSVersionTable.PSVersion.Major -le 2) { return }
 
 Set-StrictMode -Version Latest
 
-Describe 'Testing Gerkin Hook' {
+Describe 'Testing Gherkin Hook' {
     It 'Generates a function named "BeforeEachFeature" with mandatory Tags and Script parameters' {
         $command = &(Get-Module Pester) { Get-Command BeforeEachFeature -Module Pester }
         $command | Should Not Be $null

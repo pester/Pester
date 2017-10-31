@@ -171,7 +171,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message[4] | Should match "'One' | Should be 'Two'"
             $r.Message.Count | Should -be 5
         }
-# # commented out because it does not work becuase of should, hopefully we can fix that later
+# # commented out because it does not work because of should, hopefully we can fix that later
 #         Context 'should fails in file' {
 #             Set-Content -Path $testPath -Value @'
 #             $script:IgnoreErrorPreference = 'SilentlyContinue'
