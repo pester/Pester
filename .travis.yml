@@ -1,13 +1,25 @@
 os:
   - linux
+  - osx
 sudo: required
 dist: trusty
+osx_image: xcode8.1
 
 install:
-  - curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-  - curl https://packages.microsoft.com/config/ubuntu/14.04/prod.list | sudo tee /etc/apt/sources.list.d/microsoft.list
-  - sudo apt-get update
-  - sudo apt-get install -y powershell
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -;
+      curl https://packages.microsoft.com/config/ubuntu/14.04/prod.list | sudo tee /etc/apt/sources.list.d/microsoft.list;
+      sudo apt-get -qq update;
+      sudo apt-get install -y powershell;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      rvm install ruby-2.3.3;
+      rvm --default use 2.3.3;
+      brew tap caskroom/cask;
+      brew cask install powershell;
+      brew update;
+      brew cask reinstall powershell;
+    fi
 
 script:
   - pwsh -c 'Import-Module ./Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks -EnableExit'
