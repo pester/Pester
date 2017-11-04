@@ -35,11 +35,11 @@ https://sites.google.com/site/unclebobconsultingllc/the-truth-about-bdd
         [ScriptBlock]$Test
     )
     # We need to be able to look up where this step is defined
-    $Definition = (Get-PSCallStack)[1]
-    $RelativePath = Resolve-Path $Definition.ScriptName -relative
+    $Definition = (& $SafeCommands["Get-PSCallStack"])[1]
+    $RelativePath = & $SafeCommands["Resolve-Path"] $Definition.ScriptName -relative
     $Source = "{0}: line {1}" -f $RelativePath, $Definition.ScriptLineNumber
 
-    $Script:GherkinSteps.${Name} = $Test | Add-Member -MemberType NoteProperty -Name Source -Value $Source -PassThru
+    $Script:GherkinSteps.${Name} = $Test | & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Source -Value $Source -PassThru
 }
 
 Set-Alias Given GherkinStep
