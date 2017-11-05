@@ -81,5 +81,4 @@ Describe "Gherkin Before Feature" -Tag Gherkin {
     It 'Should output two passed scenarios, not the background plus scenarios (bug 911)' {
         @($gherkin.Results.PassedScenarios).Count | Should Be 2
     }
-
 }

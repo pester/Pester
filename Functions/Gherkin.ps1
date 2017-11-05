@@ -364,22 +364,23 @@ function Import-GherkinFeature {
 
     $parser = & $SafeCommands["New-Object"] Gherkin.Parser
     $Feature = $parser.Parse($Path).Feature | Convert-Tags
-    $Scenarios = foreach ($Scenario in $Feature.Children) {
-        $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Scenario.Location -Name "Path" -Value $Path
-        foreach ($Step in $Scenario.Steps) {
+    $Scenarios = $(
+        :scenarios foreach ($Child in $Feature.Children) {
+            $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Child.Location -Name "Path" -Value $Path
+            foreach ($Step in $Child.Steps) {
              $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
         }
 
-        switch ($Scenario.Keyword.Trim()) {
+        switch ($Child.Keyword.Trim()) {
             "Scenario" {
-                $Scenario = Convert-Tags -InputObject $Scenario -BaseTags $Feature.Tags
+                $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
             }
             "Scenario Outline" {
-                $Scenario = Convert-Tags -InputObject $Scenario -BaseTags $Feature.Tags
+                $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
             }
             "Background" {
-                $Background = Convert-Tags -InputObject $Scenario -BaseTags $Feature.Tags
-                continue
+                $Background = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
+                continue scenarios
             }
             default {
                 & $SafeCommands["Write-Warning"] "Unexpected Feature Child: $_"
@@ -418,6 +419,7 @@ function Import-GherkinFeature {
             $Scenario
         }
     }
+    )
 
     & $SafeCommands["Add-Member"] -MemberType NoteProperty -InputObject $Feature -Name Scenarios -Value $Scenarios -Force
     return $Feature, $Background, $Scenarios
@@ -458,7 +460,7 @@ function Invoke-GherkinFeature {
     Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
     New-TestDrive
 
-    # Test the name filter first, since it wil probably return one single item
+    # Test the name filter first, since it will probably return one single item
     if ($Pester.TestNameFilter) {
         $Scenarios = foreach ($nameFilter in $Pester.TestNameFilter) {
             $Scenarios | & $SafeCommands["Where-Object"] { $_.Name -like $NameFilter }
