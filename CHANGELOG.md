@@ -1,3 +1,27 @@
+## Unreleased
+  - Add-AssertionOperator can be called multiple times for identical parameters without errors.  [GH-893]
+  - Syntax for the Should operator updated in Pester tests itself, an about_* documentation, examples
+    due to the prefered syntax change introduced in Pester v4 [GH-903]
+  - Support for PowerShell Core on Windows, Linux and macOS added [GH-639]
+
+## 4.0.8 (September 15, 2017)
+  - Add Assert-VerifiableMocks that throws [GH-881]
+
+## 4.0.7 (September 13, 2017)
+  - Use https in manifest and link to release notes [GH-871]
+  - Make commands singular [GH-860]
+  - Update help of Gherkin-related functions [GH-861]
+  - Rename Contain assertions to FileContentMatch [GH-859]
+  - Remove CommandUsed parameter from Describe [GH-858]
+  - Add new readme [GH-837]
+  - Add CodeCoverageOutputFileFormat parameter [GH-850]
+  - Update help for New-PesterOption [GH-847]
+  - Extend style rules to psd1 files [GH-842]
+  - Update help of New-MockObject and Context [GH-841]
+  - Update help of Invoke-Gherking [GH-839]
+  - Fix exception propagating outside of describe/context when AfterAll fails [GH-836]
+  - Fix foreground for inconclusive tests results [GH-829]
+
 ## 4.0.6-rc (August 17, 2017)
   - Add limit for cyclic arrays on Should -Be [GH-824]
   - Fix infinite recursion on Should -Be [GH-818]

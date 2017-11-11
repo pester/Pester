@@ -86,7 +86,7 @@ $script:SafeCommands = @{
     'Write-Warning'       = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
-# Not all platforms have Get-WmiObject (Nano)
+# Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta.x on Linux)
 # Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
@@ -198,17 +198,11 @@ function Add-AssertionOperator
         [scriptblock] $Test,
 
         [ValidateNotNullOrEmpty()]
-        [string[]] $Alias,
+        [AllowEmptyCollection()]
+        [string[]] $Alias = @(),
 
         [switch] $SupportsArrayInput
     )
-
-    $namesToCheck = @(
-        $Name
-        $Alias
-    )
-
-    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $entry = New-Object psobject -Property @{
         Test                       = $Test
@@ -216,6 +210,18 @@ function Add-AssertionOperator
         Name                       = $Name
         Alias                      = $Alias
     }
+    if (Test-AssertionOperatorIsDuplicate -Operator $entry)
+    {
+        # This is an exact duplicate of an existing assertion operator.
+        return
+    }
+
+    $namesToCheck = @(
+        $Name
+        $Alias
+    )
+
+    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $script:AssertionOperators[$Name] = $entry
 
@@ -227,7 +233,19 @@ function Add-AssertionOperator
 
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
+function Test-AssertionOperatorIsDuplicate
+{
+    param (
+        [psobject] $Operator
+    )
 
+    $existing = $script:AssertionOperators[$Operator.Name]
+    if (-not $existing) { return $false }
+
+    return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
+           $Operator.Test.ToString() -eq $existing.Test.ToString() -and
+           -not (Compare-Object $Operator.Alias $existing.Alias)
+}
 function Assert-AssertionOperatorNameIsUnique
 {
     param (
@@ -1103,7 +1121,31 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-TestInconclusive
+function Assert-VerifiableMocks {
+
+<#
+.SYNOPSIS
+The function is for backward compatibility only. Please update your code and use 'Assert-VerifiableMock' instead.
+
+.DESCRIPTION
+The function was reintroduced in the version 4.0.8 of Pester to avoid loading older version of Pester when Assert-VerifiableMocks is called.
+
+The function will be removed finally in the next major version of Pester.
+
+.LINK
+https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
+https://github.com/pester/Pester/issues/880
+
+#>
+
+[CmdletBinding()]
+param()
+
+Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+
+}
+
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable

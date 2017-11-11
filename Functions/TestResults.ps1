@@ -437,6 +437,18 @@ function Get-RunTimeEnvironment() {
             Version = "0.0.0.0"
             }
     }
+
+    If ( ($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -EQ 'Core')) {
+
+        $CLrVersion = "Unknown"
+
+    }
+    Else {
+
+        $CLrVersion = [string]$PSVersionTable.ClrVersion
+
+    }
+
     @{
         'nunit-version' = '2.5.8.0'
         'os-version' = $osSystemInformation.Version
@@ -445,7 +457,7 @@ function Get-RunTimeEnvironment() {
         'machine-name' = $env:ComputerName
         user = $env:Username
         'user-domain' = $env:userDomain
-        'clr-version' = [string]$PSVersionTable.ClrVersion
+        'clr-version' = $CLrVersion
     }
 }
 
