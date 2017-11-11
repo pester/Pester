@@ -74,7 +74,7 @@ LONG DESCRIPTION
         Checks values for null or empty (strings). The static [String]::IsNullOrEmpty() method is used to do the comparison.
 
         $null | Should -BeNullOrEmpty # Test will pass
-        $null | Should -Not -BeNullOrEmpty # Test will fail
+        $null | Should -Not BeNullOrEmpty # Test will fail
         @()   | Should -BeNullOrEmpty # Test will pass
         ""    | Should -BeNullOrEmpty # Test will pass
     Exist
