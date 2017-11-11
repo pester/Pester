@@ -169,16 +169,11 @@ InModuleScope -ModuleName Pester -ScriptBlock {
     Describe "Write-PesterStart" {
         It "uses Format-PesterPath with the provided path" {
             Mock Format-PesterPath
-
-            If ((GetPesterOS) -ne 'Windows'){
-
+            if ((GetPesterOS) -ne 'Windows'){
                 $expected = "/tmp"
-
             }
-            Else {
-
+            else {
                 $expected = "C:\temp"
-
             }
 
             Write-PesterStart -PesterState (New-PesterState) -Path $expected
@@ -209,7 +204,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message[4] | Should -match "'One' | Should be 'Two'"
             $r.Message.Count | Should -be 5
         }
-# # commented out because it does not work becuase of should, hopefully we can fix that later
+# # todo: commented out because it does not work becuase of should, hopefully we can fix that later
 #         Context 'should fails in file' {
 #             Set-Content -Path $testPath -Value @'
 #             $script:IgnoreErrorPreference = 'SilentlyContinue'

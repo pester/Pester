@@ -876,23 +876,20 @@ InModuleScope -ModuleName Pester {
     Describe 'Mocking Cmdlets with dynamic parameters' {
 
         if ((GetPesterOs) -ne 'Windows') {
-
             $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
             Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
 
             It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-                { Get-ChildItem -Path / -Hidden } | Should -Not Throw
+                { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
                 Assert-MockCalled Get-ChildItem
             }
-
         }
         else {
-
             $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
             Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
 
             It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-                { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should -Not Throw
+                { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should -Not -Throw
                 Assert-MockCalled Get-ChildItem
             }
         } 
@@ -1259,7 +1256,7 @@ InModuleScope -ModuleName Pester {
         }
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { TestModule\PublicFunction } | Should -Not Throw
+            { TestModule\PublicFunction } | Should -Not -Throw
             Assert-MockCalled Get-ChildItem -ModuleName TestModule
         }
 
