@@ -66,7 +66,7 @@ LONG DESCRIPTION
     the $allWidgets variables.
 
         It "gets all widgets" {
-        Get-Widget | Should Be $allWidgets
+	        Get-Widget | Should -Be $allWidgets
         }
 
 
@@ -207,7 +207,7 @@ LONG DESCRIPTION
 
         Describe "Get-Hello" {
             It "does something useful" {
-                $true | Should Be $false
+                $true | Should -Be $false
             }
         }
 
@@ -227,7 +227,7 @@ LONG DESCRIPTION
 
         Describe "New-Log" {
             It "does something useful" {
-                Get-Hello | Should Be 'Hello'
+                Get-Hello | Should -Be 'Hello'
             }
         }
 

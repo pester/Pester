@@ -25,7 +25,7 @@ function New-Fixture {
     Describe "Clean" {
 
         It "does something useful" {
-            $false | Should Be $true
+            $false | Should -Be $true
         }
     }
 
@@ -67,7 +67,7 @@ function New-Fixture {
     )
     #region File contents
     #keep this formatted as is. the format is output to the file as is, including indentation
-    $scriptCode = "function $name {`r`n`r`n}"
+    $scriptCode = "function $name {$([System.Environment]::NewLine)$([System.Environment]::NewLine)}"
 
     $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', ''.''
@@ -75,7 +75,7 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', '
 
 Describe "#name#" {
     It "does something useful" {
-        $true | Should Be $false
+        $true | Should -Be $false
     }
 }' -replace "#name#",$name
 

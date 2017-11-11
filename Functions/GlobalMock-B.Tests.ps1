@@ -9,8 +9,8 @@ try
     Describe 'Mocking Global Functions - Part Two' {
         It 'Restored the global function properly' {
             $globalFunctionExists = Test-Path Function:\global:$functionName
-            $globalFunctionExists | Should Be $true
-            & $functionName | Should Be 'Original Function'
+            $globalFunctionExists | Should -Be $true
+            & $functionName | Should -Be 'Original Function'
         }
     }
 }

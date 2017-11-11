@@ -39,7 +39,7 @@ function InModuleScope
     InModuleScope MyModule {
         Describe 'Testing MyModule' {
             It 'Tests the Private function' {
-                PrivateFunction | Should Be $true
+                PrivateFunction | Should -Be $true
             }
         }
     }

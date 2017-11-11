@@ -57,7 +57,7 @@ function Set-TestInconclusive {
     )
 
     Assert-DescribeInProgress -CommandName Set-TestInconclusive
-    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $lineText = $MyInvocation.Line.TrimEnd($([System.Environment]::NewLine))
     $line = $MyInvocation.ScriptLineNumber
     $file = $MyInvocation.ScriptName
 
