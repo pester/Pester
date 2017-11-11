@@ -234,7 +234,7 @@ InModuleScope -ModuleName Pester {
     Describe 'When calling Mock on an application command' {
 
         if ((GetPesterOs) -ne 'Windows') {
-        
+
             Mock visudo {return 'I am not visudo'}
 
             $result = visudo
@@ -892,7 +892,7 @@ InModuleScope -ModuleName Pester {
                 { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should -Not -Throw
                 Assert-MockCalled Get-ChildItem
             }
-        } 
+        }
     }
 }
 
