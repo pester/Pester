@@ -55,7 +55,8 @@ Learn more about the [usage and syntax](https://github.com/Pester/Pester/wiki) o
 
 ## Installation
 
-Pester is compatible with Windows 10, 8, 7, Vista and even 2003. We are also working hard on making it run on Linux and MacOS.
+Pester is compatible with Windows PowerShell 2.x - 5.x on Windows 10, 8, 7, Vista and even 2003.
+Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Windows, Linux, macOS but with some [limitations](https://github.com/pester/Pester/wiki/Pester-on-PSCore-limitations).
 
 Pester comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
@@ -64,6 +65,12 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 ```
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://github.com/pester/Pester/wiki/Installation-and-Update).
+
+Please be aware that PowerShell Core 6.0.0-beta.9 comes with bundle Pester version 3.3.9, but we recommend updating, by running this PowerShell command _as administrator_:
+
+```powershell
+Install-Module -Name Pester -Force
+```
 
 ## Features
 

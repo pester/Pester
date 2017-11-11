@@ -66,7 +66,7 @@ Describe 'ConvertTo-PesterResult' {
         #on which line the test failed.
         $errorRecord = $null
         try{'something' | should be 'nothing'}catch{ $errorRecord=$_} ; $script={}
-        $result = & $getPesterResult 0 $errorRecord
+        $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
         It 'records the correct stack line number' {
             $result.Stacktrace | should match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
         }
@@ -83,7 +83,7 @@ Describe 'ConvertTo-PesterResult' {
         $errorRecord = $null
         try { $object.ThrowSomething() } catch { $errorRecord = $_ }
 
-        $pesterResult = & $getPesterResult 0 $errorRecord
+        $pesterResult = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
 
         $pesterResult.FailureMessage | Should Be $errorRecord.Exception.Message
     }
@@ -93,7 +93,7 @@ Describe 'ConvertTo-PesterResult' {
         $testPath = Join-Path $TestDrive test.ps1
         $escapedTestPath = [regex]::Escape($testPath)
 
-        Set-Content -Path $testPath -Value "`r`n'One' | Should Be 'Two'"
+        Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should Be 'Two'"
 
         try
         {
@@ -104,7 +104,7 @@ Describe 'ConvertTo-PesterResult' {
             $errorRecord = $_
         }
 
-        $result = & $getPesterResult 0 $errorRecord
+        $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
 
 
         It 'records the correct stack line number' {
@@ -119,31 +119,67 @@ Describe 'ConvertTo-PesterResult' {
 
 InModuleScope -ModuleName Pester -ScriptBlock {
     Describe "Format-PesterPath" {
+
         It "Writes path correctly when it is given `$null" {
             Format-PesterPath -Path $null | Should -Be $null
         }
 
-        It "Writes path correctly when it is provided as string" {
-            Format-PesterPath -Path "C:\path" | Should -Be "C:\path"
-        }
+        If ( (GetPesterOS) -ne 'Windows') {
 
-        It "Writes path correctly when it is provided as string[]" {
-            Format-PesterPath -Path @("C:\path1", "C:\path2") -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
-        }
+            It "Writes path correctly when it is provided as string" {
+                Format-PesterPath -Path "/home/username/folder1" | Should -Be "/home/username/folder1"
+            }
 
-        It "Writes path correctly when provided through hashtable" {
-            Format-PesterPath -Path @{ Path = "C:\path" } | Should -Be "C:\path"
-        }
+            It "Writes path correctly when it is provided as string[]" {
+                Format-PesterPath -Path @("/home/username/folder1", "/home/username/folder2") -Delimiter ', ' | Should -Be "/home/username/folder1, /home/username/folder2"
+            }
 
-        It "Writes path correctly when provided through array of hashtable" {
-            Format-PesterPath -Path @{ Path = "C:\path1" }, @{ Path = "C:\path2" } -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+            It "Writes path correctly when provided through hashtable" {
+                Format-PesterPath -Path @{ Path = "/home/username/folder1" } | Should -Be "/home/username/folder1"
+            }
+
+            It "Writes path correctly when provided through array of hashtable" {
+                Format-PesterPath -Path @{ Path = "/home/username/folder1" }, @{ Path = "/home/username/folder2" } -Delimiter ', ' | Should -Be "/home/username/folder1, /home/username/folder2"
+            }
+
+
+        }
+        Else {
+
+            It "Writes path correctly when it is provided as string" {
+                Format-PesterPath -Path "C:\path" | Should -Be "C:\path"
+            }
+
+            It "Writes path correctly when it is provided as string[]" {
+                Format-PesterPath -Path @("C:\path1", "C:\path2") -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+            }
+
+            It "Writes path correctly when provided through hashtable" {
+                Format-PesterPath -Path @{ Path = "C:\path" } | Should -Be "C:\path"
+            }
+
+            It "Writes path correctly when provided through array of hashtable" {
+                Format-PesterPath -Path @{ Path = "C:\path1" }, @{ Path = "C:\path2" } -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+            }
+
         }
     }
 
     Describe "Write-PesterStart" {
         It "uses Format-PesterPath with the provided path" {
             Mock Format-PesterPath
-            $expected = "C:\temp"
+
+            If ((GetPesterOS) -ne 'Windows'){
+
+                $expected = "/tmp"
+
+            }
+            Else {
+
+                $expected = "C:\temp"
+
+            }
+
             Write-PesterStart -PesterState (New-PesterState) -Path $expected
             Assert-MockCalled Format-PesterPath -ParameterFilter {$Path -eq $expected}
         }
@@ -162,6 +198,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         }
         It 'failed should produces correct message lines.' {
             try { 'One' | Should be 'Two' } catch { $e = $_ }
+
             $r = $e | ConvertTo-FailureLines
 
             $r.Message[0] | Should be 'String lengths are both 3. Strings differ at index 0.'
@@ -228,13 +265,29 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
             if ( $e | Get-Member -Name ScriptStackTrace )
             {
-                It 'produces correct trace lines.' {
-                    $r.Trace[0] | Should be "at f1, $testPath`: line 2"
-                    $r.Trace[1] | Should be "at f2, $testPath`: line 5"
-                    $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
-                    $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-                        Should be $true
-                    $r.Trace.Count | Should be 5
+                If ((GetPesterOS) -ne 'Windows') {
+
+                    It 'produces correct trace lines.' {
+                        $r.Trace[0] | Should be "at f1, $testPath`: line 2"
+                        $r.Trace[1] | Should be "at f2, $testPath`: line 5"
+                        $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
+                        $r.Trace[3] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$' |
+                            Should be $true
+                        $r.Trace.Count | Should be 5
+                    }
+
+                }
+                Else {
+
+                    It 'produces correct trace lines.' {
+                        $r.Trace[0] | Should be "at f1, $testPath`: line 2"
+                        $r.Trace[1] | Should be "at f2, $testPath`: line 5"
+                        $r.Trace[2] | Should be "at <ScriptBlock>, $testPath`: line 7"
+                        $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
+                            Should be $true
+                        $r.Trace.Count | Should be 5
+                    }
+
                 }
             }
             else
@@ -274,10 +327,19 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
             if ( $e | Get-Member -Name ScriptStackTrace )
             {
-                It 'produces correct trace line.' {
-                    $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
-                    $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
-                    $r.Trace.Count | Should be 3
+                If ((GetPesterOS) -ne 'Windows') {
+                    It 'produces correct trace line.' {
+                        $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace[1] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$'
+                        $r.Trace.Count | Should be 3
+                    }
+                }
+                Else {
+                    It 'produces correct trace line.' {
+                        $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
+                        $r.Trace.Count | Should be 3
+                    }
                 }
             }
             else

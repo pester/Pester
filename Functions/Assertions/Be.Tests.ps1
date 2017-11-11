@@ -91,13 +91,17 @@ InModuleScope Pester {
             $doc | Should be $doc
         }
 
-        It 'throws exception when self-imposed recursion limit is reached' {
-            $a1 = @(0,1)
-            $a2 = @($a1,2)
-            $a1[0] = $a2
+        # The test excluded on macOS due to issue https://github.com/PowerShell/PowerShell/issues/4268
+        If ((GetPesterOS) -ne 'macOS') {
+            It 'throws exception when self-imposed recursion limit is reached' {
+                $a1 = @(0,1)
+                $a2 = @($a1,2)
+                $a1[0] = $a2
 
-            { $a1 | Should be $a2 } | Should throw 'recursion depth limit'
+                { $a1 | Should be $a2 } | Should throw 'recursion depth limit'
+            }
         }
+
     }
 
     Describe "PesterBeFailureMessage" {

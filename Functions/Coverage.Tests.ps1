@@ -1,12 +1,14 @@
+Set-StrictMode -Version Latest
+
 if ($PSVersionTable.PSVersion.Major -le 2) { return }
 
 InModuleScope Pester {
     Describe 'Code Coverage Analysis' {
         $root = (Get-PSDrive TestDrive).Root
 
-        $null = New-Item -Path $root\TestScript.ps1 -ItemType File -ErrorAction SilentlyContinue
+        $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.ps1) -ItemType File -ErrorAction SilentlyContinue
 
-        Set-Content -Path $root\TestScript.ps1 -Value @'
+        Set-Content -Path $(Join-Path -Path $root -ChildPath TestScript.ps1) -Value @'
             function FunctionOne
             {
                 function NestedFunction
@@ -35,13 +37,13 @@ InModuleScope Pester {
             $testState = New-PesterState -Path $root
 
             # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
-            Enter-CoverageAnalysis -CodeCoverage "$root\TestScript.ps1", "$root\TestScript.ps1" -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage "$(Join-Path -Path $root -ChildPath TestScript.ps1)", "$(Join-Path -Path $root -ChildPath TestScript.ps1)" -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should Be 7
             }
 
-            $null = & "$root\TestScript.ps1"
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
@@ -77,7 +79,7 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace '\n',''
+                $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
                 $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
             }
             Exit-CoverageAnalysis -PesterState $testState
@@ -86,13 +88,13 @@ InModuleScope Pester {
         Context 'Single function with missed commands' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = "$root\TestScript.ps1"; Function = 'FunctionTwo'} -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath TestScript.ps1)"; Function = 'FunctionTwo'} -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should Be 1
             }
 
-            $null = & "$root\TestScript.ps1"
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
@@ -121,13 +123,13 @@ InModuleScope Pester {
         Context 'Single function with no missed commands' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = "$root\TestScript.ps1"; Function = 'FunctionOne'} -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath TestScript.ps1)"; Function = 'FunctionOne'} -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should Be 5
             }
 
-            $null = & "$root\TestScript.ps1"
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
@@ -156,13 +158,13 @@ InModuleScope Pester {
         Context 'Range of lines' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = "$root\TestScript.ps1"; StartLine = 11; EndLine = 12 } -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath TestScript.ps1)"; StartLine = 11; EndLine = 12 } -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should Be 2
             }
 
-            $null = & "$root\TestScript.ps1"
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
@@ -191,13 +193,13 @@ InModuleScope Pester {
         Context 'Wildcard resolution' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = "$root\*.ps1"; Function = '*' } -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' } -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should Be 6
             }
 
-            $null = & "$root\TestScript.ps1"
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
@@ -233,14 +235,35 @@ InModuleScope Pester {
     }
 
     Describe 'Stripping common parent paths' {
-        $paths = @(
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
-            Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
-        )
+
+        If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or
+        (& $SafeCommands['Get-Variable'] -Name IsMacOS -Scope Global -ErrorAction SilentlyContinue)) {
+
+            $paths = @(
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder1/File.ps1'
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder2/File2.ps1'
+                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder3/File3.ps1'
+
+                $expectedCommonPath = Normalize-Path '/usr/lib/Common/Folder'
+
+            )
+
+        }
+        Else {
+
+            $paths = @(
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
+                Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
+
+                $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+
+            )
+
+        }
 
         $commonPath = Get-CommonParentPath -Path $paths
-        $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+
 
         It 'Identifies the correct parent path' {
             $commonPath | Should Be $expectedCommonPath
@@ -254,8 +277,9 @@ InModuleScope Pester {
         }
     }
 
-    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4)
-    {
+    #Workaround for Linux and MacOS - they don't have DSC by default installed with PowerShell - disable tests on these platforms
+    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4 -and ((GetPesterOS) -eq 'Windows')) {
+
         Describe 'Analyzing coverage of a DSC configuration' {
             $root = (Get-PSDrive TestDrive).Root
 
@@ -289,7 +313,6 @@ InModuleScope Pester {
 
                 $doesnotexecute = $true   # Triggers breakpoint
 '@
-
             $testState = New-PesterState -Path $root
 
             Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState
