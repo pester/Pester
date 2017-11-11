@@ -32,5 +32,5 @@ When 'MyValidator is called with (?<word>\w+)' {
 Then 'MyValidator should return (?<expected>\w+)' {
     param($expected)
     $expected = $expected -eq "true"
-    $Validation | Should Be $expected
+    $Validation | Should -Be $expected
 }

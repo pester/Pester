@@ -176,17 +176,17 @@ Describe 'When calling Mock on an external script' {
 
         $result = TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using just the script name' {
-            $result | Should Be 'I am not tempExternalScript.ps1'
+            $result | Should -Be 'I am not tempExternalScript.ps1'
         }
 
         $result = & TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using the command-invocation operator (&)' {
-            $result | Should Be 'I am not tempExternalScript.ps1'
+            $result | Should -Be 'I am not tempExternalScript.ps1'
         }
 
         $result = . TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using dot source notation' {
-            $result | Should Be 'I am not tempExternalScript.ps1'
+            $result | Should -Be 'I am not tempExternalScript.ps1'
         }
     #>
 
@@ -217,7 +217,7 @@ Describe 'When calling Mock on an external script' {
 
             $result = .\tempExternalScript.ps1
             It 'Should Invoke the relative-path-qualified mocked script' {
-                $result | Should Be 'I am not tempExternalScript.ps1'
+                $result | Should -Be 'I am not tempExternalScript.ps1'
             }
         #>
 

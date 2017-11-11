@@ -88,7 +88,7 @@ InModuleScope Pester {
         It 'Does not overflow on IEnumerable' {
             # see https://github.com/pester/Pester/issues/785
             $doc = [xml]'<?xml version="1.0" encoding="UTF-8" standalone="no" ?><root></root>'
-            $doc | Should be $doc
+            $doc | Should -be $doc
         }
 
         # The test excluded on macOS due to issue https://github.com/PowerShell/PowerShell/issues/4268
@@ -98,7 +98,7 @@ InModuleScope Pester {
                 $a2 = @($a1,2)
                 $a1[0] = $a2
 
-                { $a1 | Should be $a2 } | Should throw 'recursion depth limit'
+                { $a1 | Should -be $a2 } | Should -throw 'recursion depth limit'
             }
         }
 

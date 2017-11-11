@@ -9,11 +9,11 @@ InModuleScope Pester {
         }
 
         It "returns false for things that do not match" {
-            { "foobar" | Should BeLike "oob" } | Should Throw
+            { "foobar" | Should -BeLike "oob" } | Should -Throw
         }
 
         It "passes for strings with different case" {
-            "foobar" | Should BeLike "FOOBAR"
+            "foobar" | Should -BeLike "FOOBAR"
         }
     }
 }

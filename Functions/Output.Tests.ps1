@@ -94,7 +94,7 @@ Describe 'ConvertTo-PesterResult' {
         $testPath = Join-Path $TestDrive test.ps1
         $escapedTestPath = [regex]::Escape($testPath)
 
-        Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should Be 'Two'"
+        Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two'"
 
         try
         {
@@ -201,14 +201,14 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message[1] | Should -be 'Expected: {Two}'
             $r.Message[2] | Should -be 'But was:  {One}'
             $r.Message[3] | Should -be '-----------^'
-            $r.Message[4] | Should -match "'One' | Should be 'Two'"
+            $r.Message[4] | Should -match "'One' | Should -be 'Two'"
             $r.Message.Count | Should -be 5
         }
 # # todo: commented out because it does not work becuase of should, hopefully we can fix that later
 #         Context 'should fails in file' {
 #             Set-Content -Path $testPath -Value @'
 #             $script:IgnoreErrorPreference = 'SilentlyContinue'
-#             'One' | Should Be 'Two'
+#             'One' | Should -Be 'Two'
 # '@
 
 #             try { & $testPath } catch { $e = $_ }
@@ -217,27 +217,27 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 #             It 'produces correct message lines.' {
 
 
-#                 $r.Message[0] | Should be 'String lengths are both 3. Strings differ at index 0.'
-#                 $r.Message[1] | Should be 'Expected: {Two}'
-#                 $r.Message[2] | Should be 'But was:  {One}'
-#                 $r.Message[3] | Should be '-----------^'
-#                 $r.Message[4] | Should be "2:                 'One' | Should be 'Two'"
-#                 $r.Message.Count | Should be 5
+#                 $r.Message[0] | Should -be 'String lengths are both 3. Strings differ at index 0.'
+#                 $r.Message[1] | Should -be 'Expected: {Two}'
+#                 $r.Message[2] | Should -be 'But was:  {One}'
+#                 $r.Message[3] | Should -be '-----------^'
+#                 $r.Message[4] | Should -be "2:                 'One' | Should -be 'Two'"
+#                 $r.Message.Count | Should -be 5
 #             }
 #             if ( $e | Get-Member -Name ScriptStackTrace )
 #             {
 #                 It 'produces correct trace lines.' {
-#                     $r.Trace[0] | Should be "at <ScriptBlock>, $testPath`: line 2"
+#                     $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 2"
 #                     $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-#                         Should be $true
-#                     $r.Trace.Count | Should be 3
+#                         Should -be $true
+#                     $r.Trace.Count | Should -be 3
 #                 }
 #             }
 #             else
 #             {
 #                 It 'produces correct trace lines.' {
-#                     $r.Trace[0] | Should be "at line: 2 in $testPath"
-#                     $r.Trace.Count | Should be 1
+#                     $r.Trace[0] | Should -be "at line: 2 in $testPath"
+#                     $r.Trace.Count | Should -be 1
 #                 }
 #             }
 #         }
@@ -267,8 +267,8 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
                         $r.Trace[3] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$' |
-                            Should be $true
-                        $r.Trace.Count | Should be 5
+                            Should -be $true
+                        $r.Trace.Count | Should -be 5
                     }
                 }
                 else {
@@ -277,8 +277,8 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
                         $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-                            Should be $true
-                        $r.Trace.Count | Should be 5
+                            Should -be $true
+                        $r.Trace.Count | Should -be 5
                     }
                 }
             }
