@@ -67,7 +67,7 @@ function New-Fixture {
     )
     #region File contents
     #keep this formatted as is. the format is output to the file as is, including indentation
-    $scriptCode = "function $name {`r`n`r`n}"
+    $scriptCode = "function $name {$([System.Environment]::NewLine)$([System.Environment]::NewLine)}"
 
     $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', ''.''
