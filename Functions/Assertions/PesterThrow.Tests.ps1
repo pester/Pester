@@ -152,8 +152,8 @@ InModuleScope Pester {
                 $e = $_
             }
 
-            $e | Should Not Be $null
-            $e.Exception | Should BeOfType ArgumentException
+            $e | Should -Not -Be $null
+            $e.Exception | Should -BeOfType ArgumentException
         }
     }
 

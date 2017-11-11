@@ -27,37 +27,37 @@ Remove-Job $job
 
 Describe 'Invoke-Gherkin' {
     It 'Works on the Validator example' {
-        $gherkin.Results.PassedCount | Should Be $gherkin.Results.TotalCount
+        $gherkin.Results.PassedCount | Should -Be $gherkin.Results.TotalCount
     }
 
     It 'Supports testing only scenarios with certain tags' {
-        $gherkin.Mockery.PassedCount | Should Be $gherkin.Mockery.TotalCount
-        $gherkin.Mockery.TotalCount | Should BeLessThan $gherkin.Results.TotalCount
+        $gherkin.Mockery.PassedCount | Should -Be $gherkin.Mockery.TotalCount
+        $gherkin.Mockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
     }
 
     It 'Supports tagging examples' {
-        $gherkin.Example1.PassedCount | Should Be $gherkin.Example1.TotalCount
-        $gherkin.Example1.TotalCount | Should BeLessThan $gherkin.Examples.TotalCount
+        $gherkin.Example1.PassedCount | Should -Be $gherkin.Example1.TotalCount
+        $gherkin.Example1.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
 
-        $gherkin.Example2.PassedCount | Should Be $gherkin.Example2.TotalCount
-        $gherkin.Example2.TotalCount | Should BeLessThan $gherkin.Examples.TotalCount
+        $gherkin.Example2.PassedCount | Should -Be $gherkin.Example2.TotalCount
+        $gherkin.Example2.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
 
-        ($gherkin.Example1.TotalCount + $gherkin.Example2.TotalCount) | Should Be $gherkin.Examples.TotalCount
+        ($gherkin.Example1.TotalCount + $gherkin.Example2.TotalCount) | Should -Be $gherkin.Examples.TotalCount
     }
 
     It 'Supports excluding scenarios by tag' {
-        $gherkin.NotMockery.PassedCount | Should Be 10
-        $gherkin.NotMockery.TotalCount | Should BeLessThan $gherkin.Results.TotalCount
-        ($gherkin.NotMockery.TotalCount + $gherkin.Mockery.TotalCount) | Should Be $gherkin.Results.TotalCount
+        $gherkin.NotMockery.PassedCount | Should -Be 10
+        $gherkin.NotMockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
+        ($gherkin.NotMockery.TotalCount + $gherkin.Mockery.TotalCount) | Should -Be $gherkin.Results.TotalCount
     }
 
     It 'Supports running specific scenarios by name' {
-        $gherkin.NamedScenario.PassedCount | Should Be 3
+        $gherkin.NamedScenario.PassedCount | Should -Be 3
     }
 
     It 'Outputs the correct number of passed scenarios' {
         # Note that each example outputs as a scenario ...
-        @($gherkin.Results.PassedScenarios).Count | Should Be 3
-        @($gherkin.NamedScenario.PassedScenarios).Count | Should Be 1
+        @($gherkin.Results.PassedScenarios).Count | Should -Be 3
+        @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
     }
 }
