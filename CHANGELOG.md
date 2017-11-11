@@ -1,5 +1,8 @@
 ## Unreleased
   - Add-AssertionOperator can be called multiple times for identical parameters without errors.  [GH-893]
+  - Syntax for the Should operator updated in Pester tests itself, an about_* documentation, examples
+    due to the prefered syntax change introduced in Pester v4 [GH-903]
+  - Support for PowerShell Core on Windows, Linux and macOS added [GH-639]
 
 ## 4.0.8 (September 15, 2017)
   - Add Assert-VerifiableMocks that throws [GH-881]

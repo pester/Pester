@@ -5,7 +5,7 @@ Describe "Module scope separation" {
         $test = "This is a test."
 
         It "does not hide user variables" {
-            $test | Should Be 'This is a test.'
+            $test | Should -Be 'This is a test.'
         }
     }
 
@@ -14,7 +14,7 @@ Describe "Module scope separation" {
         # TODO : come up with a better way of verifying that only the desired commands from the Pester
         # module are visible to the SUT.
 
-        (Get-Item function:\ConvertTo-PesterResult -ErrorAction SilentlyContinue) | Should Be $null
+        (Get-Item function:\ConvertTo-PesterResult -ErrorAction SilentlyContinue) | Should -Be $null
     }
 }
 
@@ -26,17 +26,17 @@ Describe "Executing test code inside a module" {
     } | Import-Module -Force
 
     It "Cannot call module internal functions, by default" {
-        { InternalFunction } | Should Throw
+        { InternalFunction } | Should -Throw
     }
 
     InModuleScope TestModule {
         It "Can call module internal functions using InModuleScope" {
-            InternalFunction | Should Be 'I am the internal function'
+            InternalFunction | Should -Be 'I am the internal function'
         }
 
         It "Can mock functions inside the module without using Mock -ModuleName" {
             Mock InternalFunction { 'I am the mock function.' }
-            InternalFunction | Should Be 'I am the mock function.'
+            InternalFunction | Should -Be 'I am the mock function.'
         }
     }
 

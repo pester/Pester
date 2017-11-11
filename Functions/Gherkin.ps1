@@ -1,5 +1,10 @@
-# Work around bug in PowerShell 2 type loading...
-Microsoft.PowerShell.Core\Import-Module -Name "${Script:PesterRoot}\lib\Gherkin.dll"
+If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core') -or ($PSVersionTable.PSVersion.Major -le 2)) {
+    return
+}
+Else {
+    # Work around bug in PowerShell 2 type loading...
+    Microsoft.PowerShell.Core\Import-Module -Name "${Script:PesterRoot}\lib\Gherkin.dll"
+}
 
 $GherkinSteps = @{}
 $GherkinHooks = @{
