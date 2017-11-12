@@ -1,4 +1,4 @@
-# Pester
+﻿# Pester
 # Version: $version$
 # Changeset: $sha$
 
@@ -44,13 +44,17 @@ $script:SafeCommands = @{
     'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Date'            = Get-Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Item'            = Get-Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-ItemProperty'     = Get-Command -Name Get-ItemProperty        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Location'        = Get-Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Member'          = Get-Command -Name Get-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Module'          = Get-Command -Name Get-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-PSDrive'         = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-PSCallStack'      = Get-Command -Name Get-PSCallStack         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Unique'           = Get-Command -Name Get-Unique              -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Variable'        = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Group-Object'        = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Import-LocalizedData'= Get-Command -Name Import-LocalizedData -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-LocalizedData' = Get-Command -Name Import-LocalizedData    -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-Module'        = Get-Command -Name Import-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Join-Path'           = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Measure-Object'      = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'New-Item'            = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -71,6 +75,7 @@ $script:SafeCommands = @{
     'Resolve-Path'        = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Select-Object'       = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-Content'         = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-Location'         = Get-Command -Name Set-Location            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-StrictMode'      = Get-Command -Name Set-StrictMode       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Set-Variable'        = Get-Command -Name Set-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
@@ -86,8 +91,8 @@ $script:SafeCommands = @{
     'Write-Warning'       = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
-# Not all platforms have Get-WmiObject (Nano)
-# Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
+# Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta.x on Linux)
+# Get-CimInstance is preferred, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
 if ( Get-Command -ea SilentlyContinue Get-CimInstance )
@@ -142,6 +147,8 @@ function Assert-ValidAssertionAlias
     }
 }
 
+function Add-AssertionOperator
+{
 <#
 .SYNOPSIS
     Register an Assertion Operator with Pester
@@ -179,7 +186,7 @@ function Assert-ValidAssertionAlias
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
 .PARAMETER Name
-    The name of the assetion. This will become a Named Parameter of Should.
+    The name of the assertion. This will become a Named Parameter of Should.
 .PARAMETER Test
     The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
 .PARAMETER Alias
@@ -187,8 +194,6 @@ function Assert-ValidAssertionAlias
 .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
 #>
-function Add-AssertionOperator
-{
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -198,17 +203,11 @@ function Add-AssertionOperator
         [scriptblock] $Test,
 
         [ValidateNotNullOrEmpty()]
-        [string[]] $Alias,
+        [AllowEmptyCollection()]
+        [string[]] $Alias = @(),
 
         [switch] $SupportsArrayInput
     )
-
-    $namesToCheck = @(
-        $Name
-        $Alias
-    )
-
-    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $entry = New-Object psobject -Property @{
         Test                       = $Test
@@ -216,6 +215,18 @@ function Add-AssertionOperator
         Name                       = $Name
         Alias                      = $Alias
     }
+    if (Test-AssertionOperatorIsDuplicate -Operator $entry)
+    {
+        # This is an exact duplicate of an existing assertion operator.
+        return
+    }
+
+    $namesToCheck = @(
+        $Name
+        $Alias
+    )
+
+    Assert-AssertionOperatorNameIsUnique -Name $namesToCheck
 
     $script:AssertionOperators[$Name] = $entry
 
@@ -227,7 +238,19 @@ function Add-AssertionOperator
 
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
+function Test-AssertionOperatorIsDuplicate
+{
+    param (
+        [psobject] $Operator
+    )
 
+    $existing = $script:AssertionOperators[$Operator.Name]
+    if (-not $existing) { return $false }
+
+    return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
+           $Operator.Test.ToString() -eq $existing.Test.ToString() -and
+           -not (Compare-Object $Operator.Alias $existing.Alias)
+}
 function Assert-AssertionOperatorNameIsUnique
 {
     param (
@@ -315,7 +338,7 @@ function Add-AssertionDynamicParameterSet
         }
         else
            {
-            # We deliberatey use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
+            # We deliberately use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
             # We also don't bother to try to copy transformation / validation attributes here for the same reason.
             # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
 
@@ -373,7 +396,7 @@ namespace Pester
 }
 "@
 
-function Has-Flag  {
+function Has-Flag {
      param
      (
          [Parameter(Mandatory = $true)]
@@ -556,14 +579,14 @@ One of the following: Function or StartLine/EndLine
 The path where Invoke-Pester will save formatted code coverage results file.
 
 The path must include the location and name of the folder and file name with
-a required extension (ussually the xml).
+a required extension (usually the xml).
 
 If this path is not provided, no file will be generated.
 
 .PARAMETER CodeCoverageOutputFileFormat
 The name of a code coverage report file format.
 
-Default vaule is: JaCoCo.
+Default value is: JaCoCo.
 
 Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
@@ -667,7 +690,7 @@ name of the It block that contains the test.
 
 The fourth command uses an array index to get the first failing result. The
 property values describe the test, the expected result, the actual result, and
-useful values, including a stack tace.
+useful values, including a stack trace.
 
 .Example
 Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
@@ -762,7 +785,7 @@ New-PesterOption
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
-        #Fallback to en-US culture strings
+        # Fallback to en-US culture strings
         If ([String]::IsNullOrEmpty($ReportStrings)) {
 
             & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
@@ -858,7 +881,7 @@ New-PesterOption
         }
 
     if ($PassThru) {
-        #remove all runtime properties like current* and Scope
+        # Remove all runtime properties like current* and Scope
         $properties = @(
             "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
 
@@ -1120,9 +1143,10 @@ https://github.com/pester/Pester/issues/880
 
 #>
 
-[CmdletBinding()]param()
+[CmdletBinding()]
+param()
 
-"This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
 
 }
 

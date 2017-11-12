@@ -3,18 +3,18 @@ Set-StrictMode -Version Latest
 Describe 'Testing Describe' {
     It 'Has a non-mandatory fixture parameter which throws the proper error message if missing' {
         $command = Get-Command Describe -Module Pester
-        $command | Should Not Be $null
+        $command | Should -Not -Be $null
 
         $parameter = $command.Parameters['Fixture']
-        $parameter | Should Not Be $null
+        $parameter | Should -Not -Be $null
 
         # Some environments (Nano/CoreClr) don't have all the type extensions
         $attribute = $parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
         $isMandatory = $null -ne $attribute -and $attribute.Mandatory
 
-        $isMandatory | Should Be $false
+        $isMandatory | Should -Be $false
 
-        { Describe Bogus } | Should Throw 'No test script block is provided'
+        { Describe Bogus } | Should -Throw 'No test script block is provided'
     }
 }
 
@@ -45,14 +45,14 @@ InModuleScope Pester {
             }
 
             It 'Does not rethrow terminating exceptions from the Fixture block' {
-                { DescribeImpl -Pester $testState -Name 'A test' -Fixture $blockWithError -NoTestDrive } | Should Not Throw
+                { DescribeImpl -Pester $testState -Name 'A test' -Fixture $blockWithError -NoTestDrive } | Should -Not -Throw
             }
 
             It 'Adds a failed test result when errors occur in the Describe block' {
-                $testState.TestResult.Count | Should Not Be 0
-                $testState.TestResult[-1].Passed | Should Be $false
-                $testState.TestResult[-1].Name | Should Be 'Error occurred in Describe block'
-                $testState.TestResult[-1].FailureMessage | Should Be 'Bad stuff happened!'
+                $testState.TestResult.Count | Should -Not -Be 0
+                $testState.TestResult[-1].Passed | Should -Be $false
+                $testState.TestResult[-1].Name | Should -Be 'Error occurred in Describe block'
+                $testState.TestResult[-1].FailureMessage | Should -Be 'Bad stuff happened!'
             }
 
             It 'Does not attempt to run the rest of the Describe block after the error occurs' {

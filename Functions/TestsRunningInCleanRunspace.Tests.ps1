@@ -54,9 +54,9 @@ Describe "Tests running in clean runspace" {
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $TestSuite
-        $result.SkippedCount | Should Be 3
-        $result.PendingCount | Should Be 4
-        $result.TotalCount | Should Be 7
+        $result.SkippedCount | Should -Be 3
+        $result.PendingCount | Should -Be 4
+        $result.TotalCount | Should -Be 7
     }
 
     It "It - It without ScriptBlock fails" {
@@ -70,10 +70,10 @@ Describe "Tests running in clean runspace" {
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $TestSuite
-        $result.PassedCount | Should Be 0
-        $result.FailedCount | Should Be 1
+        $result.PassedCount | Should -Be 0
+        $result.FailedCount | Should -Be 1
 
-        $result.TotalCount | Should Be 1
+        $result.TotalCount | Should -Be 1
     }
 
     It "Invoke-Pester - PassThru output" {
@@ -88,12 +88,12 @@ Describe "Tests running in clean runspace" {
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $TestSuite
-        $result.PassedCount | Should Be 1
-        $result.FailedCount | Should Be 1
-        $result.SkippedCount | Should Be 1
-        $result.PendingCount | Should Be 1
+        $result.PassedCount | Should -Be 1
+        $result.FailedCount | Should -Be 1
+        $result.SkippedCount | Should -Be 1
+        $result.PendingCount | Should -Be 1
 
-        $result.TotalCount | Should Be 4
+        $result.TotalCount | Should -Be 4
     }
 
     It 'Produces valid NUnit output when syntax errors occur in test scripts' {
@@ -107,13 +107,13 @@ Describe "Tests running in clean runspace" {
 
         $result = Invoke-PesterInJob -ScriptBlock $invalidScript -GenerateNUnitReport
 
-        $result.FailedCount | Should Be 1
-        $result.TotalCount | Should Be 1
-        'TestDrive:\Temp.Tests.xml' | Should Exist
+        $result.FailedCount | Should -Be 1
+        $result.TotalCount | Should -Be 1
+        'TestDrive:\Temp.Tests.xml' | Should -Exist
 
         $xml = [xml](Get-Content TestDrive:\Temp.Tests.xml)
 
-        $xml.'test-results'.'test-suite'.results.'test-suite'.name | Should Not BeNullOrEmpty
+        $xml.'test-results'.'test-suite'.results.'test-suite'.name | Should -Not -BeNullOrEmpty
     }
 
     It "Invoke-Pester - Strict mode" {
@@ -161,8 +161,8 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
 
         $result = Invoke-PesterInJob -ScriptBlock $testSuite
 
-        $result.FailedCount | Should Be 1
-        $result.TestResult[0].FailureMessage | Should Be "test exception"
+        $result.FailedCount | Should -Be 1
+        $result.TestResult[0].FailureMessage | Should -Be "test exception"
     }
 
     It 'It fails if AfterEach fails' {
@@ -190,8 +190,8 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
             throw "The test suite in separate runspace did not run to completion, it was likely terminated by an uncaught exception thrown in AfterEach."
         }
 
-        $result.FailedCount | Should Be 1
-        $result.TestResult[0].FailureMessage | Should Be "test exception"
+        $result.FailedCount | Should -Be 1
+        $result.TestResult[0].FailureMessage | Should -Be "test exception"
     }
 
     Context 'Teardown fails' {
