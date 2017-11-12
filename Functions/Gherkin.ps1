@@ -539,7 +539,7 @@ function Invoke-GherkinScenario {
             . Invoke-GherkinStep -Step $Step -Pester $Pester -Visible
         }
 
-        Invoke-GherkinHook AfterScenario $Scenario.Name $Scenario.Tags
+        Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
     }
     catch {
         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | Microsoft.PowerShell.Utility\Select-Object -First 1
