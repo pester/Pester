@@ -31,7 +31,7 @@ InModuleScope -ModuleName Pester {
                 $os | Should -Be 'Windows'
             }
 
-            It "Uses Get-Variable to retreive IsWindows" {
+            It "Uses Get-Variable to retrieve IsWindows" {
                 # IsWindows is a constant and cannot be overwritten, so check that we are using
                 # Get-Variable to access its value, which allows us to mock it easily without
                 # depending on the OS
@@ -51,7 +51,7 @@ InModuleScope -ModuleName Pester {
                 $os | Should -Be 'Linux'
             }
 
-            It "Uses Get-Variable to retreive IsLinux" {
+            It "Uses Get-Variable to retrieve IsLinux" {
                 Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -Exactly 1
             }
         }
@@ -67,7 +67,7 @@ InModuleScope -ModuleName Pester {
                 $os | Should -Be 'macOS'
             }
 
-            It "Uses Get-Variable to retreive IsMacOS" {
+            It "Uses Get-Variable to retrieve IsMacOS" {
                 Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1
             }
         }

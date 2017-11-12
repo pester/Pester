@@ -87,7 +87,7 @@ $script:SafeCommands = @{
 }
 
 # Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta.x on Linux)
-# Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
+# Get-CimInstance is preferred, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
 if ( Get-Command -ea SilentlyContinue Get-CimInstance )
@@ -142,6 +142,8 @@ function Assert-ValidAssertionAlias
     }
 }
 
+function Add-AssertionOperator
+{
 <#
 .SYNOPSIS
     Register an Assertion Operator with Pester
@@ -179,7 +181,7 @@ function Assert-ValidAssertionAlias
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
 .PARAMETER Name
-    The name of the assetion. This will become a Named Parameter of Should.
+    The name of the assertion. This will become a Named Parameter of Should.
 .PARAMETER Test
     The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
 .PARAMETER Alias
@@ -187,8 +189,6 @@ function Assert-ValidAssertionAlias
 .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
 #>
-function Add-AssertionOperator
-{
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -333,7 +333,7 @@ function Add-AssertionDynamicParameterSet
         }
         else
            {
-            # We deliberatey use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
+            # We deliberately use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
             # We also don't bother to try to copy transformation / validation attributes here for the same reason.
             # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
 
@@ -391,7 +391,7 @@ namespace Pester
 }
 "@
 
-function Has-Flag  {
+function Has-Flag {
      param
      (
          [Parameter(Mandatory = $true)]
@@ -574,14 +574,14 @@ One of the following: Function or StartLine/EndLine
 The path where Invoke-Pester will save formatted code coverage results file.
 
 The path must include the location and name of the folder and file name with
-a required extension (ussually the xml).
+a required extension (usually the xml).
 
 If this path is not provided, no file will be generated.
 
 .PARAMETER CodeCoverageOutputFileFormat
 The name of a code coverage report file format.
 
-Default vaule is: JaCoCo.
+Default value is: JaCoCo.
 
 Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
@@ -685,7 +685,7 @@ name of the It block that contains the test.
 
 The fourth command uses an array index to get the first failing result. The
 property values describe the test, the expected result, the actual result, and
-useful values, including a stack tace.
+useful values, including a stack trace.
 
 .Example
 Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
@@ -780,7 +780,7 @@ New-PesterOption
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
-        #Fallback to en-US culture strings
+        # Fallback to en-US culture strings
         If ([String]::IsNullOrEmpty($ReportStrings)) {
 
             & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
@@ -876,7 +876,7 @@ New-PesterOption
         }
 
     if ($PassThru) {
-        #remove all runtime properties like current* and Scope
+        # Remove all runtime properties like current* and Scope
         $properties = @(
             "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
 
