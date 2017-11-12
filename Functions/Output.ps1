@@ -439,8 +439,11 @@ function ConvertTo-FailureLines
             return $lines
         }
 
-        ## convert the stack trace
-        $traceLines = $ErrorRecord.ScriptStackTrace.Split([string[]]($([System.Environment]::NewLine),"\n","`n"),  [System.StringSplitOptions]::RemoveEmptyEntries)
+        ## convert the stack trace if present (there might be none if we are raising the error ourselves)
+        # todo: this is a workaround see https://github.com/pester/Pester/pull/886
+        if ($null -ne $ErrorRecord.ScriptStackTrace) {
+            $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
 
         $count = 0
 
