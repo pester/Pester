@@ -82,3 +82,25 @@ Describe "Gherkin Before Feature" -Tag Gherkin {
         @($gherkin.Results.PassedScenarios).Count | Should Be 2
     }
 }
+
+
+
+Describe "Gherkin Mocks Feature" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = invoke-gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-Mocks.feature) -PassThru -Show None
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    It 'Should output three passed scenarios' {
+        @($gherkin.Results.PassedScenarios).Count | Should Be 3
+    }
+}

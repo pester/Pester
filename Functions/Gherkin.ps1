@@ -241,15 +241,12 @@ https://kevinmarquette.github.io/2017-04-30-Powershell-Gherkin-advanced-features
             }
         }
 
-        if ($PSCmdlet.ParameterSetName -eq "RetestFailed") {
+        if ($PSCmdlet.ParameterSetName -eq "RetestFailed" -and $FailedLast) {
             $ScenarioName = $script:GherkinFailedLast
             if (!$ScenarioName) {
-                throw "There's no existing failed tests to re-run"
+                throw "There are no existing failed tests to re-run."
             }
         }
-
-        # Clear mocks
-        $script:mockTable = @{}
 
         $pester = New-PesterState -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -TestNameFilter $ScenarioName -SessionState $PSCmdlet.SessionState -Strict $Strict  -Show $Show -PesterOption $PesterOption |
             & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[Gherkin.Ast.Feature]) -PassThru |
@@ -458,7 +455,6 @@ function Invoke-GherkinFeature {
 
     $null = $Pester.Features.Add($Feature)
     Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
-    New-TestDrive
 
     # Test the name filter first, since it will probably return one single item
     if ($Pester.TestNameFilter) {
@@ -499,14 +495,8 @@ function Invoke-GherkinFeature {
     } finally {
         $Location | & $SafeCommands["Set-Location"]
         [Environment]::CurrentDirectory = $CWD
-
-        Remove-TestDrive
-        ## Hypothetically, we could add FEATURE setup/teardown?
-        # Clear-SetupAndTeardown
-        Exit-MockScope
     }
 
-    ## This is Pesters "Describe" function again
     Invoke-GherkinHook AfterEachFeature $Feature.Name $Feature.Tags
 
     $Pester.LeaveTestGroup($FeatureFile.FullName, 'Script')
@@ -519,12 +509,13 @@ function Invoke-GherkinScenario {
         $Pester, $Scenario, $Background
     )
     $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
-    $TestDriveContent = Get-TestDriveChildItem
     try {
         Write-Context $Scenario
 
         $script:GherkinScenarioScope = {}
+        $script:mockTable = @{}
 
+        New-TestDrive
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
         # If there's a background, run that before the test, but after hooks
@@ -552,8 +543,9 @@ function Invoke-GherkinScenario {
         $Pester.TestResult[-1] | Write-PesterResult
     }
 
-    Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands["Select-Object"] -ExpandProperty FullName)
+    Remove-TestDrive
     $Pester.LeaveTestGroup($Scenario.Name, 'Scenario')
+    Exit-MockScope
 }
 
 function Find-GherkinStep {
