@@ -65,19 +65,22 @@ function New-Fixture {
         [Parameter(Mandatory=$true)]
         [String]$Name
     )
+
+    $Name = $Name -ireplace [regex]::Escape('.ps1'), ''
+
     #region File contents
     #keep this formatted as is. the format is output to the file as is, including indentation
-    $scriptCode = "function $name {$([System.Environment]::NewLine)$([System.Environment]::NewLine)}"
+    $scriptCode = "function $Name {$([System.Environment]::NewLine)$([System.Environment]::NewLine)}"
 
     $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', ''.''
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -ireplace [regex]::Escape(''.Tests.''), ''.''
 . "$here\$sut"
 
 Describe "#name#" {
     It "does something useful" {
         $true | Should -Be $false
     }
-}' -replace "#name#",$name
+}' -replace "#name#",$Name
 
     #endregion
 
