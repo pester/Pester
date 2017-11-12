@@ -245,7 +245,8 @@ function Invoke-Test
         }
         else
         {
-            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
+            #todo: disabling the progress for now, it adds a lot of overhead and breaks output on linux, we don't have a good way to disable it by default, or to show it after delay see: https://github.com/pester/Pester/issues/846
+            # & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
 
             $errorRecord = $null
             try
@@ -283,7 +284,7 @@ function Invoke-Test
             $result = ConvertTo-PesterResult -Name $Name -ErrorRecord $errorRecord
             $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
             $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
-            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
+            #todo: disabling progress reporting see above & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
         }
     }
     finally
