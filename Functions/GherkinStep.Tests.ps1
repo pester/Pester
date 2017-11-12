@@ -1,6 +1,5 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
-If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core') -or ($PSVersionTable.PSVersion.Major -le 2)) { return }
 
 Describe 'Testing Gherkin Step' {
     It 'Generates a function named "GherkinStep" with mandatory name and test parameters' {

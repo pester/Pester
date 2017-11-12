@@ -1,4 +1,4 @@
-# Pester
+﻿# Pester
 # Version: $version$
 # Changeset: $sha$
 
@@ -44,13 +44,17 @@ $script:SafeCommands = @{
     'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Date'            = Get-Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Item'            = Get-Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-ItemProperty'     = Get-Command -Name Get-ItemProperty        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Location'        = Get-Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Member'          = Get-Command -Name Get-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Module'          = Get-Command -Name Get-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-PSDrive'         = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-PSCallStack'      = Get-Command -Name Get-PSCallStack         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Unique'           = Get-Command -Name Get-Unique              -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Variable'        = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Group-Object'        = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Import-LocalizedData'= Get-Command -Name Import-LocalizedData -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-LocalizedData' = Get-Command -Name Import-LocalizedData    -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-Module'        = Get-Command -Name Import-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Join-Path'           = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Measure-Object'      = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'New-Item'            = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -71,6 +75,7 @@ $script:SafeCommands = @{
     'Resolve-Path'        = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Select-Object'       = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-Content'         = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-Location'         = Get-Command -Name Set-Location            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-StrictMode'      = Get-Command -Name Set-StrictMode       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Set-Variable'        = Get-Command -Name Set-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters

@@ -4,28 +4,29 @@ If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -
 
 $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
-# Calling this in a job so we don't monkey with the active pester state that's already running
+Describe 'Invoke-Gherkin' -Tag Gherkin {
 
-$job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
-    param ($scriptRoot)
-    Get-Module Pester | Remove-Module -Force
-    Import-Module $scriptRoot\Pester.psd1 -Force
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
 
-    New-Object psobject -Property @{
-        Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Show None
-        Mockery       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery -Show None
-        Examples      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples -Show None
-        Example1      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 -Show None
-        Example2      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 -Show None
-        NamedScenario = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" -Show None
-        NotMockery    = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery -Show None
+        New-Object psobject -Property @{
+            Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Show None
+            Mockery       = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery -Show None
+            Examples      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples -Show None
+            Example1      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 -Show None
+            Example2      = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 -Show None
+            NamedScenario = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" -Show None
+            NotMockery    = invoke-gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery -Show None
+        }
     }
-}
 
-$gherkin = $job | Wait-Job | Receive-Job
-Remove-Job $job
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
 
-Describe 'Invoke-Gherkin' {
+
     It 'Works on the Validator example' {
         $gherkin.Results.PassedCount | Should -Be $gherkin.Results.TotalCount
     }
@@ -59,5 +60,47 @@ Describe 'Invoke-Gherkin' {
         # Note that each example outputs as a scenario ...
         @($gherkin.Results.PassedScenarios).Count | Should -Be 3
         @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
+    }
+}
+
+Describe "Gherkin Before Feature" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results       = invoke-gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-Background.feature) -PassThru -Show None
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    It 'Should output two passed scenarios, not the background plus scenarios (bug 911)' {
+        @($gherkin.Results.PassedScenarios).Count | Should Be 2
+    }
+}
+
+
+
+Describe "Gherkin Mocks Feature" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = invoke-gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-Mocks.feature) -PassThru -Show None
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    It 'Should output three passed scenarios' {
+        @($gherkin.Results.PassedScenarios).Count | Should Be 3
     }
 }
