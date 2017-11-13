@@ -19,13 +19,13 @@ function New-Fixture {
     The script containing the example test .\Clean.Tests.ps1:
 
     $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+    $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
     . "$here\$sut"
 
     Describe "Clean" {
 
         It "does something useful" {
-            $false | Should -Be $true
+            $true | Should -Be $false
         }
     }
 
@@ -66,14 +66,14 @@ function New-Fixture {
         [String]$Name
     )
 
-    $Name = $Name -ireplace [regex]::Escape('.ps1'), ''
+    $Name = $Name -replace '.ps1',''
 
     #region File contents
     #keep this formatted as is. the format is output to the file as is, including indentation
     $scriptCode = "function $Name {$([System.Environment]::NewLine)$([System.Environment]::NewLine)}"
 
     $testCode = '$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -ireplace [regex]::Escape(''.Tests.''), ''.''
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ''\.Tests\.'', ''.''
 . "$here\$sut"
 
 Describe "#name#" {
