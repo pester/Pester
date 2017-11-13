@@ -13,7 +13,6 @@ Feature: Pester's Gherkin implementation test scope
         When I set the variable Script:Two to "Hello World"
         Then the variable Script:Two should be "Hello World"
 
-
     Scenario: Scope Should Be Easy Part 1
         Given I initialize variables One and Script:Two to "Uno" and "Dos"
         When I set the variable One to "Hello World"
