@@ -1,7 +1,5 @@
 Set-StrictMode -Version Latest
 
-If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core') -or ($PSVersionTable.PSVersion.Major -le 2)) { return }
-
 $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
 Describe 'Invoke-Gherkin' -Tag Gherkin {
@@ -82,8 +80,6 @@ Describe "Gherkin Before Feature" -Tag Gherkin {
         @($gherkin.Results.PassedScenarios).Count | Should Be 2
     }
 }
-
-
 
 Describe "Gherkin Mocks Feature" -Tag Gherkin {
     # Calling this in a job so we don't monkey with the active pester state that's already running

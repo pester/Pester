@@ -27,5 +27,5 @@ Feature: Pester's Gherkin implementation test scope
         And the variable One should be "Uno"
 
     Scenario: Scope Should Not Bleed
-        Then the variable Script:Two should be "Dos"
+        Then the variable Script:Two should not exist
         And the variable One should not exist
