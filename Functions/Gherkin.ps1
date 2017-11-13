@@ -340,6 +340,8 @@ function Import-GherkinSteps {
     begin {
         # Remove all existing steps
         $Script:GherkinSteps.Clear()
+        # Remove all existing hooks
+        $Script:GherkinHooks.Clear()
     }
     process {
         foreach ($StepFile in & $SafeCommands["Get-ChildItem"] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse) {
@@ -531,8 +533,13 @@ function Invoke-GherkinScenario {
     try {
         Write-Context $Scenario
 
-        $script:GherkinScenarioScope = {}
         $script:mockTable = @{}
+
+        # Create a clean variable scope in each scenario
+        $script:GherkinScenarioScope = New-Module NestedGherkin { }
+        $script:GherkinSessionState = $Script:GherkinScenarioScope.SessionState
+
+        #Wait-Debugger
 
         New-TestDrive
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
@@ -541,12 +548,12 @@ function Invoke-GherkinScenario {
         if ($Background) {
             foreach ($Step in $Background.Steps) {
                 # Run Background steps -Background so they don't output in each scenario
-                . Invoke-GherkinStep -Step $Step -Pester $Pester
+                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible
             }
         }
 
         foreach ($Step in $Scenario.Steps) {
-            . Invoke-GherkinStep -Step $Step -Pester $Pester -Visible
+            Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible
         }
 
         Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
@@ -650,7 +657,9 @@ function Invoke-GherkinStep {
 
         [Switch]$Visible,
 
-        $Pester
+        $Pester,
+
+        $ScenarioState
     )
     if ($Step -is [string]) {
         $KeyWord, $StepText = $Step -split "(?<=^(?:Given|When|Then|And|But))\s+"
@@ -695,9 +704,9 @@ function Invoke-GherkinStep {
                 } else {
                     $ScriptBlock = { . $Script:GherkinSteps.$StepCommand @Parameters }
                 }
-                Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionState $Pester.SessionState
+                Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionState $ScenarioState
 
-                $null = . $ScriptBlock
+                $null = & $ScriptBlock
             } catch {
                 $PesterErrorRecord = $_
             }
