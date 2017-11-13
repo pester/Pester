@@ -1,4 +1,10 @@
 # Pester
+
+[![powershell gallery](https://img.shields.io/powershellgallery/v/Pester.svg)](https://www.powershellgallery.com/packages/Pester)
+[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+[![macos/linux build](https://img.shields.io/travis/pester/Pester/master.svg?label=macos/linux+build)](https://travis-ci.org/pester/Pester)
+[![windows build](https://img.shields.io/teamcity/http/build.powershell.org/s/Pester_TestPester.svg?label=windows+build)](https://build.powershell.org/project.html?projectId=Pester)
+
 > :fire: We recently released Pester 4 and there are breaking changes, please see [release notes](https://github.com/pester/Pester/releases/tag/4.0.7) and [migration guide](https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4).
 
 Pester is the ubiquitous test and mock framework for PowerShell.
