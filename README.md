@@ -148,8 +148,8 @@ Pester itself is build on the community build server and Travis CI, and distribu
 
 
  [![windows build](https://img.shields.io/teamcity/http/build.powershell.org/s/Pester_TestPester.svg?label=windows+build)](https://build.powershell.org/project.html?projectId=Pester)
- [![linux/macos build](https://img.shields.io/travis/pester/Pester/master.svg?label=macos/linux+build)](https://travis-ci.org/pester/Pester)
-[![latest version](https://img.shields.io/powershellgallery/v/Pester.svg)](https://www.powershellgallery.com/packages/Pester)
+ [![linux/macos build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
+[![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester)
 [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 
