@@ -97,15 +97,16 @@ Describe 'Testing Gherkin Hook' -Tag Gherkin {
 
         $isMandatory | Should -Be $true
     }
+
     It 'Populates the GherkinHooks module variable' {
         & ( Get-Module Pester ) {
             BeforeEachScenario "I Click" { }
-            $GherkinHooks["BeforeEachScenario"].Tags
-        } | Select -Last 1 | Should -Be "I Click"
+            $GherkinHooks["BeforeEachScenario"][-1].Tags
+        } |  Should -Be "I Click"
 
         & ( Get-Module Pester ) {
             AfterEachFeature "I Click" { }
-            $GherkinHooks["AfterEachFeature"].Tags
-        } | Select -Last 1 | Should -Be "I Click"
+            $GherkinHooks["AfterEachFeature"][-1].Tags
+        } | Should -Be "I Click"
     }
 }
