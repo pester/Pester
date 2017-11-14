@@ -144,9 +144,14 @@ test_script:
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
 
-Pester itself is build on the [community build server](build.powershell.org).
+Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
-[![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:Pester_TestPester)/statusIcon)](https://build.powershell.org/project.html?projectId=Pester&tab=projectOverview&guest=1)
+
+ [![windows build](https://img.shields.io/teamcity/http/build.powershell.org/s/Pester_TestPester.svg?label=windows+build)](https://build.powershell.org/project.html?projectId=Pester)
+ [![linux/macos build](https://img.shields.io/travis/pester/Pester/master.svg?label=macos/linux+build)](https://travis-ci.org/pester/Pester)
+[![latest version](https://img.shields.io/powershellgallery/v/Pester.svg)](https://www.powershellgallery.com/packages/Pester)
+[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+
 
 ## Further reading
 
