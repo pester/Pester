@@ -25,7 +25,7 @@ function BeforeEachFeature {
     param(
 
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="Tags")]
-        [String[]]$Tags,
+        [String[]]$Tags = @(),
 
         [Parameter(Mandatory=$True, Position=1, ParameterSetName="Tags")]
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="All")]
@@ -61,7 +61,7 @@ function AfterEachFeature {
     param(
 
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="Tags")]
-        [String[]]$Tags,
+        [String[]]$Tags = @(),
 
         [Parameter(Mandatory=$True, Position=1, ParameterSetName="Tags")]
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="All")]
@@ -99,7 +99,7 @@ function BeforeEachScenario {
     param(
 
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="Tags")]
-        [String[]]$Tags,
+        [String[]]$Tags = @(),
 
         [Parameter(Mandatory=$True, Position=1, ParameterSetName="Tags")]
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="All")]
@@ -135,7 +135,7 @@ function AfterEachScenario {
     param(
 
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="Tags")]
-        [String[]]$Tags,
+        [String[]]$Tags = @(),
 
         [Parameter(Mandatory=$True, Position=1, ParameterSetName="Tags")]
         [Parameter(Mandatory=$True, Position=0, ParameterSetName="All")]
