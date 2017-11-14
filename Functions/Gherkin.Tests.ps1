@@ -11,13 +11,13 @@ Describe 'Invoke-Gherkin' -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Show None
-            Mockery       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Mockery -Show None
-            Examples      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Examples -Show None
-            Example1      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example1 -Show None
-            Example2      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -Tag Example2 -Show None
-            NamedScenario = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ScenarioName "When something uses MyValidator" -Show None
-            NotMockery    = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -PassThru -ExcludeTag Mockery -Show None
+            Results       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Show None
+            Mockery       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Mockery -Show None
+            Examples      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Examples -Show None
+            Example1      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Example1 -Show None
+            Example2      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Example2 -Show None
+            NamedScenario = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -ScenarioName "When something uses MyValidator" -Show None
+            NotMockery    = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -ExcludeTag Mockery -Show None
         }
     }
 
