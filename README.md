@@ -1,5 +1,6 @@
 # Pester
-> :fire: We recently released Pester 4 and there are breaking changes, please see [release notes](https://github.com/pester/Pester/releases/tag/4.0.7) and [migration guide](https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4).
+
+> Pester [4.1.0](https://github.com/pester/Pester/releases/tag/4.1.0) now runs on Linux and macOS! 🎉 🍾 
 
 Pester is the ubiquitous test and mock framework for PowerShell.
 
