@@ -267,14 +267,14 @@ function Invoke-Gherkin {
                                             & $SafeCommands["Where-Object"] { $_.Group |
                                             & $SafeCommands["Where-Object"] { -not $_.Passed } } |
                                             & $SafeCommands["Select-Object"] -ExpandProperty Name
-                $this.Features.Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+                $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
         } |
             & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
                 $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
                                             & $SafeCommands["Where-Object"] { -not ($_.Group |
                                             & $SafeCommands["Where-Object"] { -not $_.Passed }) } |
                                             & $SafeCommands["Select-Object"] -ExpandProperty Name
-                $this.Features.Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+                $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
         }
 
         Write-PesterStart $pester $Path
