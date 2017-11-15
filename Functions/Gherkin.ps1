@@ -309,7 +309,9 @@ function Invoke-Gherkin {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
                 }
             )
-            $pester | & $SafeCommands["Select-Object"] -Property $properties
+            $result = $pester | & $SafeCommands["Select-Object"] -Property $properties
+            $result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
+            $result
         }
         $script:GherkinFailedLast = @($pester.FailedScenarios.Name)
         if ($EnableExit) {
