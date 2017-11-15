@@ -303,7 +303,7 @@ function Invoke-Gherkin {
         if ($PassThru) {
             # Remove all runtime properties like current* and Scope
             $properties = @(
-                "Path", "TagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios"
+                "Path", "Features", "TagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios"
 
                 if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
