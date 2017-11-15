@@ -69,6 +69,18 @@ Describe "New-Fixture" {
             Join-Path -Path "$path" -ChildPath "$name.ps1" | Should -Exist
             Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should -Exist
         }
+        It "Creates fixture if Path is set to '(pwd)' and Name contains the 'ps1' extension:" {
+            $name = "Relative4-Fixture.ps1"
+            $nameWithoutExtension = $name.Substring(0,$($name.Length)-4)
+            $path = "TestDrive:\"
+
+            Push-Location -Path $path
+            New-Fixture -Name $name -Path (Get-Location) | Out-Null
+            Pop-Location
+
+            Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.ps1" | Should -Exist
+            Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.Tests.ps1" | Should -Exist
+        }
         It "Writes warning if file exists" {
             $name = "Warning-Fixture"
             $path = "TestDrive:\"
