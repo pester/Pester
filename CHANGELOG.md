@@ -1,8 +1,14 @@
-## Unreleased
+## 4.1.0 (November 15, 2017)
+  - Help for the Assert-VerifiableMocks function added [GH-883]
   - Add-AssertionOperator can be called multiple times for identical parameters without errors.  [GH-893]
-  - Syntax for the Should operator updated in Pester tests itself, an about_* documentation, examples
+  - Update Pester to work on PowerShell Core at Windows, Linux, macOS [GH-925]
+  - Throw on Assert-VerifiableMocks [GH-918]
+  - Update a syntax of Should for the Pester v4 notation [GH-903]
+  - Syntax for the Should operator updated in Pester tests itself, an about_* documentation, examples [GH-910]
+  - Remove progress to make execution faster and fix linux formatting [GH-938]
+  - Invoke-Pester -Strict fails with internal pester error [GH-886]
     due to the prefered syntax change introduced in Pester v4 [GH-903]
-  - Support for PowerShell Core on Windows, Linux and macOS added [GH-639]
+  - Fix Gherkin for Linux [GH-937] and PS2 [GH-942]
 
 ## 4.0.8 (September 15, 2017)
   - Add Assert-VerifiableMocks that throws [GH-881]
