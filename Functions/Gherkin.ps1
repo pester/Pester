@@ -793,7 +793,7 @@ function Convert-Tags {
     )
     process {
         # Adapt the Gherkin .Tags property to the way we prefer it...
-        [string[]]$Tags = foreach ($tag in $InputObject.Tags) {
+        [string[]]$Tags = foreach ($tag in $InputObject.Tags | Where-Object { $_ }) {
             $tag.Name.TrimStart("@")
         }
         & $SafeCommands["Add-Member"] -MemberType NoteProperty -InputObject $InputObject -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force
