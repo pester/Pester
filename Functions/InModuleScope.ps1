@@ -125,7 +125,7 @@ function Get-ScriptModule
 
         $actualTypes = $actualTypes -join ', '
 
-        throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'"
+        throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'.    See https://github.com/pester/Pester/wiki/Testing-different-module-types for more information."
     }
 
     return $scriptModules[0]
