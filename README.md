@@ -1,10 +1,9 @@
-__Build Status:__ [![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:Pester_TestPester)/statusIcon)](https://build.powershell.org/project.html?projectId=Pester&tab=projectOverview&guest=1)
+:warning:
+## Pester v. 4.0.7 was released on September 15th, 2017. As a consequence, Pester v. 3.x will no longer be developed and any errors fixed.
 
-Pester 3.0 has been released!  To see a list of changes in this version, refer to the [What's New in Pester 3.0?](https://github.com/pester/Pester/wiki/What's-New-in-Pester-3.0) Wiki page.
+Please consider migrate your tests to Pester 4.x. There is a [guide for migrating from Pester 3 to Pester 4](https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4) to help you understand how the changes from Pester 3 to Pester 4 might affect your tests.
 
 ---
-
-[![Join the chat at https://gitter.im/pester/Pester](https://badges.gitter.im/pester/Pester.svg)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Pester
 =======

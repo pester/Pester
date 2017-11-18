@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.4.6'
+ModuleVersion = '3.4.7'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -25,7 +25,7 @@ Description = 'Pester provides a framework for running BDD style Tests to execut
 PowerShellVersion = '2.0'
 
 # Functions to export from this module
-FunctionsToExport = @( 
+FunctionsToExport = @(
     'Describe',
     'Context',
     'It',
