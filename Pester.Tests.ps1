@@ -368,14 +368,14 @@ Describe "Module Pester functions help" -Tags "Help" {
     [String[]]$AcceptMissedHelpSynopsis = @()
 
     [String[]]$AccepteMissedHelpDescription = @('AfterAll', 'AfterEach', 'BeforeAll', 'BeforeEach', 'Get-MockDynamicParameter', 'Invoke-Mock',
-                                                'SafeGetCommand', 'Set-DynamicParameterVariables', 'Setup')
+                                                'SafeGetCommand', 'Set-DynamicParameterVariable', 'Setup')
 
-    [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock','Should', 'Set-DynamicParameterVariables', 'Setup')
+    [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock','Should', 'Set-DynamicParameterVariable', 'Setup')
 
     [String[]]$AcceptMissedHelpExamples = @('AfterAll', 'AfterEach', 'AfterEachFeature', 'AfterEachScenario', 'Assert-VerifiableMocks',
                                             'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario',
                                             'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
-                                            'Set-DynamicParameterValues', 'Set-DynamicParameterVariables', 'Setup', 'Should')
+                                            'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
 
     $FunctionsList = (get-command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' }).Name
 
