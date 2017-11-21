@@ -805,5 +805,5 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject
 
-& $script:SafeCommands['Write-Warning'] "Pester v. 4.0.7 was released on September 15th, 2017. As a consequence, Pester v. 3.x will no longer be developed and any errors fixed."
-& $script:SafeCommands['Write-Warning'] "Please visit the page https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4 to read about migration to Pester v. 4.x."
+& $script:SafeCommands['Write-Warning'] "Pester v3 is deprecated, and no longer maintained. Please migrate to version 4."
+& $script:SafeCommands['Write-Warning'] "See https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4 for more information."
