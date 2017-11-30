@@ -13,9 +13,9 @@ try
     $null = New-Item -Path $buildDir -ItemType Directory -Verbose
 
     Write-Verbose "Copying release files to build folder '$buildDir'"
-    Copy-Item $baseDir\Pester.ps?1          $buildDir\ 
-    Copy-Item $baseDir\LICENSE              $buildDir\ 
-    Copy-Item $baseDir\nunit_schema_2.5.xsd $buildDir\ 
+    Copy-Item $baseDir\Pester.ps?1          $buildDir\
+    Copy-Item $baseDir\LICENSE              $buildDir\
+    Copy-Item $baseDir\nunit_schema_2.5.xsd $buildDir\
     Copy-Item $baseDir\bin                  $buildDir\ -Recurse -Exclude *.tests.ps1
     Copy-Item $baseDir\Functions            $buildDir\ -Recurse -Exclude *.tests.ps1
     Copy-Item $baseDir\Snippets             $buildDir\ -Recurse -Exclude *.tests.ps1

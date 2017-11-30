@@ -1,7 +1,7 @@
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
-try 
+try
 {
     $baseDir = $PSScriptRoot
     $buildDir = "$baseDir\build\nuget"
