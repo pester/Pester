@@ -1,8 +1,4 @@
-﻿# Pester
-# Version: $version$
-# Changeset: $sha$
-
-if ($PSVersionTable.PSVersion.Major -ge 3)
+﻿if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
     $outNullModule = 'Microsoft.PowerShell.Core'
