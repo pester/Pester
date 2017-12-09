@@ -1,4 +1,4 @@
-function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [switch] $Negate) {
+function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType = ([Exception]), [switch] $Negate) {
     $script:ActualExceptionMessage = ""
     $script:ActualExceptionWasThrown = $false
 
@@ -15,19 +15,29 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [sw
         } until ($true)
     } catch {
         $script:ActualExceptionWasThrown = $true
+        $script:ActualException = $_.Exception
         $script:ActualExceptionMessage = $_.Exception.Message
         $script:ActualErrorId = $_.FullyQualifiedErrorId
         $script:ActualExceptionLine = Get-ExceptionLineInfo $_.InvocationInfo
     }
 
     [bool] $succeeded = $false
-
-    if ($ActualExceptionWasThrown) {
-        $succeeded = (Get-DoValuesMatch $script:ActualExceptionMessage $ExpectedMessage) -and
-                     (Get-DoValuesMatch $script:ActualErrorId $ExpectedErrorId)
+ 
+    if ($Negate) { 
+        # this is for Should -Not -Throw. Once *any* exception was thrown we should fail the assertion
+        # there is no point in filtering the exception, because there should be none
+        $succeeded = -not $ActualExceptionWasThrown 
+    } else {
+        # this branch is for Should -Throw, we must fail the assertion when no exception is thrown
+        # or when the exception does not match our filter
+        if ($ActualExceptionWasThrown) {
+            $succeeded = (Get-DoValuesMatch $script:ActualExceptionMessage $ExpectedMessage) -and
+                         (Get-DoValuesMatch $script:ActualErrorId $ExpectedErrorId) -and
+                         $script:ActualException -is $ExceptionType
+        }
     }
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    
 
     $failureMessage = ''
 

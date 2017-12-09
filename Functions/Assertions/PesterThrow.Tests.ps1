@@ -123,6 +123,48 @@ InModuleScope Pester {
             }
         }
 
+        Context 'Matching exception type' {
+            It "given scriptblock that throws exception with the expected type it passes" {
+                { throw [ArgumentException]"message" } | Should -Throw -ExceptionType ([ArgumentException])
+            }
+
+            It "given scriptblock that throws exception with a sub-type of the expected type it passes" {
+                { throw [ArgumentNullException]"message" } | Should -Throw -ExceptionType ([ArgumentException])
+            }
+
+            It "given scriptblock that throws errorrecord with the expected exception type it passes" {
+                $ScriptBlock = {
+                    $errorRecord = New-Object System.Management.Automation.ErrorRecord(
+                        (New-Object System.ArgumentException),
+                        "id",
+                        'OperationStopped',
+                        $null
+                    )
+                    throw $errorRecord
+                }
+
+                $ScriptBlock | Should -Throw -ExceptionType ([ArgumentException])
+            }
+
+            It "given scriptblock that throws exception with a different type than the expected type it fails" {
+                { { throw [System.InvalidOperationException]"message" } | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
+            }
+
+            It "given scriptblock that throws errorrecord with a different exception type it fails" {
+                $ScriptBlock = {
+                    $errorRecord = New-Object System.Management.Automation.ErrorRecord(
+                        (New-Object System.InvalidOperationException),
+                        "id",
+                        'OperationStopped',
+                        $null
+                    )
+                    throw $errorRecord
+                }
+
+                { $ScriptBlock | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
+            }
+        }
+
         Context 'Assertion messages' {        
             It 'returns the correct assertion message when exceptions messages differ' {
                 $testScriptPath = Join-Path $TestDrive.FullName test.ps1
@@ -223,8 +265,19 @@ InModuleScope Pester {
                 { { throw "message" } | Should -Not -Throw -ExpectedMessage "message" } | Verify-AssertionFailed
             }
 
+            # this might seem odd, but the filters are there to refine exceptions that were thrown
+            # but for Should -Not -Throw it should not matter what properties the exception has, 
+            # once *any* exception was thrown it should fail
             It "given scriptblock that throws an exception it fails, even if the messages match - legacy syntax" {
                 { { throw "message" } | Should Not Throw "message" } | Verify-AssertionFailed
+            }
+
+            It "given scriptblock that throws an exception it fails, even if the messages do not match " {
+                { { throw "dummy" } | Should -Not -Throw -ExpectedMessage "message" } | Verify-AssertionFailed
+            }
+
+            It "given scriptblock that throws an exception it fails, even if the messages do not match - legacy syntax" {
+                { { throw "dummy" } | Should Not Throw "message" } | Verify-AssertionFailed
             }
 
             It "throws ArgumentException if null ScriptBlock is provided" {

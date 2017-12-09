@@ -17,8 +17,8 @@ function Verify-AssertionFailed {
     }
     
     if (-not $assertionExceptionThrown) {
-        $result = if ($null -eq $err) { "no error was thrown!" } 
-                  else { "other error was thrown!`n$($err | Format-List -Force * | Out-String)" }
-        throw [Exception]"An error with FQEID 'PesterAssertionFailed' was expected but $result"
+        $result = if ($null -eq $err) { "no assertion failure error was thrown!" } 
+                  else { "other error was thrown! $($err | Format-List -Force * | Out-String)" }
+        throw [Exception]"Expected the script block { $ScriptBlock } to fail in Pester assertion, but $result"
     }
 }
