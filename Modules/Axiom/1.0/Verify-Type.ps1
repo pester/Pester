@@ -7,10 +7,10 @@
     )
 
     if ($Actual -isnot $Expected) {
-        $message = "Expected value to be of type $($Expected.FullName)`n"+
-        "Expected: '$($Expected.FullName)'`n"+
-        "Actual  : '$($Actual.GetType().FullName)'" 
-        throw [Exception]$message
+        $message = "Expected value to be of type $($Expected.FullName)"
+        $Actual = "but got " + $(if ($null -eq $Actual) { "'<null>'" } 
+                    else { "'$($Actual.GetType().FullName)'" })
+        throw [Exception]"$message, $Actual"
     }
     
     $Actual

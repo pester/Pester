@@ -5,16 +5,20 @@ function Verify-AssertionFailed {
     )
 
     $assertionExceptionThrown = $false
+    $err = $null
     try {
         $null = & $ScriptBlock
     }
-    catch [Pester.AssertionException]
+    catch [Exception]
     {
-        $assertionExceptionThrown = $true
-        $_
+        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
+        $err = $_
+        $err
     }
     
     if (-not $assertionExceptionThrown) {
-        throw [Exception]"An exception of type Pester.AssertionException was expected but no exception was thrown!"
+        $result = if ($null -eq $err) { "no error was thrown!" } 
+                  else { "other error was thrown!`n$($err | Format-List -Force * | Out-String)" }
+        throw [Exception]"An error with FQEID 'PesterAssertionFailed' was expected but $result"
     }
 }
