@@ -367,6 +367,8 @@ $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
+"$PesterRoot\Modules\*\*\*.psm1" | Import-Module -DisableNameChecking
+
 Add-Type -TypeDefinition @"
 using System;
 
