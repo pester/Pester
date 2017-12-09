@@ -22,11 +22,11 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
     }
 
     [bool] $succeeded = $false
- 
-    if ($Negate) { 
+
+    if ($Negate) {
         # this is for Should -Not -Throw. Once *any* exception was thrown we should fail the assertion
         # there is no point in filtering the exception, because there should be none
-        $succeeded = -not $ActualExceptionWasThrown 
+        $succeeded = -not $ActualExceptionWasThrown
     } else {
         # this branch is for Should -Throw, we must fail the assertion when no exception is thrown
         # or when the exception does not match our filter
@@ -37,7 +37,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         }
     }
 
-    
+
 
     $failureMessage = ''
 

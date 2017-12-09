@@ -20,12 +20,12 @@ InModuleScope Pester {
             }
 
             It "throws ArgumentException if null ScriptBlock is provided" {
-                $err = { $null | Should -Throw } | Verify-Throw 
+                $err = { $null | Should -Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([ArgumentException])
             }
 
             It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
-                $err = { $null | Should Throw } | Verify-Throw 
+                $err = { $null | Should Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([ArgumentException])
             }
         }
@@ -165,38 +165,38 @@ InModuleScope Pester {
             }
         }
 
-        Context 'Assertion messages' {        
+        Context 'Assertion messages' {
             It 'returns the correct assertion message when exceptions messages differ' {
                 $testScriptPath = Join-Path $TestDrive.FullName test.ps1
                 Set-Content -Path $testScriptPath -Value "throw 'error1'"
-    
+
                 $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 } | Verify-AssertionFailed
                 $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' | Verify-Equal "Expected: the expression to throw an exception with message {error2}, an exception was raised, message was {error1} from ${testScriptPath}:1 char:1 + throw 'error1' + ~~~~~~~~~~~~~~"
             }
 
             Context "parameter combintation, returns the correct assertion message" {
                 It "given scriptblock that throws an exception where <notMatching> parameter(s) don't match, it fails with correct assertion message$([System.Environment]::NewLine)actual:   id <actualId>, message <actualMess>, type <actualType>$([System.Environment]::NewLine)expected: id <expectedId>, message <expectedMess> type <expectedType>" -TestCases @(
-                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException]) 
+                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
                         notMatching = 1; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
                     }
-                    
-                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([InvalidOperationException]) 
+
+                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
                         notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
                     }
 
-                    @{  actualId = "+id"; actualMess = "-mess"; actualType = ([ArgumentException]) 
+                    @{  actualId = "+id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
                         notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {+id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
                     }
 
-                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([ArgumentException]) 
+                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
                         notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
                     }
-                    
-                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([ArgumentException]) 
+
+                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
                         notMatching = 3; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
                     }
@@ -214,7 +214,7 @@ InModuleScope Pester {
                     )
 
                     # build a script that will throw an error record, and populate it with the actual data
-                    $testScriptPath = Join-Path $TestDrive.FullName test.ps1                    
+                    $testScriptPath = Join-Path $TestDrive.FullName test.ps1
                     Set-Content -Path $testScriptPath -Value "
                         `$errorRecord = New-Object System.Management.Automation.ErrorRecord(
                             (New-Object $($actualType.FullName) '$actualMess'),
@@ -266,7 +266,7 @@ InModuleScope Pester {
             }
 
             # this might seem odd, but the filters are there to refine exceptions that were thrown
-            # but for Should -Not -Throw it should not matter what properties the exception has, 
+            # but for Should -Not -Throw it should not matter what properties the exception has,
             # once *any* exception was thrown it should fail
             It "given scriptblock that throws an exception it fails, even if the messages match - legacy syntax" {
                 { { throw "message" } | Should Not Throw "message" } | Verify-AssertionFailed
@@ -281,12 +281,12 @@ InModuleScope Pester {
             }
 
             It "throws ArgumentException if null ScriptBlock is provided" {
-                $err = { $null | Should -Not -Throw  } | Verify-Throw 
+                $err = { $null | Should -Not -Throw  } | Verify-Throw
                 $err.Exception | Verify-Type ([ArgumentException])
             }
 
             It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
-                $err = { $null | Should Not Throw } | Verify-Throw 
+                $err = { $null | Should Not Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([ArgumentException])
             }
         }
@@ -305,7 +305,7 @@ InModuleScope Pester {
         It "given no expectation it returns true" {
             Get-DoValuesMatch "any error message" <#expectation is null #> | Verify-True
         }
-        
+
         It "given empty message and no expectation it returns true" {
             Get-DoValuesMatch "" <#expectation is null#>  | Verify-True
         }
