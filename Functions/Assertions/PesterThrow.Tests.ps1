@@ -223,6 +223,10 @@ InModuleScope Pester {
                 { { throw "message" } | Should -Not -Throw -ExpectedMessage "message" } | Verify-AssertionFailed
             }
 
+            It "given scriptblock that throws an exception it fails, even if the messages match - legacy syntax" {
+                { { throw "message" } | Should Not Throw "message" } | Verify-AssertionFailed
+            }
+
             It "throws ArgumentException if null ScriptBlock is provided" {
                 $err = { $null | Should -Not -Throw  } | Verify-Throw 
                 $err.Exception | Verify-Type ([ArgumentException])
