@@ -1,3 +1,6 @@
+## 4.1.1 (December 09, 2017)
+  - Fix deployment scripts and package on choco and nuget
+  
 ## 4.1.0 (November 15, 2017)
   - Help for the Assert-VerifiableMocks function added [GH-883]
   - Add-AssertionOperator can be called multiple times for identical parameters without errors.  [GH-893]

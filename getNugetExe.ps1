@@ -7,7 +7,8 @@ try
     # so I try to run it first and if that does not work
     # I download a version from the web and try that
 
-    $nugetPath = "$PSScriptRoot\vendor\tools\nuget.exe"
+    $nugetPath = "$psScriptRoot\vendor\tools\nuget.exe"
+    Write-Host Nuget path $nugetPath
 
     $nugetFound = Test-Path $nugetPath
     if ($nugetFound) {
@@ -27,6 +28,11 @@ try
     }
 
     if (-not $nugetFound -or -not $nugetRunnable) {
+        $vendorDirectory = $nugetPath | Split-Path
+        if (-not(Test-Path $VendorDirectory)) {
+            mkdir $vendorDirectory
+        }
+
         Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/v4.4.1/nuget.exe" -OutFile $nugetPath -Verbose
         "Downloaded $(&$nugetPath | select -First 1)"
     }
