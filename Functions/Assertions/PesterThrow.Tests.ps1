@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterThrow" {
+    Describe "Should -Throw" {
         Context "Basic functionality" {
             It "given scriptblock that throws an exception it passes" {
                 { throw } | Should -Throw
@@ -11,12 +11,12 @@ InModuleScope Pester {
                 { throw } | Should Throw
             }
 
-            It "given scripblock that does not throw an exception it fails" {
+            It "given scriptblock that does not throw an exception it fails" {
                 { { 1 + 1 } | Should -Throw } | Verify-AssertionFailed
             }
 
-            It "given scripblock that does not throw an exception it fails - legacy syntax" {
-                { { 1 + 1 } | Should -Throw } | Verify-AssertionFailed
+            It "given scriptblock that does not throw an exception it fails - legacy syntax" {
+                { { 1 + 1 } | Should Throw } | Verify-AssertionFailed
             }
 
             It "throws ArgumentException if null ScriptBlock is provided" {
@@ -197,6 +197,40 @@ InModuleScope Pester {
                     $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage $expectedMess -ErrorId $expectedId <# -Type  #> } | Verify-AssertionFailed
                     $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' | Verify-Equal $assertionMessage
                 }
+            }
+        }
+    }
+
+    Describe "Should -Not -Throw" {
+        Context "Basic functionality" {
+            It "given scriptblock that does not throw an exception it passes" {
+                { } | Should -Not -Throw
+            }
+
+            It "given scriptblock that does not throw an exception it passes - legacy syntax" {
+                { } | Should Not Throw
+            }
+
+            It "given scriptblock that throws an exception it fails" {
+                { { throw } | Should -Not -Throw } | Verify-AssertionFailed
+            }
+
+            It "given scriptblock that throws an exception it fails - legacy syntax" {
+                { { throw } | Should Not Throw } | Verify-AssertionFailed
+            }
+
+            It "given scriptblock that throws an exception it fails, even if the messages match " {
+                { { throw "message" } | Should -Not -Throw -ExpectedMessage "message" } | Verify-AssertionFailed
+            }
+
+            It "throws ArgumentException if null ScriptBlock is provided" {
+                $err = { $null | Should -Not -Throw  } | Verify-Throw 
+                $err.Exception | Verify-Type ([ArgumentException])
+            }
+
+            It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
+                $err = { $null | Should Not Throw } | Verify-Throw 
+                $err.Exception | Verify-Type ([ArgumentException])
             }
         }
     }
