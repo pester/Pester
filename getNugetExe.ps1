@@ -1,7 +1,7 @@
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
-try 
+try
 {
     # had problems running nuget.exe on the build server
     # so I try to run it first and if that does not work
