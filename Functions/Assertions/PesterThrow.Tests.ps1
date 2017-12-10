@@ -237,7 +237,7 @@ InModuleScope Pester {
 
                     # do the actual test
                     $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage $expectedMess -ErrorId $expectedId -ExceptionType $expectedType } | Verify-AssertionFailed
-                    # replace newlines, spacing, and everything after 'char:` because 
+                    # replace newlines, spacing, and everything after 'char:` because
                     # it's powershell version specific, and we are not formatting it ourselves
                     $err.Exception.Message -replace "(`r|`n)" -replace '\s+',' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
                 }
