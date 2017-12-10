@@ -178,27 +178,27 @@ InModuleScope Pester {
                 It "given scriptblock that throws an exception where <notMatching> parameter(s) don't match, it fails with correct assertion message$([System.Environment]::NewLine)actual:   id <actualId>, message <actualMess>, type <actualType>$([System.Environment]::NewLine)expected: id <expectedId>, message <expectedMess> type <expectedType>" -TestCases @(
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 1; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
+                        notMatching = 1; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "-mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
+                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:"
                     }
 
                     @{  actualId = "+id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {+id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
+                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {+id} from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
+                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 3; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:25 + throw `$errorRecord + ~~~~~~~~~~~~~~~~~~"
+                        notMatching = 3; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:"
                     }
                 ) {
                     param ($actualId, $actualMess, $actualType,
@@ -237,7 +237,9 @@ InModuleScope Pester {
 
                     # do the actual test
                     $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage $expectedMess -ErrorId $expectedId <# -Type  #> } | Verify-AssertionFailed
-                    $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' | Verify-Equal $assertionMessage
+                    # replace newlines, spacing, and everything after 'char:` because 
+                    # it's powershell version specific, and we are not formatting it ourselves
+                    $err.Exception.Message -replace "(`r|`n)" -replace '\s+',' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
                 }
             }
         }
