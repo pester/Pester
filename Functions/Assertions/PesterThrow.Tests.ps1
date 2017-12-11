@@ -1,5 +1,8 @@
 Set-StrictMode -Version Latest
 
+$here = $MyInvocation.MyCommand.Path | Split-Path
+. $here\..\..\Dependencies\Axiom\Axiom.ps1
+
 InModuleScope Pester {
     Describe "Should -Throw" {
         Context "Basic functionality" {
