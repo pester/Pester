@@ -7,9 +7,6 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         throw (New-Object -TypeName ArgumentNullException -ArgumentList "ActualValue","Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
     }
 
-    # This is superfluous, here for now.
-    $ExpectedErrorId = $ErrorId
-
     try {
         do {
             $null = & $ActualValue
@@ -39,26 +36,26 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
                 Succeeded      = $true
             }
         }
-    } 
+    }
 
     # the rest is for Should -Throw, we must fail the assertion when no exception is thrown
     # or when the exception does not match our filter
-            
-    function Join-And ($Items, $Threshold=2) { 
-        
-        if ($null -eq $items -or $items.count -lt $Threshold) 
-        { 
-            $items -join ', ' 
-        } 
-        else 
-        { 
+
+    function Join-And ($Items, $Threshold=2) {
+
+        if ($null -eq $items -or $items.count -lt $Threshold)
+        {
+            $items -join ', '
+        }
+        else
+        {
             $c = $items.count
             ($items[0..($c-2)] -join ', ') + ' and ' + $items[-1]
         }
     }
-    
-    function Add-SpaceToNonEmptyString ([string]$Value) { 
-        if ($Value) 
+
+    function Add-SpaceToNonEmptyString ([string]$Value) {
+        if ($Value)
         {
             " $Value"
         }
@@ -76,7 +73,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         }
     }
 
-    $filterOnMessage = -not [string]::IsNullOrWhiteSpace($ExpectedMessage)
+    $filterOnMessage = -not [string]::IsNullOrEmpty($ExpectedMessage -replace "\s")
     if ($filterOnMessage) {
         $filters += "with message '$ExpectedMessage'"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
@@ -84,10 +81,10 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         }
     }
 
-    $filterOnId = -not [string]::IsNullOrWhiteSpace($ExpectedErrorId)
+    $filterOnId = -not [string]::IsNullOrEmpty($ErrorId -replace "\s")
     if ($filterOnId) {
-        $filters += "with FullyQualifiedErrorId '$ExpectedErrorId'"
-        if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ExpectedErrorId))) {
+        $filters += "with FullyQualifiedErrorId '$ErrorId'"
+        if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ErrorId))) {
             $buts += "the FullyQualifiedErrorId was '$($actualErrorId)'"
         }
     }
@@ -99,8 +96,8 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
 
     if ($buts.Count -ne 0) {
         $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
-        $but = Join-And $buts 
-        $failureMessage = "Expected an exception,$filter to be thrown, but $but. $actualExceptionLine".Trim()    
+        $but = Join-And $buts
+        $failureMessage = "Expected an exception,$filter to be thrown, but $but. $actualExceptionLine".Trim()
 
         return New-Object psobject -Property @{
             Succeeded      = $false
@@ -124,6 +121,14 @@ function Get-ExceptionLineInfo($info) {
     # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
     $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join [System.Environment]::NewLine
     return ($positionMessage -replace "^At ","from ")
+}
+
+function PesterThrowFailureMessage {
+    # to make the should tests happy, for now
+}
+
+function NotPesterThrowFailureMessage {
+    # to make the should tests happy, for now
 }
 
 Add-AssertionOperator -Name Throw `
