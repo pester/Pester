@@ -166,39 +166,62 @@ InModuleScope Pester {
         }
 
         Context 'Assertion messages' {
+            It 'returns the correct assertion message when no exception is thrown' {
+                $err = { { } | Should -Throw } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected an exception, to be thrown, but no exception was thrown."
+            }
+
+            It 'returns the correct assertion message when type filter is used, but no exception is thrown' {
+                $err = { { } | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected an exception, with type {System.ArgumentException} to be thrown, but no exception was thrown."
+            }
+
+            It 'returns the correct assertion message when message filter is used, but no exception is thrown' {
+                $err = { { } | Should -Throw -ExpectedMessage 'message' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected an exception, with message 'message' to be thrown, but no exception was thrown."
+            }
+
+            It 'returns the correct assertion message when errorId filter is used, but no exception is thrown' {
+                $err = { { } | Should -Throw -ErrorId 'id' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected an exception, with FullyQualifiedErrorId 'id' to be thrown, but no exception was thrown."
+            }
+
             It 'returns the correct assertion message when exceptions messages differ' {
                 $testScriptPath = Join-Path $TestDrive.FullName test.ps1
                 Set-Content -Path $testScriptPath -Value "throw 'error1'"
 
+                # use the real path of the script, because we don't know it beforehand
+                $assertionMessage = "Expected an exception, with message 'error2' to be thrown, but the message was 'error1'. from ##path##:1 char:" -replace "##path##", $testScriptPath
+
                 $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 } | Verify-AssertionFailed
-                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' | Verify-Equal "Expected: the expression to throw an exception with message {error2}, an exception was raised, message was {error1} from ${testScriptPath}:1 char:1 + throw 'error1' + ~~~~~~~~~~~~~~"
+                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
             }
 
             Context "parameter combintation, returns the correct assertion message" {
                 It "given scriptblock that throws an exception where <notMatching> parameter(s) don't match, it fails with correct assertion message$([System.Environment]::NewLine)actual:   id <actualId>, message <actualMess>, type <actualType>$([System.Environment]::NewLine)expected: id <expectedId>, message <expectedMess> type <expectedType>" -TestCases @(
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 1; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:"
+                        notMatching = 1; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "-mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:"
+                        notMatching = 2; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "+id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {+id} from ##path##:8 char:"
+                        notMatching = 2; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was '{System.ArgumentException}' and the message was '-mess'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {+mess} and error id was {-id} from ##path##:8 char:"
+                        notMatching = 2; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was '{System.ArgumentException}' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 3; assertionMessage = "Expected: the expression to throw an exception with message {+mess} and error id {+id}, an exception was raised, message was {-mess} and error id was {-id} from ##path##:8 char:"
+                        notMatching = 3; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was '{System.ArgumentException}', the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
                 ) {
                     param ($actualId, $actualMess, $actualType,
@@ -290,6 +313,14 @@ InModuleScope Pester {
             It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
                 $err = { $null | Should Not Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([ArgumentException])
+            }
+        }
+
+        Context 'Assertion messages' {
+            It 'returns the correct assertion message when an exception is thrown' {
+                $err = { { throw } | Should -Not -Throw } | Verify-AssertionFailed
+                write-host ($err.Exception.Message -replace "(.*)",'')
+                $err.Exception.Message  -replace "(`r|`n)" -replace '\s+',' ' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, but an exception was thrown"
             }
         }
     }
