@@ -124,11 +124,8 @@ PrivateData = @{
         # Release notes for this particular version of the module
         ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.1.1'
 
-        # If true, the LicenseUrl points to an end-user license (not just a source license) which requires the user agreement before use.
-        # RequireLicenseAcceptance = ""
-
-        # Indicates this is a pre-release/testing version of the module.
-        IsPrerelease = 'False'
+        # Prerelease string of this module
+        Prerelease = ''
     }
 }
 
