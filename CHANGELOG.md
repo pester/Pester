@@ -1,3 +1,6 @@
+## 4.2.0-alpha2 (December 12, 2017)
+   - Load dependencies optionally, because they are not part of the package build
+
 ## 4.2.0-alpha1 (December 12, 2017)
    - Should Throw filters on exception type [GH-954]
 

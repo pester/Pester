@@ -367,10 +367,11 @@ $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
-
-# sub-modules
-& $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-& $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
+    # sub-modules
+    & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
+    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+}
 
 Add-Type -TypeDefinition @"
 using System;
