@@ -412,9 +412,9 @@ Describe "Module Pester functions help" -Tags "Help" {
                                             'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
                                             'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
 
-    $FunctionsList = (get-command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' }).Name
+    [String[]]$FunctionsList = (get-command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' })
 
-    $FilteredFunctionList = $($FunctionsList | Where-Object -FilterScript { $AcceptEmptyHelp -notcontains $_ })
+    [String[]]$FilteredFunctionList = $($FunctionsList | Where-Object -FilterScript { $AcceptEmptyHelp -notcontains $_ })
 
     ForEach ($Function in $FilteredFunctionList) {
         # Retrieve the Help of the function
@@ -508,7 +508,6 @@ Describe "Module Pester functions help" -Tags "Help" {
 
                     }
                 }
-
             }
         }
     }
