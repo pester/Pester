@@ -50,7 +50,7 @@ InModuleScope Pester {
             $err.Exception.Message | Verify-Equal 'Expected {5} to be greater or equal to the actual value, because reason, but got {4}.'
         }
     }
-       
+
     Describe "Should -BeGreaterOrEqual" {
         It "passes if value is greater than the expected value" {
             2 | Should -BeGreaterOrEqual 1

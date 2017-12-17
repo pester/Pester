@@ -339,7 +339,7 @@ function Add-AssertionDynamicParameterSet
             # We deliberately use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
             # We also don't bother to try to copy transformation / validation attributes here for the same reason.
             # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
-            
+
             # few years later: using [object] causes problems with switch params (in my case -PassThru), because then we cannot use them without defining a value
             # so for switches we must prefer the conflicts over type
             if ([switch] -eq $parameter.ParameterType) {

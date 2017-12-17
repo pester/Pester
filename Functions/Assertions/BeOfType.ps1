@@ -1,13 +1,13 @@
 
 function PesterBeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$Because) {
-    
+
     if($ExpectedType -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
         $parsedType = ($ExpectedType -replace '^\[(.*)\]$','$1') -as [Type]
         if ($null -eq $parsedType) {
             throw [ArgumentException]"Could not find type [$ParsedType]. Make sure that the assembly that contains that type is loaded."
         }
-        
+
         $ExpectedType = $parsedType
     }
 
@@ -21,7 +21,7 @@ function PesterBeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$
     } else {
         $actualType = '<none>'
     }
-    
+
     if (-not $succeded)
     {
         if ($Negate)

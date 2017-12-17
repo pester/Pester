@@ -30,6 +30,6 @@ Add-AssertionOperator -Name BeLikeExactly `
                       -Test  $function:PesterBeLikeExactly
 
 function PesterBeLikeExactlyFailureMessage() { }
-function NotPesterBeLikeExactlyFailureMessage() { } 
+function NotPesterBeLikeExactlyFailureMessage() { }
 
 

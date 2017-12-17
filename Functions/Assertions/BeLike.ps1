@@ -30,6 +30,6 @@ Add-AssertionOperator -Name BeLike `
                       -Test  $function:PesterBeLike
 
 function PesterBeLikeFailureMessage() { }
-function NotPesterBeLikeFailureMessage() { } 
+function NotPesterBeLikeFailureMessage() { }
 
 

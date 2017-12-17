@@ -9,10 +9,10 @@ function PesterHaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [
     [bool] $succeeded = $count -eq $ExpectedValue
     if ($Negate) { $succeeded = -not $succeeded }
 
-    
+
     if (-not $succeeded)
     {
-       
+
         if ($Negate)
         {
             $expect = if ($expectingEmpty) { "Expected a non-empty collection" } else { "Expected a collection with size different from {$ExpectedValue}" }

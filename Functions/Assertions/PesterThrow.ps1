@@ -112,7 +112,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         Succeeded      = $true
     }
 
-    if ($PassThru) { 
+    if ($PassThru) {
         $result | Add-Member -MemberType NoteProperty -Name 'Data' -Value $actualError
     }
 

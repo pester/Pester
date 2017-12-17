@@ -37,14 +37,14 @@ InModuleScope Pester {
         }
     }
 
-    Describe "Should -BeNullOrEmpty" { 
+    Describe "Should -BeNullOrEmpty" {
         It "returns the correct assertion message" {
             $err = { 1 | Should -BeNullOrEmpty -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal 'Expected $null or empty, because reason, but got {1}.'
         }
     }
 
-    Describe "Should -Not -BeNullOrEmpty" { 
+    Describe "Should -Not -BeNullOrEmpty" {
         It "returns the correct assertion message" {
             $err = { $null | Should -Not -BeNullOrEmpty -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal 'Expected a value, because reason, but got $null or empty.'
