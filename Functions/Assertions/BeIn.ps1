@@ -23,7 +23,6 @@ function PesterBeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Be
 
     return New-Object psobject -Property @{
         Succeeded      = $true
-        FailureMessage = $failureMessage
     }
 }
 
