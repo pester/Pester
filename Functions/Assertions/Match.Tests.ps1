@@ -22,4 +22,44 @@ InModuleScope Pester {
             'foobar' | Should -Match '\S{6}'
         }
     }
+
+    Describe "Should -Match" {
+        It "passes for regular expressions that match" {
+            "foobar" | Should Match ".*"
+            "foobar" | Should -Match ".*"
+        }
+
+        It "passes for regular expression with different case" {
+            "foobar" | Should -Match ".OOB.."
+        }
+
+        It "fails for regular expressions that do not match" {
+            { "foobar" | Should -Match "\d{6}" } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message" {
+            $err = { 'ab' | Should -Match '\d' -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected regular expression {\d} to match {ab}, because reason, but it did not match.'
+        }
+    }
+
+    Describe "Should -Not -Match" {
+        It "passes for regular expressions that do not match" {
+            "gef" | Should Not Match "m.*"
+            "gef" | Should -Not -Match "m.*"
+        }
+
+        It "fails for things that match" {
+            { "foobar" | Should -Not -Match ".*" } | Verify-AssertionFailed
+        }
+
+        It "fails for strings with different case" {
+            { "foobar" | Should -Not -Match "F.*" } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message" {
+            $err = { 'ab' | Should -Not -Match '.*' -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected regular expression {.*} to not match {ab}, because reason, but it did match.'
+        }
+    }
 }

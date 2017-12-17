@@ -1,6 +1,7 @@
-function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType, [switch] $Negate) {
+function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType, [switch] $Negate, [string] $Because, [switch] $PassThru) {
     $actualExceptionMessage = ""
     $actualExceptionWasThrown = $false
+    $actualError = $null
     $actualException = $null
     $actualExceptionLine = $null
 
@@ -14,6 +15,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         } until ($true)
     } catch {
         $actualExceptionWasThrown = $true
+        $actualError = $_
         $actualException = $_.Exception
         $actualExceptionMessage = $_.Exception.Message
         $actualErrorId = $_.FullyQualifiedErrorId
@@ -27,7 +29,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         # there is no point in filtering the exception, because there should be none
         $succeeded = -not $actualExceptionWasThrown
         if (-not $succeeded) {
-            $failureMessage = "Expected no exception to be thrown, but an exception was thrown $actualExceptionLine."
+            $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception was thrown $actualExceptionLine."
             return New-Object psobject -Property @{
                 Succeeded      = $succeeded
                 FailureMessage = $failureMessage
@@ -98,7 +100,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
     if ($buts.Count -ne 0) {
         $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
         $but = Join-And $buts
-        $failureMessage = "Expected an exception,$filter to be thrown, but $but. $actualExceptionLine".Trim()
+        $failureMessage = "Expected an exception,$filter to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
         return New-Object psobject -Property @{
             Succeeded      = $false
@@ -106,9 +108,15 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         }
     }
 
-    return New-Object psobject -Property @{
+    $result = New-Object psobject -Property @{
         Succeeded      = $true
     }
+
+    if ($PassThru) {
+        $result | Add-Member -MemberType NoteProperty -Name 'Data' -Value $actualError
+    }
+
+    return $result
 }
 
 function Get-DoValuesMatch($ActualValue, $ExpectedValue) {

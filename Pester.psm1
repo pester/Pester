@@ -313,7 +313,9 @@ function Add-AssertionDynamicParameterSet
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values)
     {
+        # common parameters that are already defined
         if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not' -or $parameter.Name -eq 'Negate') { continue }
+
 
         if ($script:AssertionOperators.ContainsKey($parameter.Name) -or $script:AssertionAliases.ContainsKey($parameter.Name))
         {
@@ -338,7 +340,15 @@ function Add-AssertionDynamicParameterSet
             # We also don't bother to try to copy transformation / validation attributes here for the same reason.
             # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
 
-            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($parameter.Name, [object], (New-Object System.Collections.ObjectModel.Collection[Attribute]))
+            # few years later: using [object] causes problems with switch params (in my case -PassThru), because then we cannot use them without defining a value
+            # so for switches we must prefer the conflicts over type
+            if ([switch] -eq $parameter.ParameterType) {
+                $type = [switch]
+            } else {
+                $type = [object]
+            }
+
+            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($parameter.Name, $type, (New-Object System.Collections.ObjectModel.Collection[Attribute]))
             $null = $script:AssertionDynamicParams.Add($parameter.Name, $dynamic)
         }
 
