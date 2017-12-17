@@ -28,6 +28,12 @@ InModuleScope Pester {
                 $err = { $null | Should Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([ArgumentException])
             }
+
+            It "returns error when -PassThru is specified" {
+                $err = { throw } | Should -Throw -PassThru
+                $err | Verify-NotNull
+                $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
+            }
         }
 
         Context "Matching error message" {
@@ -197,6 +203,17 @@ InModuleScope Pester {
                 $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
             }
 
+            It 'returns the correct assertion message when reason is specified' {
+                $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+                Set-Content -Path $testScriptPath -Value "throw 'error1'"
+
+                # use the real path of the script, because we don't know it beforehand
+                $assertionMessage = "Expected an exception, with message 'error2' to be thrown, because reason, but the message was 'error1'. from ##path##:1 char:" -replace "##path##", $testScriptPath
+
+                $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 -Because 'reason' } | Verify-AssertionFailed
+                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
+            }
+
             Context "parameter combintation, returns the correct assertion message" {
                 It "given scriptblock that throws an exception where <notMatching> parameter(s) don't match, it fails with correct assertion message$([System.Environment]::NewLine)actual:   id <actualId>, message <actualMess>, type <actualType>$([System.Environment]::NewLine)expected: id <expectedId>, message <expectedMess> type <expectedType>" -TestCases @(
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException])
@@ -318,9 +335,9 @@ InModuleScope Pester {
 
         Context 'Assertion messages' {
             It 'returns the correct assertion message when an exception is thrown' {
-                $err = { { throw } | Should -Not -Throw } | Verify-AssertionFailed
+                $err = { { throw } | Should -Not -Throw -Because 'reason' } | Verify-AssertionFailed
                 write-host ($err.Exception.Message -replace "(.*)",'')
-                $err.Exception.Message  -replace "(`r|`n)" -replace '\s+',' ' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, but an exception was thrown"
+                $err.Exception.Message  -replace "(`r|`n)" -replace '\s+',' ' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, because reason, but an exception was thrown"
             }
         }
     }

@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterBeGreaterThan" {
+    Describe "Should -BeGreaterThan" {
         It "passes if value greater than expected" {
             2 | Should BeGreaterThan 1
             2 | Should -BeGreaterThan 1
@@ -9,16 +9,89 @@ InModuleScope Pester {
         }
 
         It "fails if values equal" {
-            3 | Should Not BeGreaterThan 3
-            3 | Should -Not -BeGreaterThan 3
-            3 | Should -Not -GT 3
+            { 3 | Should BeGreaterThan 3 } | Verify-AssertionFailed
+            { 3 | Should -BeGreaterThan 3 } | Verify-AssertionFailed
+            { 3 | Should -GT 3 } | Verify-AssertionFailed
         }
 
         It "fails if value less than expected" {
-            4 | Should Not BeGreaterThan 5
-            4 | Should -Not -BeGreaterThan 5
-            4 | Should -Not -GT 5
+            { 4 | Should BeGreaterThan 5 } | Verify-AssertionFailed
+            { 4 | Should -BeGreaterThan 5 } | Verify-AssertionFailed
+            { 4 | Should -GT 5 } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message" {
+            $err = { 4 | Should -BeGreaterThan 5 -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected {5} to be greater than the actual value, because reason, but got {4}.'
         }
     }
 
+    Describe "Should -Not -BeGreaterThan" {
+        It "passes if value is lower than the expected value" {
+            0 | Should Not BeGreaterThan 1
+            0 | Should -Not -BeGreaterThan 1
+            0 | Should -Not -GT 1
+        }
+
+        It "passes if value is equal to the expected value" {
+            1 | Should Not BeGreaterThan 1
+            1 | Should -Not -BeGreaterThan 1
+            1 | Should -Not -GT 1
+        }
+
+        It "fails if value is greater than the expected value" {
+            { 4 | Should Not BeGreaterThan 3 } | Verify-AssertionFailed
+            { 4 | Should -Not -BeGreaterThan 3 } | Verify-AssertionFailed
+            { 4 | Should -Not -GT 3 } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message" {
+            $err = { 6 | Should -Not -BeGreaterThan 5 -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected {5} to be less or equal to the actual value, because reason, but got {6}.'
+        }
+    }
+       
+    Describe "Should -BeLessOrEqual" {
+        It "passes if value is less than the expected value" {
+            0 | Should -BeLessOrEqual 1
+            0 | Should -LE 1
+        }
+
+        It "passes if value is equal to the expected value" {
+            1 | Should -BeLessOrEqual 1
+            1 | Should -LE 1
+        }
+
+        It "fails if value is greater than the expected value" {
+            { 4 | Should -BeLessOrEqual 3 } | Verify-AssertionFailed
+            { 4 | Should -LE 3 } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message" {
+            $err = { 6 | Should -BeLessOrEqual 5 -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected {5} to be less or equal to the actual value, because reason, but got {6}.'
+        }
+
+        Describe "Should -Not -BeLessOrEqual" {
+            It "passes if value greater than expected" {
+                2 | Should -Not -BeLessOrEqual 1
+                2 | Should -Not -LE 1
+            }
+
+            It "fails if values equal" {
+                { 3 | Should -Not -BeLessOrEqual 3 } | Verify-AssertionFailed
+                { 3 | Should -Not -LE 3 } | Verify-AssertionFailed
+            }
+
+            It "fails if value less than expected" {
+                { 4 | Should -Not -BeLessOrEqual 5 } | Verify-AssertionFailed
+                { 4 | Should -Not -LE 5 } | Verify-AssertionFailed
+            }
+
+            It "returns the correct assertion message" {
+                $err = { 4 | Should -Not -BeLessOrEqual 5 -Because 'reason' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal 'Expected {5} to be greater than the actual value, because reason, but got {4}.'
+            }
+        }
+    }
 }

@@ -17,4 +17,24 @@ InModuleScope Pester {
             }
         }
     }
+
+    Describe "Should -FileContentMatchMultiline" {
+        It 'returns correct assertion message when' {
+            $path = 'TestDrive:\file.txt'
+            'abc' | Set-Content -Path $path
+
+            $err = { $path | Should -FileContentMatchMultiline 'g' -Because 'reason' } | Verify-AssertionFailed 
+            $err.Exception.Message | Verify-Equal "Expected {g} to be found in file 'TestDrive:\file.txt', because reason, but it was not found."
+        }
+    }
+
+    Describe "Should -Not -FileContentMatchMultiline" {
+        It 'returns correct assertion message' {
+            $path = 'TestDrive:\file.txt'
+            'abc' | Set-Content -Path $path
+
+            $err = { $path | Should -Not -FileContentMatchMultiline 'a' -Because 'reason' } | Verify-AssertionFailed 
+            $err.Exception.Message | Verify-Equal "Expected {a} to not be found in file 'TestDrive:\file.txt', because reason, but it was found."
+        }
+    }
 }

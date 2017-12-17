@@ -20,4 +20,24 @@ InModuleScope Pester {
             }
         }
     }
+
+    Describe "Should -FileContentMatchExactly" {
+        It 'returns correct assertion message when' {
+            $path = 'TestDrive:\file.txt'
+            'abc' | Set-Content -Path $path
+
+            $err = { $path | Should -FileContentMatchExactly 'g' -Because 'reason' } | Verify-AssertionFailed 
+            $err.Exception.Message | Verify-Equal "Expected {g} to be case sensitively found in file 'TestDrive:\file.txt', because reason, but it was not found."
+        }
+    }
+
+    Describe "Should -Not -FileContentMatchExactly" {
+        It 'returns correct assertion message' {
+            $path = 'TestDrive:\file.txt'
+            'abc' | Set-Content -Path $path
+
+            $err = { $path | Should -Not -FileContentMatchExactly 'a' -Because 'reason' } | Verify-AssertionFailed 
+            $err.Exception.Message | Verify-Equal "Expected {a} to not be case sensitively found in file 'TestDrive:\file.txt', because reason, but it was found."
+        }
+    }
 }

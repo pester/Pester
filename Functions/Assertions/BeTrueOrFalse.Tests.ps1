@@ -21,6 +21,11 @@ InModuleScope Pester {
                 $err = { $false | Should -BeTrue } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected `$true, but got {False}."
             }
+
+            It "given false and a reason it returns the correct assertion message" {
+                $err = { $false | Should -BeTrue -Because "we said so" } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected `$true, because we said so, but got {False}."
+            }
         }
     }
 
@@ -31,8 +36,13 @@ InModuleScope Pester {
                 $false | Should -Not -BeTrue
             }
 
-            It "given falsy it passes" {
-                "" | Should -BeFalse
+            It "given falsy '<value>' it passes" -TestCases @(
+                @{ Value = $null }
+                @{ Value = @() }
+                @{ Value = 0 }
+            ) {
+                param($Value)
+                $Value | Should -Not -BeTrue
             }
 
             It "given true it fails" {
@@ -64,6 +74,11 @@ InModuleScope Pester {
                 $err = { $true | Should -BeFalse } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected `$false, but got {True}."
             }
+        }
+
+        It "given true and a reason it returns the correct assertion message" {
+            $err = { $true | Should -BeFalse -Because "we said so" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected `$false, because we said so, but got {True}."
         }
     }
 

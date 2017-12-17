@@ -77,13 +77,13 @@ function Should {
     [CmdletBinding(DefaultParameterSetName = 'Legacy')]
     param (
         [Parameter(ParameterSetName = 'Legacy', Position = 0)]
-        [object] $LegacyArg1,
+        [object] $__LegacyArg1,
 
         [Parameter(ParameterSetName = 'Legacy', Position = 1)]
-        [object] $LegacyArg2,
+        [object] $__LegacyArg2,
 
         [Parameter(ParameterSetName = 'Legacy', Position = 2)]
-        [object] $LegacyArg3,
+        [object] $__LegacyArg3,
 
         [Parameter(ValueFromPipeline = $true)]
         [object] $ActualValue
@@ -96,13 +96,11 @@ function Should {
 
     begin
     {
-        #Assert-DescribeInProgress -CommandName Should
-
         $inputArray = New-Object System.Collections.ArrayList
 
         if ($PSCmdlet.ParameterSetName -eq 'Legacy')
         {
-            $parsedArgs = Parse-ShouldArgs ($LegacyArg1, $LegacyArg2, $LegacyArg3)
+            $parsedArgs = Parse-ShouldArgs ($__LegacyArg1, $__LegacyArg2, $__LegacyArg3)
             $entry = Get-AssertionOperatorEntry -Name $parsedArgs.AssertionMethod
             if ($null -eq $entry)
             {
@@ -204,8 +202,27 @@ function Invoke-Assertion
     )
 
     $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate @BoundParameters
-    if (-not $testResult.Succeeded)
-    {
+    if (-not $testResult.Succeeded) {
         throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
+    } else {
+        #extract data to return if there are any on the object
+        $data = $testResult.psObject.Properties.Item('Data')
+        if ($data) {
+            $data.Value
+        }
     }
+}
+
+function Format-Because ([string] $Because) {
+    if ($null -eq $Because) {
+        return
+    }
+
+    $bcs = $Because.Trim()
+    if ([string]::IsNullOrEmpty($bcs))
+    {
+        return
+    }
+
+    " because $($bcs -replace 'because\s'),"
 }

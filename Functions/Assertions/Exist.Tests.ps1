@@ -39,4 +39,19 @@ InModuleScope Pester {
             'env:test' | Should -Exist
         }
     }
+
+    Describe "Should -Exist" {
+        It 'returns correct assertion message' {
+            $err = { 'c:\nonexistingpath' | Should -Exist -Because 'reason' } | Verify-AssertionFailed 
+            $err.Exception.Message | Verify-Equal 'Expected path {c:\nonexistingpath} to exist, because reason, but it did not exist.'
+        }
+    }
+
+    Describe "Should -Not -Exist" {
+        It 'returns correct assertion message' {
+            $currentPath = $pwd.Path
+            $err = { $currentPath | Should -Not -Exist -Because 'reason' } | Verify-AssertionFailed 
+            $err.Exception.Message -replace [regex]::Escape($currentPath),'path' | Verify-Equal 'Expected path {path} to not exist, because reason, but it did exist.'
+        }
+    }
 }

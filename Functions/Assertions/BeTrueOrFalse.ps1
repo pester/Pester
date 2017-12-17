@@ -1,11 +1,11 @@
-function PesterBeTrue($ActualValue, [switch] $Negate)
+function PesterBeTrue($ActualValue, [switch] $Negate, [string] $Because)
 {
     if ($Negate) {
-        return PesterBeFalse -ActualValue $ActualValue -Negate:$false
+        return PesterBeFalse -ActualValue $ActualValue -Negate:$false -Because $Because
     }
 
-    if ($true -ne $ActualValue) {
-        $failureMessage = "Expected `$true, but got {$ActualValue}."
+    if (-not $ActualValue) {
+        $failureMessage = "Expected `$true,$(Format-Because $Because) but got {$ActualValue}."
         return New-Object psobject -Property @{
             Succeeded      = $false
             FailureMessage = $failureMessage
@@ -17,14 +17,14 @@ function PesterBeTrue($ActualValue, [switch] $Negate)
     }
 }
 
-function PesterBeFalse($ActualValue, [switch] $Negate)
+function PesterBeFalse($ActualValue, [switch] $Negate, $Because)
 {
     if ($Negate) {
-        return PesterBeTrue -ActualValue $ActualValue -Negate:$false
+        return PesterBeTrue -ActualValue $ActualValue -Negate:$false -Because $Because
     }
 
-    if ($false -ne $ActualValue) {
-        $failureMessage = "Expected `$false, but got {$ActualValue}."
+    if ($ActualValue) {
+        $failureMessage = "Expected `$false,$(Format-Because $Because) but got {$ActualValue}."
         return New-Object psobject -Property @{
             Succeeded      = $false
             FailureMessage = $failureMessage
