@@ -50,9 +50,9 @@ Describe "Get-ScriptModule behavior" {
         It "should throw an exception" {
             {
                 Mock -CommandName "Invoke-MyMethod" `
-                     -ModuleName  "MyNonExistentModule"
-                     -MockWith    { write-host "my mock called!" };
-            } | Should Throw "No module named 'MyNonExistentModule' is currently loaded.";
+                     -ModuleName  "MyNonExistentModule" `
+                     -MockWith    { write-host "my mock called!" }
+            } | Should Throw "No module named 'MyNonExistentModule' is currently loaded."
         }
 
     }
