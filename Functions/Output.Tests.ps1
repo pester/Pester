@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Pester -ScriptBlock {
+﻿Set-StrictMode -Version Latest
+
+InModuleScope -ModuleName Pester -ScriptBlock {
     Describe 'Has-Flag' -Fixture {
         It 'Returns true when setting and value are the same' {
             $setting = [Pester.OutputTypes]::Passed

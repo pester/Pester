@@ -1,4 +1,6 @@
-﻿function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switch]$UseStrictPesterMode)
+﻿Set-StrictMode -Version Latest
+
+function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switch]$UseStrictPesterMode)
 {
     $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 
