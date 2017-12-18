@@ -1,6 +1,6 @@
 # Pester
 
-> Pester [4.1.0](https://github.com/pester/Pester/releases/tag/4.1.0) now runs on Linux and macOS! 🎉 🍾 
+> Pester [4.1.0](https://github.com/pester/Pester/releases/tag/4.1.0) now runs on Linux and macOS! 🎉 🍾
 
 Pester is the ubiquitous test and mock framework for PowerShell.
 
@@ -66,12 +66,6 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 ```
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://github.com/pester/Pester/wiki/Installation-and-Update).
-
-Please be aware that PowerShell Core 6.0.0-beta.9 comes with bundle Pester version 3.3.9, but we recommend updating, by running this PowerShell command _as administrator_:
-
-```powershell
-Install-Module -Name Pester -Force
-```
 
 ## Features
 
