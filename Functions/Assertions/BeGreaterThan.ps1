@@ -1,38 +1,54 @@
-function PesterBeGreaterThan($ActualValue, $ExpectedValue, [switch] $Negate)
+function PesterBeGreaterThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because)
 {
-    [bool] $succeeded = $ActualValue -gt $ExpectedValue
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        return PesterBeLessOrEqual -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
+    }
 
-    $failureMessage = ''
-
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
-            $failureMessage = NotPesterBeGreaterThanFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
-        }
-        else
-        {
-            $failureMessage = PesterBeGreaterThanFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+    if ($ExpectedValue -ge $ActualValue) {
+        return New-Object psobject -Property @{
+            Succeeded      = $false
+            FailureMessage = "Expected {$ExpectedValue} to be greater than the actual value,$(Format-Because $Because) but got {$ActualValue}."
         }
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $succeeded
-        FailureMessage = $failureMessage
+        Succeeded      = $true
     }
 }
 
-function PesterBeGreaterThanFailureMessage($ActualValue,$ExpectedValue)
-{
-    return "Expected {$ActualValue} to be greater than {$ExpectedValue}"
-}
 
-function NotPesterBeGreaterThanFailureMessage($ActualValue,$ExpectedValue)
+function PesterBeLessOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because)
 {
-    return "Expected {$ActualValue} to be less than or equal to {$ExpectedValue}"
+    if ($Negate) {
+        return PesterBeGreaterThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
+    }
+
+    if ($ExpectedValue -lt $ActualValue) {
+        return New-Object psobject -Property @{
+            Succeeded      = $false
+            FailureMessage = "Expected {$ExpectedValue} to be less or equal to the actual value,$(Format-Because $Because) but got {$ActualValue}."
+        }
+    }
+
+    return New-Object psobject -Property @{
+        Succeeded      = $true
+    }
 }
 
 Add-AssertionOperator -Name  BeGreaterThan `
                       -Test  $function:PesterBeGreaterThan `
                       -Alias 'GT'
+
+Add-AssertionOperator -Name  BeLessOrEqual `
+                      -Test  $function:PesterBeLessOrEqual `
+                      -Alias 'LE'
+
+#keeping tests happy
+function PesterBeGreaterThanFailureMessage() {  }
+function NotPesterBeGreaterThanFailureMessage() { }
+
+function PesterBeLessOrEqualFailureMessage() {  }
+function NotPesterBeLessOrEqualFailureMessage() { }
+
+
+
