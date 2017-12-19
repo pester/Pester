@@ -1,35 +1,33 @@
-function PesterContain($ActualValue, $ExpectedContent, [switch] $Negate) {
-    $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -match $ExpectedContent).Count -gt 0
-
+function PesterContain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because)
+{
+    [bool] $succeeded = $ActualValue -contains $ExpectedValue
     if ($Negate) { $succeeded = -not $succeeded }
-
-    $failureMessage = ''
 
     if (-not $succeeded)
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterContainFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
-        }
-        else
-        {
-            $failureMessage = PesterContainFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            return New-Object psobject -Property @{
+                Succeeded      = $false
+                FailureMessage = "Expected {$ExpectedValue} to not be found in collection [$($ActualValue -join ',')],$(Format-Because $Because) but it was found."
+            }
+        } else {
+            return New-Object psobject -Property @{
+                Succeeded      = $false
+                FailureMessage = "Expected {$ExpectedValue} to be found in collection [$($ActualValue -join ',')],$(Format-Because $Because) but it was not found."
+            }
         }
     }
 
-    return & $SafeCommands['New-Object'] psobject -Property @{
-        Succeeded      = $succeeded
-        FailureMessage = $failureMessage
+    return New-Object psobject -Property @{
+        Succeeded      = $true
     }
-}
-
-function PesterContainFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected: file {$ActualValue} to contain {$ExpectedContent}"
-}
-
-function NotPesterContainFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected: file {$ActualValue} to not contain {$ExpectedContent} but it did"
 }
 
 Add-AssertionOperator -Name Contain `
-                      -Test $function:PesterContain
+                      -Test $function:PesterContain `
+                      -SupportsArrayInput
+
+function PesterContainFailureMessage() { }
+function NotPesterContainFailureMessage() {}
+

@@ -1,29 +1,33 @@
-﻿Set-StrictMode -Version Latest
+Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterContain" {
-        Context "when testing file contents" {
-            Setup -File "test.txt" "this is line 1`nrush is awesome`nAnd this is Unicode: ☺"
+    Describe "Should -BeIn" {
+        It "passes if collection contains the value" {
+            @(1,'a',3) | Should -Contain 'a'
+        }
 
-            It "returns true if the file contains the specified content" {
-                "$TestDrive\test.txt" | Should Contain rush
-                "$TestDrive\test.txt" | Should -Contain rush
-            }
+        It "fails collection does not contain the value" {
+            { @(1,'a',3) | Should -Contain 'g'  } | Verify-AssertionFailed
+        }
 
-            It "returns true if the file contains the specified content with different case" {
-                "$TestDrive\test.txt" | Should Contain RUSH
-                "$TestDrive\test.txt" | Should -Contain RUSH
-            }
+        It "returns the correct assertion message" {
+            $err = { @(1,'a',3) | Should -Contain 'b' -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected {b} to be found in collection [1,a,3], because reason, but it was not found.'
+        }
+    }
 
-            It "returns false if the file does not contain the specified content" {
-                "$TestDrive\test.txt" | Should Not Contain slime
-                "$TestDrive\test.txt" | Should -Not -Contain slime
-            }
+    Describe "Should -Not -Contain" {
+        It "passes if collection does not contain the value" {
+            @(1,'a',3) | Should -Not -Contain 'g'
+        }
 
-            It "returns true if the file contains the specified UTF8 content" {
-                "$TestDrive\test.txt" | Should Contain "☺"
-                "$TestDrive\test.txt" | Should -Contain "☺"
-            }
+        It "fails if collection contains the value" {
+            { @(1,'a',3) | Should -Not -Contain 'a' } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message" {
+            $err = { @(1, 'a',3) | Should -Not -Contain 'a' -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected {a} to not be found in collection [1,a,3], because reason, but it was found.'
         }
     }
 }

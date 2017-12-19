@@ -23,9 +23,9 @@ The mock of the first filter to pass will be used. The exception to this
 rule are Mocks with no filters. They will always be evaluated last since
 they will act as a "catch all" mock.
 
-Mocks can be marked Verifiable. If so, the Assert-VerifiableMocks command
+Mocks can be marked Verifiable. If so, the Assert-VerifiableMock command
 can be used to check if all Verifiable mocks were actually called. If any
-verifiable mock is not called, Assert-VerifiableMocks will throw an
+verifiable mock is not called, Assert-VerifiableMock will throw an
 exception and indicate all mocks not called.
 
 If you wish to mock commands that are called from inside a script module,
@@ -47,7 +47,7 @@ being mocked, and the MockWith script block can contain references to the
 mocked commands parameter variables.
 
 .PARAMETER Verifiable
-When this is set, the mock will be checked when Assert-VerifiableMocks is
+When this is set, the mock will be checked when Assert-VerifiableMock is
 called.
 
 .PARAMETER ParameterFilter
@@ -77,7 +77,7 @@ This Mock will only be applied to Get-ChildItem calls within the user's temp dir
 .EXAMPLE
 Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $Value -eq "Expected Value" }
 
-When this mock is used, if the Mock is never invoked and Assert-VerifiableMocks is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
+When this mock is used, if the Mock is never invoked and Assert-VerifiableMock is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
@@ -128,16 +128,16 @@ New-Module -Name ModuleMockExample  -ScriptBlock {
 Describe "ModuleMockExample" {
 
     It "Hidden function is not directly accessible outside the module" {
-        { Hidden } | Should Throw
+        { Hidden } | Should -Throw
     }
 
     It "Original Hidden function is called" {
-        Exported | Should Be "Internal Module Function"
+        Exported | Should -Be "Internal Module Function"
     }
 
     It "Hidden is replaced with our implementation" {
         Mock Hidden { "Mocked" } -ModuleName ModuleMockExample
-        Exported | Should Be "Mocked"
+        Exported | Should -Be "Mocked"
     }
 }
 
@@ -147,7 +147,7 @@ mocked by using the -ModuleName parameter.
 
 .LINK
 Assert-MockCalled
-Assert-VerifiableMocks
+Assert-VerifiableMock
 Describe
 Context
 It
@@ -238,7 +238,7 @@ about_Mocking
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet')
             {
-                $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+                $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
             }
             else
             {
@@ -254,7 +254,7 @@ about_Mocking
 
                     $paramBlockSafeForDynamicParams = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataSafeForDynamicParams)
                     $comma = if ($metadataSafeForDynamicParams.Parameters.Count -gt 0) { ',' } else { '' }
-                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameters -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
+                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
 
                     $code = @"
                         $cmdletBinding
@@ -281,11 +281,11 @@ about_Mocking
         }
 
         $EscapeSingleQuotedStringContent =
-            if ($global:PSVersionTable.PSVersion.Major -ge 5) {
-                { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
-            } else {
-                { $args[0] -replace "['‘’‚‛]", '$&$&' }
-            }
+        if ($global:PSVersionTable.PSVersion.Major -ge 5) {
+            { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
+        } else {
+            { $args[0] -replace "['‘’‚‛]", '$&$&' }
+        }
 
         $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
         $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
@@ -373,7 +373,7 @@ about_Mocking
 }
 
 
-function Assert-VerifiableMocks {
+function Assert-VerifiableMock {
 <#
 .SYNOPSIS
 Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -381,7 +381,7 @@ Checks if any Verifiable Mock has not been invoked. If so, this will throw an ex
 .DESCRIPTION
 This can be used in tandem with the -Verifiable switch of the Mock
 function. Mock can be used to mock the behavior of an existing command
-and optionally take a -Verifiable switch. When Assert-VerifiableMocks
+and optionally take a -Verifiable switch. When Assert-VerifiableMock
 is called, it checks to see if any Mock marked Verifiable has not been
 invoked. If any mocks have been found that specified -Verifiable and
 have not been invoked, an exception will be thrown.
@@ -391,7 +391,7 @@ Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Va
 
 { ...some code that never calls Set-Content some_path -Value "Expected Value"... }
 
-Assert-VerifiableMocks
+Assert-VerifiableMock
 
 This will throw an exception and cause the test to fail.
 
@@ -400,13 +400,13 @@ Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Va
 
 Set-Content some_path -Value "Expected Value"
 
-Assert-VerifiableMocks
+Assert-VerifiableMock
 
 This will not throw an exception because the mock was invoked.
 
 #>
     [CmdletBinding()]param()
-    Assert-DescribeInProgress -CommandName Assert-VerifiableMocks
+    Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
     $unVerified=@{}
     $mockTable.Keys | & $SafeCommands['ForEach-Object'] {
@@ -422,7 +422,7 @@ This will not throw an exception because the mock was invoked.
             $function = $array[1]
             $module = $array[0]
 
-            $message = "`r`n Expected $function "
+            $message = "$([System.Environment]::NewLine) Expected $function "
             if ($module) { $message += "in module $module " }
             $message += "to be called with $($unVerified[$mock].Filter)"
         }
@@ -660,7 +660,7 @@ param(
         }
     }
 
-    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
     $line = $MyInvocation.ScriptLineNumber
 
     if($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0)))
@@ -1102,12 +1102,12 @@ function ExecuteBlock
 
         # This script block exists to hold variables without polluting the test script's current scope.
         # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
-        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterVariables,
+        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterVariable,
         # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
         # by doing it inside this temporary script block, those variables don't stick around longer than they
         # should.
 
-        Set-DynamicParameterVariables -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
@@ -1236,7 +1236,7 @@ function IsCommonParameter
     return $false
 }
 
-function Set-DynamicParameterVariables
+function Set-DynamicParameterVariable
 {
     <#
         .SYNOPSIS
@@ -1294,18 +1294,21 @@ function Get-DynamicParamBlock
     }
     else
     {
-        if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+        If ( $ScriptBlock.AST.psobject.Properties.Name -match "Body")
         {
-            $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                          & $SafeCommands['Select-Object'] -ExpandProperty Extent |
-                          & $SafeCommands['Select-Object'] -ExpandProperty Text
+            if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+            {
+                $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Extent |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Text
 
-            return $statements -join "`r`n"
+                return $statements -join "$([System.Environment]::NewLine)"
+            }
         }
     }
 }
 
-function Get-MockDynamicParameters
+function Get-MockDynamicParameter
 {
     <#
         .SYNOPSIS
@@ -1381,7 +1384,7 @@ function Get-DynamicParametersForCmdlet
         return
     }
 
-    if ($PSVersionTable.PSVersion -ge '5.0.10586.122')
+    if ('5.0.10586.122' -lt $PSVersionTable.PSVersion)
     {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.

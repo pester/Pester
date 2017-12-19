@@ -54,22 +54,22 @@ function Add-Numbers($a, $b) {
 Describe "Add-Numbers" {
     It "adds positive numbers" {
         $sum = Add-Numbers 2 3
-        $sum | Should Be 5
+        $sum | Should -Be 5
     }
 
     It "adds negative numbers" {
         $sum = Add-Numbers (-2) (-2)
-        $sum | Should Be (-4)
+        $sum | Should -Be (-4)
     }
 
     It "adds one negative number to positive number" {
         $sum = Add-Numbers (-2) 2
-        $sum | Should Be 0
+        $sum | Should -Be 0
     }
 
     It "concatenates strings if given strings" {
         $sum = Add-Numbers two three
-        $sum | Should Be "twothree"
+        $sum | Should -Be "twothree"
     }
 }
 
@@ -90,7 +90,7 @@ Describe "Add-Numbers" {
         param ($a, $b, $expectedResult)
 
         $sum = Add-Numbers $a $b
-        $sum | Should Be $expectedResult
+        $sum | Should -Be $expectedResult
     }
 }
 
@@ -249,7 +249,8 @@ function Invoke-Test
         }
         else
         {
-            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
+            #todo: disabling the progress for now, it adds a lot of overhead and breaks output on linux, we don't have a good way to disable it by default, or to show it after delay see: https://github.com/pester/Pester/issues/846
+            # & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
 
             $errorRecord = $null
             try
@@ -284,10 +285,10 @@ function Invoke-Test
                 $pester.LeaveTest()
             }
 
-            $result = ConvertTo-PesterResult -ErrorRecord $errorRecord
+            $result = ConvertTo-PesterResult -Name $Name -ErrorRecord $errorRecord
             $orderedParameters = Get-OrderedParameterDictionary -ScriptBlock $ScriptBlock -Dictionary $Parameters
             $Pester.AddTestResult( $result.name, $result.Result, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $orderedParameters, $result.ErrorRecord )
-            & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
+            #todo: disabling progress reporting see above & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
         }
     }
     finally
