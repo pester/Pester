@@ -85,10 +85,10 @@ function Write-PesterStart {
     param(
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
         $PesterState,
-        $Path = $Path
+        $Path = '.'
     )
     process {
-        if(-not ( $pester.Show | Has-Flag Header)) { return }
+        if(-not ( $pester.Show | Has-Flag 'All, Fails, Header')) { return }
 
         $OFS = $ReportStrings.MessageOfs
 
