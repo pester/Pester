@@ -161,9 +161,9 @@ function ItImpl
         $PSCmdlet.ParameterSetName -eq 'Normal' -and
         [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
     {
-            $Pending = $true
+        $Pending = $true
     }
-    else
+    elseIf ($PSVersionTable.PSVersion.Major -gt 2)
     {
         #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
         # AST is not available also
