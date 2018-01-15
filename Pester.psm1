@@ -835,16 +835,16 @@ New-PesterOption
                 param (
                     [Parameter(Position = 0)]
                     [string] $Path,
-                    [string] $Script, #in order to allow passing test script as a string
+                    [string] $Script,
                     [object[]] $Arguments = @(),
                     [System.Collections.IDictionary] $Parameters = @{}
                 )
 
-                if(![string]::IsNullOrEmpty($Path))
+                if(-not [string]::IsNullOrEmpty($Path))
                 {
                     & $Path @Parameters @Arguments
                 }
-                elseif(![string]::IsNullOrEmpty($Script))
+                elseif(-not [string]::IsNullOrEmpty($Script))
                 {
                     $scriptBlock = [scriptblock]::Create($Script)
                     Invoke-Command -ScriptBlock ($scriptBlock)
@@ -856,10 +856,10 @@ New-PesterOption
 
             foreach ($testScript in $testScripts)
             {
-                #Get test desctription for 
-                if(![string]::IsNullOrEmpty($testScript.Path)){
+                #Get test desctription for better output
+                if(-not [string]::IsNullOrEmpty($testScript.Path)){
                     $testDesctiption = $testScript.Path
-                }elseif(![string]::IsNullOrEmpty($testScript.Script)){
+                }elseif(-not [string]::IsNullOrEmpty($testScript.Script)){
                     $testDesctiption = $testScript.Script
                 }
                 
@@ -1008,7 +1008,7 @@ function ResolveTestScripts
                 $parameters     = @{}
             }
 
-            if(![string]::IsNullOrEmpty($unresolvedPath))
+            if(-not [string]::IsNullOrEmpty($unresolvedPath))
             {
                 if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
                     (& $script:SafeCommands['Test-Path'] -LiteralPath $unresolvedPath -PathType Leaf) -and
@@ -1047,7 +1047,7 @@ function ResolveTestScripts
                     }
                 }
             }
-            elseif(![string]::IsNullOrEmpty($script))
+            elseif(-not [string]::IsNullOrEmpty($script))
             {
                 & $script:SafeCommands['New-Object'] psobject -Property @{
                         Script       = $script
