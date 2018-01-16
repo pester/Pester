@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 Describe 'Describe-Scoped Test Case setup' {
     BeforeEach {
         $testVariable = 'From BeforeEach'
