@@ -1,4 +1,6 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+﻿Set-StrictMode -Version Latest
+
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath  = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')
@@ -150,7 +152,7 @@ Describe 'Style rules' -Tag StyleRules {
 
     $files = @(
         Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
-        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
     )
 
@@ -359,5 +361,40 @@ Describe 'Assertion operators' {
         Add-AssertionOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
 
         { Add-AssertionOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
+    }
+}
+
+Describe 'Set-StrictMode for all tests files' {
+
+    $pesterRoot = (Get-Module Pester).ModuleBase
+
+    $files = @(
+        Get-ChildItem $pesterRoot\* -Include *.Tests.ps1
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.Tests.ps1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.Tests.ps1 -Recurse
+    )
+
+    It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
+        $UnstrictTests = @(
+            foreach ($file in $files)
+            {
+                $lines = [System.IO.File]::ReadAllLines($file.FullName)
+                $lineCount = $lines.Count
+                if ($lineCount -lt 3){ $linesToRead = $lineCount} else { $linestoRead = 3 }
+                $n=0
+                for ($i = 0; $i -lt $linestoRead; $i++)
+                {
+                    if ($lines[$i] -match '\s+Set-StrictMode\ -Version\ Latest' -or $lines[$i] -match 'Set-StrictMode\ -Version\ Latest' ) { $n++  }
+                }
+                if ( $n -eq 0 )
+                {
+                    $file.FullName
+                }
+            }
+        )
+        if ($UnstrictTests.Count -gt 0)
+        {
+            throw "The following $($UnstrictTests.Count) tests files doesn't contain strict mode declaration in the first three lines: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($UnstrictTests -join "$([System.Environment]::NewLine)")"
+        }
     }
 }

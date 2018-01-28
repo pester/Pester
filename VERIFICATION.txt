@@ -1,0 +1,21 @@
+VERIFICATION
+Verification is intended to assist the Chocolatey moderators and community
+in verifying that this package's contents are trustworthy.
+
+You can use one of the following methods to obtain the checksum
+  - Use powershell function 'Get-Filehash'
+  - Use chocolatey utility 'checksum.exe'
+
+CHECKSUMS
+
+  file: lib\core\Gherkin.dll
+  checksum: 352A6A598BA8D1E350F497791A9FB9AC64BA11E977FF6CCB7432D8516DDF7685
+  algorithm: sha256
+
+  file: lib\legacy\Gherkin.dll
+  checksum: 2BF80E108FC1A112D9AC9E631D29903028EEBABD2A7831ACFCE88CCBEFDF773E
+  algorithm: sha256
+
+  file: lib\legacy\Newtonsoft.Json.dll
+  checksum: EFD8CF9A3BC2AB4E15FA33D42771E18D78539759CBF30652DF4C43E6825CE5F0
+  algorithm: sha256

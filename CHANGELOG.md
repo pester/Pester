@@ -1,3 +1,16 @@
+## 4.2.0-alpha3 (December 17, 2017)
+- Add -Because parameters to all assertions [GH-959]
+- Add -BeLessOrEqual and -BeGreaterOrEqual
+- Add -Contain (that operates on arrays)
+- Add -BeLikeExactly
+- Add -HaveType alias to -BeOfType
+- Fix assertion messages in -BeOfType
+- Throw argument exception when -BeOfType is given type that is not loaded
+- Add -PassThru to -Throw to get the exception when some is thrown and passes the filters
+- Add -BeTrue to test for truthy values
+- Add -BeFalse to test for falsy values
+- Add -HaveCount to count stuff in collections
+
 ## 4.2.0-alpha2 (December 12, 2017)
    - Load dependencies optionally, because they are not part of the package build
 

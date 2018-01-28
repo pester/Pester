@@ -1,4 +1,4 @@
-function PesterExist($ActualValue, [switch] $Negate) {
+function PesterExist($ActualValue, [switch] $Negate, [string] $Because) {
     [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +9,11 @@ function PesterExist($ActualValue, [switch] $Negate) {
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterExistFailureMessage -ActualValue $ActualValue
+            $failureMessage = "Expected path {$ActualValue} to not exist,$(Format-Because $Because) but it did exist."
         }
         else
         {
-            $failureMessage = PesterExistFailureMessage -ActualValue $ActualValue
+            $failureMessage = "Expected path {$ActualValue} to exist,$(Format-Because $Because) but it did not exist."
         }
     }
 
@@ -23,13 +23,10 @@ function PesterExist($ActualValue, [switch] $Negate) {
     }
 }
 
-function PesterExistFailureMessage($ActualValue) {
-    return "Expected: {$ActualValue} to exist"
-}
-
-function NotPesterExistFailureMessage($ActualValue) {
-    return "Expected: {$ActualValue} to not exist, but it was found"
-}
-
 Add-AssertionOperator -Name Exist `
                       -Test $function:PesterExist
+
+
+function PesterExistFailureMessage() { }
+function NotPesterExistFailureMessage() { }
+

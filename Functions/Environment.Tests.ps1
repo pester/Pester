@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 InModuleScope -ModuleName Pester {
     Describe 'GetPesterPsVersion' {
         Mock Get-Variable
