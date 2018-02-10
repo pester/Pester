@@ -110,6 +110,11 @@ function Get-ScriptModule
 
     $scriptModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -eq 'Script' })
 
+    if ($modules.Count -eq 0)
+    {
+        throw "No module named '$ModuleName' is currently loaded."
+    }
+
     if ($scriptModules.Count -gt 1)
     {
         throw "Multiple Script modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
