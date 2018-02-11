@@ -150,7 +150,7 @@ Pester itself is build on the community build server and Travis CI, and distribu
 
 ## Further reading
 
-Do you like what you see? Learn how to use Pester with our [Getting started guide](https://github.com/pester/Pester/wiki/Getting-started-with-Pester), and continue with some of the other [resources](https://github.com/pester/Pester/wiki/Articles-and-other-resources).
+Do you like what you see? Learn how to use Pester with our [wiki guide](https://github.com/Pester/Pester/wiki), and continue with some of the other [resources](https://github.com/pester/Pester/wiki/Articles-and-other-resources).
 
 ## Got questions?
 
