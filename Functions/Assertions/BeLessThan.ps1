@@ -4,7 +4,7 @@ function PesterBeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [strin
         return PesterBeGreaterOrEqual -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
-    if ($ExpectedValue -le $ActualValue) {
+    if ($ActualValue -ge $ExpectedValue) {
         return New-Object psobject -Property @{
             Succeeded      = $false
             FailureMessage = "Expected {$ExpectedValue} to be less than the actual value,$(Format-Because $Because) but got {$ActualValue}."
@@ -23,7 +23,7 @@ function PesterBeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, 
         return PesterBeLessThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
-    if ($ExpectedValue -gt $ActualValue) {
+    if ($ActualValue -lt $ExpectedValue) {
         return New-Object psobject -Property @{
             Succeeded      = $false
             FailureMessage = "Expected {$ExpectedValue} to be greater or equal to the actual value,$(Format-Because $Because) but got {$ActualValue}."
