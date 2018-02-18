@@ -1,38 +1,34 @@
-function PesterBeIn($ActualValue, $ExpectedValue, [switch] $Negate)
+function PesterBeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because)
 {
     [bool] $succeeded = $ExpectedValue -contains $ActualValue
     if ($Negate) { $succeeded = -not $succeeded }
-
-    $failureMessage = ''
 
     if (-not $succeeded)
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterBeInFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+            return New-Object psobject -Property @{
+                Succeeded      = $false
+                FailureMessage = "Expected collection [$($ExpectedValue -join ',')] to not contain {$ActualValue},$(Format-Because $Because) but it was found."
+            }
         }
         else
         {
-            $failureMessage = PesterBeInFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+            return New-Object psobject -Property @{
+                Succeeded      = $false
+                FailureMessage = "Expected collection [$($ExpectedValue -join ',')] to contain {$ActualValue},$(Format-Because $Because) but it was not found."
+            }
         }
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $succeeded
-        FailureMessage = $failureMessage
+        Succeeded      = $true
     }
 }
 
-function PesterBeInFailureMessage($ActualValue, $ExpectedValue) {
-    if(-not ([bool]($ExpectedValue -contains $ActualValue))) {
-        return "Expected: ${ActualValue} to be in collection [$($ExpectedValue -join ',')] but was not found."
-    }
-}
+Add-AssertionOperator -Name BeIn `
+                      -Test $function:PesterBeIn
 
-function NotPesterBeInFailureMessage($ActualValue, $ExpectedValue) {
-    if([bool]($ExpectedValue -contains $ActualValue)) {
-        return "Expected: ${ActualValue} to not be in collection [$($ExpectedValue -join ',')] but was found."
-    }
-}
 
-Add-AssertionOperator -Name BeIn -Test $function:PesterBeIn
+function PesterBeInFailureMessage() { }
+function NotPesterBeInFailureMessage() { }

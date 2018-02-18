@@ -1,6 +1,8 @@
-﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+﻿Set-StrictMode -Version Latest
 
-$manifestPath   = (Join-Path $here 'Pester.psd1')
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+$manifestPath  = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
@@ -11,6 +13,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:tagVersionShort = $null
     $script:changelogVersion = $null
     $script:changelogVersionShort = $null
+    $script:tagPrerelease = $null
 
     It "has a valid manifest" {
         {
@@ -32,10 +35,10 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         It "is tagged with a valid version" -skip:$skipVersionTest {
             $thisCommit = git log --decorate --oneline HEAD~1..HEAD
 
-            if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
+            if ($thisCommit -match 'tag:\s*(.*?)[,)]')
             {
                 $script:tagVersion = $matches[1]
-                $script:tagVersionShort = $script:tagVersion -replace "-.*$", ''
+                $script:tagVersionShort, $script:tagPrerelease = $script:tagVersion -split "-",2
             }
 
             $script:tagVersion                  | Should -Not -BeNullOrEmpty
@@ -47,7 +50,13 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
     }
 
-    It "has a valid version in the changelog" {
+    It "has valid pre-release suffix in manifest (empty for stable version)" {
+        # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
+        $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where {$_}
+        $prereleaseFromManifest | Should -Be $script:tagPrerelease
+    }
+
+    It "tag and changelog versions are the same" {
 
         foreach ($line in (Get-Content $changeLogPath))
         {
@@ -58,15 +67,16 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
                 break
             }
         }
-        $script:changelogVersion                | Should -Not -BeNullOrEmpty
-        $script:changelogVersionShort -as [Version]  | Should -Not -BeNullOrEmpty
+
+        $script:changelogVersion      | Should -Be $script:tagVersion
+        $script:changelogVersionShort | Should -Be $script:tagVersionShort
     }
 
     It "tag and changelog versions are the same" {
         $script:changelogVersion | Should -Be $script:tagVersion
     }
 
-    It "all versions are the same" -skip:$skipVersionTest {
+    It "all short versions are the same" -skip:$skipVersionTest {
         $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
         $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
     }
@@ -145,7 +155,7 @@ Describe 'Style rules' -Tag StyleRules {
 
     $files = @(
         Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
-        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
     )
 
@@ -478,3 +488,37 @@ Describe "Module Pester functions help" -Tags "Help" {
     }
 }
 
+Describe 'Set-StrictMode for all tests files' {
+
+    $pesterRoot = (Get-Module Pester).ModuleBase
+
+    $files = @(
+        Get-ChildItem $pesterRoot\* -Include *.Tests.ps1
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.Tests.ps1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.Tests.ps1 -Recurse
+    )
+
+    It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
+        $UnstrictTests = @(
+            foreach ($file in $files)
+            {
+                $lines = [System.IO.File]::ReadAllLines($file.FullName)
+                $lineCount = $lines.Count
+                if ($lineCount -lt 3){ $linesToRead = $lineCount} else { $linestoRead = 3 }
+                $n=0
+                for ($i = 0; $i -lt $linestoRead; $i++)
+                {
+                    if ($lines[$i] -match '\s+Set-StrictMode\ -Version\ Latest' -or $lines[$i] -match 'Set-StrictMode\ -Version\ Latest' ) { $n++  }
+                }
+                if ( $n -eq 0 )
+                {
+                    $file.FullName
+                }
+            }
+        )
+        if ($UnstrictTests.Count -gt 0)
+        {
+            throw "The following $($UnstrictTests.Count) tests files doesn't contain strict mode declaration in the first three lines: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($UnstrictTests -join "$([System.Environment]::NewLine)")"
+        }
+    }
+}

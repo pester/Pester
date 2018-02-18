@@ -1,4 +1,4 @@
-function PesterMatch($ActualValue, $RegularExpression, [switch] $Negate) {
+function PesterMatch($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     [bool] $succeeded = $ActualValue -match $RegularExpression
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +9,11 @@ function PesterMatch($ActualValue, $RegularExpression, [switch] $Negate) {
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression
+            $failureMessage = NotPesterMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
         else
         {
-            $failureMessage = PesterMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression
+            $failureMessage = PesterMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
     }
 
@@ -23,12 +23,12 @@ function PesterMatch($ActualValue, $RegularExpression, [switch] $Negate) {
     }
 }
 
-function PesterMatchFailureMessage($ActualValue, $RegularExpression) {
-    return "Expected: {$ActualValue} to match the expression {$RegularExpression}"
+function PesterMatchFailureMessage($ActualValue, $RegularExpression, $Because) {
+    return "Expected regular expression {$RegularExpression} to match {$ActualValue},$(Format-Because $Because) but it did not match."
 }
 
-function NotPesterMatchFailureMessage($ActualValue, $RegularExpression) {
-    return "Expected: {$ActualValue} to not match the expression {$RegularExpression}"
+function NotPesterMatchFailureMessage($ActualValue, $RegularExpression, $Because) {
+    return "Expected regular expression {$RegularExpression} to not match {$ActualValue},$(Format-Because $Because) but it did match."
 }
 
 Add-AssertionOperator -Name Match `
