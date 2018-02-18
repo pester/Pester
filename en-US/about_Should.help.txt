@@ -31,7 +31,7 @@ SHOULD MEMBERS
         $actual="Actual value"
         $actual | Should -BeExactly "Actual value" # Test will pass
         $actual | Should -BeExactly "actual value" # Test will fail
-    
+
     BeNullOrEmpty
         Checks values for null or empty (strings). The static [String]::IsNullOrEmpty() method is used to do the comparison.
 
@@ -102,7 +102,7 @@ SHOULD MEMBERS
         Asserts that a number (or other comparable value) is greater than an expected value. Uses PowerShell's -gt operator to compare the two values.
 
         2 | Should -BeGreaterThan 0
-    
+
     BeGreaterThanOrEqual
         Asserts that a number (or other comparable value) is greater than or equal to an expected value. Uses PowerShell's -ge operator to compare the two values.
 
@@ -130,7 +130,7 @@ SHOULD MEMBERS
         Asserts that collection contains a specific value. Uses PowerShell's -contains operator to confirm.
 
         1,2,3 | Should -Contain 1
-    
+
     HaveCount
         Asserts that a collection has the expected amount of items.
 
@@ -205,7 +205,7 @@ SHOULD MEMBERS
     This test will fail since 3 will not be equal to the sum of 2 and 3.
 
   BECAUSE
-    Every built in assertion allows you to specify -Because parameter, to give more meaning to your tests. 
+    Every built in assertion allows you to specify -Because parameter, to give more meaning to your tests.
 
     function Get-Group { $null }
     $groups = 1..10 | Get-Group -Size 3

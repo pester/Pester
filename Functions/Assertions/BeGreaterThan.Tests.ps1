@@ -25,8 +25,8 @@ InModuleScope Pester {
             $err.Exception.Message | Verify-Equal 'Expected {5} to be greater than the actual value, because reason, but got {4}.'
         }
 
-        It "passes when expected value is negative" { 
-            -0.01 | Should -BeGreaterThan -0.10000000 
+        It "passes when expected value is negative" {
+            -0.01 | Should -BeGreaterThan -0.10000000
         }
     }
 
@@ -49,7 +49,7 @@ InModuleScope Pester {
             { 4 | Should -Not -GT 3 } | Verify-AssertionFailed
         }
 
-        It "passes when expected value is negative" { 
+        It "passes when expected value is negative" {
             -0.2 | Should -Not -BeGreaterThan -0.1
         }
 
@@ -75,7 +75,7 @@ InModuleScope Pester {
             { 4 | Should -LE 3 } | Verify-AssertionFailed
         }
 
-        It "passes when expected value is negative" { 
+        It "passes when expected value is negative" {
             -0.2 | Should -BeLessOrEqual -0.1
         }
 
@@ -100,8 +100,8 @@ InModuleScope Pester {
                 { 4 | Should -Not -LE 5 } | Verify-AssertionFailed
             }
 
-            It "passes when expected value is negative" { 
-                -0.01 | Should -Not -BeLessOrEqual -0.10000000 
+            It "passes when expected value is negative" {
+                -0.01 | Should -Not -BeLessOrEqual -0.10000000
             }
 
             It "returns the correct assertion message" {
