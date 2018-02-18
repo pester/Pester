@@ -13,6 +13,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:tagVersionShort = $null
     $script:changelogVersion = $null
     $script:changelogVersionShort = $null
+    $script:tagPrerelease = $null
 
     It "has a valid manifest" {
         {
@@ -50,7 +51,9 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     }
 
     It "has valid pre-release suffix in manifest (empty for stable version)" {
-        $script:manifest.PrivateData.PSData.Prerelease | Should -Be $script:tagPrerelease
+        # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
+        $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where {$_}
+        $prereleaseFromManifest | Should -Be $script:tagPrerelease
     }
 
     It "tag and changelog versions are the same" {
