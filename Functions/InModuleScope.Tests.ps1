@@ -42,3 +42,19 @@ Describe "Executing test code inside a module" {
 
     Remove-Module TestModule -Force
 }
+
+Describe "Get-ScriptModule behavior" {
+
+    Context "When attempting to mock a command in a non-existent module" {
+
+        It "should throw an exception" {
+            {
+                Mock -CommandName "Invoke-MyMethod" `
+                     -ModuleName  "MyNonExistentModule" `
+                     -MockWith    { write-host "my mock called!" }
+            } | Should Throw "No module named 'MyNonExistentModule' is currently loaded."
+        }
+
+    }
+
+}
