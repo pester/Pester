@@ -31,7 +31,7 @@ function PesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string])))
     {
-        return "Expected {$ExpectedValue},$(Format-Because $Because) but got {$ActualValue}."
+        return "Expected $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
