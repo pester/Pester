@@ -19,7 +19,7 @@ are cast and passed to the parameters in the ScriptBlock
 The ScriptBlock which defines this step. May accept parameters from regular expression
 capturing groups (named or not), or from tables or multiline strings.
 
-.Example
+.EXAMPLE
 # Gherkin Steps need to be placed in a *.Step.ps1 file
 
 # filename: copyfile.Step.ps1
