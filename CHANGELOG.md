@@ -1,3 +1,6 @@
+## 4.3.1 (February 20, 2018)
+  - Fix missing dependencies in packages
+  
 ## 4.3.0 (February 20, 2018)
   - Add tests for help [GH-997]
   - Update output in assertions [GH-996]
