@@ -189,7 +189,10 @@ function Format-Type ([Type]$Value) {
     
     $type `
         -replace "^System\." `
+        # on PS
         -replace "^Management\.Automation\.PSCustomObject$","PSObject" `
+        # on PS Core
+        -replace "^PSCustomObject$","PSObject" `
         -replace "^Object\[\]$","collection" `
 }
 
