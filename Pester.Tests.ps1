@@ -367,6 +367,127 @@ Describe 'Assertion operators' {
     }
 }
 
+#Tests mostly based on the blog post http://www.lazywinadmin.com/2016/05/using-pester-to-test-your-comment-based.html
+#Author: Francois-Xavier Cat fxcat[at]lazywinadmin[dot]com
+
+#Please don't run that section InModuleScope - too much internall functions don't have help
+Describe "Module Pester functions help" -Tags "Help" {
+
+    [String[]]$AcceptEmptyHelp = @()
+
+    [String[]]$AcceptMissedHelpSynopsis = @()
+
+    [String[]]$AccepteMissedHelpDescription = @('AfterAll', 'AfterEach', 'BeforeAll', 'BeforeEach', 'Get-MockDynamicParameter', 'Invoke-Mock',
+                                                'SafeGetCommand', 'Set-DynamicParameterVariable', 'Setup')
+
+    [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock','Should', 'Set-DynamicParameterVariable', 'Setup')
+
+    [String[]]$AcceptMissedHelpExamples = @('AfterAll', 'AfterEach', 'AfterEachFeature', 'AfterEachScenario', 'Assert-VerifiableMocks',
+                                            'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario',
+                                            'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
+                                            'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
+
+    [String[]]$FunctionsList = (get-command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' })
+
+    [String[]]$FilteredFunctionList = $($FunctionsList | Where-Object -FilterScript { $AcceptEmptyHelp -notcontains $_ })
+
+    ForEach ($Function in $FilteredFunctionList) {
+        # Retrieve the Help of the function
+        $FunctionHelp = Get-Help -Name $Function -Full
+
+        # Parse the function using AST
+        $AST = [System.Management.Automation.Language.Parser]::ParseInput((Get-Content function:$Function), [ref]$null, [ref]$null)
+
+        Context "The function [$Function] - Help"{
+
+            If ($AcceptMissedHelpSynopsis -notcontains $Function) {
+
+                $HelpSynopsis = ($FunctionHelp.Synopsis).Trim()
+
+                if ( -not [String]::IsNullOrEmpty($HelpSynopsis) ) {
+
+                    $HelpSynopsisBegin = $HelpSynopsis.SubString(0, $HelpSynopsis.IndexOf('[') + 2)
+
+                    $HelpSynopsisEnd = $HelpSynopsis.SubString($HelpSynopsis.length-1,1 )
+
+                }
+
+                It "Synopsis for the function is filled up"{
+
+                    $HelpSynopsis | Should not BeNullOrEmpty
+
+                    $HelpSynopsisBegin | Should Not Be "$Function [["
+
+                    $HelpSynopsisEnd | Should Not Be ']'
+
+                    $HelpSynopsis | Should Not Be $Function
+
+                }
+
+            }
+
+            If ($AccepteMissedHelpDescription -notcontains $Function) {
+
+                It "Description for the function is filled up"{
+
+                    $FunctionDescription = $FunctionHelp.Description
+
+                    $FunctionDescription | Should not BeNullOrEmpty
+
+                }
+
+            }
+
+            # Get the parameters declared in the Comment Based Help
+            $RiskMitigationParameters = 'Whatif', 'Confirm'
+
+            $HelpParameters = $FunctionHelp.parameters.parameter | Where-Object name -NotIn $RiskMitigationParameters
+
+            # Get the parameters declared in the AST PARAM() Block
+            [String[]]$ASTParameters = $AST.ParamBlock.Parameters.Name.variablepath.userpath | Sort-Object
+
+            If (-not [String]::IsNullOrEmpty($ASTParameters) -and $AcceptMissedHelpParameters -notcontains $Function ) {
+
+                $HelpParameters | ForEach-Object {
+
+                    It "The parameter [$($_.Name)] contains description"{
+
+                        $ParameterDescription = $_.description
+
+                        $ParameterDescription | Should not BeNullOrEmpty
+
+                    }
+                }
+
+            }
+
+            # Examples
+            If ($AcceptMissedHelpExamples -notcontains $Function) {
+
+                it "Example - At least one example exist"{
+
+                    $ExamplesCount = $FunctionHelp.examples.example.code.count
+
+                    $ExamplesCount | Should BeGreaterthan 0
+
+                }
+
+                # Examples - Remarks (small description that comes with the example)
+                foreach ($Example in $FunctionHelp.examples.example) {
+
+                    $StrippedExampleTitle = ($Example.Title).Replace('--------------------------', '')
+
+                    it "Example - remarks on [$StrippedExampleTitle] are filled up"{
+
+                        $Example.remarks | Should not BeNullOrEmpty
+
+                    }
+                }
+            }
+        }
+    }
+}
+
 Describe 'Set-StrictMode for all tests files' {
 
     $pesterRoot = (Get-Module Pester).ModuleBase
@@ -398,6 +519,150 @@ Describe 'Set-StrictMode for all tests files' {
         if ($UnstrictTests.Count -gt 0)
         {
             throw "The following $($UnstrictTests.Count) tests files doesn't contain strict mode declaration in the first three lines: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($UnstrictTests -join "$([System.Environment]::NewLine)")"
+        }
+    }
+}
+
+#Tests mostly based on the blog post http://www.lazywinadmin.com/2016/05/using-pester-to-test-your-comment-based.html
+#Author: Francois-Xavier Cat fxcat[at]lazywinadmin[dot]com
+# AST is not available in PowerShell < 3
+if ($PSVersionTable.PSVersion.Major -gt 2) {
+
+    #Tests mostly based on the blog post http://www.lazywinadmin.com/2016/05/using-pester-to-test-your-comment-based.html
+    #Author: Francois-Xavier Cat fxcat[at]lazywinadmin[dot]com
+
+    #Please don't run that section InModuleScope - too much internall functions don't have help
+    Describe "Module Pester functions help" -Tags "Help" {
+
+        [String[]]$AcceptEmptyHelp = @()
+
+        [String[]]$AcceptMissedHelpSynopsis = @()
+
+        [String[]]$AccepteMissedHelpDescription = @('AfterAll', 'AfterEach', 'BeforeAll', 'BeforeEach', 'Get-MockDynamicParameter', 'Invoke-Mock',
+                                                    'SafeGetCommand', 'Set-DynamicParameterVariable', 'Setup')
+
+        [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock','Should', 'Set-DynamicParameterVariable', 'Setup')
+
+        [String[]]$AcceptMissedHelpExamples = @('AfterAll', 'AfterEach', 'AfterEachFeature', 'AfterEachScenario', 'Assert-VerifiableMocks',
+                                                'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario',
+                                                'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
+                                                'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
+
+        [String[]]$FunctionsList = (Get-Command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' })
+
+        [String[]]$FilteredFunctionList = $($FunctionsList | Where-Object -FilterScript { $AcceptEmptyHelp -notcontains $_ })
+
+        ForEach ($Function in $FilteredFunctionList) {
+
+            # Retrieve the Help of the function
+            $FunctionHelp = Get-Help -Name $Function -Full
+
+            # Parse the function using AST
+            $AST = [System.Management.Automation.Language.Parser]::ParseInput((Get-Content function:$Function), [ref]$null, [ref]$null)
+
+            Context "The function [$Function] - Help"{
+
+                If ($AcceptMissedHelpSynopsis -notcontains $Function) {
+
+                    $HelpSynopsis = ($FunctionHelp.Synopsis).Trim()
+
+                    if ( -not [String]::IsNullOrEmpty($HelpSynopsis) ) {
+
+                        $HelpSynopsisBegin = $HelpSynopsis.SubString(0, $HelpSynopsis.IndexOf('[') + 2)
+
+                        $HelpSynopsisEnd = $HelpSynopsis.SubString($HelpSynopsis.length-1,1 )
+
+                    }
+
+                    It "Synopsis for the function is filled up"{
+
+                        $HelpSynopsis | Should not BeNullOrEmpty
+
+                        $HelpSynopsisBegin | Should Not Be "$Function [["
+
+                        $HelpSynopsisEnd | Should Not Be ']'
+
+                        $HelpSynopsis | Should Not Be $Function
+
+                    }
+
+                }
+
+                If ($AccepteMissedHelpDescription -notcontains $Function) {
+
+                    It "Description for the function is filled up"{
+
+                        $FunctionDescription = $FunctionHelp.Description
+
+                        $FunctionDescription | Should not BeNullOrEmpty
+
+                    }
+
+                }
+
+                # Get the parameters declared in the Comment Based Help
+                $RiskMitigationParameters = 'Whatif', 'Confirm'
+
+                Try { $ParametersCount =  $(Measure-Object -InputObject $FunctionHelp.parameters.parameter).Count }
+                Catch { $ParametersCount = 0 }
+
+                if ( $ParametersCount -gt 0 ) {
+
+                    $HelpParameters = $FunctionHelp.parameters.parameter | Where-Object name -NotIn $RiskMitigationParameters
+
+                }
+
+
+                # Get the parameters declared in the AST PARAM() Block
+                Try { [String[]]$ASTParameters = $AST.ParamBlock.Parameters.Name.variablepath.userpath | Sort-Object }
+                Catch { $ASTParameters = $Null }
+
+                If (-not [String]::IsNullOrEmpty($ASTParameters) -and $AcceptMissedHelpParameters -notcontains $Function ) {
+
+                    $HelpParameters | ForEach-Object {
+
+                        It "The parameter [$($_.Name)] contains description"{
+
+                            $ParameterDescription = $_.description
+
+                            $ParameterDescription | Should not BeNullOrEmpty
+
+                        }
+                    }
+
+                }
+
+                # Examples
+                If ($AcceptMissedHelpExamples -notcontains $Function) {
+
+                    Try { $ExamplesCount =  $(Measure-Object -InputObject $FunctionHelp.examples.example).Count }
+                    Catch { $ExamplesCount = 0 }
+
+                    it "Example - At least one example exist"{
+
+                        #$ExamplesCount = $FunctionHelp.examples.example.code.count
+
+                        $ExamplesCount | Should BeGreaterthan 0
+
+                    }
+
+                    If ( $ExamplesCount -gt 0 ) {
+
+                        # Examples - Remarks (small description that comes with the example)
+                        foreach ($Example in $FunctionHelp.examples.example) {
+
+                            $StrippedExampleTitle = ($Example.Title).Replace('--------------------------', '')
+
+                            it "Example - remarks on [$StrippedExampleTitle] are filled up"{
+
+                                $Example.remarks | Should not BeNullOrEmpty
+
+                            }
+                        }
+
+                    }
+                }
+            }
         }
     }
 }
