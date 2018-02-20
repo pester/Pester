@@ -129,7 +129,7 @@ Describe "Is-Collection" {
         @{ Value = @() }
         @{ Value = 1,2,3 }
         @{ Value = [System.Collections.Generic.List[int]] 1 }
-        @{ Value = [System.Collections.Generic.List[decimal]] 2 }
+        @{ Value = [System.Collections.Generic.List[decimal]] 2D }
         @{ Value = [Collections.Generic.List[Int]](1,2,3) }
         @{ Value = [Collections.Generic.List[Int]](1,2,3) }
         @{ Value = (Get-Process) }
