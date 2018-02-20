@@ -270,9 +270,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
-                        $r.Trace[3] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$' |
-                            Should -be $true
-                        $r.Trace.Count | Should -be 5
+                        $r.Trace.Count | Should -be 4
                     }
                 }
                 else {
@@ -280,9 +278,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
-                        $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-                            Should -be $true
-                        $r.Trace.Count | Should -be 5
+                        $r.Trace.Count | Should -be 4
                     }
                 }
             }
@@ -326,15 +322,13 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 if ((GetPesterOS) -ne 'Windows') {
                     It 'produces correct trace line.' {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
-                        $r.Trace[1] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$'
-                        $r.Trace.Count | Should -be 3
+                        $r.Trace.Count | Should -be 2
                     }
                 }
                 else {
                     It 'produces correct trace line.' {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
-                        $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
-                        $r.Trace.Count | Should -be 3
+                        $r.Trace.Count | Should -be 2
                     }
                 }
             }
