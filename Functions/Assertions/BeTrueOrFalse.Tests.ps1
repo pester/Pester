@@ -19,12 +19,12 @@ InModuleScope Pester {
         Context "Testing messages" {
             It "given false it returns the correct assertion message" {
                 $err = { $false | Should -BeTrue } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected `$true, but got {False}."
+                $err.Exception.Message | Verify-Equal 'Expected $true, but got $false.'
             }
 
             It "given false and a reason it returns the correct assertion message" {
                 $err = { $false | Should -BeTrue -Because "we said so" } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected `$true, because we said so, but got {False}."
+                $err.Exception.Message | Verify-Equal 'Expected $true, because we said so, but got $false.'
             }
         }
     }
@@ -53,7 +53,7 @@ InModuleScope Pester {
         Context "Testing messages" {
             It "given true it returns the correct assertion message" {
                 $err = { $true | Should -Not -BeTrue } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected `$false, but got {True}."
+                $err.Exception.Message | Verify-Equal 'Expected $false, but got $true.'
             }
         }
     }
@@ -72,13 +72,13 @@ InModuleScope Pester {
         Context "Testing messages" {
             It "given true it returns the correct assertion message" {
                 $err = { $true | Should -BeFalse } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected `$false, but got {True}."
+                $err.Exception.Message | Verify-Equal 'Expected $false, but got $true.'
             }
         }
 
         It "given true and a reason it returns the correct assertion message" {
             $err = { $true | Should -BeFalse -Because "we said so" } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected `$false, because we said so, but got {True}."
+            $err.Exception.Message | Verify-Equal 'Expected $false, because we said so, but got $true.'
         }
     }
 
@@ -97,7 +97,7 @@ InModuleScope Pester {
         Context "Testing messages" {
             It "given false it returns the correct assertion message" {
                 $err = { $false | Should -Not -BeFalse } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected `$true, but got {False}."
+                $err.Exception.Message | Verify-Equal 'Expected $true, but got $false.'
             }
         }
     }

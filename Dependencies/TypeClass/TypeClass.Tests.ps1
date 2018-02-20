@@ -1,5 +1,13 @@
 $here = $MyInvocation.MyCommand.Path | Split-Path
-. $here/TypeClass.ps1
+Import-Module $here/TypeClass.psm1 -DisableNameChecking
+
+function New-Dictionary ([hashtable]$Hashtable) {
+    $d = new-object "Collections.Generic.Dictionary[string,object]"
+    
+    $Hashtable.GetEnumerator() | foreach { $d.Add($_.Key, $_.Value) }
+
+    $d
+}
 
 Describe "Is-Value" {
     It "Given '<value>', which is a value, string, enum, scriptblock or array with a single item of those types it returns `$true" -TestCases @(

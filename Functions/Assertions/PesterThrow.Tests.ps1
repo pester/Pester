@@ -179,7 +179,7 @@ InModuleScope Pester {
 
             It 'returns the correct assertion message when type filter is used, but no exception is thrown' {
                 $err = { { } | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected an exception, with type {System.ArgumentException} to be thrown, but no exception was thrown."
+                $err.Exception.Message | Verify-Equal "Expected an exception, with type [ArgumentException] to be thrown, but no exception was thrown."
             }
 
             It 'returns the correct assertion message when message filter is used, but no exception is thrown' {
@@ -218,27 +218,27 @@ InModuleScope Pester {
                 It "given scriptblock that throws an exception where <notMatching> parameter(s) don't match, it fails with correct assertion message$([System.Environment]::NewLine)actual:   id <actualId>, message <actualMess>, type <actualType>$([System.Environment]::NewLine)expected: id <expectedId>, message <expectedMess> type <expectedType>" -TestCases @(
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 1; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                        notMatching = 1; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "-mess"; actualType = ([InvalidOperationException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                        notMatching = 2; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "+id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was '{System.ArgumentException}' and the message was '-mess'. from ##path##:8 char:"
+                        notMatching = 2; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [ArgumentException] and the message was '-mess'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "+mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was '{System.ArgumentException}' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                        notMatching = 2; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [ArgumentException] and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
                     @{  actualId = "-id"; actualMess = "-mess"; actualType = ([ArgumentException])
                         expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 3; assertionMessage = "Expected an exception, with type {System.InvalidOperationException}, with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was '{System.ArgumentException}', the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                        notMatching = 3; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [ArgumentException], the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
                 ) {
                     param ($actualId, $actualMess, $actualType,

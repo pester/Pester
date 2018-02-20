@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "Should -BeIn" {
+    Describe "Should -Contain" {
         It "passes if collection contains the value" {
             @(1,'a',3) | Should -Contain 'a'
         }
@@ -12,7 +12,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { @(1,'a',3) | Should -Contain 'b' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected {b} to be found in collection [1,a,3], because reason, but it was not found.'
+            $err.Exception.Message | Verify-Equal "Expected 'b' to be found in collection @(1, 'a', 3), because reason, but it was not found."
         }
     }
 
@@ -27,7 +27,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { @(1, 'a',3) | Should -Not -Contain 'a' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected {a} to not be found in collection [1,a,3], because reason, but it was found.'
+            $err.Exception.Message | Verify-Equal "Expected 'a' to not be found in collection @(1, 'a', 3), because reason, but it was found."
         }
     }
 }

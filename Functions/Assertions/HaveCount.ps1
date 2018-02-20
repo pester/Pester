@@ -22,7 +22,7 @@ function PesterHaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
             }
         } else {
-            $expect = if ($expectingEmpty) { "Expected an empty collection" } else { "Expected a collection with size $(Format-Nicely ExpectedValue)" }
+            $expect = if ($expectingEmpty) { "Expected an empty collection" } else { "Expected a collection with size $(Format-Nicely $ExpectedValue)" }
             $but = if ($count -ne 0) { "but got collection with size $(Format-Nicely $count) $(Format-Nicely $ActualValue)." } else { "but got an empty collection."}
             return New-Object psobject -Property @{
                 Succeeded      = $false

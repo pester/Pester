@@ -152,8 +152,8 @@ function Get-CompareStringMessage {
            "Strings differ at index $differenceIndex."
         }
 
-        "Expected: {{{0}}}" -f ( $ExpectedValue | Expand-SpecialCharacters )
-        "But was:  {{{0}}}" -f ( $actual | Expand-SpecialCharacters )
+        "Expected: '{0}'" -f ( $ExpectedValue | Expand-SpecialCharacters )
+        "But was:  '{0}'" -f ( $actual | Expand-SpecialCharacters )
 
         $specialCharacterOffset = $null
         if ($differenceIndex -ne 0)
@@ -192,7 +192,7 @@ function ArraysAreEqual
 
     if ($RecursionDepth -gt $RecursionLimit)
     {
-        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $(Format-Nicely $First) and $(Format-Nicely $Second). Is one of your arrays cyclic?"
+        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
     }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
