@@ -15,7 +15,7 @@ function New-Dictionary ([hashtable]$Hashtable) {
     $d
 }
 
-Add-Type -TypeDefinition 'namespace Assertions.TestType { public class Person { public string Name {get;set;} public int Age {get;set;}}}'
+# Add-Type -TypeDefinition 'namespace Assertions.TestType { public class Person { public string Name {get;set;} public int Age {get;set;}}}'
 Describe "Format-Collection" { 
     It "Formats collection of values '<value>' to '<expected>' using comma separator" -TestCases @(
         @{ Value = (1, 2, 3); Expected = "@(1, 2, 3)" }
