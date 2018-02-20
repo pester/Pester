@@ -187,11 +187,12 @@ function Format-Type ([Type]$Value) {
     
     $type = [string]$Value 
     
+    # PSCustomObject serializes to the whole type name on normal PS but to
+    # just PSCustomObject on PS Core
+
     $type `
         -replace "^System\." `
-        # on PS
         -replace "^Management\.Automation\.PSCustomObject$","PSObject" `
-        # on PS Core
         -replace "^PSCustomObject$","PSObject" `
         -replace "^Object\[\]$","collection" `
 }
