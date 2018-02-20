@@ -131,8 +131,7 @@ Describe "Is-Collection" {
         # the extra casts are for powershell v2 compatibility
         @{ Value = [System.Collections.Generic.List[int]]([int[]] 1) }
         @{ Value = [System.Collections.Generic.List[decimal]]([decimal[]] 2D) }
-        @{ Value = [Collections.Generic.List[Int]](1,2,3) }
-        @{ Value = [Collections.Generic.List[Int]](1,2,3) }
+        @{ Value = [Collections.Generic.List[Int]]([int[]](1,2,3)) }
         @{ Value = (Get-Process) }
     ) {
         param($Value)
