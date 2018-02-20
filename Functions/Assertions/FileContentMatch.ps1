@@ -24,11 +24,11 @@ function PesterFileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate
 }
 
 function PesterFileContentMatchFailureMessage($ActualValue, $ExpectedContent, $Because) {
-    return "Expected {$ExpectedContent} to be found in file '$ActualValue',$(Format-Because $Because) but it was not found."
+    return "Expected $(Format-Nicely $ExpectedContent) to be found in file '$ActualValue',$(Format-Because $Because) but it was not found."
 }
 
 function NotPesterFileContentMatchFailureMessage($ActualValue, $ExpectedContent, $Because) {
-    return "Expected {$ExpectedContent} to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
+    return "Expected $(Format-Nicely $ExpectedContent) to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
 }
 
 Add-AssertionOperator -Name FileContentMatch `

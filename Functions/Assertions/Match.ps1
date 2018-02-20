@@ -24,11 +24,11 @@ function PesterMatch($ActualValue, $RegularExpression, [switch] $Negate, [string
 }
 
 function PesterMatchFailureMessage($ActualValue, $RegularExpression, $Because) {
-    return "Expected regular expression {$RegularExpression} to match {$ActualValue},$(Format-Because $Because) but it did not match."
+    return "Expected regular expression $(Format-Nicely $RegularExpression) to match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
 }
 
 function NotPesterMatchFailureMessage($ActualValue, $RegularExpression, $Because) {
-    return "Expected regular expression {$RegularExpression} to not match {$ActualValue},$(Format-Because $Because) but it did match."
+    return "Expected regular expression $(Format-Nicely $RegularExpression) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
 Add-AssertionOperator -Name Match `

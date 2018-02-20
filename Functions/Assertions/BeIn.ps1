@@ -9,14 +9,14 @@ function PesterBeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Be
         {
             return New-Object psobject -Property @{
                 Succeeded      = $false
-                FailureMessage = "Expected collection [$($ExpectedValue -join ',')] to not contain {$ActualValue},$(Format-Because $Because) but it was found."
+                FailureMessage = "Expected collection $(Format-Nicely $ExpectedValue) to not contain $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
             }
         }
         else
         {
             return New-Object psobject -Property @{
                 Succeeded      = $false
-                FailureMessage = "Expected collection [$($ExpectedValue -join ',')] to contain {$ActualValue},$(Format-Because $Because) but it was not found."
+                FailureMessage = "Expected collection $(Format-Nicely $ExpectedValue) to contain $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
             }
         }
     }

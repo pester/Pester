@@ -44,7 +44,7 @@ function PesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 function NotPesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
-    return "Expected {$ExpectedValue} to be different from the actual value,$(Format-Because $Because) but got the same value."
+    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got the same value."
 }
 
 Add-AssertionOperator -Name               Be `
@@ -85,7 +85,7 @@ function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string])))
     {
-        return "Expected exactly {$ExpectedValue},$(Format-Because $Because) but got {$ActualValue}."
+        return "Expected exactly $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -98,7 +98,7 @@ function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 function NotPesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
-    return "Expected {$ExpectedValue} to be different from the actual value,$(Format-Because $Because) but got exactly the same value."
+    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got exactly the same value."
 }
 
 Add-AssertionOperator -Name               BeExactly `
@@ -192,7 +192,7 @@ function ArraysAreEqual
 
     if ($RecursionDepth -gt $RecursionLimit)
     {
-        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
+        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $(Format-Nicely $First) and $(Format-Nicely $Second). Is one of your arrays cyclic?"
     }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a

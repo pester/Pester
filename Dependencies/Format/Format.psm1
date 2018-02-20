@@ -1,14 +1,14 @@
 Import-Module $PSScriptRoot\..\TypeClass\TypeClass.psm1 -DisableNameChecking
 
 function Format-Collection ($Value, [switch]$Pretty) { 
-    $Limit = 3
+    $Limit = 10
     $separator = ', '
     if ($Pretty){
         $separator = ",`n"
     }
-    $count = $Value.Count
-    $trimmed = $count  -gt $Limit
-    '@('+ (($Value | Select -First $Limit | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator ) + $(if ($trimmed) {' +' + [string]($count-$limit)}) + ')'
+    #$count = $Value.Count
+    #$trimmed = $count  -gt $Limit
+    '@('+ (($Value | Select -First $Limit | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator ) + <# $(if ($trimmed) {' +' + [string]($count-$limit)}) + #> ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {
@@ -17,7 +17,7 @@ function Format-Object ($Value, $Property, [switch]$Pretty) {
         $Property = $Value.PSObject.Properties | Select-Object -ExpandProperty Name
     }
     $valueType = Get-ShortType $Value
-    $valueFormatted = (Format-String ([string] ([PSObject]$Value | Select-Object -Property $Property)))
+    $valueFormatted = ([string]([PSObject]$Value | Select-Object -Property $Property))
 
     if ($Pretty) {
         $margin = "    "
@@ -35,16 +35,10 @@ function Format-Null {
 }
 
 function Format-String ($Value) {
-    $Limit = 33
     if ('' -eq $Value) {
         return '<empty>'
     }
-    
-    # -3 so we don't unnecessarily shorten the data, 
-    # if they would fit in our output without the dots
-    if ($Value.Length -gt ($Limit-3)) {
-        return "'$($Value.Substring(0, $Limit))...'"
-    }
+
     "'$Value'"
 }
 
@@ -107,7 +101,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 
     if ($value -is [Reflection.TypeInfo])
     {
-        return Format-Type -Value $Value
+        return '['+ (Format-Type -Value $Value) + ']'
     }
 
     if (Is-DecimalNumber -Value $Value) 
@@ -127,12 +121,16 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 
     if (Is-Hashtable -Value $Value)
     {
-        return Format-Hashtable -Value $Value
+        # no advanced formatting of objects in the first version, till I balance it
+        return [string]$Value
+        #return Format-Hashtable -Value $Value
     }
     
     if (Is-Dictionary -Value $Value)
     {
-        return Format-Dictionary -Value $Value
+        # no advanced formatting of objects in the first version, till I balance it
+        return [string]$Value
+        #return Format-Dictionary -Value $Value
     }
 
     if (Is-Collection -Value $Value) 
@@ -140,7 +138,9 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return Format-Collection -Value $Value -Pretty:$Pretty
     }
 
-    Format-Object -Value $Value -Property (Get-DisplayProperty $Value) -Pretty:$Pretty
+    # no advanced formatting of objects in the first version, till I balance it
+    return [string]$Value
+    # Format-Object -Value $Value -Property (Get-DisplayProperty $Value) -Pretty:$Pretty
 }
 
 function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit = 4) {
@@ -166,7 +166,7 @@ function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit =
 }
 
 function Get-DisplayProperty ($Value) {
-    Sort-Property -InputObject $Value -SignificantProperties 'id','name' -Limit 4
+    Sort-Property -InputObject $Value -SignificantProperties 'id','name'
 }
 
 function Get-ShortType ($Value) {

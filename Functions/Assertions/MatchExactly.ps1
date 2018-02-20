@@ -24,11 +24,11 @@ function PesterMatchExactly($ActualValue, $RegularExpression, [switch] $Negate, 
 }
 
 function PesterMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
-    return "Expected regular expression {$RegularExpression} to case sensitively match {$ActualValue},$(Format-Because $Because) but it did not match."
+    return "Expected regular expression $(Format-Nicely $RegularExpression) to case sensitively match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
 }
 
 function NotPesterMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
-    return "Expected regular expression {$RegularExpression} to not case sensitively match {$ActualValue},$(Format-Because $Because) but it did match."
+    return "Expected regular expression $(Format-Nicely $RegularExpression) to not case sensitively match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
 Add-AssertionOperator -Name  MatchExactly `
