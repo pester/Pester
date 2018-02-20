@@ -21,12 +21,12 @@ InModuleScope Pester {
 
             It "throws ArgumentException if null ScriptBlock is provided" {
                 $err = { $null | Should -Throw } | Verify-Throw
-                $err.Exception | Verify-Type ([ArgumentException])
+                $err.Exception | Verify-Type ([System.ArgumentException])
             }
 
             It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
                 $err = { $null | Should Throw } | Verify-Throw
-                $err.Exception | Verify-Type ([ArgumentException])
+                $err.Exception | Verify-Type ([System.ArgumentException])
             }
 
             It "returns error when -PassThru is specified" {
@@ -131,11 +131,11 @@ InModuleScope Pester {
 
         Context 'Matching exception type' {
             It "given scriptblock that throws exception with the expected type it passes" {
-                { throw [ArgumentException]"message" } | Should -Throw -ExceptionType ([ArgumentException])
+                { throw [System.ArgumentException]"message" } | Should -Throw -ExceptionType ([System.ArgumentException])
             }
 
             It "given scriptblock that throws exception with a sub-type of the expected type it passes" {
-                { throw [ArgumentNullException]"message" } | Should -Throw -ExceptionType ([ArgumentException])
+                { throw [ArgumentNullException]"message" } | Should -Throw -ExceptionType ([System.ArgumentException])
             }
 
             It "given scriptblock that throws errorrecord with the expected exception type it passes" {
@@ -149,11 +149,11 @@ InModuleScope Pester {
                     throw $errorRecord
                 }
 
-                $ScriptBlock | Should -Throw -ExceptionType ([ArgumentException])
+                $ScriptBlock | Should -Throw -ExceptionType ([System.ArgumentException])
             }
 
             It "given scriptblock that throws exception with a different type than the expected type it fails" {
-                { { throw [System.InvalidOperationException]"message" } | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
+                { { throw [System.InvalidOperationException]"message" } | Should -Throw -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
             }
 
             It "given scriptblock that throws errorrecord with a different exception type it fails" {
@@ -167,7 +167,7 @@ InModuleScope Pester {
                     throw $errorRecord
                 }
 
-                { $ScriptBlock | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
+                { $ScriptBlock | Should -Throw -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
             }
         }
 
@@ -178,8 +178,8 @@ InModuleScope Pester {
             }
 
             It 'returns the correct assertion message when type filter is used, but no exception is thrown' {
-                $err = { { } | Should -Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected an exception, with type [ArgumentException] to be thrown, but no exception was thrown."
+                $err = { { } | Should -Throw -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected an exception, with type [System.ArgumentException] to be thrown, but no exception was thrown."
             }
 
             It 'returns the correct assertion message when message filter is used, but no exception is thrown' {
@@ -216,29 +216,29 @@ InModuleScope Pester {
 
             Context "parameter combintation, returns the correct assertion message" {
                 It "given scriptblock that throws an exception where <notMatching> parameter(s) don't match, it fails with correct assertion message$([System.Environment]::NewLine)actual:   id <actualId>, message <actualMess>, type <actualType>$([System.Environment]::NewLine)expected: id <expectedId>, message <expectedMess> type <expectedType>" -TestCases @(
-                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([InvalidOperationException])
-                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 1; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([System.InvalidOperationException])
+                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([System.InvalidOperationException])
+                        notMatching = 1; assertionMessage = "Expected an exception, with type [System.InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
-                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([InvalidOperationException])
-                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([System.InvalidOperationException])
+                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([System.InvalidOperationException])
+                        notMatching = 2; assertionMessage = "Expected an exception, with type [System.InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
-                    @{  actualId = "+id"; actualMess = "-mess"; actualType = ([ArgumentException])
-                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [ArgumentException] and the message was '-mess'. from ##path##:8 char:"
+                    @{  actualId = "+id"; actualMess = "-mess"; actualType = ([System.ArgumentException])
+                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([System.InvalidOperationException])
+                        notMatching = 2; assertionMessage = "Expected an exception, with type [System.InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [System.ArgumentException] and the message was '-mess'. from ##path##:8 char:"
                     }
 
-                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([ArgumentException])
-                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 2; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [ArgumentException] and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                    @{  actualId = "-id"; actualMess = "+mess"; actualType = ([System.ArgumentException])
+                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([System.InvalidOperationException])
+                        notMatching = 2; assertionMessage = "Expected an exception, with type [System.InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [System.ArgumentException] and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
 
-                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([ArgumentException])
-                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([InvalidOperationException])
-                        notMatching = 3; assertionMessage = "Expected an exception, with type [InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [ArgumentException], the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
+                    @{  actualId = "-id"; actualMess = "-mess"; actualType = ([System.ArgumentException])
+                        expectedId = "+id"; expectedMess = "+mess"; expectedType = ([System.InvalidOperationException])
+                        notMatching = 3; assertionMessage = "Expected an exception, with type [System.InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [System.ArgumentException], the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
                 ) {
                     param ($actualId, $actualMess, $actualType,
@@ -324,12 +324,12 @@ InModuleScope Pester {
 
             It "throws ArgumentException if null ScriptBlock is provided" {
                 $err = { $null | Should -Not -Throw  } | Verify-Throw
-                $err.Exception | Verify-Type ([ArgumentException])
+                $err.Exception | Verify-Type ([System.ArgumentException])
             }
 
             It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
                 $err = { $null | Should Not Throw } | Verify-Throw
-                $err.Exception | Verify-Type ([ArgumentException])
+                $err.Exception | Verify-Type ([System.ArgumentException])
             }
         }
 

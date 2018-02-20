@@ -172,7 +172,15 @@ function Get-DisplayProperty ($Value) {
 function Get-ShortType ($Value) {
     if ($null -ne $value)
     {
-        Format-Type $Value.GetType()
+        $type = Format-Type $Value.GetType()
+        # PSCustomObject serializes to the whole type name on normal PS but to
+        # just PSCustomObject on PS Core
+
+        $type `
+        -replace "^System\." `
+        -replace "^Management\.Automation\.PSCustomObject$","PSObject" `
+        -replace "^PSCustomObject$","PSObject" `
+        -replace "^Object\[\]$","collection" `
     }
     else 
     {
@@ -182,19 +190,10 @@ function Get-ShortType ($Value) {
 
 function Format-Type ([Type]$Value) {
     if ($null -eq $Value) {
-        return '<null>'
+        return '<none>'
     }
     
-    $type = [string]$Value 
-    
-    # PSCustomObject serializes to the whole type name on normal PS but to
-    # just PSCustomObject on PS Core
-
-    $type `
-        -replace "^System\." `
-        -replace "^Management\.Automation\.PSCustomObject$","PSObject" `
-        -replace "^PSCustomObject$","PSObject" `
-        -replace "^Object\[\]$","collection" `
+    [string]$Value 
 }
 
 

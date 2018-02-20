@@ -171,9 +171,7 @@ Describe "Format-Type" {
         @{ Value = [int]; Expected = 'int' },
         @{ Value = [double]; Expected = 'double' },
         @{ Value = [string]; Expected = 'string' },
-        @{ Value = $null; Expected = '<null>' },
-        @{ Value = [Management.Automation.PSObject]; Expected = 'PSObject'},
-        @{ Value = [Object[]]; Expected = 'collection' }
+        @{ Value = $null; Expected = '<none>' }
     ) {
         param($Value, $Expected)
         Format-Type -Value $Value | Verify-Equal $Expected
@@ -186,7 +184,7 @@ Describe "Get-ShortType" {
         @{ Value = 1; Expected = 'int' },
         @{ Value = 1.1; Expected = 'double' },
         @{ Value = 'a' ; Expected = 'string' },
-        @{ Value = $null ; Expected = '<null>' },
+        @{ Value = $null ; Expected = '<none>' },
         @{ Value = New-PSObject @{Name = 'Jakub'} ; Expected = 'PSObject'},
         @{ Value = [Object[]]1, 2, 3 ; Expected = 'collection' }
     ) {
