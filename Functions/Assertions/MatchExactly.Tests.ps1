@@ -37,7 +37,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -MatchExactly '\d' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected regular expression {\d} to case sensitively match {ab}, because reason, but it did not match.'
+            $err.Exception.Message | Verify-Equal "Expected regular expression '\d' to case sensitively match 'ab', because reason, but it did not match."
         }
     }
 
@@ -57,7 +57,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -Not -MatchExactly '.*' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected regular expression {.*} to not case sensitively match {ab}, because reason, but it did match.'
+            $err.Exception.Message | Verify-Equal "Expected regular expression '.*' to not case sensitively match 'ab', because reason, but it did match."
         }
     }
 }

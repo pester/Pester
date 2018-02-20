@@ -75,7 +75,7 @@ Describe 'ConvertTo-PesterResult' {
         }
         It 'records the correct error record' {
             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
-            $result.ErrorRecord.Exception.Message | Should -match 'Expected: {nothing}'
+            $result.ErrorRecord.Exception.Message | Should -match "Expected: 'nothing'"
         }
     }
     It 'Does not modify the error message from the original exception' {
@@ -115,7 +115,7 @@ Describe 'ConvertTo-PesterResult' {
         }
         It 'records the correct error record' {
             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
-            $result.ErrorRecord.Exception.Message | Should -match 'Expected: {Two}'
+            $result.ErrorRecord.Exception.Message | Should -match "Expected: 'Two'"
         }
     }
 }
@@ -202,8 +202,8 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message[0] | Should -be 'Expected strings to be the same, but they were different.'
             $r.message[1] | Should -be 'String lengths are both 3.'
             $r.message[2] | Should -be 'Strings differ at index 0.'
-            $r.Message[3] | Should -be 'Expected: {Two}'
-            $r.Message[4] | Should -be 'But was:  {One}'
+            $r.Message[3] | Should -be "Expected: 'Two'"
+            $r.Message[4] | Should -be "But was:  'One'"
             $r.Message[5] | Should -be '-----------^'
             $r.Message[6] | Should -match "'One' | Should -be 'Two'"
             $r.Message.Count | Should -be 7

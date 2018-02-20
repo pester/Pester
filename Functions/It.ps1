@@ -197,7 +197,7 @@ function ItImpl
                 $capture = $args[0].Groups[1].Value
                 if ($testCase.Contains($capture))
                 {
-                    $testCase[$capture]
+                    Format-Nicely ($testCase[$capture])
                 }
                 else
                 {

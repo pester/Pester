@@ -9,14 +9,14 @@ function PesterBeLikeExactly($ActualValue, $ExpectedValue, [switch] $Negate, [St
         {
             return New-Object psobject -Property @{
                 Succeeded      = $false
-                FailureMessage = "Expected case sensitive like wildcard {$ExpectedValue} to not match {$ActualValue},$(Format-Because $Because) but it did match."
+                FailureMessage = "Expected case sensitive like wildcard $(Format-Nicely $ExpectedValue) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
             }
         }
         else
         {
             return New-Object psobject -Property @{
                 Succeeded      = $false
-                FailureMessage = "Expected case sensitive like wildcard {$ExpectedValue} to match {$ActualValue},$(Format-Because $Because) but it did not match."
+                FailureMessage = "Expected case sensitive like wildcard $(Format-Nicely $ExpectedValue) to match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
             }
         }
     }

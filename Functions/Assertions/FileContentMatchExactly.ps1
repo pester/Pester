@@ -24,11 +24,11 @@ function PesterFileContentMatchExactly($ActualValue, $ExpectedContent, [switch] 
 }
 
 function PesterFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected {$ExpectedContent} to be case sensitively found in file '$ActualValue',$(Format-Because $Because) but it was not found."
+    return "Expected $(Format-Nicely $ExpectedContent) to be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
 }
 
 function NotPesterFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected {$ExpectedContent} to not be case sensitively found in file '$ActualValue',$(Format-Because $Because) but it was found."
+    return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
 Add-AssertionOperator -Name FileContentMatchExactly `

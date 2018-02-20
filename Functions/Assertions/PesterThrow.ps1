@@ -69,26 +69,26 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
 
     $filterOnExceptionType = $null -ne $ExceptionType
     if ($filterOnExceptionType) {
-        $filters += "with type {$ExceptionType}"
+        $filters += "with type $(Format-Nicely $ExceptionType)"
 
         if ($actualExceptionWasThrown -and $actualException -isnot $ExceptionType) {
-            $buts += "the exception type was '{$($actualException.GetType())}'"
+            $buts += "the exception type was $(Format-Nicely ($actualException.GetType()))"
         }
     }
 
     $filterOnMessage = -not [string]::IsNullOrEmpty($ExpectedMessage -replace "\s")
     if ($filterOnMessage) {
-        $filters += "with message '$ExpectedMessage'"
+        $filters += "with message $(Format-Nicely $ExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
-            $buts += "the message was '$($actualExceptionMessage)'"
+            $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
         }
     }
 
     $filterOnId = -not [string]::IsNullOrEmpty($ErrorId -replace "\s")
     if ($filterOnId) {
-        $filters += "with FullyQualifiedErrorId '$ErrorId'"
+        $filters += "with FullyQualifiedErrorId $(Format-Nicely $ErrorId)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ErrorId))) {
-            $buts += "the FullyQualifiedErrorId was '$($actualErrorId)'"
+            $buts += "the FullyQualifiedErrorId was $(Format-Nicely $actualErrorId)"
         }
     }
 

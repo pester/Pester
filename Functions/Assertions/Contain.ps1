@@ -9,12 +9,12 @@ function PesterContain($ActualValue, $ExpectedValue, [switch] $Negate, [string] 
         {
             return New-Object psobject -Property @{
                 Succeeded      = $false
-                FailureMessage = "Expected {$ExpectedValue} to not be found in collection [$($ActualValue -join ',')],$(Format-Because $Because) but it was found."
+                FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to not be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
             }
         } else {
             return New-Object psobject -Property @{
                 Succeeded      = $false
-                FailureMessage = "Expected {$ExpectedValue} to be found in collection [$($ActualValue -join ',')],$(Format-Because $Because) but it was not found."
+                FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
             }
         }
     }
