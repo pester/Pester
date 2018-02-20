@@ -454,13 +454,16 @@ function ConvertTo-FailureLines
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*/Functions/.*.ps1: line [0-9]*$'
             [String]$pattern2 = '^at Should<End>, .*/Functions/Assertions/Should.ps1: line [0-9]*$'
             [String]$pattern3 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
+            [String]$pattern4 = '^at Invoke-Assertion, .*/Functions/.*.ps1: line [0-9]*$'
+            [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
         }
         Else {
 
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$'
             [String]$pattern2 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
             [String]$pattern3 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-
+            [String]$pattern4 = '^at Invoke-Assertion, .*\\Functions\\.*.ps1: line [0-9]*$'
+            [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
         }
 
         foreach ( $line in $traceLines )
@@ -475,7 +478,9 @@ function ConvertTo-FailureLines
             & $SafeCommands['Select-Object'] -First $count |
             & $SafeCommands['Where-Object'] {
                 $_ -notmatch $pattern2 -and
-                $_ -notmatch $pattern3
+                $_ -notmatch $pattern3 -and
+                $_ -notmatch $pattern4 -and
+                $_ -notmatch $pattern5
             }
 
         return $lines
