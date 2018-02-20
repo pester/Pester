@@ -128,8 +128,9 @@ Describe "Is-Collection" {
     It "Given a collection '<value>' of type '<type>' it returns `$true" -TestCases @(
         @{ Value = @() }
         @{ Value = 1,2,3 }
-        @{ Value = [System.Collections.Generic.List[int]] 1 }
-        @{ Value = [System.Collections.Generic.List[decimal]] 2D }
+        # the extra casts are for powershell v2 compatibility
+        @{ Value = [System.Collections.Generic.List[int]]([int[]] 1) }
+        @{ Value = [System.Collections.Generic.List[decimal]]([decimal[]] 2D) }
         @{ Value = [Collections.Generic.List[Int]](1,2,3) }
         @{ Value = [Collections.Generic.List[Int]](1,2,3) }
         @{ Value = (Get-Process) }
