@@ -99,7 +99,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return Format-Date -Value $Value
     }
 
-    if ($value -is [Reflection.TypeInfo])
+    if ($value -is [Type])
     {
         return '['+ (Format-Type -Value $Value) + ']'
     }
