@@ -8,7 +8,7 @@ Operating System, Pester version and PowerShell version:
 
 ```powershell
 $bugReport = &{
-    $p = get-module pester
+    $p = Get-Module -ListAvailable Pester
     "Pester version     : " + $p.Version + " " + $p.Path
     "PowerShell version : " + $PSVersionTable.PSVersion
     "OS version         : " + [System.Environment]::OSVersion.VersionString
