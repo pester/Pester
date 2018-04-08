@@ -151,7 +151,7 @@ SHOULD MEMBERS
 
         Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
         'TestDrive:\file.txt' | Should -FileContentMatch 'I Am' # Test will pass
-        'TestDrive:\file.txt' | Should -FileContentMatch '^I.*file$' # Test will pass
+        'TestDrive:\file.txt' | Should -FileContentMatch '^I.*file\.$' # Test will pass
 
         'TestDrive:\file.txt' | Should -FileContentMatch 'I Am Not' # Test will fail
 
