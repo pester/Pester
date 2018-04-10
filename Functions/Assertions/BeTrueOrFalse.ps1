@@ -5,7 +5,7 @@ function PesterBeTrue($ActualValue, [switch] $Negate, [string] $Because)
     }
 
     if (-not $ActualValue) {
-        $failureMessage = "Expected `$true,$(Format-Because $Because) but got {$ActualValue}."
+        $failureMessage = "Expected `$true,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
         return New-Object psobject -Property @{
             Succeeded      = $false
             FailureMessage = $failureMessage
@@ -24,7 +24,7 @@ function PesterBeFalse($ActualValue, [switch] $Negate, $Because)
     }
 
     if ($ActualValue) {
-        $failureMessage = "Expected `$false,$(Format-Because $Because) but got {$ActualValue}."
+        $failureMessage = "Expected `$false,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
         return New-Object psobject -Property @{
             Succeeded      = $false
             FailureMessage = $failureMessage

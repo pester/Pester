@@ -83,7 +83,6 @@ InModuleScope Pester {
                 @{ a = 1; b = 1; expectedResult = 2}
                 @{ a = 1; b = 2; expectedResult = 3}
                 @{ a = 5; b = 4; expectedResult = 9}
-                @{ a = 1; b = 1; expectedResult = 'Intentionally failed' }
             )
 
             $suiteName = 'Adds <a> and <b> to get <expectedResult>.  <Bogus> is not a parameter.'
@@ -95,25 +94,17 @@ InModuleScope Pester {
             }
 
             It 'Creates test result records with the ParameterizedSuiteName property set' {
-                for ($i = -1; $i -ge -4; $i--)
+                for ($i = -1; $i -ge -3; $i--)
                 {
                     $testState.TestResult[$i].ParameterizedSuiteName | Should -Be $suiteName
                 }
             }
 
             It 'Expands parameters in parameterized test suite names' {
-                for ($i = -1; $i -ge -4; $i--)
+                for ($i = -1; $i -ge -3; $i--)
                 {
                     $expectedName = "Adds $($cases[$i]['a']) and $($cases[$i]['b']) to get $($cases[$i]['expectedResult']).  <Bogus> is not a parameter."
                     $testState.TestResult[$i].Name | Should -Be $expectedName
-                }
-            }
-
-            It 'Logs the proper successes and failures' {
-                $testState.TestResult[-1].Passed | Should -Be $false
-                for ($i = -2; $i -ge -4; $i--)
-                {
-                    $testState.TestResult[$i].Passed | Should -Be $true
                 }
             }
         }

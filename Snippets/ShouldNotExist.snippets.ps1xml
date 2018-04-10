@@ -14,7 +14,7 @@
 
             <Code>
                 <Script Language='PowerShell' CaretOffset='19'>
-                    <![CDATA[| Should Not Exist ]]>
+                    <![CDATA[| Should -Not -Exist ]]>
                 </Script>
             </Code>
 

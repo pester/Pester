@@ -111,7 +111,7 @@ function DescribeImpl {
 
     if ($Pester.TestGroupStack.Count -eq 2)
     {
-        if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
+        if($Pester.TestNameFilter -and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
         {
             #skip this test
             return

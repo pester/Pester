@@ -14,7 +14,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'b' | Should -BeIn @(1,'a',3) -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected collection [1,a,3] to contain {b}, because reason, but it was not found.'
+            $err.Exception.Message | Verify-Equal "Expected collection @(1, 'a', 3) to contain 'b', because reason, but it was not found."
         }
     }
 
@@ -31,7 +31,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'a' | Should -Not -BeIn @(1,'a',3) -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected collection [1,a,3] to not contain {a}, because reason, but it was found.'
+            $err.Exception.Message | Verify-Equal "Expected collection @(1, 'a', 3) to not contain 'a', because reason, but it was found."
         }
     }
 }

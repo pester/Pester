@@ -157,11 +157,25 @@ function ItImpl
     if ($null -eq $test) { $test = {} }
 
     #mark empty Its as Pending
-    #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
-    if ($PSCmdlet.ParameterSetName -eq 'Normal' -and
-       [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
+    if ($PSVersionTable.PSVersion.Major -le 2 -and
+        $PSCmdlet.ParameterSetName -eq 'Normal' -and
+        [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
     {
         $Pending = $true
+    }
+    elseIf ($PSVersionTable.PSVersion.Major -gt 2)
+    {
+        #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
+        # AST is not available also
+        $testIsEmpty =
+            [String]::IsNullOrEmpty($test.Ast.BeginBlock.Statements) -and
+            [String]::IsNullOrEmpty($test.Ast.ProcessBlock.Statements) -and
+            [String]::IsNullOrEmpty($test.Ast.EndBlock.Statements)
+
+        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
+        {
+            $Pending = $true
+        }
     }
 
     $pendingSkip = @{}
@@ -183,7 +197,7 @@ function ItImpl
                 $capture = $args[0].Groups[1].Value
                 if ($testCase.Contains($capture))
                 {
-                    $testCase[$capture]
+                    Format-Nicely ($testCase[$capture])
                 }
                 else
                 {

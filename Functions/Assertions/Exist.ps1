@@ -9,11 +9,11 @@ function PesterExist($ActualValue, [switch] $Negate, [string] $Because) {
     {
         if ($Negate)
         {
-            $failureMessage = "Expected path {$ActualValue} to not exist,$(Format-Because $Because) but it did exist."
+            $failureMessage = "Expected path $(Format-Nicely $ActualValue) to not exist,$(Format-Because $Because) but it did exist."
         }
         else
         {
-            $failureMessage = "Expected path {$ActualValue} to exist,$(Format-Because $Because) but it did not exist."
+            $failureMessage = "Expected path $(Format-Nicely $ActualValue) to exist,$(Format-Because $Because) but it did not exist."
         }
     }
 

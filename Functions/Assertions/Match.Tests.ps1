@@ -39,7 +39,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -Match '\d' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected regular expression {\d} to match {ab}, because reason, but it did not match.'
+            $err.Exception.Message | Verify-Equal "Expected regular expression '\d' to match 'ab', because reason, but it did not match."
         }
     }
 
@@ -59,7 +59,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -Not -Match '.*' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected regular expression {.*} to not match {ab}, because reason, but it did match.'
+            $err.Exception.Message | Verify-Equal "Expected regular expression '.*' to not match 'ab', because reason, but it did match."
         }
     }
 }

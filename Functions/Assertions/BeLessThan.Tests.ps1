@@ -20,9 +20,13 @@ InModuleScope Pester {
             { 6 | Should -LT 5 } | Verify-AssertionFailed
         }
 
+        It "passes when expected value is negative" {
+            -2 | Should -BeLessThan -0.10000000
+        }
+
         It "returns the correct assertion message" {
             $err = { 6 | Should -BeLessThan 5 -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected {5} to be less than the actual value, because reason, but got {6}.'
+            $err.Exception.Message | Verify-Equal 'Expected 5 to be less than the actual value, because reason, but got 6.'
         }
     }
 
@@ -45,9 +49,13 @@ InModuleScope Pester {
             { 1 | Should -Not -LT 3 } | Verify-AssertionFailed
         }
 
+        It "passes when expected value is negative" {
+            -1 | Should -Not -BeLessThan -2
+        }
+
         It "returns the correct assertion message" {
             $err = { 4 | Should -Not -BeLessThan 5 -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected {5} to be greater or equal to the actual value, because reason, but got {4}.'
+            $err.Exception.Message | Verify-Equal 'Expected 5 to be greater or equal to the actual value, because reason, but got 4.'
         }
     }
 
@@ -67,9 +75,13 @@ InModuleScope Pester {
             { 2 | Should -GE 3 } | Verify-AssertionFailed
         }
 
+        It "passes when expected value is negative" {
+            -0.01 | Should -BeGreaterOrEqual -0.1
+        }
+
         It "returns the correct assertion message" {
             $err = { 4 | Should -BeGreaterOrEqual 5 -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected {5} to be greater or equal to the actual value, because reason, but got {4}.'
+            $err.Exception.Message | Verify-Equal 'Expected 5 to be greater or equal to the actual value, because reason, but got 4.'
         }
 
         Describe "Should -Not -BeGreaterOrEqual" {
@@ -88,9 +100,13 @@ InModuleScope Pester {
                 { 6 | Should -Not -GE 5 } | Verify-AssertionFailed
             }
 
+            It "passes when expected value is negative" {
+                -0.2 | Should -Not -BeGreaterOrEqual -0.1
+            }
+
             It "returns the correct assertion message" {
                 $err = { 6 | Should -Not -BeGreaterOrEqual 5 -Because 'reason' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal 'Expected {5} to be less than the actual value, because reason, but got {6}.'
+                $err.Exception.Message | Verify-Equal 'Expected 5 to be less than the actual value, because reason, but got 6.'
             }
         }
     }

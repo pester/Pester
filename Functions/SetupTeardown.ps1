@@ -87,8 +87,8 @@ function AfterAll
 {
 <#
 .SYNOPSIS
-    Defines a series of steps to perform at the end of every It block within
-    the current Context or Describe block.
+    Defines a series of steps to perform at the end of the current Context
+    or Describe block.
 
 .DESCRIPTION
     BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply

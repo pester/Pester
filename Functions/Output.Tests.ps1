@@ -75,7 +75,7 @@ Describe 'ConvertTo-PesterResult' {
         }
         It 'records the correct error record' {
             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
-            $result.ErrorRecord.Exception.Message | Should -match 'Expected: {nothing}'
+            $result.ErrorRecord.Exception.Message | Should -match "Expected: 'nothing'"
         }
     }
     It 'Does not modify the error message from the original exception' {
@@ -115,7 +115,7 @@ Describe 'ConvertTo-PesterResult' {
         }
         It 'records the correct error record' {
             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
-            $result.ErrorRecord.Exception.Message | Should -match 'Expected: {Two}'
+            $result.ErrorRecord.Exception.Message | Should -match "Expected: 'Two'"
         }
     }
 }
@@ -202,8 +202,8 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message[0] | Should -be 'Expected strings to be the same, but they were different.'
             $r.message[1] | Should -be 'String lengths are both 3.'
             $r.message[2] | Should -be 'Strings differ at index 0.'
-            $r.Message[3] | Should -be 'Expected: {Two}'
-            $r.Message[4] | Should -be 'But was:  {One}'
+            $r.Message[3] | Should -be "Expected: 'Two'"
+            $r.Message[4] | Should -be "But was:  'One'"
             $r.Message[5] | Should -be '-----------^'
             $r.Message[6] | Should -match "'One' | Should -be 'Two'"
             $r.Message.Count | Should -be 7
@@ -270,9 +270,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
-                        $r.Trace[3] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$' |
-                            Should -be $true
-                        $r.Trace.Count | Should -be 5
+                        $r.Trace.Count | Should -be 4
                     }
                 }
                 else {
@@ -280,9 +278,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
-                        $r.Trace[3] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$' |
-                            Should -be $true
-                        $r.Trace.Count | Should -be 5
+                        $r.Trace.Count | Should -be 4
                     }
                 }
             }
@@ -326,15 +322,13 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 if ((GetPesterOS) -ne 'Windows') {
                     It 'produces correct trace line.' {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
-                        $r.Trace[1] -match 'at <ScriptBlock>, .*/Functions/Output.Tests.ps1: line [0-9]*$'
-                        $r.Trace.Count | Should -be 3
+                        $r.Trace.Count | Should -be 2
                     }
                 }
                 else {
                     It 'produces correct trace line.' {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
-                        $r.Trace[1] -match 'at <ScriptBlock>, .*\\Functions\\Output.Tests.ps1: line [0-9]*$'
-                        $r.Trace.Count | Should -be 3
+                        $r.Trace.Count | Should -be 2
                     }
                 }
             }

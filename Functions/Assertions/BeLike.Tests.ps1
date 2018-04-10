@@ -17,7 +17,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -BeLike '*ccc*' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected like wildcard {*ccc*} to match {ab}, because reason, but it did not match.'
+            $err.Exception.Message | Verify-Equal "Expected like wildcard '*ccc*' to match 'ab', because reason, but it did not match."
         }
     }
 
@@ -37,7 +37,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -Not -BeLike '*ab*' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected like wildcard {*ab*} to not match {ab}, because reason, but it did match.'
+            $err.Exception.Message | Verify-Equal "Expected like wildcard '*ab*' to not match 'ab', because reason, but it did match."
         }
     }
 }

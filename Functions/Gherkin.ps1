@@ -590,6 +590,13 @@ function Find-GherkinStep {
 
         .PARAMETER BasePath
             The path to search for step implementations.
+
+        .EXAMPLE
+            Find-GherkinStep -Step 'And the module is imported'
+
+            Step                       Source                      Implementation
+            ----                       ------                      --------------
+            And the module is imported .\module.Steps.ps1: line 39 ...
     #>
 
     [CmdletBinding()]

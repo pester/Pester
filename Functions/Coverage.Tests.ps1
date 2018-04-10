@@ -33,29 +33,37 @@ InModuleScope Pester {
 
 '@
 
+        $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript2.ps1) -ItemType File -ErrorAction SilentlyContinue
+
+        Set-Content -Path $(Join-Path -Path $root -ChildPath TestScript2.ps1) -Value @'
+            'Some other file'
+
+'@
+
         Context 'Entire file' {
             $testState = New-PesterState -Path $root
 
             # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
-            Enter-CoverageAnalysis -CodeCoverage "$(Join-Path -Path $root -ChildPath TestScript.ps1)", "$(Join-Path -Path $root -ChildPath TestScript.ps1)" -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage "$(Join-Path -Path $root -ChildPath TestScript.ps1)", "$(Join-Path -Path $root -ChildPath TestScript.ps1)", "$(Join-Path -Path $root -ChildPath TestScript2.ps1)" -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should -Be 7
+                $testState.CommandCoverage.Count | Should -Be 8
             }
 
             $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript2.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 6
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 7
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 7
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 8
             }
 
             It 'Reports the proper number of analyzed files' {
-                $coverageReport.NumberOfFilesAnalyzed | Should -Be 1
+                $coverageReport.NumberOfFilesAnalyzed | Should -Be 2
             }
 
             It 'Reports the proper number of missed commands' {
@@ -67,7 +75,7 @@ InModuleScope Pester {
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 6
+                $coverageReport.HitCommands.Count | Should -Be 7
             }
 
             It 'Reports the correct hit command' {
@@ -80,7 +88,7 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
-                $jaCoCoReportXml | should -be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
+                $jaCoCoReportXml | should -be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="7" /><counter type="LINE" missed="1" covered="7" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></report>'
             }
             Exit-CoverageAnalysis -PesterState $testState
         }

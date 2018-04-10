@@ -44,7 +44,7 @@ function PesterBeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string]
 }
 
 function PesterBeNullOrEmptyFailureMessage($ActualValue, $Because) {
-    return "Expected `$null or empty,$(Format-Because $Because) but got {$ActualValue}."
+    return "Expected `$null or empty,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
 }
 
 function NotPesterBeNullOrEmptyFailureMessage ($Because) {

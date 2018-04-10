@@ -1,21 +1,32 @@
-## 4.2.0-alpha3 (December 17, 2017)
-- Add -Because parameters to all assertions [GH-959]
-- Add -BeLessOrEqual and -BeGreaterOrEqual
-- Add -Contain (that operates on arrays)
-- Add -BeLikeExactly
-- Add -HaveType alias to -BeOfType
-- Fix assertion messages in -BeOfType
-- Throw argument exception when -BeOfType is given type that is not loaded
-- Add -PassThru to -Throw to get the exception when some is thrown and passes the filters
-- Add -BeTrue to test for truthy values
-- Add -BeFalse to test for falsy values
-- Add -HaveCount to count stuff in collections
+## 4.3.1 (February 20, 2018)
+  - Fix missing dependencies in packages
+  
+## 4.3.0 (February 20, 2018)
+  - Add tests for help [GH-997]
+  - Update output in assertions [GH-996]
+  - Fix stack trace output in assertions [GH-992]
+  - Add examples for gherkin [GH-994] [GH-995]
 
-## 4.2.0-alpha2 (December 12, 2017)
-   - Load dependencies optionally, because they are not part of the package build
-
-## 4.2.0-alpha1 (December 12, 2017)
-   - Should Throw filters on exception type [GH-954]
+## 4.2.0 (February 18, 2018)
+  - Update should documentation [GH-990]
+  - Add tags PSEdition_Core, PSEdition_Desktop [GH-978]
+  - Add Get-ScriptModule error message with link to wiki [GH-945]
+  - Fix Write-PesterStart [GH-964]
+  - Fix AfterAll synopsis [GH-975]
+  - Fix detection of empty tests [GH-835]
+  - Add -Because parameters to all assertions [GH-959]
+  - Add -BeLessOrEqual and -BeGreaterOrEqual
+  - Add -Contain (that operates on arrays)
+  - Add -BeLikeExactly
+  - Add -HaveType alias to -BeOfType
+  - Fix assertion messages in -BeOfType
+  - Throw argument exception when -BeOfType is given type that is not loaded
+  - Add -PassThru to -Throw to get the exception when some is thrown and passes the filters
+  - Add -BeTrue to test for truthy values
+  - Add -BeFalse to test for falsy values
+  - Add -HaveCount to count stuff in collections
+  - Load dependencies optionally, because they are not part of the package build
+  - Should Throw filters on exception type [GH-954]
 
 ## 4.1.1 (December 09, 2017)
   - Fix deployment scripts and package on choco and nuget

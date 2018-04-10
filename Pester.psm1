@@ -161,7 +161,7 @@ function Add-AssertionOperator
         {
             if ($Negate)
             {
-                $failureMessage = "{$ActualValue} is not Awesome"
+                $failureMessage = "{$ActualValue} is Awesome"
             }
             else
             {
