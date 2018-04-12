@@ -181,7 +181,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
+    if ($ErrorRecord.FullyQualifiedErrorID -in 'PesterAssertionFailed','PesterTestInconclusive','PesterTestSkipped')
     {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
@@ -190,18 +190,8 @@ function ConvertTo-PesterResult {
         $file = $details.File
         $line = $details.Line
         $Text = $details.LineText
-    }
-    elseif ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestInconclusive')
-    {
-        # we use TargetObject to pass structured information about the error.
-        $details = $ErrorRecord.TargetObject
 
-        $failureMessage = $details.Message
-        $file = $details.File
-        $line = $details.Line
-        $text = $details.LineText
-
-        $testResult.Result = 'Inconclusive'
+        $testResult.Result = $ErrorRecord.FullyQualifiedErrorID -replace "PesterAssertion", "" -replace "PesterTest", ""
     }
     else
     {
@@ -273,7 +263,9 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output $humanTime"
+                    $because = if ([String]::IsNullOrEmpty("$($TestReult.failureMessage)")) { ", because $($TestResult.failureMessage)" } else { "" }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output$because " -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime $humanTime
                     break
                 }
 

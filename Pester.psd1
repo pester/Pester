@@ -48,6 +48,7 @@ FunctionsToExport = @(
     'Get-MockDynamicParameter'
     'Set-DynamicParameterVariable'
     'Set-TestInconclusive'
+    'Set-PesterResult'
     'SafeGetCommand'
     'New-PesterOption'
     'New-MockObject'
