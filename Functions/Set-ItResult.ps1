@@ -7,7 +7,7 @@ function Set-ItResult {
     Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated. 
     By default such tests would typically fail and produce a big read message. 
     Using Set-ItResult it is possible to set the result from the inside of the It scrip
-    block to either inconclusive, or skipped.
+    block to either inconclusive or skipped.
 
     .PARAMETER Inconclusive
     Sets the test result to inconclusive. Cannot be used at the same time as -Skipped
@@ -28,10 +28,7 @@ function Set-ItResult {
 
     the output should be
 
-    [?] This test should have inconclusive result
-      we want it to be inconclusive
-      at <ScriptBlock>, Path\To\The\File.Tests.ps1: line 8
-      8:        Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
+    [?] This test should have inconclusive result, because
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
 
@@ -50,16 +47,17 @@ function Set-ItResult {
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
     
 #>
+    [CmdletBinding()]
     param(
-        [switch]$Inconclusive,
-        [switch]$Skipped,
+        [Parameter(Mandatory=$false, ParameterSetName="Inconclusive")][switch]$Inconclusive,
+        [Parameter(Mandatory=$false, ParameterSetName="Skipped")][switch]$Skipped,
         [string]$Because 
     )
 
     Assert-DescribeInProgress -CommandName Set-ItResult
 
-    $state = if ($Inconclusive) { "Inconclusive" } else { "Skipped" }
-    $exception = New-Object Exception "Test set to $state"
+    $state = $PSCmdlet.ParameterSetName
+    $exception = New-Object Exception "It result set to $state"
     $errorID = "PesterTest$state"
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
 
@@ -73,28 +71,3 @@ function Set-ItResult {
 
     throw New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

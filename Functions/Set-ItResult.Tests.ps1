@@ -1,18 +1,27 @@
-Describe "Example" {
-    It "This test should pass" {
-        $true | Should -BeTrue
+Describe "Testing Set-ItResult" {
+    It "This test should be inconclusive" { 
+        try { Set-ItResult -Inconclusive -Because "we are setting it to inconclusive" } 
+        catch { 
+            $_.FullyQualifiedErrorID | Should -Be "PesterTestInconclusive"
+        }
     }
 
-    It "This test should have inconclusive result" {
-        Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
+    It "This test should be skipped" { 
+        try { Set-ItResult -Skipped -Because "we are forcing it to skip" } 
+        catch { 
+            $_.FullyQualifiedErrorID | Should -Be "PesterTestSkipped"
+        }
     }
 
-    It "This test should be skipped" {
-        Set-ItResult -Skipped -Because "we want it to be skipped"
+    It "Set-ItResult can be called without -Because" {
+        try { Set-ItResult -Skipped } 
+        catch { 
+            $_.FullyQualifiedErrorID | Should -Be "PesterTestSkipped"
+        }
     }
 
-    It "This test should fail" {
-        $fast | Should -BeTrue -Because "it is a fake failing test"
+    It "Set-ItResult has to have a switch indicating what to set it to" {
+        { Set-ItResult -Because "testing with no switch" } | Should -Throw -Because "the expected state is not selected"
     }
 }
 

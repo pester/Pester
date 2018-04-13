@@ -34,23 +34,25 @@ $Script:ReportStrings = DATA {
 
 $Script:ReportTheme = DATA {
     @{
-        Describe       = 'Green'
-        DescribeDetail = 'DarkYellow'
-        Context        = 'Cyan'
-        ContextDetail  = 'DarkCyan'
-        Pass           = 'DarkGreen'
-        PassTime       = 'DarkGray'
-        Fail           = 'Red'
-        FailTime       = 'DarkGray'
-        Skipped        = 'Yellow'
-        Pending        = 'Gray'
-        Inconclusive   = 'Gray'
-        Incomplete     = 'Yellow'
-        IncompleteTime = 'DarkGray'
-        Foreground     = 'White'
-        Information    = 'DarkGray'
-        Coverage       = 'White'
-        CoverageWarn   = 'DarkRed'
+        Describe            = 'Green'
+        DescribeDetail      = 'DarkYellow'
+        Context             = 'Cyan'
+        ContextDetail       = 'DarkCyan'
+        Pass                = 'DarkGreen'
+        PassTime            = 'DarkGray'
+        Fail                = 'Red'
+        FailTime            = 'DarkGray'
+        Skipped             = 'Yellow'
+        SkippedTime         = 'DarkGray'
+        Pending             = 'Gray'
+        Inconclusive        = 'Gray'
+        InconclusiveTime    = 'DarkGray'
+        Incomplete          = 'Yellow'
+        IncompleteTime      = 'DarkGray'
+        Foreground          = 'White'
+        Information         = 'DarkGray'
+        Coverage            = 'White'
+        CoverageWarn        = 'DarkRed'
     }
 }
 
@@ -181,8 +183,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if ($ErrorRecord.FullyQualifiedErrorID -in 'PesterAssertionFailed','PesterTestInconclusive','PesterTestSkipped')
-    {
+    if ($ErrorRecord.TargetObject) {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
@@ -190,15 +191,17 @@ function ConvertTo-PesterResult {
         $file = $details.File
         $line = $details.Line
         $Text = $details.LineText
-
-        $testResult.Result = $ErrorRecord.FullyQualifiedErrorID -replace "PesterAssertion", "" -replace "PesterTest", ""
-    }
-    else
-    {
+    } else {
         $failureMessage = $ErrorRecord.ToString()
         $file = $ErrorRecord.InvocationInfo.ScriptName
         $line = $ErrorRecord.InvocationInfo.ScriptLineNumber
         $Text = $ErrorRecord.InvocationInfo.Line
+    }
+
+    switch($ErrorRecord.FullyQualifiedErrorID) {
+        PesterAssertionFailed { $testResult.Result = "Failed" }
+        PesterTestInconclusive { $testResult.Result = "Inconclusive" }
+        PesterTestSkipped { $testResult.Result = "Skipped" }
     }
 
     $testResult.failureMessage = $failureMessage
@@ -263,25 +266,34 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    $because = if ([String]::IsNullOrEmpty("$($TestReult.failureMessage)")) { ", because $($TestResult.failureMessage)" } else { "" }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output$because " -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime $humanTime
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
+                    if ($testresult.FailureMessage) {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped because $($TestResult.failureMessage)" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                    } else {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped " is skipped without an explanation" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$($error_margin)consider adding -Because parameter to the Set-ItResult call"
+                    }
                     break
                 }
 
                 Pending {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output $humanTime"
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output " -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime $humanTime
                     break
                 }
 
                 Inconclusive {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output $humanTime"
-
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
                     if ($testresult.FailureMessage) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive because $($TestResult.failureMessage)" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                    } else {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive " is inconclusive without an explanation" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$($error_margin)consider adding -Because parameter to the Set-ItResult call"
                     }
-
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive $($TestResult.stackTrace -replace '(?m)^',$error_margin)
                     break
                 }
 
