@@ -23,5 +23,9 @@ Describe "Testing Set-ItResult" {
     It "Set-ItResult has to have a switch indicating what to set it to" {
         { Set-ItResult -Because "testing with no switch" } | Should -Throw -Because "the expected state is not selected"
     }
+
+    It "Set-ItResult cannot be called with two states requested" {
+        { Set-ItResult -Inconclusive -Skipped } | Should -Throw -Because "two states are requested"
+    }
 }
 
