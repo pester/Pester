@@ -1,4 +1,4 @@
-Describe "Example" {
+Describe "Examples of setting it results" {
     It "This test passes" {
         $true | Should -BeTrue
     }
@@ -23,4 +23,3 @@ Describe "Example" {
         $false | Should -BeTrue -Because "it is a fake failing test"
     }
 }
-
