@@ -45,6 +45,7 @@ $Script:ReportTheme = DATA {
         Skipped             = 'Yellow'
         SkippedTime         = 'DarkGray'
         Pending             = 'Gray'
+        PendingTime         = 'DarkGray'
         Inconclusive        = 'Gray'
         InconclusiveTime    = 'DarkGray'
         Incomplete          = 'Yellow'
@@ -183,7 +184,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if ($ErrorRecord.TargetObject) {
+    if ($ErrorRecord.FullyQualifiedErrorID -in ('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive')) {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
@@ -191,17 +192,16 @@ function ConvertTo-PesterResult {
         $file = $details.File
         $line = $details.Line
         $Text = $details.LineText
+
+        switch($ErrorRecord.FullyQualifiedErrorID) {
+            PesterTestInconclusive { $testResult.Result = "Inconclusive"; break; }
+            PesterTestSkipped { $testResult.Result = "Skipped"; }
+        }
     } else {
         $failureMessage = $ErrorRecord.ToString()
         $file = $ErrorRecord.InvocationInfo.ScriptName
         $line = $ErrorRecord.InvocationInfo.ScriptLineNumber
         $Text = $ErrorRecord.InvocationInfo.Line
-    }
-
-    switch($ErrorRecord.FullyQualifiedErrorID) {
-        PesterAssertionFailed { $testResult.Result = "Failed" }
-        PesterTestInconclusive { $testResult.Result = "Inconclusive" }
-        PesterTestSkipped { $testResult.Result = "Skipped" }
     }
 
     $testResult.failureMessage = $failureMessage
