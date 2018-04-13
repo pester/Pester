@@ -1,21 +1,23 @@
+Set-StrictMode -Version Latest
+
 Describe "Testing Set-ItResult" {
-    It "This test should be inconclusive" { 
-        try { Set-ItResult -Inconclusive -Because "we are setting it to inconclusive" } 
-        catch { 
+    It "This test should be inconclusive" {
+        try { Set-ItResult -Inconclusive -Because "we are setting it to inconclusive" }
+        catch {
             $_.FullyQualifiedErrorID | Should -Be "PesterTestInconclusive"
         }
     }
 
-    It "This test should be skipped" { 
-        try { Set-ItResult -Skipped -Because "we are forcing it to skip" } 
-        catch { 
+    It "This test should be skipped" {
+        try { Set-ItResult -Skipped -Because "we are forcing it to skip" }
+        catch {
             $_.FullyQualifiedErrorID | Should -Be "PesterTestSkipped"
         }
     }
 
     It "Set-ItResult can be called without -Because" {
-        try { Set-ItResult -Skipped } 
-        catch { 
+        try { Set-ItResult -Skipped }
+        catch {
             $_.FullyQualifiedErrorID | Should -Be "PesterTestSkipped"
         }
     }

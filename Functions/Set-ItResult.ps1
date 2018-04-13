@@ -4,8 +4,8 @@ function Set-ItResult {
     Set-ItResult is used inside the It block to explicitly set the test result
 
     .DESCRIPTION
-    Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated. 
-    By default such tests would typically fail and produce a big read message. 
+    Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated.
+    By default such tests would typically fail and produce a big read message.
     Using Set-ItResult it is possible to set the result from the inside of the It scrip
     block to either inconclusive or skipped.
 
@@ -45,13 +45,13 @@ function Set-ItResult {
     [?] This test should be skipped, because we want it to be skipped
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
-    
+
 #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false, ParameterSetName="Inconclusive")][switch]$Inconclusive,
         [Parameter(Mandatory=$false, ParameterSetName="Skipped")][switch]$Skipped,
-        [string]$Because 
+        [string]$Because
     )
 
     Assert-DescribeInProgress -CommandName Set-ItResult
@@ -63,9 +63,9 @@ function Set-ItResult {
 
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
     $targetObject = @{
-        Message = $Because; 
-        File = $MyInvocation.ScriptName; 
-        Line = $MyInvocation.ScriptLineNumber; 
+        Message = $Because;
+        File = $MyInvocation.ScriptName;
+        Line = $MyInvocation.ScriptLineNumber;
         LineText = $MyInvocation.Line.TrimEnd($([System.Environment]::NewLine))
     }
 

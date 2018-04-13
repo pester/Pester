@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 Describe "Examples of setting it results" {
     It "This test passes" {
         $true | Should -BeTrue
