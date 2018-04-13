@@ -4,11 +4,11 @@ Describe "Example" {
     }
 
     It "This test should have inconclusive result" {
-        Set-PesterResult -Inconclusive -Because "we want it to be inconclusive"
+        Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
     }
 
     It "This test should be skipped" {
-        Set-PesterResult -Skipped -Because "we want it to be skipped"
+        Set-ItResult -Skipped -Because "we want it to be skipped"
     }
 
     It "This test should fail" {

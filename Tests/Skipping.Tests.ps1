@@ -1,3 +1,3 @@
 Describe "T" {
-    It "Should be "
+    It "Should be " {}
 }

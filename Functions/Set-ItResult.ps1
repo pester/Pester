@@ -1,12 +1,12 @@
-function Set-PesterResult {
+function Set-ItResult {
 <#
     .SYNOPSIS
-    Set-PesterResult is used inside the It block to explicitly set the test result
+    Set-ItResult is used inside the It block to explicitly set the test result
 
     .DESCRIPTION
     Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated. 
     By default such tests would typically fail and produce a big read message. 
-    Using Set-PesterResult it is possible to set the result from the inside of the It scrip
+    Using Set-ItResult it is possible to set the result from the inside of the It scrip
     block to either inconclusive, or skipped.
 
     .PARAMETER Inconclusive
@@ -22,7 +22,7 @@ function Set-PesterResult {
     .EXAMPLE
     Describe "Example" {
         It "This test should have inconclusive result" {
-            Set-PesterResult -Inconclusive -Because "we want it to be inconclusive"
+            Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
         }
     }
 
@@ -31,7 +31,7 @@ function Set-PesterResult {
     [?] This test should have inconclusive result
       we want it to be inconclusive
       at <ScriptBlock>, Path\To\The\File.Tests.ps1: line 8
-      8:        Set-PesterResult -Inconclusive -Because "we want it to be inconclusive"
+      8:        Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
 
@@ -39,7 +39,7 @@ function Set-PesterResult {
     .EXAMPLE
     Describe "Example" {
         It "This test should be skipped" {
-            Set-PesterResult -Skipped -Because "we want it to be skipped"
+            Set-ItResult -Skipped -Because "we want it to be skipped"
         }
     }
 
@@ -56,7 +56,7 @@ function Set-PesterResult {
         [string]$Because 
     )
 
-    Assert-DescribeInProgress -CommandName Set-PesterResult
+    Assert-DescribeInProgress -CommandName Set-ItResult
 
     $state = if ($Inconclusive) { "Inconclusive" } else { "Skipped" }
     $exception = New-Object Exception "Test set to $state"
