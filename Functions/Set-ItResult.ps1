@@ -7,13 +7,16 @@ function Set-ItResult {
     Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated.
     By default such tests would typically fail and produce a big read message.
     Using Set-ItResult it is possible to set the result from the inside of the It scrip
-    block to either inconclusive or skipped.
+    block to either inconclusive, pending or skipped.
 
     .PARAMETER Inconclusive
-    Sets the test result to inconclusive. Cannot be used at the same time as -Skipped
+    Sets the test result to inconclusive. Cannot be used at the same time as -Pending or -Skipped
+
+    .PARAMETER Pending
+    Sets the test result to pending. Cannot be used at the same time as -Inconclusive or -Skipped
 
     .PARAMETER Skipped
-    Sets the test result to skipped. Cannot be used at the same time as -Inconclusive
+    Sets the test result to skipped. Cannot be used at the same time as -Inconclusive or -Pending
 
     .PARAMETER Because
     Similarily to failing tests, skipped and inconclusive tests should have reason. It allows
@@ -50,6 +53,7 @@ function Set-ItResult {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false, ParameterSetName="Inconclusive")][switch]$Inconclusive,
+        [Parameter(Mandatory=$false, ParameterSetName="Pending")][switch]$Pending,
         [Parameter(Mandatory=$false, ParameterSetName="Skipped")][switch]$Skipped,
         [string]$Because
     )

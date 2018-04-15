@@ -13,6 +13,14 @@ Describe "Examples of setting it results" {
         Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
     }
 
+    It "This test is pending without a reason" {
+        Set-ItResult -Pending 
+    }
+
+    It "This test is pending" {
+        Set-ItResult -Pending -Because "we want it to be pending"
+    }
+
     It "This test is skipped without a reason" {
         Set-ItResult -Skipped 
     }

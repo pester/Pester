@@ -194,8 +194,9 @@ function ConvertTo-PesterResult {
         $Text = $details.LineText
 
         switch($ErrorRecord.FullyQualifiedErrorID) {
-            PesterTestInconclusive { $testResult.Result = "Inconclusive"; break; }
-            PesterTestSkipped { $testResult.Result = "Skipped"; }
+            PesterTestInconclusive { $testResult.Result -eq "Inconclusive"; break; }
+            PesterTestPending { $testResult.Result -eq "Pending"; break; }
+            PesterTestSkipped { $testResult.Result -eq "Skipped"; break; }
         }
     } else {
         $failureMessage = $ErrorRecord.ToString()
