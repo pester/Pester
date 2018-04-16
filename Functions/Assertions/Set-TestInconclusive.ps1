@@ -1,25 +1,12 @@
-function New-InconclusiveErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
-    $exception = New-Object Exception $Message
-    $errorID = 'PesterTestInconclusive'
-    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
-    return $errorRecord
-}
-
 function Set-TestInconclusive {
 <#
 
     .SYNOPSIS
-    Set-TestInclusive used inside the It block will cause that the test will be
-    considered as inconclusive.
+    Deprecated. Use `Set-ItResult -Inconclusive` instead
 
     .DESCRIPTION
-    If an Set-TestInconclusive is used inside It block, the test will always fails
-    with an Inconclusive result. It's not a passed result, nor a failed result,
-    but something in between – Inconclusive. It indicates that the results
-    of the test could not be verified.
+    Set-TestInconclusive was used inside an It block to mark the test as inconclusive.
+    If you need this functionality please use the new Set-ItResult command.
 
     .PARAMETER Message
     Value assigned to the Message parameter will be displayed in the the test result.
@@ -56,10 +43,16 @@ function Set-TestInconclusive {
         [string] $Message
     )
 
-    Assert-DescribeInProgress -CommandName Set-TestInconclusive
-    $lineText = $MyInvocation.Line.TrimEnd($([System.Environment]::NewLine))
-    $line = $MyInvocation.ScriptLineNumber
-    $file = $MyInvocation.ScriptName
+    if (!$script:HasAlreadyWarnedAboutDeprecation) {
+        Write-Host '
+    DEPRECATION WARNING: It seems you are using Set-TestInconclusive command in your test.
+        The command was deprecated and will be removed in the future. Please consider updating
+        your scripts to use `Set-ItResult -Inconclusive` instead.
+    ' -ForegroundColor "DarkYellow"
+        $script:HasAlreadyWarnedAboutDeprecation = $true
+    } else {
+        $Message = "$Message (DEPRECATED Set-TestInconclusive!)"
+    }
 
-    throw ( New-InconclusiveErrorRecord -Message $Message -File $file -Line $line -LineText $lineText)
+    Set-ItResult -Inconclusive -Because $Message
 }

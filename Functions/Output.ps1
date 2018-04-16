@@ -184,7 +184,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if ($ErrorRecord.FullyQualifiedErrorID -in ('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive')) {
+    if ($ErrorRecord.FullyQualifiedErrorID -in ('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending')) {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
@@ -194,9 +194,9 @@ function ConvertTo-PesterResult {
         $Text = $details.LineText
 
         switch($ErrorRecord.FullyQualifiedErrorID) {
-            PesterTestInconclusive { $testResult.Result -eq "Inconclusive"; break; }
-            PesterTestPending { $testResult.Result -eq "Pending"; break; }
-            PesterTestSkipped { $testResult.Result -eq "Skipped"; break; }
+            PesterTestInconclusive { $testResult.Result = "Inconclusive"; break; }
+            PesterTestPending { $testResult.Result = "Pending"; break; }
+            PesterTestSkipped { $testResult.Result = "Skipped"; break; }
         }
     } else {
         $failureMessage = $ErrorRecord.ToString()

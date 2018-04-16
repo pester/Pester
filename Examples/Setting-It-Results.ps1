@@ -1,8 +1,16 @@
-Set-StrictMode -Version Latest
+#sSet-StrictMode -Version Latest
 
 Describe "Examples of setting it results" {
     It "This test passes" {
         $true | Should -BeTrue
+    }
+
+    It "This test is inconclusive the old way" {
+        Set-TestInconclusive -Message "we are testing deprecation"
+    }
+
+    It "This test is inconclusive the old way, too" {
+        Set-TestInconclusive -Message "we don't want too many big deprecation messages"
     }
 
     It "This test is inconclusive without a reason" {
