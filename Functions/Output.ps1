@@ -184,7 +184,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if ($ErrorRecord.FullyQualifiedErrorID -in ('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending')) {
+    if (@('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $ErrorRecord.FullyQualifiedErrorID) {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
