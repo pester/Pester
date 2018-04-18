@@ -29,7 +29,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
         # there is no point in filtering the exception, because there should be none
         $succeeded = -not $actualExceptionWasThrown
         if (-not $succeeded) {
-            $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception was thrown $actualExceptionLine."
+            $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception`"$actualExceptionMessage`" was thrown $actualExceptionLine."
             return New-Object psobject -Property @{
                 Succeeded      = $succeeded
                 FailureMessage = $failureMessage
