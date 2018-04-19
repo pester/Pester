@@ -30,12 +30,12 @@ InModuleScope Pester {
 
         It "returns the correct assertion message when actual value has a real type" {
             $err = { 'ab' | Should -BeOfType ([int]) -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected the value to have type [int] or any of its subtypes, because reason, but got {ab} with type [string].'
+            $err.Exception.Message | Verify-Equal "Expected the value to have type [int] or any of its subtypes, because reason, but got 'ab' with type [string]."
         }
 
         It "returns the correct assertion message when actual value is `$null" {
             $err = { $null | Should -BeOfType ([int]) -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected the value to have type [int] or any of its subtypes, because reason, but got {} with type <none>.'
+            $err.Exception.Message | Verify-Equal 'Expected the value to have type [int] or any of its subtypes, because reason, but got $null with type $null.'
         }
     }
 
@@ -47,7 +47,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message when actual value has a real type" {
             $err = { 1 | Should -Not -BeOfType ([int]) -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected the value to not have type [int] or any of its subtypes, because reason, but got {1} with type [int].'
+            $err.Exception.Message | Verify-Equal 'Expected the value to not have type [int] or any of its subtypes, because reason, but got 1 with type [int].'
         }
     }
 }

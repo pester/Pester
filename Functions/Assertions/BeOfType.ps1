@@ -17,20 +17,20 @@ function PesterBeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$
     $failureMessage = ''
 
     if ($null -ne $ActualValue) {
-        $actualType = '[' + ([string]($ActualValue.GetType())) + ']'
+        $actualType = $ActualValue.GetType()
     } else {
-        $actualType = '<none>'
+        $actualType = $null
     }
 
     if (-not $succeded)
     {
         if ($Negate)
         {
-            $failureMessage = "Expected the value to not have type [$ExpectedType] or any of its subtypes,$(Format-Because $Because) but got {$ActualValue} with type $actualType."
+            $failureMessage = "Expected the value to not have type $(Format-Nicely $ExpectedType) or any of its subtypes,$(Format-Because $Because) but got $(Format-Nicely $ActualValue) with type $(Format-Nicely $actualType)."
         }
         else
         {
-            $failureMessage = "Expected the value to have type [$ExpectedType] or any of its subtypes,$(Format-Because $Because) but got {$ActualValue} with type $actualType."
+            $failureMessage = "Expected the value to have type $(Format-Nicely $ExpectedType) or any of its subtypes,$(Format-Because $Because) but got $(Format-Nicely $ActualValue) with type $(Format-Nicely $actualType)."
         }
     }
 

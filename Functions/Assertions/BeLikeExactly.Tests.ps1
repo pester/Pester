@@ -17,7 +17,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -BeLikeExactly '*ccc*' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected case sensitive like wildcard {*ccc*} to match {ab}, because reason, but it did not match.'
+            $err.Exception.Message | Verify-Equal "Expected case sensitive like wildcard '*ccc*' to match 'ab', because reason, but it did not match."
         }
     }
 
@@ -37,7 +37,7 @@ InModuleScope Pester {
 
         It "returns the correct assertion message" {
             $err = { 'ab' | Should -Not -BeLikeExactly '*ab*' -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected case sensitive like wildcard {*ab*} to not match {ab}, because reason, but it did match.'
+            $err.Exception.Message | Verify-Equal "Expected case sensitive like wildcard '*ab*' to not match 'ab', because reason, but it did match."
         }
     }
 }

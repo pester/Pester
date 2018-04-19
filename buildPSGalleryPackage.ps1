@@ -18,6 +18,7 @@ try
     Copy-Item $baseDir\nunit_schema_2.5.xsd $buildDir\
     Copy-Item $baseDir\bin                  $buildDir\ -Recurse -Exclude *.tests.ps1
     Copy-Item $baseDir\Functions            $buildDir\ -Recurse -Exclude *.tests.ps1
+    Copy-Item $baseDir\Dependencies         $buildDir\ -Recurse -Exclude *.tests.ps1
     Copy-Item $baseDir\Snippets             $buildDir\ -Recurse -Exclude *.tests.ps1
     Copy-Item $baseDir\en-US                $buildDir\ -Recurse -Exclude *.tests.ps1
     Copy-Item $baseDir\lib                  $buildDir\ -Recurse -Exclude *.tests.ps1
