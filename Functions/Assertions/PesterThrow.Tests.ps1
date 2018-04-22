@@ -337,7 +337,7 @@ InModuleScope Pester {
             It 'returns the correct assertion message when an exception is thrown' {
                 $err = { { throw } | Should -Not -Throw -Because 'reason' } | Verify-AssertionFailed
                 write-host ($err.Exception.Message -replace "(.*)",'')
-                $err.Exception.Message  -replace "(`r|`n)" -replace '\s+',' ' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, because reason, but an exception was thrown"
+                $err.Exception.Message  -replace "(`r|`n)" -replace '\s+',' '  -replace ' "ScriptHalted"','' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, because reason, but an exception was thrown"
             }
         }
     }
