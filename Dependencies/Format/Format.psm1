@@ -1,6 +1,6 @@
 Import-Module $PSScriptRoot\..\TypeClass\TypeClass.psm1 -DisableNameChecking
 
-function Format-Collection ($Value, [switch]$Pretty) { 
+function Format-Collection ($Value, [switch]$Pretty) {
     $Limit = 10
     $separator = ', '
     if ($Pretty){
@@ -54,7 +54,7 @@ function Format-ScriptBlock ($Value) {
     '{' + $Value + '}'
 }
 
-function Format-Number ($Value) { 
+function Format-Number ($Value) {
     [string]$Value
 }
 
@@ -62,10 +62,10 @@ function Format-Hashtable ($Value) {
     $head = '@{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | foreach { 
+    $entries = $Value.Keys | sort | foreach {
         $formattedValue = Format-Nicely $Value.$_
         "$_=$formattedValue" }
-    
+
     $head + ( $entries -join '; ') + $tail
 }
 
@@ -73,16 +73,16 @@ function Format-Dictionary ($Value) {
     $head = 'Dictionary{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | foreach { 
+    $entries = $Value.Keys | sort | foreach {
         $formattedValue = Format-Nicely $Value.$_
         "$_=$formattedValue" }
-    
+
     $head + ( $entries -join '; ') + $tail
 }
 
-function Format-Nicely ($Value, [switch]$Pretty) { 
-    if ($null -eq $Value) 
-    { 
+function Format-Nicely ($Value, [switch]$Pretty) {
+    if ($null -eq $Value)
+    {
         return Format-Null -Value $Value
     }
 
@@ -104,7 +104,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return '['+ (Format-Type -Value $Value) + ']'
     }
 
-    if (Is-DecimalNumber -Value $Value) 
+    if (Is-DecimalNumber -Value $Value)
     {
         return Format-Number -Value $Value
     }
@@ -114,8 +114,8 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return Format-ScriptBlock -Value $Value
     }
 
-    if (Is-Value -Value $Value) 
-    { 
+    if (Is-Value -Value $Value)
+    {
         return $Value
     }
 
@@ -125,7 +125,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return [string]$Value
         #return Format-Hashtable -Value $Value
     }
-    
+
     if (Is-Dictionary -Value $Value)
     {
         # no advanced formatting of objects in the first version, till I balance it
@@ -133,8 +133,8 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         #return Format-Dictionary -Value $Value
     }
 
-    if (Is-Collection -Value $Value) 
-    { 
+    if (Is-Collection -Value $Value)
+    {
         return Format-Collection -Value $Value -Pretty:$Pretty
     }
 
@@ -145,13 +145,13 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 
 function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit = 4) {
 
-    $properties = @($InputObject.PSObject.Properties | 
-        where { $_.Name -notlike "_*"} | 
-        select -expand Name | 
+    $properties = @($InputObject.PSObject.Properties |
+        where { $_.Name -notlike "_*"} |
+        select -expand Name |
         sort)
     $significant = @()
     $rest = @()
-    foreach ($p in $properties) { 
+    foreach ($p in $properties) {
         if ($significantProperties -contains $p) {
             $significant += $p
         }
@@ -182,7 +182,7 @@ function Get-ShortType ($Value) {
         -replace "^PSCustomObject$","PSObject" `
         -replace "^Object\[\]$","collection" `
     }
-    else 
+    else
     {
         Format-Type $null
     }
@@ -192,8 +192,8 @@ function Format-Type ([Type]$Value) {
     if ($null -eq $Value) {
         return '<none>'
     }
-    
-    [string]$Value 
+
+    [string]$Value
 }
 
 

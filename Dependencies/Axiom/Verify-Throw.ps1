@@ -1,4 +1,4 @@
-function Verify-Throw 
+function Verify-Throw
 {
     param (
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
@@ -14,7 +14,7 @@ function Verify-Throw
         $exceptionThrown = $true
         $_
     }
-    
+
     if (-not $exceptionThrown) {
         throw [Exception]"An exception was expected, but no exception was thrown!"
     }
