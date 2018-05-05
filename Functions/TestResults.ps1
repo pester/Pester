@@ -11,12 +11,19 @@ function Get-HumanTime($Seconds) {
 }
 
 function GetFullPath ([string]$Path) {
-    if (-not [System.IO.Path]::IsPathRooted($Path))
-    {
-        $Path = & $SafeCommands['Join-Path'] $ExecutionContext.SessionState.Path.CurrentFileSystemLocation $Path
+    $Folder = & $SafeCommands['Split-Path'] -Path $Path -Parent
+    $File = & $SafeCommands['Split-Path'] -Path $Path -Leaf
+
+    if ( -not ([String]::IsNullOrEmpty($Folder))) {
+        $FolderResolved = & $SafeCommands['Resolve-Path'] -Path $Folder
+    }
+    else {
+        $FolderResolved = & $SafeCommands['Resolve-Path'] -Path $ExecutionContext.SessionState.Path.CurrentFileSystemLocation
     }
 
-    return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    $Path = & $SafeCommands['Join-Path'] -Path $FolderResolved.ProviderPath -ChildPath $File
+
+    return $Path
 }
 
 function Export-PesterResults
