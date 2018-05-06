@@ -1679,6 +1679,11 @@ Describe '$args handling' {
         Invoke-CmdletWithArgs -Args garbage | Should -Be mock
     }
 
+    AfterAll { 
+        Get-Command Invoke-CmdletWithArgs -CommandType Cmdlet | 
+            Select-Object -ExpandProperty Module |
+            Remove-Module
+    }
 }
 
 Describe 'Single quote in command/module name' {
