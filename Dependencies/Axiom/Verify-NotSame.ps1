@@ -9,6 +9,6 @@
     if ([object]::ReferenceEquals($Expected, $Actual)) {
         throw [Exception]"Expected the objects to be different instance but they were the same instance."
     }
-    
+
     $Actual
 }

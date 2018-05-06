@@ -157,6 +157,7 @@ Describe 'Style rules' -Tag StyleRules {
         Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
         Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.ps1,*.psm1, *.psd1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
