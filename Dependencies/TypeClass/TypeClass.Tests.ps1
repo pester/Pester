@@ -162,7 +162,7 @@ Describe "Is-Collection" {
         @{ Value = @{} }
         @{ Value = @{ Name = 'Jakub' } }
 
-        @{ Value = (ps -Name Idle) }
+        @{ Value = (Get-Process -Name Idle) }
         @{ Value = New-Object -TypeName Diagnostics.Process }
     ) {
         param($Value)
