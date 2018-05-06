@@ -1636,6 +1636,7 @@ Describe 'Mocks with closures' {
 }
 
 Describe '$args handling' {
+
     function AdvancedFunction {
         [CmdletBinding()]
         param()
