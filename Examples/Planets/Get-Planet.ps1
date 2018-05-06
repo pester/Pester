@@ -1,8 +1,8 @@
-# This is not the best file to start from, 
+# This is not the best file to start from,
 # open Get-Planet.Tests.ps1 as well :)
 
 
-function Get-Planet ([string]$Name = '*') 
+function Get-Planet ([string]$Name = '*')
 {
     $planets = @(
         @{ Name = 'Mercury' }

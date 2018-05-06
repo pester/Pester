@@ -1131,6 +1131,18 @@ function Set-PesterStatistics($Node)
     }
 }
 
+function Contain-AnyStringLike ($Filter, $Collection) {
+    foreach ($item in $Collection) { 
+        foreach ($value in $Filter) {
+           if ($item -like $value) 
+           {
+                return $true
+           }
+       }
+    }
+    return $false
+}
+
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
 if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     ($null -ne $psISE) -and

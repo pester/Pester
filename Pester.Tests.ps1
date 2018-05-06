@@ -546,3 +546,35 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
         }
     }
 }
+
+InModuleScope -ModuleName Pester {
+    Describe "Contain-AnyStringLike" {
+
+        It 'Given a filter <filter> that does not match any items in collection <collection> it returns $false' -TestCases @(
+            @{ Filter = "Unit"; Collection = "Integration" }
+            @{ Filter = "*Unit*"; Collection = "Integration" }
+            @{ Filter = "*Unit*", "IntegrationTest"; Collection = "Integration" }
+            @{ Filter = "Unit"; Collection = "Low", "Medium", "High" }
+            @{ Filter = "*Unit*"; Collection = "Low", "Medium", "High" }
+        ) {
+            param($Filter, $Collection)
+
+            Contain-AnyStringLike -Filter $Filter -Collection $Collection | 
+                Should -BeFalse
+        }
+
+        It 'Given a filter <filter> that matches one or more items in collection <collection> it returns $true' -TestCases @(
+            @{ Filter = "Unit"; Collection = "Unit" }
+            @{ Filter = "*Unit*"; Collection = "UnitTest" }
+            @{ Filter = "UnitTest", "IntegrationTest"; Collection = "UnitTest" }
+            @{ Filter = "Low"; Collection = "Low", "Medium", "High" }
+            @{ Filter = "Low", "Medium"; Collection = "Low", "Medium", "High" }
+            @{ Filter = "l*"; Collection = "Low", "Medium", "High" }
+        ) {
+            param($Filter, $Collection)
+
+            Contain-AnyStringLike -Filter $Filter -Collection $Collection | 
+                Should -BeTrue
+        }
+    }
+}
