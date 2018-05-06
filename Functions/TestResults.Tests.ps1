@@ -277,12 +277,27 @@ InModuleScope Pester {
             $p | Should -Be (Join-Path $TestDrive notexistingfile.txt)
         }
 
+        It "Resolves non existing path correctly - PSDrive" {
+            Push-Location -Path TestDrive:\
+            $p = GetFullPath TestDrive:\notexistingfile.txt
+            Pop-Location
+            $p | Should -Be (Join-Path $TestDrive notexistingfile.txt)
+        }
+
         It "Resolves existing path correctly" {
             Push-Location -Path TestDrive:\
-            New-Item -ItemType File -Name existingfile.txt
-            $p = GetFullPath existingfile.txt
+            New-Item -ItemType File -Name existingfile1.txt
+            $p = GetFullPath existingfile1.txt
             Pop-Location
-            $p | Should -Be (Join-Path $TestDrive existingfile.txt)
+            $p | Should -Be (Join-Path $TestDrive existingfile1.txt)
+        }
+
+        It "Resolves existing path correctly - PSDrive" {
+            Push-Location -Path TestDrive:\
+            New-Item -ItemType File -Name existingfile2.txt
+            $p = GetFullPath existingfile2.txt
+            Pop-Location
+            $p | Should -Be (Join-Path $TestDrive existingfile2.txt)
         }
 
         If (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
@@ -298,5 +313,8 @@ InModuleScope Pester {
 
             GetFullPath $powershellPath | Should -Be $powershellPath
         }
+
+        Pop-Location
+
     }
 }
