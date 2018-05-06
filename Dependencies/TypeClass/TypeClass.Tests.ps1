@@ -64,7 +64,7 @@ Describe "Is-ScriptBlock" {
     It "Given a scriptblock '{<value>}' it returns `$true" -TestCases @(
         @{ Value = {} },
         @{ Value = {abc} },
-        @{ Value = { Get-Process -Name Idle } }
+        @{ Value = { Get-Process } }
     ) {
         param ($Value)
         Is-ScriptBlock -Value $Value | Verify-True
@@ -138,9 +138,11 @@ Describe "Is-Collection" {
         Is-Collection -Value $Value | Verify-True
     }
 
-    It "Given an object '<value>' of type '<type>' that is not a collection it returns `$false" -TestCases @(
-        @{ Value = $null }
+    It "Given `$null it returns `$false" {
+        Is-Collection -Value $null | Verify-False
+    }
 
+    It "Given an object '<value>' of type '<type>' that is not a collection it returns `$false" -TestCases @(
         @{ Value = [char] 'a' }
         @{ Value = "a" }
 
@@ -162,10 +164,11 @@ Describe "Is-Collection" {
         @{ Value = @{} }
         @{ Value = @{ Name = 'Jakub' } }
 
-        @{ Value = (ps -Name Idle) }
+        @{ Value = (Get-Process -Id $PID) }
         @{ Value = New-Object -TypeName Diagnostics.Process }
     ) {
         param($Value)
+        Verify-NotNull $Value
         Is-Collection -Value $Value | Verify-False
     }
 }
