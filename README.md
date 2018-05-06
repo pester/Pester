@@ -1,7 +1,5 @@
 # Pester
 
-> Pester [4.1.0](https://github.com/pester/Pester/releases/tag/4.1.0) now runs on Linux and macOS! 🎉 🍾
-
 Pester is the ubiquitous test and mock framework for PowerShell.
 
 ```powershell
