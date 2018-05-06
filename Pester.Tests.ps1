@@ -559,7 +559,7 @@ InModuleScope -ModuleName Pester {
         ) {
             param($Filter, $Collection)
 
-            Contain-AnyStringLike -Filter $Filter -Collection $Collection | 
+            Contain-AnyStringLike -Filter $Filter -Collection $Collection |
                 Should -BeFalse
         }
 
@@ -573,7 +573,7 @@ InModuleScope -ModuleName Pester {
         ) {
             param($Filter, $Collection)
 
-            Contain-AnyStringLike -Filter $Filter -Collection $Collection | 
+            Contain-AnyStringLike -Filter $Filter -Collection $Collection |
                 Should -BeTrue
         }
     }

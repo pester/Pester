@@ -1679,8 +1679,8 @@ Describe '$args handling' {
         Invoke-CmdletWithArgs -Args garbage | Should -Be mock
     }
 
-    AfterAll { 
-        Get-Command Invoke-CmdletWithArgs -CommandType Cmdlet | 
+    AfterAll {
+        Get-Command Invoke-CmdletWithArgs -CommandType Cmdlet |
             Select-Object -ExpandProperty Module |
             Remove-Module
     }

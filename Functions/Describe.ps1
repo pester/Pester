@@ -113,19 +113,19 @@ function DescribeImpl {
     if ($Pester.TestGroupStack.Count -eq 2)
     {
         if ($Pester.TestNameFilter -and $Name) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) { 
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
                 return
             }
         }
         if ($Pester.TagFilter -and $Tag) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) { 
-                return 
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
+                return
             }
         }
 
         if ($Pester.ExcludeTagFilter -and $Tag) {
-            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) { 
-                return 
+            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
+                return
             }
         }
     }

@@ -519,7 +519,7 @@ LegacyNUnitXML.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values.
-Wildcard characters are supported. Tag values that include spaces or whitespace 
+Wildcard characters are supported. Tag values that include spaces or whitespace
  will be split into multiple tags on the whitespace.
 
 When you specify multiple Tag values, Invoke-Pester runs tests that have any
@@ -531,7 +531,7 @@ If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
 
 .PARAMETER ExcludeTag
 Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
-characters are supported. Tag values that include spaces or whitespace 
+characters are supported. Tag values that include spaces or whitespace
  will be split into multiple tags on the whitespace.
 
 When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
@@ -1132,9 +1132,9 @@ function Set-PesterStatistics($Node)
 }
 
 function Contain-AnyStringLike ($Filter, $Collection) {
-    foreach ($item in $Collection) { 
+    foreach ($item in $Collection) {
         foreach ($value in $Filter) {
-           if ($item -like $value) 
+           if ($item -like $value)
            {
                 return $true
            }

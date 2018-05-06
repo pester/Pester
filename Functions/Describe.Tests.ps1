@@ -139,8 +139,8 @@ InModuleScope Pester {
                 param ($Tags, $Filter, $Because)
 
                 # figuring out what this test does is a bit difficult. Internally the tags to be used
-                # are stored in Pester state tag filter. So here we have a static  filter and 
-                # we throw tests on it to see if they would run. Then we assert that a mock in the 
+                # are stored in Pester state tag filter. So here we have a static  filter and
+                # we throw tests on it to see if they would run. Then we assert that a mock in the
                 # test case was called, to see if the test was executed.
 
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
@@ -148,7 +148,7 @@ InModuleScope Pester {
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it does not run the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' } 
+                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 
@@ -178,8 +178,8 @@ InModuleScope Pester {
                 param ($Tags, $Filter, $Because)
 
                 # figuring out what this test does is a bit difficult. Internally the tags to be used
-                # are stored in Pester state tag filter. So here we have a static  filter and 
-                # we throw tests on it to see if they would run. Then we assert that a mock in the 
+                # are stored in Pester state tag filter. So here we have a static  filter and
+                # we throw tests on it to see if they would run. Then we assert that a mock in the
                 # test case was called, to see if the test was executed.
 
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
@@ -187,7 +187,7 @@ InModuleScope Pester {
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it runs the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' } 
+                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 
