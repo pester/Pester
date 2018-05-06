@@ -143,8 +143,6 @@ Describe "Is-Collection" {
     }
 
     It "Given an object '<value>' of type '<type>' that is not a collection it returns `$false" -TestCases @(
-        @{ Value = $null }
-
         @{ Value = [char] 'a' }
         @{ Value = "a" }
 
