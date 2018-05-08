@@ -376,6 +376,7 @@ Describe 'Set-StrictMode for all tests files' {
         Get-ChildItem $pesterRoot\* -Include *.Tests.ps1
         Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.Tests.ps1 -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.Tests.ps1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.Tests.ps1 -Recurse
     )
 
     It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
