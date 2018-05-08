@@ -30,7 +30,7 @@ Then 'the variable ([\w:]+) should be "([^"]+)"' {
         "Two" { $Two  }
         "Script:Two" { $Script:Two }
     }
-    $Result | Should Be $Value
+    $Result | Should -Be $Value
 }
 
 Then "the variable ([\w:]+) should not exist" {
@@ -39,13 +39,13 @@ Then "the variable ([\w:]+) should not exist" {
     switch($Name)
     {
         "One" {
-            Test-Path Variable:One | Should Be $False
+            Test-Path Variable:One | Should -Be $False
         }
         "Two" {
-            Test-Path Variable:Two | Should Be $False
+            Test-Path Variable:Two | Should -Be $False
         }
         "Script:Two" {
-            Test-Path Variable:Script:Two | Should Be $False
+            Test-Path Variable:Script:Two | Should -Be $False
         }
     }
 }

@@ -17,11 +17,13 @@
     <file src="Pester.psd1" target="$targetBase$" />
     <file src="LICENSE*" target="$targetBase$" />
     <file src="chocolateyInstall.ps1" />
+    <file src="VERIFICATION.txt" />
     <file src="nunit_schema_2.5.xsd" target="$targetBase$" />
     <file src="bin\*.*" target="$targetBase$\bin" />
     <file src="Functions\**\*.*" target="$targetBase$\Functions" />
+    <file src="Dependencies\**\*.*" target="$targetBase$\Dependencies" />
     <file src="Snippets\*.*" target="$targetBase$\Snippets" />
     <file src="en-US\*.*" target="$targetBase$\en-US" />
-    <file src="lib\*.*" target="$targetBase$\lib" />
+    <file src="lib\**\*.*" target="$targetBase$\lib" />
   </files>
 </package>

@@ -1,5 +1,5 @@
 #Be
-function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate) {
+function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -10,11 +10,11 @@ function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate) {
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue
+            $failureMessage = NotPesterBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
         }
         else
         {
-            $failureMessage = PesterBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue
+            $failureMessage = PesterBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
         }
     }
 
@@ -24,14 +24,14 @@ function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate) {
     }
 }
 
-function PesterBeFailureMessage($ActualValue, $ExpectedValue) {
+function PesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $ActualValue = $($ActualValue)
     $ExpectedValue = $($ExpectedValue)
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string])))
     {
-        return "Expected: {$ExpectedValue}`nBut was:  {$ActualValue}"
+        return "Expected $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -40,11 +40,11 @@ function PesterBeFailureMessage($ActualValue, $ExpectedValue) {
     This is a quickwin solution, doing the join in the Should directly might be better
     way of doing this. But I don't want to mix two problems.
     #>
-    ( Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue ) -join "`n"
+    (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -Because $Because) -join "`n"
 }
 
-function NotPesterBeFailureMessage($ActualValue, $ExpectedValue) {
-    return "Expected: value was {$ActualValue}, but should not have been the same"
+function NotPesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
+    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got the same value."
 }
 
 Add-AssertionOperator -Name               Be `
@@ -53,7 +53,7 @@ Add-AssertionOperator -Name               Be `
                       -SupportsArrayInput
 
 #BeExactly
-function PesterBeExactly($ActualValue, $ExpectedValue) {
+function PesterBeExactly($ActualValue, $ExpectedValue, $Because) {
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue -CaseSensitive
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -64,11 +64,11 @@ function PesterBeExactly($ActualValue, $ExpectedValue) {
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+            $failureMessage = NotPesterBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
         }
         else
         {
-            $failureMessage = PesterBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue
+            $failureMessage = PesterBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
         }
     }
 
@@ -78,14 +78,14 @@ function PesterBeExactly($ActualValue, $ExpectedValue) {
     }
 }
 
-function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue) {
+function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $ActualValue = $($ActualValue)
     $ExpectedValue = $($ExpectedValue)
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string])))
     {
-        return "Expected exactly: {$ExpectedValue}`nBut was: {$ActualValue}"
+        return "Expected exactly $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -94,11 +94,11 @@ function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue) {
     This is a quickwin solution, doing the join in the Should directly might be better
     way of doing this. But I don't want to mix two problems.
     #>
-    ( Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -CaseSensitive ) -join "`n"
+    (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -CaseSensitive -Because $Because) -join "`n"
 }
 
-function NotPesterBeExactlyFailureMessage($ActualValue, $ExpectedValue) {
-    return "Expected: value was {$ActualValue}, but should not have been exactly the same"
+function NotPesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
+    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got exactly the same value."
 }
 
 Add-AssertionOperator -Name               BeExactly `
@@ -116,7 +116,8 @@ function Get-CompareStringMessage {
         [Parameter(Mandatory=$true)]
         [AllowEmptyString()]
         [String]$Actual,
-        [switch]$CaseSensitive
+        [switch]$CaseSensitive,
+        $Because
     )
 
     $ExpectedValueLength = $ExpectedValue.Length
@@ -138,16 +139,21 @@ function Get-CompareStringMessage {
     [string]$output = $null
     if ($null -ne $differenceIndex)
     {
+        "Expected strings to be the same,$(Format-Because $Because) but they were different."
+
         if ($ExpectedValue.Length -ne $actual.Length) {
-           "Expected string length $ExpectedValueLength but was $actualLength. Strings differ at index $differenceIndex."
+           "Expected length: $ExpectedValueLength"
+           "Actual length:   $actualLength"
+           "Strings differ at index $differenceIndex."
         }
         else
         {
-           "String lengths are both $ExpectedValueLength. Strings differ at index $differenceIndex."
+           "String lengths are both $ExpectedValueLength."
+           "Strings differ at index $differenceIndex."
         }
 
-        "Expected: {{{0}}}" -f ( $ExpectedValue | Expand-SpecialCharacters )
-        "But was:  {{{0}}}" -f ( $actual | Expand-SpecialCharacters )
+        "Expected: '{0}'" -f ( $ExpectedValue | Expand-SpecialCharacters )
+        "But was:  '{0}'" -f ( $actual | Expand-SpecialCharacters )
 
         $specialCharacterOffset = $null
         if ($differenceIndex -ne 0)
@@ -178,8 +184,16 @@ function ArraysAreEqual
     param (
         [object[]] $First,
         [object[]] $Second,
-        [switch] $CaseSensitive
+        [switch] $CaseSensitive,
+        [int] $RecursionDepth = 0,
+        [int] $RecursionLimit = 100
     )
+    $RecursionDepth++
+
+    if ($RecursionDepth -gt $RecursionLimit)
+    {
+        throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
+    }
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
     # silly error in PowerShell v3.  (Null Reference exception from the PowerShell engine in a
@@ -196,9 +210,9 @@ function ArraysAreEqual
 
     for ($i = 0; $i -lt $First.Count; $i++)
     {
-        if ((IsCollection $First[$i]) -or (IsCollection $Second[$i]))
+        if ((IsArray $First[$i]) -or (IsArray $Second[$i]))
         {
-            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive -RecursionDepth $RecursionDepth -RecursionLimit $RecursionLimit))
             {
                 return $false
             }
@@ -231,13 +245,13 @@ function ArrayOrSingleElementIsNullOrEmpty
     return $null -eq $Array -or $Array.Count -eq 0 -or ($Array.Count -eq 1 -and $null -eq $Array[0])
 }
 
-function IsCollection
+function IsArray
 {
     param ([object] $InputObject)
 
-    return $InputObject -is [System.Collections.IEnumerable] -and
-           $InputObject -isnot [string] -and
-           $InputObject -isnot [System.Collections.IDictionary]
+    # Changing this could cause infinite recursion in ArraysAreEqual.
+    # see https://github.com/pester/Pester/issues/785#issuecomment-322794011
+    return $InputObject -is [Array]
 }
 
 function ReplaceValueInArray

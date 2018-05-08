@@ -38,7 +38,7 @@ LONG DESCRIPTION
         }
       }
 
-    
+
   SYNTAX AND PLACEMENT
     Unlike most of the commands in a Pester script, BeforeEach, AfterEach, BeforeAll and AfterAll blocks
     apply to the entire Describe or Context scope in which they are defined, regardless of the order of
@@ -53,13 +53,13 @@ LONG DESCRIPTION
         $afterEachVariable = 'AfterEach has not been executed yet'
 
         It 'Demonstrates that BeforeEach may be defined after the It command' {
-            $beforeEachVariable | Should Be 'Set in a describe-scoped BeforeEach'
-            $afterEachVariable  | Should Be 'AfterEach has not been executed yet'
-            $beforeAllVariable  | Should Be 'BeforeAll has been executed'
+            $beforeEachVariable | Should -Be 'Set in a describe-scoped BeforeEach'
+            $afterEachVariable  | Should -Be 'AfterEach has not been executed yet'
+            $beforeAllVariable  | Should -Be 'BeforeAll has been executed'
         }
 
         It 'Demonstrates that AfterEach has executed after the end of the first test' {
-            $afterEachVariable | Should Be 'AfterEach has been executed'
+            $afterEachVariable | Should -Be 'AfterEach has been executed'
         }
 
         BeforeEach {

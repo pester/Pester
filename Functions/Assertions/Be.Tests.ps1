@@ -84,6 +84,24 @@ InModuleScope Pester {
             {abc} | Should -BeExactly "abc"
             {abc} | Should -CEQ "abc"
         }
+
+        It 'Does not overflow on IEnumerable' {
+            # see https://github.com/pester/Pester/issues/785
+            $doc = [xml]'<?xml version="1.0" encoding="UTF-8" standalone="no" ?><root></root>'
+            $doc | Should -be $doc
+        }
+
+        # The test excluded on macOS due to issue https://github.com/PowerShell/PowerShell/issues/4268
+        If ((GetPesterOS) -ne 'macOS') {
+            It 'throws exception when self-imposed recursion limit is reached' {
+                $a1 = @(0,1)
+                $a2 = @($a1,2)
+                $a1[0] = $a2
+
+                { $a1 | Should -be $a2 } | Should -throw 'recursion depth limit'
+            }
+        }
+
     }
 
     Describe "PesterBeFailureMessage" {
@@ -97,38 +115,39 @@ InModuleScope Pester {
             #only when the objects are not equal
 
             $string = "string"
-            PesterBeFailureMessage $string $string | Should BeNullOrEmpty
-            PesterBeFailureMessage $string $string | Should -BeNullOrEmpty
+            PesterBeFailureMessage $string $string | Verify-Equal ''
         }
 
         It "Outputs less verbose message for two different objects that are not strings" {
-            PesterBeFailureMessage 2 1 | Should Be "Expected: {1}`nBut was:  {2}"
-            PesterBeFailureMessage 2 1 | Should -Be "Expected: {1}`nBut was:  {2}"
+            PesterBeFailureMessage 2 1 | Verify-Equal "Expected 1, but got 2."
+        }
+
+        It "Outputs less verbose message for two different objects that are not strings, with reason" {
+            PesterBeFailureMessage 2 1 -Because 'reason' | Verify-Equal "Expected 1, because reason, but got 2."
         }
 
         It "Outputs verbose message for two strings of different length" {
-            PesterBeFailureMessage "actual" "expected" | Should Be "Expected string length 8 but was 6. Strings differ at index 0.`nExpected: {expected}`nBut was:  {actual}`n-----------^"
-            PesterBeFailureMessage "actual" "expected" | Should -Be "Expected string length 8 but was 6. Strings differ at index 0.`nExpected: {expected}`nBut was:  {actual}`n-----------^"
+            PesterBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n-----------^"
+        }
+
+        It "Outputs verbose message for two strings of different length" {
+            PesterBeFailureMessage "actual" "expected" -Because 'reason' | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n-----------^"
         }
 
         It "Outputs verbose message for two different strings of the same length" {
-            PesterBeFailureMessage "x" "y" | Should Be "String lengths are both 1. Strings differ at index 0.`nExpected: {y}`nBut was:  {x}`n-----------^"
-            PesterBeFailureMessage "x" "y" | Should -Be "String lengths are both 1. Strings differ at index 0.`nExpected: {y}`nBut was:  {x}`n-----------^"
+            PesterBeFailureMessage "x" "y" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'y'`nBut was:  'x'`n-----------^"
         }
 
         It "Replaces non-printable characters correctly" {
-            PesterBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Should Be "String lengths are both 6. Strings differ at index 5.`nExpected: {\n\r\b\0\ty}`nBut was:  {\n\r\b\0\tx}`n---------------------^"
-            PesterBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Should -Be "String lengths are both 6. Strings differ at index 5.`nExpected: {\n\r\b\0\ty}`nBut was:  {\n\r\b\0\tx}`n---------------------^"
+            PesterBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '\n\r\b\0\ty'`nBut was:  '\n\r\b\0\tx'`n---------------------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced before the difference" {
-            PesterBeFailureMessage "123`n456" "123`n789" | Should Be "String lengths are both 7. Strings differ at index 4.`nExpected: {123\n789}`nBut was:  {123\n456}`n----------------^"
-            PesterBeFailureMessage "123`n456" "123`n789" | Should -Be "String lengths are both 7. Strings differ at index 4.`nExpected: {123\n789}`nBut was:  {123\n456}`n----------------^"
+            PesterBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123\n789'`nBut was:  '123\n456'`n----------------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced after the difference" {
-            PesterBeFailureMessage "abcd`n123" "abc!`n123" | Should Be "String lengths are both 8. Strings differ at index 3.`nExpected: {abc!\n123}`nBut was:  {abcd\n123}`n--------------^"
-            PesterBeFailureMessage "abcd`n123" "abc!`n123" | Should -Be "String lengths are both 8. Strings differ at index 3.`nExpected: {abc!\n123}`nBut was:  {abcd\n123}`n--------------^"
+            PesterBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!\n123'`nBut was:  'abcd\n123'`n--------------^"
         }
     }
 }
@@ -170,8 +189,7 @@ InModuleScope Pester {
 
     Describe "PesterBeExactlyFailureMessage" {
         It "Writes verbose message for strings that differ by case" {
-            PesterBeExactlyFailureMessage "a" "A" | Should Be "String lengths are both 1. Strings differ at index 0.`nExpected: {A}`nBut was:  {a}`n-----------^"
-            PesterBeExactlyFailureMessage "a" "A" | Should -Be "String lengths are both 1. Strings differ at index 0.`nExpected: {A}`nBut was:  {a}`n-----------^"
+            PesterBeExactlyFailureMessage "a" "A" -Because "reason" | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'A'`nBut was:  'a'`n-----------^"
         }
     }
 }

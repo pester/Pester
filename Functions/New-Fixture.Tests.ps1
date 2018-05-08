@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 
 Describe "New-Fixture" {
     It "Name parameter is mandatory:" {
-        (get-command New-Fixture ).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should Be $true
+        (get-command New-Fixture ).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should -Be $true
     }
 
     Context "Only Name parameter is specified:" {
@@ -10,12 +10,12 @@ Describe "New-Fixture" {
             $name = "Test-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
+            Push-Location -Path $path
             New-Fixture -Name $name | Out-Null
-            popd
+            Pop-Location
 
-            Join-Path -Path $path -ChildPath "$name.ps1" | Should Exist
-            Join-Path -Path $path -ChildPath "$name.Tests.ps1" | Should Exist
+            Join-Path -Path $path -ChildPath "$name.ps1" | Should -Exist
+            Join-Path -Path $path -ChildPath "$name.Tests.ps1" | Should -Exist
         }
     }
 
@@ -28,8 +28,8 @@ Describe "New-Fixture" {
 
             New-Fixture -Name $name -Path $path | Out-Null
 
-            Join-Path -Path $path -ChildPath "$name.ps1" | Should Exist
-            Join-Path -Path $path -ChildPath "$name.Tests.ps1" | Should Exist
+            Join-Path -Path $path -ChildPath "$name.ps1" | Should -Exist
+            Join-Path -Path $path -ChildPath "$name.Tests.ps1" | Should -Exist
 
             #cleanup
             Join-Path -Path "$path" -ChildPath "$name.ps1" | Remove-Item -Force
@@ -40,34 +40,46 @@ Describe "New-Fixture" {
             $name = "Relative1-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
+            Push-Location -Path $path
             New-Fixture -Name $name -Path relative | Out-Null
-            popd
+            Pop-Location
 
-            Join-Path -Path "$path\relative" -ChildPath "$name.ps1" | Should Exist
-            Join-Path -Path "$path\relative" -ChildPath "$name.Tests.ps1" | Should Exist
+            Join-Path -Path "$path\relative" -ChildPath "$name.ps1" | Should -Exist
+            Join-Path -Path "$path\relative" -ChildPath "$name.Tests.ps1" | Should -Exist
         }
         It "Creates fixture if Path is set to '.':" {
             $name = "Relative2-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
+            Push-Location -Path $path
             New-Fixture -Name $name -Path . | Out-Null
-            popd
+            Pop-Location
 
-            Join-Path -Path "$path" -ChildPath "$name.ps1" | Should Exist
-            Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should Exist
+            Join-Path -Path "$path" -ChildPath "$name.ps1" | Should -Exist
+            Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should -Exist
         }
         It "Creates fixture if Path is set to '(pwd)':" {
             $name = "Relative3-Fixture"
             $path = "TestDrive:\"
 
-            pushd  $path
-            New-Fixture -Name $name -Path (pwd) | Out-Null
-            popd
+            Push-Location -Path $path
+            New-Fixture -Name $name -Path (Get-Location) | Out-Null
+            Pop-Location
 
-            Join-Path -Path "$path" -ChildPath "$name.ps1" | Should Exist
-            Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should Exist
+            Join-Path -Path "$path" -ChildPath "$name.ps1" | Should -Exist
+            Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should -Exist
+        }
+        It "Creates fixture if Path is set to '(pwd)' and Name contains the 'ps1' extension:" {
+            $name = "Relative4-Fixture.ps1"
+            $nameWithoutExtension = $name.Substring(0,$($name.Length)-4)
+            $path = "TestDrive:\"
+
+            Push-Location -Path $path
+            New-Fixture -Name $name -Path (Get-Location) | Out-Null
+            Pop-Location
+
+            Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.ps1" | Should -Exist
+            Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.Tests.ps1" | Should -Exist
         }
         It "Writes warning if file exists" {
             $name = "Warning-Fixture"
@@ -79,7 +91,7 @@ Describe "New-Fixture" {
             New-Fixture -Name $name -Path $path | Out-Null
             New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
 
-            Assert-VerifiableMocks
+            Assert-VerifiableMock
         }
 
     }

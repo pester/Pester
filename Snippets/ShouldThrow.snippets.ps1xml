@@ -14,7 +14,7 @@
 
             <Code>
                 <Script Language='PowerShell' CaretOffset='2'>
-                    <![CDATA[{  } | Should Throw ]]>
+                    <![CDATA[{  } | Should -Throw ]]>
                 </Script>
             </Code>
 

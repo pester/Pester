@@ -51,12 +51,13 @@ function Set-TestInconclusive {
     .LINK
     https://github.com/pester/Pester/wiki/Set%E2%80%90TestInconclusive
 #>
+    [CmdletBinding()]
     param (
         [string] $Message
     )
 
     Assert-DescribeInProgress -CommandName Set-TestInconclusive
-    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $lineText = $MyInvocation.Line.TrimEnd($([System.Environment]::NewLine))
     $line = $MyInvocation.ScriptLineNumber
     $file = $MyInvocation.ScriptName
 

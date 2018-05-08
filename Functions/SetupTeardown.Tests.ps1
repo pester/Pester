@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 Describe 'Describe-Scoped Test Case setup' {
     BeforeEach {
         $testVariable = 'From BeforeEach'
@@ -6,12 +8,12 @@ Describe 'Describe-Scoped Test Case setup' {
     $testVariable = 'Set in Describe'
 
     It 'Assigns the correct value in first test' {
-        $testVariable | Should Be 'From BeforeEach'
+        $testVariable | Should -Be 'From BeforeEach'
         $testVariable = 'Set in It'
     }
 
     It 'Assigns the correct value in subsequent tests' {
-        $testVariable | Should Be 'From BeforeEach'
+        $testVariable | Should -Be 'From BeforeEach'
     }
 }
 
@@ -24,12 +26,12 @@ Describe 'Context-scoped Test Case setup' {
         }
 
         It 'Assigns the correct value inside the context' {
-            $testVariable | Should Be 'From BeforeEach'
+            $testVariable | Should -Be 'From BeforeEach'
         }
     }
 
     It 'Reports the original value after the Context' {
-        $testVariable | Should Be 'Set in Describe'
+        $testVariable | Should -Be 'Set in Describe'
     }
 }
 
@@ -42,7 +44,7 @@ Describe 'Multiple Test Case setup blocks' {
 
     Context 'The context' {
         It 'Executes Describe setup blocks first, then Context blocks in the order they were defined (even if they are defined after the It block.)' {
-            $testVariable | Should Be 'Set in the second Context BeforeEach'
+            $testVariable | Should -Be 'Set in the second Context BeforeEach'
         }
 
         BeforeEach {
@@ -55,7 +57,7 @@ Describe 'Multiple Test Case setup blocks' {
     }
 
     It 'Continues to execute Describe setup blocks after the Context' {
-        $testVariable | Should Be 'Set in Describe BeforeEach'
+        $testVariable | Should -Be 'Set in Describe BeforeEach'
     }
 }
 
@@ -67,11 +69,11 @@ Describe 'Describe-scoped Test Case teardown' {
     }
 
     It 'Does not modify the variable before the first test' {
-        $testVariable | Should Be 'Set in Describe'
+        $testVariable | Should -Be 'Set in Describe'
     }
 
     It 'Modifies the variable after the first test' {
-        $testVariable | Should Be 'Set in AfterEach'
+        $testVariable | Should -Be 'Set in AfterEach'
     }
 }
 
@@ -90,7 +92,7 @@ Describe 'Multiple Test Case teardown blocks' {
         It 'Performs a test in Context' { "some output to prevent the It being marked as Pending and failing because of Strict mode"}
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
-            $testVariable | Should Be 'Set in the second Describe AfterEach'
+            $testVariable | Should -Be 'Set in the second Describe AfterEach'
         }
     }
 
@@ -106,13 +108,13 @@ $script:ContextAfterAllCounter   = 0
 
 Describe 'Test Group Setup and Teardown' {
     It 'Executed the Describe BeforeAll regardless of definition order' {
-        $script:DescribeBeforeAllCounter | Should Be 1
+        $script:DescribeBeforeAllCounter | Should -Be 1
     }
 
     It 'Did not execute any other block yet' {
-        $script:DescribeAfterAllCounter | Should Be 0
-        $script:ContextBeforeAllCounter | Should Be 0
-        $script:ContextAfterAllCounter  | Should Be 0
+        $script:DescribeAfterAllCounter | Should -Be 0
+        $script:ContextBeforeAllCounter | Should -Be 0
+        $script:ContextAfterAllCounter  | Should -Be 0
     }
 
     BeforeAll {
@@ -133,27 +135,27 @@ Describe 'Test Group Setup and Teardown' {
         }
 
         It 'Executed the Context BeforeAll block' {
-            $script:ContextBeforeAllCounter | Should Be 1
+            $script:ContextBeforeAllCounter | Should -Be 1
         }
 
         It 'Has not executed any other blocks yet' {
-            $script:DescribeBeforeAllCounter | Should Be 1
-            $script:DescribeAfterAllCounter  | Should Be 0
-            $script:ContextAfterAllCounter   | Should Be 0
+            $script:DescribeBeforeAllCounter | Should -Be 1
+            $script:DescribeAfterAllCounter  | Should -Be 0
+            $script:ContextAfterAllCounter   | Should -Be 0
         }
     }
 
     It 'Executed the Context AfterAll block' {
-        $script:ContextAfterAllCounter | Should Be 1
+        $script:ContextAfterAllCounter | Should -Be 1
     }
 }
 
 Describe 'Finishing TestGroup Setup and Teardown tests' {
     It 'Executed each Describe and Context group block once' {
-        $script:DescribeBeforeAllCounter | Should Be 1
-        $script:DescribeAfterAllCounter  | Should Be 1
-        $script:ContextBeforeAllCounter  | Should Be 1
-        $script:ContextAfterAllCounter   | Should Be 1
+        $script:DescribeBeforeAllCounter | Should -Be 1
+        $script:DescribeAfterAllCounter  | Should -Be 1
+        $script:ContextBeforeAllCounter  | Should -Be 1
+        $script:ContextAfterAllCounter   | Should -Be 1
     }
 }
 
@@ -174,11 +176,11 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
         It 'Creates script block objects associated with the proper file' {
             $scriptBlockFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($beforeEachBlock.File)
 
-            $scriptBlockFilePath | Should Be $thisTestScriptFilePath
+            $scriptBlockFilePath | Should -Be $thisTestScriptFilePath
         }
 
         It 'Has the correct automatic variable values inside the BeforeEach block' {
-            $commandPath | Should Be $PSCommandPath
+            $commandPath | Should -Be $PSCommandPath
         }
     }
 }

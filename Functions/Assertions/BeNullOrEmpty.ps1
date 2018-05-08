@@ -1,5 +1,5 @@
 
-function PesterBeNullOrEmpty([object[]] $ActualValue, [switch] $Negate) {
+function PesterBeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string] $Because) {
     if ($null -eq $ActualValue -or $ActualValue.Count -eq 0)
     {
         $succeeded = $true
@@ -29,11 +29,11 @@ function PesterBeNullOrEmpty([object[]] $ActualValue, [switch] $Negate) {
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterBeNullOrEmptyFailureMessage -ActualValue $ActualValue
+            $failureMessage = NotPesterBeNullOrEmptyFailureMessage -Because $Because
         }
         else
         {
-            $failureMessage = PesterBeNullOrEmptyFailureMessage -ActualValue $ActualValue
+            $failureMessage = PesterBeNullOrEmptyFailureMessage -ActualValue $ActualValue -Because $Because
         }
     }
 
@@ -43,12 +43,12 @@ function PesterBeNullOrEmpty([object[]] $ActualValue, [switch] $Negate) {
     }
 }
 
-function PesterBeNullOrEmptyFailureMessage($ActualValue) {
-    return "Expected: value to be empty but it was {$ActualValue}"
+function PesterBeNullOrEmptyFailureMessage($ActualValue, $Because) {
+    return "Expected `$null or empty,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
 }
 
-function NotPesterBeNullOrEmptyFailureMessage {
-    return "Expected: value to not be empty"
+function NotPesterBeNullOrEmptyFailureMessage ($Because) {
+    return "Expected a value,$(Format-Because $Because) but got `$null or empty."
 }
 
 Add-AssertionOperator -Name               BeNullOrEmpty `

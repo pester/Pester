@@ -102,14 +102,14 @@ InModuleScope Pester {
 
         It "can test for file contents" {
             Setup -File "test.foo" "expected text"
-            "$TestDrive\test.foo" | Should Contain "expected text"
-            "$TestDrive\test.foo" | Should -Contain "expected text"
+            "$TestDrive\test.foo" | Should FileContentMatch "expected text"
+            "$TestDrive\test.foo" | Should -FileContentMatch "expected text"
         }
 
         It "ensures all assertion functions provide failure messages" {
             $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
-                "PesterMatch", "PesterContain")
-            $assertionFunctions | % {
+                "PesterMatch", "PesterFileContentMatch")
+            $assertionFunctions | ForEach {
                 "function:$($_)FailureMessage" | Should Exist
                 "function:Not$($_)FailureMessage" | Should Exist
                 "function:$($_)FailureMessage" | Should -Exist
@@ -138,8 +138,8 @@ InModuleScope Pester {
         <#
         It 'All failure message functions are present' {
             $assertionFunctions = Get-Command -CommandType Function -Module Pester |
-                                  Select-Object -ExpandProperty Name |
-                                  Where-Object { $_ -like 'Pester*' -and $_ -notlike '*FailureMessage' }
+                                  Select -ExpandProperty Name |
+                                  Where { $_ -like 'Pester*' -and $_ -notlike '*FailureMessage' }
 
             $missingFunctions = @(
                 foreach ($assertionFunction in $assertionFunctions)
