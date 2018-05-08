@@ -333,11 +333,12 @@ Describe "When calling Mock on non-existing function" {
 Describe "When calling Mock on non existent module" {
 
     It "Should throw correct error" {
-        {
-            Mock -CommandName "Invoke-MyMethod" `
-                    -ModuleName  "MyNonExistentModule"
-                    -MockWith    { write-host "my mock called!" };
-        } | Should -Throw "No module named 'MyNonExistentModule' is currently loaded.";
+        $params = @{
+            CommandName = 'Invoke-MyMethod'
+            ModuleName = 'MyNonExistentModule'
+        }
+
+        { Mock @params -MockWith { write-host "my mock called!" } } | Should -Throw "No module named 'MyNonExistentModule' is currently loaded."
     }
 
 }
