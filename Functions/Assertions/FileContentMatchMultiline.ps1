@@ -1,5 +1,5 @@
 function PesterFileContentMatchMultiline($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
-    $succeeded = [bool] ((Get-Content $ActualValue -delim ([char]0)) -match $ExpectedContent)
+    $succeeded = [bool] ((& $SafeCommands['Get-Content'] $ActualValue -Delimiter ([char]0)) -match $ExpectedContent)
 
     if ($Negate) { $succeeded = -not $succeeded }
 

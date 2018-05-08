@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '4.3.1'
+ModuleVersion = '4.4.0'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -122,10 +122,10 @@ PrivateData = @{
         LicenseUri = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
-        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.3.1'
+        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.4.0-beta'
 
         # Prerelease string of this module
-        Prerelease = ''
+        Prerelease = 'beta'
     }
 }
 

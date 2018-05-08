@@ -7,6 +7,6 @@ function Verify-Null {
     if ($null -ne $Actual) {
         throw [Exception]"Expected `$null but got '$Actual'."
     }
-    
+
     $Actual
 }

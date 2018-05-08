@@ -77,6 +77,7 @@ about_TestDrive
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
+        Remove-MockFunctionsAndAliases
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
         $script:mockTable = @{}
     }
@@ -111,14 +112,22 @@ function DescribeImpl {
 
     if ($Pester.TestGroupStack.Count -eq 2)
     {
-        if($Pester.TestNameFilter -and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
-        {
-            #skip this test
-            return
+        if ($Pester.TestNameFilter -and $Name) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
+                return
+            }
+        }
+        if ($Pester.TagFilter -and $Tag) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
+                return
+            }
         }
 
-        if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-        if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+        if ($Pester.ExcludeTagFilter -and $Tag) {
+            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
+                return
+            }
+        }
     }
     else
     {

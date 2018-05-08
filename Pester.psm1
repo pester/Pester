@@ -35,6 +35,7 @@ $script:SafeCommands = @{
     'Export-ModuleMember' = Get-Command -Name Export-ModuleMember  -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'ForEach-Object'      = Get-Command -Name ForEach-Object       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Format-Table'        = Get-Command -Name Format-Table         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Alias'           = Get-Command -Name Get-Alias            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-ChildItem'       = Get-Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Command'         = Get-Command -Name Get-Command          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -518,8 +519,8 @@ LegacyNUnitXML.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values.
-Wildcard characters and Tag values that include spaces or whitespace characters
-are not supported.
+Wildcard characters are supported. Tag values that include spaces or whitespace
+ will be split into multiple tags on the whitespace.
 
 When you specify multiple Tag values, Invoke-Pester runs tests that have any
 of the listed tags (it ORs the tags). However, when you specify TestName
@@ -530,8 +531,8 @@ If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
 
 .PARAMETER ExcludeTag
 Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
-characters and Tag values that include spaces or whitespace characters are not
-supported.
+characters are supported. Tag values that include spaces or whitespace
+ will be split into multiple tags on the whitespace.
 
 When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
 any of the listed tags (it ORs the tags). However, when you specify TestName
@@ -824,6 +825,7 @@ New-PesterOption
         }
 
         $script:mockTable = @{}
+        Remove-MockFunctionsAndAliases
         $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption
 
         try
@@ -1160,6 +1162,18 @@ function Set-PesterStatistics($Node)
             $Node.Time += $action.Time
         }
     }
+}
+
+function Contain-AnyStringLike ($Filter, $Collection) {
+    foreach ($item in $Collection) {
+        foreach ($value in $Filter) {
+           if ($item -like $value)
+           {
+                return $true
+           }
+       }
+    }
+    return $false
 }
 
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"

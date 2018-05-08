@@ -1,3 +1,20 @@
+## 4.4.0-beta (May 6, 2018)
+ - Add wildcards for tags [GH-1038]
+ - Fix ps error in Pester tests on Linux [GH-1037]
+ - Fix dynamic module clean up after mock tests [GH-1036]
+ - Fix mocks clean up on start [GH-1035]
+ - Fix lessthan greaterthan assertion messages [GH-1034]
+ - Fix saving result files to the path provided as a PSDrive [GH-1033]
+ - Fix style rules for Pester dependencies  [GH-1031]
+ - Add error message to fail in Should -Not -Throw [GH-1027]
+ - Add FileContentMatchMultiline back among assertions. [GH-1023]
+ - Fix FileContentMatchMultiline [GH-1024]
+ - Fix file count in JaCoCo report [GH-1013]
+ - Fix issue template by using the -ListAvailable [GH-1001]
+ - Fix Add-AssertionOperator example [GH-1016]
+ - Fix spaces in DescribeImpl [GH-1019]
+ - Fix -FileContentMatch example [GH-1020]
+
 ## 4.3.1 (February 20, 2018)
   - Fix missing dependencies in packages
   

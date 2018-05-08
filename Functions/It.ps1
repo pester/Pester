@@ -344,7 +344,7 @@ function Get-ParameterDictionary
         [scriptblock] $ScriptBlock
     )
 
-    $guid = [guid]::NewGuid().Guid
+    $guid = [Guid]::NewGuid().Guid
 
     try
     {
