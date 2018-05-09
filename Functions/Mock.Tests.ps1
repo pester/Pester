@@ -330,6 +330,19 @@ Describe "When calling Mock on non-existing function" {
     }
 }
 
+Describe "When calling Mock on non existent module" {
+
+    It "Should throw correct error" {
+        $params = @{
+            CommandName = 'Invoke-MyMethod'
+            ModuleName = 'MyNonExistentModule'
+        }
+
+        { Mock @params -MockWith { write-host "my mock called!" } } | Should -Throw "No module named 'MyNonExistentModule' is currently loaded."
+    }
+
+}
+
 Describe 'When calling Mock, StrictMode is enabled, and variables are used in the ParameterFilter' {
     Set-StrictMode -Version Latest
 
