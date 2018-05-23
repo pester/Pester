@@ -127,15 +127,18 @@ Testing your scripts, and all pull requests on AppVeyor is extremely simple. Jus
 
 ```yml
 version: 1.0.{build}
-image: WMF 5
+image:
+- Visual Studio 2017
+- Ubuntu
 install:
-- ps: choco install pester
+- ps: Install-Module Pester -Force -SkipPublisherCheck -Scope CurrentUser
 build: off
 test_script:
 - ps: Invoke-Pester -EnableExit
 ```
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
+In case you do not need to test your scripts against PowerShell Core, just simply remove entire line mentioning Ubuntu.
 
 Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
