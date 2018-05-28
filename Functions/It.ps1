@@ -247,9 +247,11 @@ function Invoke-Test
 
     if ($null -eq $Parameters) { $Parameters = @{} }
 
+    $suppress = Test-PesterSuppression -TestGroupList $Pester.TestGroups -TestName $Name
+
     try
     {
-        if ($Skip)
+        if ($Skip -or $suppress)
         {
             $Pester.AddTestResult($Name, "Skipped", $null)
         }

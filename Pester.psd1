@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '4.4.0'
+ModuleVersion = '4.4.0.1'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -52,6 +52,9 @@ FunctionsToExport = @(
     'New-PesterOption'
     'New-MockObject'
     'Add-AssertionOperator'
+    'Add-PesterSuppression'
+    'Get-PesterSuppression'
+    'Clear-PesterSuppression'
 
     # Gherkin Support:
     'Invoke-Gherkin'

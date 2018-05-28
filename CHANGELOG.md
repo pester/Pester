@@ -1,3 +1,6 @@
+## Unreleased
+ - Add the suppression feature to skip tests
+
 ## 4.4.0-beta (May 6, 2018)
  - Add wildcards for tags [GH-1038]
  - Fix ps error in Pester tests on Linux [GH-1037]
