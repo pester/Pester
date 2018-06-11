@@ -604,7 +604,7 @@ Describe 'Invoke-Pester happy path returns only test results'  {
         $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
 
         # note - the pipe command unrolls enumerable objects, so we have to wrap
-        #        results in a sacificial array to retain its original structure
+        #        results in a sacrificial array to retain its original structure
         #        when passed to Should
         @(,$results) | Should -BeOfType [PSCustomObject];
         $results.TotalCount | Should -Be 1;
@@ -647,7 +647,7 @@ Describe 'Invoke-Pester swallows pipeline output from system-under-test'  {
         $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
 
         # note - the pipe command unrolls enumerable objects, so we have to wrap
-        #        results in a sacificial array to retain its original structure
+        #        results in a sacrificial array to retain its original structure
         #        when passed to Should
         @(,$results) | Should -BeOfType [PSCustomObject];
         $results.TotalCount | Should -Be 1;
@@ -690,7 +690,7 @@ Describe 'Invoke-Pester swallows pipeline output from test script'  {
         $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
 
         # note - the pipe command unrolls enumerable objects, so we have to wrap
-        #        results in a sacificial array to retain its original structure
+        #        results in a sacrificial array to retain its original structure
         #        when passed to Should
         @(,$results) | Should -BeOfType [PSCustomObject];
         $results.TotalCount | Should -Be 1;
