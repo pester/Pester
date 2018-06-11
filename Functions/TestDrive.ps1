@@ -1,6 +1,6 @@
 #
 function New-TestDrive ([Switch]$PassThru, [string] $Path) {
-    if ([string]::IsNullOrWhiteSpace($Path))
+    if ($Path -notmatch '\S')
     {
         $directory = New-RandomTempDirectory
     }
