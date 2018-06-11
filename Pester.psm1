@@ -851,7 +851,7 @@ New-PesterOption
                     Write-Describe $testScript.Path -CommandUsed Script
                     do
                     {
-                        & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        $testOutput = & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                     } until ($true)
                 }
                 catch
