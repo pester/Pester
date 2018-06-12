@@ -56,7 +56,7 @@ function Add-PesterSuppression
         $It
     )
 
-    $Script:PesterSuppression += [PSCustomObject] [Ordered] @{
+    $Script:PesterSuppression += [PSCustomObject] @{
         Script    = $Script
         Group     = $Group
         GroupFlat = $Group -join '\'
