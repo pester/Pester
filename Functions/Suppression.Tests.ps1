@@ -15,21 +15,22 @@ InModuleScope Pester {
             Add-PesterSuppression -Group 'My Group' -It 'My Test'
 
             # Assert
-            (Get-PesterSuppression)[0]        | Should -Not -BeNullOrEmpty
-            (Get-PesterSuppression)[0].Script | Should -Be '*'
+            $pesterSuppression        | Should -Not -BeNullOrEmpty
+            $pesterSuppression.Script | Should -Be '*'
         }
 
         It 'Should add a suppression entry' {
 
             # Act
             Add-PesterSuppression -Script 'MyScript.ps1' -Group 'My Group 1', 'My Group 2' -It 'My Test'
+            $pesterSuppression = Get-PesterSuppression | Select-Object -First 1
 
             # Assert
-            (Get-PesterSuppression)[0]          | Should -Not -BeNullOrEmpty
-            (Get-PesterSuppression)[0].Script   | Should -Be 'MyScript.ps1'
-            (Get-PesterSuppression)[0].Group[0] | Should -Be 'My Group 1'
-            (Get-PesterSuppression)[0].Group[1] | Should -Be 'My Group 2'
-            (Get-PesterSuppression)[0].It       | Should -Be 'My Test'
+            $pesterSuppression          | Should -Not -BeNullOrEmpty
+            $pesterSuppression.Script   | Should -Be 'MyScript.ps1'
+            $pesterSuppression.Group[0] | Should -Be 'My Group 1'
+            $pesterSuppression.Group[1] | Should -Be 'My Group 2'
+            $pesterSuppression.It       | Should -Be 'My Test'
         }
 
         It 'Should join the group array with a backslash' {
@@ -38,8 +39,8 @@ InModuleScope Pester {
             Add-PesterSuppression -Group 'My Demo *', '123.4', '$!?' -It '*'
 
             # Assert
-            (Get-PesterSuppression)[0]           | Should -Not -BeNullOrEmpty
-            (Get-PesterSuppression)[0].GroupFlat | Should -Be 'My Demo *\123.4\$!?'
+            $pesterSuppression           | Should -Not -BeNullOrEmpty
+            $pesterSuppression.GroupFlat | Should -Be 'My Demo *\123.4\$!?'
         }
     }
 
@@ -47,44 +48,44 @@ InModuleScope Pester {
 
         $testCases = @(
             @{
-                TestGroupList = [PSCustomObject] @{ Hint = 'Root';     Name = 'Pester' },
-                                [PSCustomObject] @{ Hint = 'Script';   Name = 'DemoScript.ps1' },
-                                [PSCustomObject] @{ Hint = 'Describe'; Name = 'My Group 1' },
-                                [PSCustomObject] @{ Hint = 'Context';  Name = 'My Group 2' }
+                TestGroupList = (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Root';     Name = 'Pester' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Script';   Name = 'DemoScript.ps1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Describe'; Name = 'My Group 1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Context';  Name = 'My Group 2' })
                 TestGroupName = 'MyScript.ps1 \ My Group 1 \ My Group 2'
                 TestName      = 'My Test'
                 Expected      = $false   # because the script does not match
             }
             @{
-                TestGroupList = [PSCustomObject] @{ Hint = 'Root';     Name = 'Pester' },
-                                [PSCustomObject] @{ Hint = 'Script';   Name = 'MyScript.ps1' },
-                                [PSCustomObject] @{ Hint = 'Describe'; Name = 'My Group 1' }
+                TestGroupList = (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Root';     Name = 'Pester' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Script';   Name = 'MyScript.ps1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Describe'; Name = 'My Group 1' })
                 TestGroupName = 'MyScript.ps1 \ My Group 1'
                 TestName      = 'My Test'
                 Expected      = $false   # because the group 'My Group 2' is missing
             }
             @{
-                TestGroupList = [PSCustomObject] @{ Hint = 'Root';     Name = 'Pester' },
-                                [PSCustomObject] @{ Hint = 'Script';   Name = 'MyScript.ps1' },
-                                [PSCustomObject] @{ Hint = 'Describe'; Name = 'My Group 1' },
-                                [PSCustomObject] @{ Hint = 'Context';  Name = 'My Group 2' }
+                TestGroupList = (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Root';     Name = 'Pester' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Script';   Name = 'MyScript.ps1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Describe'; Name = 'My Group 1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Context';  Name = 'My Group 2' })
                 TestGroupName = 'MyScript.ps1 \ My Group 1 \ My Group 2'
                 TestName      = 'My Test'
                 Expected      = $true   # match without any wildcards
             }
             @{
-                TestGroupList = [PSCustomObject] @{ Hint = 'Root';     Name = 'Pester' },
-                                [PSCustomObject] @{ Hint = 'Script';   Name = 'MyScript.ps1' },
-                                [PSCustomObject] @{ Hint = 'Describe'; Name = 'My Group 1' },
-                                [PSCustomObject] @{ Hint = 'Context';  Name = 'My Group 2' }
+                TestGroupList = (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Root';     Name = 'Pester' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Script';   Name = 'MyScript.ps1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Describe'; Name = 'My Group 1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Context';  Name = 'My Group 2' })
                 TestGroupName = 'MyScript.ps1 \ My Group 1 \ My Group 2'
                 TestName      = 'First Demo FOO BAR 123 $!? Wildcard'
                 Expected      = $true   # match by test name with the wildcard
             }
             @{
-                TestGroupList = [PSCustomObject] @{ Hint = 'Root';     Name = 'Pester' },
-                                [PSCustomObject] @{ Hint = 'Script';   Name = 'MyScript.ps1' },
-                                [PSCustomObject] @{ Hint = 'Describe'; Name = 'Second Demo FOO BAR 123 $!? Wildcard' }
+                TestGroupList = (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Root';     Name = 'Pester' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Script';   Name = 'MyScript.ps1' }),
+                                (New-Object -TypeName 'PSObject' -Property @{ Hint = 'Describe'; Name = 'Second Demo FOO BAR 123 $!? Wildcard' })
                 TestGroupName = 'MyScript.ps1 \ Second Demo FOO BAR 123 $!? Wildcard'
                 TestName      = 'My Test'
                 Expected      = $true   # match by group with the wildcard

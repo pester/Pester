@@ -68,6 +68,10 @@ function Add-PesterSuppression
     .SYNOPSIS
         Get all existing pester suppressions.
 
+    .DESCRIPTION
+        Get all existing pester suppressions from the module Pester suppression
+        variable.
+
     .EXAMPLE
         PS C:\> Get-PesterSuppression
         Get all existing pester suppressions.
@@ -89,6 +93,10 @@ function Get-PesterSuppression
 <#
     .SYNOPSIS
         Remove all existing pester suppressions.
+
+    .DESCRIPTION
+        Clear all existing pester suppressions from the module Pester
+        suppression variable.
 
     .EXAMPLE
         PS C:\> Clear-PesterSuppression
