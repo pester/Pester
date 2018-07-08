@@ -92,10 +92,6 @@ InModuleScope Pester {
         Context 'Test Name Filter' {
             $testState = New-PesterState -Path $TestDrive -TestNameFilter '*One*', 'Test Two'
 
-            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
-            # "2".  ("1" being the Tests.ps1 script that's active.)
-            $testState.EnterTestGroup('Mocked Script', 'Script')
-
             $testBlock = { MockMe }
 
             $cases = @(
@@ -122,10 +118,6 @@ InModuleScope Pester {
         Context 'Tags Filter' {
             $filter = 'Unit', 'Integ*'
             $testState = New-PesterState -Path $TestDrive -TagFilter $filter
-
-            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
-            # "2".  ("1" being the Tests.ps1 script that's active.)
-            $testState.EnterTestGroup('Mocked Script', 'Script')
 
             $testBlock = { MockMe }
 
@@ -161,10 +153,6 @@ InModuleScope Pester {
         Context 'Exclude Tags Filter' {
             $filter = 'Unit', 'Integ*'
             $testState = New-PesterState -Path $TestDrive -ExcludeTagFilter $filter
-
-            # This is necessary for now, Describe code assumes that filters should only apply at a stack depth of
-            # "2".  ("1" being the Tests.ps1 script that's active.)
-            $testState.EnterTestGroup('Mocked Script', 'Script')
 
             $testBlock = { MockMe }
 
