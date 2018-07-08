@@ -7,7 +7,8 @@ function New-PesterState
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
         [Pester.OutputTypes]$Show = 'All',
-        [object]$PesterOption
+        [object]$PesterOption,
+        [Switch]$RunningViaInvokePester
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -28,7 +29,7 @@ function New-PesterState
         }
     }
 
-    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
@@ -36,7 +37,8 @@ function New-PesterState
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
             [Pester.OutputTypes]$Show,
-            [object]$PesterOption
+            [object]$PesterOption,
+            [Switch]$RunningViaInvokePester
         )
 
         #public read-only
@@ -64,6 +66,7 @@ function New-PesterState
 
         $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
         $script:TestSuiteName       = $PesterOption.TestSuiteName
+        $script:RunningViaInvokePester = $RunningViaInvokePester
 
         $script:SafeCommands = @{}
 
@@ -343,7 +346,8 @@ function New-PesterState
         "TestActions",
         "TestGroupStack",
         "TestSuiteName",
-        "InTest"
+        "InTest",
+        "RunningViaInvokePester"
 
         $ExportedFunctions = "EnterTestGroup",
                              "LeaveTestGroup",
