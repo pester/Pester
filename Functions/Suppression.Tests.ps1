@@ -13,6 +13,7 @@ InModuleScope Pester {
 
             # Act
             Add-PesterSuppression -Group 'My Group' -It 'My Test'
+            $pesterSuppression = Get-PesterSuppression | Select-Object -First 1
 
             # Assert
             $pesterSuppression        | Should -Not -BeNullOrEmpty
@@ -37,6 +38,7 @@ InModuleScope Pester {
 
             # Act
             Add-PesterSuppression -Group 'My Demo *', '123.4', '$!?' -It '*'
+            $pesterSuppression = Get-PesterSuppression | Select-Object -First 1
 
             # Assert
             $pesterSuppression           | Should -Not -BeNullOrEmpty
