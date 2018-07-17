@@ -110,7 +110,8 @@ function DescribeImpl {
 
     Assert-DescribeInProgress -CommandName $CommandUsed
 
-    if ($Pester.TestGroupStack.Count -eq 2)
+    if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
+        (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
     {
         if ($Pester.TestNameFilter -and $Name) {
             if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {

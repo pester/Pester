@@ -387,6 +387,7 @@ Describe 'Set-StrictMode for all tests files' {
         Get-ChildItem $pesterRoot\* -Include *.Tests.ps1
         Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.Tests.ps1 -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.Tests.ps1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.Tests.ps1 -Recurse
     )
 
     It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
@@ -588,4 +589,132 @@ InModuleScope -ModuleName Pester {
                 Should -BeTrue
         }
     }
+}
+
+
+Describe 'Invoke-Pester happy path returns only test results'  {
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
+        function Invoke-MyFunction
+        {
+            return $true;
+        }
+'@;
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Value @'
+        . "TestDrive:\Invoke-MyFunction.ps1";
+        Describe "Invoke-MyFunction Tests" {
+            It "Should not throw" {
+                Invoke-MyFunction
+            }
+        }
+'@;
+
+    It "Should swallow test output with -PassThru" {
+
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+
+        # note - the pipe command unrolls enumerable objects, so we have to wrap
+        #        results in a sacrificial array to retain its original structure
+        #        when passed to Should
+        @(,$results) | Should -BeOfType [PSCustomObject];
+        $results.TotalCount | Should -Be 1;
+
+        # or, we could do this instead:
+        # ($results -is [PSCustomObject]) | Should -Be $true;
+        # $results.TotalCount | Should -Be 1;
+
+    }
+
+    It "Should swallow test output without -PassThru" {
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None";
+        $results | Should -Be $null;
+    }
+
+}
+
+
+Describe 'Invoke-Pester swallows pipeline output from system-under-test'  {
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
+        Write-Output "my system-under-test output";
+        function Invoke-MyFunction
+        {
+            return $true;
+        }
+'@;
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Value @'
+        . "TestDrive:\Invoke-MyFunction.ps1";
+        Describe "Invoke-MyFunction Tests" {
+            It "Should not throw" {
+                Invoke-MyFunction
+            }
+        }
+'@;
+
+    It "Should swallow test output with -PassThru" {
+
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+
+        # note - the pipe command unrolls enumerable objects, so we have to wrap
+        #        results in a sacrificial array to retain its original structure
+        #        when passed to Should
+        @(,$results) | Should -BeOfType [PSCustomObject];
+        $results.TotalCount | Should -Be 1;
+
+        # or, we could do this instead:
+        # ($results -is [PSCustomObject]) | Should -Be $true;
+        # $results.TotalCount | Should -Be 1;
+
+    }
+
+    It "Should swallow test output without -PassThru" {
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None";
+        $results | Should -Be $null;
+    }
+
+}
+
+
+Describe 'Invoke-Pester swallows pipeline output from test script'  {
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
+        function Invoke-MyFunction
+        {
+            return $true;
+        }
+'@;
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Value @'
+        . "TestDrive:\Invoke-MyFunction.ps1";
+        Write-Output "my test script output";
+        Describe "Invoke-MyFunction Tests" {
+            It "Should not throw" {
+                Invoke-MyFunction
+            }
+        }
+'@;
+
+    It "Should swallow test output with -PassThru" {
+
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+
+        # note - the pipe command unrolls enumerable objects, so we have to wrap
+        #        results in a sacrificial array to retain its original structure
+        #        when passed to Should
+        @(,$results) | Should -BeOfType [PSCustomObject];
+        $results.TotalCount | Should -Be 1;
+
+        # or, we could do this instead:
+        # ($results -is [PSCustomObject]) | Should -Be $true;
+        # $results.TotalCount | Should -Be 1;
+
+    }
+
+    It "Should swallow test output without -PassThru" {
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None";
+        $results | Should -Be $null;
+    }
+
 }

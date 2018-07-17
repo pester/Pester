@@ -260,7 +260,7 @@ function Invoke-Gherkin {
             }
         }
 
-        $pester = New-PesterState -TagFilter @($Tag -split "\s+") -ExcludeTagFilter ($ExcludeTag -split "\s") -TestNameFilter $ScenarioName -SessionState $PSCmdlet.SessionState -Strict $Strict  -Show $Show -PesterOption $PesterOption |
+        $pester = New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $PSCmdlet.SessionState -Strict $Strict  -Show $Show -PesterOption $PesterOption |
             & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
             & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
                 $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |

@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 $here = $MyInvocation.MyCommand.Path | Split-Path
 Import-Module $here/TypeClass.psm1 -DisableNameChecking
 

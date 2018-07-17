@@ -826,7 +826,7 @@ New-PesterOption
 
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try
         {
@@ -871,7 +871,7 @@ New-PesterOption
                     Write-Describe $testDesctiption -CommandUsed Script
                     do
                     {
-                        & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                     } until ($true)
                 }
                 catch

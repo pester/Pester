@@ -122,10 +122,10 @@ PrivateData = @{
         LicenseUri = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
-        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.4.0-beta'
+        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.4.0-beta2'
 
         # Prerelease string of this module
-        Prerelease = 'beta'
+        Prerelease = 'beta2'
     }
 }
 
