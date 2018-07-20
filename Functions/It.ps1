@@ -79,14 +79,14 @@ function Add-Numbers($a, $b) {
 }
 
 Describe "Add-Numbers" {
-    $testCases = @(
+    $TestCases = @(
         @{ a = 2;     b = 3;       expectedResult = 5 }
         @{ a = -2;    b = -2;      expectedResult = -4 }
         @{ a = -2;    b = 2;       expectedResult = 0 }
         @{ a = 'two'; b = 'three'; expectedResult = 'twothree' }
     )
 
-    It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $testCases {
+    It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $TestCases {
         param ($a, $b, $expectedResult)
 
         $sum = Add-Numbers $a $b
@@ -103,10 +103,10 @@ about_should
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
-        [string]$name,
+        [string] $Name,
 
         [Parameter(Position = 1)]
-        [ScriptBlock] $test = {},
+        [ScriptBlock] $Test = {},
 
         [System.Collections.IDictionary[]] $TestCases,
 
@@ -126,9 +126,9 @@ function ItImpl
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true, Position=0)]
-        [string]$name,
+        [string] $Name,
         [Parameter(Position = 1)]
-        [ScriptBlock] $test,
+        [ScriptBlock] $Test,
         [System.Collections.IDictionary[]] $TestCases,
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
@@ -154,12 +154,12 @@ function ItImpl
     }
 
     #the function is called with Pending or Skipped set the script block if needed
-    if ($null -eq $test) { $test = {} }
+    if ($null -eq $Test) { $Test = {} }
 
     #mark empty Its as Pending
     if ($PSVersionTable.PSVersion.Major -le 2 -and
         $PSCmdlet.ParameterSetName -eq 'Normal' -and
-        [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
+        [String]::IsNullOrEmpty((Remove-Comments $Test.ToString()) -replace "\s"))
     {
         $Pending = $true
     }
@@ -167,12 +167,12 @@ function ItImpl
     {
         #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
         # AST is not available also
-        $testIsEmpty =
-            [String]::IsNullOrEmpty($test.Ast.BeginBlock.Statements) -and
-            [String]::IsNullOrEmpty($test.Ast.ProcessBlock.Statements) -and
-            [String]::IsNullOrEmpty($test.Ast.EndBlock.Statements)
+        $TestIsEmpty =
+            [String]::IsNullOrEmpty($Test.Ast.BeginBlock.Statements) -and
+            [String]::IsNullOrEmpty($Test.Ast.ProcessBlock.Statements) -and
+            [String]::IsNullOrEmpty($Test.Ast.EndBlock.Statements)
 
-        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
+        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $TestIsEmpty)
         {
             $Pending = $true
         }
@@ -191,13 +191,13 @@ function ItImpl
 
     if ($null -ne $TestCases -and $TestCases.Count -gt 0)
     {
-        foreach ($testCase in $TestCases)
+        foreach ($TestCase in $TestCases)
         {
-            $expandedName = [regex]::Replace($name, '<([^>]+)>', {
+            $expandedName = [regex]::Replace($Name, '<([^>]+)>', {
                 $capture = $args[0].Groups[1].Value
-                if ($testCase.Contains($capture))
+                if ($TestCase.Contains($capture))
                 {
-                    Format-Nicely ($testCase[$capture])
+                    Format-Nicely ($TestCase[$capture])
                 }
                 else
                 {
@@ -207,9 +207,9 @@ function ItImpl
 
             $splat = @{
                 Name = $expandedName
-                Scriptblock = $test
-                Parameters = $testCase
-                ParameterizedSuiteName = $name
+                Scriptblock = $Test
+                Parameters = $TestCase
+                ParameterizedSuiteName = $Name
                 OutputScriptBlock = $OutputScriptBlock
             }
 
@@ -218,7 +218,7 @@ function ItImpl
     }
     else
     {
-        Invoke-Test -Name $name -ScriptBlock $test @pendingSkip -OutputScriptBlock $OutputScriptBlock
+        Invoke-Test -Name $Name -ScriptBlock $Test @pendingSkip -OutputScriptBlock $OutputScriptBlock
     }
 }
 
