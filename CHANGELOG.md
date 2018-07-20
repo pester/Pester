@@ -1,11 +1,9 @@
-## 4.4.0-beta2 (July 8, 2018)
-  - Run all tests in strict mode [GH-1041]
-  - Fix non-existent module check [GH-1040]
-  - Fix testdrive silent fails [GH-1059]
-  - Fix tags filter warning [GH-1073]
-  - Remove splitting on tags [GH-1074]
-
-## 4.4.0-beta (May 6, 2018)
+## 4.4.0 (July 20, 2018)
+ - Run all tests in strict mode [GH-1041]
+ - Fix non-existent module check [GH-1040]
+ - Fix testdrive silent fails [GH-1059]
+ - Fix tags filter warning [GH-1073]
+ - Remove splitting on tags [GH-1074]
  - Add wildcards for tags [GH-1038]
  - Fix ps error in Pester tests on Linux [GH-1037]
  - Fix dynamic module clean up after mock tests [GH-1036]
