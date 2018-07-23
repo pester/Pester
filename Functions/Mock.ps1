@@ -128,16 +128,16 @@ New-Module -Name ModuleMockExample  -ScriptBlock {
 Describe "ModuleMockExample" {
 
     It "Hidden function is not directly accessible outside the module" {
-        { Hidden } | Should Throw
+        { Hidden } | Should -Throw
     }
 
     It "Original Hidden function is called" {
-        Exported | Should Be "Internal Module Function"
+        Exported | Should -Be "Internal Module Function"
     }
 
     It "Hidden is replaced with our implementation" {
         Mock Hidden { "Mocked" } -ModuleName ModuleMockExample
-        Exported | Should Be "Mocked"
+        Exported | Should -Be "Mocked"
     }
 }
 
@@ -281,11 +281,11 @@ about_Mocking
         }
 
         $EscapeSingleQuotedStringContent =
-            if ($global:PSVersionTable.PSVersion.Major -ge 5) {
-                { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
-            } else {
-                { $args[0] -replace "['‘’‚‛]", '$&$&' }
-            }
+        if ($global:PSVersionTable.PSVersion.Major -ge 5) {
+            { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
+        } else {
+            { $args[0] -replace "['‘’‚‛]", '$&$&' }
+        }
 
         $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
         $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
@@ -332,7 +332,7 @@ about_Mocking
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
             Aliases                 = @()
-            BootstrapFunctionName   = [Guid]::NewGuid().ToString()
+            BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
@@ -422,7 +422,7 @@ This will not throw an exception because the mock was invoked.
             $function = $array[1]
             $module = $array[0]
 
-            $message = "`r`n Expected $function "
+            $message = "$([System.Environment]::NewLine) Expected $function "
             if ($module) { $message += "in module $module " }
             $message += "to be called with $($unVerified[$mock].Filter)"
         }
@@ -660,7 +660,7 @@ param(
         }
     }
 
-    $lineText = $MyInvocation.Line.TrimEnd("`n")
+    $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
     $line = $MyInvocation.ScriptLineNumber
 
     if($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0)))
@@ -1294,13 +1294,16 @@ function Get-DynamicParamBlock
     }
     else
     {
-        if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+        If ( $ScriptBlock.AST.psobject.Properties.Name -match "Body")
         {
-            $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                          & $SafeCommands['Select-Object'] -ExpandProperty Extent |
-                          & $SafeCommands['Select-Object'] -ExpandProperty Text
+            if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock)
+            {
+                $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Extent |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Text
 
-            return $statements -join "`r`n"
+                return $statements -join "$([System.Environment]::NewLine)"
+            }
         }
     }
 }
@@ -1381,7 +1384,7 @@ function Get-DynamicParametersForCmdlet
         return
     }
 
-    if ($PSVersionTable.PSVersion -ge '5.0.10586.122')
+    if ('5.0.10586.122' -lt $PSVersionTable.PSVersion)
     {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
@@ -1497,4 +1500,23 @@ function Test-IsClosure
         $module.Name -match '^__DynamicModule_([a-f\d-]+)$' -and
         $null -ne ($matches[1] -as [guid])
     )
+}
+
+function Remove-MockFunctionsAndAliases {
+    # when a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
+    # the aliases and bootstrap functions for the currently mocked functions will remain in place
+    # Then on subsequent runs the bootstrap function will be picked up instead of the real command,
+    # because there is still an alias associated with it, and the test will fail.
+    # So before putting Pester state in place we should make sure that all Pester mocks are gone
+    # by deleting every alias pointing to a function that starts with PesterMock_. Then we also delete the
+    # bootstrap function.
+    foreach ($alias in (& $script:SafeCommands['Get-Alias'] -Definition "PesterMock_*"))
+    {
+        & $script:SafeCommands['Remove-Item'] "alias:/$($alias.Name)"
+    }
+
+    foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*"))
+    {
+        & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
+    }
 }

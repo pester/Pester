@@ -7,7 +7,8 @@ function New-PesterState
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
         [Pester.OutputTypes]$Show = 'All',
-        [object]$PesterOption
+        [object]$PesterOption,
+        [Switch]$RunningViaInvokePester
     )
 
     if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
@@ -28,7 +29,7 @@ function New-PesterState
         }
     }
 
-    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
@@ -36,7 +37,8 @@ function New-PesterState
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
             [Pester.OutputTypes]$Show,
-            [object]$PesterOption
+            [object]$PesterOption,
+            [Switch]$RunningViaInvokePester
         )
 
         #public read-only
@@ -67,6 +69,7 @@ function New-PesterState
 
         $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
         $script:TestSuiteName       = $PesterOption.TestSuiteName
+        $script:RunningViaInvokePester = $RunningViaInvokePester
 
         $script:SafeCommands = @{}
 
@@ -131,6 +134,16 @@ function New-PesterState
                 [System.Management.Automation.ErrorRecord] $ErrorRecord
             )
 
+            # defining this function in here, because otherwise it is not available
+            function New-ErrorRecord ([string] $Message, [string] $ErrorId, [string] $File, [string] $Line, [string] $LineText) {
+                $exception = & $SafeCommands['New-Object'] Exception $Message
+                $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
+                # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
+                $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
+                $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $ErrorID, $errorCategory, $targetObject
+                return $errorRecord
+            }
+
             $previousTime = $script:MostRecentTimestamp
             $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
 
@@ -149,6 +162,7 @@ function New-PesterState
                 if (($Result -eq "Skipped") -or ($Result -eq "Pending"))
                 {
                     $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
+                    $ErrorRecord = New-ErrorRecord -ErrorId 'PesterTestInconclusive' -Message $FailureMessage
                     $Result = "Failed"
                 }
 
@@ -337,7 +351,8 @@ function New-PesterState
         "TestActions",
         "TestGroupStack",
         "TestSuiteName",
-        "InTest"
+        "InTest",
+        "RunningViaInvokePester"
 
         $ExportedFunctions = "EnterTestGroup",
                              "LeaveTestGroup",

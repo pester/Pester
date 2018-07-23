@@ -40,22 +40,22 @@ function Add-Numbers($a, $b) {
 Describe "Add-Numbers" {
     It "adds positive numbers" {
         $sum = Add-Numbers 2 3
-        $sum | Should Be 5
+        $sum | Should -Be 5
     }
 
     It "adds negative numbers" {
         $sum = Add-Numbers (-2) (-2)
-        $sum | Should Be (-4)
+        $sum | Should -Be (-4)
     }
 
     It "adds one negative number to positive number" {
         $sum = Add-Numbers (-2) 2
-        $sum | Should Be 0
+        $sum | Should -Be 0
     }
 
     It "concatenates strings if given strings" {
         $sum = Add-Numbers two three
-        $sum | Should Be "twothree"
+        $sum | Should -Be "twothree"
     }
 }
 
@@ -86,6 +86,7 @@ about_TestDrive
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
+        Remove-MockFunctionsAndAliases
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
         $script:mockTable = @{}
     }
@@ -130,16 +131,25 @@ function DescribeImpl {
 
     Assert-DescribeInProgress -CommandName $CommandUsed
 
-    if ($Pester.TestGroupStack.Count -eq 2)
+    if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
+        (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
     {
-        if($Pester.TestNameFilter-and -not ($Pester.TestNameFilter | & $SafeCommands['Where-Object'] { $Name -like $_ }))
-        {
-            #skip this test
-            return
+        if ($Pester.TestNameFilter -and $Name) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
+                return
+            }
+        }
+        if ($Pester.TagFilter -and $Tag) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
+                return
+            }
         }
 
-        if($Pester.TagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-        if($Pester.ExcludeTagFilter -and @(& $SafeCommands['Compare-Object'] $Tag $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
+        if ($Pester.ExcludeTagFilter -and $Tag) {
+            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
+                return
+            }
+        }
     }
     else
     {
@@ -200,7 +210,7 @@ function DescribeImpl {
     }
     catch
     {
-        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
+        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split "$([System.Environment]::NewLine)" | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult("Error occurred in $CommandUsed block", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
         if ($null -ne $TestOutputBlock)
         {

@@ -1,8 +1,4 @@
-# Pester
-# Version: $version$
-# Changeset: $sha$
-
-if ($PSVersionTable.PSVersion.Major -ge 3)
+﻿if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
     $outNullModule = 'Microsoft.PowerShell.Core'
@@ -39,18 +35,23 @@ $script:SafeCommands = @{
     'Export-ModuleMember' = Get-Command -Name Export-ModuleMember  -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'ForEach-Object'      = Get-Command -Name ForEach-Object       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Format-Table'        = Get-Command -Name Format-Table         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Alias'           = Get-Command -Name Get-Alias            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-ChildItem'       = Get-Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Command'         = Get-Command -Name Get-Command          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Date'            = Get-Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Item'            = Get-Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-ItemProperty'     = Get-Command -Name Get-ItemProperty        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Location'        = Get-Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Member'          = Get-Command -Name Get-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Module'          = Get-Command -Name Get-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-PSDrive'         = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-PSCallStack'      = Get-Command -Name Get-PSCallStack         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Unique'           = Get-Command -Name Get-Unique              -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-Variable'        = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Group-Object'        = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Import-LocalizedData'= Get-Command -Name Import-LocalizedData -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-LocalizedData' = Get-Command -Name Import-LocalizedData    -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-Module'        = Get-Command -Name Import-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Join-Path'           = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Measure-Object'      = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'New-Item'            = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -71,6 +72,7 @@ $script:SafeCommands = @{
     'Resolve-Path'        = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Select-Object'       = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-Content'         = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-Location'         = Get-Command -Name Set-Location            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-StrictMode'      = Get-Command -Name Set-StrictMode       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Set-Variable'        = Get-Command -Name Set-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
@@ -86,8 +88,8 @@ $script:SafeCommands = @{
     'Write-Warning'       = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
-# Not all platforms have Get-WmiObject (Nano)
-# Get-CimInstance is prefered, but we can use Get-WmiObject if it exists
+# Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta.x on Linux)
+# Get-CimInstance is preferred, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
 if ( Get-Command -ea SilentlyContinue Get-CimInstance )
@@ -142,6 +144,8 @@ function Assert-ValidAssertionAlias
     }
 }
 
+function Add-AssertionOperator
+{
 <#
 .SYNOPSIS
     Register an Assertion Operator with Pester
@@ -158,7 +162,7 @@ function Assert-ValidAssertionAlias
         {
             if ($Negate)
             {
-                $failureMessage = "{$ActualValue} is not Awesome"
+                $failureMessage = "{$ActualValue} is Awesome"
             }
             else
             {
@@ -179,7 +183,7 @@ function Assert-ValidAssertionAlias
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
 .PARAMETER Name
-    The name of the assetion. This will become a Named Parameter of Should.
+    The name of the assertion. This will become a Named Parameter of Should.
 .PARAMETER Test
     The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
 .PARAMETER Alias
@@ -187,8 +191,6 @@ function Assert-ValidAssertionAlias
 .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
 #>
-function Add-AssertionOperator
-{
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -312,7 +314,9 @@ function Add-AssertionDynamicParameterSet
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values)
     {
+        # common parameters that are already defined
         if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not' -or $parameter.Name -eq 'Negate') { continue }
+
 
         if ($script:AssertionOperators.ContainsKey($parameter.Name) -or $script:AssertionAliases.ContainsKey($parameter.Name))
         {
@@ -333,11 +337,19 @@ function Add-AssertionDynamicParameterSet
         }
         else
            {
-            # We deliberatey use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
+            # We deliberately use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
             # We also don't bother to try to copy transformation / validation attributes here for the same reason.
             # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
 
-            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($parameter.Name, [object], (New-Object System.Collections.ObjectModel.Collection[Attribute]))
+            # few years later: using [object] causes problems with switch params (in my case -PassThru), because then we cannot use them without defining a value
+            # so for switches we must prefer the conflicts over type
+            if ([switch] -eq $parameter.ParameterType) {
+                $type = [switch]
+            } else {
+                $type = [object]
+            }
+
+            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($parameter.Name, $type, (New-Object System.Collections.ObjectModel.Collection[Attribute]))
             $null = $script:AssertionDynamicParams.Add($parameter.Name, $dynamic)
         }
 
@@ -366,6 +378,12 @@ $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
 & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
+if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
+    # sub-modules
+    & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
+    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+}
+
 Add-Type -TypeDefinition @"
 using System;
 
@@ -391,7 +409,7 @@ namespace Pester
 }
 "@
 
-function Has-Flag  {
+function Has-Flag {
      param
      (
          [Parameter(Mandatory = $true)]
@@ -501,8 +519,8 @@ LegacyNUnitXML.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values.
-Wildcard characters and Tag values that include spaces or whitespace characters
-are not supported.
+Wildcard characters are supported. Tag values that include spaces or whitespace
+ will be split into multiple tags on the whitespace.
 
 When you specify multiple Tag values, Invoke-Pester runs tests that have any
 of the listed tags (it ORs the tags). However, when you specify TestName
@@ -513,8 +531,8 @@ If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
 
 .PARAMETER ExcludeTag
 Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
-characters and Tag values that include spaces or whitespace characters are not
-supported.
+characters are supported. Tag values that include spaces or whitespace
+ will be split into multiple tags on the whitespace.
 
 When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
 any of the listed tags (it ORs the tags). However, when you specify TestName
@@ -574,14 +592,14 @@ One of the following: Function or StartLine/EndLine
 The path where Invoke-Pester will save formatted code coverage results file.
 
 The path must include the location and name of the folder and file name with
-a required extension (ussually the xml).
+a required extension (usually the xml).
 
 If this path is not provided, no file will be generated.
 
 .PARAMETER CodeCoverageOutputFileFormat
 The name of a code coverage report file format.
 
-Default vaule is: JaCoCo.
+Default value is: JaCoCo.
 
 Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
@@ -688,7 +706,7 @@ name of the It block that contains the test.
 
 The fourth command uses an array index to get the first failing result. The
 property values describe the test, the expected result, the actual result, and
-useful values, including a stack tace.
+useful values, including a stack trace.
 
 .Example
 Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
@@ -785,7 +803,7 @@ New-PesterOption
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
-        #Fallback to en-US culture strings
+        # Fallback to en-US culture strings
         If ([String]::IsNullOrEmpty($ReportStrings)) {
 
             & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
@@ -806,7 +824,8 @@ New-PesterOption
         }
 
         $script:mockTable = @{}
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption
+        Remove-MockFunctionsAndAliases
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try
         {
@@ -864,7 +883,7 @@ New-PesterOption
                     Write-Describe $testScript.Path -CommandUsed Script
                     do
                     {
-                        & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        $testOutput = & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                     } until ($true)
                 }
                 catch
@@ -911,7 +930,7 @@ New-PesterOption
         }
 
     if ($PassThru) {
-        #remove all runtime properties like current* and Scope
+        # Remove all runtime properties like current* and Scope
         $properties = @(
             "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
 
@@ -1147,6 +1166,18 @@ function Set-PesterStatistics($Node)
     }
 }
 
+function Contain-AnyStringLike ($Filter, $Collection) {
+    foreach ($item in $Collection) {
+        foreach ($value in $Filter) {
+           if ($item -like $value)
+           {
+                return $true
+           }
+       }
+    }
+    return $false
+}
+
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
 if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     ($null -ne $psISE) -and
@@ -1173,9 +1204,10 @@ https://github.com/pester/Pester/issues/880
 
 #>
 
-[CmdletBinding()]param()
+[CmdletBinding()]
+param()
 
-"This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
 
 }
 
@@ -1184,5 +1216,5 @@ https://github.com/pester/Pester/issues/880
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
-& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Invoke-GherkinStep, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
+& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator

@@ -593,16 +593,17 @@ function Get-JaCoCoReportXml {
     }
 
     $allCommands = $CoverageReport.MissedCommands + $CoverageReport.HitCommands
-    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
-    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -uniq ).Count
+    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
+    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
     [long]$missedFunctions = $totalFunctions - $hitFunctions
 
-    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
-    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -uniq ).Count
+    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
+    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
     [long]$missedLines = $totalLines - $hitLines
 
     [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
-    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -uniq ).Count
+
+    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -Unique ).Count
     [long]$missedFiles = $totalFiles - $hitFiles
 
     $now = & $SafeCommands['Get-Date']
@@ -611,18 +612,17 @@ function Get-JaCoCoReportXml {
     [long]$startTime = [math]::Floor($endTime - $PesterState.Time.TotalSeconds*1000)
 
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
-    $jaCoCoReport += "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>`n"
-    $jaCoCoReport += "<report name="""">`n"
-    $jaCoCoReport += "<sessioninfo id=""this"" start="""" dump="""" />`n"
-
+    $jaCoCoReport = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>$([System.Environment]::NewLine)"
+    $jaCoCoReport += "<report name="""">$([System.Environment]::NewLine)"
+    $jaCoCoReport += "<sessioninfo id=""this"" start="""" dump="""" />$([System.Environment]::NewLine)"
     if ($DetailedCodeCoverage)
     {
-        $jaCoCoReport += "<package name=""Powershell""/>`n"
+        $jaCoCoReport += "<package name=""Powershell""/>$([System.Environment]::NewLine)"
     }
-    $jaCoCoReport += "<counter type=""INSTRUCTION"" missed="""" covered=""""/>`n"
-    $jaCoCoReport += "<counter type=""LINE"" missed="""" covered=""""/>`n"
-    $jaCoCoReport += "<counter type=""METHOD"" missed="""" covered=""""/>`n"
-    $jaCoCoReport += "<counter type=""CLASS"" missed="""" covered=""""/>`n"
+    $jaCoCoReport += "<counter type=""INSTRUCTION"" missed="""" covered=""""/>"
+    $jaCoCoReport += "<counter type=""LINE"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
+    $jaCoCoReport += "<counter type=""METHOD"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
+    $jaCoCoReport += "<counter type=""CLASS"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
     $jaCoCoReport += "</report>"
 
     [xml] $jaCoCoReportXml = $jaCoCoReport
@@ -633,8 +633,8 @@ function Get-JaCoCoReportXml {
     if ($DetailedCodeCoverage)
     {
 
-        $fileName = "";
-        $lineNr = -1;
+        $fileName = ""
+        $lineNr = -1
         $report = $jaCoCoReportXml.ChildNodes[1]
         $package = $report.ChildNodes[1]
         $mi = 0
@@ -712,6 +712,6 @@ function Get-JaCoCoReportXml {
     $jaCoCoReportXml.report.counter[3].missed = $missedFiles.ToString()
     $jaCoCoReportXml.report.counter[3].covered = $hitFiles.ToString()
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
-    $jaCoCoReportDocType = "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">`n"
+    $jaCoCoReportDocType = "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">$([System.Environment]::NewLine)"
     return $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
 }

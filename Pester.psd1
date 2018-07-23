@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '4.0.8'
+ModuleVersion = '4.4.0'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -110,7 +110,7 @@ PrivateData = @{
         Category = "Scripting Techniques"
 
         # Keyword tags to help users find this module via navigations and search.
-        Tags = @('powershell','unit_testing','bdd','tdd','mocking')
+        Tags = @('powershell','unit_testing','bdd','tdd','mocking','PSEdition_Core','PSEdition_Desktop')
 
         # The web address of an icon which can be used in galleries to represent this module
         IconUri = 'https://raw.githubusercontent.com/pester/Pester/master/doc/pester.PNG'
@@ -122,13 +122,10 @@ PrivateData = @{
         LicenseUri = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
-        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.0.8'
+        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.4.0'
 
-        # If true, the LicenseUrl points to an end-user license (not just a source license) which requires the user agreement before use.
-        # RequireLicenseAcceptance = ""
-
-        # Indicates this is a pre-release/testing version of the module.
-        IsPrerelease = 'False'
+        # Prerelease string of this module
+        Prerelease = ''
     }
 }
 

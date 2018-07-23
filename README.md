@@ -1,5 +1,4 @@
 # Pester
-> :fire: We recently released Pester 4 and there are breaking changes, please see [release notes](https://github.com/pester/Pester/releases/tag/4.0.7) and [migration guide](https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4).
 
 Pester is the ubiquitous test and mock framework for PowerShell.
 
@@ -55,7 +54,8 @@ Learn more about the [usage and syntax](https://github.com/Pester/Pester/wiki) o
 
 ## Installation
 
-Pester is compatible with Windows 10, 8, 7, Vista and even 2003. We are also working hard on making it run on Linux and MacOS.
+Pester is compatible with Windows PowerShell 2.x - 5.x on Windows 10, 8, 7, Vista and even 2003.
+Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Windows, Linux, macOS but with some [limitations](https://github.com/pester/Pester/wiki/Pester-on-PSCore-limitations).
 
 Pester comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
@@ -137,13 +137,18 @@ test_script:
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
 
-Pester itself is build on the [community build server](build.powershell.org).
+Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
-[![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:Pester_TestPester)/statusIcon)](https://build.powershell.org/project.html?projectId=Pester&tab=projectOverview&guest=1)
+
+ [![windows build](https://img.shields.io/teamcity/http/build.powershell.org/s/Pester_TestPester.svg?label=windows+build)](https://build.powershell.org/project.html?projectId=Pester)
+ [![linux/macos build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
+[![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester)
+[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+
 
 ## Further reading
 
-Do you like what you see? Learn how to use Pester with our [Getting started guide](https://github.com/pester/Pester/wiki/Getting-started-with-Pester), and continue with some of the other [resources](https://github.com/pester/Pester/wiki/Articles-and-other-resources).
+Do you like what you see? Learn how to use Pester with our [wiki guide](https://github.com/Pester/Pester/wiki), and continue with some of the other [resources](https://github.com/pester/Pester/wiki/Articles-and-other-resources).
 
 ## Got questions?
 
@@ -153,3 +158,4 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 [![Pester on StackOverflow](doc/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
 [![Testing channel on Powershell Slack](doc/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
 [![Pester Gitter](doc/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Pester on PowerShell.org](doc/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)

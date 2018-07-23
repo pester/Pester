@@ -1,4 +1,4 @@
-function PesterFileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate) {
+function PesterFileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate, $Because) {
     $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -match $ExpectedContent).Count -gt 0
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +9,11 @@ function PesterFileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = NotPesterFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
         else
         {
-            $failureMessage = PesterFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = PesterFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
     }
 
@@ -23,12 +23,12 @@ function PesterFileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate
     }
 }
 
-function PesterFileContentMatchFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected: file {$ActualValue} to contain {$ExpectedContent}"
+function PesterFileContentMatchFailureMessage($ActualValue, $ExpectedContent, $Because) {
+    return "Expected $(Format-Nicely $ExpectedContent) to be found in file '$ActualValue',$(Format-Because $Because) but it was not found."
 }
 
-function NotPesterFileContentMatchFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected: file {$ActualValue} to not contain {$ExpectedContent} but it did"
+function NotPesterFileContentMatchFailureMessage($ActualValue, $ExpectedContent, $Because) {
+    return "Expected $(Format-Nicely $ExpectedContent) to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
 }
 
 Add-AssertionOperator -Name FileContentMatch `

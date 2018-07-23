@@ -39,7 +39,7 @@ function InModuleScope
     InModuleScope MyModule {
         Describe 'Testing MyModule' {
             It 'Tests the Private function' {
-                PrivateFunction | Should Be $true
+                PrivateFunction | Should -Be $true
             }
         }
     }
@@ -109,6 +109,11 @@ function Get-ScriptModule
     }
 
     $scriptModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -eq 'Script' })
+
+    if ($modules.Count -eq 0)
+    {
+        throw "No module named '$ModuleName' is currently loaded."
+    }
 
     if ($scriptModules.Count -gt 1)
     {

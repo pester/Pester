@@ -1,4 +1,4 @@
-function PesterFileContentMatchExactly($ActualValue, $ExpectedContent, [switch] $Negate) {
+function PesterFileContentMatchExactly($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
     $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -cmatch $ExpectedContent).Count -gt 0
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +9,11 @@ function PesterFileContentMatchExactly($ActualValue, $ExpectedContent, [switch] 
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterFileContentMatchExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = NotPesterFileContentMatchExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
         else
         {
-            $failureMessage = PesterFileContentMatchExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent
+            $failureMessage = PesterFileContentMatchExactlyFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
     }
 
@@ -24,11 +24,11 @@ function PesterFileContentMatchExactly($ActualValue, $ExpectedContent, [switch] 
 }
 
 function PesterFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected: file {$ActualValue} to contain exactly {$ExpectedContent}"
+    return "Expected $(Format-Nicely $ExpectedContent) to be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
 }
 
 function NotPesterFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedContent) {
-    return "Expected: file {$ActualValue} to not contain exactly {$ExpectedContent} but it did"
+    return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
 Add-AssertionOperator -Name FileContentMatchExactly `

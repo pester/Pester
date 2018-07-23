@@ -1,5 +1,69 @@
-## Unreleased
+## 4.4.0 (July 20, 2018)
+ - Run all tests in strict mode [GH-1041]
+ - Fix non-existent module check [GH-1040]
+ - Fix testdrive silent fails [GH-1059]
+ - Fix tags filter warning [GH-1073]
+ - Remove splitting on tags [GH-1074]
+ - Add wildcards for tags [GH-1038]
+ - Fix ps error in Pester tests on Linux [GH-1037]
+ - Fix dynamic module clean up after mock tests [GH-1036]
+ - Fix mocks clean up on start [GH-1035]
+ - Fix lessthan greaterthan assertion messages [GH-1034]
+ - Fix saving result files to the path provided as a PSDrive [GH-1033]
+ - Fix style rules for Pester dependencies  [GH-1031]
+ - Add error message to fail in Should -Not -Throw [GH-1027]
+ - Add FileContentMatchMultiline back among assertions. [GH-1023]
+ - Fix FileContentMatchMultiline [GH-1024]
+ - Fix file count in JaCoCo report [GH-1013]
+ - Fix issue template by using the -ListAvailable [GH-1001]
+ - Fix Add-AssertionOperator example [GH-1016]
+ - Fix spaces in DescribeImpl [GH-1019]
+ - Fix -FileContentMatch example [GH-1020]
+
+## 4.3.1 (February 20, 2018)
+  - Fix missing dependencies in packages
+  
+## 4.3.0 (February 20, 2018)
+  - Add tests for help [GH-997]
+  - Update output in assertions [GH-996]
+  - Fix stack trace output in assertions [GH-992]
+  - Add examples for gherkin [GH-994] [GH-995]
+
+## 4.2.0 (February 18, 2018)
+  - Update should documentation [GH-990]
+  - Add tags PSEdition_Core, PSEdition_Desktop [GH-978]
+  - Add Get-ScriptModule error message with link to wiki [GH-945]
+  - Fix Write-PesterStart [GH-964]
+  - Fix AfterAll synopsis [GH-975]
+  - Fix detection of empty tests [GH-835]
+  - Add -Because parameters to all assertions [GH-959]
+  - Add -BeLessOrEqual and -BeGreaterOrEqual
+  - Add -Contain (that operates on arrays)
+  - Add -BeLikeExactly
+  - Add -HaveType alias to -BeOfType
+  - Fix assertion messages in -BeOfType
+  - Throw argument exception when -BeOfType is given type that is not loaded
+  - Add -PassThru to -Throw to get the exception when some is thrown and passes the filters
+  - Add -BeTrue to test for truthy values
+  - Add -BeFalse to test for falsy values
+  - Add -HaveCount to count stuff in collections
+  - Load dependencies optionally, because they are not part of the package build
+  - Should Throw filters on exception type [GH-954]
+
+## 4.1.1 (December 09, 2017)
+  - Fix deployment scripts and package on choco and nuget
+  
+## 4.1.0 (November 15, 2017)
+  - Help for the Assert-VerifiableMocks function added [GH-883]
   - Add-AssertionOperator can be called multiple times for identical parameters without errors.  [GH-893]
+  - Update Pester to work on PowerShell Core at Windows, Linux, macOS [GH-925]
+  - Throw on Assert-VerifiableMocks [GH-918]
+  - Update a syntax of Should for the Pester v4 notation [GH-903]
+  - Syntax for the Should operator updated in Pester tests itself, an about_* documentation, examples [GH-910]
+  - Remove progress to make execution faster and fix linux formatting [GH-938]
+  - Invoke-Pester -Strict fails with internal pester error [GH-886]
+    due to the prefered syntax change introduced in Pester v4 [GH-903]
+  - Fix Gherkin for Linux [GH-937] and PS2 [GH-942]
 
 ## 4.0.8 (September 15, 2017)
   - Add Assert-VerifiableMocks that throws [GH-881]

@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 InModuleScope -ModuleName Pester {
     Describe 'GetPesterPsVersion' {
         Mock Get-Variable
@@ -23,7 +25,7 @@ InModuleScope -ModuleName Pester {
         Context "Windows with PowerShell 6 and higher" {
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $true }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
-            Mock Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -MockWith { $false }
+            Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
             Mock GetPesterPsVersion { 6 }
 
             $os = GetPesterOs
@@ -31,7 +33,7 @@ InModuleScope -ModuleName Pester {
                 $os | Should -Be 'Windows'
             }
 
-            It "Uses Get-Variable to retreive IsWindows" {
+            It "Uses Get-Variable to retrieve IsWindows" {
                 # IsWindows is a constant and cannot be overwritten, so check that we are using
                 # Get-Variable to access its value, which allows us to mock it easily without
                 # depending on the OS
@@ -43,7 +45,7 @@ InModuleScope -ModuleName Pester {
         Context "Linux with PowerShell 6 and higher" {
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $true }
-            Mock Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -MockWith { $false }
+            Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
             Mock GetPesterPsVersion { 6 }
 
             $os = GetPesterOs
@@ -51,24 +53,24 @@ InModuleScope -ModuleName Pester {
                 $os | Should -Be 'Linux'
             }
 
-            It "Uses Get-Variable to retreive IsLinux" {
+            It "Uses Get-Variable to retrieve IsLinux" {
                 Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -Exactly 1
             }
         }
 
-        Context "OSx with PowerShell 6 and higher" {
+        Context "macOS with PowerShell 6 and higher" {
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
             Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
-            Mock Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -MockWith { $true }
+            Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $true }
             Mock GetPesterPsVersion { 6 }
 
             $os = GetPesterOs
-            It "Returns 'OSX' when `$IsOSX is `$true and powershell version is 6 or higher" {
-                $os | Should -Be 'OSX'
+            It "Returns 'OSX' when `$IsMacOS is `$true and powershell version is 6 or higher" {
+                $os | Should -Be 'macOS'
             }
 
-            It "Uses Get-Variable to retreive IsOSX" {
-                Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsOSX' -and $ValueOnly } -Exactly 1
+            It "Uses Get-Variable to retrieve IsMacOS" {
+                Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1
             }
         }
     }
