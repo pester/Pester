@@ -108,7 +108,7 @@ about_should
         [Parameter(Position = 1)]
         [ScriptBlock] $Test = {},
 
-        [System.Collections.IDictionary[]] $testCases,
+        [System.Collections.IDictionary[]] $TestCases,
 
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
@@ -126,10 +126,10 @@ function ItImpl
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true, Position=0)]
-        [string] $Name,
+        [string]$Name,
         [Parameter(Position = 1)]
         [ScriptBlock] $Test,
-        [System.Collections.IDictionary[]] $testCases,
+        [System.Collections.IDictionary[]] $TestCases,
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
 
@@ -189,9 +189,9 @@ function ItImpl
         $pendingSkip['Pending'] = $Pending
     }
 
-    if ($null -ne $testCases -and $testCases.Count -gt 0)
+    if ($null -ne $TestCases -and $TestCases.Count -gt 0)
     {
-        foreach ($testCase in $testCases)
+        foreach ($testCase in $TestCases)
         {
             $expandedName = [regex]::Replace($Name, '<([^>]+)>', {
                 $capture = $args[0].Groups[1].Value
