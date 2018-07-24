@@ -24,7 +24,7 @@ Operating System, Pester version, and PowerShell version:
 
 ```powershell
 $bugReport = &{
-    $p = get-module pester
+    $p = Get-Module -Name Pester | Select-Object -First 1
     "Pester version     : " + $p.Version + " " + $p.Path
     "PowerShell version : " + $PSVersionTable.PSVersion
     "OS version         : " + [System.Environment]::OSVersion.VersionString
@@ -32,6 +32,8 @@ $bugReport = &{
 $bugReport
 $bugReport | clip
 ```
+
+If you use Pester from a folder not included in the Env:PSModulePath please change a provided code accordingly.
 
 -->
 
