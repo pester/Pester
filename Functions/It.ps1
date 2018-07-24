@@ -79,14 +79,14 @@ function Add-Numbers($a, $b) {
 }
 
 Describe "Add-Numbers" {
-    $TestCases = @(
+    $testCases = @(
         @{ a = 2;     b = 3;       expectedResult = 5 }
         @{ a = -2;    b = -2;      expectedResult = -4 }
         @{ a = -2;    b = 2;       expectedResult = 0 }
         @{ a = 'two'; b = 'three'; expectedResult = 'twothree' }
     )
 
-    It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $TestCases {
+    It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $testCases {
         param ($a, $b, $expectedResult)
 
         $sum = Add-Numbers $a $b
@@ -108,7 +108,7 @@ about_should
         [Parameter(Position = 1)]
         [ScriptBlock] $Test = {},
 
-        [System.Collections.IDictionary[]] $TestCases,
+        [System.Collections.IDictionary[]] $testCases,
 
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
@@ -129,7 +129,7 @@ function ItImpl
         [string] $Name,
         [Parameter(Position = 1)]
         [ScriptBlock] $Test,
-        [System.Collections.IDictionary[]] $TestCases,
+        [System.Collections.IDictionary[]] $testCases,
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
 
@@ -167,12 +167,12 @@ function ItImpl
     {
         #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
         # AST is not available also
-        $TestIsEmpty =
+        $testIsEmpty =
             [String]::IsNullOrEmpty($Test.Ast.BeginBlock.Statements) -and
             [String]::IsNullOrEmpty($Test.Ast.ProcessBlock.Statements) -and
             [String]::IsNullOrEmpty($Test.Ast.EndBlock.Statements)
 
-        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $TestIsEmpty)
+        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
         {
             $Pending = $true
         }
@@ -189,15 +189,15 @@ function ItImpl
         $pendingSkip['Pending'] = $Pending
     }
 
-    if ($null -ne $TestCases -and $TestCases.Count -gt 0)
+    if ($null -ne $testCases -and $testCases.Count -gt 0)
     {
-        foreach ($TestCase in $TestCases)
+        foreach ($testCase in $testCases)
         {
             $expandedName = [regex]::Replace($Name, '<([^>]+)>', {
                 $capture = $args[0].Groups[1].Value
-                if ($TestCase.Contains($capture))
+                if ($testCase.Contains($capture))
                 {
-                    Format-Nicely ($TestCase[$capture])
+                    Format-Nicely ($testCase[$capture])
                 }
                 else
                 {
@@ -208,7 +208,7 @@ function ItImpl
             $splat = @{
                 Name = $expandedName
                 Scriptblock = $Test
-                Parameters = $TestCase
+                Parameters = $testCase
                 ParameterizedSuiteName = $Name
                 OutputScriptBlock = $OutputScriptBlock
             }
