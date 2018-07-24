@@ -88,7 +88,8 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
-                $jaCoCoReportXml | should -be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="7" /><counter type="LINE" missed="1" covered="7" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></report>'
+                [String]$ReferenceReport = [String]'<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><counter type="INSTRUCTION" missed="1" covered="7" /><counter type="LINE" missed="1" covered="7" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></report>'
+                $jaCoCoReportXml | should -Be $ReferenceReport
             }
             Exit-CoverageAnalysis -PesterState $testState
         }
@@ -100,7 +101,7 @@ InModuleScope Pester {
             Enter-CoverageAnalysis -CodeCoverage "$root\TestScript.ps1", "$root\TestScript.ps1" -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should Be 7
+                $testState.CommandCoverage.Count | Should -Be 7
             }
 
             $null = & "$root\TestScript.ps1"
@@ -111,9 +112,10 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace '\n',''
+                $jaCoCoReportXml = $jaCoCoReportXml -replace  "$([System.Environment]::NewLine)",''
                 $jaCoCoReportXml = $jaCoCoReportXml.Replace($root,'')
-                $jaCoCoReportXml | should be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><package name="Powershell"><sourcefile name="\TestScript.ps1"><line nr="5" ci="1" mi="0" /><line nr="6" ci="1" mi="0" /><line nr="9" ci="1" mi="0" /><line nr="11" ci="1" mi="0" /><line nr="12" ci="1" mi="0" /><line nr="18" ci="0" mi="1" /><line nr="21" ci="1" mi="0" /><counter type="LINE" missed="1" covered="6" /></sourcefile></package><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
+                [String]$ReferenceReport = "{0}{1}{2}" -f [String]'<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.0//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><package name="Powershell"><sourcefile name="', $([System.IO.Path]::DirectorySeparatorChar).ToString(), [String]'TestScript.ps1"><line nr="5" ci="1" mi="0" /><line nr="6" ci="1" mi="0" /><line nr="9" ci="1" mi="0" /><line nr="11" ci="1" mi="0" /><line nr="12" ci="1" mi="0" /><line nr="18" ci="0" mi="1" /><line nr="21" ci="1" mi="0" /><counter type="LINE" missed="1" covered="6" /></sourcefile></package><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="1" covered="6" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></report>'
+                $jaCoCoReportXml | should -Be $ReferenceReport
             }
             Exit-CoverageAnalysis -PesterState $testState
         }
