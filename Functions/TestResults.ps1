@@ -476,7 +476,7 @@ function Get-GroupResult ($InputObject)
 {
     #I am not sure about the result precedence, and can't find any good source
     #TODO: Confirm this is the correct order of precedence
-    if ($inputObject.FailedCount  -gt 0) { return 'Failure' }
+    if ($inputObject.FailedCount  -gt 0) { return 'Failed' }
     if ($InputObject.SkippedCount -gt 0) { return 'Ignored' }
     if ($InputObject.PendingCount -gt 0) { return 'Inconclusive' }
     return 'Success'
