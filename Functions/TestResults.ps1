@@ -405,7 +405,32 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
+            break
+        }
+        Failed
+        {
+            $XmlWriter.WriteAttributeString('result', 'Failure')
+            $XmlWriter.WriteAttributeString('executed', 'True')
+            break
+        }
+    }
 
+    if($TestResult.Parameters) {
+        $XmlWriter.WriteStartElement('properties')
+        $TestResult.Parameters.GetEnumerator().Foreach{
+            trap{}
+            $XmlWriter.WriteStartElement("property")
+            $XmlWriter.WriteAttributeString("name",$_.Name)
+            $XmlWriter.WriteAttributeString("value", $_.Value)
+            $XmlWriter.WriteEndElement()
+        }
+        $XmlWriter.WriteEndElement()
+    }
+
+    switch ($TestResult.Result)
+    {
+        Inconclusive
+        {
             if ($TestResult.FailureMessage)
             {
                 $XmlWriter.WriteStartElement('reason')
@@ -417,8 +442,6 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         }
         Failed
         {
-            $XmlWriter.WriteAttributeString('result', 'Failure')
-            $XmlWriter.WriteAttributeString('executed', 'True')
             $XmlWriter.WriteStartElement('failure')
             $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
             $XmlWriter.WriteElementString('stack-trace', $TestResult.StackTrace)
@@ -426,6 +449,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             break
         }
     }
+
 }
 function Get-RunTimeEnvironment() {
     # based on what we found during startup, use the appropriate cmdlet
