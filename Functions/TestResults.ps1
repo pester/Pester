@@ -417,7 +417,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
 
     if($TestResult.Parameters) {
         $XmlWriter.WriteStartElement('properties')
-        $TestResult.Parameters.GetEnumerator().Foreach{
+        $TestResult.Parameters.GetEnumerator() | ForEach-Object -Process {
             trap{}
             $XmlWriter.WriteStartElement("property")
             $XmlWriter.WriteAttributeString("name",$_.Name)
