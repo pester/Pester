@@ -197,7 +197,17 @@ function ItImpl
                 $capture = $args[0].Groups[1].Value
                 if ($testCase.Contains($capture))
                 {
-                    Format-Nicely ($testCase[$capture])
+                    $value = $testCase[$capture]
+                    # skip adding quotes to non-empty strings to avoid adding junk to the
+                    # test name in case you want to expand captures like 'because' or test name
+                    if ($value -isnot [string] -or [string]::IsNullOrEmpty($value))
+                    {
+                        Format-Nicely $value
+                    }
+                    else 
+                    {
+                        $value
+                    }
                 }
                 else
                 {
