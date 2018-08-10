@@ -33,13 +33,14 @@ InModuleScope Pester {
                 [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
-                $xmlTestCase = $xmlResult.SelectNodes("//test-case")
+                write-verbose ($xmlresult.outerxml) -verbose
+                $xmlTestCase = $xmlResult.SelectSingleNode("//test-case")
                 $xmlTestCase.name                   | Should -Be "Mocked Describe.Failed testcase"
                 $xmlTestCase.result                 | Should -Be "Failure"
                 $xmlTestCase.time                   | Should -Be "2.5"
                 $xmlTestCase.failure.message        | Should -Be 'Assert failed: "Expected: Test. But was: Testing"'
                 $xmlTestCase.failure.'stack-trace'  | Should -Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
-                $xmlTestCase.SelectNodes("//properties/property[@name='Param1']").value | should -be 'test value'
+                $xmlTestCase.SelectSingleNode("//properties/property[@name='Param1']").value | should -be 'test value'
             }
 
             It "should write the test summary" {
