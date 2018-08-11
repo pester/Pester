@@ -24,7 +24,7 @@ Operating System, Pester version, and PowerShell version:
 
 ```powershell
 $bugReport = &{
-    $p = Get-Module -Name Pester | Select-Object -First 1
+    $p = Get-Module -Name Pester -ListAvailable | Select-Object -First 1
     "Pester version     : " + $p.Version + " " + $p.Path
     "PowerShell version : " + $PSVersionTable.PSVersion
     "OS version         : " + [System.Environment]::OSVersion.VersionString
