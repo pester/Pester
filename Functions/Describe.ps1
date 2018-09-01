@@ -118,13 +118,13 @@ function DescribeImpl {
                 return
             }
         }
-        if ($Pester.TagFilter -and $Tag) {
+        if ($Pester.TagFilter) {
             if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
                 return
             }
         }
 
-        if ($Pester.ExcludeTagFilter -and $Tag) {
+        if ($Pester.ExcludeTagFilter) {
             if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
                 return
             }
