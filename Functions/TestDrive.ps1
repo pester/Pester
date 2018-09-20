@@ -36,11 +36,15 @@ function Clear-TestDrive ([String[]]$Exclude) {
     $Path = (& $SafeCommands['Get-PSDrive'] -Name TestDrive).Root
     if (& $SafeCommands['Test-Path'] -Path $Path )
     {
+
+        Remove-TestDriveSymbolicLinks -Path $Path
+
         #Get-ChildItem -Exclude did not seem to work with full paths
         & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
         & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
         & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
         & $SafeCommands['Remove-Item'] -Force -Recurse
+
     }
 }
 
@@ -101,6 +105,16 @@ function Get-TestDriveChildItem {
     }
 }
 
+function Remove-TestDriveSymbolicLinks ([String] $Path) {
+
+    # remove symbolic links to work around problem with Remove-Item.
+    # see https://github.com/PowerShell/PowerShell/issues/621
+    #     https://github.com/pester/Pester/issues/1100
+    & $SafeCommands["Get-ChildItem"] -Path $Path -Attributes "ReparsePoint" |
+        % { $_.Delete() }
+
+}
+
 function Remove-TestDrive {
 
     $DriveName = "TestDrive"
@@ -118,6 +132,8 @@ function Remove-TestDrive {
     {
         $Drive | & $SafeCommands['Remove-PSDrive'] -Force #This should fail explicitly as it impacts future pester runs
     }
+
+    Remove-TestDriveSymbolicLinks -Path $Path
 
     if (& $SafeCommands['Test-Path'] -Path $Path)
     {

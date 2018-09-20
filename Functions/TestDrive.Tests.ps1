@@ -168,3 +168,20 @@ InModuleScope Pester {
         }
     }
 }
+
+InModuleScope Pester {
+    Describe "Clear-TestDrive" {
+        It "deletes symbolic links in TestDrive" {
+
+            $root    = "TestDrive:\";
+            $source  = "$root\source";
+            $symlink = "$root\symlink";
+
+            $null = New-Item -Type Directory -Path $source;
+            $null = New-Item -Type SymbolicLink -Path $symlink -Value $source;
+
+            { Clear-TestDrive } | Should -Not -Throw;
+
+        }
+    }
+}
