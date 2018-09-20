@@ -1,3 +1,7 @@
+## 4.4.1 (September 20, 2018)
+ - Fix describe tags [GH-1098]
+ - Capitalize name and test parameters [GH-1080]
+
 ## 4.4.0 (July 20, 2018)
  - Run all tests in strict mode [GH-1041]
  - Fix non-existent module check [GH-1040]
