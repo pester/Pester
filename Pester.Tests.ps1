@@ -124,7 +124,8 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 
             # These commands are conditionally added to the safeCommands table due to Nano / Core versus PSv2 compatibility; one will always
             # be missing, and can be ignored.
-            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance') -notcontains $_ }
+            # Also add the two possible commands uname and id which would be found on non-Windows platforms
+            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance','uname','id') -notcontains $_ }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
                 $missingSafeCommands | Should -Be $null
