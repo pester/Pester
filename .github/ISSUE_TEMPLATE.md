@@ -54,7 +54,6 @@ If you're suggesting a change/improvement, tell us how it should work. Mainly wh
 If describing a bug, tell us what happens instead of the expected behavior.
 
 If suggesting a change/improvement, explain the difference between the current behavior.
-What is an example of the current behavior to reproduce?
 
 Please remember that you can limit Pester output behavior using the `-Show` parameter.
 
