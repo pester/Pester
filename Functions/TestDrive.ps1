@@ -110,8 +110,16 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # remove symbolic links to work around problem with Remove-Item.
     # see https://github.com/PowerShell/PowerShell/issues/621
     #     https://github.com/pester/Pester/issues/1100
-    & $SafeCommands["Get-ChildItem"] -Path $Path -Attributes "ReparsePoint" |
-        % { $_.Delete() }
+
+    # powershell 5 and higher
+    # & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path -Attributes "ReparsePoint" |
+    #    % { $_.Delete() }
+
+    # powershell 2-compatible
+    $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
+    & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
+       where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+       % { $_.Delete() }
 
 }
 

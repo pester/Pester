@@ -182,6 +182,9 @@ InModuleScope Pester {
 
             { Clear-TestDrive } | Should -Not -Throw;
 
+            $count = @(Get-ChildItem -Path $root).Length;
+            $count | Should -Be 0;
+
         }
     }
 }
