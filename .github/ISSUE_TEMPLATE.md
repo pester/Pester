@@ -53,7 +53,7 @@ If you're suggesting a change/improvement, tell us how it should work. Mainly wh
 
 If describing a bug, tell us what happens instead of the expected behavior.
 
-If suggesting a change/improvement, explain the difference between the current behavior.
+If suggesting a change/improvement, explain the difference between the current behavior and the suggested behavior.
 
 Please remember that you can limit Pester output behavior using the `-Show` parameter.
 
@@ -63,9 +63,11 @@ Please remember that you can limit Pester output behavior using the `-Show` para
 
 <!--
 
-Have a solution in mind?
+Have a solution in mind? Bug fix pull requests are always welcome. 
 
 https://github.com/pester/Pester/wiki/Contributing-to-Pester has detailed instructions on how to contribute.
+
+If you are proposing a feature, let's discuss it here first.
 
 -->
 
