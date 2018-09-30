@@ -454,7 +454,7 @@ function Get-RunTimeEnvironment() {
             }
             if ( $SafeCommands['id'] -ne $null )
             {
-                $userName = & $SafeCommands['id']
+                $userName = & $SafeCommands['id'] -un
             }
         }
         catch {
