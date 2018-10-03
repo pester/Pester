@@ -1007,6 +1007,13 @@ function Invoke-Mock {
 
                 Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
 
+                <#
+                    In order to mock Set-Variable correctly we need to scope outside of the Mock
+                #>
+                if( ($mock.OriginalCommand -like "Set-Variable") -and ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") ){
+                    $MockCallState['BeginBoundParameters'].Add( "Scope", "Global")
+                }
+
                 & $scriptBlock -Command $mock.OriginalCommand `
                                -ArgumentList $MockCallState['BeginArgumentList'] `
                                -BoundParameters $MockCallState['BeginBoundParameters'] `
