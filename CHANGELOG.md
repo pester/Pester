@@ -1,3 +1,7 @@
+## 4.4.2 (October 3, 2018)
+ - Remove single quotes when expanding strings in test name [GH-1090]
+ - Get environment info on non-windows platforms [GH-1105]
+
 ## 4.4.1 (September 20, 2018)
  - Fix describe tags [GH-1098]
  - Capitalize name and test parameters [GH-1080]

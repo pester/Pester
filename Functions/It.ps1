@@ -204,7 +204,7 @@ function ItImpl
                     {
                         Format-Nicely $value
                     }
-                    else 
+                    else
                     {
                         $value
                     }
