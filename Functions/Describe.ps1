@@ -4,8 +4,7 @@ function Describe {
 Creates a logical group of tests.
 
 .DESCRIPTION
-Creates a logical group of tests. All Mocks and TestDrive contents
-
+Creates a logical group of tests. All Mocks, TestDrive and TestRegistry contents
 defined within a Describe block are scoped to that Describe; they
 will no longer be present when the Describe block exits.  A Describe
 block may contain any number of Context and It blocks.
@@ -105,7 +104,9 @@ function DescribeImpl {
 
         [scriptblock] $TestOutputBlock,
 
-        [switch] $NoTestDrive
+        [switch] $NoTestDrive,
+
+        [switch] $NoTestRegistry
     )
 
     Assert-DescribeInProgress -CommandName $CommandUsed
@@ -146,6 +147,7 @@ function DescribeImpl {
     }
 
     $testDriveAdded = $false
+    $testRegistryAdded = $false
     try
     {
         try
@@ -163,6 +165,19 @@ function DescribeImpl {
                 }
             }
 
+            if(-not $NoTestRegistry)
+            {
+                if(-not (Test-Path TestRegistry:\))
+                {
+                    New-TestRegistry
+                    $testRegistryAdded = $true
+                }
+                else 
+                {
+                    $TestRegistryContent = Get-TestRegistryChildItem    
+                }
+            }
+
             Add-SetupAndTeardown -ScriptBlock $Fixture
             Invoke-TestGroupSetupBlocks
 
@@ -174,6 +189,7 @@ function DescribeImpl {
         finally
         {
             Invoke-TestGroupTeardownBlocks
+
             if (-not $NoTestDrive)
             {
                 if ($testDriveAdded)
@@ -183,6 +199,17 @@ function DescribeImpl {
                 else
                 {
                     Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+                }
+            }
+
+            if(-not $NoTestRegistry)
+            {
+                if($testRegistryAdded)
+                {
+                    Remove-TestRegistry
+                }
+                else {
+                    Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
                 }
             }
         }

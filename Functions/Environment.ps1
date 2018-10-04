@@ -40,3 +40,27 @@ function Get-TempDirectory
         '/tmp'
     }
 }
+
+function Get-TempRegistry
+{
+    $pesterTempRegistryRoot = 'HKCU:\Software\Pester'
+
+    if((GetPesterOs) -eq 'Windows')
+    {
+        if(Test-Path 'HKCU:\Software\Pester')
+        {
+            try
+            {
+                New-Item -Path 'HKCU:\Software\' -Value 'Pester'
+            }
+            catch [Exception]
+            {
+                throw "Was not able to create a Pester Registry key for TestRegistry"
+            }
+        }
+        return $pesterTempRegistryRoot
+    }
+    else {
+        throw "TempRegistry is only supported on Windows OS"
+    }
+}
