@@ -612,9 +612,6 @@ Default value is: JaCoCo.
 Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
 
-.PARAMETER DetailedCodeCoverage
-Add the sourcefile names and lines covered and missed to the codecoverage file.
-
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
 integration where you need to make sure all tests passed.
@@ -790,8 +787,6 @@ New-PesterOption
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
-        [Switch]$DetailedCodeCoverage = $false,
-
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -837,6 +832,7 @@ New-PesterOption
 
         try
         {
+            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
             Write-PesterStart $pester $Script
 
             $invokeTestScript = {
@@ -854,34 +850,6 @@ New-PesterOption
             Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
 
             $testScripts = @(ResolveTestScripts $Script)
-
-
-            if ($DetailedCodeCoverage)
-            {
-                $pester.FindCodeCoverage = $true
-                $pester.CodeCoverage = $CodeCoverage
-
-                # find describe codecoverage here
-                foreach ($testScript in $testScripts)
-                {
-                    try
-                    {
-                        do
-                        {
-                            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-                        } until ($true)
-                    }
-                    catch
-                    { }
-                }
-
-
-                $pester.FindCodeCoverage = $false
-                $CodeCoverage = $pester.CodeCoverage
-            }
-
-
-            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
             foreach ($testScript in $testScripts)
             {
@@ -915,13 +883,10 @@ New-PesterOption
 
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
-            if ($DetailedCodeCoverage -eq $false)
-            {
-                Write-CoverageReport -CoverageReport $coverageReport
-            }
+            Write-CoverageReport -CoverageReport $coverageReport
             if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
                 -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
-                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
+                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
             Exit-CoverageAnalysis -PesterState $pester

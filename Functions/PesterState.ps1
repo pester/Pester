@@ -54,9 +54,6 @@ function New-PesterState
         $script:Show = $Show
         $script:InTest = $false
 
-        $script:FindCodeCoverage = $false
-        $script:CodeCoverage = @()
-
         $script:TestResult = @()
 
         $script:TotalCount = 0
@@ -336,8 +333,6 @@ function New-PesterState
         "TestResult",
         "SessionState",
         "CommandCoverage",
-        "FindCodeCoverage",
-        "CodeCoverage",
         "Strict",
         "Show",
         "Time",

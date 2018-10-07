@@ -488,7 +488,6 @@ function Get-CoverageReport
 
     $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
-    $allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
     $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
@@ -501,7 +500,6 @@ function Get-CoverageReport
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
-        AllCommands              = $allCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
@@ -582,9 +580,7 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory=$true)]
         $PesterState,
         [parameter(Mandatory=$true)]
-        [object] $CoverageReport,
-
-        [Switch]$DetailedCodeCoverage
+        [object] $CoverageReport
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
@@ -592,126 +588,210 @@ function Get-JaCoCoReportXml {
         return
     }
 
-    $allCommands = $CoverageReport.MissedCommands + $CoverageReport.HitCommands
-    [long]$totalFunctions = ($allCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
-    [long]$hitFunctions = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Function} | Select-Object -Unique ).Count
-    [long]$missedFunctions = $totalFunctions - $hitFunctions
-
-    [long]$totalLines = ($allCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
-    [long]$hitLines = ($CoverageReport.HitCommands | ForEach-Object {$_.File+$_.Line} | Select-Object -Unique ).Count
-    [long]$missedLines = $totalLines - $hitLines
-
-    [long]$totalFiles = $CoverageReport.NumberOfFilesAnalyzed
-
-    [long]$hitFiles = ($CoverageReport.HitCommands | ForEach-Object {$_.File} | Select-Object -Unique ).Count
-    [long]$missedFiles = $totalFiles - $hitFiles
-
     $now = & $SafeCommands['Get-Date']
-    $nineteenseventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
-    [long]$endTime =  [math]::Floor((new-timespan -start $nineteenseventy -end $now).TotalSeconds * 1000)
-    [long]$startTime = [math]::Floor($endTime - $PesterState.Time.TotalSeconds*1000)
+    $nineteenSeventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
+    [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
+    [long] $startTime = [math]::Floor($endTime - $PesterState.Time.TotalMilliseconds)
 
-    # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
-    $jaCoCoReport = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""no""?>$([System.Environment]::NewLine)"
-    $jaCoCoReport += "<report name="""">$([System.Environment]::NewLine)"
-    $jaCoCoReport += "<sessioninfo id=""this"" start="""" dump="""" />$([System.Environment]::NewLine)"
-    if ($DetailedCodeCoverage)
-    {
-        $jaCoCoReport += "<package name=""Powershell""/>$([System.Environment]::NewLine)"
+    $package = @{
+        Classes = [ordered] @{ }
+        Instruction = @{ Missed = 0; Covered = 0 }
+        Line = @{ Missed = 0; Covered = 0 }
+        Method = @{ Missed = 0; Covered = 0 }
+        Class = @{ Missed = 0; Covered = 0 }
     }
-    $jaCoCoReport += "<counter type=""INSTRUCTION"" missed="""" covered=""""/>"
-    $jaCoCoReport += "<counter type=""LINE"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
-    $jaCoCoReport += "<counter type=""METHOD"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
-    $jaCoCoReport += "<counter type=""CLASS"" missed="""" covered=""""/>$([System.Environment]::NewLine)"
-    $jaCoCoReport += "</report>"
 
-    [xml] $jaCoCoReportXml = $jaCoCoReport
-    $jaCoCoReportXml.report.name = "Pester ($now)"
-    $jaCoCoReportXml.report.sessioninfo.start=$startTime.ToString()
-    $jaCoCoReportXml.report.sessioninfo.dump=$endTime.ToString()
-
-    if ($DetailedCodeCoverage)
+    foreach($command in $PesterState.CommandCoverage)
     {
+        $file = $command.File
+        $function = $command.Function
+        if (!$function) { $function = '<script>' }
+        $line = $command.Line.ToString()
 
-        $fileName = ""
-        $lineNr = -1
-        $report = $jaCoCoReportXml.ChildNodes[1]
-        $package = $report.ChildNodes[1]
-        $mi = 0
-        $ci = 0
-        $missed = 0
-        $covered = 0
-        $line = $null
-        foreach($row in $CoverageReport.AllCommands)
+        $missed = if ($command.Breakpoint.HitCount) { 0 } else { 1 }
+        $covered = if ($command.Breakpoint.HitCount) { 1 } else { 0 }
+
+        if (!$package.Classes.Contains($file))
         {
-            if ($sourceName -ne $row.File)
-            {
-                $xmlFile = $jaCoCoReportXml.CreateElement("sourcefile")
-                $xmlName = $jaCoCoReportXml.CreateAttribute("name")
-                $xmlName.value = $row.File
-                $null = $xmlFile.Attributes.Append($xmlName)
-                $null = $package.AppendChild($xmlFile)
-                $sourceName = $row.File
-                $lineNr = -1;
-                $counter = $jaCoCoReportXml.CreateElement("counter")
-
-                $missed = 0
-                $covered = 0
-
-                $typeCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("type"))
-                $typeCounter.Value = "LINE"
-
-                $miCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("missed"))
-                $miCounter.value = $missed
-
-                $ciCounter = $counter.Attributes.Append($jaCoCoReportXml.CreateAttribute("covered"))
-                $ciCounter.value = $covered
-
-                $null = $xmlFile.AppendChild($counter)
-            }
-
-            if ($lineNr -ne $row.Line)
-            {
-                $line = $jaCoCoReportXml.CreateElement("line")
-                $nr = $jaCoCoReportXml.CreateAttribute("nr")
-                $nr.value = $row.Line
-                $mi = 0
-                $ci = 0
-                $null = $line.Attributes.Append($nr)
-                $ciLine = $line.Attributes.Append($jaCoCoReportXml.CreateAttribute("ci"))
-                $ciLine.value = 0
-                $miLine = $line.Attributes.Append($jaCoCoReportXml.CreateAttribute("mi"))
-                $miLine.value = 0
-                $null = $xmlFile.InsertBefore($line, $counter)
-                $lineNr = $row.Line
-            }
-
-            if ($row.Breakpoint.HitCount -eq 0)
-            {
-                $mi += 1
-                $miLine.value = $mi
-                $missed += 1
-                $miCounter.value = $missed
-            }
-            else
-            {
-                $ci += 1
-                $ciLine.value = $ci
-                $covered += 1
-                $ciCounter.value = $covered
+            $package.Class.Missed += $missed
+            $package.Class.Covered += $covered
+            $package.Classes.$file = @{
+                Methods = [ordered] @{ }
+                Lines = [ordered] @{ }
+                Instruction = @{ Missed = 0; Covered = 0 }
+                Line = @{ Missed = 0; Covered = 0 }
+                Method = @{ Missed = 0; Covered = 0 }
+                Class = @{ Missed = $missed; Covered = $covered }
             }
         }
+
+        if (!$package.Classes.$file.Methods.Contains($function))
+        {
+            $package.Method.Missed += $missed
+            $package.Method.Covered += $covered
+            $package.Classes.$file.Method.Missed += $missed
+            $package.Classes.$file.Method.Covered += $covered
+            $package.Classes.$file.Methods.$function = @{
+                FirstLine = $line
+                Instruction = @{ Missed = 0; Covered = 0 }
+                Line = @{ Missed = 0; Covered = 0 }
+                Method = @{ Missed = $missed; Covered = $covered }
+            }
+        }
+
+        if (!$package.Classes.$file.Lines.Contains($line))
+        {
+            $package.Line.Missed += $missed
+            $package.Line.Covered += $covered
+            $package.Classes.$file.Line.Missed += $missed
+            $package.Classes.$file.Line.Covered += $covered
+            $package.Classes.$file.Methods.$function.Line.Missed += $missed
+            $package.Classes.$file.Methods.$function.Line.Covered += $covered
+            $package.Classes.$file.Lines.$line = @{
+                Instruction = @{ Missed = 0; Covered = 0 }
+            }
+        }
+
+        $package.Instruction.Missed += $missed
+        $package.Instruction.Covered += $covered
+        $package.Classes.$file.Instruction.Missed += $missed
+        $package.Classes.$file.Instruction.Covered += $covered
+        $package.Classes.$file.Methods.$function.Instruction.Missed += $missed
+        $package.Classes.$file.Methods.$function.Instruction.Covered += $covered
+        $package.Classes.$file.Lines.$line.Instruction.Missed += $missed
+        $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
     }
 
-    $jaCoCoReportXml.report.counter[0].missed = $CoverageReport.MissedCommands.Count.ToString()
-    $jaCoCoReportXml.report.counter[0].covered = $CoverageReport.HitCommands.Count.ToString()
-    $jaCoCoReportXml.report.counter[1].missed = $missedLines.ToString()
-    $jaCoCoReportXml.report.counter[1].covered = $hitLines.ToString()
-    $jaCoCoReportXml.report.counter[2].missed = $missedFunctions.ToString()
-    $jaCoCoReportXml.report.counter[2].covered = $hitFunctions.ToString()
-    $jaCoCoReportXml.report.counter[3].missed = $missedFiles.ToString()
-    $jaCoCoReportXml.report.counter[3].covered = $hitFiles.ToString()
+    $commonPath = Get-CommonPath $CoverageReport.AnalyzedFiles
+
+    # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
+    $jaCoCoReport  = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
+    $jaCoCoReport += '<report name="">'
+    $jaCoCoReport += '<sessioninfo id="this" start="" dump="" />'
+    $jaCoCoReport += '<package name="PowerShell" />'
+    $jaCoCoReport += '</report>'
+
+    [xml] $jaCoCoReportXml = $jaCoCoReport
+    $reportElement = $jaCoCoReportXml.report
+    $reportElement.name = "Pester ($now)"
+    $reportElement.sessioninfo.start = $startTime.ToString()
+    $reportElement.sessioninfo.dump = $endTime.ToString()
+    $packageElement = $reportElement.package
+
+    foreach ($file in $package.Classes.Keys)
+    {
+        $class = $package.Classes.$file
+        $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
+            name           = $file.Substring($commonPath.Length + 1).Replace('\', '/')
+            sourcefilename = $file.replace('\', '/')
+        })
+
+        foreach ($function in $class.Methods.Keys)
+        {
+            $method = $class.Methods.$function
+            $methodElement = Add-XmlElement $classElement 'method' -Attributes ([ordered] @{
+                name = $function
+                desc = '()'
+                line = $method.FirstLine
+            })
+            Add-JaCoCoCounter Instruction $method $methodElement
+            Add-JaCoCoCounter Line $method $methodElement
+            Add-JaCoCoCounter Method $method $methodElement
+        }
+
+        Add-JaCoCoCounter Instruction $class $classElement
+        Add-JaCoCoCounter Line $class $classElement
+        Add-JaCoCoCounter Method $class $classElement
+        Add-JaCoCoCounter Class $class $classElement
+    }
+
+    foreach ($file in $package.Classes.Keys)
+    {
+        $class = $package.Classes.$file
+        $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
+            name = $file.replace('\', '/')
+        })
+
+        foreach ($line in $class.Lines.Keys)
+        {
+            Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
+                nr = $line
+                mi = $class.Lines.$line.Instruction.Missed
+                ci = $class.Lines.$line.Instruction.Covered
+            }) | Out-Null
+        }
+
+        Add-JaCoCoCounter Instruction $class $sourceFileElement
+        Add-JaCoCoCounter Line $class $sourceFileElement
+        Add-JaCoCoCounter Method $class $sourceFileElement
+        Add-JaCoCoCounter Class $class $sourceFileElement
+    }
+
+    Add-JaCoCoCounter Instruction $package $packageElement
+    Add-JaCoCoCounter Line $package $packageElement
+    Add-JaCoCoCounter Method $package $packageElement
+    Add-JaCoCoCounter Class $package $packageElement
+
+    Add-JaCoCoCounter Instruction $package $reportElement
+    Add-JaCoCoCounter Line $package $reportElement
+    Add-JaCoCoCounter Method $package $reportElement
+    Add-JaCoCoCounter Class $package $reportElement
+
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
-    $jaCoCoReportDocType = "<!DOCTYPE report PUBLIC ""-//JACOCO//DTD Report 1.0//EN"" ""report.dtd"">$([System.Environment]::NewLine)"
+    $jaCoCoReportDocType = '<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">'
     return $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
+}
+
+function Get-CommonPath
+{
+    param(
+        [parameter(Mandatory=$true)] [string[]] $Path
+    )
+    $parts = $Path | foreach { , $_.Split([System.IO.Path]::DirectorySeparatorChar) }
+    $minimumDirectoryDepth = $parts | Measure-Object -Property Length -Minimum | Select -ExpandProperty Minimum
+    $result = foreach ($i in 0..($minimumDirectoryDepth - 1)) {
+        $part = @($parts | foreach { $_[$i] } | Sort -Unique)
+        if ($part.Length -gt 1) {
+            break
+        }
+        $part
+    }
+    return [string]::Join([System.IO.Path]::DirectorySeparatorChar, $result)
+}
+
+function Add-XmlElement
+{
+    param (
+        [parameter(Mandatory=$true)] [System.Xml.XmlNode] $Parent,
+        [parameter(Mandatory=$true)] [string] $Name,
+        [System.Collections.IDictionary] $Attributes
+    )
+    $element = $Parent.AppendChild($Parent.OwnerDocument.CreateElement($Name))
+    if ($Attributes)
+    {
+        foreach ($key in $Attributes.Keys)
+        {
+            $attribute = $element.Attributes.Append($Parent.OwnerDocument.CreateAttribute($key))
+            $attribute.Value = $Attributes.$key
+        }
+    }
+    return $element
+}
+
+function Add-JaCoCoCounter
+{
+    param (
+        [parameter(Mandatory=$true)] [ValidateSet('Instruction', 'Line', 'Method', 'Class')] [string] $Type,
+        [parameter(Mandatory=$true)] [System.Collections.IDictionary] $Data,
+        [parameter(Mandatory=$true)] [System.Xml.XmlNode] $Parent
+    )
+    if ($Data.$Type.Missed -isnot [int] -or $Data.$Type.Covered -isnot [int])
+    {
+        throw 'Counter data expected'
+    }
+    Add-XmlElement $Parent 'counter' -Attributes ([ordered] @{
+        type    = $Type.ToUpperInvariant()
+        missed  = $Data.$Type.Missed
+        covered = $Data.$Type.Covered
+    }) | Out-Null
 }
