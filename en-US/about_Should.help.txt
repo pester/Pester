@@ -73,7 +73,6 @@ SHOULD MEMBERS
         $actual | Should -BeLike "not actual *" # Test will fail
 
     BeLikeExactly
-
         Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator.  This comparison is case-sensitive.
 
         $actual="Actual value"
@@ -198,20 +197,29 @@ SHOULD MEMBERS
 
         Get-Process -Name "process" -ErrorAction Stop | Should -Throw # Should pass, but the exception thrown by Get-Process causes the test to fail.
 
-  NEGATIVE ASSERTIONS
-    Any of the Should operators described above can be negated by using the word "Not" before the operator.  For example:
+  NEGATIVE
+    Not
+        Any of the Should operators described above can be negated by using the word "Not" before the operator.  For example:
 
-    'one' | Should -Not -Be 'Two'
-    { Get-Item $env:SystemRoot } | Should -Not -Throw
+        'one' | Should -Not -Be 'Two'
+        { Get-Item $env:SystemRoot } | Should -Not -Throw
+
+  BECAUSE
+    Because
+        Every built in assertion allows you to specify -Because parameter, to give more meaning to your tests.
+
+        function Get-Group { $null }
+        $groups = 1..10 | Get-Group -Size 3
+        $groups | Should -HaveCount 4 -Because "because 10 items are split into three groups with 3 members and one extra group with 1 member"
+
+        Which fails with: "Expected a collection with size {4}, because 10 items are split into three groups with 3 members and one extra group with 1 member, but got collection with size {1} [].
 
   USING SHOULD IN A TEST
-
     function Add-Numbers($a, $b) {
         return $a + $b
     }
 
     Describe "Add-Numbers" {
-
         It "adds positive numbers" {
             $sum = Add-Numbers 2 3
             $sum | Should -Be 3
@@ -219,15 +227,6 @@ SHOULD MEMBERS
     }
 
     This test will fail since 3 will not be equal to the sum of 2 and 3.
-
-  BECAUSE
-    Every built in assertion allows you to specify -Because parameter, to give more meaning to your tests.
-
-    function Get-Group { $null }
-    $groups = 1..10 | Get-Group -Size 3
-    $groups | Should -HaveCount 4 -Because "because 10 items are split into three groups with 3 members and one extra group with 1 member"
-
-    Which fails with: "Expected a collection with size {4}, because 10 items are split into three groups with 3 members and one extra group with 1 member, but got collection with size {1} [].
 
 SEE ALSO
   Describe
