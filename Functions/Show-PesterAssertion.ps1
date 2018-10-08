@@ -8,7 +8,10 @@ function Show-PesterAssertion {
     This limits the user's ability to discover the available assertions.
 
     Show-PesterAssertion is a basic attempt to provide that information.
+    It displays the parameters, categories, and examples made available
+    to help you craft the tests you need.
 
+    .NOTES
     This command parses the about_Should help file to provide a summarized view.
     It is highly dependent on proper formatting to return accurate results.
 
@@ -26,6 +29,7 @@ function Show-PesterAssertion {
 
     .LINK
     https://github.com/Pester/Pester
+    about_Should
     #>
     [CmdletBinding()]
     param (

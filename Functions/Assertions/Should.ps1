@@ -58,16 +58,21 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
 function Should {
 <#
     .SYNOPSIS
-    Should is a keyword what is used to define an assertion inside It block.
+    Should is Pester's keyword to execute assertions.
 
     .DESCRIPTION
-    Should is a keyword what is used to define an assertion inside the It block.
-    Should provides assertion methods for verify assertion e.g. comparing objects.
-    If assertion is not met the test fails and an exception is throwed up.
+    Should is used inside an It block to trigger an assertion.
 
-    Should can be used more than once in the It block if more than one assertion
-    need to be verified. Each Should keywords need to be located in a new line.
-    Test will be passed only when all assertion will be met (logical conjuction).
+    Should provides various assertion methods to compare values, objects, etc.
+    If the values are not identical, the test fails, and an exception is thrown.
+
+    To view Should examples and the available assertion parameters,
+    `Get-Help about_Should` or `Show-PesterAssertion`
+
+    .NOTES
+    Should may be used multiple times inside a single It block.
+
+    Each Should keyword needs to be located on a new line.
 
     .LINK
     about_Should
