@@ -1,5 +1,31 @@
 function Show-PesterAssertion {
     <#
+    .SYNOPSIS
+    Display the assertions available for use with Should.
+
+    .DESCRIPTION
+    Pester uses dynamic parameters to populate Should arguments.
+    This limits the user's ability to discover the available assertions.
+
+    Show-PesterAssertion is a basic attempt to provide that information.
+
+    This command parses the about_Should help file to provide a summarized view.
+    It is highly dependent on proper formatting to return accurate results.
+
+    .EXAMPLE
+    Show-PesterAssertion
+    Return the Name, Category, and Text (examples) of available Should parameters.
+
+    .EXAMPLE
+    Show-PesterAssertion -Category Collection
+    Return objects containing more info on the available collection assertions.
+
+    .EXAMPLE
+    Show-PesterAssertion -Assertion Match
+    Return only the multi-line text example of the Match assertion.
+
+    .LINK
+    https://github.com/Pester/Pester
     #>
     [CmdletBinding()]
     param (
