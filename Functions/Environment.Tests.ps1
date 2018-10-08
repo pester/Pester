@@ -102,4 +102,38 @@ InModuleScope -ModuleName Pester {
             Get-TempDirectory | Should -Be '/tmp'
         }
     }
+
+    Describe 'Get-TempRegistry' {
+        Mock 'GetPesterOs'{
+            return 'Windows'
+        }
+
+        Mock New-TempRegistry {
+            throw [Exception] 'Error'
+        }
+
+        It 'return the corret temp registry for Windows' {
+
+            $expected = 'HKCU:\Software\Pester'
+            $tempPath = Get-TempRegistry
+            $tempPath | Should -Be $expected
+        }
+
+        It 'should throw an error for non Windows OS' {
+            Mock 'GetPesterOs'{
+                return ''
+            }
+
+            Get-TempRegistry | Should throw "TempRegistry is only supported on Windows OS"
+        }
+
+        It 'should throw an error if TempRegistry fails'{
+            Mock New-TempRegistry {
+                throw [Exception] 'Error'
+            }
+
+            Get-TempRegistry | Should throw "Was not able to create a Pester Registry key for TestRegistry"
+        }
+
+    }
 }
