@@ -67,12 +67,15 @@ function Show-PesterAssertion {
             Write-Verbose "Break on $i"
     
             # Return the current object before we overwrite it
-            # $Category should match or be empty; same with $Assertion
-            If (($Category -eq $ObjectCategory -or -not $Category) -and ($Assertion -like $CurrentAssertion -or -not $Assertion)) {
+            If ($Assertion -eq $CurrentAssertion) {
+                # If $Assertion was specified, return the text only
+                $text
+            } ElseIf (($Category -eq $ObjectCategory -or -not $Category) -and -not $Assertion) {
+                # If $Category was specified, or neither were, return an object
                 [PSCustomObject]@{
-                    Assertion = $CurrentAssertion
-                    Category  = $ObjectCategory
-                    Text      = $text
+                    Name     = $CurrentAssertion
+                    Category = $ObjectCategory
+                    Text     = $text
                 }
             }
         
