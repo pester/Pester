@@ -37,7 +37,7 @@ function Get-TempRegistry {
     if ((GetPesterOs) -eq 'Windows') {
         if (Test-Path 'HKCU:\Software\Pester') {
             try {
-                New-TempRegistry
+                $null = New-TempRegistry
             }
             catch [Exception] {
                 throw "Was not able to create a Pester Registry key for TestRegistry"
@@ -51,5 +51,5 @@ function Get-TempRegistry {
 }
 
 function New-TempRegistry {
-    New-Item -Path 'HKCU:\Software\' -Value 'Pester' -Force
+    New-Item -Path 'HKCU:\Software\Pester' -Force
 }

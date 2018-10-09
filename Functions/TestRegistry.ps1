@@ -17,7 +17,7 @@ function New-TestRegistry
     {
         if (-not (& $SafeCommands['Test-Path'] -Path $Path))
         {
-            $null = & $SafeCommands['New-Item'] -ItemType Container -Path $Path
+            $null = & $SafeCommands['New-Item'] -Path $Path -Force
         }
 
         $directory = & $SafeCommands['Get-Item'] $Path
@@ -28,7 +28,7 @@ function New-TestRegistry
     #setup the test drive
     if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") )
     {
-        $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider Registry -Root $directory -Scope Global -Description "Pester test drive"
+        $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider Registry -Root $directory -Scope Global -Description "Pester test drive" -Force
     }
 
     #publish the global TestRegistry variable used in few places within the module
@@ -67,11 +67,11 @@ function New-RandomTempRegistry
 {
     do
     {
-        $tempPath = Get-TempDirectory
+        $tempPath = Get-TempRegistry
         $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
 
-    & $SafeCommands['New-Item'] -ItemType Container -Path $Path
+    & $SafeCommands['New-Item'] -Path $Path -Force
 }
 
 function Remove-TestRegistry
