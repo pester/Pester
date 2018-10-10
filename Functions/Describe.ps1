@@ -1,5 +1,6 @@
-function Describe {
-<#
+function Describe
+{
+    <#
 .SYNOPSIS
 Creates a logical group of tests.
 
@@ -66,7 +67,7 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        [string[]] $Tag=@(),
+        [string[]] $Tag = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -84,13 +85,14 @@ about_TestDrive
     DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
 }
 
-function DescribeImpl {
+function DescribeImpl
+{
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string] $Name,
 
         [Alias('Tags')]
-        $Tag=@(),
+        $Tag = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -114,19 +116,25 @@ function DescribeImpl {
     if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
         (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
     {
-        if ($Pester.TestNameFilter -and $Name) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
+        if ($Pester.TestNameFilter -and $Name)
+        {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name))
+            {
                 return
             }
         }
-        if ($Pester.TagFilter) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
+        if ($Pester.TagFilter)
+        {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
+            {
                 return
             }
         }
 
-        if ($Pester.ExcludeTagFilter) {
-            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
+        if ($Pester.ExcludeTagFilter)
+        {
+            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag)
+            {
                 return
             }
         }
@@ -165,16 +173,16 @@ function DescribeImpl {
                 }
             }
 
-            if(-not $NoTestRegistry)
+            if (-not $NoTestRegistry -and (GetPesterOs - eq 'Windows'))
             {
-                if(-not (Test-Path TestRegistry:\))
+                if (-not (Test-Path TestRegistry:\))
                 {
                     New-TestRegistry
                     $testRegistryAdded = $true
                 }
-                else 
+                else
                 {
-                    $TestRegistryContent = Get-TestRegistryChildItem    
+                    $TestRegistryContent = Get-TestRegistryChildItem
                 }
             }
 
@@ -202,13 +210,14 @@ function DescribeImpl {
                 }
             }
 
-            if(-not $NoTestRegistry)
+            if (-not $NoTestRegistry -and (GetPesterOs - eq 'Windows'))
             {
-                if($testRegistryAdded)
+                if ($testRegistryAdded)
                 {
                     Remove-TestRegistry
                 }
-                else {
+                else
+                {
                     Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
                 }
             }
