@@ -28,7 +28,7 @@ function New-TestRegistry
     #setup the test drive
     if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") )
     {
-        $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider Registry -Root $directory -Scope Global -Description "Pester test drive" -Force
+        $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider Registry -Root $directory -Scope Global -Description "Pester test drive"
     }
 
     #publish the global TestRegistry variable used in few places within the module
@@ -60,6 +60,14 @@ function Clear-TestRegistry
             & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
             & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
             & $SafeCommands['Remove-Item'] -Force -Recurse
+    }
+}
+
+function Get-TestRegistryChildItem {
+    $Path = (& $SafeCommands['Get-PSDrive'] -Name TestRegistry).Root
+    if (& $SafeCommands['Test-Path'] -Path $Path )
+    {
+        & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path
     }
 }
 
