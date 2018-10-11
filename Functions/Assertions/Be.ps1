@@ -1,4 +1,12 @@
 #Be
+
+<#
+.SYNOPSIS
+PesterBe synopsis
+
+.DESCRIPTION
+HEY I'M A TEST
+#>
 function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue
 
@@ -48,6 +56,7 @@ function NotPesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 Add-AssertionOperator -Name               Be `
+                      -InternalName       PesterBe `
                       -Test               $function:PesterBe `
                       -Alias              'EQ' `
                       -SupportsArrayInput
@@ -179,6 +188,13 @@ function Expand-SpecialCharacters {
     }
 }
 
+<#
+.SYNOPSIS
+ArraysAreEqual synopsis
+
+.DESCRIPTION
+Yes please
+#>
 function ArraysAreEqual
 {
     param (
