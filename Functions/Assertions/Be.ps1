@@ -188,13 +188,6 @@ function Expand-SpecialCharacters {
     }
 }
 
-<#
-.SYNOPSIS
-ArraysAreEqual synopsis
-
-.DESCRIPTION
-Yes please
-#>
 function ArraysAreEqual
 {
     param (
