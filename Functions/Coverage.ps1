@@ -662,7 +662,7 @@ function Get-JaCoCoReportXml {
         $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
     }
 
-    $commonPath = Get-CommonPath $CoverageReport.AnalyzedFiles
+    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
 
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
     $jaCoCoReport  = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
@@ -682,7 +682,7 @@ function Get-JaCoCoReportXml {
     {
         $class = $package.Classes.$file
         $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
-            name           = $file.Substring($commonPath.Length + 1).Replace('\', '/')
+            name           = (Get-RelativePath -Path $file -RelativeTo $commonParent).replace('\', '/')
             sourcefilename = $file.replace('\', '/')
         })
 
@@ -714,11 +714,11 @@ function Get-JaCoCoReportXml {
 
         foreach ($line in $class.Lines.Keys)
         {
-            Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
+            $null = Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
                 nr = $line
                 mi = $class.Lines.$line.Instruction.Missed
                 ci = $class.Lines.$line.Instruction.Covered
-            }) | Out-Null
+            })
         }
 
         Add-JaCoCoCounter Instruction $class $sourceFileElement
@@ -740,23 +740,6 @@ function Get-JaCoCoReportXml {
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
     $jaCoCoReportDocType = '<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">'
     return $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
-}
-
-function Get-CommonPath
-{
-    param(
-        [parameter(Mandatory=$true)] [string[]] $Path
-    )
-    $parts = $Path | foreach { , $_.Split([System.IO.Path]::DirectorySeparatorChar) }
-    $minimumDirectoryDepth = $parts | Measure-Object -Property Length -Minimum | Select -ExpandProperty Minimum
-    $result = foreach ($i in 0..($minimumDirectoryDepth - 1)) {
-        $part = @($parts | foreach { $_[$i] } | Sort -Unique)
-        if ($part.Length -gt 1) {
-            break
-        }
-        $part
-    }
-    return [string]::Join([System.IO.Path]::DirectorySeparatorChar, $result)
 }
 
 function Add-XmlElement
@@ -789,9 +772,9 @@ function Add-JaCoCoCounter
     {
         throw 'Counter data expected'
     }
-    Add-XmlElement $Parent 'counter' -Attributes ([ordered] @{
+    $null = Add-XmlElement $Parent 'counter' -Attributes ([ordered] @{
         type    = $Type.ToUpperInvariant()
         missed  = $Data.$Type.Missed
         covered = $Data.$Type.Covered
-    }) | Out-Null
+    })
 }
