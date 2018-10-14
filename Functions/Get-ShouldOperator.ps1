@@ -27,8 +27,7 @@ function Get-ShouldOperator {
     about_Should
     #>
     [CmdletBinding()]
-    param (
-    )
+    param ()
 
     # Use a dynamic parameter to create a dynamic ValidateSet
     # Define parameter -Name and tab-complete all current values of $AssertionOperators
@@ -70,19 +69,34 @@ function Get-ShouldOperator {
 
     END {
         If ($Name) {
-            [PSCustomObject]@{
-                Name  = $Name
-                Alias = (Get-AssertionOperatorEntry $Name).Alias
-                Help  = Get-Help (Get-AssertionOperatorEntry $Name).InternalName -Full -ErrorAction SilentlyContinue
+            $help = Get-Help (Get-AssertionOperatorEntry $Name).InternalName -Full -ErrorAction SilentlyContinue
+
+            If (($help | Measure-Object).Count -ne 1) {
+                # No way to stop Get-Help if there isn't an exact match
+                # All Pester operators should have help. This should only happen if the user registered their own
+                Write-Warning ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
+            } Else {
+                # Return just the help for this single operator
+                $help
             }
         } Else {
             $AssertionOperators.Keys | ForEach-Object {
+                $aliasCollection = (Get-AssertionOperatorEntry $_).Alias
+                
+                # Remove ugly {} characters from output unless necessary
+                # This is due to the Alias property having the [string[]] type
+                If (($aliasCollection | Measure-Object).Count -gt 1) {
+                    $alias = $aliasCollection
+                } Else {
+                    $alias = [string]$aliasCollection
+                }
+                
+                # Return name and alias(es) for all registered Should operators
                 [PSCustomObject]@{
                     Name  = $_
-                    Alias = (Get-AssertionOperatorEntry $_).Alias
-                    Help  = Get-Help (Get-AssertionOperatorEntry $_).InternalName -Full -ErrorAction SilentlyContinue
+                    Alias = $alias
                 }
-            }
+            } #ForEach
         }
     } #END
 }
