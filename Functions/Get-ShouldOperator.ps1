@@ -1,13 +1,13 @@
-function Show-PesterAssertion {
+function Get-ShouldOperator {
     <#
     .SYNOPSIS
     Display the assertion operators available for use with Should.
 
     .DESCRIPTION
-    Show-PesterAssertion returns a list of available Should parameters
+    Get-ShouldOperator returns a list of available Should parameters
     -- and their aliases and help docs -- to help you craft the tests you need.
 
-    Show-PesterAssertion will list all available assertions,
+    Get-ShouldOperator will list all available assertions,
     including any registered by the user with Add-AssertionOperator.
 
     .NOTES
@@ -17,10 +17,10 @@ function Show-PesterAssertion {
     standard PowerShell discovery patterns (like `Get-Help Should -Parameter *`).
 
     .EXAMPLE
-    Show-PesterAssertion
+    Get-ShouldOperator
 
     .EXAMPLE
-    Show-PesterAssertion -Name Be
+    Get-ShouldOperator -Name Be
 
     .LINK
     https://github.com/Pester/Pester
