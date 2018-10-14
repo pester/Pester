@@ -356,6 +356,8 @@ Describe 'Assertion operators' {
     It 'Allows an operator to be registered with multiple aliases' {
         function MultipleAlias {$true}
         Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
+        
+        {Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing name' {
         function DifferentScriptBlockA {$true}
