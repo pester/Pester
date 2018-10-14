@@ -107,7 +107,7 @@ InModuleScope Pester {
         }
 
         It "ensures all assertion functions provide failure messages" {
-            $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
+            $assertionFunctions = @("ShouldBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
                 "PesterMatch", "PesterFileContentMatch")
             $assertionFunctions | ForEach {
                 "function:$($_)FailureMessage" | Should Exist
