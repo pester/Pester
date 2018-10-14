@@ -198,6 +198,9 @@ function Add-AssertionOperator
     A list of aliases for the Named Parameter.
 .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
+.PARAMETER InternalName
+    If -Name is different from the actual function name, record the actual function name here.
+    Used by Get-ShouldOperator to pull function help.
 #>
     [CmdletBinding()]
     param (
