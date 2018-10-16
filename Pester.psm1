@@ -100,6 +100,14 @@ elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
 {
     $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
 }
+elseif ( Get-Command -ea SilentlyContinue uname -Type Application )
+{
+    $script:SafeCommands['uname'] = Get-Command -Name uname -Type Application
+    if ( Get-Command -ea SilentlyContinue id -Type Application )
+    {
+        $script:SafeCommands['id'] = Get-Command -Name id -Type Application
+    }
+}
 else
 {
     Write-Warning "OS Information retrieval is not possible, reports will contain only partial system data"
