@@ -429,6 +429,8 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
 }
 function Get-RunTimeEnvironment() {
     # based on what we found during startup, use the appropriate cmdlet
+    $computerName = $env:ComputerName
+    $userName = $env:Username
     if ( $SafeCommands['Get-CimInstance'] -ne $null )
     {
         $osSystemInformation = (& $SafeCommands['Get-CimInstance'] Win32_OperatingSystem)
@@ -436,6 +438,28 @@ function Get-RunTimeEnvironment() {
     elseif ( $SafeCommands['Get-WmiObject'] -ne $null )
     {
         $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
+    }
+    elseif ( $IsMacOS -or $IsLinux )
+    {
+        $osSystemInformation = @{
+            Name = "Unknown"
+            Version = "0.0.0.0"
+            }
+        try {
+            if ( $SafeCommands['uname'] -ne $null )
+            {
+                $osSystemInformation.Version = & $SafeCommands['uname'] -r
+                $osSystemInformation.Name = & $SafeCommands['uname'] -s
+                $computerName = & $SafeCommands['uname'] -n
+            }
+            if ( $SafeCommands['id'] -ne $null )
+            {
+                $userName = & $SafeCommands['id'] -un
+            }
+        }
+        catch {
+            # well, we tried
+        }
     }
     else
     {
@@ -461,8 +485,8 @@ function Get-RunTimeEnvironment() {
         'os-version' = $osSystemInformation.Version
         platform = $osSystemInformation.Name
         cwd = (& $SafeCommands['Get-Location']).Path #run path
-        'machine-name' = $env:ComputerName
-        user = $env:Username
+        'machine-name' = $computerName
+        user = $username
         'user-domain' = $env:userDomain
         'clr-version' = $CLrVersion
     }
