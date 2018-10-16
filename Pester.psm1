@@ -446,7 +446,7 @@ To run Pester tests in scripts that take parameter values, use the Script
 parameter with a hash table value.
 
 Also, by default, Pester tests write test results to the console host, much like
-Write-Host does, but you can use the Quiet parameter to suppress the host
+Write-Host does, but you can use the Show parameter set to None to suppress the host
 messages, use the PassThru parameter to generate a custom object
 (PSCustomObject) that contains the test results, use the OutputXml and
 OutputFormat parameters to write the test results to an XML file, and use the
@@ -548,7 +548,7 @@ By default, Invoke-Pester writes to the host program, not to the output stream (
 If you try to save the result in a variable, the variable is empty unless you
 use the PassThru parameter.
 
-To suppress the host output, use the Quiet parameter.
+To suppress the host output, use the Show parameter set to None.
 
 .PARAMETER CodeCoverage
 Adds a code coverage report to the Pester tests. Takes strings or hash table values.
@@ -691,9 +691,9 @@ Parameters             : {}
 
 This examples uses the PassThru parameter to return a custom object with the
 Pester test results. By default, Invoke-Pester writes to the host program, but not
-to the output stream. It also uses the Quiet parameter to suppress the host output.
+to the output stream. It also uses the Show parameter set to None to suppress the host output.
 
-The first command runs Invoke-Pester with the PassThru and Quiet parameters and
+The first command runs Invoke-Pester with the PassThru and Show parameters and
 saves the PassThru output in the $results variable.
 
 The second command gets only failing results and saves them in the $failed variable.
