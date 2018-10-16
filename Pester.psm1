@@ -145,7 +145,7 @@ function Assert-ValidAssertionName
 
 function Assert-ValidAssertionAlias
 {
-    param([string]$Alias)
+    param([string[]]$Alias)
     if ($Alias -notmatch '^\S+$')
     {
         throw "Assertion alias '$string' is invalid, assertion alias must be a single word."
