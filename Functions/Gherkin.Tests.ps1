@@ -182,7 +182,7 @@ Scenario: The test data should be converted properly
 
                 # resolve the full name to the temporary feature file because gherkin doesn't support PSDrive paths
                 $testDrive = (Get-PSDrive -Name "TestDrive").Root
-                $featureFile = Join-Path -Path $testDrive -ChildPath "singlecolumn.feature"
+                $featureFile = Join-Path -Path $testDrive -ChildPath "multicolumn.feature"
 
                 # write the temporary feature file that we're going to parse
                 Set-Content -Path $featureFile -Value @'
