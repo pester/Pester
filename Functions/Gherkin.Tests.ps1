@@ -169,6 +169,7 @@ Scenario: The test data should be converted properly
                 $actualTable.Length | Should -Be $expectedTable.Length;
                 for( $i = 0; $i -lt $expectedTable.Length; $i++ )
                 {
+                    $expectedTable[$i].Keys.Length | Should -Be $actualTable[$i].Keys.Length;
                     foreach( $key in $expectedTable[$i].Keys )
                     {
                         $key | Should -BeIn $actualTable[$i].Keys;
@@ -219,6 +220,7 @@ Scenario: The test data should be converted properly
                 $actualTable.Length | Should -Be $expectedTable.Length;
                 for( $i = 0; $i -lt $expectedTable.Length; $i++ )
                 {
+                    $expectedTable[$i].Keys.Length | Should -Be $actualTable[$i].Keys.Length;
                     foreach( $key in $expectedTable[$i].Keys )
                     {
                         $key | Should -BeIn $actualTable[$i].Keys;
