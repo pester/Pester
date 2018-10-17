@@ -120,3 +120,116 @@ Describe "Mocking works in Gherkin" -Tag Gherkin {
         @($gherkin.Results.PassedScenarios).Count | Should Be 3
     }
 }
+
+
+InModuleScope "Pester" {
+
+    Describe "Get-StepParameters" {
+
+        Context "Converts data in feature file steps" {
+
+            It "Should process a single-column table correctly" {
+
+                # resolve the full name to the temporary feature file because gherkin doesn't support PSDrive paths
+                $testDrive = (Get-PSDrive -Name "TestDrive").Root
+                $featureFile = Join-Path -Path $testDrive -ChildPath "singlecolumn.feature"
+
+                # write the temporary feature file that we're going to parse
+                Set-Content -Path $featureFile -Value @'
+Feature: Gherkin integration test
+Scenario: The test data should be converted properly
+    Given the test data
+        | PropertyName |
+        | Property1    |
+        | Property2    |
+        | Property3    |
+'@;
+
+                # parse the feature file to extract the scenario data
+                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile;
+                $Feature | Should -Not -Be $null;
+                $Background | Should -Be $null;
+                $Scenarios | Should -Not -Be $null;
+                $Scenarios.Steps.Count | Should -Be 1;
+
+                # call the function under test
+                $NamedArguments, $Parameters = Get-StepParameters -Step $Scenarios.Steps[0] -CommandName "the test data";
+                $NamedArguments | Should -Not -Be $null;
+                $NamedArguments.Table | Should -Not -Be $null;
+                @(, $Parameters) | Should -Not -Be $null;
+                $Parameters.Length | Should -Be 0;
+
+                # there must be an easier way to compare an array of hashtables?
+                $expectedTable = @(
+                    @{ "PropertyName" = "Property1" },
+                    @{ "PropertyName" = "Property2" },
+                    @{ "PropertyName" = "Property3" }
+                );
+                $actualTable = $NamedArguments.Table;
+                $actualTable.Length | Should -Be $expectedTable.Length;
+                for( $i = 0; $i -lt $expectedTable.Length; $i++ )
+                {
+                    foreach( $key in $expectedTable[$i].Keys )
+                    {
+                        $key | Should -BeIn $actualTable[$i].Keys;
+                        $actualTable[$i][$key] | Should -Be $expectedTable[$i][$key];
+                    }
+                }
+
+            }
+
+            It "Should process a multi-column table correctly" {
+
+                # resolve the full name to the temporary feature file because gherkin doesn't support PSDrive paths
+                $testDrive = (Get-PSDrive -Name "TestDrive").Root
+                $featureFile = Join-Path -Path $testDrive -ChildPath "singlecolumn.feature"
+
+                # write the temporary feature file that we're going to parse
+                Set-Content -Path $featureFile -Value @'
+Feature: Gherkin integration test
+Scenario: The test data should be converted properly
+    Given the test data
+        | Column1 | Column2 |
+        | Value1  | Value4  |
+        | Value2  | Value5  |
+        | Value3  | Value6  |
+'@;
+
+                # parse the feature file to extract the scenario data
+                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile;
+                $Feature | Should -Not -Be $null;
+                $Background | Should -Be $null;
+                $Scenarios | Should -Not -Be $null;
+                $Scenarios.Steps.Count | Should -Be 1;
+
+                # call the function under test
+                $NamedArguments, $Parameters = Get-StepParameters -Step $Scenarios.Steps[0] -CommandName "the test data";
+                $NamedArguments | Should -Not -Be $null;
+                $NamedArguments.Table | Should -Not -Be $null;
+                @(, $Parameters) | Should -Not -Be $null;
+                $Parameters.Length | Should -Be 0;
+
+                # there must be an easier way to compare an array of hashtables?
+                $expectedTable = @(
+                    @{ "Column1" = "Value1"; "Column2" = "Value4" },
+                    @{ "Column1" = "Value2"; "Column2" = "Value5" },
+                    @{ "Column1" = "Value3"; "Column2" = "Value6" }
+                );
+                $actualTable = $NamedArguments.Table;
+                $actualTable.Length | Should -Be $expectedTable.Length;
+                for( $i = 0; $i -lt $expectedTable.Length; $i++ )
+                {
+                    foreach( $key in $expectedTable[$i].Keys )
+                    {
+                        $key | Should -BeIn $actualTable[$i].Keys;
+                        $actualTable[$i][$key] | Should -Be $expectedTable[$i][$key];
+                    }
+                }
+
+            }
+
+        }
+
+    }
+
+}
