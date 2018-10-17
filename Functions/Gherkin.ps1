@@ -830,7 +830,7 @@ function ConvertTo-HashTableArray {
         if (!${Column Names}) {
             & $SafeCommands["Write-Verbose"] "Reading Names from Header"
             ${InputObject Header}, ${InputObject Rows} = ${InputObject Rows}
-            ${Column Names} = ${InputObject Header}.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value
+            ${Column Names} = @(${InputObject Header}.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
         }
 
         & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
