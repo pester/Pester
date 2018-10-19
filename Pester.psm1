@@ -102,10 +102,10 @@ elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
 }
 elseif ( Get-Command -ea SilentlyContinue uname -Type Application )
 {
-    $script:SafeCommands['uname'] = Get-Command -Name uname -Type Application
+    $script:SafeCommands['uname'] = Get-Command -Name uname -Type Application | Select-Object -First 1
     if ( Get-Command -ea SilentlyContinue id -Type Application )
     {
-        $script:SafeCommands['id'] = Get-Command -Name id -Type Application
+        $script:SafeCommands['id'] = Get-Command -Name id -Type Application | Select-Object -First 1
     }
 }
 else
