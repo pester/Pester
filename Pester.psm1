@@ -216,7 +216,7 @@ function Add-AssertionOperator
 
         [Parameter()]
         [string] $InternalName,
-        
+
         [switch] $SupportsArrayInput
     )
 

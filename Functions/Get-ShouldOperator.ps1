@@ -39,20 +39,20 @@ function Get-ShouldOperator {
     DynamicParam {
         # Set the dynamic parameters' name
         $ParameterName = 'Name'
-        
-        # Create the dictionary 
+
+        # Create the dictionary
         $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 
         # Create the collection of attributes
         $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-        
+
         # Create and set the parameters' attributes
         $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
 
         # Add the attributes to the attributes collection
         $AttributeCollection.Add($ParameterAttribute)
 
-        # Generate and set the ValidateSet 
+        # Generate and set the ValidateSet
         $arrSet = $AssertionOperators.Keys
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
 
@@ -85,7 +85,7 @@ function Get-ShouldOperator {
         } Else {
             $AssertionOperators.Keys | ForEach-Object {
                 $aliasCollection = (Get-AssertionOperatorEntry $_).Alias
-                
+
                 # Remove ugly {} characters from output unless necessary
                 # This is due to the Alias property having the [string[]] type
                 If (($aliasCollection | Measure-Object).Count -gt 1) {
@@ -93,7 +93,7 @@ function Get-ShouldOperator {
                 } Else {
                     $alias = [string]$aliasCollection
                 }
-                
+
                 # Return name and alias(es) for all registered Should operators
                 [PSCustomObject]@{
                     Name  = $_

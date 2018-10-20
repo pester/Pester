@@ -20,7 +20,7 @@ InModuleScope Pester {
             $err = { 5 | Should -Not -BeOfType 'UnknownType' } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])
         }
-        
+
         It "throws argument execption if type isn't a loaded type" {
             $err = { 5 | Should -BeOfType 'UnknownType' } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])
