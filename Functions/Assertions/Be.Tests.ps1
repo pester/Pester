@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "Should-Be" {
+    Describe "Should -Be" {
         It "returns true if the 2 arguments are equal" {
             1 | Should Be 1
             1 | Should -Be 1
@@ -153,7 +153,7 @@ InModuleScope Pester {
 }
 
 InModuleScope Pester {
-    Describe "Should-BeExactly" {
+    Describe "Should -BeExactly" {
         It "passes if letter case matches" {
             'a' | Should BeExactly 'a'
             'a' | Should -BeExactly 'a'
