@@ -1,7 +1,7 @@
 ﻿Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterFileContentMatchExactly" {
+    Describe "Should -FileContentMatchExactly" {
         Context "when testing file contents" {
             Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)Pester is awesome$([System.Environment]::NewLine)And this is Unicode: ☺"
             It "returns true if the file contains the specified content exactly" {
@@ -19,9 +19,7 @@ InModuleScope Pester {
                 "$TestDrive\test.txt" | Should -FileContentMatchExactly "☺"
             }
         }
-    }
 
-    Describe "Should -FileContentMatchExactly" {
         It 'returns correct assertion message when' {
             $path = 'TestDrive:\file.txt'
             'abc' | Set-Content -Path $path
