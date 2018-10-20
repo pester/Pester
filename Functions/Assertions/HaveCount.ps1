@@ -1,5 +1,13 @@
-function PesterHaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because)
-{
+function Should-HaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
+<#
+.SYNOPSIS
+Asserts that a collection has the expected amount of items.
+
+.EXAMPLE
+1,2,3 | Should -HaveCount 3
+This test passes, because it expected three objects, and received three.
+This is like running `@(1,2,3).Count` in PowerShell.
+#>
     if ($ExpectedValue -lt 0)
     {
         throw [ArgumentException]"Excpected collection size must be greater than or equal to 0."
@@ -36,10 +44,10 @@ function PesterHaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [
     }
 }
 
-Add-AssertionOperator -Name HaveCount `
-                      -Test $function:PesterHaveCount `
+Add-AssertionOperator -Name         HaveCount `
+                      -InternalName Should-HaveCount `
+                      -Test         ${function:Should-HaveCount} `
                       -SupportsArrayInput
 
-function PesterHaveCountFailureMessage() {}
-function NotPesterHaveCountFailureMessage() {}
-
+function ShouldHaveCountFailureMessage() {}
+function NotShouldHaveCountFailureMessage() {}
