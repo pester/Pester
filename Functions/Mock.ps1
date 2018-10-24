@@ -1013,11 +1013,9 @@ function Invoke-Mock {
                 if( $mock.OriginalCommand -like "Set-Variable" ){
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
                         $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
-                        Write-Host -Object "No Scope Defined" -ForegroundColor Yellow
                     }
                     elseif($MockCallState['BeginBoundParameters'].Scope -match "\d"){
                         $MockCallState['BeginBoundParameters'].Scope = 2
-                        Write-Host -Object "Scope defined" -ForegroundColor Yellow
                     }
                 }
 
