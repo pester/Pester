@@ -427,7 +427,7 @@ function Import-GherkinFeature {
                 }
                 $ScenarioName = $Scenario.Name
                 if ($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
+                    $ScenarioName = $ScenarioName + "`n  Examples: " + $ExampleSet.Name.Trim()
                 }
                 & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
