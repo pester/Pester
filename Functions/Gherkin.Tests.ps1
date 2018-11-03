@@ -257,4 +257,12 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
     It 'Should show the names of the features executed during the test run' {
         $gherkin.Results.Features | Should -Be "PesterResult shows executed feature names"
     }
+
+    It 'Should show the names of the passed secnarios' {
+        $gherkin.Results.PassedScenarios | Should -Be @('The PesterResult object shows the executed feature names', 'The Pester test report shows scenario names with examples: Examples: A Passing Scenario')
+    }
+
+    It 'Should show the names of the failed scenarios' {
+        $gherkin.Results.FailedScenarios | Should -Be "The Pester test report shows scenario names with examples: Examples: A Failing Scenario"
+    }
 }

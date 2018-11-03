@@ -9,4 +9,13 @@
             </ScriptMethod>
         </Members>
     </Type>
+    <Type>
+        <Name>Gherkin.Ast.Scenario</Name>
+        <Members>
+            <ScriptMethod>
+                <Name>ToString</Name>
+                <Script>$this.Name -replace "`n ", ':'</Script>
+            </ScriptMethod>
+        </Members>
+    </Type>
 </Types>

@@ -9,3 +9,17 @@ Feature: PesterResult shows executed feature names
     Given this feature and scenario
      When it is executed
      Then the feature name is displayed in the test report
+
+  Scenario Outline: The Pester test report shows scenario names with examples
+
+    Given this is a '<Outcome>' scenario
+     When the scenario is executed
+     Then the scenario name is displayed in the '<Status>' array of the PesterResults object
+
+      Examples: A Passing Scenario
+        | Outcome | Status          |
+        | Passed  | PassedScenarios |
+
+      Examples: A Failing Scenario
+        | Outcome | Status          |
+        | Failed  | FailedScenarios |
