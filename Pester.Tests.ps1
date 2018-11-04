@@ -44,41 +44,41 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
             $script:tagVersion                  | Should -Not -BeNullOrEmpty
             $script:tagVersionShort -as [Version]    | Should -Not -BeNullOrEmpty
         }
-    }
 
-    It "has valid release notes in the manifest" {
-        $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+        It "has valid release notes in the manifest" -skip:$skipVersionTest {
+            $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+        }
+
+        It "tag and changelog versions are the same" -skip:$skipVersionTest {
+
+            foreach ($line in (Get-Content $changeLogPath))
+            {
+                if ($line -match "^\s*##\s+(?<Version>.*?)\s")
+                {
+                    $script:changelogVersion = $matches.Version
+                    $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
+                    break
+                }
+            }
+
+            $script:changelogVersion      | Should -Be $script:tagVersion
+            $script:changelogVersionShort | Should -Be $script:tagVersionShort
+        }
+
+        It "tag and changelog versions are the same" -skip:$skipVersionTest {
+            $script:changelogVersion | Should -Be $script:tagVersion
+        }
+
+        It "all short versions are the same" -skip:$skipVersionTest {
+            $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
+            $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
+        }
     }
 
     It "has valid pre-release suffix in manifest (empty for stable version)" {
         # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
         $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where {$_}
         $prereleaseFromManifest | Should -Be $script:tagPrerelease
-    }
-
-    It "tag and changelog versions are the same" {
-
-        foreach ($line in (Get-Content $changeLogPath))
-        {
-            if ($line -match "^\s*##\s+(?<Version>.*?)\s")
-            {
-                $script:changelogVersion = $matches.Version
-                $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
-                break
-            }
-        }
-
-        $script:changelogVersion      | Should -Be $script:tagVersion
-        $script:changelogVersionShort | Should -Be $script:tagVersionShort
-    }
-
-    It "tag and changelog versions are the same" {
-        $script:changelogVersion | Should -Be $script:tagVersion
-    }
-
-    It "all short versions are the same" -skip:$skipVersionTest {
-        $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
-        $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
     }
 }
 
