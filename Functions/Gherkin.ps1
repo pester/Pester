@@ -390,11 +390,8 @@ function Import-GherkinFeature {
              $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
         }
 
-        switch ($Child.Keyword.Trim()) {
-            "Scenario" {
-                $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
-            }
-            "Scenario Outline" {
+        switch -Regex ($Child.Keyword.Trim()) {
+            "Scenario(?: (?:Outline|Template))?" {
                 $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
             }
             "Background" {
