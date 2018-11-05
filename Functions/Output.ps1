@@ -245,14 +245,28 @@ function Write-PesterResult {
             switch ($TestResult.Result)
             {
                 Passed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                    $outputLines = $output -split [Environment]::NewLine
+                    for ($n = 0; $n -lt $outputLines.Length; $n++) {
+                        if ($n) {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin$margin$($outputLines[$n])"
+                        } else {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $($outputLines[0]) " -NoNewLine
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime $humanTime
+                        }
+                    }
                     break
                 }
 
                 Failed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                    $outputLines = $output -split [Environment]::NewLine
+                    for ($n = 0; $n -lt $outputLines.Length; $n++) {
+                        if ($n) {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin$margin$($outputLines[$n])"
+                        } else {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $($outputLines[0]) " -NoNewLine
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime $humanTime
+                        }
+                    }
 
                     if($pester.IncludeVSCodeMarker) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.StackTrace -replace '(?m)^',$error_margin)
@@ -269,25 +283,50 @@ function Write-PesterResult {
 
                 Skipped {
                     $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                    $outputLines = $output -split [Environment]::NewLine
+                    for ($n = 0; $n -lt $outputLines.Length; $n++) {
+                        if ($n) {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin$margin$($outputLines[$n])"
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
+                        } else {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $($outputLines[0]) " -NoNewLine
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime $humanTime
+                        }
+                    }
                     break
                 }
 
                 Pending {
                     $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
+                    $outputLines = $output -split [Environment]::NewLine
+                    for ($n = 0; $n -lt $outputLines.Length; $n++) {
+                        if ($n) {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin$margin$($outputLines[$n])"
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
+                        } else {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $($outputLines[0]) " -NoNewLine
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime $humanTime
+                        }
+                    }
                     break
                 }
 
                 Inconclusive {
                     $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                    $outputLines = $output -split [Environment]::NewLine
+                    for ($n = 0; $n -lt $outputLines.Length; $n++) {
+                        if ($n) {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin$margin$($outputLines[$n])"
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                        } else {
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $($outputLines[0]) " -NoNewLine
+                            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime $humanTime
+                        }
+                    }
+
+                    if ($testresult.FailureMessage) {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                    }
 
                     break
                 }
