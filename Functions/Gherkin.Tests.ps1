@@ -698,5 +698,40 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlInnerText "($scenario5Examples3cStepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
         Get-XmlInnerText "($scenario5Examples3cStepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
     }
+}
 
+Describe "Tables and DocStrings are displayed in the console" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-ScenarioData.feature) -PassThru -Show None
+        }
+
+        InModuleScope Pester {
+            $Feature, $Background, $Scenarios = Import-GherkinFeature -Path (Join-Path $scriptRoot Examples\Gherkin\Gherkin-ScenarioData.feature)
+            $Scenarios | ForEach-Object { @{ Scenario = $_.Name; Steps = @($_.Steps | ForEach-Object { "{0} {1}" -f $_.Keyword, $_.Text }) } }
+        }
+    }
+
+    $gherkin, $ScenarioSteps = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    It 'Should show Step Definition DocStrings' {
+        $gherkin.Results.TestResult[0].Name | Should -Be $ScenarioSteps[0].Steps[0]
+    }
+
+
+    It 'Should show Step Definition Tables' {
+        $SquareTable = $ScenarioSteps[1].Steps[0]
+        $RectangularTable = $ScenarioSteps[1].Steps[1]
+        $SingleColumnTable = $ScenarioSteps[1].Steps[2]
+
+        $gherkin.Results.TestResult[($ScenarioSteps[0].Steps.Count)].Name | Should -Be $SquareTable
+        $gherkin.Results.TestResult[($ScenarioSteps[0].Steps.Count + 1)].Name | Should -Be $RectangularTable
+        $gherkin.Results.TestResult[($ScenarioSteps[0].Steps.Count + 2)].Name | Should -Be $SingleColumnTable
+    }
 }

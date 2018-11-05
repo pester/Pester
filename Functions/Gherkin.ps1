@@ -133,6 +133,10 @@ function Invoke-Gherkin {
             This parameter does not affect the PassThru custom object or the XML output that
             is written when you use the Output parameters.
 
+        .PARAMETER HideStepData
+            Controls whether or not Step Definition tables or DocStrings are printed to the console
+            during the test run.
+
         .PARAMETER PassThru
             Returns a custom object (PSCustomObject) that contains the test results.
             By default, Invoke-Gherkin writes to the host program, not to the output stream (stdout).
@@ -215,6 +219,8 @@ function Invoke-Gherkin {
 
         [Pester.OutputTypes]$Show = 'All',
 
+        [Switch]$HideStepData,
+
         [switch]$PassThru
     )
     begin {
@@ -270,7 +276,7 @@ function Invoke-Gherkin {
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
         foreach ($FeatureFile in & $SafeCommands["Get-ChildItem"] $Path -Filter "*.feature" -Recurse ) {
-            Invoke-GherkinFeature $FeatureFile -Pester $pester
+            Invoke-GherkinFeature $FeatureFile -Pester $pester -HideStepData:$HideStepData
         }
 
         # Remove all the steps
@@ -366,9 +372,14 @@ function Import-GherkinFeature {
 
         .PARAMETER Pester
             Internal Pester object. For internal use only
+
+        .PARAMETER HideStepData
+            Controls whether or not Step Definition text includes DocStrings or Tables.
+            If this parameter is set, then DocStrings or tables will not be appended to
+            Step Definition text and will not be output to the console.
     #>
     [CmdletBinding()]
-    param($Path, [PSObject]$Pester)
+    param($Path, [PSObject]$Pester, [Switch]$HideStepData)
     $Background = $null
 
     $parser = & $SafeCommands["New-Object"] Gherkin.Parser
@@ -434,9 +445,58 @@ function Import-GherkinFeature {
                     }
                 }
             }
-            else {
-                $Scenario
+        } elseif ($HideStepData) {
+            $Scenario
+        } else {
+            $Steps = foreach ($Step in $Scenario.Steps) {
+                [string]$StepText = $Step.Text
+                if ($Step.Argument -is [Gherkin.Ast.DocString]) {
+                    $StepText += "$([Environment]::NewLine)  `"`"`"$([Environment]::NewLine) $(foreach ($str in ($Step.Argument.Content -split [Environment]::NewLine)) { " $str$([Environment]::NewLine)" })  `"`"`""
+                }
+                if ($Step.Argument -is [Gherkin.Ast.DataTable]) {
+                    $table = $Step.Argument.Rows |
+                        & $SafeCommands['ForEach-Object'] { ,@($_ |
+                        & $SafeCommands['Select-Object'] -ExpandProperty Cells |
+                        & $SafeCommands['Select-Object'] -ExpandProperty Value) }
+
+                    if ($Step.Argument.Rows[0].Cells.Length -gt 1) {
+                        $transposedTable = for ($i = $table[0].Length - 1; $i -ge 0; $i--) {
+                            ,@(for ($j = 0; $j -lt $table.Length; $j++) {
+                                $table[$j][$i]
+                            })
+                        }
+
+                        [Array]::Reverse($transposedTable)
+                        $cellWidths = $transposedTable |
+                            & $SafeCommands['ForEach-Object'] { $_ |
+                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum }
+                    } else {
+                        $cellWidths = @($table |
+                            & $SafeCommands['ForEach-Object'] { $_ } |
+                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum)
+                    }
+
+                    $tableText = ""
+                    foreach ($row in $Step.Argument.Rows) {
+                        $rowText = "  |"
+                        for ($j = 0; $j -lt $row.Cells.Length; $j++) {
+                            $rowText += " {0,$(-$cellWidths[$j])} |" -f $row.Cells[$j].Value
+                        }
+
+                        $tableText += "$([Environment]::NewLine)$rowText"
+                    }
+
+                    $StepText += "$($tableText.TrimEnd())"
+                }
+                if ($StepText -ne $Step.Text) {
+                    & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                } else {
+                    $Step
+                }
             }
+            & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $null, $Scenario.Location, $Scenario.Keyword.Trim(), $Scenario.Name, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
         }
     )
 
@@ -455,7 +515,8 @@ function Invoke-GherkinFeature {
         [Parameter(Mandatory = $True, Position = 0, ValueFromPipelineByPropertyName = $True)]
         [IO.FileInfo]$FeatureFile,
 
-        [PSObject]$Pester
+        [PSObject]$Pester,
+        [Switch]$HideStepData
     )
     # Make sure broken tests don't leave you in space:
     $CWD = [Environment]::CurrentDirectory
@@ -465,9 +526,8 @@ function Invoke-GherkinFeature {
     try {
         $Parent = & $SafeCommands["Split-Path"] $FeatureFile.FullName
         Import-GherkinSteps -StepPath $Parent -Pester $pester
-        $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
-    }
-    catch [Gherkin.ParserException] {
+        $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester -HideStepData:$HideStepData
+    } catch [Gherkin.ParserException] {
         & $SafeCommands["Write-Error"] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands["Select-Object"] -Expand Message) -join "`n`n")"
         continue
     }
@@ -705,7 +765,8 @@ function Invoke-GherkinStep {
         #  Pick the match with the least grouping wildcards in it...
         $StepCommand = $(
             foreach ($StepCommand in $Script:GherkinSteps.Keys) {
-                if ($Step.Text -match "^${StepCommand}$") {
+                $StepText = $Step.Text -split [Environment]::NewLine | & $SafeCommands["Select-Object"] -First 1
+                if ($StepText -match "^${StepCommand}$") {
                     $StepCommand | & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name MatchCount -Value $Matches.Count -PassThru
                 }
             }
@@ -737,9 +798,6 @@ function Invoke-GherkinStep {
                 # Invoke-GherkinHook BeforeStep $Step.Text $Step.Tags
 
                 if ($NamedArguments.Count) {
-                    if ($NamedArguments.ContainsKey("Table")) {
-                        $DisplayText += "..."
-                    }
                     $ScriptBlock = { . $Script:GherkinSteps.$StepCommand @NamedArguments @Parameters }
                 }
                 else {
