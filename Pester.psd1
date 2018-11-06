@@ -58,7 +58,8 @@
         'BeforeEachFeature'
         'AfterEachFeature'
         'BeforeEachScenario'
-        'AfterEachScenario'
+        'AfterEachScenario',
+        'Set-StepPending'
     )
 
     # # Cmdlets to export from this module
