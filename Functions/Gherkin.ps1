@@ -406,6 +406,13 @@ function Import-GherkinFeature {
             }
         }
 
+# temporary logging to debug build failures
+write-host ($null -eq $Scenario)
+write-host ($Scenario.GetType().FullName)
+write-host ($Scenario | gm | ft | out-string)
+write-host (gwmi win32_operatingsystem | fl * | out-string)
+write-host ($PSVersionTable | ft | out-string)
+
         if ($Scenario.Examples) {
             foreach ($ExampleSet in $Scenario.Examples) {
                 ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
