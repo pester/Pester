@@ -834,12 +834,14 @@ function ConvertTo-HashTableArray {
         }
 
         & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
-        foreach (${InputObject row} in ${InputObject Rows}) {
-            ${Pester Result} = @{}
-            for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
-                ${Pester Result}.Add(${Column Names}[$n], ${InputObject row}.Cells[$n].Value)
+        if( $null -ne ${InputObject Rows} ) {
+            foreach (${InputObject row} in ${InputObject Rows}) {
+                ${Pester Result} = @{}
+                for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                    ${Pester Result}.Add(${Column Names}[$n], ${InputObject row}.Cells[$n].Value)
+                }
+                ${Result Table} += @(${Pester Result})
             }
-            ${Result Table} += @(${Pester Result})
         }
     }
     end {
