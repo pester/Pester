@@ -410,7 +410,10 @@ function Import-GherkinFeature {
 write-host ($null -eq $Scenario)
 write-host ($Scenario.GetType().FullName)
 write-host ($Scenario | gm | ft | out-string)
-write-host (gwmi win32_operatingsystem | fl * | out-string)
+if( $null -eq (get-command "gwmi" -ea silentlycontinue))
+{
+    write-host (gwmi win32_operatingsystem | fl * | out-string)
+}
 write-host ($PSVersionTable | ft | out-string)
 
         if ($Scenario.Examples) {
