@@ -833,8 +833,8 @@ function ConvertTo-HashTableArray {
             ${Column Names} = @(${InputObject Header}.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
         }
 
-        & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
         if( $null -ne ${InputObject Rows} ) {
+            & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
             foreach (${InputObject row} in ${InputObject Rows}) {
                 ${Pester Result} = @{}
                 for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
