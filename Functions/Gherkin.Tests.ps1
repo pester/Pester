@@ -124,7 +124,7 @@ Describe "Mocking works in Gherkin" -Tag Gherkin {
 
 InModuleScope "Pester" {
 
-    Describe "Get-StepParameters" {
+    Describe "Get-StepParameters" -Tag Gherkin {
 
         Context "Converts data in feature file steps" {
 
