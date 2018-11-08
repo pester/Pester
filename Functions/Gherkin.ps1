@@ -406,7 +406,7 @@ function Import-GherkinFeature {
             }
         }
 
-        if ($Scenario.Examples) {
+        if( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
             foreach ($ExampleSet in $Scenario.Examples) {
                 ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
                 $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
