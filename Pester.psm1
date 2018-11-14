@@ -1066,6 +1066,7 @@ function Set-ScriptBlockScope
         $SessionState,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'FromSessionStateInternal')]
+        [AllowNull()]
         $SessionStateInternal
     )
 
