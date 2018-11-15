@@ -44,41 +44,41 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
             $script:tagVersion                  | Should -Not -BeNullOrEmpty
             $script:tagVersionShort -as [Version]    | Should -Not -BeNullOrEmpty
         }
-    }
 
-    It "has valid release notes in the manifest" {
-        $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+        It "has valid release notes in the manifest" -skip:$skipVersionTest {
+            $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+        }
+
+        It "tag and changelog versions are the same" -skip:$skipVersionTest {
+
+            foreach ($line in (Get-Content $changeLogPath))
+            {
+                if ($line -match "^\s*##\s+(?<Version>.*?)\s")
+                {
+                    $script:changelogVersion = $matches.Version
+                    $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
+                    break
+                }
+            }
+
+            $script:changelogVersion      | Should -Be $script:tagVersion
+            $script:changelogVersionShort | Should -Be $script:tagVersionShort
+        }
+
+        It "tag and changelog versions are the same" -skip:$skipVersionTest {
+            $script:changelogVersion | Should -Be $script:tagVersion
+        }
+
+        It "all short versions are the same" -skip:$skipVersionTest {
+            $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
+            $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
+        }
     }
 
     It "has valid pre-release suffix in manifest (empty for stable version)" {
         # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
         $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where {$_}
         $prereleaseFromManifest | Should -Be $script:tagPrerelease
-    }
-
-    It "tag and changelog versions are the same" {
-
-        foreach ($line in (Get-Content $changeLogPath))
-        {
-            if ($line -match "^\s*##\s+(?<Version>.*?)\s")
-            {
-                $script:changelogVersion = $matches.Version
-                $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
-                break
-            }
-        }
-
-        $script:changelogVersion      | Should -Be $script:tagVersion
-        $script:changelogVersionShort | Should -Be $script:tagVersionShort
-    }
-
-    It "tag and changelog versions are the same" {
-        $script:changelogVersion | Should -Be $script:tagVersion
-    }
-
-    It "all short versions are the same" -skip:$skipVersionTest {
-        $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
-        $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
     }
 }
 
@@ -124,7 +124,8 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
 
             # These commands are conditionally added to the safeCommands table due to Nano / Core versus PSv2 compatibility; one will always
             # be missing, and can be ignored.
-            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance') -notcontains $_ }
+            # Also add the two possible commands uname and id which would be found on non-Windows platforms
+            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance','uname','id') -notcontains $_ }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
                 $missingSafeCommands | Should -Be $null
@@ -157,6 +158,7 @@ Describe 'Style rules' -Tag StyleRules {
         Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
         Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.ps1,*.psm1, *.psd1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
@@ -351,6 +353,12 @@ Describe 'Assertion operators' {
 
         { Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test {$true} -Alias SameAlias } | Should -Not -Throw
     }
+    It 'Allows an operator to be registered with multiple aliases' {
+        function MultipleAlias {$true}
+        Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
+        
+        {Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
+    }
     It 'Does not allow an operator with a different test to be registered using an existing name' {
         function DifferentScriptBlockA {$true}
         function DifferentScriptBlockB {$false}
@@ -375,6 +383,7 @@ Describe 'Set-StrictMode for all tests files' {
         Get-ChildItem $pesterRoot\* -Include *.Tests.ps1
         Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.Tests.ps1 -Recurse
         Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.Tests.ps1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.Tests.ps1 -Recurse
     )
 
     It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
@@ -544,4 +553,164 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
             }
         }
     }
+}
+
+InModuleScope -ModuleName Pester {
+    Describe "Contain-AnyStringLike" {
+
+        It 'Given a filter <filter> that does not match any items in collection <collection> it returns $false' -TestCases @(
+            @{ Filter = "Unit"; Collection = "Integration" }
+            @{ Filter = "*Unit*"; Collection = "Integration" }
+            @{ Filter = "*Unit*", "IntegrationTest"; Collection = "Integration" }
+            @{ Filter = "Unit"; Collection = "Low", "Medium", "High" }
+            @{ Filter = "*Unit*"; Collection = "Low", "Medium", "High" }
+        ) {
+            param($Filter, $Collection)
+
+            Contain-AnyStringLike -Filter $Filter -Collection $Collection |
+                Should -BeFalse
+        }
+
+        It 'Given a filter <filter> that matches one or more items in collection <collection> it returns $true' -TestCases @(
+            @{ Filter = "Unit"; Collection = "Unit" }
+            @{ Filter = "*Unit*"; Collection = "UnitTest" }
+            @{ Filter = "UnitTest", "IntegrationTest"; Collection = "UnitTest" }
+            @{ Filter = "Low"; Collection = "Low", "Medium", "High" }
+            @{ Filter = "Low", "Medium"; Collection = "Low", "Medium", "High" }
+            @{ Filter = "l*"; Collection = "Low", "Medium", "High" }
+        ) {
+            param($Filter, $Collection)
+
+            Contain-AnyStringLike -Filter $Filter -Collection $Collection |
+                Should -BeTrue
+        }
+    }
+}
+
+
+Describe 'Invoke-Pester happy path returns only test results'  {
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
+        function Invoke-MyFunction
+        {
+            return $true;
+        }
+'@;
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Value @'
+        . "TestDrive:\Invoke-MyFunction.ps1";
+        Describe "Invoke-MyFunction Tests" {
+            It "Should not throw" {
+                Invoke-MyFunction
+            }
+        }
+'@;
+
+    It "Should swallow test output with -PassThru" {
+
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+
+        # note - the pipe command unrolls enumerable objects, so we have to wrap
+        #        results in a sacrificial array to retain its original structure
+        #        when passed to Should
+        @(,$results) | Should -BeOfType [PSCustomObject];
+        $results.TotalCount | Should -Be 1;
+
+        # or, we could do this instead:
+        # ($results -is [PSCustomObject]) | Should -Be $true;
+        # $results.TotalCount | Should -Be 1;
+
+    }
+
+    It "Should swallow test output without -PassThru" {
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None";
+        $results | Should -Be $null;
+    }
+
+}
+
+
+Describe 'Invoke-Pester swallows pipeline output from system-under-test'  {
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
+        Write-Output "my system-under-test output";
+        function Invoke-MyFunction
+        {
+            return $true;
+        }
+'@;
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Value @'
+        . "TestDrive:\Invoke-MyFunction.ps1";
+        Describe "Invoke-MyFunction Tests" {
+            It "Should not throw" {
+                Invoke-MyFunction
+            }
+        }
+'@;
+
+    It "Should swallow test output with -PassThru" {
+
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+
+        # note - the pipe command unrolls enumerable objects, so we have to wrap
+        #        results in a sacrificial array to retain its original structure
+        #        when passed to Should
+        @(,$results) | Should -BeOfType [PSCustomObject];
+        $results.TotalCount | Should -Be 1;
+
+        # or, we could do this instead:
+        # ($results -is [PSCustomObject]) | Should -Be $true;
+        # $results.TotalCount | Should -Be 1;
+
+    }
+
+    It "Should swallow test output without -PassThru" {
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None";
+        $results | Should -Be $null;
+    }
+
+}
+
+
+Describe 'Invoke-Pester swallows pipeline output from test script'  {
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
+        function Invoke-MyFunction
+        {
+            return $true;
+        }
+'@;
+
+    Set-Content -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Value @'
+        . "TestDrive:\Invoke-MyFunction.ps1";
+        Write-Output "my test script output";
+        Describe "Invoke-MyFunction Tests" {
+            It "Should not throw" {
+                Invoke-MyFunction
+            }
+        }
+'@;
+
+    It "Should swallow test output with -PassThru" {
+
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+
+        # note - the pipe command unrolls enumerable objects, so we have to wrap
+        #        results in a sacrificial array to retain its original structure
+        #        when passed to Should
+        @(,$results) | Should -BeOfType [PSCustomObject];
+        $results.TotalCount | Should -Be 1;
+
+        # or, we could do this instead:
+        # ($results -is [PSCustomObject]) | Should -Be $true;
+        # $results.TotalCount | Should -Be 1;
+
+    }
+
+    It "Should swallow test output without -PassThru" {
+        $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None";
+        $results | Should -Be $null;
+    }
+
 }

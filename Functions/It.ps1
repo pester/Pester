@@ -103,10 +103,10 @@ about_should
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
-        [string]$name,
+        [string] $Name,
 
         [Parameter(Position = 1)]
-        [ScriptBlock] $test = {},
+        [ScriptBlock] $Test = {},
 
         [System.Collections.IDictionary[]] $TestCases,
 
@@ -126,9 +126,9 @@ function ItImpl
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
         [Parameter(Mandatory = $true, Position=0)]
-        [string]$name,
+        [string]$Name,
         [Parameter(Position = 1)]
-        [ScriptBlock] $test,
+        [ScriptBlock] $Test,
         [System.Collections.IDictionary[]] $TestCases,
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
@@ -154,12 +154,12 @@ function ItImpl
     }
 
     #the function is called with Pending or Skipped set the script block if needed
-    if ($null -eq $test) { $test = {} }
+    if ($null -eq $Test) { $Test = {} }
 
     #mark empty Its as Pending
     if ($PSVersionTable.PSVersion.Major -le 2 -and
         $PSCmdlet.ParameterSetName -eq 'Normal' -and
-        [String]::IsNullOrEmpty((Remove-Comments $test.ToString()) -replace "\s"))
+        [String]::IsNullOrEmpty((Remove-Comments $Test.ToString()) -replace "\s"))
     {
         $Pending = $true
     }
@@ -168,9 +168,9 @@ function ItImpl
         #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
         # AST is not available also
         $testIsEmpty =
-            [String]::IsNullOrEmpty($test.Ast.BeginBlock.Statements) -and
-            [String]::IsNullOrEmpty($test.Ast.ProcessBlock.Statements) -and
-            [String]::IsNullOrEmpty($test.Ast.EndBlock.Statements)
+            [String]::IsNullOrEmpty($Test.Ast.BeginBlock.Statements) -and
+            [String]::IsNullOrEmpty($Test.Ast.ProcessBlock.Statements) -and
+            [String]::IsNullOrEmpty($Test.Ast.EndBlock.Statements)
 
         if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
         {
@@ -193,11 +193,21 @@ function ItImpl
     {
         foreach ($testCase in $TestCases)
         {
-            $expandedName = [regex]::Replace($name, '<([^>]+)>', {
+            $expandedName = [regex]::Replace($Name, '<([^>]+)>', {
                 $capture = $args[0].Groups[1].Value
                 if ($testCase.Contains($capture))
                 {
-                    Format-Nicely ($testCase[$capture])
+                    $value = $testCase[$capture]
+                    # skip adding quotes to non-empty strings to avoid adding junk to the
+                    # test name in case you want to expand captures like 'because' or test name
+                    if ($value -isnot [string] -or [string]::IsNullOrEmpty($value))
+                    {
+                        Format-Nicely $value
+                    }
+                    else
+                    {
+                        $value
+                    }
                 }
                 else
                 {
@@ -207,9 +217,9 @@ function ItImpl
 
             $splat = @{
                 Name = $expandedName
-                Scriptblock = $test
+                Scriptblock = $Test
                 Parameters = $testCase
-                ParameterizedSuiteName = $name
+                ParameterizedSuiteName = $Name
                 OutputScriptBlock = $OutputScriptBlock
             }
 
@@ -218,7 +228,7 @@ function ItImpl
     }
     else
     {
-        Invoke-Test -Name $name -ScriptBlock $test @pendingSkip -OutputScriptBlock $OutputScriptBlock
+        Invoke-Test -Name $Name -ScriptBlock $Test @pendingSkip -OutputScriptBlock $OutputScriptBlock
     }
 }
 
@@ -344,7 +354,7 @@ function Get-ParameterDictionary
         [scriptblock] $ScriptBlock
     )
 
-    $guid = [guid]::NewGuid().Guid
+    $guid = [Guid]::NewGuid().Guid
 
     try
     {

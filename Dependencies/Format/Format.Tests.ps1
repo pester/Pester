@@ -1,6 +1,8 @@
+Set-StrictMode -Version Latest
+
 $here = $MyInvocation.MyCommand.Path | Split-Path
 Get-Module Axiom,Format | Remove-Module
-Import-Module $here\..\Axiom\Axiom.psm1 -ErrorAction 'stop' -DisableNameChecking 
+Import-Module $here\..\Axiom\Axiom.psm1 -ErrorAction 'stop' -DisableNameChecking
 Import-Module $here\Format.psm1 -ErrorAction 'stop' -DisableNameChecking
 
 function New-PSObject ([hashtable]$Property) {
@@ -9,30 +11,30 @@ function New-PSObject ([hashtable]$Property) {
 
 function New-Dictionary ([hashtable]$Hashtable) {
     $d = new-object "Collections.Generic.Dictionary[string,object]"
-    
+
     $Hashtable.GetEnumerator() | foreach { $d.Add($_.Key, $_.Value) }
 
     $d
 }
 
 # Add-Type -TypeDefinition 'namespace Assertions.TestType { public class Person { public string Name {get;set;} public int Age {get;set;}}}'
-Describe "Format-Collection" { 
+Describe "Format-Collection" {
     It "Formats collection of values '<value>' to '<expected>' using comma separator" -TestCases @(
         @{ Value = (1, 2, 3); Expected = "@(1, 2, 3)" }
-    ) { 
+    ) {
         param ($Value, $Expected)
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
 }
 
-Describe "Format-Number" { 
+Describe "Format-Number" {
     It "Formats number to use . separator (tests anything only on non-english systems --todo)" -TestCases @(
         @{ Value = 1.1; },
         @{ Value = [double] 1.1; },
         @{ Value = [float] 1.1; },
         @{ Value = [single] 1.1; },
         @{ Value = [decimal] 1.1; }
-    ) { 
+    ) {
         param ($Value)
         Format-Number -Value $Value | Verify-Equal "1.1"
     }
@@ -43,7 +45,7 @@ Describe "Format-Number" {
 #     It "Formats object '<value>' to '<expected>'" -TestCases @(
 #         @{ Value = (New-PSObject @{Name = 'Jakub'; Age = 28}); Expected = "PSObject{Age=28; Name=Jakub}"},
 #         @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28}); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}"}
-#     ) { 
+#     ) {
 #         param ($Value, $Expected)
 #         Format-Object -Value $Value | Verify-Equal $Expected
 #     }
@@ -51,12 +53,12 @@ Describe "Format-Number" {
 #     It "Formats object '<value>' with selected properties '<selectedProperties>' to '<expected>'" -TestCases @(
 #         @{ Value = (New-PSObject @{Name = 'Jakub'; Age = 28}); SelectedProperties = "Age"; Expected = "PSObject{Age=28}"},
 #         @{ Value = (Get-Process -Name Idle); SelectedProperties = 'Name', 'Id'; Expected = "Diagnostics.Process{Id=0; Name=Idle}" },
-#         @{ 
+#         @{
 #             Value              = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28})
 #             SelectedProperties = 'Name'
 #             Expected           = "Assertions.TestType.Person{Name=Jakub}"
 #         }
-#     ) { 
+#     ) {
 #         param ($Value, $SelectedProperties, $Expected)
 #         Format-Object -Value $Value -Property $SelectedProperties | Verify-Equal $Expected
 #     }
@@ -72,13 +74,13 @@ Describe "Format-Boolean" {
     }
 }
 
-Describe "Format-Null" { 
+Describe "Format-Null" {
     It "Formats null to '`$null'" {
         Format-Null | Verify-Equal '$null'
     }
 }
 
-Describe "Format-String" { 
+Describe "Format-String" {
     It "Formats empty string to '<empty>'" {
         Format-String -Value "" | Verify-Equal '<empty>'
     }
@@ -88,20 +90,20 @@ Describe "Format-String" {
     }
 }
 
-Describe "Format-DateTime" { 
+Describe "Format-DateTime" {
     It "Formats date to orderable format with ticks" {
         Format-Date -Value ([dateTime]239842659899234234) | Verify-Equal '0761-01-12T16:06:29.9234234'
     }
 }
 
-Describe "Format-ScriptBlock" { 
+Describe "Format-ScriptBlock" {
     It "Formats scriptblock as string with curly braces" {
         Format-ScriptBlock -Value {abc} | Verify-Equal '{abc}'
     }
 }
 
 # skipping object formatting for now
-# Describe "Format-Hashtable" { 
+# Describe "Format-Hashtable" {
 #     It "Formats empty hashtable as @{}" {
 #         Format-Hashtable @{} | Verify-Equal '@{}'
 #     }
@@ -117,7 +119,7 @@ Describe "Format-ScriptBlock" {
 # }
 
 # skipping object formatting for now
-# Describe "Format-Dictionary" { 
+# Describe "Format-Dictionary" {
 #     It "Formats empty dictionary as @{}" {
 #         Format-Dictionary (New-Dictionary @{}) | Verify-Equal 'Dictionary{}'
 #     }
@@ -149,7 +151,7 @@ Describe "Format-Nicely" {
         #@{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28}); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}"}
         #@{ Value = @{Name = 'Jakub'; Age = 28}; Expected = '@{Age=28; Name=Jakub}' }
         #@{ Value = New-Dictionary @{Age = 28; Name = 'Jakub'}; Expected = 'Dictionary{Age=28; Name=Jakub}' }
-    ) { 
+    ) {
         param($Value, $Expected)
         Format-Nicely -Value $Value | Verify-Equal $Expected
     }
@@ -177,7 +179,7 @@ Describe "Format-Type" {
         Format-Type -Value $Value | Verify-Equal $Expected
     }
 }
- 
+
 
 Describe "Get-ShortType" {
     It "Given '<value>' it returns the correct shortened type name '<expected>'" -TestCases @(
@@ -192,4 +194,3 @@ Describe "Get-ShortType" {
         Get-ShortType -Value $Value | Verify-Equal $Expected
     }
 }
- 

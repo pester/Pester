@@ -1,3 +1,33 @@
+## 4.4.2 (October 3, 2018)
+ - Remove single quotes when expanding strings in test name [GH-1090]
+ - Get environment info on non-windows platforms [GH-1105]
+
+## 4.4.1 (September 20, 2018)
+ - Fix describe tags [GH-1098]
+ - Capitalize name and test parameters [GH-1080]
+
+## 4.4.0 (July 20, 2018)
+ - Run all tests in strict mode [GH-1041]
+ - Fix non-existent module check [GH-1040]
+ - Fix testdrive silent fails [GH-1059]
+ - Fix tags filter warning [GH-1073]
+ - Remove splitting on tags [GH-1074]
+ - Add wildcards for tags [GH-1038]
+ - Fix ps error in Pester tests on Linux [GH-1037]
+ - Fix dynamic module clean up after mock tests [GH-1036]
+ - Fix mocks clean up on start [GH-1035]
+ - Fix lessthan greaterthan assertion messages [GH-1034]
+ - Fix saving result files to the path provided as a PSDrive [GH-1033]
+ - Fix style rules for Pester dependencies  [GH-1031]
+ - Add error message to fail in Should -Not -Throw [GH-1027]
+ - Add FileContentMatchMultiline back among assertions. [GH-1023]
+ - Fix FileContentMatchMultiline [GH-1024]
+ - Fix file count in JaCoCo report [GH-1013]
+ - Fix issue template by using the -ListAvailable [GH-1001]
+ - Fix Add-AssertionOperator example [GH-1016]
+ - Fix spaces in DescribeImpl [GH-1019]
+ - Fix -FileContentMatch example [GH-1020]
+
 ## 4.3.1 (February 20, 2018)
   - Fix missing dependencies in packages
   

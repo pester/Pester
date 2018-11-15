@@ -35,6 +35,7 @@ $script:SafeCommands = @{
     'Export-ModuleMember' = Get-Command -Name Export-ModuleMember  -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'ForEach-Object'      = Get-Command -Name ForEach-Object       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Format-Table'        = Get-Command -Name Format-Table         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Alias'           = Get-Command -Name Get-Alias            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Get-ChildItem'       = Get-Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Command'         = Get-Command -Name Get-Command          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -99,6 +100,14 @@ elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
 {
     $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
 }
+elseif ( Get-Command -ea SilentlyContinue uname -Type Application )
+{
+    $script:SafeCommands['uname'] = Get-Command -Name uname -Type Application | Select-Object -First 1
+    if ( Get-Command -ea SilentlyContinue id -Type Application )
+    {
+        $script:SafeCommands['id'] = Get-Command -Name id -Type Application | Select-Object -First 1
+    }
+}
 else
 {
     Write-Warning "OS Information retrieval is not possible, reports will contain only partial system data"
@@ -136,7 +145,7 @@ function Assert-ValidAssertionName
 
 function Assert-ValidAssertionAlias
 {
-    param([string]$Alias)
+    param([string[]]$Alias)
     if ($Alias -notmatch '^\S+$')
     {
         throw "Assertion alias '$string' is invalid, assertion alias must be a single word."
@@ -445,7 +454,7 @@ To run Pester tests in scripts that take parameter values, use the Script
 parameter with a hash table value.
 
 Also, by default, Pester tests write test results to the console host, much like
-Write-Host does, but you can use the Quiet parameter to suppress the host
+Write-Host does, but you can use the Show parameter set to None to suppress the host
 messages, use the PassThru parameter to generate a custom object
 (PSCustomObject) that contains the test results, use the OutputXml and
 OutputFormat parameters to write the test results to an XML file, and use the
@@ -518,8 +527,8 @@ LegacyNUnitXML.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values.
-Wildcard characters and Tag values that include spaces or whitespace characters
-are not supported.
+Wildcard characters are supported. Tag values that include spaces or whitespace
+ will be split into multiple tags on the whitespace.
 
 When you specify multiple Tag values, Invoke-Pester runs tests that have any
 of the listed tags (it ORs the tags). However, when you specify TestName
@@ -530,8 +539,8 @@ If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
 
 .PARAMETER ExcludeTag
 Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
-characters and Tag values that include spaces or whitespace characters are not
-supported.
+characters are supported. Tag values that include spaces or whitespace
+ will be split into multiple tags on the whitespace.
 
 When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
 any of the listed tags (it ORs the tags). However, when you specify TestName
@@ -547,7 +556,7 @@ By default, Invoke-Pester writes to the host program, not to the output stream (
 If you try to save the result in a variable, the variable is empty unless you
 use the PassThru parameter.
 
-To suppress the host output, use the Quiet parameter.
+To suppress the host output, use the Show parameter set to None.
 
 .PARAMETER CodeCoverage
 Adds a code coverage report to the Pester tests. Takes strings or hash table values.
@@ -690,9 +699,9 @@ Parameters             : {}
 
 This examples uses the PassThru parameter to return a custom object with the
 Pester test results. By default, Invoke-Pester writes to the host program, but not
-to the output stream. It also uses the Quiet parameter to suppress the host output.
+to the output stream. It also uses the Show parameter set to None to suppress the host output.
 
-The first command runs Invoke-Pester with the PassThru and Quiet parameters and
+The first command runs Invoke-Pester with the PassThru and Show parameters and
 saves the PassThru output in the $results variable.
 
 The second command gets only failing results and saves them in the $failed variable.
@@ -818,7 +827,8 @@ New-PesterOption
         }
 
         $script:mockTable = @{}
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -ExcludeTagFilter ($ExcludeTag -split "\s") -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption
+        Remove-MockFunctionsAndAliases
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try
         {
@@ -849,7 +859,7 @@ New-PesterOption
                     Write-Describe $testScript.Path -CommandUsed Script
                     do
                     {
-                        & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        $testOutput = & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                     } until ($true)
                 }
                 catch
@@ -1127,6 +1137,18 @@ function Set-PesterStatistics($Node)
             $Node.Time += $action.Time
         }
     }
+}
+
+function Contain-AnyStringLike ($Filter, $Collection) {
+    foreach ($item in $Collection) {
+        foreach ($value in $Filter) {
+           if ($item -like $value)
+           {
+                return $true
+           }
+       }
+    }
+    return $false
 }
 
 $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
