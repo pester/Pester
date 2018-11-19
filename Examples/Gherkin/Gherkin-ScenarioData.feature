@@ -23,7 +23,7 @@ Feature: Pester displays scenario data in the console
       | 1 | 1 | 2      |
       | 2 | 2 | 4      |
     And a single column data table:
-      | PropNames                                   |
+      | PropertyNames                               |
       | ModuleVersion                               |
       | GUID                                        |
       | Author                                      |
@@ -36,3 +36,24 @@ Feature: Pester displays scenario data in the console
       | PrivateData.PSData.Tags                     |
     When this scenario is run
     Then the tables are displayed correctly in the console
+
+  Scenario: Can classify steps as undefined
+    Given this step definition does not have an implementation
+     When this scenario is run
+     Then all of these steps are classified as undefined
+
+Scenario Outline: Pester can display scenario example tables to the console
+
+  Given a number '<x>' and a numbxer '<y>'
+  When I add them together
+  Then I should get '<result>'
+
+  Examples: Elementary, my dear Watson
+    | x | y | result |
+    | 1 | 1 | 2      |
+    | 2 | 2 | 4      |
+
+  Scenario: Now for something a little bit different
+    | x | y | result |
+    | 1 | 2 | 3      |
+    | 2 | 3 | 5      |

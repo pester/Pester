@@ -224,7 +224,11 @@ function Invoke-Gherkin {
         [switch]$PassThru
     )
     begin {
-        & $SafeCommands["Import-LocalizedData"] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1 -ErrorAction SilentlyContinue
+        # & $SafeCommands["Import-LocalizedData"] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1 -ErrorAction SilentlyContinue
+        & $SafeCommands["Import-LocalizedData"] -BindingVariable GherkinReportData -BaseDirectory $PesterRoot -Filename Gherkin.psd1 -ErrorAction SilentlyContinue
+
+        $Script:ReportStrings = $GherkinReportData.ReportStrings
+        $Script:ReportTheme = $GherkinReportData.ReportTheme
 
         #Fallback to en-US culture strings
         If ([String]::IsNullOrEmpty($ReportStrings)) {
@@ -253,22 +257,41 @@ function Invoke-Gherkin {
                 throw "There are no existing failed tests to re-run."
             }
         }
+
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Gherkin" -SessionState $PSCmdlet.SessionState
         $pester = New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $sessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
             & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
             & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
-            $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-                & $SafeCommands["Where-Object"] { $_.Group |
-                    & $SafeCommands["Where-Object"] { -not $_.Passed } } |
-                & $SafeCommands["Select-Object"] -ExpandProperty Name
-            $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+                $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
+                                            & $SafeCommands["Where-Object"] { ($_.Group |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Result |
+                                            & $SafeCommands["Where-Object"] { $_ -eq 'Failed' }) } |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Name
+                $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
         } |
             & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
-            $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-                & $SafeCommands["Where-Object"] { -not ($_.Group |
-                        & $SafeCommands["Where-Object"] { -not $_.Passed }) } |
-                & $SafeCommands["Select-Object"] -ExpandProperty Name
-            $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+                $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
+                                            & $SafeCommands["Where-Object"] { ($_.Group |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Result |
+                                            & $SafeCommands["Where-Object"] { $_ -ne 'Passed' }) } |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Name
+                $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { -not ($Names -contains $_.Name) }
+        } |
+            & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value {
+                $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
+                                            & $SafeCommands["Where-Object"] { ($_.Group |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Result |
+                                            & $SafeCommands["Where-Object"] { $_ -eq 'Pending' }) } |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Name
+                $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+        } |
+            & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value {
+                $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
+                                            & $SafeCommands["Where-Object"] { ($_.Group |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Result |
+                                            & $SafeCommands["Where-Object"] { $_ -eq 'Inconclusive' }) } |
+                                            & $SafeCommands["Select-Object"] -ExpandProperty Name
+                $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
         }
 
         Write-PesterStart $pester $Path
@@ -285,7 +308,7 @@ function Invoke-Gherkin {
         $Location | & $SafeCommands["Set-Location"]
         [Environment]::CurrentDirectory = $CWD
 
-        $pester | Write-PesterReport
+        $pester | Write-GherkinReport
         $coverageReport = Get-CoverageReport -PesterState $pester
         Write-CoverageReport -CoverageReport $coverageReport
         Exit-CoverageAnalysis -PesterState $pester
@@ -297,7 +320,7 @@ function Invoke-Gherkin {
         if ($PassThru) {
             # Remove all runtime properties like current* and Scope
             $properties = @(
-                "Path", "Features", "TagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios"
+                "Path", "Features", "TagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios", "PendingScenarios", "UndefinedScenarios"
 
                 if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
@@ -387,6 +410,7 @@ function Import-GherkinFeature {
     $Scenarios = $(
         :scenarios foreach ($Child in $Feature.Children) {
             $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Child.Location -Name "Path" -Value $Path
+            $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Child -Name "Result" -Value 'Undefined' -Force
             foreach ($Step in $Child.Steps) {
                 $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
             }
@@ -404,25 +428,73 @@ function Import-GherkinFeature {
                 }
             }
 
-            if ( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
-                # If there is no example set name, the following index will be included in the scenario name
-                $ScenarioIndex = 0
-                foreach ($ExampleSet in $Scenario.Examples) {
-                    ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
-                    $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
-                    # If there is an example set name, the following index will be included in the scenario name
-                    $ExampleSetIndex = 0
-                    foreach ($Example in $ExampleSet.TableBody) {
-                        $ScenarioIndex++
-                        $ExampleSetIndex++
-                        $Steps = foreach ($Step in $Scenario.Steps) {
-                            [string]$StepText = $Step.Text
-                            if ($StepText -match $NamesPattern) {
-                                for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
-                                    $Name = ${Column Names}[$n]
-                                    if ($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
-                                        $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
-                                    }
+        if ($Scenario -is [Gherkin.Ast.ScenarioOutline]) {
+            $ScenarioName = $Scenario.Name
+            $exampleTableName = ""
+            $formattedExampleTable = ""
+
+            # If there is no example set name, the following index will be included in the scenario name
+            $ExampleTableIndex = 0
+
+            foreach ($ExampleTable in $Scenario.Examples) {
+                # TODO: Rename 'HideStepData' to something more appropriate, such as, 'PrintTablesAndDocStrings'
+                if (!$HideStepData) {
+                    #region Get formatted representation of examples table to be printed to the console
+                    # TODO: Pull some of this logic out into its own function. I duplicated a lot of this from below where I formatted step DataTable arguments
+
+                    $exampleTableRowValues = $ExampleTable.TableBody |
+                        & $SafeCommands['ForEach-Object'] { ,@($_ |
+                        & $SafeCommands['Select-Object'] -ExpandProperty Cells |
+                        & $SafeCommands['Select-Object'] -ExpandProperty Value) }
+
+                    if ($ExampleTable.TableBody[0].Cells.Length -gt 1) {
+                        $transposedExampleTableRowValues = for ($i = $exampleTableRowValues[0].Length - 1; $i -ge 0; $i--) {
+                            ,@(for ($j = 0; $j -lt $exampleTableRowValues.Count; $j++) {
+                                $exampleTableRowValues[$j][$i]
+                            })
+                        }
+
+                        [Array]::Reverse($transposedExampleTableRowValues)
+                        $cellWidths = $transposedExampleTableRowValues |
+                            & $SafeCommands['ForEach-Object'] { $_ |
+                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum }
+                    } else {
+                        $cellWidths = @($exampleTableRowValues |
+                            & $SafeCommands['ForEach-Object'] { $_ } |
+                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum)
+                    }
+
+                    #$formattedExampleTable = "`n  {0}:{1}" -f $ExampleTable.Keyword," $($ExampleTable.Name)".Trim()
+
+                    foreach ($row in $ExampleTable.TableBody) {
+                        $rowText = "  |"
+                        for ($j = 0; $j -lt $row.Cells.Count; $j++) {
+                            $rowText += " {0,$(-$cellWidths[$j])} |" -f $row.Cells[$j].Value
+                        }
+
+                        $formattedExampleTable += "$([Environment]::NewLine)$rowText"
+                    }
+
+                    #endregion
+                }
+
+                ${Column Names} = @($ExampleTable.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
+                $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
+
+                # If there is an example set name, the following index will be included in the scenario name
+                $ExampleIndex = 0
+                foreach ($Example in $ExampleTable.TableBody) {
+                    $ScenarioIndex++
+                    $ExampleIndex++
+                    $Steps = foreach ($Step in $Scenario.Steps) {
+                        [string]$StepText = $Step.Text
+                        if ($StepText -match $NamesPattern) {
+                            for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                                $Name = ${Column Names}[$n]
+                                if ($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                    $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
                                 }
                             }
                             if ($StepText -ne $Step.Text) {
@@ -432,10 +504,11 @@ function Import-GherkinFeature {
                                 $Step
                             }
                         }
-                        $ScenarioName = $Scenario.Name
-                        if ($ExampleSet.Name) {
-                            # Include example set name and index of example
-                            $ScenarioName = $ScenarioName + " [$($ExampleSet.Name.Trim()) $ExampleSetIndex]"
+
+                        if ($StepText -ne $Step.Text) {
+                            & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                        } else {
+                            $Step
                         }
                         else {
                             # Only include index of scenario
@@ -443,6 +516,40 @@ function Import-GherkinFeature {
                         }
                         & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                     }
+
+                    $exampleTablename = if ($null -ne $ExampleTable.Name) {
+                        "{0}: {1}" -f $ExampleTable.Keyword,$ExampleTable.Name.Trim()
+                    } else {
+                        "{0}: Table {1}" -f $ExampleTable.Keyword,$ExampleTableIndex
+                    }
+
+                    # If we're not showing DataTables or DocScrings in the console, and the DataTable
+                    # has a description (name), add the example DataTable name to the scenario name,
+                    # else, create a generic DataTable name to be added to the scenario name, and also
+                    # add a 1-based index of the associated example row to the scenario name (since
+                    # each row in the DataTable reperesents a scenario).
+                    # TODO: Don't change the scenario name. Instead, we should do this where we write the NUnitXml,
+                    # TODO: because this function is only responsible for parsing the feature file and creating
+                    # TODO: features, scenarios, and steps for execution.
+
+                    # TODO: Investigate NUnitXML and how TestCases are output -- because example table scenarios are really TestCases
+                    # TODO: So, having a separate scenario for each table row is going to cause problems with pretty-printing tables
+                    # Might need to introduce the concept of "scenario sets"--which could be facilitated just like Scenario Outlines
+                    # in gherkin. Essentially, a Scenario is a Scenario outline with a single example, the secnario itself.
+                    # The real problem here, is that we're trying to create "printable" data along with test execution data.
+                    # These separate concerns need to be, well, separated.
+                    # Since in Gherkin tests, the unit of "printability" is the feature and its "scenario outlines" (again, where
+                    # a single scenario is a scenario outline with a single example), this "printable" data should be stored
+                    # separate from the test execution data.
+                    if ($HideStepData) {
+                        $ScenarioName += ", $exampleTableName (Example $ExampleIndex)"
+                    }
+
+                    & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps |
+                        & $SafeCommands['Add-Member'] -MemberType "NoteProperty" -Name "ExampleTableName" -Value $exampleTableName -PassThru |
+                        & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "ExampleTable" -Value $formattedExampleTable -PassThru |
+                        & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "Result" -Value 'Inconclusive' -PassThru |
+                        Convert-Tags $Scenario.Tags
                 }
             }
         } elseif ($HideStepData) {
@@ -496,7 +603,9 @@ function Import-GherkinFeature {
                     $Step
                 }
             }
-            & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $null, $Scenario.Location, $Scenario.Keyword.Trim(), $Scenario.Name, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
+            & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $null, $Scenario.Location, $Scenario.Keyword.Trim(), $Scenario.Name, $Scenario.Description, $Steps |
+                & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "Result" -Value 'Inconclusive' -PassThru |
+                Convert-Tags $Scenario.Tags
         }
     )
 
@@ -605,7 +714,8 @@ function Invoke-GherkinScenario {
         $script:mockTable = @{}
 
         # Create a clean variable scope in each scenario
-        $script:GherkinScenarioScope = New-Module Scenario {       $a = 4
+        $script:GherkinScenarioScope = New-Module Scenario {
+            $a = 4
         }
         $script:GherkinSessionState = Set-SessionStateHint -PassThru -Hint Scenario -SessionState $Script:GherkinScenarioScope.SessionState
 
@@ -615,17 +725,38 @@ function Invoke-GherkinScenario {
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
         $testResultIndexStart = $Pester.TestResult.Count
+        $previousStepResult = 'Passed';
 
         # If there's a background, run that before the test, but after hooks
         if ($Background) {
             foreach ($Step in $Background.Steps) {
-                # Run Background steps -Background so they don't output in each scenario
-                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
+                if ($previousStepResult -ne 'Passed' -and $previousStepResult -ne 'Inconclusive' <# i.e. Pending #>) {
+                    $Pester.AddTestResult(("{0} {1}" -f $Step.Keyword.Trim(), $Step.Text), "Skipped", $null, $null, $null, $null, $null)
+                    $Pester.TestResult[-1] | Write-PesterResult
+                } else {
+                    # Run Background steps -Background so they don't output in each scenario
+                    Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
+                    if ($Pester.TestResult[-1].Result -ne 'Passed' -or $Pester.TestResult[-1].Result -ne 'Inconclusive') {
+                        $previousStepResult = $Pester.TestResult[-1].Result
+                    }
+                }
             }
         }
 
         foreach ($Step in $Scenario.Steps) {
-            Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
+            if ($previousStepResult -ne 'Passed' -and $previousStepResult -ne 'Inconclusive') {
+                $Pester.AddTestResult(("{0} {1}" -f $Step.Keyword.Trim(), $Step.Text), "Skipped", $null, $null, $null, $null, $null)
+                $Pester.TestResult[-1] | Write-PesterResult
+            } else {
+                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
+                if ($Pester.TestResult[-1].Result -ne 'Passed') {
+                    $previousStepResult = $Pester.TestResult[-1].Result
+                }
+            }
+        }
+
+        if ($previousStepResult -ne 'Passed') {
+            $Scenario.Result = $previousStepResult
         }
 
         Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
@@ -776,21 +907,17 @@ function Invoke-GherkinStep {
         # Iterate over the test results of the previous steps
         for ($i = $TestResultIndexStart; $i -lt ($Pester.TestResult.Count); $i++) {
             $previousTestResult = $Pester.TestResult[$i].Result
-            if ($previousTestResult -eq "Failed" -or $previousTestResult -eq "Inconclusive") {
+            if ($previousTestResult -eq "Failed") {
                 $previousStepsNotSuccessful = $true
                 break
             }
         }
-        if (!$StepCommand -or $previousStepsNotSuccessful) {
-            $skipMessage = if (!$StepCommand) {
-                "Could not find implementation for step!"
-            }
-            else {
-                "Step skipped (previous step did not pass)"
-            }
-            $PesterErrorRecord = New-PesterErrorRecord -Result Inconclusive -Message $skipMessage -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
-        }
-        else {
+
+        if (!$StepCommand) {
+            $PesterErrorRecord = New-UndefinedStepErrorRecord -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
+        } elseif ($previousStepsNotSuccessful) {
+            $PesterErrorRecord = Set-ItResult -Skipped
+        } else {
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
             $watch = & $SafeCommands["New-Object"] System.Diagnostics.Stopwatch
             $watch.Start()
@@ -833,9 +960,11 @@ function Invoke-GherkinStep {
 
         # For Gherkin, we want to show the step, but not pretend to be a StackTrace
         if (${Pester Result}.Result -eq 'Inconclusive') {
-            ${Pester Result}.StackTrace = "At " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
-        }
-        else {
+            # TODO: Attempt to show skeleton implentation of step??
+            ${Pester Result}.StackTrace = "at " + $Step.Keyword.Trim() + ', ' + $Step.Location.Path + ': line ' + $Step.Location.Line
+        } elseif (${Pester Result}.Result -eq 'Pending') {
+            ${Pester Result}.StackTrace += "$([Environment]::NewLine)From $($Step.Location.Path): line $($Step.Location.Line)"
+        } else {
             # Unless we really are a StackTrace...
             ${Pester Result}.StackTrace += "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }

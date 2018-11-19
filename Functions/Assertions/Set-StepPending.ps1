@@ -1,3 +1,13 @@
+function New-UndefinedStepErrorRecord ([string] $File, [string] $Line, [string] $LineText) {
+    $exception = New-Object Exception "No matching step definition found."
+    $errorID = 'PesterUndefinedGherkinStep'
+    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
+    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
+    $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
+    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    return $errorRecord
+}
+
 function New-PendingStepErrorRecord ([string] $File, [string] $Line, [string] $LineText) {
     $exception = New-Object Exception "# TODO: (Pester::Pending)"
     $errorID = 'PesterPendingGherkinStep'

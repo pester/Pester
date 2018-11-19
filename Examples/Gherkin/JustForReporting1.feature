@@ -10,9 +10,9 @@ Feature: A test feature for reporting 1
 
     Given step_<given>
       And and_<given>
-    When step_<when>
+     When step_<when>
       And and_<when>
-    Then step_<then>
+     Then step_<then>
       And and_<then>
 
     Examples: Examples 1

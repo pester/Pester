@@ -298,7 +298,7 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None #-HideStepData
         }
     }
 
@@ -323,7 +323,6 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
             'The Pester test report shows scenario names with examples [Failing Scenario (inconclusive) 1]'
         )
     }
-
 }
 
 Describe "Check test results of steps" -Tag Gherkin {
@@ -334,7 +333,7 @@ Describe "Check test results of steps" -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None -HideStepData
         }
     }
 
@@ -390,11 +389,11 @@ Describe "Check test results of steps" -Tag Gherkin {
     }
 
     It "Test result 11 is correct" {
-        $testResults[10] | Should -Be 'Inconclusive'
+        $testResults[10] | Should -Be 'Skipped'
     }
 
     It "Test result 12 is correct" {
-        $testResults[11] | Should -Be 'Inconclusive'
+        $testResults[11] | Should -Be 'Skipped'
     }
 
     It "Test result 13 is correct" {
@@ -402,7 +401,7 @@ Describe "Check test results of steps" -Tag Gherkin {
     }
 
     It "Test result 14 is correct" {
-        $testResults[13] | Should -Be 'Inconclusive'
+        $testResults[13] | Should -Be 'Passed'
     }
 
     It "Test result 15 is correct" {
@@ -423,7 +422,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\JustForReporting*.feature) -PassThru -Show None -OutputFile $reportFile
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\JustForReporting*.feature) -PassThru -Show None -OutputFile $reportFile -HideStepData
         }
     }
 
@@ -544,7 +543,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[3]" | Should -Be "Success"
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[4]" | Should -Be "Success"
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[5]" | Should -Be "Failure"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be "Ignored"
 
         Get-XmlInnerText "$scenario2Examples1StepsXPath[5]/failure/message" | Should -Be "An example error in the then clause"
         if ($expectFeatureFileNameInStackTrace) {
