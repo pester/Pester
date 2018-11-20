@@ -40,6 +40,15 @@ Describe "Executing test code inside a module" {
         }
     }
 
+    It "Can use ScriptBlock inside the module scope" {
+        $ScriptBlockOne = { Write-Output "I am a ScriptBlockOne" }
+        $ScriptBlockTwoString = 'Write-Output "I am a ScriptBlockTwo"'
+        $ScriptBlockTwo = [ScriptBlock]::Create($ScriptBlockTwoString)
+
+        InModuleScope TestModule $ScriptBlockOne | Should -BeExactly "I am a ScriptBlockOne"
+        InModuleScope TestModule $ScriptBlockTwo | Should -BeExactly "I am a ScriptBlockTwo"
+    }
+
     Remove-Module TestModule -Force
 }
 
