@@ -40,13 +40,15 @@ Describe "Executing test code inside a module" {
         }
     }
 
-    It "Can use ScriptBlock inside the module scope" {
-        $ScriptBlockOne = { Write-Output "I am a ScriptBlockOne" }
-        $ScriptBlockTwoString = 'Write-Output "I am a ScriptBlockTwo"'
-        $ScriptBlockTwo = [ScriptBlock]::Create($ScriptBlockTwoString)
+    It "Can execute bound ScriptBlock inside the module scope" {
+        $ScriptBlock = { Write-Output "I am a bound ScriptBlock" }
+        InModuleScope TestModule $ScriptBlock | Should -BeExactly "I am a bound ScriptBlock"
+    }
 
-        InModuleScope TestModule $ScriptBlockOne | Should -BeExactly "I am a ScriptBlockOne"
-        InModuleScope TestModule $ScriptBlockTwo | Should -BeExactly "I am a ScriptBlockTwo"
+    It "Can execute unbound ScriptBlock inside the module scope" {
+        $ScriptBlockString = 'Write-Output "I am an unbound ScriptBlock"'
+        $ScriptBlock = [ScriptBlock]::Create($ScriptBlockString)
+        InModuleScope TestModule $ScriptBlock | Should -BeExactly "I am an unbound ScriptBlock"
     }
 
     Remove-Module TestModule -Force
