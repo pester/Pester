@@ -1,7 +1,14 @@
 $ErrorActionPreference = 'Stop'
-$pathToCert = "C:\temp\selfsigncert.pfx"
-$cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($pathToCert,"Password100")
- 
+$cert = Get-ChildItem Cert:\CurrentUser\My | 
+    Where Thumbprint -eq "CC1168BAFCDA3B1A5E532DA87E80A4DD69BCAEB1"
+
+if ($null -eq $cert) {
+    throw "No certificate was found."
+}
+
+if ($cert.Lenght -gt 1) {
+    throw "More than one cerfificate with the given thumbprint was found."
+}
 
 "Signing Files"
 $files = Get-ChildItem -Recurse -ErrorAction SilentlyContinue |

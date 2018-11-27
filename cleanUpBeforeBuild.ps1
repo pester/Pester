@@ -1,5 +1,5 @@
-# cleaning up remains of previous builds 
-# examples and all test files 
+# cleaning up remains of previous builds
+# examples and all test files
 # in the next step we sign all scripts so
 # we want to reduce how many files will be signed
 #
@@ -13,10 +13,15 @@ if (Test-Path $buildDir) {
     Remove-Item $buildDir -Recurse -Force -Confirm:$false -Verbose
 }
 
-Write-Verbose "Removing all examples"
-Remove-Item "$PSScriptRoot\Examples" -Recurse -Force -Confirm:$false -Verbose
-Write-Verbose "Removing docs"
-Remove-Item "$PSScriptRoot\doc" -Recurse -Force -Confirm:$false -Verbose
+if (Test-Path "$PSScriptRoot\Examples") {
+    Write-Verbose "Removing all examples"
+    Remove-Item "$PSScriptRoot\Examples" -Recurse -Force -Confirm:$false -Verbose
+}
+
+if (Test-Path "$PSScriptRoot\doc") {
+    Write-Verbose "Removing docs"
+    Remove-Item "$PSScriptRoot\doc" -Recurse -Force -Confirm:$false -Verbose
+}
 
 Write-Verbose "Removing all Test Files"
 Get-ChildItem $PSScriptRoot -Recurse -Filter *.Tests.ps1 | Remove-Item -Force -Verbose
