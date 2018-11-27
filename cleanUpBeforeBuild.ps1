@@ -1,6 +1,6 @@
 # cleaning up remains of previous builds 
 # examples and all test files 
-# in the next step we sigin all scripts so
+# in the next step we sign all scripts so
 # we want to reduce how many files will be signed
 #
 # this clean up is not removing all unneeded files,
