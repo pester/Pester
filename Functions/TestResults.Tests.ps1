@@ -33,7 +33,6 @@ InModuleScope Pester {
                 [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
                 Export-NunitReport $testResults $testFile
                 $xmlResult = [xml] (Get-Content $testFile)
-                write-verbose ($xmlresult.outerxml) -verbose
                 $xmlTestCase = $xmlResult.SelectSingleNode("//test-case")
                 $xmlTestCase.name                   | Should -Be "Mocked Describe.Failed testcase"
                 $xmlTestCase.result                 | Should -Be "Failure"
