@@ -16,6 +16,7 @@ Describe 'Invoke-Gherkin' -Tag Gherkin {
             Examples      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Examples -Show None
             Example1      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Example1 -Show None
             Example2      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Example2 -Show None
+            Scenarios     = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Scenarios -Show None
             NamedScenario = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -ScenarioName "When something uses MyValidator" -Show None
             NotMockery    = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -ExcludeTag Mockery -Show None
         }
@@ -34,6 +35,10 @@ Describe 'Invoke-Gherkin' -Tag Gherkin {
         $gherkin.Mockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
     }
 
+    It 'Supports "Scenario Template" in place of "Scenario Outline"' {
+        $gherkin.Scenarios.PassedCount | Should -Be $gherkin.Scenarios.TotalCount
+    }
+
     It 'Supports tagging examples' {
         $gherkin.Example1.PassedCount | Should -Be $gherkin.Example1.TotalCount
         $gherkin.Example1.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
@@ -45,7 +50,7 @@ Describe 'Invoke-Gherkin' -Tag Gherkin {
     }
 
     It 'Supports excluding scenarios by tag' {
-        $gherkin.NotMockery.PassedCount | Should -Be 10
+        $gherkin.NotMockery.PassedCount | Should -Be 14
         $gherkin.NotMockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
         ($gherkin.NotMockery.TotalCount + $gherkin.Mockery.TotalCount) | Should -Be $gherkin.Results.TotalCount
     }
@@ -56,7 +61,7 @@ Describe 'Invoke-Gherkin' -Tag Gherkin {
 
     It 'Outputs the correct number of passed scenarios' {
         # Note that each example outputs as a scenario ...
-        @($gherkin.Results.PassedScenarios).Count | Should -Be 3
+        @($gherkin.Results.PassedScenarios).Count | Should -Be 4
         @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
     }
 }
