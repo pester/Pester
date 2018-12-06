@@ -406,7 +406,7 @@ function Import-GherkinFeature {
             }
         }
 
-        if ($Scenario.Examples) {
+        if( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
             foreach ($ExampleSet in $Scenario.Examples) {
                 ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
                 $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
@@ -830,16 +830,18 @@ function ConvertTo-HashTableArray {
         if (!${Column Names}) {
             & $SafeCommands["Write-Verbose"] "Reading Names from Header"
             ${InputObject Header}, ${InputObject Rows} = ${InputObject Rows}
-            ${Column Names} = ${InputObject Header}.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value
+            ${Column Names} = @(${InputObject Header}.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
         }
 
-        & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
-        foreach (${InputObject row} in ${InputObject Rows}) {
-            ${Pester Result} = @{}
-            for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
-                ${Pester Result}.Add(${Column Names}[$n], ${InputObject row}.Cells[$n].Value)
+        if( $null -ne ${InputObject Rows} ) {
+            & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
+            foreach (${InputObject row} in ${InputObject Rows}) {
+                ${Pester Result} = @{}
+                for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                    ${Pester Result}.Add(${Column Names}[$n], ${InputObject row}.Cells[$n].Value)
+                }
+                ${Result Table} += @(${Pester Result})
             }
-            ${Result Table} += @(${Pester Result})
         }
     }
     end {
