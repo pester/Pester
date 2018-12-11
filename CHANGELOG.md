@@ -1,3 +1,10 @@
+## 4.4.3-beta1 (November 27, 2018)
+ - Fix InModuleScope when using unbound scriptBlock [GH-1146]
+ - Allow multiple aliases for an assertion [GH-1122]
+ - Update Invoke-Pester docs to favor -Show None over -Quiet [GH-1125]
+ - Fix taking multiple instances of id or uname [GH-1126]
+ - Sign the module
+
 ## 4.4.2 (October 3, 2018)
  - Remove single quotes when expanding strings in test name [GH-1090]
  - Get environment info on non-windows platforms [GH-1105]
