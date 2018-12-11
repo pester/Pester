@@ -1,3 +1,7 @@
+## 4.4.3 (December 11, 2018)
+ - Add signing scripts
+ - Same as 4.4.3-beta1 but signed
+
 ## 4.4.3-beta1 (November 27, 2018)
  - Fix InModuleScope when using unbound scriptBlock [GH-1146]
  - Allow multiple aliases for an assertion [GH-1122]

@@ -1,6 +1,8 @@
+param($Thumbprint)
 $ErrorActionPreference = 'Stop'
-$cert = Get-ChildItem Cert:\CurrentUser\My | 
-    Where Thumbprint -eq "CC1168BAFCDA3B1A5E532DA87E80A4DD69BCAEB1"
+
+$cert = Get-ChildItem Cert:\CurrentUser\My |
+    where Thumbprint -eq $Thumbprint
 
 if ($null -eq $cert) {
     throw "No certificate was found."
