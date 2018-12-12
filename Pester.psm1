@@ -898,17 +898,17 @@ New-PesterOption
 
             foreach ($testScript in $testScripts)
             {
-                #Get test desctription for better output
+                #Get test description for better output
                 if(-not [string]::IsNullOrEmpty($testScript.Path)){
-                    $testDesctiption = $testScript.Path
+                    $testDescription = $testScript.Path
                 }elseif(-not [string]::IsNullOrEmpty($testScript.Script)){
-                    $testDesctiption = $testScript.Script
+                    $testDescription = $testScript.Script
                 }
 
                 try
                 {
-                    $pester.EnterTestGroup($testDesctiption, 'Script')
-                    Write-Describe $testDesctiption -CommandUsed Script
+                    $pester.EnterTestGroup($testDescription, 'Script')
+                    Write-Describe $testDescription -CommandUsed Script
                     do
                     {
                         $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
@@ -916,20 +916,23 @@ New-PesterOption
                 }
                 catch
                 {
-                    $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
-                    $pester.AddTestResult("Error occurred in test script '$($testDesctiption)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+                    $firstStackTraceLine = $null
+                    if (($_ | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) -and $null -ne $_.ScriptStackTrace) {
+                        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+                    }
+                    $pester.AddTestResult("Error occurred in test script '$($testDescription)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
                     # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
                     # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
                     # planned for v4.0
-                    $pester.TestResult[-1].Describe = "Error in $($testDesctiption)"
+                    $pester.TestResult[-1].Describe = "Error in $($testDescription)"
 
                     $pester.TestResult[-1] | Write-PesterResult
                 }
                 finally
                 {
                     Exit-MockScope
-                    $pester.LeaveTestGroup($testDesctiption, 'Script')
+                    $pester.LeaveTestGroup($testDescription, 'Script')
                 }
             }
 
@@ -1068,6 +1071,7 @@ function ResolveTestScripts
                     {
                         & $script:SafeCommands['New-Object'] psobject -Property @{
                             Path       = $unresolvedPath
+                            Script     = $null
                             Arguments  = $arguments
                             Parameters = $parameters
                         }
@@ -1086,6 +1090,7 @@ function ResolveTestScripts
                     & $script:SafeCommands['ForEach-Object'] {
                         & $script:SafeCommands['New-Object'] psobject -Property @{
                             Path       = $_
+                            Script     = $null
                             Arguments  = $arguments
                             Parameters = $parameters
                         }
@@ -1095,6 +1100,7 @@ function ResolveTestScripts
             elseif(-not [string]::IsNullOrEmpty($script))
             {
                 & $script:SafeCommands['New-Object'] psobject -Property @{
+                        Path         = $null
                         Script       = $script
                         Arguments  = $arguments
                         Parameters = $parameters
