@@ -1897,54 +1897,78 @@ Describe "Restoring original commands when mock scopes exit" {
 }
 
 Describe "Mocking Set-Variable" {
-    Context "Script context" {
-        Mock Set-Variable -ParameterFilter {$false}
-        Set-Variable -Name v1 -Value 1 -Scope 1
-        Set-Variable -Name v2 -Value 2 -Scope script
-        It "Set-Variable forces scope" { 
-            $v1 | Should -Not -BeNullOrEmpty
-            $v1 | Should -Be 1
-            $v2 | Should -Not -BeNullOrEmpty
-            $v2 | Should -Be 2
-        }
-    }
-    Context "Function context" {
-        function Test-Variable {
-            Param()
+    It "sets variable correctly when mocking Set-Variable without -Scope parameter" { 
         
-            Set-Variable -Name 'Variable1' -Value "Test 01"
-            if ($null -eq $Variable1 -or $Variable1 -eq [string]::Empty) {
-                return "Varaible 1 missing"
-            }
-        }
-        Mock -CommandName 'Set-Variable' -MockWith {return $null} -Verifiable -ParameterFilter {$Name -and $Name -eq 'Variable1'}
-        it 'Mock Variable1' {
-            $Result = Test-Variable
-            $Result | Should -Contain "Varaible 1 missing"
-            
-            Assert-MockCalled -CommandName Set-Variable -Times 1 -Exactly -ParameterFilter {$Name -eq 'Variable1'}
-        }
-    }
-    Context "Function second context" {
-        function Test-Variable {
-            Param()
-        
-            Set-Variable -Name 'Variable1' -Value "Test 01"
-            if ($null -eq $Variable1 -or $Variable1 -eq [string]::Empty) {
-                return "Varaible 1 missing"
-            }
-            Set-Variable -Name 'Variable2' -Value "Test 02"
-            if ($null -eq $Variable2 -or $Variable2 -eq [string]::Empty) {
-                return "Varaible 2 missing"
-            }
-        }
-        Mock -CommandName 'Set-Variable' -MockWith {return $null} -Verifiable -ParameterFilter {$Name -and $Name -eq 'Variable2'}
+        Set-Variable -Name v1 -Value 1
+        $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
 
-        it 'Mock Variable2' {
-            $Result = Test-Variable
-            $Result | Should -Contain "Varaible 2 missing"
-           
-            Assert-MockCalled -CommandName Set-Variable -Times 1 -Exactly -ParameterFilter {$Name -eq 'Variable2'}
+        # we mock the command but the mock will never be triggered because
+        # the filter will never pass, so this mock will always call through 
+        # to the real Set-Variable
+        Mock Set-Variable -ParameterFilter { $false }
+
+        Set-Variable -Name v2 -Value 10
+
+        # if mock works correctly then then we should see
+        # 10 here because calling through to the Set-Variable
+        # should work the same as calling it directly
+        $v2 | Should -Be 10
+    }
+
+    It "sets variable correctly when mocking Set-Variable without -Scope 0 parameter" { 
+        
+        Set-Variable -Name v1 -Value 1
+        $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
+
+        Mock Set-Variable -ParameterFilter { $false }
+
+        Set-Variable -Name v2 -Value 11 -Scope 0
+        $v2 | Should -Be 11
+    }
+
+    It "sets variable correctly when mocking Set-Variable without -Scope Local parameter" { 
+        
+        Set-Variable -Name v1 -Value 1
+        $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
+
+        Mock Set-Variable -ParameterFilter { $false }
+
+        Set-Variable -Name v2 -Value 12 -Scope Local
+
+        $v2 | Should -Be 12
+    }
+
+    It "sets variable correctly when mocking Set-Variable with -Scope 3 parameter" { 
+        & {
+        # scope 3
+            & {
+            # scope 2
+                & {
+                # scope 1
+                    & {
+                        Set-Variable -Name v1 -Value 2 -Scope 3
+                    }
+                }
+            }
+
+            $v1 | Should -Be 2 -Because "we defined it without mocking Set-Variable"
+        }
+        
+
+        & {
+        # scope 3
+            & {
+            # scope 2
+                & {
+                # scope 1
+                    & {
+                        Mock Set-Variable -ParameterFilter { $false }
+                        Set-Variable -Name v2 -Value 11 -Scope 3
+                    }
+                }
+            }
+            $v2 | Should -Be 11
         }
     }
+   
 }
