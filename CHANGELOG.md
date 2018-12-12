@@ -1,11 +1,28 @@
-## 4.4.0-beta2 (July 8, 2018)
-  - Run all tests in strict mode [GH-1041]
-  - Fix non-existent module check [GH-1040]
-  - Fix testdrive silent fails [GH-1059]
-  - Fix tags filter warning [GH-1073]
-  - Remove splitting on tags [GH-1074]
+## 4.4.3 (December 11, 2018)
+ - Add signing scripts
+ - Same as 4.4.3-beta1 but signed
 
-## 4.4.0-beta (May 6, 2018)
+## 4.4.3-beta1 (November 27, 2018)
+ - Fix InModuleScope when using unbound scriptBlock [GH-1146]
+ - Allow multiple aliases for an assertion [GH-1122]
+ - Update Invoke-Pester docs to favor -Show None over -Quiet [GH-1125]
+ - Fix taking multiple instances of id or uname [GH-1126]
+ - Sign the module
+
+## 4.4.2 (October 3, 2018)
+ - Remove single quotes when expanding strings in test name [GH-1090]
+ - Get environment info on non-windows platforms [GH-1105]
+
+## 4.4.1 (September 20, 2018)
+ - Fix describe tags [GH-1098]
+ - Capitalize name and test parameters [GH-1080]
+
+## 4.4.0 (July 20, 2018)
+ - Run all tests in strict mode [GH-1041]
+ - Fix non-existent module check [GH-1040]
+ - Fix testdrive silent fails [GH-1059]
+ - Fix tags filter warning [GH-1073]
+ - Remove splitting on tags [GH-1074]
  - Add wildcards for tags [GH-1038]
  - Fix ps error in Pester tests on Linux [GH-1037]
  - Fix dynamic module clean up after mock tests [GH-1036]

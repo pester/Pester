@@ -23,3 +23,13 @@ Feature: A string validator function called MyValidator
             | Super  | False       |
             | Breath | False       |
             | test   | False       |
+
+    @Scenarios
+    Scenario Template: MyValidator should return true only for words that start with lowercase s (using Scenario Template)
+        When MyValidator is called with <word>
+        Then MyValidator should return <StartsWithS>
+
+        Scenarios: Some s words and expected results
+            | word   | StartsWithS |
+            | sandy  | True        |
+            | sears  | True        |

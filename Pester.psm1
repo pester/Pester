@@ -100,6 +100,14 @@ elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
 {
     $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
 }
+elseif ( Get-Command -ea SilentlyContinue uname -Type Application )
+{
+    $script:SafeCommands['uname'] = Get-Command -Name uname -Type Application | Select-Object -First 1
+    if ( Get-Command -ea SilentlyContinue id -Type Application )
+    {
+        $script:SafeCommands['id'] = Get-Command -Name id -Type Application | Select-Object -First 1
+    }
+}
 else
 {
     Write-Warning "OS Information retrieval is not possible, reports will contain only partial system data"
@@ -137,7 +145,7 @@ function Assert-ValidAssertionName
 
 function Assert-ValidAssertionAlias
 {
-    param([string]$Alias)
+    param([string[]]$Alias)
     if ($Alias -notmatch '^\S+$')
     {
         throw "Assertion alias '$string' is invalid, assertion alias must be a single word."
@@ -446,7 +454,7 @@ To run Pester tests in scripts that take parameter values, use the Script
 parameter with a hash table value.
 
 Also, by default, Pester tests write test results to the console host, much like
-Write-Host does, but you can use the Quiet parameter to suppress the host
+Write-Host does, but you can use the Show parameter set to None to suppress the host
 messages, use the PassThru parameter to generate a custom object
 (PSCustomObject) that contains the test results, use the OutputXml and
 OutputFormat parameters to write the test results to an XML file, and use the
@@ -548,7 +556,7 @@ By default, Invoke-Pester writes to the host program, not to the output stream (
 If you try to save the result in a variable, the variable is empty unless you
 use the PassThru parameter.
 
-To suppress the host output, use the Quiet parameter.
+To suppress the host output, use the Show parameter set to None.
 
 .PARAMETER CodeCoverage
 Adds a code coverage report to the Pester tests. Takes strings or hash table values.
@@ -603,6 +611,9 @@ Default value is: JaCoCo.
 
 Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
+
+.PARAMETER DetailedCodeCoverage
+Add the sourcefile names and lines covered and missed to the codecoverage file.
 
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
@@ -697,9 +708,9 @@ Parameters             : {}
 
 This examples uses the PassThru parameter to return a custom object with the
 Pester test results. By default, Invoke-Pester writes to the host program, but not
-to the output stream. It also uses the Quiet parameter to suppress the host output.
+to the output stream. It also uses the Show parameter set to None to suppress the host output.
 
-The first command runs Invoke-Pester with the PassThru and Quiet parameters and
+The first command runs Invoke-Pester with the PassThru and Show parameters and
 saves the PassThru output in the $results variable.
 
 The second command gets only failing results and saves them in the $failed variable.
@@ -785,6 +796,8 @@ New-PesterOption
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
+        [Switch]$DetailedCodeCoverage = $false,
+
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -830,7 +843,6 @@ New-PesterOption
 
         try
         {
-            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
             Write-PesterStart $pester $Script
 
             $invokeTestScript = {
@@ -855,6 +867,34 @@ New-PesterOption
 
             Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
             $testScripts = @(ResolveTestScripts $Script)
+
+
+            if ($DetailedCodeCoverage)
+            {
+                $pester.FindCodeCoverage = $true
+                $pester.CodeCoverage = $CodeCoverage
+
+                # find describe codecoverage here
+                foreach ($testScript in $testScripts)
+                {
+                    try
+                    {
+                        do
+                        {
+                            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        } until ($true)
+                    }
+                    catch
+                    { }
+                }
+
+
+                $pester.FindCodeCoverage = $false
+                $CodeCoverage = $pester.CodeCoverage
+            }
+
+
+            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
             foreach ($testScript in $testScripts)
             {
@@ -895,10 +935,13 @@ New-PesterOption
 
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
-            Write-CoverageReport -CoverageReport $coverageReport
+            if ($DetailedCodeCoverage -eq $false)
+            {
+                Write-CoverageReport -CoverageReport $coverageReport
+            }
             if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
                 -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
-                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
+                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
             Exit-CoverageAnalysis -PesterState $pester
@@ -1091,6 +1134,7 @@ function Set-ScriptBlockScope
         $SessionState,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'FromSessionStateInternal')]
+        [AllowNull()]
         $SessionStateInternal
     )
 
