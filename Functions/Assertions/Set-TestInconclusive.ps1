@@ -12,15 +12,10 @@ function Set-TestInconclusive {
     Value assigned to the Message parameter will be displayed in the the test result.
 
     .EXAMPLE
-
-    Invoke-Pester
-
     Describe "Example" {
 
-        It "Test what is inconclusive" {
-
-            Set-TestInconclusive -Message "I'm inconclusive because I can."
-
+        It "My test" {
+            Set-TestInconclusive -Message "we forced it to be inconclusive"
         }
 
     }
@@ -28,12 +23,7 @@ function Set-TestInconclusive {
     The test result.
 
     Describing Example
-    [?] Test what is inconclusive 96ms
-      I'm inconclusive because I can
-      at line: 10 in C:\Users\<SOME_FOLDER>\Example.Tests.ps1
-      10:         Set-TestInconclusive -Message "I'm inconclusive because I can"
-    Tests completed in 408ms
-    Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive: 1
+        [?] My test, is inconclusive because we forced it to be inconclusive 58ms
 
     .LINK
     https://github.com/pester/Pester/wiki/Set%E2%80%90TestInconclusive
@@ -44,14 +34,8 @@ function Set-TestInconclusive {
     )
 
     if (!$script:HasAlreadyWarnedAboutDeprecation) {
-        Write-Host '
-    DEPRECATION WARNING: It seems you are using Set-TestInconclusive command in your test.
-        The command was deprecated and will be removed in the future. Please consider updating
-        your scripts to use `Set-ItResult -Inconclusive` instead.
-    ' -ForegroundColor "DarkYellow"
+        Write-Warning 'DEPRECATED: Set-TestInconclusive was deprecated and will be removed in the future. Please update your scripts to use `Set-ItResult -Inconclusive -Because $Message`.'
         $script:HasAlreadyWarnedAboutDeprecation = $true
-    } else {
-        $Message = "$Message (DEPRECATED Set-TestInconclusive!)"
     }
 
     Set-ItResult -Inconclusive -Because $Message

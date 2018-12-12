@@ -24,28 +24,28 @@ function Set-ItResult {
 
     .EXAMPLE
     Describe "Example" {
-        It "This test should have inconclusive result" {
+        It "This test has inconclusive result" {
             Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
         }
     }
 
     the output should be
 
-    [?] This test should have inconclusive result, because
+    [?] This test should has inconclusive result, because we want it to be inconclusive
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
 
 
     .EXAMPLE
     Describe "Example" {
-        It "This test should be skipped" {
+        It "This test is skipped" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
         }
     }
 
     the output should be
 
-    [?] This test should be skipped, because we want it to be skipped
+    [?] This test is skipped, because we want it to be skipped
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
 

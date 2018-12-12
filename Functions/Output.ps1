@@ -244,14 +244,14 @@ function Write-PesterResult {
             switch ($TestResult.Result)
             {
                 Passed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output " -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime $humanTime
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
                     break
                 }
 
                 Failed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output " -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime $humanTime
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
                     if($pester.IncludeVSCodeMarker) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
@@ -267,42 +267,35 @@ function Write-PesterResult {
                 }
 
                 Skipped {
+                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
-                    if ($testresult.FailureMessage) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped because $($TestResult.failureMessage)" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
-                    } else {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped " is skipped without an explanation" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$($error_margin)consider adding -Because parameter to the Set-ItResult call"
-                    }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                     break
                 }
 
                 Pending {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output " -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime $humanTime
+                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
                     break
                 }
 
                 Inconclusive {
+                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
-                    if ($testresult.FailureMessage) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive because $($TestResult.failureMessage)" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
-                    } else {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive " is inconclusive without an explanation" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$($error_margin)consider adding -Because parameter to the Set-ItResult call"
-                    }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                
                     break
                 }
 
                 default {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
                     if($null -eq $TestResult.Time) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output " -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime $humanTime
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                     }
                 }
             }
