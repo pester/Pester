@@ -235,12 +235,12 @@ InModuleScope -ModuleName Pester {
 
         if ((GetPesterOs) -ne 'Windows') {
 
-            Mock visudo {return 'I am not visudo'}
+            Mock id {return "I am not 'id'"}
 
-            $result = visudo
+            $result = id
 
             It 'Should Invoke the mocked script' {
-                $result | Should -Be 'I am not visudo'
+                $result | Should -Be "I am not 'id'"
             }
 
         }
