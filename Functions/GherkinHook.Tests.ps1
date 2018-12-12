@@ -106,6 +106,10 @@ Describe 'Testing Gherkin Hook' -Tag Gherkin {
             Scenario Two
             Scenario Two
             AfterEachScenario
+            BeforeEachScenario
+            Scenario Two
+            Scenario Two
+            AfterEachScenario
             AfterEachFeature
         " -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
 

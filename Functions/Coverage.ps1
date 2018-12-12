@@ -488,6 +488,7 @@ function Get-CoverageReport
 
     $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
+    $allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
     $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
     $fileCount = $analyzedFiles.Count
 
@@ -500,6 +501,7 @@ function Get-CoverageReport
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
+        AllCommands              = $allCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
@@ -580,7 +582,9 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory=$true)]
         $PesterState,
         [parameter(Mandatory=$true)]
-        [object] $CoverageReport
+        [object] $CoverageReport,
+
+        [Switch]$DetailedCodeCoverage
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)

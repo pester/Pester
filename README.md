@@ -1,5 +1,7 @@
 # Pester
 
+> 📦🔐 Pester is now signed. `-SkipPublisherCheck` is no longer necessary to install from PowerShell Gallery on Windows 10. 
+
 Pester is the ubiquitous test and mock framework for PowerShell.
 
 ```powershell
@@ -60,7 +62,7 @@ Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Window
 Pester comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
 ```powershell
-Install-Module -Name Pester -Force -SkipPublisherCheck
+Install-Module -Name Pester -Force
 ```
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://github.com/pester/Pester/wiki/Installation-and-Update).
@@ -131,7 +133,7 @@ image:
 - Visual Studio 2017
 - Ubuntu
 install:
-- ps: Install-Module Pester -Force -SkipPublisherCheck -Scope CurrentUser
+- ps: Install-Module Pester -Force -Scope CurrentUser
 build: off
 test_script:
 - ps: Invoke-Pester -EnableExit
