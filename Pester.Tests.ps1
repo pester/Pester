@@ -330,6 +330,17 @@ InModuleScope Pester {
                 $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
             }
 
+            It 'Allows to pass test script string'{
+                $result = @(ResolveTestScripts @{ Script = "Test script string" })
+
+                $result.Count | Should -Be 1
+                $result[0].Script | Should -Be "Test script string"
+
+                $result[0].Path | Should -BeNullOrEmpty
+                $result[0].Parameters | Should -BeNullOrEmpty
+                $result[0].Arguments |  Should -BeNullOrEmpty
+            }
+
             It 'Throws an error if no Path is specified' {
                 { ResolveTestScripts @{} } | Should -Throw
             }
