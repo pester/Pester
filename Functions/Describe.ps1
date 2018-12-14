@@ -1,6 +1,5 @@
-function Describe
-{
-    <#
+function Describe {
+<#
 .SYNOPSIS
 Creates a logical group of tests.
 
@@ -67,7 +66,7 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        [string[]] $Tag = @(),
+        [string[]] $Tag=@(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -82,17 +81,16 @@ about_TestDrive
         $script:mockTable = @{}
     }
 
-    DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
+    DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
 }
 
-function DescribeImpl
-{
+function DescribeImpl {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string] $Name,
 
         [Alias('Tags')]
-        $Tag = @(),
+        $Tag=@(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -123,18 +121,15 @@ function DescribeImpl
                 return
             }
         }
-        if ($Pester.TagFilter)
-        {
+        if ($Pester.TagFilter) {
             if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
             {
                 return
             }
         }
 
-        if ($Pester.ExcludeTagFilter)
-        {
-            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag)
-            {
+        if ($Pester.ExcludeTagFilter) {
+            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
                 return
             }
         }
@@ -173,7 +168,7 @@ function DescribeImpl
                 }
             }
 
-            if (-not $NoTestRegistry -and (GetPesterOs - eq 'Windows'))
+            if (-not $NoTestRegistry)
             {
                 if (-not (Test-Path TestRegistry:\))
                 {
@@ -210,7 +205,7 @@ function DescribeImpl
                 }
             }
 
-            if (-not $NoTestRegistry -and (GetPesterOs - eq 'Windows'))
+            if (-not $NoTestRegistry)
             {
                 if ($testRegistryAdded)
                 {
@@ -218,7 +213,7 @@ function DescribeImpl
                 }
                 else
                 {
-                    Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+                    Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
                 }
             }
         }

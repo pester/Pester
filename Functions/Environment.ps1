@@ -33,21 +33,15 @@ function Get-TempDirectory {
 
 function Get-TempRegistry {
     $pesterTempRegistryRoot = 'HKCU:\Software\Pester'
-
-    if ((GetPesterOs) -eq 'Windows') {
-        if (Test-Path 'HKCU:\Software\Pester') {
-            try {
-                $null = New-TempRegistry
-            }
-            catch [Exception] {
-                throw "Was not able to create a Pester Registry key for TestRegistry"
-            }
+    if (Test-Path 'HKCU:\Software\Pester') {
+        try {
+            $null = New-TempRegistry
         }
-        return $pesterTempRegistryRoot
+        catch [Exception] {
+            throw (New-Object Exception -ArgumentList "Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))
+        }
     }
-    else {
-        throw "TempRegistry is only supported on Windows OS"
-    }
+    return $pesterTempRegistryRoot
 }
 
 function New-TempRegistry {
