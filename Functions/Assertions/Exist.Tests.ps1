@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterExist" {
+    Describe "Should -Exist" {
         It "returns true for paths that exist" {
             $TestDrive | Should Exist
             $TestDrive | Should -Exist
@@ -38,9 +38,7 @@ InModuleScope Pester {
             'env:test' | Should Exist
             'env:test' | Should -Exist
         }
-    }
 
-    Describe "Should -Exist" {
         It 'returns correct assertion message' {
             $err = { 'c:\nonexistingpath' | Should -Exist -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected path 'c:\nonexistingpath' to exist, because reason, but it did not exist."

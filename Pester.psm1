@@ -199,6 +199,9 @@ function Add-AssertionOperator
     A list of aliases for the Named Parameter.
 .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
+.PARAMETER InternalName
+    If -Name is different from the actual function name, record the actual function name here.
+    Used by Get-ShouldOperator to pull function help.
 #>
     [CmdletBinding()]
     param (
@@ -212,6 +215,9 @@ function Add-AssertionOperator
         [AllowEmptyCollection()]
         [string[]] $Alias = @(),
 
+        [Parameter()]
+        [string] $InternalName,
+
         [switch] $SupportsArrayInput
     )
 
@@ -220,6 +226,7 @@ function Add-AssertionOperator
         SupportsArrayInput         = [bool]$SupportsArrayInput
         Name                       = $Name
         Alias                      = $Alias
+        InternalName               = If ($InternalName) {$InternalName} Else {$Name}
     }
     if (Test-AssertionOperatorIsDuplicate -Operator $entry)
     {
@@ -244,6 +251,7 @@ function Add-AssertionOperator
 
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
+
 function Test-AssertionOperatorIsDuplicate
 {
     param (
@@ -1260,10 +1268,11 @@ Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's'
 
 }
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
+Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult -Alias Add-ShouldOperator
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator

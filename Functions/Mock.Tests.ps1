@@ -1897,13 +1897,13 @@ Describe "Restoring original commands when mock scopes exit" {
 }
 
 Describe "Mocking Set-Variable" {
-    It "sets variable correctly when mocking Set-Variable without -Scope parameter" { 
-        
+    It "sets variable correctly when mocking Set-Variable without -Scope parameter" {
+
         Set-Variable -Name v1 -Value 1
         $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
 
         # we mock the command but the mock will never be triggered because
-        # the filter will never pass, so this mock will always call through 
+        # the filter will never pass, so this mock will always call through
         # to the real Set-Variable
         Mock Set-Variable -ParameterFilter { $false }
 
@@ -1915,8 +1915,8 @@ Describe "Mocking Set-Variable" {
         $v2 | Should -Be 10
     }
 
-    It "sets variable correctly when mocking Set-Variable without -Scope 0 parameter" { 
-        
+    It "sets variable correctly when mocking Set-Variable without -Scope 0 parameter" {
+
         Set-Variable -Name v1 -Value 1
         $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
 
@@ -1926,8 +1926,8 @@ Describe "Mocking Set-Variable" {
         $v2 | Should -Be 11
     }
 
-    It "sets variable correctly when mocking Set-Variable without -Scope Local parameter" { 
-        
+    It "sets variable correctly when mocking Set-Variable without -Scope Local parameter" {
+
         Set-Variable -Name v1 -Value 1
         $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
 
@@ -1938,7 +1938,7 @@ Describe "Mocking Set-Variable" {
         $v2 | Should -Be 12
     }
 
-    It "sets variable correctly when mocking Set-Variable with -Scope 3 parameter" { 
+    It "sets variable correctly when mocking Set-Variable with -Scope 3 parameter" {
         & {
         # scope 3
             & {
@@ -1953,7 +1953,7 @@ Describe "Mocking Set-Variable" {
 
             $v1 | Should -Be 2 -Because "we defined it without mocking Set-Variable"
         }
-        
+
 
         & {
         # scope 3
@@ -1970,5 +1970,5 @@ Describe "Mocking Set-Variable" {
             $v2 | Should -Be 11
         }
     }
-   
+
 }

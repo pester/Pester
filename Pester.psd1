@@ -53,6 +53,7 @@ FunctionsToExport = @(
     'New-PesterOption'
     'New-MockObject'
     'Add-AssertionOperator'
+    'Get-ShouldOperator'
 
     # Gherkin Support:
     'Invoke-Gherkin'
