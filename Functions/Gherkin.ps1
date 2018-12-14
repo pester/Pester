@@ -346,7 +346,9 @@ function Import-GherkinSteps {
         $Script:GherkinHooks.Clear()
     }
     process {
-        foreach ($StepFile in & $SafeCommands["Get-ChildItem"] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse) {
+        $StepFiles = & $SafeCommands["Get-ChildItem"] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse
+
+        foreach ($StepFile in $StepFiles) {
             $invokeTestScript = {
                 [CmdletBinding()]
                 param (
