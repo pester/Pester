@@ -4,7 +4,7 @@
 ModuleToProcess = 'Pester.psm1'
 
 # Version number of this module.
-ModuleVersion = '4.4.2'
+ModuleVersion = '4.4.3'
 
 # ID used to uniquely identify this module
 GUID = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -48,6 +48,7 @@ FunctionsToExport = @(
     'Get-MockDynamicParameter'
     'Set-DynamicParameterVariable'
     'Set-TestInconclusive'
+    'Set-ItResult'
     'SafeGetCommand'
     'New-PesterOption'
     'New-MockObject'
@@ -123,7 +124,7 @@ PrivateData = @{
         LicenseUri = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
-        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.4.2'
+        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.4.3'
 
         # Prerelease string of this module
         Prerelease = ''
