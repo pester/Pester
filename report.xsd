@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<xs:schema xmlns="http://tempuri.org/report" elementFormDefault="qualified" targetNamespace="http://tempuri.org/report" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="report">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="sessioninfo" />
+        <xs:choice>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="group" />
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="package" />
+        </xs:choice>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sessioninfo">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" use="required" />
+      <xs:attribute name="start" type="xs:string" use="required" />
+      <xs:attribute name="dump" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="group">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="group" />
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="package" />
+        </xs:choice>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="package">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="class" />
+          <xs:element ref="sourcefile" />
+        </xs:choice>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="class">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="method" />
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="method">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="desc" type="xs:string" use="required" />
+      <xs:attribute name="line" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sourcefile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="line" />
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="line">
+    <xs:complexType>
+      <xs:attribute name="nr" type="xs:string" use="required" />
+      <xs:attribute name="mi" type="xs:string" />
+      <xs:attribute name="ci" type="xs:string" />
+      <xs:attribute name="mb" type="xs:string" />
+      <xs:attribute name="cb" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="counter">
+    <xs:complexType>
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:NMTOKEN">
+            <xs:enumeration value="INSTRUCTION" />
+            <xs:enumeration value="BRANCH" />
+            <xs:enumeration value="LINE" />
+            <xs:enumeration value="COMPLEXITY" />
+            <xs:enumeration value="METHOD" />
+            <xs:enumeration value="CLASS" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="missed" type="xs:string" use="required" />
+      <xs:attribute name="covered" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
