@@ -16,7 +16,10 @@ InModuleScope Pester {
             }
 
             It 'Returns Name and Alias properties' {
-                $get1[0].PSObject.Properties | Select-Object -ExpandProperty Name | Should -Be 'Name','Alias'
+                $get1[0].PSObject.Properties |
+                    Select-Object -ExpandProperty Name |
+                    Sort-Object |
+                    Should -Be 'Alias','Name'
             }
         }
 
