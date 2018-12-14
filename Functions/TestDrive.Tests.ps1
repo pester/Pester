@@ -177,7 +177,7 @@ InModuleScope Pester {
 #     Describe "Clear-TestDrive" {
 
 #         It "deletes symbolic links in TestDrive" {
-            
+
 #             # using non-powershell paths here because we need to interop with cmd below
 #             $root    = (Get-PsDrive 'TestDrive').Root
 #             $source  = "$root\source"
@@ -196,7 +196,7 @@ InModuleScope Pester {
 
 #             @(Get-ChildItem -Path $root).Length | Should -Be 2 -Because "a pre-requisite is that directory and symlink to it is in place"
 
-#             Clear-TestDrive 
+#             Clear-TestDrive
 
 #             @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
 #         }

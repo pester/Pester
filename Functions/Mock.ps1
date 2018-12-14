@@ -1018,7 +1018,7 @@ function Invoke-Mock {
                         $MockCallState['BeginBoundParameters'].Scope = 2
                     }
                     elseif ($MockCallState['BeginBoundParameters'].Scope -match "\d+") {
-                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]  
+                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]
                     }
                     else {
                         # not sure what the user did, but we won't change it

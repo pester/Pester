@@ -45,7 +45,10 @@ function Get-ShouldOperator {
 
         $AttributeCollection.Add($ParameterAttribute)
 
-        $arrSet = $AssertionOperators.Keys
+        $arrSet = $AssertionOperators.Values |
+            Select-Object -Property Name, Alias |
+            ForEach-Object { $_.Name; $_.Alias }
+
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
 
         $AttributeCollection.Add($ValidateSetAttribute)
@@ -62,32 +65,22 @@ function Get-ShouldOperator {
 
     END {
         if ($Name) {
-            $help = Get-Help (Get-AssertionOperatorEntry $Name).InternalName -Examples -ErrorAction SilentlyContinue
+            $operator = $AssertionOperators.Values | Where-Object { $Name -eq $_.Name -or $_.Alias -contains $Name }
+            $help = Get-Help $operator.InternalName -Examples -ErrorAction SilentlyContinue
 
             if (($help | Measure-Object).Count -ne 1) {
-                # No way to stop Get-Help if there isn't an exact match
-                # All Pester operators should have help. This should only happen if the user registered their own
                 Write-Warning ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
             } else {
-                # Return just the help for this single operator
                 $help
             }
         } else {
             $AssertionOperators.Keys | ForEach-Object {
-                $aliasCollection = (Get-AssertionOperatorEntry $_) | Select-Object -ExpandProperty Alias
-
-                # Remove ugly {} characters from output unless necessary
-                # This is due to the Alias property having the [string[]] type
-                If (($aliasCollection | Measure-Object).Count -gt 1) {
-                    $alias = $aliasCollection
-                } Else {
-                    $alias = [string]$aliasCollection
-                }
+                $aliases = (Get-AssertionOperatorEntry $_).Alias
 
                 # Return name and alias(es) for all registered Should operators
                 New-Object -TypeName PSObject -Property @{
                     Name  = $_
-                    Alias = $alias
+                    Alias = $aliases -join ', '
                 }
             }
         }

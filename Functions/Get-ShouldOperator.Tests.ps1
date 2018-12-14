@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe 'Get-ShouldOperator' {
-        Context 'Vanilla' {
+        Context 'Overview' {
             # $AssertionOperators is a private Pester variable. Requires InModuleScope
             $OpCount = $AssertionOperators.Count
 
