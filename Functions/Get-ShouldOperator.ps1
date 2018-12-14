@@ -37,29 +37,19 @@ function Get-ShouldOperator {
     # Discovers included assertions (-Be, -Not) and any registered by the user via Add-AssertionOperator
     # https://martin77s.wordpress.com/2014/06/09/dynamic-validateset-in-a-dynamic-parameter/
     DynamicParam {
-        # Set the dynamic parameters' name
         $ParameterName = 'Name'
 
-        # Create the dictionary
         $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-
-        # Create the collection of attributes
         $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-
-        # Create and set the parameters' attributes
         $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
 
-        # Add the attributes to the attributes collection
         $AttributeCollection.Add($ParameterAttribute)
 
-        # Generate and set the ValidateSet
         $arrSet = $AssertionOperators.Keys
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
 
-        # Add the ValidateSet to the attributes collection
         $AttributeCollection.Add($ValidateSetAttribute)
 
-        # Create and return the dynamic parameter
         $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
         $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
         return $RuntimeParameterDictionary
@@ -68,23 +58,23 @@ function Get-ShouldOperator {
     BEGIN {
         # Bind the parameter to a friendly variable
         $Name = $PsBoundParameters[$ParameterName]
-    } #BEGIN
+    }
 
     END {
-        If ($Name) {
+        if ($Name) {
             $help = Get-Help (Get-AssertionOperatorEntry $Name).InternalName -Examples -ErrorAction SilentlyContinue
 
-            If (($help | Measure-Object).Count -ne 1) {
+            if (($help | Measure-Object).Count -ne 1) {
                 # No way to stop Get-Help if there isn't an exact match
                 # All Pester operators should have help. This should only happen if the user registered their own
                 Write-Warning ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
-            } Else {
+            } else {
                 # Return just the help for this single operator
                 $help
             }
-        } Else {
+        } else {
             $AssertionOperators.Keys | ForEach-Object {
-                $aliasCollection = (Get-AssertionOperatorEntry $_).Alias
+                $aliasCollection = (Get-AssertionOperatorEntry $_) | Select-Object -ExpandProperty Alias
 
                 # Remove ugly {} characters from output unless necessary
                 # This is due to the Alias property having the [string[]] type
@@ -95,11 +85,11 @@ function Get-ShouldOperator {
                 }
 
                 # Return name and alias(es) for all registered Should operators
-                [PSCustomObject]@{
+                New-Object -TypeName PSObject -Property @{
                     Name  = $_
                     Alias = $alias
                 }
-            } #ForEach
+            }
         }
-    } #END
+    }
 }

@@ -16,9 +16,9 @@ InModuleScope Pester {
             }
 
             It 'Returns Name and Alias properties' {
-                $get1[0].PSObject.Properties.Name | Should -Be 'Name','Alias'
+                $get1[0].PSObject.Properties | Select-Object -ExpandProperty Name | Should -Be 'Name','Alias'
             }
-        } #Context
+        }
 
         Context 'Name parameter' {
             $BGT  = Get-ShouldOperator -Name BeGreaterThan
@@ -33,6 +33,6 @@ InModuleScope Pester {
                     Get-ShouldOperator -Name $_ | Should -Not -BeNullOrEmpty
                 }
             }
-        } #Context
-    } #Describe
-} #InModuleScope
+        }
+    }
+}
