@@ -11,6 +11,7 @@ function PesterThrow([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [ty
 
     try {
         do {
+            Write-ScriptBlockInvocationHint -Hint "Should -Throw" -ScriptBlock $ActualValue
             $null = & $ActualValue
         } until ($true)
     } catch {

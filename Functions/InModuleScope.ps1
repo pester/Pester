@@ -82,6 +82,7 @@ function InModuleScope
 
         do
         {
+            Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
             & $ScriptBlock
         } until ($true)
     }

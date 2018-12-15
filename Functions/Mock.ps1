@@ -187,7 +187,7 @@ about_Mocking
     }
     else
     {
-        Write-Host "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
+        Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
         Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
         Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
@@ -888,7 +888,7 @@ function MockPrototype {
         [string] ${ignore preference} = 'SilentlyContinue'
     }
 
-    #todo: remove pester\safegetcommand and use .net calls to get the variable instead? 
+    #todo: remove pester\safegetcommand and use .net calls to get the variable instead?
     ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
     [object] ${a r g s} = $null
@@ -1025,13 +1025,14 @@ function Invoke-Mock {
                         $MockCallState['BeginBoundParameters'].Scope = 2
                     }
                     elseif ($MockCallState['BeginBoundParameters'].Scope -match "\d+") {
-                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]  
+                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]
                     }
                     else {
                         # not sure what the user did, but we won't change it
                     }
                 }
 
+                Write-ScriptBlockInvocationHint -Hint "Mock - Original Command" -ScriptBlock $scriptBlock
                 & $scriptBlock -Command $mock.OriginalCommand `
                                -ArgumentList $MockCallState['BeginArgumentList'] `
                                -BoundParameters $MockCallState['BeginBoundParameters'] `
@@ -1145,6 +1146,7 @@ function ExecuteBlock
         'Session State' = $mock.SessionState
     }
 
+    Write-ScriptBlockInvocationHint -Hint "Mock - of $CommandName$(if ($ModuleName) { "in module $ModuleName"})" -ScriptBlock $scriptBlock
     & $scriptBlock @splat
 }
 
@@ -1172,6 +1174,7 @@ function Invoke-InMockScope
     else
     {
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $SessionState
+        Write-ScriptBlockInvocationHint -Hint "Mock - InMockScope" -ScriptBlock $ScriptBlock
         & $ScriptBlock @ArgumentList
     }
 }
@@ -1205,11 +1208,12 @@ function Test-ParameterFilter
         Set-StrictMode -Off
         $ScriptBlock
     "
-    Write-Host "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
+    Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     $cmd = [scriptblock]::Create($scriptBlockString)
     Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
 
+    Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
     & $cmd @BoundParameters @ArgumentList
 }
 

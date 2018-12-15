@@ -190,6 +190,7 @@ function DescribeImpl {
 
             do
             {
+                Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
                 $null = & $Fixture
             } until ($true)
         }

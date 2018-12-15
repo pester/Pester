@@ -11,7 +11,7 @@ function New-PesterState
         [Switch]$RunningViaInvokePester
     )
 
-    if ($null -eq $SessionState) { 
+    if ($null -eq $SessionState) {
         $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - Pester (captured in New-PesterState)" -SessionState $ExecutionContext.SessionState
     }
 
