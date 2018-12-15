@@ -1123,7 +1123,11 @@ function ExecuteBlock
             ${Meta data},
 
             [System.Management.Automation.SessionState]
-            ${Session State}
+            ${Session State},
+
+            ${R e p o r t S c o p e},
+
+            ${M o d u l e N a m e}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
@@ -1134,6 +1138,7 @@ function ExecuteBlock
         # should.
 
         Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName (${Meta data}.Name) -ScriptBlock ${Script Block}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
@@ -1144,9 +1149,13 @@ function ExecuteBlock
         '___BoundParameters___' = $BoundParameters
         'Meta data' = $mock.Metadata
         'Session State' = $mock.SessionState
+        'R e p o r t S c o p e' = { param ($CommandName, $ModuleName, $ScriptBlock)
+            Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock }
     }
 
-    Write-ScriptBlockInvocationHint -Hint "Mock - of $CommandName$(if ($ModuleName) { "in module $ModuleName"})" -ScriptBlock $scriptBlock
+    # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.Mock, and not $scriptBlock
+  
+    Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.Mock)
     & $scriptBlock @splat
 }
 

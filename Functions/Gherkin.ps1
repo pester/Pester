@@ -535,7 +535,8 @@ function Invoke-GherkinScenario {
         $script:mockTable = @{}
 
         # Create a clean variable scope in each scenario
-        $script:GherkinScenarioScope = New-Module NestedGherkin { }
+        $script:GherkinScenarioScope = New-Module Scenario {       $a = 4
+        }
         $script:GherkinSessionState = Set-SessionStateHint -PassThru -Hint Scenario -SessionState $Script:GherkinScenarioScope.SessionState
 
         #Wait-Debugger
@@ -712,6 +713,7 @@ function Invoke-GherkinStep {
                 }
                 Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionState $ScenarioState
 
+                Write-ScriptBlockInvocationHint -Hint "Invoke-Gherkin step" -ScriptBlock $Script:GherkinSteps.$StepCommand
                 $null = & $ScriptBlock
             } catch {
                 $PesterErrorRecord = $_

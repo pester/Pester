@@ -132,6 +132,39 @@ $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management
 # in checking them during runtime, but that would bring a lot of
 # object management problems - so let's just not use this in PowerShell 2
 $script:DisableScopeHints = $PSVersionTable.PSVersion.Major -lt 3
+function Count-Scopes {
+    param(
+        [Parameter(Mandatory = $true)]
+        $ScriptBlock)
+    # automatic variable that can help us count scopes must be constant a must not be all scopes
+    # from the standard ones only Error seems to be that, let's ensure it is like that everywhere run
+    # other candidate variables can be found by this code
+    # Get-Variable  | where { -not ($_.Options -band [Management.Automation.ScopedItemOptions]"AllScope") -and $_.Options -band $_.Options -band [Management.Automation.ScopedItemOptions]"Constant" }
+
+
+    $sb = {  
+    
+    
+        $err = (Get-Variable -Name Error).Options
+        if ($err -band "AllScope" -or (-not ($err -band "Constant"))) {
+            throw "Error variable is set to AllScope, or is not marked as constant cannot use it to count scopes on this platform."
+        }
+
+        $scope = 0
+        while ($null -eq (Get-Variable Error -Scope $scope -ErrorAction SilentlyContinue)) {
+            $scope++
+        }
+
+        $scope - 1 # because we are in a function
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $ssi = $property.GetValue($ScriptBlock, $null)
+    $property.SetValue($sb, $ssi, $null)
+    
+    &$sb 
+}
 
 function Write-ScriptBlockInvocationHint {
     param(
@@ -146,8 +179,13 @@ function Write-ScriptBlockInvocationHint {
         return
     }
 
-    $scope = Get-ScriptBlockHint  $ScriptBlock
-    Write-Hint "Invoking scriptblock from $Hint in scope '$scope'."
+    $scope = Get-ScriptBlockHint $ScriptBlock
+    $count = Count-Scopes -ScriptBlock $ScriptBlock
+
+    Write-Hint "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:
+    {
+        $ScriptBlock
+    }`n`n"
 }
 
 function Write-Hint ($Hint) {
