@@ -392,11 +392,11 @@ function Import-GherkinFeature {
              $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
         }
 
-        switch -Regex ($Child.Keyword.Trim()) {
-            "Scenario(?: (?:Outline|Template))?" {
+        switch ($Child.Keyword.Trim()) {
+            { (Test-Keyword $_ 'scenario' $Feature.Language) -or (Test-Keyword $_ 'scenarioOutline' $Feature.Language) } {
                 $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
             }
-            "Background" {
+            { Test-Keyword $_ 'background' $Feature.Language } {
                 $Background = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
                 continue scenarios
             }
@@ -429,7 +429,7 @@ function Import-GherkinFeature {
                 }
                 $ScenarioName = $Scenario.Name
                 if ($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  Examples: " + $ExampleSet.Name.Trim()
+                    $ScenarioName = $ScenarioName + "`n  $(Get-Translation 'examples' $Feature.Language): " + $ExampleSet.Name.Trim()
                 }
                 & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
@@ -493,12 +493,12 @@ function Invoke-GherkinFeature {
     }
 
     if ($Scenarios) {
-        Write-Describe $Feature
+        Write-Describe "$($Feature.Keyword): $($Feature.Name)"
     }
 
     try {
         foreach ($Scenario in $Scenarios) {
-            Invoke-GherkinScenario $Pester $Scenario $Background
+            Invoke-GherkinScenario $Pester $Scenario $Background $Feature.Language
         }
     } catch {
         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands["Select-Object"] -First 1
@@ -528,11 +528,13 @@ function Invoke-GherkinScenario {
     #>
     [CmdletBinding()]
     param(
-        $Pester, $Scenario, $Background
+        $Pester, $Scenario, $Background, $Language
     )
     $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
     try {
-        Write-Context $Scenario
+        # We just display 'Scenario', also for 'Scenario Outline' or 'Scenario Template'
+        # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
+        Write-Context "$(Get-Translation 'scenario' $Language): $($Scenario.Name)"
 
         $script:mockTable = @{}
 
@@ -848,3 +850,80 @@ function ConvertTo-HashTableArray {
     }
 }
 
+function Get-Translations($TranslationKey, $Language) {
+    <#
+        .SYNOPSIS
+            Internal function to get all translations for a translation key and language
+
+        .PARAMETER TranslationKey
+            The key name inside the language in gherkin-languages.json, e.g. 'scenarioOutline'
+
+        .PARAMETER Language
+            The used language, e.g. 'en'
+
+        .OUTPUTS
+            System.String[] an array of all the translations
+    #>
+    if (-not ($Script:GherkinLanguagesJson)) {
+        $Script:GherkinLanguagesJson = ConvertFrom-Json (Get-Content "$PsScriptRoot/gherkin-languages.json" | Out-String)
+        # We override the fixed values for 'Describe' and 'Context' of Gherkin.psd1 or Output.ps1 since the language aware keywords
+        # (e.g. 'Feature'/'Funktionalität' or 'Scenario'/'Szenario') are provided by Gherkin.dll and we do not want to duplicate them.
+        $Script:ReportStrings.Describe = "{0}" # instead of 'Feature: {0}'  or 'Describing {0}'
+        $Script:ReportStrings.Context =  "{0}" # instead of 'Scenario: {0}' or 'Context {0}'
+    }
+    $foundTranslations = $Script:GherkinLanguagesJson."$Language"."$TranslationKey"
+    if (-not $foundTranslations) {
+        Write-Warning "Translation key '$TranslationKey' is invalid"
+    }
+    return ,$foundTranslations
+}
+
+function Get-Translation($TranslationKey, $Language, $Index = -1) {
+    <#
+        .SYNOPSIS
+            Internal function to get the first translation for a translation key and language
+
+        .PARAMETER TranslationKey
+            The key name inside the language in gherkin-languages.json, e.g. 'scenarioOutline'
+
+        .PARAMETER Language
+            The used language, e.g. 'en'
+
+        .PARAMETER Index
+            The index in the array of JSON values
+            If -1 is used for Index (the default value), this function will choose the most common translation of the JSON values
+
+        .OUTPUTS
+            System.String the chosen translation
+    #>
+    $translations = (Get-Translations $TranslationKey $Language)
+    if (-not $translations) {
+        return
+    }
+    if ($Index -lt 0 -or $Index -ge $translations.Length) {
+        # Fallback: if the index is not in range, we choose the most common translation
+        # Normally, the most common translation will be found at index one, but under some keys the index is zero.
+        $Index = if ($TranslationKey -eq "scenarioOutline" -or $TranslationKey -eq "feature" -or $TranslationKey -eq "examples") { 0 } else { 1 }
+    }
+    return $translations[$Index]
+}
+
+function Test-Keyword($Keyword, $TranslationKey, $Language) {
+    <#
+        .SYNOPSIS
+            Internal function to check if the given keyword matches one of the translations for a translation key and language
+
+        .PARAMETER Keyword
+            The keyword, e.g. 'Scenario Outline'
+
+        .PARAMETER TranslationKey
+            The key name inside the language in gherkin-languages.json, e.g. 'scenarioOutline'
+
+        .PARAMETER Language
+            The used language, e.g. 'en'
+
+        .OUTPUTS
+            System.Boolean true, if the keyword matches one of the translations, false otherwise
+    #>
+    return $Keyword -in (Get-Translations $TranslationKey $Language)
+}

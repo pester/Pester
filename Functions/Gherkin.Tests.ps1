@@ -1,68 +1,84 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
-Describe 'Invoke-Gherkin' -Tag Gherkin {
+$multiLanguageTestData = @{
+    'en' = @{ namedScenario = 'When something uses MyValidator'; additionalSteps = 4; additionalScenarios = 1 }
+    'es' = @{ namedScenario = 'Algo usa MiValidator';            additionalSteps = 0; additionalScenarios = 0 }
+    'de' = @{ namedScenario = 'Etwas verwendet MeinValidator';   additionalSteps = 0; additionalScenarios = 0 }
+}
 
-    # Calling this in a job so we don't monkey with the active pester state that's already running
-    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
-        param ($scriptRoot)
-        Get-Module Pester | Remove-Module -Force
-        Import-Module $scriptRoot\Pester.psd1 -Force
+foreach ($data in $multiLanguageTestData.GetEnumerator()) {
 
-        New-Object psobject -Property @{
-            Results       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Show None
-            Mockery       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Mockery -Show None
-            Examples      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Examples -Show None
-            Example1      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Example1 -Show None
-            Example2      = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Example2 -Show None
-            Scenarios     = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -Tag Scenarios -Show None
-            NamedScenario = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -ScenarioName "When something uses MyValidator" -Show None
-            NotMockery    = Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -WarningAction SilentlyContinue -PassThru -ExcludeTag Mockery -Show None
+    $language = $data.Key
+    $featureTestData = $data.Value
+    $fileExtra = if ($language -ne 'en') { ".$language" } else { '' }
+    $fileName = "Validator$fileExtra.feature"
+
+    Describe "Invoke-Gherkin $fileName ($language)" -Tag Gherkin {
+
+        # Calling this in a job so we don't monkey with the active pester state that's already running
+        $job = Start-Job -ArgumentList $scriptRoot, $fileName, $featureTestData -ScriptBlock {
+            param ($scriptRoot, $fileName, $featureTestData)
+            Get-Module Pester | Remove-Module -Force
+            Import-Module $scriptRoot\Pester.psd1 -Force
+            $fullFileName = (Join-Path $scriptRoot "Examples\Validator\$fileName")
+            New-Object psobject -Property @{
+                Results       = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Show None
+                Mockery       = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Mockery -Show None
+                Examples      = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Examples -Show None
+                Example1      = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Example1 -Show None
+                Example2      = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Example2 -Show None
+                Scenarios     = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Scenarios -Show None
+                NamedScenario = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -ScenarioName $featureTestData.namedScenario -Show None
+                NotMockery    = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -ExcludeTag Mockery -Show None
+            }
         }
-    }
 
-    $gherkin = $job | Wait-Job | Receive-Job
-    Remove-Job $job
+        $gherkin = $job | Wait-Job | Receive-Job
+        Remove-Job $job
 
+        It 'Works on the Validator example' {
+            $gherkin.Results.PassedCount | Should -Be $gherkin.Results.TotalCount
+        }
 
-    It 'Works on the Validator example' {
-        $gherkin.Results.PassedCount | Should -Be $gherkin.Results.TotalCount
-    }
+        It 'Supports testing only scenarios with certain tags' {
+            $gherkin.Mockery.PassedCount | Should -Be $gherkin.Mockery.TotalCount
+            $gherkin.Mockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
+        }
 
-    It 'Supports testing only scenarios with certain tags' {
-        $gherkin.Mockery.PassedCount | Should -Be $gherkin.Mockery.TotalCount
-        $gherkin.Mockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
-    }
+        if ($featureTestData.additionalSteps -gt 0) {
+            It 'Supports "Scenario Template" in place of "Scenario Outline"' {
+                $gherkin.Scenarios.PassedCount | Should -Be $gherkin.Scenarios.TotalCount
+                $gherkin.Scenarios.PassedCount | Should -BeGreaterOrEqual $featureTestData.additionalSteps
+            }
+        }
 
-    It 'Supports "Scenario Template" in place of "Scenario Outline"' {
-        $gherkin.Scenarios.PassedCount | Should -Be $gherkin.Scenarios.TotalCount
-    }
+        It 'Supports tagging examples' {
+            $gherkin.Example1.PassedCount | Should -Be $gherkin.Example1.TotalCount
+            $gherkin.Example1.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
 
-    It 'Supports tagging examples' {
-        $gherkin.Example1.PassedCount | Should -Be $gherkin.Example1.TotalCount
-        $gherkin.Example1.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
+            $gherkin.Example2.PassedCount | Should -Be $gherkin.Example2.TotalCount
+            $gherkin.Example2.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
 
-        $gherkin.Example2.PassedCount | Should -Be $gherkin.Example2.TotalCount
-        $gherkin.Example2.TotalCount | Should -BeLessThan $gherkin.Examples.TotalCount
+            ($gherkin.Example1.TotalCount + $gherkin.Example2.TotalCount) | Should -Be $gherkin.Examples.TotalCount
+        }
 
-        ($gherkin.Example1.TotalCount + $gherkin.Example2.TotalCount) | Should -Be $gherkin.Examples.TotalCount
-    }
+        It 'Supports excluding scenarios by tag' {
+            $gherkin.NotMockery.PassedCount | Should -Be (10 + $featureTestData.additionalSteps)
+            $gherkin.NotMockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
+            ($gherkin.NotMockery.TotalCount + $gherkin.Mockery.TotalCount) | Should -Be $gherkin.Results.TotalCount
+        }
 
-    It 'Supports excluding scenarios by tag' {
-        $gherkin.NotMockery.PassedCount | Should -Be 14
-        $gherkin.NotMockery.TotalCount | Should -BeLessThan $gherkin.Results.TotalCount
-        ($gherkin.NotMockery.TotalCount + $gherkin.Mockery.TotalCount) | Should -Be $gherkin.Results.TotalCount
-    }
+        It "Supports running specific scenarios by name '$($featureTestData.namedScenario)'" {
+            $gherkin.NamedScenario.PassedCount | Should -Be 3
+        }
 
-    It 'Supports running specific scenarios by name' {
-        $gherkin.NamedScenario.PassedCount | Should -Be 3
-    }
-
-    It 'Outputs the correct number of passed scenarios' {
-        # Note that each example outputs as a scenario ...
-        @($gherkin.Results.PassedScenarios).Count | Should -Be 4
-        @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
+        It 'Outputs the correct number of passed scenarios' {
+            # Note that each example outputs as a scenario ...
+            @($gherkin.Results.PassedScenarios).Count | Should -Be (3 + $featureTestData.additionalScenarios)
+            @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
+        }
     }
 }
 
