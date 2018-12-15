@@ -406,11 +406,17 @@ function Import-GherkinFeature {
         }
 
         if( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
+            # If there is no example set name, the following index will be included in the scenario name
+            $ScenarioIndex = 0
             foreach ($ExampleSet in $Scenario.Examples) {
                 ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
                 $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
-                $Steps = foreach ($Example in $ExampleSet.TableBody) {
-                    foreach ($Step in $Scenario.Steps) {
+                # If there is an example set name, the following index will be included in the scenario name
+                $ExampleSetIndex = 0
+                foreach ($Example in $ExampleSet.TableBody) {
+                    $ScenarioIndex++
+                    $ExampleSetIndex++
+                    $Steps = foreach ($Step in $Scenario.Steps) {
                         [string]$StepText = $Step.Text
                         if ($StepText -match $NamesPattern) {
                             for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
@@ -426,12 +432,16 @@ function Import-GherkinFeature {
                             $Step
                         }
                     }
+                    $ScenarioName = $Scenario.Name
+                    if ($ExampleSet.Name) {
+                        # Include example set name and index of example
+                        $ScenarioName = $ScenarioName + " [$($ExampleSet.Name.Trim()) $ExampleSetIndex]"
+                    } else {
+                        # Only include index of scenario
+                        $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
+                    }
+                    & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                 }
-                $ScenarioName = $Scenario.Name
-                if ($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  Examples: " + $ExampleSet.Name.Trim()
-                }
-                & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
         } else {
             $Scenario
