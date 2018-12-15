@@ -127,13 +127,22 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
-
+# in PowerShell 2 Add-Member can attach properties only to
+# PSObjects, I could work around this by capturing all instances
+# in checking them during runtime, but that would bring a lot of 
+# object management problems - so let's just not use this in PowerShell 2
+$script:DisableScopeHints = $PSVersionTable.PSVersion.Major -lt 3
 
 function Test-Hint {
     param (
         [Parameter(Mandatory = $true)]
         $InputObject
     )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
     $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
     if ($null -eq $property) {
         return $false
@@ -151,12 +160,18 @@ function Set-Hint {
         [Switch] $Force
     )
 
+    if ($script:DisableScopeHints) {
+        return
+    }
+
     if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) { 
-        if ($Force -or (Test-NullOrWhiteSpace $InputObject.Hint)) {
+        $hintIsNotSet = Test-NullOrWhiteSpace $InputObject.Hint
+        if ($Force -or $hintIsNotSet) {
             $InputObject.Hint = $Hint    
         }
     }
     else {
+        # do not change this to be called without the pipeline, it will throw: Cannot evaluate parameter 'InputObject' because its argument is specified as a script block and there is no input. A script block cannot be evaluated without input.
         $InputObject | Add-Member -Name Hint -Value $Hint -MemberType NoteProperty
     }
 }
@@ -170,6 +185,13 @@ function Set-SessionStateHint {
         [Switch] $PassThru
     )
 
+    if ($script:DisableScopeHints) {
+        if ($PassThru) {
+            return $SessionState
+        }
+        return
+    }
+
     # in all places where we capture SessionState we mark its internal state with a hint
     # the internal state does not change and we use it to invoke scriptblock in diferent 
     # states, setting the hint on SessionState is only secondary to make is easier to debug
@@ -179,7 +201,6 @@ function Set-SessionStateHint {
         throw "SessionState does not have any internal SessionState, this should never happen."
     }
     
-    $internalHasHint = $internalSessionState | Get-Member -Name Hint
     $hashcode = $internalSessionState.GetHashCode()
     # optionally sets the hint if there was none, so the hint from the 
     # function that first captured this session state is preserved
@@ -198,12 +219,16 @@ function Get-SessionStateHint {
         [Management.Automation.SessionState] $SessionState
     )
 
+    if ($script:DisableScopeHints) {
+        return
+    }
+
     # the hint is also attached to the session state object, but sessionstate objects are recreated while
     # the internal state stays static so to see the hint on object that we receive via $PSCmdlet.SessionState we need
     # to look at the InternalSessionState. the internal state should be never null so just looking there is enough
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
-    if ($internalSessionState | Get-Member -Name Hint) {
+    if (Test-Hint $internalSessionState) {
         $internalSessionState.Hint
     }
 }
@@ -214,6 +239,10 @@ function Set-ScriptBlockHint {
         [ScriptBlock] $ScriptBlock,
         [string] $Hint
     )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
@@ -261,17 +290,21 @@ function Get-ScriptBlockHint {
         [ScriptBlock] $ScriptBlock
     )
 
+    if ($script:DisableScopeHints) {
+        return
+    }
+
     # the hint is also attached to the scriptblock object, but not all scriptblocks are tagged by us,
     # the internal state stays static so to see the hint on object that we receive we need to look at the InternalSessionState
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
     
     
-    if ($null -ne $internalSessionState -and $internalSessionState | Get-Member -Name Hint) {
+    if ($null -ne $internalSessionState -and (Test-Hint $internalSessionState)) {
         return $internalSessionState.Hint
     }
 
-    if ($ScriptBlock | Get-Member -Name Hint) {
+    if (Test-Hint $ScriptBlock) {
         return $ScriptBlock.Hint
     }
 
