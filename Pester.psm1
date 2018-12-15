@@ -128,6 +128,157 @@ $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
 
+
+function Test-Hint {
+    param (
+        [Parameter(Mandatory = $true)]
+        $InputObject
+    )
+    $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
+    if ($null -eq $property) {
+        return $false
+    }
+
+    Test-NullOrWhiteSpace $property.Value
+}
+
+function Set-Hint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        $InputObject,
+        [Switch] $Force
+    )
+
+    if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) { 
+        if ($Force -or (Test-NullOrWhiteSpace $InputObject.Hint)) {
+            $InputObject.Hint = $Hint    
+        }
+    }
+    else {
+        $InputObject | Add-Member -Name Hint -Value $Hint -MemberType NoteProperty
+    }
+}
+
+function Set-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState,
+        [Switch] $PassThru
+    )
+
+    # in all places where we capture SessionState we mark its internal state with a hint
+    # the internal state does not change and we use it to invoke scriptblock in diferent 
+    # states, setting the hint on SessionState is only secondary to make is easier to debug
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if ($null -eq $internalSessionState) { 
+        throw "SessionState does not have any internal SessionState, this should never happen."
+    }
+    
+    $internalHasHint = $internalSessionState | Get-Member -Name Hint
+    $hashcode = $internalSessionState.GetHashCode()
+    # optionally sets the hint if there was none, so the hint from the 
+    # function that first captured this session state is preserved
+    Set-Hint -Hint "$Hint ($hashcode))" -InputObject $internalSessionState
+    # the public session state should always depend on the internal state
+    Set-Hint -Hint $internalSessionState.Hint -InputObject $SessionState -Force
+    
+    if ($PassThru) {
+        $SessionState
+    }
+}
+
+function Get-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    # the hint is also attached to the session state object, but sessionstate objects are recreated while
+    # the internal state stays static so to see the hint on object that we receive via $PSCmdlet.SessionState we need
+    # to look at the InternalSessionState. the internal state should be never null so just looking there is enough
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if ($internalSessionState | Get-Member -Name Hint) {
+        $internalSessionState.Hint
+    }
+}
+
+function Set-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [string] $Hint
+    )
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if ($null -eq $internalSessionState) {
+        if (Test-Hint -InputObject $ScriptBlock) {
+            # the scriptblock already has a hint and there is not internal state 
+            # so the hint on the scriptblock is enough
+            # if there was an internal state we would try to copy the hint from it
+            # onto the scriptblock to keep them in sync
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it is unbound ScriptBlock (with null internal state) and no -Hint was provided."
+        }
+
+        # adds hint on the ScriptBlock
+        # the internal session state is null so we must attach the hint directly
+        # on the scriptblock
+        Set-Hint -Hint "$Hint (Unbound)" -InputObject $ScriptBlock -Force
+    }
+    else 
+    {
+        if (Test-Hint -InputObject $internalSessionState) {
+            # there already is hint on the internal state, we take it and sync
+            # it with the hint on the object
+            Set-Hint -Hint $internalSessionState.Hint -InputObject $ScriptBlock -Force
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it's internal state does not have any Hint and no external -Hint was provided."
+        }
+
+        $hashcode = $internalSessionState.GetHashCode()
+        $Hint = "$Hint - ($hashCode)"
+        Set-Hint -Hint $Hint -InputObject $internalSessionState -Force
+        Set-Hint -Hint $Hint -InputObject $ScriptBlock -Force
+    }
+}
+
+function Get-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    # the hint is also attached to the scriptblock object, but not all scriptblocks are tagged by us,
+    # the internal state stays static so to see the hint on object that we receive we need to look at the InternalSessionState
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    
+    
+    if ($null -ne $internalSessionState -and $internalSessionState | Get-Member -Name Hint) {
+        return $internalSessionState.Hint
+    }
+
+    if ($ScriptBlock | Get-Member -Name Hint) {
+        return $ScriptBlock.Hint
+    }
+
+    "Unknown unbound ScriptBlock"
+}
+
+
 function Test-NullOrWhiteSpace {
     param ([string]$String)
 
@@ -839,7 +990,8 @@ New-PesterOption
 
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try
         {
@@ -861,11 +1013,12 @@ New-PesterOption
                 elseif(-not [string]::IsNullOrEmpty($Script))
                 {
                     $scriptBlock = [scriptblock]::Create($Script)
+                    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
                     Invoke-Command -ScriptBlock ($scriptBlock)
                 }
             }
 
-            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
+            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
             $testScripts = @(ResolveTestScripts $Script)
 
 
@@ -1151,7 +1304,29 @@ function Set-ScriptBlockScope
         $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
     }
 
-    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($ScriptBlock, $SessionStateInternal, $null)
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
+
+    # hint can be attached on the internal state (preferable) when the state is there.
+    # if we are given unbound scriptblock with null internal state then we hope that 
+    # the source cmdlet set the hint directly on the ScriptBlock,
+    # otherwise the origin is unknown and the cmdlet that allowed this scriptblock in 
+    # should be found and add hint
+
+    $hint = $scriptBlockSessionState.Hint
+    if ($null -eq $hint) { 
+        if ($null -ne $ScriptBlock.Hint) {
+            $hint = $ScriptBlock.Hint    
+        }
+        else 
+        {
+            $hint = 'Unknown unbound ScriptBlock'
+        }
+    }
+
+    Write-Host "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
+    $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
+    Set-ScriptBlockHint -ScriptBlock $ScriptBlock
 }
 
 function Get-ScriptBlockScope
@@ -1163,10 +1338,12 @@ function Get-ScriptBlockScope
         $ScriptBlock
     )
 
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
-}
 
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    Write-Host "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+    $sessionStateInternal
+}
 
 function SafeGetCommand
 {
@@ -1259,6 +1436,7 @@ Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's'
 
 }
 
+Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 & $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
