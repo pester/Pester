@@ -127,31 +127,35 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
-# in PowerShell 2 Add-Member can attach properties only to
-# PSObjects, I could work around this by capturing all instances
-# in checking them during runtime, but that would bring a lot of
-# object management problems - so let's just not use this in PowerShell 2
-$script:DisableScopeHints = $PSVersionTable.PSVersion.Major -lt 3
+$script:DisableScopeHints = $true
+
 function Count-Scopes {
     param(
         [Parameter(Mandatory = $true)]
         $ScriptBlock)
+
+    if ($script:DisableScopeHints) {
+        return 0
+    }
+    
     # automatic variable that can help us count scopes must be constant a must not be all scopes
     # from the standard ones only Error seems to be that, let's ensure it is like that everywhere run
     # other candidate variables can be found by this code
     # Get-Variable  | where { -not ($_.Options -band [Management.Automation.ScopedItemOptions]"AllScope") -and $_.Options -band $_.Options -band [Management.Automation.ScopedItemOptions]"Constant" }
 
-
+    # get-variable steps on it's toes and recurses when we mock it in a test
+    # and we are also invoking this in user scope so we need to pass the reference
+    # to the safely captured function in the user scope
+    $safeGetVariable = $script:SafeCommands['Get-Variable']
     $sb = {  
-    
-    
-        $err = (Get-Variable -Name Error).Options
+        param($safeGetVariable)
+        $err = (& $safeGetVariable -Name Error).Options
         if ($err -band "AllScope" -or (-not ($err -band "Constant"))) {
             throw "Error variable is set to AllScope, or is not marked as constant cannot use it to count scopes on this platform."
         }
 
         $scope = 0
-        while ($null -eq (Get-Variable Error -Scope $scope -ErrorAction SilentlyContinue)) {
+        while ($null -eq (& $safeGetVariable -Name Error -Scope $scope -ErrorAction SilentlyContinue)) {
             $scope++
         }
 
@@ -163,7 +167,7 @@ function Count-Scopes {
     $ssi = $property.GetValue($ScriptBlock, $null)
     $property.SetValue($sb, $ssi, $null)
     
-    &$sb 
+    &$sb $safeGetVariable
 }
 
 function Write-ScriptBlockInvocationHint {
@@ -203,7 +207,7 @@ function Test-Hint {
     )
 
     if ($script:DisableScopeHints) {
-        return
+        return $true
     }
 
     $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
@@ -1263,12 +1267,33 @@ Invoke-Pester
         [switch] $IncludeVSCodeMarker,
 
         [ValidateNotNullOrEmpty()]
-        [string] $TestSuiteName = 'Pester'
+        [string] $TestSuiteName = 'Pester',
+
+        [switch] $Experimental,
+
+        [switch] $ShowScopeHints
     )
 
+        # in PowerShell 2 Add-Member can attach properties only to
+        # PSObjects, I could work around this by capturing all instances
+        # in checking them during runtime, but that would bring a lot of
+        # object management problems - so let's just not allow this in PowerShell 2
+        if ($Experimental -and $ShowScopeHints) {
+            if ($PSVersionTable.PSVersion.Major -lt 3) {
+                throw "Scope hints cannot be used on PowerShell 2 due to limitations of Add-Member."
+            }
+
+            $script:DisableScopeHints = $false
+        }
+        else {
+            $script:DisableScopeHints = $true
+        }
+
     return & $script:SafeCommands['New-Object'] psobject -Property @{
-        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+        IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
+        ShowScopeHints      = $ShowScopeHints
+        Experimental        = $Experimental
     }
 }
 
@@ -1404,20 +1429,22 @@ function Set-ScriptBlockScope
     $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
     $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
 
-    # hint can be attached on the internal state (preferable) when the state is there.
-    # if we are given unbound scriptblock with null internal state then we hope that
-    # the source cmdlet set the hint directly on the ScriptBlock,
-    # otherwise the origin is unknown and the cmdlet that allowed this scriptblock in
-    # should be found and add hint
+    if (-not $script:DisableScopeHints) { 
+        # hint can be attached on the internal state (preferable) when the state is there.
+        # if we are given unbound scriptblock with null internal state then we hope that
+        # the source cmdlet set the hint directly on the ScriptBlock,
+        # otherwise the origin is unknown and the cmdlet that allowed this scriptblock in
+        # should be found and add hint
 
-    $hint = $scriptBlockSessionState.Hint
-    if ($null -eq $hint) {
-        if ($null -ne $ScriptBlock.Hint) {
-            $hint = $ScriptBlock.Hint
-        }
-        else
-        {
-            $hint = 'Unknown unbound ScriptBlock'
+        $hint = $scriptBlockSessionState.Hint
+        if ($null -eq $hint) {
+            if ($null -ne $ScriptBlock.Hint) {
+                $hint = $ScriptBlock.Hint
+            }
+            else
+            {
+                $hint = 'Unknown unbound ScriptBlock'
+            }
         }
     }
 
@@ -1438,7 +1465,9 @@ function Get-ScriptBlockScope
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
-    Write-Hint "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+    if (-not $script:DisableScopeHints) {
+        Write-Hint "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+    }
     $sessionStateInternal
 }
 
