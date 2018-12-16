@@ -280,6 +280,7 @@ function Invoke-Test
 
                 do
                 {
+                    Write-ScriptBlockInvocationHint -Hint "It" -ScriptBlock $ScriptBlock
                     $null = & $ScriptBlock @Parameters
                 } until ($true)
             }

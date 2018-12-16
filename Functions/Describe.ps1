@@ -86,7 +86,8 @@ about_TestDrive
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         Remove-MockFunctionsAndAliases
-        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
+        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
+        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
         $script:mockTable = @{}
     }
 
@@ -207,6 +208,7 @@ function DescribeImpl {
 
             do
             {
+                Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
                 $null = & $Fixture
             } until ($true)
         }

@@ -164,6 +164,8 @@ about_Mocking
     )
 
     Assert-DescribeInProgress -CommandName Mock
+    Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
+    Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
 
     $contextInfo = Validate-Command $CommandName $ModuleName
     $CommandName = $contextInfo.Command.Name
@@ -185,7 +187,9 @@ about_Mocking
     }
     else
     {
+        Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+        Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
         Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
     }
 
@@ -852,7 +856,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     }
 
     if ($module) {
-        $session = & $module { $ExecutionContext.SessionState }
+        $session = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( & $module { $ExecutionContext.SessionState } )
     }
 
     $hash = @{Command = $command; Session = $session}
@@ -884,6 +888,7 @@ function MockPrototype {
         [string] ${ignore preference} = 'SilentlyContinue'
     }
 
+    #todo: remove pester\safegetcommand and use .net calls to get the variable instead?
     ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
     [object] ${a r g s} = $null
@@ -894,8 +899,10 @@ function MockPrototype {
 
     ${p s cmdlet} = & ${get Variable Command} -Name PSCmdlet -ValueOnly -Scope Local -ErrorAction ${ignore preference}
 
+    #todo: Add session state hint - once we are calling this in the Pester state
     ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
 
+    # todo: lookup Pester state and invoke it in there to remote Invoke-Mock from the public Api
     # @{mock call state} initialization is injected only into the begin block by the code that uses this prototype.
     Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' -MockCallState ${mock call state} #INPUT#
 }
@@ -1025,6 +1032,7 @@ function Invoke-Mock {
                     }
                 }
 
+                Write-ScriptBlockInvocationHint -Hint "Mock - Original Command" -ScriptBlock $scriptBlock
                 & $scriptBlock -Command $mock.OriginalCommand `
                                -ArgumentList $MockCallState['BeginArgumentList'] `
                                -BoundParameters $MockCallState['BeginBoundParameters'] `
@@ -1115,7 +1123,11 @@ function ExecuteBlock
             ${Meta data},
 
             [System.Management.Automation.SessionState]
-            ${Session State}
+            ${Session State},
+
+            ${R e p o r t S c o p e},
+
+            ${M o d u l e N a m e}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
@@ -1126,6 +1138,7 @@ function ExecuteBlock
         # should.
 
         Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName (${Meta data}.Name) -ScriptBlock ${Script Block}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
@@ -1136,8 +1149,13 @@ function ExecuteBlock
         '___BoundParameters___' = $BoundParameters
         'Meta data' = $mock.Metadata
         'Session State' = $mock.SessionState
+        'R e p o r t S c o p e' = { param ($CommandName, $ModuleName, $ScriptBlock)
+            Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock }
     }
 
+    # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.Mock, and not $scriptBlock
+
+    Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.Mock)
     & $scriptBlock @splat
 }
 
@@ -1165,6 +1183,7 @@ function Invoke-InMockScope
     else
     {
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $SessionState
+        Write-ScriptBlockInvocationHint -Hint "Mock - InMockScope" -ScriptBlock $ScriptBlock
         & $ScriptBlock @ArgumentList
     }
 }
@@ -1198,10 +1217,12 @@ function Test-ParameterFilter
         Set-StrictMode -Off
         $ScriptBlock
     "
-
+    Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     $cmd = [scriptblock]::Create($scriptBlockString)
+    Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
 
+    Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
     & $cmd @BoundParameters @ArgumentList
 }
 

@@ -11,7 +11,9 @@ function New-PesterState
         [Switch]$RunningViaInvokePester
     )
 
-    if ($null -eq $SessionState) { $SessionState = $ExecutionContext.SessionState }
+    if ($null -eq $SessionState) {
+        $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - Pester (captured in New-PesterState)" -SessionState $ExecutionContext.SessionState
+    }
 
     if ($null -eq $PesterOption)
     {
@@ -29,7 +31,7 @@ function New-PesterState
         }
     }
 
-    & $SafeCommands['New-Module'] -Name Pester -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
