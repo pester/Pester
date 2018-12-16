@@ -4,8 +4,7 @@ function Describe {
 Creates a logical group of tests.
 
 .DESCRIPTION
-Creates a logical group of tests. All Mocks and TestDrive contents
-
+Creates a logical group of tests. All Mocks, TestDrive and TestRegistry contents
 defined within a Describe block are scoped to that Describe; they
 will no longer be present when the Describe block exits.  A Describe
 block may contain any number of Context and It blocks.
@@ -101,7 +100,7 @@ about_TestDrive
     }
     else
     {
-        DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
+        DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
     }
 }
 
@@ -127,7 +126,9 @@ function DescribeImpl {
 
         [scriptblock] $TestOutputBlock,
 
-        [switch] $NoTestDrive
+        [switch] $NoTestDrive,
+
+        [switch] $NoTestRegistry
     )
 
     Assert-DescribeInProgress -CommandName $CommandUsed
@@ -135,13 +136,16 @@ function DescribeImpl {
     if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
         (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
     {
-        if ($Pester.TestNameFilter -and $Name) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
+        if ($Pester.TestNameFilter -and $Name)
+        {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name))
+            {
                 return
             }
         }
         if ($Pester.TagFilter) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
+            {
                 return
             }
         }
@@ -168,6 +172,7 @@ function DescribeImpl {
     }
 
     $testDriveAdded = $false
+    $testRegistryAdded = $false
     try
     {
         try
@@ -185,6 +190,19 @@ function DescribeImpl {
                 }
             }
 
+            if (-not $NoTestRegistry)
+            {
+                if (-not (Test-Path TestRegistry:\))
+                {
+                    New-TestRegistry
+                    $testRegistryAdded = $true
+                }
+                else
+                {
+                    $TestRegistryContent = Get-TestRegistryChildItem
+                }
+            }
+
             Add-SetupAndTeardown -ScriptBlock $Fixture
             Invoke-TestGroupSetupBlocks
 
@@ -197,6 +215,7 @@ function DescribeImpl {
         finally
         {
             Invoke-TestGroupTeardownBlocks
+
             if (-not $NoTestDrive)
             {
                 if ($testDriveAdded)
@@ -206,6 +225,18 @@ function DescribeImpl {
                 else
                 {
                     Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+                }
+            }
+
+            if (-not $NoTestRegistry)
+            {
+                if ($testRegistryAdded)
+                {
+                    Remove-TestRegistry
+                }
+                else
+                {
+                    Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
                 }
             }
         }

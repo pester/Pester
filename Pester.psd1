@@ -24,6 +24,8 @@ Description = 'Pester provides a framework for running BDD style Tests to execut
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '2.0'
 
+TypesToProcess = @('.\Functions\Gherkin.types.ps1xml')
+
 # Functions to export from this module
 FunctionsToExport = @(
     'Describe'
@@ -52,7 +54,8 @@ FunctionsToExport = @(
     'SafeGetCommand'
     'New-PesterOption'
     'New-MockObject'
-    'Add-AssertionOperator'
+    'Add-ShouldOperator'
+    'Get-ShouldOperator'
 
     # Gherkin Support:
     'Invoke-Gherkin'
@@ -92,6 +95,9 @@ AliasesToExport = @(
     'Then'
     'And'
     'But'
+    
+    # for backwards compatibility
+    'Add-AssertionOperator'
 )
 
 
