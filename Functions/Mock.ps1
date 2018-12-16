@@ -1154,7 +1154,7 @@ function ExecuteBlock
     }
 
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.Mock, and not $scriptBlock
-  
+
     Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.Mock)
     & $scriptBlock @splat
 }

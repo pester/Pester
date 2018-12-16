@@ -138,7 +138,7 @@ function Count-Scopes {
     if ($script:DisableScopeHints) {
         return 0
     }
-    
+
     # automatic variable that can help us count scopes must be constant a must not be all scopes
     # from the standard ones only Error seems to be that, let's ensure it is like that everywhere run
     # other candidate variables can be found by this code
@@ -148,7 +148,7 @@ function Count-Scopes {
     # and we are also invoking this in user scope so we need to pass the reference
     # to the safely captured function in the user scope
     $safeGetVariable = $script:SafeCommands['Get-Variable']
-    $sb = {  
+    $sb = {
         param($safeGetVariable)
         $err = (& $safeGetVariable -Name Error).Options
         if ($err -band "AllScope" -or (-not ($err -band "Constant"))) {
@@ -167,7 +167,7 @@ function Count-Scopes {
     $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
     $ssi = $property.GetValue($ScriptBlock, $null)
     $property.SetValue($sb, $ssi, $null)
-    
+
     &$sb $safeGetVariable
 }
 
@@ -1255,6 +1255,10 @@ When this switch is set, an extra line of output will be written to the console 
 for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
 .PARAMETER TestSuiteName
 When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
+.PARAMETER Experimental
+Enables experimental features of Pester to be enabled.
+.PARAMETER ShowScopeHints
+EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
 .INPUTS
 None
 You cannot pipe input to this command.
@@ -1438,7 +1442,7 @@ function Set-ScriptBlockScope
     $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
     $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
 
-    if (-not $script:DisableScopeHints) { 
+    if (-not $script:DisableScopeHints) {
         # hint can be attached on the internal state (preferable) when the state is there.
         # if we are given unbound scriptblock with null internal state then we hope that
         # the source cmdlet set the hint directly on the ScriptBlock,
@@ -1572,12 +1576,13 @@ Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's'
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
+# in the future rename the function to Add-ShouldOperator
 Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult -Alias Add-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator

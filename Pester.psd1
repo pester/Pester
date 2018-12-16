@@ -54,7 +54,7 @@ FunctionsToExport = @(
     'SafeGetCommand'
     'New-PesterOption'
     'New-MockObject'
-    'Add-ShouldOperator'
+    'Add-AssertionOperator'
     'Get-ShouldOperator'
 
     # Gherkin Support:
@@ -95,9 +95,8 @@ AliasesToExport = @(
     'Then'
     'And'
     'But'
-    
-    # for backwards compatibility
-    'Add-AssertionOperator'
+
+    'Add-ShouldOperator'
 )
 
 
