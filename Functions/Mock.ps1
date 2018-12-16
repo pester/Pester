@@ -463,7 +463,7 @@ must match "at least" the number of times specified.  If the value
 passed to the Times parameter is zero, the Exactly switch is implied.
 
 .PARAMETER ParameterFilter
-An optional filter to qualify wich calls should be counted. Only those
+An optional filter to qualify which calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
 
@@ -478,12 +478,19 @@ Assert-MockCalled SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
 
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
-calls to the mocked command.  By default, Assert-MockCalled will find
+calls to the mocked command. For RSpec style tests, Assert-MockCalled will find
 all calls to the mocked command in the current Context block (if present),
-or the current Describe block (if there is no active Context.)  Valid
+or the current Describe block (if there is no active Context), by default. Valid
 values are Describe, Context and It. If you use a scope of Describe or
 Context, the command will identify all calls to the mocked command in the
 current Describe / Context block, as well as all child scopes of that block.
+
+For Gherkin style tests, Assert-MockCalled will find all calls to the mocked
+command in the current Scenario block or the current Feature block (if there is
+no active Scenario), by default. Valid values for Gherkin style tests are Feature
+and Scenario. If you use a scope of Feature or Scenario, the command will identify
+all calls to the mocked command in the current Feature / Scenario block, as well
+as all child scopes of that block.
 
 .EXAMPLE
 C:\PS>Mock Set-Content {}
@@ -588,12 +595,14 @@ param(
         if ([uint32]::TryParse($_, [ref] $null) -or
             $_ -eq 'Describe' -or
             $_ -eq 'Context' -or
-            $_ -eq 'It')
+            $_ -eq 'It' -or
+            $_ -eq 'Feature' -or
+            $_ -eq 'Scenario')
         {
             return $true
         }
 
-        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', or 'It'."
+        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', 'It', 'Feature', or 'Scenario'."
     })]
     [string] $Scope,
 
@@ -717,8 +726,8 @@ function Test-MockCallScope
             if ($isNumberedScope) { break }
         }
 
-        if ($describe -lt 0 -and $testGroups[$i].Hint -eq 'Describe') { $describe = $i }
-        if ($context -lt 0 -and $testGroups[$i].Hint -eq 'Context') { $context = $i }
+        if ($describe -lt 0 -and $testGroups[$i].Hint -in 'Describe','Feature') { $describe = $i }
+        if ($context -lt 0 -and $testGroups[$i].Hint -in 'Context','Scenario') { $context = $i }
     }
 
     if ($actualScopeNumber -lt 0)
@@ -737,8 +746,8 @@ function Test-MockCallScope
     }
     else
     {
-        if ($DesiredScope -eq 'Describe') { return $describe -ge $actualScopeNumber }
-        if ($DesiredScope -eq 'Context')  { return $context -ge $actualScopeNumber }
+        if ($DesiredScope -in 'Describe','Feature') { return $describe -ge $actualScopeNumber }
+        if ($DesiredScope -in 'Context','Scenario')  { return $context -ge $actualScopeNumber }
     }
 
     return $false
