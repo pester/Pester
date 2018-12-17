@@ -1,7 +1,7 @@
 ﻿if (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
-    & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/core/Gherkin.dll"
+    & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/core/Gherkin.dll"
 } else {
-    & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/legacy/Gherkin.dll"
+    & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
 $GherkinSteps = @{}
@@ -865,7 +865,7 @@ function Get-Translations($TranslationKey, $Language) {
             System.String[] an array of all the translations
     #>
     if (-not ($Script:GherkinLanguagesJson)) {
-        $Script:GherkinLanguagesJson = ConvertFrom-Json (Get-Content "$PsScriptRoot/gherkin-languages.json" | Out-String)
+        $Script:GherkinLanguagesJson = ConvertFrom-Json (Get-Content "${Script:PesterRoot}/lib/Gherkin/gherkin-languages.json" | Out-String)
         # We override the fixed values for 'Describe' and 'Context' of Gherkin.psd1 or Output.ps1 since the language aware keywords
         # (e.g. 'Feature'/'Funktionalität' or 'Scenario'/'Szenario') are provided by Gherkin.dll and we do not want to duplicate them.
         $Script:ReportStrings.Describe = "{0}" # instead of 'Feature: {0}'  or 'Describing {0}'
