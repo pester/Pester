@@ -14,7 +14,7 @@ Given 'MeinValidator gibt vor, True zurückzugeben' {
     Mock MeinValidator -Module ValidatorTestDe -MockWith { return $true }
 }
 
-When 'jemand etwas aufruft, dass bei MeinValidator benutzt' {
+When 'jemand etwas aufruft, das MeinValidator benutzt' {
     Invoke-SomethingThatUsesMeinValidator "false"
 }
 

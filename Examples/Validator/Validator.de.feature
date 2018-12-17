@@ -5,7 +5,7 @@ Funktionalität: Eine Zeichenkettenprüfungsfunktion namens MeinValidator
     @Mockery
     Szenario: Etwas verwendet MeinValidator
         Angenommen MeinValidator gibt vor, True zurückzugeben
-        Wenn jemand etwas aufruft, dass bei MeinValidator benutzt
+        Wenn jemand etwas aufruft, das MeinValidator benutzt
         Dann wurde MeinValidator einmal aufgerufen
 
     @Examples
