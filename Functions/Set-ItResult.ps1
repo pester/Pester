@@ -5,8 +5,8 @@ function Set-ItResult {
 
     .DESCRIPTION
     Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated.
-    By default such tests would typically fail and produce a big read message.
-    Using Set-ItResult it is possible to set the result from the inside of the It scrip
+    By default such tests would typically fail and produce a big red message.
+    Using Set-ItResult it is possible to set the result from the inside of the It script
     block to either inconclusive, pending or skipped.
 
     .PARAMETER Inconclusive
@@ -24,28 +24,28 @@ function Set-ItResult {
 
     .EXAMPLE
     Describe "Example" {
-        It "This test has inconclusive result" {
+        It "Inconclusive result test" {
             Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
         }
     }
 
     the output should be
 
-    [?] This test should has inconclusive result, because we want it to be inconclusive
+    [?] Inconclusive result test, is inconclusive, because we want it to be inconclusive
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
 
 
     .EXAMPLE
     Describe "Example" {
-        It "This test is skipped" {
+        It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
         }
     }
 
     the output should be
 
-    [?] This test is skipped, because we want it to be skipped
+    [!] Skipped test, is skipped, because we want it to be skipped
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
 
