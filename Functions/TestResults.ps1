@@ -431,28 +431,28 @@ function Get-RunTimeEnvironment() {
     # based on what we found during startup, use the appropriate cmdlet
     $computerName = $env:ComputerName
     $userName = $env:Username
-    if ( $SafeCommands['Get-CimInstance'] -ne $null )
+    if ($null -ne $SafeCommands['Get-CimInstance'])
     {
         $osSystemInformation = (& $SafeCommands['Get-CimInstance'] Win32_OperatingSystem)
     }
-    elseif ( $SafeCommands['Get-WmiObject'] -ne $null )
+    elseif ($null -ne $SafeCommands['Get-WmiObject'])
     {
         $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
     }
-    elseif ( $IsMacOS -or $IsLinux )
+    elseif ($IsMacOS -or $IsLinux)
     {
         $osSystemInformation = @{
             Name = "Unknown"
             Version = "0.0.0.0"
             }
         try {
-            if ( $SafeCommands['uname'] -ne $null )
+            if ($null -ne $SafeCommands['uname'])
             {
                 $osSystemInformation.Version = & $SafeCommands['uname'] -r
                 $osSystemInformation.Name = & $SafeCommands['uname'] -s
                 $computerName = & $SafeCommands['uname'] -n
             }
-            if ( $SafeCommands['id'] -ne $null )
+            if ($null -ne $SafeCommands['id'])
             {
                 $userName = & $SafeCommands['id'] -un
             }
@@ -466,18 +466,15 @@ function Get-RunTimeEnvironment() {
         $osSystemInformation = @{
             Name = "Unknown"
             Version = "0.0.0.0"
-            }
+        }
     }
 
-    If ( ($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -EQ 'Core')) {
-
+    if ( ($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
         $CLrVersion = "Unknown"
 
     }
-    Else {
-
+    else {
         $CLrVersion = [string]$PSVersionTable.ClrVersion
-
     }
 
     @{

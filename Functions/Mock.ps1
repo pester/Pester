@@ -226,7 +226,7 @@ about_Mocking
             # We will filter them out and add them at the end to be
             # compatible with both earlier and later versions
             $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
-            if($dynamicParams -ne $null) {
+            if($null -ne $dynamicParams) {
                 $dynamicparams | & $SafeCommands['ForEach-Object'] { $null = $metadata.Parameters.Remove($_.name) }
             }
 
@@ -810,7 +810,7 @@ function Exit-MockScope {
             {
                 if ($ExitTestCaseOnly)
                 {
-                    if ($historyEntry.Scope -eq $null) { $historyEntry.Scope = $pester.CurrentTestGroup }
+                    if ($null -eq $historyEntry.Scope) { $historyEntry.Scope = $pester.CurrentTestGroup }
                 }
                 elseif ($parentTestGroup)
                 {

@@ -35,6 +35,14 @@ function Exit-CoverageAnalysis
 
     & $SafeCommands['Set-StrictMode'] -Off
 
+    # If you run PSScriptAnalyzer on Pester, it will flag this line
+    # because $null is on the LHS of -ne. BUT, a very obscure fact
+    # about PowerShell comparison operators is that when the "input"
+    # (i.e. the operand on the LHS) is a collection object, the
+    # operator doesn't perform a strict comparison on the object
+    # itself, but acts as a predicate and is executed against
+    # EACH ITEM in the collection, filtering it and returning
+    # another collection with the filtered results.
     $breakpoints = @($PesterState.CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0)
     {
