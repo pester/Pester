@@ -1,6 +1,9 @@
 # Pester
 
-> 📦🔐 Pester is now signed. `-SkipPublisherCheck` is no longer necessary to install from PowerShell Gallery on Windows 10. 
+> 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10. 
+
+>👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) aimed at issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed before. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.      
+> There is also [contributor's guide](https://github.com/pester/Pester/wiki/Contributing-to-Pester) that will hopefully help you. 
 
 Pester is the ubiquitous test and mock framework for PowerShell.
 
