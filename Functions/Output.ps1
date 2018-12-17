@@ -76,7 +76,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
     }
     elseif ($null -ne ($path -as [hashtable[]]))
     {
-        ($path | foreach { $_.Path }) -join $Delimiter
+        ($path | ForEach-Object { $_.Path }) -join $Delimiter
     }
     # needs to stay at the bottom because almost everything can be upcast to array of string
     elseif ($Path -as [String[]])
@@ -84,6 +84,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
         $Path -join $Delimiter
     }
 }
+
 function Write-PesterStart {
     param(
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
@@ -129,7 +130,7 @@ function Write-Describe {
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
         if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
-            $Describe.Description -split "$([System.Environment]::NewLine)" | ForEach {
+            $Describe.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
                 & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
         }
@@ -153,7 +154,7 @@ function Write-Context {
         & $SafeCommands['Write-Host'] ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
         # If the scenario has a longer description, write that too
         if($Context.PSObject.Properties['Description'] -and $Context.Description) {
-            $Context.Description -split "$([System.Environment]::NewLine)" | ForEach {
+            $Context.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
                 & $SafeCommands['Write-Host'] (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
             }
         }
@@ -260,8 +261,8 @@ function Write-PesterResult {
                     else {
                         $TestResult.ErrorRecord |
                         ConvertTo-FailureLines |
-                        foreach {$_.Message + $_.Trace} |
-                        foreach { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^',$error_margin) }
+                        ForEach-Object {$_.Message + $_.Trace} |
+                        ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^',$error_margin) }
                     }
                     break
                 }
