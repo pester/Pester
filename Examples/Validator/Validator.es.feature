@@ -2,8 +2,15 @@
 
 Característica: Una función para validar cadenas de caracteres llamada MiValidator
 
+    Sólo una descripción de la característica
+    La segunda línea
+
     @Mockery
     Escenario: Algo usa MiValidator
+
+        Sólo una descripción del escenario
+        La segunda línea
+
         Dado MiValidator finge devolver True
         Cuando alguien llama algo que usa MiValidator
         Entonces MiValidator fue llamado una vez

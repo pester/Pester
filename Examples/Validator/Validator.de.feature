@@ -2,8 +2,15 @@
 
 Funktionalität: Eine Zeichenkettenprüfungsfunktion namens MeinValidator
 
+    Nur eine Beschreibung der Funktionalität
+    Die zweite Zeile
+
     @Mockery
     Szenario: Etwas verwendet MeinValidator
+
+        Nur eine Beschreibung des Szenarios
+        Die zweite Zeile
+
         Angenommen MeinValidator gibt vor, True zurückzugeben
         Wenn jemand etwas aufruft, das MeinValidator benutzt
         Dann wurde MeinValidator einmal aufgerufen
