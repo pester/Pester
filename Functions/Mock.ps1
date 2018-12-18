@@ -164,6 +164,8 @@ about_Mocking
     )
 
     Assert-DescribeInProgress -CommandName Mock
+    Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
+    Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
 
     $contextInfo = Validate-Command $CommandName $ModuleName
     $CommandName = $contextInfo.Command.Name
@@ -185,7 +187,9 @@ about_Mocking
     }
     else
     {
+        Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
+        Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
         Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.Session
     }
 
@@ -459,7 +463,7 @@ must match "at least" the number of times specified.  If the value
 passed to the Times parameter is zero, the Exactly switch is implied.
 
 .PARAMETER ParameterFilter
-An optional filter to qualify wich calls should be counted. Only those
+An optional filter to qualify which calls should be counted. Only those
 calls to the mock whose parameters cause this filter to return true
 will be counted.
 
@@ -474,12 +478,19 @@ Assert-MockCalled SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
 
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
-calls to the mocked command.  By default, Assert-MockCalled will find
+calls to the mocked command. For RSpec style tests, Assert-MockCalled will find
 all calls to the mocked command in the current Context block (if present),
-or the current Describe block (if there is no active Context.)  Valid
+or the current Describe block (if there is no active Context), by default. Valid
 values are Describe, Context and It. If you use a scope of Describe or
 Context, the command will identify all calls to the mocked command in the
 current Describe / Context block, as well as all child scopes of that block.
+
+For Gherkin style tests, Assert-MockCalled will find all calls to the mocked
+command in the current Scenario block or the current Feature block (if there is
+no active Scenario), by default. Valid values for Gherkin style tests are Feature
+and Scenario. If you use a scope of Feature or Scenario, the command will identify
+all calls to the mocked command in the current Feature / Scenario block, as well
+as all child scopes of that block.
 
 .EXAMPLE
 C:\PS>Mock Set-Content {}
@@ -584,12 +595,14 @@ param(
         if ([uint32]::TryParse($_, [ref] $null) -or
             $_ -eq 'Describe' -or
             $_ -eq 'Context' -or
-            $_ -eq 'It')
+            $_ -eq 'It' -or
+            $_ -eq 'Feature' -or
+            $_ -eq 'Scenario')
         {
             return $true
         }
 
-        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', or 'It'."
+        throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', 'It', 'Feature', or 'Scenario'."
     })]
     [string] $Scope,
 
@@ -713,8 +726,8 @@ function Test-MockCallScope
             if ($isNumberedScope) { break }
         }
 
-        if ($describe -lt 0 -and $testGroups[$i].Hint -eq 'Describe') { $describe = $i }
-        if ($context -lt 0 -and $testGroups[$i].Hint -eq 'Context') { $context = $i }
+        if ($describe -lt 0 -and $testGroups[$i].Hint -in 'Describe','Feature') { $describe = $i }
+        if ($context -lt 0 -and $testGroups[$i].Hint -in 'Context','Scenario') { $context = $i }
     }
 
     if ($actualScopeNumber -lt 0)
@@ -733,8 +746,8 @@ function Test-MockCallScope
     }
     else
     {
-        if ($DesiredScope -eq 'Describe') { return $describe -ge $actualScopeNumber }
-        if ($DesiredScope -eq 'Context')  { return $context -ge $actualScopeNumber }
+        if ($DesiredScope -in 'Describe','Feature') { return $describe -ge $actualScopeNumber }
+        if ($DesiredScope -in 'Context','Scenario')  { return $context -ge $actualScopeNumber }
     }
 
     return $false
@@ -852,7 +865,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     }
 
     if ($module) {
-        $session = & $module { $ExecutionContext.SessionState }
+        $session = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( & $module { $ExecutionContext.SessionState } )
     }
 
     $hash = @{Command = $command; Session = $session}
@@ -884,6 +897,7 @@ function MockPrototype {
         [string] ${ignore preference} = 'SilentlyContinue'
     }
 
+    #todo: remove pester\safegetcommand and use .net calls to get the variable instead?
     ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
     [object] ${a r g s} = $null
@@ -894,8 +908,10 @@ function MockPrototype {
 
     ${p s cmdlet} = & ${get Variable Command} -Name PSCmdlet -ValueOnly -Scope Local -ErrorAction ${ignore preference}
 
+    #todo: Add session state hint - once we are calling this in the Pester state
     ${session state} = if (${p s cmdlet}) { ${p s cmdlet}.SessionState }
 
+    # todo: lookup Pester state and invoke it in there to remote Invoke-Mock from the public Api
     # @{mock call state} initialization is injected only into the begin block by the code that uses this prototype.
     Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' -MockCallState ${mock call state} #INPUT#
 }
@@ -1025,6 +1041,7 @@ function Invoke-Mock {
                     }
                 }
 
+                Write-ScriptBlockInvocationHint -Hint "Mock - Original Command" -ScriptBlock $scriptBlock
                 & $scriptBlock -Command $mock.OriginalCommand `
                                -ArgumentList $MockCallState['BeginArgumentList'] `
                                -BoundParameters $MockCallState['BeginBoundParameters'] `
@@ -1115,7 +1132,11 @@ function ExecuteBlock
             ${Meta data},
 
             [System.Management.Automation.SessionState]
-            ${Session State}
+            ${Session State},
+
+            ${R e p o r t S c o p e},
+
+            ${M o d u l e N a m e}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
@@ -1126,6 +1147,7 @@ function ExecuteBlock
         # should.
 
         Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName (${Meta data}.Name) -ScriptBlock ${Script Block}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
@@ -1136,8 +1158,13 @@ function ExecuteBlock
         '___BoundParameters___' = $BoundParameters
         'Meta data' = $mock.Metadata
         'Session State' = $mock.SessionState
+        'R e p o r t S c o p e' = { param ($CommandName, $ModuleName, $ScriptBlock)
+            Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock }
     }
 
+    # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.Mock, and not $scriptBlock
+
+    Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.Mock)
     & $scriptBlock @splat
 }
 
@@ -1165,6 +1192,7 @@ function Invoke-InMockScope
     else
     {
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $SessionState
+        Write-ScriptBlockInvocationHint -Hint "Mock - InMockScope" -ScriptBlock $ScriptBlock
         & $ScriptBlock @ArgumentList
     }
 }
@@ -1198,10 +1226,12 @@ function Test-ParameterFilter
         Set-StrictMode -Off
         $ScriptBlock
     "
-
+    Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     $cmd = [scriptblock]::Create($scriptBlockString)
+    Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
 
+    Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
     & $cmd @BoundParameters @ArgumentList
 }
 

@@ -37,6 +37,7 @@ It does not throw an error, so the test passes.
 
     try {
         do {
+            Write-ScriptBlockInvocationHint -Hint "Should -Throw" -ScriptBlock $ActualValue
             $null = & $ActualValue
         } until ($true)
     } catch {

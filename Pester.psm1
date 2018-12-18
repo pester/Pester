@@ -128,6 +128,257 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
+$script:DisableScopeHints = $true
+
+function Count-Scopes {
+    param(
+        [Parameter(Mandatory = $true)]
+        $ScriptBlock)
+
+    if ($script:DisableScopeHints) {
+        return 0
+    }
+
+    # automatic variable that can help us count scopes must be constant a must not be all scopes
+    # from the standard ones only Error seems to be that, let's ensure it is like that everywhere run
+    # other candidate variables can be found by this code
+    # Get-Variable  | where { -not ($_.Options -band [Management.Automation.ScopedItemOptions]"AllScope") -and $_.Options -band $_.Options -band [Management.Automation.ScopedItemOptions]"Constant" }
+
+    # get-variable steps on it's toes and recurses when we mock it in a test
+    # and we are also invoking this in user scope so we need to pass the reference
+    # to the safely captured function in the user scope
+    $safeGetVariable = $script:SafeCommands['Get-Variable']
+    $sb = {
+        param($safeGetVariable)
+        $err = (& $safeGetVariable -Name Error).Options
+        if ($err -band "AllScope" -or (-not ($err -band "Constant"))) {
+            throw "Error variable is set to AllScope, or is not marked as constant cannot use it to count scopes on this platform."
+        }
+
+        $scope = 0
+        while ($null -eq (& $safeGetVariable -Name Error -Scope $scope -ErrorAction SilentlyContinue)) {
+            $scope++
+        }
+
+        $scope - 1 # because we are in a function
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $ssi = $property.GetValue($ScriptBlock, $null)
+    $property.SetValue($sb, $ssi, $null)
+
+    &$sb $safeGetVariable
+}
+
+function Write-ScriptBlockInvocationHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $true)]
+        [String]
+        $Hint
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    $scope = Get-ScriptBlockHint $ScriptBlock
+    $count = Count-Scopes -ScriptBlock $ScriptBlock
+
+    Write-Hint "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:
+    {
+        $ScriptBlock
+    }`n`n"
+}
+
+function Write-Hint ($Hint) {
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    Write-Host -ForegroundColor Cyan $Hint
+}
+
+function Test-Hint {
+    param (
+        [Parameter(Mandatory = $true)]
+        $InputObject
+    )
+
+    if ($script:DisableScopeHints) {
+        return $true
+    }
+
+    $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
+    if ($null -eq $property) {
+        return $false
+    }
+
+    Test-NullOrWhiteSpace $property.Value
+}
+
+function Set-Hint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        $InputObject,
+        [Switch] $Force
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) {
+        $hintIsNotSet = Test-NullOrWhiteSpace $InputObject.Hint
+        if ($Force -or $hintIsNotSet) {
+            $InputObject.Hint = $Hint
+        }
+    }
+    else {
+        # do not change this to be called without the pipeline, it will throw: Cannot evaluate parameter 'InputObject' because its argument is specified as a script block and there is no input. A script block cannot be evaluated without input.
+        $InputObject | Add-Member -Name Hint -Value $Hint -MemberType NoteProperty
+    }
+}
+
+function Set-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState,
+        [Switch] $PassThru
+    )
+
+    if ($script:DisableScopeHints) {
+        if ($PassThru) {
+            return $SessionState
+        }
+        return
+    }
+
+    # in all places where we capture SessionState we mark its internal state with a hint
+    # the internal state does not change and we use it to invoke scriptblock in diferent
+    # states, setting the hint on SessionState is only secondary to make is easier to debug
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if ($null -eq $internalSessionState) {
+        throw "SessionState does not have any internal SessionState, this should never happen."
+    }
+
+    $hashcode = $internalSessionState.GetHashCode()
+    # optionally sets the hint if there was none, so the hint from the
+    # function that first captured this session state is preserved
+    Set-Hint -Hint "$Hint ($hashcode))" -InputObject $internalSessionState
+    # the public session state should always depend on the internal state
+    Set-Hint -Hint $internalSessionState.Hint -InputObject $SessionState -Force
+
+    if ($PassThru) {
+        $SessionState
+    }
+}
+
+function Get-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    # the hint is also attached to the session state object, but sessionstate objects are recreated while
+    # the internal state stays static so to see the hint on object that we receive via $PSCmdlet.SessionState we need
+    # to look at the InternalSessionState. the internal state should be never null so just looking there is enough
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if (Test-Hint $internalSessionState) {
+        $internalSessionState.Hint
+    }
+}
+
+function Set-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [string] $Hint
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if ($null -eq $internalSessionState) {
+        if (Test-Hint -InputObject $ScriptBlock) {
+            # the scriptblock already has a hint and there is not internal state
+            # so the hint on the scriptblock is enough
+            # if there was an internal state we would try to copy the hint from it
+            # onto the scriptblock to keep them in sync
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it is unbound ScriptBlock (with null internal state) and no -Hint was provided."
+        }
+
+        # adds hint on the ScriptBlock
+        # the internal session state is null so we must attach the hint directly
+        # on the scriptblock
+        Set-Hint -Hint "$Hint (Unbound)" -InputObject $ScriptBlock -Force
+    }
+    else
+    {
+        if (Test-Hint -InputObject $internalSessionState) {
+            # there already is hint on the internal state, we take it and sync
+            # it with the hint on the object
+            Set-Hint -Hint $internalSessionState.Hint -InputObject $ScriptBlock -Force
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it's internal state does not have any Hint and no external -Hint was provided."
+        }
+
+        $hashcode = $internalSessionState.GetHashCode()
+        $Hint = "$Hint - ($hashCode)"
+        Set-Hint -Hint $Hint -InputObject $internalSessionState -Force
+        Set-Hint -Hint $Hint -InputObject $ScriptBlock -Force
+    }
+}
+
+function Get-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    # the hint is also attached to the scriptblock object, but not all scriptblocks are tagged by us,
+    # the internal state stays static so to see the hint on object that we receive we need to look at the InternalSessionState
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+
+
+    if ($null -ne $internalSessionState -and (Test-Hint $internalSessionState)) {
+        return $internalSessionState.Hint
+    }
+
+    if (Test-Hint $ScriptBlock) {
+        return $ScriptBlock.Hint
+    }
+
+    "Unknown unbound ScriptBlock"
+}
+
 
 function Test-NullOrWhiteSpace {
     param ([string]$String)
@@ -848,7 +1099,8 @@ New-PesterOption
 
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try
         {
@@ -870,11 +1122,12 @@ New-PesterOption
                 elseif(-not [string]::IsNullOrEmpty($Script))
                 {
                     $scriptBlock = [scriptblock]::Create($Script)
+                    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
                     Invoke-Command -ScriptBlock ($scriptBlock)
                 }
             }
 
-            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
+            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
             $testScripts = @(ResolveTestScripts $Script)
 
 
@@ -890,6 +1143,7 @@ New-PesterOption
                     {
                         do
                         {
+                            Write-ScriptBlockInvocationHint -Hint "Invoke-Pester" -ScriptBlock $invokeTestScript
                             & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                         } until ($true)
                     }
@@ -1001,6 +1255,10 @@ When this switch is set, an extra line of output will be written to the console 
 for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
 .PARAMETER TestSuiteName
 When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
+.PARAMETER Experimental
+Enables experimental features of Pester to be enabled.
+.PARAMETER ShowScopeHints
+EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
 .INPUTS
 None
 You cannot pipe input to this command.
@@ -1022,12 +1280,33 @@ Invoke-Pester
         [switch] $IncludeVSCodeMarker,
 
         [ValidateNotNullOrEmpty()]
-        [string] $TestSuiteName = 'Pester'
+        [string] $TestSuiteName = 'Pester',
+
+        [switch] $Experimental,
+
+        [switch] $ShowScopeHints
     )
 
+        # in PowerShell 2 Add-Member can attach properties only to
+        # PSObjects, I could work around this by capturing all instances
+        # in checking them during runtime, but that would bring a lot of
+        # object management problems - so let's just not allow this in PowerShell 2
+        if ($Experimental -and $ShowScopeHints) {
+            if ($PSVersionTable.PSVersion.Major -lt 3) {
+                throw "Scope hints cannot be used on PowerShell 2 due to limitations of Add-Member."
+            }
+
+            $script:DisableScopeHints = $false
+        }
+        else {
+            $script:DisableScopeHints = $true
+        }
+
     return & $script:SafeCommands['New-Object'] psobject -Property @{
-        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+        IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
+        ShowScopeHints      = $ShowScopeHints
+        Experimental        = $Experimental
     }
 }
 
@@ -1160,7 +1439,31 @@ function Set-ScriptBlockScope
         $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
     }
 
-    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($ScriptBlock, $SessionStateInternal, $null)
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
+
+    if (-not $script:DisableScopeHints) {
+        # hint can be attached on the internal state (preferable) when the state is there.
+        # if we are given unbound scriptblock with null internal state then we hope that
+        # the source cmdlet set the hint directly on the ScriptBlock,
+        # otherwise the origin is unknown and the cmdlet that allowed this scriptblock in
+        # should be found and add hint
+
+        $hint = $scriptBlockSessionState.Hint
+        if ($null -eq $hint) {
+            if ($null -ne $ScriptBlock.Hint) {
+                $hint = $ScriptBlock.Hint
+            }
+            else
+            {
+                $hint = 'Unknown unbound ScriptBlock'
+            }
+        }
+    }
+
+    Write-Hint "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
+    $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
+    Set-ScriptBlockHint -ScriptBlock $ScriptBlock
 }
 
 function Get-ScriptBlockScope
@@ -1172,10 +1475,14 @@ function Get-ScriptBlockScope
         $ScriptBlock
     )
 
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
-}
 
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if (-not $script:DisableScopeHints) {
+        Write-Hint "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+    }
+    $sessionStateInternal
+}
 
 function SafeGetCommand
 {
@@ -1268,11 +1575,14 @@ Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's'
 
 }
 
+Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
+# in the future rename the function to Add-ShouldOperator
 Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult -Alias Add-ShouldOperator
+
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator

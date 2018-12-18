@@ -27,6 +27,7 @@ The script to be executed in the path provided.
     & $SafeCommands['Push-Location'] $path
     $pwd = $path
     try {
+        Write-ScriptBlockInvocationHint -Hint "In" -ScriptBlock $execute
         & $execute
     } finally {
         & $SafeCommands['Pop-Location']
