@@ -143,7 +143,7 @@ test_script:
 ```
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
-In case you do not need to test your scripts against PowerShell Core, just simply remove entire line mentioning Ubuntu.
+If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
 Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
