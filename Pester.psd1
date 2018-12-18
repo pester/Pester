@@ -95,6 +95,8 @@ AliasesToExport = @(
     'Then'
     'And'
     'But'
+
+    'Add-ShouldOperator'
 )
 
 

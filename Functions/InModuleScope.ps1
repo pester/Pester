@@ -64,7 +64,8 @@ function InModuleScope
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         # User has executed a test script directly instead of calling Invoke-Pester
-        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $PSCmdlet.SessionState
+        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in InModuleScope" -SessionState $PSCmdlet.SessionState
+        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $sessionState
         $script:mockTable = @{}
     }
 
@@ -75,12 +76,13 @@ function InModuleScope
 
     try
     {
-        $Pester.SessionState = $module.SessionState
-
-        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $module.SessionState
+        $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
+        $Pester.SessionState = $sessionState
+        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
 
         do
         {
+            Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
             & $ScriptBlock
         } until ($true)
     }

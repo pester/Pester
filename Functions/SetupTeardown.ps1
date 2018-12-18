@@ -370,6 +370,7 @@ function Get-ScriptBlockFromTokens
     $setupOrTeardownCodeText = $codeText.Substring($blockStart, $blockLength)
 
     $scriptBlock = [scriptblock]::Create($setupOrTeardownCodeText)
+    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Get-ScriptBlockFromTokens" -ScriptBlock $scriptBlock
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $pester.SessionState
 
     return $scriptBlock
