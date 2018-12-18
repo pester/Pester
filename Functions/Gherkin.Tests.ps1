@@ -258,11 +258,57 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
         $gherkin.Results.Features | Should -Be "PesterResult shows executed feature names"
     }
 
-    It 'Should show the names of the passed secnarios' {
-        $gherkin.Results.PassedScenarios | Should -Be @('The PesterResult object shows the executed feature names', 'The Pester test report shows scenario names with examples: Examples: A Passing Scenario')
+    It 'Should show the names of the passed scenarios' {
+        $gherkin.Results.PassedScenarios | Should -Be @(
+            'The PesterResult object shows the executed feature names',
+            'The Pester test report shows scenario names with examples: Examples: A Passing Scenario'
+        )
     }
 
     It 'Should show the names of the failed scenarios' {
-        $gherkin.Results.FailedScenarios | Should -Be "The Pester test report shows scenario names with examples: Examples: A Failing Scenario"
+        $gherkin.Results.FailedScenarios | Should -Be @(
+            'The Pester test report shows scenario names with examples: Examples: Failing Scenario (later)'
+            'The Pester test report shows scenario names with examples: Examples: Failing Scenario (early)'
+            'The Pester test report shows scenario names with examples: Examples: Failing Scenario (inconclusive)'
+        )
     }
+
+}
+
+Describe "Check test results of steps" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    function Get-ExpectedResult($i) {
+        switch ($i) {
+            { $_ -in (8, 9, 11) }  {
+                return 'Failed'
+            }
+            { $_ -in (12, 14) }  {
+                return 'Inconclusive'
+            }
+            default { return 'Passed' }
+        }
+    }
+
+    for ($i = 0; $i -lt $gherkin.Results.TestResult.Count; $i++) {
+        $expectedResult = (Get-ExpectedResult $i)
+        $result = $gherkin.Results.TestResult[$i]
+        It "Test result $($i + 1) ('$($result.Name)') should be '$expectedResult'" {
+            $result.Result | Should -Be $expectedResult
+        }
+    }
+
+
 }
