@@ -290,25 +290,70 @@ Describe "Check test results of steps" -Tag Gherkin {
     $gherkin = $job | Wait-Job | Receive-Job
     Remove-Job $job
 
-    function Get-ExpectedResult($i) {
-        switch ($i) {
-            { $_ -in (8, 9, 11) }  {
-                return 'Failed'
-            }
-            { $_ -in (12, 14) }  {
-                return 'Inconclusive'
-            }
-            default { return 'Passed' }
-        }
+    $testResults = $gherkin.Results.TestResult.Result
+
+    It "Should have the expected number of test results" {
+        $testResults.Count | Should -Be 15
     }
 
-    for ($i = 0; $i -lt $gherkin.Results.TestResult.Count; $i++) {
-        $expectedResult = (Get-ExpectedResult $i)
-        $result = $gherkin.Results.TestResult[$i]
-        It "Test result $($i + 1) ('$($result.Name)') should be '$expectedResult'" {
-            $result.Result | Should -Be $expectedResult
-        }
+    It "Test result 1 is correct" {
+        $testResults[0] | Should -Be 'Passed'
     }
 
+    It "Test result 2 is correct" {
+        $testResults[1] | Should -Be 'Passed'
+    }
+
+    It "Test result 3 is correct" {
+        $testResults[2] | Should -Be 'Passed'
+    }
+
+    It "Test result 4 is correct" {
+        $testResults[3] | Should -Be 'Passed'
+    }
+
+    It "Test result 5 is correct" {
+        $testResults[4] | Should -Be 'Passed'
+    }
+
+    It "Test result 6 is correct" {
+        $testResults[5] | Should -Be 'Passed'
+    }
+
+    It "Test result 7 is correct" {
+        $testResults[6] | Should -Be 'Passed'
+    }
+
+    It "Test result 8 is correct" {
+        $testResults[7] | Should -Be 'Passed'
+    }
+
+    It "Test result 9 is correct" {
+        $testResults[8] | Should -Be 'Failed'
+    }
+
+    It "Test result 10 is correct" {
+        $testResults[9] | Should -Be "Failed"
+    }
+
+    It "Test result 11 is correct" {
+        $testResults[10] | Should -Be 'Passed'
+    }
+
+    It "Test result 12 is correct" {
+        $testResults[11] | Should -Be 'Failed'
+    }
+
+    It "Test result 13 is correct" {
+        $testResults[12] | Should -Be 'Inconclusive'
+    }
+
+    It "Test result 14 is correct" {
+        $testResults[13] | Should -Be 'Passed'
+    }
+
+    It "Test result 15 is correct" {
+        $testResults[14] | Should -Be 'Inconclusive'
+    }
 
 }
