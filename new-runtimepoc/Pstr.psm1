@@ -61,15 +61,26 @@ function New-Block {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
+ 
+    $block = $null
+    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
+        $block = New-BlockObject -Name $Name
+        # we attach the current block to the parent
+        Add-Block -Block $block
+    }
 
-    $block = New-BlockObject -Name $Name
-    # we attach the current block to the parent
-    Add-Block -Block $block
     # and then progress to the next block that might 
     # or might not be defined within the body of this 
     # block
     $previousBlock = Get-CurrentBlock
+    if ($null -eq $block) { 
+        # we have run discovery and now
+        # we are executing tests 
+        # so we need to fing where to go
+        $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
+    }
     Set-CurrentBlock -Block $block 
+    
     try {
         & $ScriptBlock
     }
@@ -95,7 +106,7 @@ function New-Test {
     }
 
     if (-not (Is-Discovery)) {
-        $test = Get-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
+        $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
         $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock
         $test.Executed = $true
         $test.Passed = $result.Success
@@ -189,6 +200,7 @@ function New-BlockObject {
 }
 
 function Add-Block {
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [PSTypeName("DiscoveredBlock")]
@@ -208,6 +220,7 @@ function Is-DiscoverySkipped {
 
 # test invocation
 function Start-Test {
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
@@ -220,8 +233,11 @@ function Start-Test {
 }
 
 function Invoke-ScriptBlockSafe {
-    [Parameter(Mandatory=$true)]
-    [ScriptBlock] $ScriptBlock
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
 
     $success = $true
     $standardOutput = $null
@@ -247,7 +263,8 @@ function Invoke-ScriptBlockSafe {
     }
 }
 
-function Get-CurrentTest {
+function Find-CurrentTest {
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [String] $Name,
@@ -270,9 +287,87 @@ function Get-CurrentTest {
 }
 
 
+function Invoke-Test {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    Reset-TestSuite
+    $found = Find-Test $ScriptBlock
+
+    $script:currentBlock = $script:root
+    $result = Start-Test $ScriptBlock 
+    $result
+}
 
 # initialize the internal state
 Reset-TestSuite
+
+
+
+function Where-Failed {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        $Block
+    )
+
+    $Block | View-Flat | Where { -not $_.Passed }
+}
+
+function View-Flat {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        $Block
+    )
+    
+    # invert to make tests all at the same level
+    $blocks = flattenBlock -Block $Block -Accumulator @() 
+    foreach ($block in $blocks) {
+        foreach ($test in $block.Tests) {
+            $test | select *, @{n="Block"; e={$block}}
+        }
+    }
+}
+
+function flattenBlock ($Block, $Accumulator) {
+    $Accumulator += $Block
+    if ($Block.Blocks.Length -eq 0) {
+        return $Accumulator
+    }
+
+    foreach ($bl in $Block.Blocks) {
+        flattenBlock -Block $bl -Accumulator $Accumulator
+    }
+    $Accumulator
+}
+
+function Find-CurrentBlock {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [String] $Name,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+
+    $blocks = (Get-CurrentBlock).Blocks
+    # todo: optimize this if too slow
+    $blockCandidates = @($blocks | where { $_.Name -eq $Name })
+    if ($blockCandidates.Length -eq 1) {
+        $blockCandidates[0]
+    }
+    elseif ($blockCandidates.Length -gt 1) {
+        #todo find it by script block
+    }
+    else {
+        throw "Did not find the block '$($Name)', how is this possible?"
+    }
+}
 
 # $script:beforeAlls = @{}
 # $script:beforeEaches = @{}

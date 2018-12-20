@@ -9,8 +9,9 @@ Import-Module $PSScriptRoot\Pstr.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
-
-
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'stop'
+i {
 b "Basic" {
     t "Given a scriptblock with 1 test in it, it finds 1 test" {
         Reset-TestSuite
@@ -162,8 +163,113 @@ b "Executing tests" {
         $actual.Tests[1].StandardOutput | Verify-Equal "b"
     }
 
+    t "Executes 2 tests in blocks next to each other" {
+        Reset-TestSuite 
+        $actual = Start-Test {
+            New-Block "block1" {
+                New-Test "test1" { "a" }
+            } 
+            New-Block "block2" {
+                New-Test "test2" { "b" } 
+            }
+        }
 
+        $actual.Blocks[0].Name | Verify-Equal "block1"
+        $actual.Blocks[0].Tests[0].Executed | Verify-True
+        $actual.Blocks[0].Tests[0].Passed | Verify-True
+        $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+
+        $actual.Blocks[1].Name | Verify-Equal "block2"
+        $actual.Blocks[1].Tests[0].Executed | Verify-True
+        $actual.Blocks[1].Tests[0].Passed | Verify-True
+        $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
+        $actual.Blocks[1].Tests[0].StandardOutput | Verify-Equal "b"
+    }
+
+    t "Executes 2 tests deeper in blocks" {
+        Reset-TestSuite 
+        $actual = Start-Test {
+            New-Block "block1" {
+                New-Test "test1" { "a" }
+                    New-Block "block2" {
+                    New-Test "test2" { "b" } 
+                }
+            }
+        }
+
+        $actual.Blocks[0].Name | Verify-Equal "block1"
+        $actual.Blocks[0].Tests[0].Executed | Verify-True
+        $actual.Blocks[0].Tests[0].Passed | Verify-True
+        $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+
+        $actual.Blocks[0].Blocks[0].Name | Verify-Equal "block2"
+        $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+        $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+        $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+        $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
+    }
+
+b "discover and execute tests" {
+    t "discovers and executes one test" {
+        $actual = Invoke-Test {
+            New-Test "test1" { "a" }
+        }
+
+        $actual.Tests[0].Executed | Verify-True
+        $actual.Tests[0].Passed | Verify-True
+        $actual.Tests[0].Name | Verify-Equal "test1"
+        $actual.Tests[0].StandardOutput | Verify-Equal "a"
+    }
+
+    t "re-runs failing tests" {
+        $sb =  {
+            New-Block "block1" {
+                New-Test "test1" { "a" }
+                New-Block "block2" { 
+                    New-Test "test2" {
+                        throw
+                    }
+                }
+            }
+
+            New-Block "block3" { 
+                New-Test "test3" {
+                    throw
+                }
+            }
+        }
+
+        $pre = Invoke-Test $sb
+
+        # validate the precondition
+        $pre.Blocks[0].Tests[0].Executed | Verify-True
+        $pre.Blocks[0].Tests[0].Passed | Verify-True
+        $pre.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        $pre.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+
+        $pre.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+        $pre.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
+        $pre.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+
+        $pre.Blocks[1].Tests[0].Executed | Verify-True
+        $pre.Blocks[1].Tests[0].Passed | Verify-False
+        $pre.Blocks[1].Tests[0].Name | Verify-Equal "test3"
+
+        $filter = $pre | Where-Failed
+        $actual = Invoke-Test -Filter $filter -ScriptBlock $sb
+
+        $pre.Tests.Length | Verify-Equal 1
+        $pre.Tests[0].Executed | Verify-True
+        $pre.Tests[0].Passed | Verify-False
+    }
 }
+
+
+}}
+
+
 
 
 # okay so the idea here is that we run the scripts twice, in the first pass we import all the test dependencies 
