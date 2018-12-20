@@ -726,8 +726,8 @@ function Test-MockCallScope
             if ($isNumberedScope) { break }
         }
 
-        if ($describe -lt 0 -and $testGroups[$i].Hint -in 'Describe','Feature') { $describe = $i }
-        if ($context -lt 0 -and $testGroups[$i].Hint -in 'Context','Scenario') { $context = $i }
+        if ($describe -lt 0 -and 'Describe','Feature' -contains $testGroups[$i].Hint) { $describe = $i }
+        if ($context -lt 0 -and 'Context','Scenario' -contains $testGroups[$i].Hint) { $context = $i }
     }
 
     if ($actualScopeNumber -lt 0)
@@ -746,8 +746,8 @@ function Test-MockCallScope
     }
     else
     {
-        if ($DesiredScope -in 'Describe','Feature') { return $describe -ge $actualScopeNumber }
-        if ($DesiredScope -in 'Context','Scenario')  { return $context -ge $actualScopeNumber }
+        if ('Describe','Feature' -contains $DesiredScope) { return $describe -ge $actualScopeNumber }
+        if ('Context','Scenario' -contains $DesiredScope)  { return $context -ge $actualScopeNumber }
     }
 
     return $false
