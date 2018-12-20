@@ -1147,7 +1147,8 @@ function ExecuteBlock
         # should.
 
         Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
-        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName (${Meta data}.Name) -ScriptBlock ${Script Block}
+        # Name property is not present on Application Command metadata in PowerShell 2
+        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName $(try {${Meta data}.Name} catch {}) -ScriptBlock ${Script Block}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
