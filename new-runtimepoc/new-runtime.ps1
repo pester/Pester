@@ -50,7 +50,7 @@ b "block" {
     }
 }
 
-b "Find setup for tests" {
+b "Find common setup for each test" {
     t "Given block that has test setup for each test it finds it" {
         $actual = Find-Test {
             New-EachTestSetup {setup}
@@ -61,9 +61,14 @@ b "Find setup for tests" {
     }
 }
 
-# b "Find setup for block" {
-#     t "Given block"
-# }
+b "Find setup to run before all tests in the block" {
+    $actual = Find-Test {
+        New-AllTestSetup {allSetup}
+        New-Test "test1" {}
+    }
+
+    $actual[0].AllTestSetup | Verify-Equal 'allSetup'
+}
 
 
 # okay so the idea here is that we run the scripts twice, in the first pass we import all the test dependencies 

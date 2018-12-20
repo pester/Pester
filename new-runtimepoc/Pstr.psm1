@@ -1,5 +1,4 @@
-$script:tests = @()
-$script:eachTestSetup = $null
+$script:root = $null
 #$script:discovery = $true
 
 # compatibility
@@ -32,21 +31,31 @@ function Find-Test {
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock,
-        [String] $DefaultBlockName = "Block"
+        [String] $DefaultBlockName = "Root"
     )
-
-    $script:tests = @()
-    $script:discovery = $true
     
+    $script:root = New-BlockObject -Name $DefaultBlockName
     & $ScriptBlock
 
-    
-    $block = New-BlockObject -Name $DefaultBlockName -Test $script:tests -EachTestSetup $script:eachTestSetup
-    
-    
-    $block
+    $script:root
 }
 
+
+# endpoint for adding a block that contains tests
+# or other blocks
+function New-Block {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [String] $Name,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    Add-Block -Block (New-BlockObject -Name $Name)
+}
+
+# endpoint for adding a test
 function New-Test {
     [CmdletBinding()]
     param (
@@ -61,30 +70,42 @@ function New-Test {
     #}
 }
 
-# at the moment the test setup is actually beforeEach
-# it setups all tests within the block in the same way
-# and that should imho be enough, but I will still attach
-# the setup to the block and not the test, because that is where
-# it logically belongs and it keeps the options for setup per test
-# open
+# endpoint for adding a setup for each test in the block
 function New-EachTestSetup {
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).EachTestSetup = $ScriptBlock
+}
+
+# endpoint for adding a setup for all tests in the block
+function New-AllTestSetup {
     [CmdletBinding(DefaultParameterSetName = "Empty")]
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
 
-    $script:eachTestSetup = $ScriptBlock
+    (Get-CurrentBlock).AllTestSetup = $ScriptBlock
+}
+
+function Get-CurrentBlock {
+    [CmdletBinding()]
+    param ( )
+    $script:root
 }
 
 function Add-Test {
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [PSTypeName("DiscoveredTest")]
         $Test
     )
 
-    $script:tests += New-TestObject -Name $Name
+    (Get-CurrentBlock).Tests += New-TestObject -Name $Name
 }
 
 function New-TestObject {
@@ -99,40 +120,14 @@ function New-TestObject {
     }
 }
 
-function New-EachTestSetupObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
-    )
-
-    New-PSObject -Type DiscoveredEachTestSetup @{
-        ScriptBlock = $ScriptBlock
-    }
-}
-
-function New-Block {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [String] $Name,
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
-    )
-
-    # Add-Block -Block (New-BlockObject -Name $Name)
-}
-
 function New-BlockObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [String] $Name,
-        [Parameter(Mandatory=$true)]
-        # [DiscoveredTest[]]
-        $Test,
-        # [DiscoveredEachTestSetup]
-        $EachTestSetup
+        $Test = @(),
+        [ScriptBlock] $EachTestSetup,
+        [ScriptBlock] $AllTestSetup
     )
 
     New-PSObject -Type DiscoveredBlock @{
@@ -141,6 +136,7 @@ function New-BlockObject {
         Tests = $Test
         # setup that will be run before every test
         EachTestSetup = $EachTestSetup
+        AllTestSetup = $AllTestSetup
     }
 }
 
