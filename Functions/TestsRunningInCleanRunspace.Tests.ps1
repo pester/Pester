@@ -281,7 +281,7 @@ Describe "Swallowing output" {
                     $results | Should -Be $null
                 }
 
-            } 
+            }
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $tests
