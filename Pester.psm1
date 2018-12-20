@@ -1459,11 +1459,14 @@ function Set-ScriptBlockScope
                 $hint = 'Unknown unbound ScriptBlock'
             }
         }
+        Write-Hint "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
     }
 
-    Write-Hint "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
     $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
-    Set-ScriptBlockHint -ScriptBlock $ScriptBlock
+
+    if (-not $script:DisableScopeHints) {
+        Set-ScriptBlockHint -ScriptBlock $ScriptBlock
+    }
 }
 
 function Get-ScriptBlockScope

@@ -726,8 +726,8 @@ function Test-MockCallScope
             if ($isNumberedScope) { break }
         }
 
-        if ($describe -lt 0 -and $testGroups[$i].Hint -in 'Describe','Feature') { $describe = $i }
-        if ($context -lt 0 -and $testGroups[$i].Hint -in 'Context','Scenario') { $context = $i }
+        if ($describe -lt 0 -and 'Describe','Feature' -contains $testGroups[$i].Hint) { $describe = $i }
+        if ($context -lt 0 -and 'Context','Scenario' -contains $testGroups[$i].Hint) { $context = $i }
     }
 
     if ($actualScopeNumber -lt 0)
@@ -746,8 +746,8 @@ function Test-MockCallScope
     }
     else
     {
-        if ($DesiredScope -in 'Describe','Feature') { return $describe -ge $actualScopeNumber }
-        if ($DesiredScope -in 'Context','Scenario')  { return $context -ge $actualScopeNumber }
+        if ('Describe','Feature' -contains $DesiredScope) { return $describe -ge $actualScopeNumber }
+        if ('Context','Scenario' -contains $DesiredScope)  { return $context -ge $actualScopeNumber }
     }
 
     return $false
@@ -1147,7 +1147,8 @@ function ExecuteBlock
         # should.
 
         Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
-        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName (${Meta data}.Name) -ScriptBlock ${Script Block}
+        # Name property is not present on Application Command metadata in PowerShell 2
+        & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName $(try {${Meta data}.Name} catch {}) -ScriptBlock ${Script Block}
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
