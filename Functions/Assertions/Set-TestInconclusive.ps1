@@ -1,13 +1,3 @@
-function New-InconclusiveErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
-    $exception = New-Object Exception $Message
-    $errorID = 'PesterTestInconclusive'
-    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
-    $errorRecord = New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
-    return $errorRecord
-}
-
 function Set-TestInconclusive {
 <#
 

@@ -696,7 +696,7 @@ function Invoke-GherkinStep {
         ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] -First 1
 
         if (!$StepCommand) {
-            $PesterErrorRecord = New-InconclusiveErrorRecord -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
+            $PesterErrorRecord = Set-ItResult -Inconclusive -Because "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
         } else {
 
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
