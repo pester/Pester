@@ -2,146 +2,68 @@
 
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
-Get-Module P, Pester | Remove-Module 
+
+Get-Module Pstr, P, Pester, Axiom | Remove-Module 
 Import-Module Pester -MinimumVersion 4.4.3
-New-Module -Name P {
-    $script:beforeAlls = @{}
-    $script:beforeEaches = @{}
-    $script:Discovery = $true
-
-    function d {
-        param(
-            [String] $Name, 
-            [ScriptBlock] $Block
-        )
-        if ($script:Discovery) {
-            Write-Host "Found block $Name" -ForegroundColor Cyan
-            & $Block
-        }
-        else {
-            Write-Host "Executing block $Name" -ForegroundColor Green
-            if ($script:beforeAlls.contains($name)) {
-                &$script:beforeAlls[$Name]
-            }
-            & $Block
-        }
+Import-Module $PSScriptRoot\Pstr.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
 
 
+b "Basic" {
+    t "Given a scriptblock with 1 test in it, it finds 1 test" {
+        $actual = Find-Test {
+            New-Test "test1" { }
+        } | select -Expand Tests 
+
+        @($actual).Length | Verify-Equal 1
+        $actual.Name | Verify-Equal "test1"
     }
 
-    function ba {
-        param(
-            [ScriptBlock] $Block
-        )
+    t "Given scriptblock with 2 tests in it it finds 2 tests" {
+        $actual = Find-Test {
+            New-Test "test1" { }
 
-        if ($script:Discovery) {
-            $script:beforeAlls[$Name] = $Block
-        }
+            New-Test "test2" { }
+        } | select -Expand Tests
+
+        @($actual).Length | Verify-Equal 2
+        $actual.Name[0] | Verify-Equal "test1"
+        $actual.Name[1] | Verify-Equal "test2"
+    }
+}
+
+b "block" {
+    t "Given 0 tests it returns block called by the default name" {
+        $actual = Find-Test { } -DefaultBlockName "Block1"
+
+        $actual.Name | Verify-Equal "Block1"
     }
 
-    function be {
-        param(
-            [ScriptBlock] $Block
-        )
+    t "Given 0 tests it returns block containing 0 tests" {
+        $actual = Find-Test { 
+            New-Test "test1" {}
+         }
 
-        if ($script:Discovery) {
-            $script:beforeEaches[$Name] = $Block
-        }
+        $actual.Tests.Length | Verify-Equal 1
     }
+}
 
-    function i {
-        param(
-            [String] $Name, 
-            [ScriptBlock] $Test
-        )
-        if ($script:Discovery) {
-            Write-Host "Found test $Name" -ForegroundColor Cyan
+b "Find setup for tests" {
+    t "Given block that has test setup for each test it finds it" {
+        $actual = Find-Test {
+            New-EachTestSetup {setup}
+            New-Test "test1" {}
         }
-        else {
-            Write-Host "Executing test $Name" -ForegroundColor Green
-            if ($script:beforeAlls.contains($name)) {
-                &$script:beforeAlls[$Name]
-            }
-            & $Test
-        }
+
+        $actual[0].EachTestSetup | Verify-Equal 'setup'
     }
+}
 
-    function Invoke-P {
-        param(
-            [ScriptBlock] $Suite
-        )
-
-        $script:Discovery = $true
-    
-        & {
-            param ($phase)
-            . $Suite
-            # this variable should go away somehog
-            $script:Discovery = $false
-            & $Suite
-        }
-    }
-
-    function Work {
-        param (
-            [ScriptBlock]
-            $Work
-        )
-        if ($script:Discovery) 
-        {
-            Write-Host "Skipping this piece of code { $($Work.ToString().Trim()) }, because we are Found tests." -ForegroundColor Yellow
-        }
-        else 
-        {
-            &$Work
-        }
-    }
-
-    # dot-sources a piece of script during the Discovery pass so all possible dependencies
-    # are in scope and we can discover even tests that are "hidden" in custom functions
-    # this function must be defined to run without additional scope (like the Mock prototype), 
-    # atm I will just return a populated or empty scriptBlock and dot-source it to get the same effect
-    function TestDependency {
-        param (
-            [string]
-            $Path
-        )
-        if ($script:Discovery) 
-        {
-            if (-not (Test-Path $Path)) {
-                throw "Test dependency path does not exist"
-            }
-            Write-Host Importing $Path
-            $Path
-        }
-        else{
-            {}
-        }
-    }
-
-    # dot-sources a piece of script during the Run pass so all possible dependencies
-    # to the i blocks are in scope run the tests
-    # this function must be defined to run without additional scope (like the Mock prototype), 
-    # atm I will just return a populated or empty scriptBlock and dot-source it to get the same effect
-    function Dependency {
-        param (
-            [string]
-            $Path
-        )
-        if ($script:Discovery) 
-        {
-            {}
-        }
-        else{
-            if (-not (Test-Path $Path)) {
-                throw "dependency path does not exist"
-            }
-            Write-Host Importing $Path
-            $Path
-        }
-    }
-} | Import-Module
+# b "Find setup for block" {
+#     t "Given block"
+# }
 
 
 # okay so the idea here is that we run the scripts twice, in the first pass we import all the test dependencies 
@@ -156,31 +78,31 @@ New-Module -Name P {
 
 # further more we possibly know that we ended the run so we can also print the summary??? :D
 
-# run
-Invoke-P {
-    . (TestDependency -Path $PSScriptRoot\wrapper.ps1)
+# # run
+# Invoke-P {
+#     . (TestDependency -Path $PSScriptRoot\wrapper.ps1)
     
-    wrapper "kk" { write-host "wrapped test"}
-    d "top" { 
-        ba {
-            Write-Host "this is ba" -ForegroundColor Blue
-        }
-        be {
-            Write-Host "this is be" -ForegroundColor Blue
-        }
-        Work {
-            Write-Host "offending piece of code" -ForegroundColor Red
-        }
-        d "l1" {
-            d "l2" {
-                i "test 1" {
-                    Write-Host "I run"
-                }
+#     wrapper "kk" { write-host "wrapped test"}
+#     d "top" { 
+#         ba {
+#             Write-Host "this is ba" -ForegroundColor Blue
+#         }
+#         be {
+#             Write-Host "this is be" -ForegroundColor Blue
+#         }
+#         Work {
+#             Write-Host "offending piece of code" -ForegroundColor Red
+#         }
+#         d "l1" {
+#             d "l2" {
+#                 i "test 1" {
+#                     Write-Host "I run"
+#                 }
 
-                i "test 1" {
-                    Write-Host "I run"
-                }
-            }
-        }
-    }
-}
+#                 i "test 1" {
+#                     Write-Host "I run"
+#                 }
+#             }
+#         }
+#     }
+# }
