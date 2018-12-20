@@ -61,13 +61,65 @@ b "Find common setup for each test" {
     }
 }
 
-b "Find setup to run before all tests in the block" {
-    $actual = Find-Test {
-        New-AllTestSetup {allSetup}
-        New-Test "test1" {}
+b "Finding setup for all tests" {
+    t "Find setup to run before all tests in the block" {
+        $actual = Find-Test {
+            New-AllTestSetup {allSetup}
+            New-Test "test1" {}
+        }
+
+        $actual[0].AllTestSetup | Verify-Equal 'allSetup'
+    }
+}
+
+b "Finding blocks" {
+    t "Find tests in block that is explicitly specified" {
+        $actual = Find-Test {
+            New-Block "block1" {
+                New-Test "test1" {}
+            }
+        }
+
+        $actual.Blocks[0].Tests.Length | Verify-Equal 1
+        $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
     }
 
-    $actual[0].AllTestSetup | Verify-Equal 'allSetup'
+    t "Find tests in blocks that are next to each other" {
+        $actual = Find-Test {
+            New-Block "block1" {
+                New-Test "test1" {}
+            }
+
+            New-Block "block2" {
+                New-Test "test2" {}
+            }
+        }
+
+        $actual.Blocks.Length | Verify-Equal 2
+        $actual.Blocks[0].Tests.Length | Verify-Equal 1
+        $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        $actual.Blocks[1].Tests.Length | Verify-Equal 1
+        $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
+    }
+
+    t "Find tests in blocks that are inside of each other" {
+        $actual = Find-Test {
+            New-Block "block1" {
+                New-Test "test1" {}
+                New-Block "block2" {
+                    New-Test "test2" {}
+                }
+            }
+        }
+
+        $actual.Blocks.Length | Verify-Equal 1
+        $actual.Blocks[0].Tests.Length | Verify-Equal 1
+        $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        
+        $actual.Blocks[0].Blocks.Length | Verify-Equal 1
+        $actual.Blocks[0].Blocks[0].Tests.Length | Verify-Equal 1
+        $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+    }
 }
 
 

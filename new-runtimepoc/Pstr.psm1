@@ -1,4 +1,5 @@
 $script:root = $null
+$script:currentBlock = $null
 #$script:discovery = $true
 
 # compatibility
@@ -34,7 +35,7 @@ function Find-Test {
         [String] $DefaultBlockName = "Root"
     )
     
-    $script:root = New-BlockObject -Name $DefaultBlockName
+   $script:currentBlock = $script:root = New-BlockObject -Name $DefaultBlockName
     & $ScriptBlock
 
     $script:root
@@ -52,7 +53,20 @@ function New-Block {
         [ScriptBlock] $ScriptBlock
     )
 
-    Add-Block -Block (New-BlockObject -Name $Name)
+    $block = New-BlockObject -Name $Name
+    # we attach the current block to the parent
+    Add-Block -Block $block
+    # and then progress to the next block that might 
+    # or might not be defined within the body of this 
+    # block
+    $previousBlock = Get-CurrentBlock
+    Set-CurrentBlock -Block $block 
+    try {
+        & $ScriptBlock
+    }
+    finally {
+        Set-CurrentBlock -Block $previousBlock
+    }
 }
 
 # endpoint for adding a test
@@ -94,7 +108,17 @@ function New-AllTestSetup {
 function Get-CurrentBlock {
     [CmdletBinding()]
     param ( )
-    $script:root
+    $script:currentBlock
+}
+
+function Set-CurrentBlock {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        $Block
+    )
+
+    $script:currentBlock = $Block
 }
 
 function Add-Test {
@@ -127,7 +151,8 @@ function New-BlockObject {
         [String] $Name,
         $Test = @(),
         [ScriptBlock] $EachTestSetup,
-        [ScriptBlock] $AllTestSetup
+        [ScriptBlock] $AllTestSetup,
+        $Block = @()
     )
 
     New-PSObject -Type DiscoveredBlock @{
@@ -137,6 +162,7 @@ function New-BlockObject {
         # setup that will be run before every test
         EachTestSetup = $EachTestSetup
         AllTestSetup = $AllTestSetup
+        Blocks = @()
     }
 }
 
@@ -144,10 +170,10 @@ function Add-Block {
     param (
         [Parameter(Mandatory=$true)]
         [PSTypeName("DiscoveredBlock")]
-        $Test
+        $Block
     )
 
-    $script:Blocks = $Block
+    (Get-CurrentBlock).Blocks += $Block
 }
 # $script:beforeAlls = @{}
 # $script:beforeEaches = @{}
