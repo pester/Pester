@@ -1,6 +1,15 @@
 $script:root = $null
 $script:currentBlock = $null
-#$script:discovery = $true
+$script:discovery = $false
+$script:discoverySkipped = $false
+
+# resets the module state to the default
+function Reset-TestSuite {
+    $script:root = $null
+    $script:discovery = $false
+    $script:discoverySkipped = $true
+    $script:currentBlock = $script:root = New-BlockObject -Name "Block"
+}
 
 # compatibility
 function Test-NullOrWhiteSpace ($Value) {
@@ -31,11 +40,11 @@ function Find-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock,
-        [String] $DefaultBlockName = "Root"
+        [ScriptBlock] $ScriptBlock
     )
-    
-   $script:currentBlock = $script:root = New-BlockObject -Name $DefaultBlockName
+
+    $script:discovery = $true
+    $script:discoverySkipped = $false
     & $ScriptBlock
 
     $script:root
@@ -79,9 +88,19 @@ function New-Test {
         [ScriptBlock] $ScriptBlock
     )
 
-   #if ($script:discovery) {
+    # do this setup when we are running discovery
+    # or when we skipped it
+    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
         Add-Test -Test (New-TestObject -Name $Name)
-    #}
+    }
+
+    if (-not (Is-Discovery)) {
+        $test = Get-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
+        $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock
+        $test.Executed = $true
+        $test.Passed = $result.Success
+        $test.StandardOutput = $result.StandardOutput
+    }
 }
 
 # endpoint for adding a setup for each test in the block
@@ -141,6 +160,9 @@ function New-TestObject {
 
     New-PSObject -Type DiscoveredTest @{
         Name = $Name
+        Executed = $false
+        Passed = $false
+        StandardOutput = $null
     }
 }
 
@@ -175,6 +197,83 @@ function Add-Block {
 
     (Get-CurrentBlock).Blocks += $Block
 }
+
+function Is-Discovery {
+    $script:discovery
+}
+
+function Is-DiscoverySkipped {
+    $script:discoverySkipped
+}
+
+# test invocation
+function Start-Test {
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    $script:discovery = $false
+    # do we want this output?
+    $null = & $ScriptBlock
+    $script:root
+}
+
+function Invoke-ScriptBlockSafe {
+    [Parameter(Mandatory=$true)]
+    [ScriptBlock] $ScriptBlock
+
+    $success = $true
+    $standardOutput = $null
+    try {
+        do {
+            $standardOutput = & $ScriptBlock
+            # possibly I could add $break = $false here 
+            # if the code breaks that line is not reached
+            # but is there any value in knowing that the script
+            # block used break?
+        } while ($false)
+    }
+    catch {
+        $err = $_
+        $success = $false
+    }
+
+    return New-PSObject -Type ScriptBlockInvocationResult @{
+        Success = $success
+        Error = $err
+        StandardOutput = $standardOutput
+        ScriptBlock = $ScriptBlock
+    }
+}
+
+function Get-CurrentTest {
+    param (
+        [Parameter(Mandatory=$true)]
+        [String] $Name,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    $block = Get-CurrentBlock
+    # todo: optimize this if too slow
+    $testCanditates = @($block.Tests | where { $_.Name -eq $Name })
+    if ($testCanditates.Length -eq 1) {
+        $testCanditates[0]
+    }
+    elseif ($testCanditates.Length -gt 1) {
+        #todo find it by script block
+    }
+    else {
+        throw "Did not find the test '$($Name)', how is this possible?"
+    }
+}
+
+
+
+# initialize the internal state
+Reset-TestSuite
+
 # $script:beforeAlls = @{}
 # $script:beforeEaches = @{}
 # $script:Discovery = $true

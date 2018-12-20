@@ -13,6 +13,7 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 
 b "Basic" {
     t "Given a scriptblock with 1 test in it, it finds 1 test" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-Test "test1" { }
         } | select -Expand Tests 
@@ -22,6 +23,7 @@ b "Basic" {
     }
 
     t "Given scriptblock with 2 tests in it it finds 2 tests" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-Test "test1" { }
 
@@ -36,12 +38,14 @@ b "Basic" {
 
 b "block" {
     t "Given 0 tests it returns block called by the default name" {
-        $actual = Find-Test { } -DefaultBlockName "Block1"
+        Reset-TestSuite
+        $actual = Find-Test { }
 
-        $actual.Name | Verify-Equal "Block1"
+        $actual.Name | Verify-Equal "Block"
     }
 
     t "Given 0 tests it returns block containing 0 tests" {
+        Reset-TestSuite
         $actual = Find-Test { 
             New-Test "test1" {}
          }
@@ -52,6 +56,7 @@ b "block" {
 
 b "Find common setup for each test" {
     t "Given block that has test setup for each test it finds it" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-EachTestSetup {setup}
             New-Test "test1" {}
@@ -63,6 +68,7 @@ b "Find common setup for each test" {
 
 b "Finding setup for all tests" {
     t "Find setup to run before all tests in the block" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-AllTestSetup {allSetup}
             New-Test "test1" {}
@@ -74,6 +80,7 @@ b "Finding setup for all tests" {
 
 b "Finding blocks" {
     t "Find tests in block that is explicitly specified" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-Block "block1" {
                 New-Test "test1" {}
@@ -85,6 +92,7 @@ b "Finding blocks" {
     }
 
     t "Find tests in blocks that are next to each other" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-Block "block1" {
                 New-Test "test1" {}
@@ -103,6 +111,7 @@ b "Finding blocks" {
     }
 
     t "Find tests in blocks that are inside of each other" {
+        Reset-TestSuite
         $actual = Find-Test {
             New-Block "block1" {
                 New-Test "test1" {}
@@ -120,6 +129,40 @@ b "Finding blocks" {
         $actual.Blocks[0].Blocks[0].Tests.Length | Verify-Equal 1
         $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
     }
+}
+
+b "Executing tests" {
+    t "Executes 1 test" {
+        Reset-TestSuite 
+        $actual = Start-Test {
+            New-Test "test1" { "a" }
+        }
+
+        $actual.Tests[0].Executed | Verify-True
+        $actual.Tests[0].Passed | Verify-True
+        $actual.Tests[0].Name | Verify-Equal "test1"
+        $actual.Tests[0].StandardOutput | Verify-Equal "a"
+    }
+
+    t "Executes 2 tests next to each other" {
+        Reset-TestSuite 
+        $actual = Start-Test {
+            New-Test "test1" { "a" }
+            New-Test "test2" { "b" }
+        }
+
+        $actual.Tests[0].Executed | Verify-True
+        $actual.Tests[0].Passed | Verify-True
+        $actual.Tests[0].Name | Verify-Equal "test1"
+        $actual.Tests[0].StandardOutput | Verify-Equal "a"
+
+        $actual.Tests[1].Executed | Verify-True
+        $actual.Tests[1].Passed | Verify-True
+        $actual.Tests[1].Name | Verify-Equal "test2"
+        $actual.Tests[1].StandardOutput | Verify-Equal "b"
+    }
+
+
 }
 
 
