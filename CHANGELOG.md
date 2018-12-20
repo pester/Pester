@@ -1,3 +1,28 @@
+## 4.5.0-beta1 (December 20, 2018)
+ - Add TestRegistry [GH-1112]
+ - Add set test result and message from inside of test [GH-1026]
+ - Add possibility to pass scripts directly to Invoke-Pester [GH-972]
+ - Add even better code coverage [GH-1120]
+ - Add more comprehensive code coverage [GH-920]
+ - Add optional session state debugging info [GH-1169]
+ - Fix Set-Variable mocking [GH-1109]
+ - Fix usage of ArrayList [GH-1114]
+ - Fix features and scenario names [GH-1138]
+ - Fix step counting [GH-1150]
+ - Fix Set-ItResult help [GH-1171]
+ - Migrate build to AppVeyor, Azure and Travis
+
+## 4.4.3 (December 11, 2018)
+ - Add signing scripts
+ - Same as 4.4.3-beta1 but signed
+
+## 4.4.3-beta1 (November 27, 2018)
+ - Fix InModuleScope when using unbound scriptBlock [GH-1146]
+ - Allow multiple aliases for an assertion [GH-1122]
+ - Update Invoke-Pester docs to favor -Show None over -Quiet [GH-1125]
+ - Fix taking multiple instances of id or uname [GH-1126]
+ - Sign the module
+
 ## 4.4.2 (October 3, 2018)
  - Remove single quotes when expanding strings in test name [GH-1090]
  - Get environment info on non-windows platforms [GH-1105]

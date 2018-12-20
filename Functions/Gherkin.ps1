@@ -259,8 +259,8 @@ function Invoke-Gherkin {
                 throw "There are no existing failed tests to re-run."
             }
         }
-
-        $pester = New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $PSCmdlet.SessionState -Strict $Strict  -Show $Show -PesterOption $PesterOption |
+        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Gherkin" -SessionState $PSCmdlet.SessionState
+        $pester = New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $sessionState -Strict $Strict  -Show $Show -PesterOption $PesterOption |
             & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
             & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
                 $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
@@ -346,7 +346,9 @@ function Import-GherkinSteps {
         $Script:GherkinHooks.Clear()
     }
     process {
-        foreach ($StepFile in & $SafeCommands["Get-ChildItem"] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse) {
+        $StepFiles = & $SafeCommands["Get-ChildItem"] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse
+
+        foreach ($StepFile in $StepFiles) {
             $invokeTestScript = {
                 [CmdletBinding()]
                 param (
@@ -427,7 +429,7 @@ function Import-GherkinFeature {
                 }
                 $ScenarioName = $Scenario.Name
                 if ($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  Examples:" + $ExampleSet.Name.Trim()
+                    $ScenarioName = $ScenarioName + "`n  Examples: " + $ExampleSet.Name.Trim()
                 }
                 & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
@@ -535,8 +537,9 @@ function Invoke-GherkinScenario {
         $script:mockTable = @{}
 
         # Create a clean variable scope in each scenario
-        $script:GherkinScenarioScope = New-Module NestedGherkin { }
-        $script:GherkinSessionState = $Script:GherkinScenarioScope.SessionState
+        $script:GherkinScenarioScope = New-Module Scenario {       $a = 4
+        }
+        $script:GherkinSessionState = Set-SessionStateHint -PassThru -Hint Scenario -SessionState $Script:GherkinScenarioScope.SessionState
 
         #Wait-Debugger
 
@@ -712,6 +715,7 @@ function Invoke-GherkinStep {
                 }
                 Set-ScriptBlockScope -ScriptBlock $Script:GherkinSteps.$StepCommand -SessionState $ScenarioState
 
+                Write-ScriptBlockInvocationHint -Hint "Invoke-Gherkin step" -ScriptBlock $Script:GherkinSteps.$StepCommand
                 $null = & $ScriptBlock
             } catch {
                 $PesterErrorRecord = $_

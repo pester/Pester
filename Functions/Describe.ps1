@@ -4,8 +4,7 @@ function Describe {
 Creates a logical group of tests.
 
 .DESCRIPTION
-Creates a logical group of tests. All Mocks and TestDrive contents
-
+Creates a logical group of tests. All Mocks, TestDrive and TestRegistry contents
 defined within a Describe block are scoped to that Describe; they
 will no longer be present when the Describe block exits.  A Describe
 block may contain any number of Context and It blocks.
@@ -24,6 +23,13 @@ typically performed by the Should command within the It blocks.
 Optional parameter containing an array of strings.  When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Describe blocks
 containing the same Tag.
+
+.PARAMETER CodeCoverage
+Adds a code coverage report to the Pester tests. Takes strings or hash table values.
+
+A code coverage report lists the lines of code that did and did not run during
+a Pester test. This report does not tell whether code was tested; only whether
+the code ran during the test.
 
 .EXAMPLE
 function Add-Numbers($a, $b) {
@@ -69,6 +75,8 @@ about_TestDrive
         [Alias('Tags')]
         [string[]] $Tag=@(),
 
+        [object[]] $CodeCoverage = @(),
+
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
@@ -78,11 +86,22 @@ about_TestDrive
     {
         # User has executed a test script directly instead of calling Invoke-Pester
         Remove-MockFunctionsAndAliases
-        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $PSCmdlet.SessionState
+        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
+        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
         $script:mockTable = @{}
     }
 
-    DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult}
+    if ($Pester.FindCodeCoverage)
+    {
+        foreach($cc in $CodeCoverage)
+        {
+            $Pester.CodeCoverage += $cc
+        }
+    }
+    else
+    {
+        DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
+    }
 }
 
 function DescribeImpl {
@@ -92,6 +111,8 @@ function DescribeImpl {
 
         [Alias('Tags')]
         $Tag=@(),
+
+        [object[]] $CodeCoverage = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -105,7 +126,9 @@ function DescribeImpl {
 
         [scriptblock] $TestOutputBlock,
 
-        [switch] $NoTestDrive
+        [switch] $NoTestDrive,
+
+        [switch] $NoTestRegistry
     )
 
     Assert-DescribeInProgress -CommandName $CommandUsed
@@ -113,13 +136,16 @@ function DescribeImpl {
     if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
         (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
     {
-        if ($Pester.TestNameFilter -and $Name) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
+        if ($Pester.TestNameFilter -and $Name)
+        {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name))
+            {
                 return
             }
         }
         if ($Pester.TagFilter) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
+            {
                 return
             }
         }
@@ -146,6 +172,7 @@ function DescribeImpl {
     }
 
     $testDriveAdded = $false
+    $testRegistryAdded = $false
     try
     {
         try
@@ -163,17 +190,32 @@ function DescribeImpl {
                 }
             }
 
+            if (-not $NoTestRegistry)
+            {
+                if (-not (Test-Path TestRegistry:\))
+                {
+                    New-TestRegistry
+                    $testRegistryAdded = $true
+                }
+                else
+                {
+                    $TestRegistryContent = Get-TestRegistryChildItem
+                }
+            }
+
             Add-SetupAndTeardown -ScriptBlock $Fixture
             Invoke-TestGroupSetupBlocks
 
             do
             {
+                Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
                 $null = & $Fixture
             } until ($true)
         }
         finally
         {
             Invoke-TestGroupTeardownBlocks
+
             if (-not $NoTestDrive)
             {
                 if ($testDriveAdded)
@@ -183,6 +225,18 @@ function DescribeImpl {
                 else
                 {
                     Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+                }
+            }
+
+            if (-not $NoTestRegistry)
+            {
+                if ($testRegistryAdded)
+                {
+                    Remove-TestRegistry
+                }
+                else
+                {
+                    Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
                 }
             }
         }

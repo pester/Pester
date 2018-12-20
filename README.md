@@ -1,5 +1,10 @@
 # Pester
 
+> 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10. 
+
+>👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) aimed at issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed before. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.      
+> There is also [contributor's guide](https://github.com/pester/Pester/wiki/Contributing-to-Pester) that will hopefully help you. 
+
 Pester is the ubiquitous test and mock framework for PowerShell.
 
 ```powershell
@@ -60,7 +65,7 @@ Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Window
 Pester comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
 ```powershell
-Install-Module -Name Pester -Force -SkipPublisherCheck
+Install-Module -Name Pester -Force
 ```
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://github.com/pester/Pester/wiki/Installation-and-Update).
@@ -131,20 +136,21 @@ image:
 - Visual Studio 2017
 - Ubuntu
 install:
-- ps: Install-Module Pester -Force -SkipPublisherCheck -Scope CurrentUser
+- ps: Install-Module Pester -Force -Scope CurrentUser
 build: off
 test_script:
 - ps: Invoke-Pester -EnableExit
 ```
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
-In case you do not need to test your scripts against PowerShell Core, just simply remove entire line mentioning Ubuntu.
+If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
 Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
+[![PowerShell 2 & 3](https://nohwnd.visualstudio.com/Pester/_apis/build/status/PowerShell%202%20&%203?branchName=master)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6?branchName=master)
+[![PowerShell 4, 5 & Core on Windows build](https://ci.appveyor.com/api/projects/status/dr0w3hwb2wncfov3?svg=true)](https://ci.appveyor.com/project/nohwnd/pester)
 
- [![windows build](https://img.shields.io/teamcity/http/build.powershell.org/s/Pester_TestPester.svg?label=windows+build)](https://build.powershell.org/project.html?projectId=Pester)
- [![linux/macos build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
+ [![Linux & MacOS build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
 [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester)
 [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 

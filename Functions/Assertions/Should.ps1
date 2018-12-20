@@ -96,7 +96,7 @@ function Should {
 
     begin
     {
-        $inputArray = New-Object System.Collections.ArrayList
+        $inputArray = New-Object System.Collections.Generic.List[PSObject]
 
         if ($PSCmdlet.ParameterSetName -eq 'Legacy')
         {
@@ -111,7 +111,7 @@ function Should {
 
     process
     {
-        $null = $inputArray.Add($ActualValue)
+        $inputArray.Add($ActualValue)
     }
 
     end

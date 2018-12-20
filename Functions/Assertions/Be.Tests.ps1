@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterBe" {
+    Describe "Should -Be" {
         It "returns true if the 2 arguments are equal" {
             1 | Should Be 1
             1 | Should -Be 1
@@ -104,7 +104,7 @@ InModuleScope Pester {
 
     }
 
-    Describe "PesterBeFailureMessage" {
+    Describe "ShouldBeFailureMessage" {
         #the correctness of difference index value and the arrow pointing to the correct place
         #are not tested here thoroughly, but the behaviour was visually checked and is
         #implicitly tested by using the whole output in the following tests
@@ -115,45 +115,45 @@ InModuleScope Pester {
             #only when the objects are not equal
 
             $string = "string"
-            PesterBeFailureMessage $string $string | Verify-Equal ''
+            ShouldBeFailureMessage $string $string | Verify-Equal ''
         }
 
         It "Outputs less verbose message for two different objects that are not strings" {
-            PesterBeFailureMessage 2 1 | Verify-Equal "Expected 1, but got 2."
+            ShouldBeFailureMessage 2 1 | Verify-Equal "Expected 1, but got 2."
         }
 
         It "Outputs less verbose message for two different objects that are not strings, with reason" {
-            PesterBeFailureMessage 2 1 -Because 'reason' | Verify-Equal "Expected 1, because reason, but got 2."
+            ShouldBeFailureMessage 2 1 -Because 'reason' | Verify-Equal "Expected 1, because reason, but got 2."
         }
 
         It "Outputs verbose message for two strings of different length" {
-            PesterBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n-----------^"
+            ShouldBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n-----------^"
         }
 
         It "Outputs verbose message for two strings of different length" {
-            PesterBeFailureMessage "actual" "expected" -Because 'reason' | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n-----------^"
+            ShouldBeFailureMessage "actual" "expected" -Because 'reason' | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n-----------^"
         }
 
         It "Outputs verbose message for two different strings of the same length" {
-            PesterBeFailureMessage "x" "y" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'y'`nBut was:  'x'`n-----------^"
+            ShouldBeFailureMessage "x" "y" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'y'`nBut was:  'x'`n-----------^"
         }
 
         It "Replaces non-printable characters correctly" {
-            PesterBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '\n\r\b\0\ty'`nBut was:  '\n\r\b\0\tx'`n---------------------^"
+            ShouldBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '\n\r\b\0\ty'`nBut was:  '\n\r\b\0\tx'`n---------------------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced before the difference" {
-            PesterBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123\n789'`nBut was:  '123\n456'`n----------------^"
+            ShouldBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123\n789'`nBut was:  '123\n456'`n----------------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced after the difference" {
-            PesterBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!\n123'`nBut was:  'abcd\n123'`n--------------^"
+            ShouldBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!\n123'`nBut was:  'abcd\n123'`n--------------^"
         }
     }
 }
 
 InModuleScope Pester {
-    Describe "BeExactly" {
+    Describe "Should -BeExactly" {
         It "passes if letter case matches" {
             'a' | Should BeExactly 'a'
             'a' | Should -BeExactly 'a'
@@ -187,9 +187,9 @@ InModuleScope Pester {
         }
     }
 
-    Describe "PesterBeExactlyFailureMessage" {
+    Describe "ShouldBeExactlyFailureMessage" {
         It "Writes verbose message for strings that differ by case" {
-            PesterBeExactlyFailureMessage "a" "A" -Because "reason" | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'A'`nBut was:  'a'`n-----------^"
+            ShouldBeExactlyFailureMessage "a" "A" -Because "reason" | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'A'`nBut was:  'a'`n-----------^"
         }
     }
 }

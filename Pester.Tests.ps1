@@ -6,7 +6,7 @@ $manifestPath  = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
-
+#
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:manifest = $null
     $script:tagVersion = $null
@@ -330,6 +330,17 @@ InModuleScope Pester {
                 $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
             }
 
+            It 'Allows to pass test script string'{
+                $result = @(ResolveTestScripts @{ Script = "Test script string" })
+
+                $result.Count | Should -Be 1
+                $result[0].Script | Should -Be "Test script string"
+
+                $result[0].Path | Should -BeNullOrEmpty
+                $result[0].Parameters | Should -BeNullOrEmpty
+                $result[0].Arguments |  Should -BeNullOrEmpty
+            }
+
             It 'Throws an error if no Path is specified' {
                 { ResolveTestScripts @{} } | Should -Throw
             }
@@ -356,7 +367,7 @@ Describe 'Assertion operators' {
     It 'Allows an operator to be registered with multiple aliases' {
         function MultipleAlias {$true}
         Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
-        
+
         {Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing name' {

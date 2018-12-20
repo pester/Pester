@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterBeOfType" {
+    Describe "Should -BeOfType" {
         It "passes if value is of the expected type" {
             1 | Should BeOfType Int
             2.0 | Should BeOfType ([double])
@@ -20,9 +20,7 @@ InModuleScope Pester {
             $err = { 5 | Should -Not -BeOfType 'UnknownType' } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])
         }
-    }
 
-    Describe "Should -BeOfType" {
         It "throws argument execption if type isn't a loaded type" {
             $err = { 5 | Should -BeOfType 'UnknownType' } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])

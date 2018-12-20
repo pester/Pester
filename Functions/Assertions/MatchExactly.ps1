@@ -1,4 +1,19 @@
-function PesterMatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+function Should-MatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+<#
+.SYNOPSIS
+Uses a regular expression to compare two objects.
+This comparison is case sensitive.
+
+.EXAMPLE
+"I am a value" | Should -MatchExactly "I am"
+The "I am" regular expression (RegEx) pattern matches the string.
+This test passes.
+
+.EXAMPLE
+"I am a value" | Should -MatchExactly "I Am"
+Because MatchExactly is case sensitive, this test fails.
+For a case insensitive test, see Match.
+#>
     [bool] $succeeded = $ActualValue -cmatch $RegularExpression
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -9,11 +24,11 @@ function PesterMatchExactly($ActualValue, $RegularExpression, [switch] $Negate, 
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
+            $failureMessage = NotShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
         else
         {
-            $failureMessage = PesterMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
+            $failureMessage = ShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
     }
 
@@ -23,14 +38,15 @@ function PesterMatchExactly($ActualValue, $RegularExpression, [switch] $Negate, 
     }
 }
 
-function PesterMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
+function ShouldMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
     return "Expected regular expression $(Format-Nicely $RegularExpression) to case sensitively match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
 }
 
-function NotPesterMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
+function NotShouldMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
     return "Expected regular expression $(Format-Nicely $RegularExpression) to not case sensitively match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
-Add-AssertionOperator -Name  MatchExactly `
-                      -Test  $function:PesterMatchExactly `
-                      -Alias 'CMATCH'
+Add-AssertionOperator -Name         MatchExactly `
+                      -InternalName Should-MatchExactly `
+                      -Test         ${function:Should-MatchExactly} `
+                      -Alias        'CMATCH'

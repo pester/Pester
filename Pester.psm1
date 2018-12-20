@@ -29,63 +29,64 @@ if ($PSVersionTable.PSVersion.Major -gt 2)
 }
 
 $script:SafeCommands = @{
-    'Add-Member'          = Get-Command -Name Add-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Add-Type'            = Get-Command -Name Add-Type             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Compare-Object'      = Get-Command -Name Compare-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Export-ModuleMember' = Get-Command -Name Export-ModuleMember  -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'ForEach-Object'      = Get-Command -Name ForEach-Object       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Format-Table'        = Get-Command -Name Format-Table         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Alias'           = Get-Command -Name Get-Alias            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-ChildItem'       = Get-Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Command'         = Get-Command -Name Get-Command          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Get-Content'         = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Date'            = Get-Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Item'            = Get-Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-ItemProperty'     = Get-Command -Name Get-ItemProperty        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Location'        = Get-Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-Member'          = Get-Command -Name Get-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Module'          = Get-Command -Name Get-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Get-PSDrive'         = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Get-PSCallStack'      = Get-Command -Name Get-PSCallStack         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Unique'           = Get-Command -Name Get-Unique              -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Get-Variable'        = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Group-Object'        = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Import-LocalizedData' = Get-Command -Name Import-LocalizedData    -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Import-Module'        = Get-Command -Name Import-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Join-Path'           = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Measure-Object'      = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'New-Item'            = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'New-Module'          = Get-Command -Name New-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'New-Object'          = Get-Command -Name New-Object           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'New-PSDrive'         = Get-Command -Name New-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'New-Variable'        = Get-Command -Name New-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Out-Host'            = Get-Command -Name Out-Host             -Module $outHostModule                  @safeCommandLookupParameters
-    'Out-File'            = Get-Command -Name Out-File             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Out-Null'            = Get-Command -Name Out-Null             -Module $outNullModule                  @safeCommandLookupParameters
-    'Out-String'          = Get-Command -Name Out-String           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Pop-Location'        = Get-Command -Name Pop-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Push-Location'       = Get-Command -Name Push-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Remove-Item'         = Get-Command -Name Remove-Item          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Remove-PSBreakpoint' = Get-Command -Name Remove-PSBreakpoint  -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Remove-PSDrive'      = Get-Command -Name Remove-PSDrive       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Remove-Variable'     = Get-Command -Name Remove-Variable      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Resolve-Path'        = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Select-Object'       = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Set-Content'         = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Set-Location'         = Get-Command -Name Set-Location            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Set-PSBreakpoint'    = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Set-StrictMode'      = Get-Command -Name Set-StrictMode       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Set-Variable'        = Get-Command -Name Set-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Sort-Object'         = Get-Command -Name Sort-Object          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Split-Path'          = Get-Command -Name Split-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Start-Sleep'         = Get-Command -Name Start-Sleep          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Test-Path'           = Get-Command -Name Test-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
-    'Where-Object'        = Get-Command -Name Where-Object         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'Write-Error'         = Get-Command -Name Write-Error          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Host'          = Get-Command -Name Write-Host           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Progress'      = Get-Command -Name Write-Progress       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Verbose'       = Get-Command -Name Write-Verbose        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
-    'Write-Warning'       = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Add-Member'           = Get-Command -Name Add-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Add-Type'             = Get-Command -Name Add-Type             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Compare-Object'       = Get-Command -Name Compare-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Export-ModuleMember'  = Get-Command -Name Export-ModuleMember  -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'ForEach-Object'       = Get-Command -Name ForEach-Object       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Format-Table'         = Get-Command -Name Format-Table         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Alias'            = Get-Command -Name Get-Alias            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-ChildItem'        = Get-Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Command'          = Get-Command -Name Get-Command          -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Get-Content'          = Get-Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Date'             = Get-Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Item'             = Get-Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-ItemProperty'     = Get-Command -Name Get-ItemProperty     -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Location'         = Get-Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-Member'           = Get-Command -Name Get-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Module'           = Get-Command -Name Get-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Get-PSDrive'          = Get-Command -Name Get-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Get-PSCallStack'      = Get-Command -Name Get-PSCallStack      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Unique'           = Get-Command -Name Get-Unique           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Variable'         = Get-Command -Name Get-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Group-Object'         = Get-Command -Name Group-Object         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-LocalizedData' = Get-Command -Name Import-LocalizedData -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Import-Module'        = Get-Command -Name Import-Module        -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Join-Path'            = Get-Command -Name Join-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Measure-Object'       = Get-Command -Name Measure-Object       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'New-Item'             = Get-Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-ItemProperty'     = Get-Command -Name New-ItemProperty     -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-Module'           = Get-Command -Name New-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'New-Object'           = Get-Command -Name New-Object           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'New-PSDrive'          = Get-Command -Name New-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'New-Variable'         = Get-Command -Name New-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Out-Host'             = Get-Command -Name Out-Host             -Module $outHostModule                  @safeCommandLookupParameters
+    'Out-File'             = Get-Command -Name Out-File             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Out-Null'             = Get-Command -Name Out-Null             -Module $outNullModule                  @safeCommandLookupParameters
+    'Out-String'           = Get-Command -Name Out-String           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Pop-Location'         = Get-Command -Name Pop-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Push-Location'        = Get-Command -Name Push-Location        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-Item'          = Get-Command -Name Remove-Item          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-PSBreakpoint'  = Get-Command -Name Remove-PSBreakpoint  -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Remove-PSDrive'       = Get-Command -Name Remove-PSDrive       -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Remove-Variable'      = Get-Command -Name Remove-Variable      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Resolve-Path'         = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Select-Object'        = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-Content'          = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-Location'         = Get-Command -Name Set-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Set-PSBreakpoint'     = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-StrictMode'       = Get-Command -Name Set-StrictMode       -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Set-Variable'         = Get-Command -Name Set-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Sort-Object'          = Get-Command -Name Sort-Object          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Split-Path'           = Get-Command -Name Split-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Start-Sleep'          = Get-Command -Name Start-Sleep          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Test-Path'            = Get-Command -Name Test-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Where-Object'         = Get-Command -Name Where-Object         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
+    'Write-Error'          = Get-Command -Name Write-Error          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Host'           = Get-Command -Name Write-Host           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Progress'       = Get-Command -Name Write-Progress       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Verbose'        = Get-Command -Name Write-Verbose        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Warning'        = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
 # Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta.x on Linux)
@@ -127,6 +128,257 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
+$script:DisableScopeHints = $true
+
+function Count-Scopes {
+    param(
+        [Parameter(Mandatory = $true)]
+        $ScriptBlock)
+
+    if ($script:DisableScopeHints) {
+        return 0
+    }
+
+    # automatic variable that can help us count scopes must be constant a must not be all scopes
+    # from the standard ones only Error seems to be that, let's ensure it is like that everywhere run
+    # other candidate variables can be found by this code
+    # Get-Variable  | where { -not ($_.Options -band [Management.Automation.ScopedItemOptions]"AllScope") -and $_.Options -band $_.Options -band [Management.Automation.ScopedItemOptions]"Constant" }
+
+    # get-variable steps on it's toes and recurses when we mock it in a test
+    # and we are also invoking this in user scope so we need to pass the reference
+    # to the safely captured function in the user scope
+    $safeGetVariable = $script:SafeCommands['Get-Variable']
+    $sb = {
+        param($safeGetVariable)
+        $err = (& $safeGetVariable -Name Error).Options
+        if ($err -band "AllScope" -or (-not ($err -band "Constant"))) {
+            throw "Error variable is set to AllScope, or is not marked as constant cannot use it to count scopes on this platform."
+        }
+
+        $scope = 0
+        while ($null -eq (& $safeGetVariable -Name Error -Scope $scope -ErrorAction SilentlyContinue)) {
+            $scope++
+        }
+
+        $scope - 1 # because we are in a function
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $ssi = $property.GetValue($ScriptBlock, $null)
+    $property.SetValue($sb, $ssi, $null)
+
+    &$sb $safeGetVariable
+}
+
+function Write-ScriptBlockInvocationHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $true)]
+        [String]
+        $Hint
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    $scope = Get-ScriptBlockHint $ScriptBlock
+    $count = Count-Scopes -ScriptBlock $ScriptBlock
+
+    Write-Hint "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:
+    {
+        $ScriptBlock
+    }`n`n"
+}
+
+function Write-Hint ($Hint) {
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    Write-Host -ForegroundColor Cyan $Hint
+}
+
+function Test-Hint {
+    param (
+        [Parameter(Mandatory = $true)]
+        $InputObject
+    )
+
+    if ($script:DisableScopeHints) {
+        return $true
+    }
+
+    $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
+    if ($null -eq $property) {
+        return $false
+    }
+
+    Test-NullOrWhiteSpace $property.Value
+}
+
+function Set-Hint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        $InputObject,
+        [Switch] $Force
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) {
+        $hintIsNotSet = Test-NullOrWhiteSpace $InputObject.Hint
+        if ($Force -or $hintIsNotSet) {
+            $InputObject.Hint = $Hint
+        }
+    }
+    else {
+        # do not change this to be called without the pipeline, it will throw: Cannot evaluate parameter 'InputObject' because its argument is specified as a script block and there is no input. A script block cannot be evaluated without input.
+        $InputObject | Add-Member -Name Hint -Value $Hint -MemberType NoteProperty
+    }
+}
+
+function Set-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState,
+        [Switch] $PassThru
+    )
+
+    if ($script:DisableScopeHints) {
+        if ($PassThru) {
+            return $SessionState
+        }
+        return
+    }
+
+    # in all places where we capture SessionState we mark its internal state with a hint
+    # the internal state does not change and we use it to invoke scriptblock in diferent
+    # states, setting the hint on SessionState is only secondary to make is easier to debug
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if ($null -eq $internalSessionState) {
+        throw "SessionState does not have any internal SessionState, this should never happen."
+    }
+
+    $hashcode = $internalSessionState.GetHashCode()
+    # optionally sets the hint if there was none, so the hint from the
+    # function that first captured this session state is preserved
+    Set-Hint -Hint "$Hint ($hashcode))" -InputObject $internalSessionState
+    # the public session state should always depend on the internal state
+    Set-Hint -Hint $internalSessionState.Hint -InputObject $SessionState -Force
+
+    if ($PassThru) {
+        $SessionState
+    }
+}
+
+function Get-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    # the hint is also attached to the session state object, but sessionstate objects are recreated while
+    # the internal state stays static so to see the hint on object that we receive via $PSCmdlet.SessionState we need
+    # to look at the InternalSessionState. the internal state should be never null so just looking there is enough
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if (Test-Hint $internalSessionState) {
+        $internalSessionState.Hint
+    }
+}
+
+function Set-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [string] $Hint
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if ($null -eq $internalSessionState) {
+        if (Test-Hint -InputObject $ScriptBlock) {
+            # the scriptblock already has a hint and there is not internal state
+            # so the hint on the scriptblock is enough
+            # if there was an internal state we would try to copy the hint from it
+            # onto the scriptblock to keep them in sync
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it is unbound ScriptBlock (with null internal state) and no -Hint was provided."
+        }
+
+        # adds hint on the ScriptBlock
+        # the internal session state is null so we must attach the hint directly
+        # on the scriptblock
+        Set-Hint -Hint "$Hint (Unbound)" -InputObject $ScriptBlock -Force
+    }
+    else
+    {
+        if (Test-Hint -InputObject $internalSessionState) {
+            # there already is hint on the internal state, we take it and sync
+            # it with the hint on the object
+            Set-Hint -Hint $internalSessionState.Hint -InputObject $ScriptBlock -Force
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it's internal state does not have any Hint and no external -Hint was provided."
+        }
+
+        $hashcode = $internalSessionState.GetHashCode()
+        $Hint = "$Hint - ($hashCode)"
+        Set-Hint -Hint $Hint -InputObject $internalSessionState -Force
+        Set-Hint -Hint $Hint -InputObject $ScriptBlock -Force
+    }
+}
+
+function Get-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    # the hint is also attached to the scriptblock object, but not all scriptblocks are tagged by us,
+    # the internal state stays static so to see the hint on object that we receive we need to look at the InternalSessionState
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+
+
+    if ($null -ne $internalSessionState -and (Test-Hint $internalSessionState)) {
+        return $internalSessionState.Hint
+    }
+
+    if (Test-Hint $ScriptBlock) {
+        return $ScriptBlock.Hint
+    }
+
+    "Unknown unbound ScriptBlock"
+}
+
 
 function Test-NullOrWhiteSpace {
     param ([string]$String)
@@ -198,6 +450,9 @@ function Add-AssertionOperator
     A list of aliases for the Named Parameter.
 .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
+.PARAMETER InternalName
+    If -Name is different from the actual function name, record the actual function name here.
+    Used by Get-ShouldOperator to pull function help.
 #>
     [CmdletBinding()]
     param (
@@ -211,6 +466,9 @@ function Add-AssertionOperator
         [AllowEmptyCollection()]
         [string[]] $Alias = @(),
 
+        [Parameter()]
+        [string] $InternalName,
+
         [switch] $SupportsArrayInput
     )
 
@@ -219,6 +477,7 @@ function Add-AssertionOperator
         SupportsArrayInput         = [bool]$SupportsArrayInput
         Name                       = $Name
         Alias                      = $Alias
+        InternalName               = If ($InternalName) {$InternalName} Else {$Name}
     }
     if (Test-AssertionOperatorIsDuplicate -Operator $entry)
     {
@@ -243,6 +502,7 @@ function Add-AssertionOperator
 
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
+
 function Test-AssertionOperatorIsDuplicate
 {
     param (
@@ -612,6 +872,9 @@ Default value is: JaCoCo.
 Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
 
+.PARAMETER DetailedCodeCoverage
+Add the sourcefile names and lines covered and missed to the codecoverage file.
+
 .PARAMETER Strict
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
 integration where you need to make sure all tests passed.
@@ -666,6 +929,12 @@ Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.p
 This command runs all *.Tests.ps1 files in D:\MyModule and its subdirectories.
 It also runs the tests in the ModuleUnit.Tests.ps1 file using the following
 parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01
+
+.Example
+Invoke-Pester -Script @{Script = $scriptText}
+This command runs all tests passed as string in $scriptText variable with no aditional parameters and arguments. This notation can be combined with
+Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
+if needed. This command can be used when tests and scripts are stored not on the FileSystem, but somewhere else, and it is impossible to provide a path to it.
 
 .Example
 Invoke-Pester -TestName "Add Numbers"
@@ -787,6 +1056,8 @@ New-PesterOption
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
+        [Switch]$DetailedCodeCoverage = $false,
+
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
@@ -828,65 +1099,115 @@ New-PesterOption
 
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try
         {
-            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
             Write-PesterStart $pester $Script
 
             $invokeTestScript = {
                 param (
                     [Parameter(Position = 0)]
                     [string] $Path,
-
+                    [string] $Script,
                     [object[]] $Arguments = @(),
                     [System.Collections.IDictionary] $Parameters = @{}
                 )
 
-                & $Path @Parameters @Arguments
+                if(-not [string]::IsNullOrEmpty($Path))
+                {
+                    & $Path @Parameters @Arguments
+                }
+                elseif(-not [string]::IsNullOrEmpty($Script))
+                {
+                    $scriptBlock = [scriptblock]::Create($Script)
+                    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
+                    Invoke-Command -ScriptBlock ($scriptBlock)
+                }
             }
 
-            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
-
+            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
             $testScripts = @(ResolveTestScripts $Script)
+
+
+            if ($DetailedCodeCoverage)
+            {
+                $pester.FindCodeCoverage = $true
+                $pester.CodeCoverage = $CodeCoverage
+
+                # find describe codecoverage here
+                foreach ($testScript in $testScripts)
+                {
+                    try
+                    {
+                        do
+                        {
+                            Write-ScriptBlockInvocationHint -Hint "Invoke-Pester" -ScriptBlock $invokeTestScript
+                            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        } until ($true)
+                    }
+                    catch
+                    { }
+                }
+
+
+                $pester.FindCodeCoverage = $false
+                $CodeCoverage = $pester.CodeCoverage
+            }
+
+
+            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
             foreach ($testScript in $testScripts)
             {
+                #Get test description for better output
+                if(-not [string]::IsNullOrEmpty($testScript.Path)){
+                    $testDescription = $testScript.Path
+                }elseif(-not [string]::IsNullOrEmpty($testScript.Script)){
+                    $testDescription = $testScript.Script
+                }
+
                 try
                 {
-                    $pester.EnterTestGroup($testScript.Path, 'Script')
-                    Write-Describe $testScript.Path -CommandUsed Script
+                    $pester.EnterTestGroup($testDescription, 'Script')
+                    Write-Describe $testDescription -CommandUsed Script
                     do
                     {
-                        $testOutput = & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                     } until ($true)
                 }
                 catch
                 {
-                    $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
-                    $pester.AddTestResult("Error occurred in test script '$($testScript.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+                    $firstStackTraceLine = $null
+                    if (($_ | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) -and $null -ne $_.ScriptStackTrace) {
+                        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+                    }
+                    $pester.AddTestResult("Error occurred in test script '$($testDescription)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
                     # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
                     # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
                     # planned for v4.0
-                    $pester.TestResult[-1].Describe = "Error in $($testScript.Path)"
+                    $pester.TestResult[-1].Describe = "Error in $($testDescription)"
 
                     $pester.TestResult[-1] | Write-PesterResult
                 }
                 finally
                 {
                     Exit-MockScope
-                    $pester.LeaveTestGroup($testScript.Path, 'Script')
+                    $pester.LeaveTestGroup($testDescription, 'Script')
                 }
             }
 
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
-            Write-CoverageReport -CoverageReport $coverageReport
+            if ($DetailedCodeCoverage -eq $false)
+            {
+                Write-CoverageReport -CoverageReport $coverageReport
+            }
             if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
                 -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
-                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
+                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
             Exit-CoverageAnalysis -PesterState $pester
@@ -934,6 +1255,10 @@ When this switch is set, an extra line of output will be written to the console 
 for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
 .PARAMETER TestSuiteName
 When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
+.PARAMETER Experimental
+Enables experimental features of Pester to be enabled.
+.PARAMETER ShowScopeHints
+EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
 .INPUTS
 None
 You cannot pipe input to this command.
@@ -955,12 +1280,33 @@ Invoke-Pester
         [switch] $IncludeVSCodeMarker,
 
         [ValidateNotNullOrEmpty()]
-        [string] $TestSuiteName = 'Pester'
+        [string] $TestSuiteName = 'Pester',
+
+        [switch] $Experimental,
+
+        [switch] $ShowScopeHints
     )
 
+        # in PowerShell 2 Add-Member can attach properties only to
+        # PSObjects, I could work around this by capturing all instances
+        # in checking them during runtime, but that would bring a lot of
+        # object management problems - so let's just not allow this in PowerShell 2
+        if ($Experimental -and $ShowScopeHints) {
+            if ($PSVersionTable.PSVersion.Major -lt 3) {
+                throw "Scope hints cannot be used on PowerShell 2 due to limitations of Add-Member."
+            }
+
+            $script:DisableScopeHints = $false
+        }
+        else {
+            $script:DisableScopeHints = $true
+        }
+
     return & $script:SafeCommands['New-Object'] psobject -Property @{
-        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+        IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
+        ShowScopeHints      = $ShowScopeHints
+        Experimental        = $Experimental
     }
 }
 
@@ -974,12 +1320,13 @@ function ResolveTestScripts
             if ($object -is [System.Collections.IDictionary])
             {
                 $unresolvedPath = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Path', 'p'
+                $script         = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Script'
                 $arguments      = @(Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a')
                 $parameters     = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
 
                 if ($null -eq $Parameters) { $Parameters = @{} }
 
-                if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S')
+                if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S' -and ($script -isnot [string] -or $script -notmatch '\S'))
                 {
                     throw 'When passing hashtables to the -Path parameter, the Path key is mandatory, and must contain a single string.'
                 }
@@ -992,45 +1339,60 @@ function ResolveTestScripts
             else
             {
                 $unresolvedPath = [string] $object
+                $script         = [string] $object
                 $arguments      = @()
                 $parameters     = @{}
             }
 
-            if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
-                (& $script:SafeCommands['Test-Path'] -LiteralPath $unresolvedPath -PathType Leaf) -and
-                (& $script:SafeCommands['Get-Item'] -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
+            if(-not [string]::IsNullOrEmpty($unresolvedPath))
             {
-                $extension = [System.IO.Path]::GetExtension($unresolvedPath)
-                if ($extension -ne '.ps1')
+                if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
+                    (& $script:SafeCommands['Test-Path'] -LiteralPath $unresolvedPath -PathType Leaf) -and
+                    (& $script:SafeCommands['Get-Item'] -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
                 {
-                    & $script:SafeCommands['Write-Error'] "Script path '$unresolvedPath' is not a ps1 file."
+                    $extension = [System.IO.Path]::GetExtension($unresolvedPath)
+                    if ($extension -ne '.ps1')
+                    {
+                        & $script:SafeCommands['Write-Error'] "Script path '$unresolvedPath' is not a ps1 file."
+                    }
+                    else
+                    {
+                        & $script:SafeCommands['New-Object'] psobject -Property @{
+                            Path       = $unresolvedPath
+                            Script     = $null
+                            Arguments  = $arguments
+                            Parameters = $parameters
+                        }
+                    }
                 }
                 else
                 {
-                    & $script:SafeCommands['New-Object'] psobject -Property @{
-                        Path       = $unresolvedPath
-                        Arguments  = $arguments
-                        Parameters = $parameters
+                    # World's longest pipeline?
+
+                    & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
+                    & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
+                    & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
+                    & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
+                    & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
+                    & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
+                    & $script:SafeCommands['ForEach-Object'] {
+                        & $script:SafeCommands['New-Object'] psobject -Property @{
+                            Path       = $_
+                            Script     = $null
+                            Arguments  = $arguments
+                            Parameters = $parameters
+                        }
                     }
                 }
             }
-            else
+            elseif(-not [string]::IsNullOrEmpty($script))
             {
-                # World's longest pipeline?
-
-                & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
-                & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
-                & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
-                & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
-                & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
-                & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
-                & $script:SafeCommands['ForEach-Object'] {
-                    & $script:SafeCommands['New-Object'] psobject -Property @{
-                        Path       = $_
+                & $script:SafeCommands['New-Object'] psobject -Property @{
+                        Path         = $null
+                        Script       = $script
                         Arguments  = $arguments
                         Parameters = $parameters
                     }
-                }
             }
         }
     )
@@ -1077,7 +1439,34 @@ function Set-ScriptBlockScope
         $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
     }
 
-    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($ScriptBlock, $SessionStateInternal, $null)
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
+
+    if (-not $script:DisableScopeHints) {
+        # hint can be attached on the internal state (preferable) when the state is there.
+        # if we are given unbound scriptblock with null internal state then we hope that
+        # the source cmdlet set the hint directly on the ScriptBlock,
+        # otherwise the origin is unknown and the cmdlet that allowed this scriptblock in
+        # should be found and add hint
+
+        $hint = $scriptBlockSessionState.Hint
+        if ($null -eq $hint) {
+            if ($null -ne $ScriptBlock.Hint) {
+                $hint = $ScriptBlock.Hint
+            }
+            else
+            {
+                $hint = 'Unknown unbound ScriptBlock'
+            }
+        }
+        Write-Hint "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
+    }
+
+    $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
+
+    if (-not $script:DisableScopeHints) {
+        Set-ScriptBlockHint -ScriptBlock $ScriptBlock
+    }
 }
 
 function Get-ScriptBlockScope
@@ -1089,10 +1478,14 @@ function Get-ScriptBlockScope
         $ScriptBlock
     )
 
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
-}
 
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if (-not $script:DisableScopeHints) {
+        Write-Hint "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+    }
+    $sessionStateInternal
+}
 
 function SafeGetCommand
 {
@@ -1185,10 +1578,14 @@ Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's'
 
 }
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive
+Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
+# in the future rename the function to Add-ShouldOperator
+Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
+
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator

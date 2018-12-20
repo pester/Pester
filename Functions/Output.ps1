@@ -34,23 +34,26 @@ $Script:ReportStrings = DATA {
 
 $Script:ReportTheme = DATA {
     @{
-        Describe       = 'Green'
-        DescribeDetail = 'DarkYellow'
-        Context        = 'Cyan'
-        ContextDetail  = 'DarkCyan'
-        Pass           = 'DarkGreen'
-        PassTime       = 'DarkGray'
-        Fail           = 'Red'
-        FailTime       = 'DarkGray'
-        Skipped        = 'Yellow'
-        Pending        = 'Gray'
-        Inconclusive   = 'Gray'
-        Incomplete     = 'Yellow'
-        IncompleteTime = 'DarkGray'
-        Foreground     = 'White'
-        Information    = 'DarkGray'
-        Coverage       = 'White'
-        CoverageWarn   = 'DarkRed'
+        Describe            = 'Green'
+        DescribeDetail      = 'DarkYellow'
+        Context             = 'Cyan'
+        ContextDetail       = 'DarkCyan'
+        Pass                = 'DarkGreen'
+        PassTime            = 'DarkGray'
+        Fail                = 'Red'
+        FailTime            = 'DarkGray'
+        Skipped             = 'Yellow'
+        SkippedTime         = 'DarkGray'
+        Pending             = 'Gray'
+        PendingTime         = 'DarkGray'
+        Inconclusive        = 'Gray'
+        InconclusiveTime    = 'DarkGray'
+        Incomplete          = 'Yellow'
+        IncompleteTime      = 'DarkGray'
+        Foreground          = 'White'
+        Information         = 'DarkGray'
+        Coverage            = 'White'
+        CoverageWarn        = 'DarkRed'
     }
 }
 
@@ -181,8 +184,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
-    {
+    if (@('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $ErrorRecord.FullyQualifiedErrorID) {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
@@ -190,21 +192,13 @@ function ConvertTo-PesterResult {
         $file = $details.File
         $line = $details.Line
         $Text = $details.LineText
-    }
-    elseif ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestInconclusive')
-    {
-        # we use TargetObject to pass structured information about the error.
-        $details = $ErrorRecord.TargetObject
 
-        $failureMessage = $details.Message
-        $file = $details.File
-        $line = $details.Line
-        $text = $details.LineText
-
-        $testResult.Result = 'Inconclusive'
-    }
-    else
-    {
+        switch($ErrorRecord.FullyQualifiedErrorID) {
+            PesterTestInconclusive { $testResult.Result = "Inconclusive"; break; }
+            PesterTestPending { $testResult.Result = "Pending"; break; }
+            PesterTestSkipped { $testResult.Result = "Skipped"; break; }
+        }
+    } else {
         $failureMessage = $ErrorRecord.ToString()
         $file = $ErrorRecord.InvocationInfo.ScriptName
         $line = $ErrorRecord.InvocationInfo.ScriptLineNumber
@@ -250,14 +244,14 @@ function Write-PesterResult {
             switch ($TestResult.Result)
             {
                 Passed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output " -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime $humanTime
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
                     break
                 }
 
                 Failed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output " -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime $humanTime
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
                     if($pester.IncludeVSCodeMarker) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
@@ -273,31 +267,35 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output $humanTime"
+                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                     break
                 }
 
                 Pending {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output $humanTime"
+                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
                     break
                 }
 
                 Inconclusive {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output $humanTime"
+                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
 
-                    if ($testresult.FailureMessage) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive $($TestResult.failureMessage -replace '(?m)^',$error_margin)
-                    }
-
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive $($TestResult.stackTrace -replace '(?m)^',$error_margin)
                     break
                 }
 
                 default {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
                     if($null -eq $TestResult.Time) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output " -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime $humanTime
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                     }
                 }
             }

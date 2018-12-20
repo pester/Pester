@@ -1,5 +1,23 @@
 #Be
-function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+<#
+.SYNOPSIS
+Compares one object with another for equality
+and throws if the two objects are not the same.
+
+.EXAMPLE
+$actual = "Actual value"
+PS C:\>$actual | Should -Be "actual value"
+
+This test will pass. -Be is not case sensitive.
+For a case sensitive assertion, see -BeExactly.
+
+.EXAMPLE
+$actual = "Actual value"
+PS C:\>$actual | Should -Be "not actual value"
+
+This test will fail, as the two strings are not identical.
+#>
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -10,11 +28,11 @@ function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Beca
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
+            $failureMessage = NotShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
         }
         else
         {
-            $failureMessage = PesterBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
+            $failureMessage = ShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
         }
     }
 
@@ -24,7 +42,7 @@ function PesterBe($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Beca
     }
 }
 
-function PesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
+function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $ActualValue = $($ActualValue)
     $ExpectedValue = $($ExpectedValue)
@@ -43,17 +61,35 @@ function PesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -Because $Because) -join "`n"
 }
 
-function NotPesterBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
+function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got the same value."
 }
 
 Add-AssertionOperator -Name               Be `
-                      -Test               $function:PesterBe `
+                      -InternalName       Should-Be `
+                      -Test               ${function:Should-Be} `
                       -Alias              'EQ' `
                       -SupportsArrayInput
 
 #BeExactly
-function PesterBeExactly($ActualValue, $ExpectedValue, $Because) {
+function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
+<#
+.SYNOPSIS
+Compares one object with another for equality and throws if the
+two objects are not the same. This comparison is case sensitive.
+
+.EXAMPLE
+$actual = "Actual value"
+PS C:\>$actual | Should -Be "Actual value"
+
+This test will pass. The two strings are identical.
+
+.EXAMPLE
+$actual = "Actual value"
+PS C:\>$actual | Should -Be "actual value"
+
+This test will fail, as the two strings do not match case sensitivity.
+#>
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue -CaseSensitive
 
     if ($Negate) { $succeeded = -not $succeeded }
@@ -64,11 +100,11 @@ function PesterBeExactly($ActualValue, $ExpectedValue, $Because) {
     {
         if ($Negate)
         {
-            $failureMessage = NotPesterBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
+            $failureMessage = NotShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
         }
         else
         {
-            $failureMessage = PesterBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
+            $failureMessage = ShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
         }
     }
 
@@ -78,7 +114,7 @@ function PesterBeExactly($ActualValue, $ExpectedValue, $Because) {
     }
 }
 
-function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
+function ShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $ActualValue = $($ActualValue)
     $ExpectedValue = $($ExpectedValue)
@@ -97,12 +133,13 @@ function PesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
     (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -CaseSensitive -Because $Because) -join "`n"
 }
 
-function NotPesterBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
+function NotShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got exactly the same value."
 }
 
 Add-AssertionOperator -Name               BeExactly `
-                      -Test               $function:PesterBeExactly `
+                      -InternalName       Should-BeExactly `
+                      -Test               ${function:Should-BeExactly} `
                       -Alias              'CEQ' `
                       -SupportsArrayInput
 

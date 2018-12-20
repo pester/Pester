@@ -126,7 +126,6 @@ Describe "Mocking works in Gherkin" -Tag Gherkin {
     }
 }
 
-
 InModuleScope "Pester" {
 
     Describe "Get-StepParameters" -Tag Gherkin {
@@ -238,5 +237,32 @@ Scenario: The test data should be converted properly
         }
 
     }
+}
 
+Describe "When displaying PesterResults in the console" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    It 'Should show the names of the features executed during the test run' {
+        $gherkin.Results.Features | Should -Be "PesterResult shows executed feature names"
+    }
+
+    It 'Should show the names of the passed secnarios' {
+        $gherkin.Results.PassedScenarios | Should -Be @('The PesterResult object shows the executed feature names', 'The Pester test report shows scenario names with examples: Examples: A Passing Scenario')
+    }
+
+    It 'Should show the names of the failed scenarios' {
+        $gherkin.Results.FailedScenarios | Should -Be "The Pester test report shows scenario names with examples: Examples: A Failing Scenario"
+    }
 }
