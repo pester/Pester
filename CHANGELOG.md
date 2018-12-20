@@ -1,4 +1,4 @@
-## 4.5.0-beta1 (December 30, 2018)
+## 4.5.0-beta1 (December 20, 2018)
  - Add TestRegistry [GH-1112]
  - Add set test result and message from inside of test [GH-1026]
  - Add possibility to pass scripts directly to Invoke-Pester [GH-972]
