@@ -138,19 +138,25 @@ function New-Test {
         }
 
         if (-not (Is-Discovery)) {
-
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
             if (Is-TestExcluded -Test $test) {
                 v "Test is excluded from run, returning"
                 return
             }
+
+            $block = Get-CurrentBlock
+            
+            $setup = $block.EachTestSetup | or {}
+            $teardown = $block.EachTestTeardown | or {}
+            
             v "Running test '$Name'."
             
-            $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock
+            $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock -Setup $setup -Teardown $teardown
             $test.Executed = $true
             $test.Passed = $result.Success
             $test.StandardOutput = $result.StandardOutput
-        }
+            $test.ErrorRecord = $result.ErrorRecord
+        }   
     }
     finally {
 
@@ -169,6 +175,16 @@ function New-EachTestSetup {
     )
 
     (Get-CurrentBlock).EachTestSetup = $ScriptBlock
+}
+
+# endpoint for adding a teardown for each test in the block
+function New-EachTestTeardown {
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).EachTestTeardown = $ScriptBlock
 }
 
 # endpoint for adding a setup for all tests in the block
@@ -223,6 +239,7 @@ function New-TestObject {
         Executed = $false
         Passed = $false
         StandardOutput = $null
+        ErrorRecord = $null
     }
 }
 
@@ -235,6 +252,8 @@ function New-BlockObject {
         $Test = @(),
         [ScriptBlock] $EachTestSetup,
         [ScriptBlock] $AllTestSetup,
+        [ScriptBlock] $EachTestTeardown,
+        [ScriptBlock] $AllTestTeardown,
         $Block = @()
     )
 
@@ -246,6 +265,8 @@ function New-BlockObject {
         # setup that will be run before every test
         EachTestSetup = $EachTestSetup
         AllTestSetup = $AllTestSetup
+        EachTestTeardown = $EachTestTeardown
+        AllTestTeardown = $AllTestTeardown
         Blocks = @()
     }
 }
@@ -287,14 +308,19 @@ function Invoke-ScriptBlockSafe {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $Setup,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $Teardown
     )
 
     $success = $true
     $standardOutput = $null
     try {
         do {
-            $standardOutput = & $ScriptBlock
+
+            $standardOutput = Invoke-WithSetupAndTeardown -ScriptBlock $ScriptBlock -Setup $Setup -Teardown $Teardown
             # possibly I could add $break = $false here 
             # if the code breaks that line is not reached
             # but is there any value in knowing that the script
@@ -308,10 +334,62 @@ function Invoke-ScriptBlockSafe {
 
     return New-PSObject -Type ScriptBlockInvocationResult @{
         Success = $success
-        Error = $err
+        ErrorRecord = $err
         StandardOutput = $standardOutput
+        Setup = $Setup
         ScriptBlock = $ScriptBlock
     }
+}
+
+function Invoke-WithSetupAndTeardown {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true )]
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $Setup,
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $Teardown
+    )
+
+    # this is what the code below does
+    # & {
+    #     try {
+    #       # import setup to scope
+    #       . $Setup
+    #       # executed the test code in the same scope
+    #       . $ScriptBlock
+    #     } finally {
+    #       . $Teardown
+    #     }
+    # }
+
+    # a similar solution was $SessionState.PSVariable.Set('a', 10)
+    # but that sets the variable for all "scopes" in the current
+    # scope so the value persist after the original has run which
+    # is not correct,
+
+    $scriptBlockWithContext = {
+        param($pester_context)
+
+        try {
+            . $pester_context.Setup
+            . $pester_context.ScriptBlock
+        }
+        finally {
+            . $pester_context.Teardown
+        }
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $SessionState = $ScriptBlock.GetType().GetProperty("SessionState", $flags).GetValue($ScriptBlock, $null)
+    $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+
+    # attach the original session state to the wrapper scriptblock
+    # making it invoke in the same scope as $ScriptBlock
+    $scriptBlockWithContext.GetType().GetProperty('SessionStateInternal', $flags).SetValue($scriptBlockWithContext, $SessionStateInternal, $null)
+
+    & $scriptBlockWithContext @{ ScriptBlock = $ScriptBlock; Setup = $Setup; Teardown = $Teardown }
 }
 
 function Find-CurrentTest {
@@ -456,6 +534,23 @@ function Find-CurrentBlock {
     }
     else {
         throw "Did not find the block '$($Name)', how is this possible?"
+    }
+}
+
+function or {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position = 0)]
+        $DefaultValue,
+        [Parameter(ValueFromPipeline = $true)]
+        $InputObject
+    )
+
+    if ($InputObject) { 
+        $InputObject
+    }
+    else {
+        $DefaultValue
     }
 }
 

@@ -215,6 +215,7 @@ b "Executing tests" {
         $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
         $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
     }
+}
 
 b "discover and execute tests" {
     t "discovers and executes one test" {
@@ -286,8 +287,59 @@ b "discover and execute tests" {
     }
 }
 
+b "executing each setup & teardown" {
+    t "given a test with setup it executes the setup right before the test and makes the variables avaliable to test" {
+        $actual = Invoke-Test -ScriptBlock {
+            # $s is set to 'block' here
+            $s = "block"
+            New-Block 'block1' {
+                # $s will still be 'block' here so if we invoke the setup on the
+                # start of the block then $s would be 'block'
+                $s = "test"
+                # if the test does not run then this value will stay in $g
+                $g = "setup did not run"
+                # here $s is 'test', and here is where we want to invoke the script
+                New-Test 'test1' {
+                    # $g should be test here, because we run the setup right before
+                    # this scriptblock and kept the changed value of $g in scope
+                    $g
+                }
+                New-EachTestSetup {
+                    $g = $s
+                }
+            }
+        }
 
-}}
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+
+    t "given a test with teardown it executes the teardown right after the test and has the variables avaliable from the test" {
+        $actual = Invoke-Test -ScriptBlock {
+            New-Block 'block1' {
+                # if the teardown would run in block without 
+                # including the test the $s would remain 'block'
+                # because setting s to test would die within that scope
+                $s = "block"
+
+                New-Test 'test1' {
+                    $s = "test"
+                    $g = "setup did not run"
+                }
+                # teardown should run here
+                $s = "teardown run too late"
+                New-EachTestTeardown {
+                    $g = $s
+                    $g
+                }
+            }
+        }
+
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+}
+
+
+}
 
 
 
