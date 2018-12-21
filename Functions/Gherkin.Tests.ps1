@@ -296,7 +296,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
     # Helper function to get a XML node from a XPath expression
     function Get-XmlNode($xPath) {
-        return (Select-Xml -Xml $nUnitReportXml -XPath $xPath).Node
+        return (Select-Xml -Xml $nUnitReportXml -XPath $xPath | Select-Object -ExpandProperty Node)
     }
 
     # Helper function to get the value of a XML node from a XPath expression
