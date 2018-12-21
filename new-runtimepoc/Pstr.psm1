@@ -1,14 +1,20 @@
+
+
 $script:root = $null
 $script:currentBlock = $null
 $script:discovery = $false
 $script:discoverySkipped = $false
+$script:filter = $null
 
 # resets the module state to the default
 function Reset-TestSuite {
+    v "Resetting internal state to default."
     $script:root = $null
     $script:discovery = $false
     $script:discoverySkipped = $true
     $script:currentBlock = $script:root = New-BlockObject -Name "Block"
+    $script:filter = @()
+    Reset-Scope
 }
 
 # compatibility
@@ -36,18 +42,30 @@ function New-PSObject {
 
 ###
 
+function v {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [String] $Message
+    )
+
+    Write-Host -ForegroundColor Blue $Message
+}
+
 function Find-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
+    v "Starting test discovery."
     $script:discovery = $true
     $script:discoverySkipped = $false
+
     & $ScriptBlock
 
     $script:root
+    v "Test discovery finished."
 }
 
 
@@ -61,31 +79,38 @@ function New-Block {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
- 
+    
+    Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
+    $path = Get-ScopeHistory | % Name
+    v "Entering path $($path -join '.')"
+    
     $block = $null
-    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
-        $block = New-BlockObject -Name $Name
+    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {   
+        v "Adding block $Name to discovered blocks"
+        $block = New-BlockObject -Name $Name -Path $path
         # we attach the current block to the parent
         Add-Block -Block $block
     }
 
-    # and then progress to the next block that might 
-    # or might not be defined within the body of this 
-    # block
     $previousBlock = Get-CurrentBlock
     if ($null -eq $block) { 
         # we have run discovery and now
         # we are executing tests 
-        # so we need to fing where to go
+        # so we need to find where we are
         $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
     }
     Set-CurrentBlock -Block $block 
     
     try {
+        v "Executing body of block $Name"
         & $ScriptBlock
+        v "Finished executing body of block $Name"
     }
     finally {
+        v "Leaving path $($path -join '.')"
         Set-CurrentBlock -Block $previousBlock
+        $null = Pop-Scope
+        v "Left block $Name"
     }
 }
 
@@ -99,19 +124,41 @@ function New-Test {
         [ScriptBlock] $ScriptBlock
     )
 
-    # do this setup when we are running discovery
-    # or when we skipped it
-    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
-        Add-Test -Test (New-TestObject -Name $Name)
+    v "Entering test $Name"
+    Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
+    try {
+        $path = Get-ScopeHistory | % Name
+        v "Entering path $($path -join '.')"
+        
+        # do this setup when we are running discovery
+        # or when we skipped it
+        if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
+            Add-Test -Test (New-TestObject -Name $Name -Path $path)
+            v "Added test '$Name'"
+        }
+
+        if (-not (Is-Discovery)) {
+
+            $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
+            if (Is-TestExcluded -Test $test) {
+                v "Test is excluded from run, returning"
+                return
+            }
+            v "Running test '$Name'."
+            
+            $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock
+            $test.Executed = $true
+            $test.Passed = $result.Success
+            $test.StandardOutput = $result.StandardOutput
+        }
+    }
+    finally {
+
+        v "Leaving path $($path -join '.')"
+        $null = Pop-Scope
+        v "Left test $Name"
     }
 
-    if (-not (Is-Discovery)) {
-        $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
-        $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock
-        $test.Executed = $true
-        $test.Passed = $result.Success
-        $test.StandardOutput = $result.StandardOutput
-    }
 }
 
 # endpoint for adding a setup for each test in the block
@@ -159,18 +206,20 @@ function Add-Test {
         $Test
     )
 
-    (Get-CurrentBlock).Tests += New-TestObject -Name $Name
+    (Get-CurrentBlock).Tests += $Test
 }
 
 function New-TestObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [String] $Name
+        [String] $Name,
+        [string[]] $Path
     )
 
     New-PSObject -Type DiscoveredTest @{
         Name = $Name
+        Path = $Path
         Executed = $false
         Passed = $false
         StandardOutput = $null
@@ -182,6 +231,7 @@ function New-BlockObject {
     param (
         [Parameter(Mandatory=$true)]
         [String] $Name,
+        [string[]] $Path,
         $Test = @(),
         [ScriptBlock] $EachTestSetup,
         [ScriptBlock] $AllTestSetup,
@@ -190,6 +240,7 @@ function New-BlockObject {
 
     New-PSObject -Type DiscoveredBlock @{
         Name = $Name
+        Path = $Path
         # all tests within the block
         Tests = $Test
         # setup that will be run before every test
@@ -286,19 +337,58 @@ function Find-CurrentTest {
     }
 }
 
+function Set-Filter {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        $Filter
+    )
+    $paths = $filter | % { $_ -join '.' } | % {"`n$_"}
+    v "Setting path filter with $($filter.Count) paths: $paths"
+    $script:filter = $Filter
+}
+
+function Is-TestExcluded {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        $Test
+    )
+    
+    if ($script:filter.Length -eq 0) {
+        v "Test with path $fullTestPath is included, beause there is no filter"
+        return $false
+    }
+    $fullTestPath = $Test.Path -join '.'
+    $allPaths = $script:filter | % { $_ -join '.' }
+    $include = $allPaths -contains $fullTestPath 
+    if ($include) {
+        v "Test with path $fullTestPath is included"
+    } 
+    else {
+        v "Test with path $fullTestPath is exluded"
+        
+    }
+    -not $include
+}
 
 function Invoke-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [ScriptBlock] $ScriptBlock,
+        $Filter
     )
 
     Reset-TestSuite
+    if ($filter) {
+        Set-Filter $filter
+    }
     $found = Find-Test $ScriptBlock
 
     $script:currentBlock = $script:root
-    $result = Start-Test $ScriptBlock 
+
+    $result = Start-Test $ScriptBlock
     $result
 }
 

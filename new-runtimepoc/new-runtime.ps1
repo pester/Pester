@@ -3,11 +3,16 @@
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 
-Get-Module Pstr, P, Pester, Axiom | Remove-Module 
+Get-Module Pstr, P, Pester, Axiom, Stack | Remove-Module 
 Import-Module Pester -MinimumVersion 4.4.3
+
+Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking 
 Import-Module $PSScriptRoot\Pstr.psm1 -DisableNameChecking
+
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
+
+
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'stop'
@@ -236,11 +241,12 @@ b "discover and execute tests" {
 
             New-Block "block3" { 
                 New-Test "test3" {
-                    throw
+                    if (-not $willPass) { throw }
                 }
             }
         }
 
+        $willPass = $false
         $pre = Invoke-Test $sb
 
         # validate the precondition
@@ -257,12 +263,26 @@ b "discover and execute tests" {
         $pre.Blocks[1].Tests[0].Passed | Verify-False
         $pre.Blocks[1].Tests[0].Name | Verify-Equal "test3"
 
-        $filter = $pre | Where-Failed
-        $actual = Invoke-Test -Filter $filter -ScriptBlock $sb
+        # here I have the failed tests, I need to accumulate paths
+        # on them and use them for filtering the run in the next run
+        # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho    
+        $filter = $pre | Where-Failed | % { ,($_.Path) }
 
-        $pre.Tests.Length | Verify-Equal 1
-        $pre.Tests[0].Executed | Verify-True
-        $pre.Tests[0].Passed | Verify-False
+        Write-Host "`n`n`n"
+        # set the test3 to pass this time so we have some difference
+        $willPass = $true
+        $result = Invoke-Test -Filter $filter -ScriptBlock $sb
+
+        $actual = $result | View-Flat | where { $_.Executed }
+
+        $actual.Length | Verify-Equal 2
+        $actual[0].Name | Verify-Equal test2
+        $actual[0].Executed | Verify-True
+        $actual[0].Passed | Verify-False
+
+        $actual[1].Name | Verify-Equal test3
+        $actual[1].Executed | Verify-True
+        $actual[1].Passed | Verify-True
     }
 }
 
