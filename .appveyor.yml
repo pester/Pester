@@ -5,7 +5,6 @@ environment:
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     PSEdition: Desktop
 
-skip_branch_with_pr: true
 build: off
 
 test_script:

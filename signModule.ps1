@@ -8,7 +8,7 @@ if ($null -eq $cert) {
     throw "No certificate was found."
 }
 
-if ($cert.Lenght -gt 1) {
+if (@($cert).Lenght -gt 1) {
     throw "More than one cerfificate with the given thumbprint was found."
 }
 

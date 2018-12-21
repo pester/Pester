@@ -240,7 +240,7 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
 }
 
 Describe "Swallowing output" {
-    It "Swallows output" {
+    It "Invoke-Pester happy path returns only test results" {
         $tests = {
             Describe 'Invoke-Pester happy path returns only test results'  {
 
@@ -282,8 +282,16 @@ Describe "Swallowing output" {
                 }
 
             }
+        }
 
+        $result = Invoke-PesterInJob -ScriptBlock $tests
+        $result.PassedCount | Should Be 2
+        $result.FailedCount | Should Be 0
+        $result.TotalCount | Should Be 2
+    }
 
+    It "Invoke-Pester swallows pipeline output from system-under-test" {
+        $tests = {
             Describe 'Invoke-Pester swallows pipeline output from system-under-test'  {
 
                 Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
@@ -325,7 +333,16 @@ Describe "Swallowing output" {
                 }
 
             }
+        }
 
+        $result = Invoke-PesterInJob -ScriptBlock $tests
+        $result.PassedCount | Should Be 2
+        $result.FailedCount | Should Be 0
+        $result.TotalCount | Should Be 2
+    }
+
+    It "Invoke-Pester swallows pipeline output from test script" {
+        $tests = {
 
             Describe 'Invoke-Pester swallows pipeline output from test script'  {
 
@@ -370,8 +387,8 @@ Describe "Swallowing output" {
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $tests
-        $result.PassedCount | Should Be 6
+        $result.PassedCount | Should Be 2
         $result.FailedCount | Should Be 0
-        $result.TotalCount | Should Be 6
+        $result.TotalCount | Should Be 2
     }
 }

@@ -10,7 +10,7 @@ Get-Module Pester | Remove-Module
 Import-Module $psd1 -ErrorAction Stop
 
 $xml = Join-Path $PSScriptRoot Test.Version.xml
-$result = Invoke-Pester -Path $PSScriptRoot -Tag VersionChecks, StyleRules -OutputFile $xml -OutputFormat NUnitXml -PassThru -Strict -ErrorAction Stop
+$result = Invoke-Pester -Script $PSScriptRoot -Tag VersionChecks, StyleRules, Help -OutputFile $xml -OutputFormat NUnitXml -PassThru -Strict -ErrorAction Stop
 
 if ($LocalBuild) {
     # when I build release locally I don't want to
