@@ -866,7 +866,7 @@ function Get-Translations($TranslationKey, $Language) {
         .OUTPUTS
             System.String[] an array of all the translations
     #>
-    if (-not ($Script:GherkinLanguagesJson)) {
+    if (-not (Test-Path variable:Script:GherkinLanguagesJson)) {
         $Script:GherkinLanguagesJson = ConvertFrom-Json2 (Get-Content "${Script:PesterRoot}/lib/Gherkin/gherkin-languages.json" | Out-String)
         # We override the fixed values for 'Describe' and 'Context' of Gherkin.psd1 or Output.ps1 since the language aware keywords
         # (e.g. 'Feature'/'Funktionalität' or 'Scenario'/'Szenario') are provided by Gherkin.dll and we do not want to duplicate them.
@@ -893,7 +893,7 @@ function ConvertFrom-Json2([string] $jsonString) {
     #>
     if ($PSVersionTable.PSVersion.Major -le 2) { 
         # On PowerShell <= 2 we use JavaScriptSerializer
-        Add-type -Assembly System.Web.Extensions
+        Add-Type -Assembly System.Web.Extensions
         return ,(New-Object System.Web.Script.Serialization.JavaScriptSerializer).DeserializeObject($jsonString)
     } else {
         # On PowerShell > 2 we use the built-in ConvertFrom-Json cmdlet
