@@ -55,7 +55,10 @@ function Set-ItResult {
         [Parameter(Mandatory=$false, ParameterSetName="Inconclusive")][switch]$Inconclusive,
         [Parameter(Mandatory=$false, ParameterSetName="Pending")][switch]$Pending,
         [Parameter(Mandatory=$false, ParameterSetName="Skipped")][switch]$Skipped,
-        [string]$Because
+        [string]$Because,
+        [string]$File,
+        [string]$Line,
+        [string]$LineText
     )
 
     Assert-DescribeInProgress -CommandName Set-ItResult
@@ -68,9 +71,9 @@ function Set-ItResult {
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
     $targetObject = @{
         Message = $Because;
-        File = $MyInvocation.ScriptName;
-        Line = $MyInvocation.ScriptLineNumber;
-        LineText = $MyInvocation.Line.TrimEnd($([System.Environment]::NewLine))
+        File = $(if ($File -ne $null) { $File } else { $MyInvocation.ScriptName});
+        Line = $(if ($Line -ne $null) { $Line } else { $MyInvocation.ScriptLineNumber});
+        LineText = $(if ($LineText -ne $null) { $LineText } else { $MyInvocation.Line }).TrimEnd($([System.Environment]::NewLine))
     }
 
     throw New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
