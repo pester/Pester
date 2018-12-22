@@ -867,7 +867,7 @@ function Get-Translations($TranslationKey, $Language) {
             System.String[] an array of all the translations
     #>
     if (-not ($Script:GherkinLanguagesJson)) {
-        $Script:GherkinLanguagesJson = ConvertFrom-Json (Get-Content "${Script:PesterRoot}/lib/Gherkin/gherkin-languages.json" | Out-String)
+        $Script:GherkinLanguagesJson = ConvertFrom-Json2 (Get-Content "${Script:PesterRoot}/lib/Gherkin/gherkin-languages.json" | Out-String)
         # We override the fixed values for 'Describe' and 'Context' of Gherkin.psd1 or Output.ps1 since the language aware keywords
         # (e.g. 'Feature'/'Funktionalität' or 'Scenario'/'Szenario') are provided by Gherkin.dll and we do not want to duplicate them.
         $Script:ReportStrings.Describe = "{0}" # instead of 'Feature: {0}'  or 'Describing {0}'
@@ -878,6 +878,27 @@ function Get-Translations($TranslationKey, $Language) {
         Write-Warning "Translation key '$TranslationKey' is invalid"
     }
     return ,$foundTranslations
+}
+
+function ConvertFrom-Json2([string] $jsonString) {
+    <#
+        .SYNOPSIS
+            Internal function to convert from JSON even for PowerShell 2
+
+        .PARAMETER jsonString
+            The JSON content as string
+
+        .OUTPUTS
+            the JSON content as array
+    #>
+    if ($PSVersionTable.PSVersion.Major -le 2) { 
+        # On PowerShell <= 2 we use JavaScriptSerializer
+        Add-type -Assembly System.Web.Extensions
+        return ,(New-Object System.Web.Script.Serialization.JavaScriptSerializer).DeserializeObject($jsonString)
+    } else {
+        # On PowerShell > 2 we use the built-in ConvertFrom-Json cmdlet
+        return ConvertFrom-Json $jsonString
+    }
 }
 
 function Get-Translation($TranslationKey, $Language, $Index = -1) {
@@ -927,5 +948,5 @@ function Test-Keyword($Keyword, $TranslationKey, $Language) {
         .OUTPUTS
             System.Boolean true, if the keyword matches one of the translations, false otherwise
     #>
-    return $Keyword -in (Get-Translations $TranslationKey $Language)
+    return (Get-Translations $TranslationKey $Language) -contains $Keyword
 }
