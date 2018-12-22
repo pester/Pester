@@ -1,3 +1,17 @@
+## 4.5.0-beta1 (December 20, 2018)
+ - Add TestRegistry [GH-1112]
+ - Add set test result and message from inside of test [GH-1026]
+ - Add possibility to pass scripts directly to Invoke-Pester [GH-972]
+ - Add even better code coverage [GH-1120]
+ - Add more comprehensive code coverage [GH-920]
+ - Add optional session state debugging info [GH-1169]
+ - Fix Set-Variable mocking [GH-1109]
+ - Fix usage of ArrayList [GH-1114]
+ - Fix features and scenario names [GH-1138]
+ - Fix step counting [GH-1150]
+ - Fix Set-ItResult help [GH-1171]
+ - Migrate build to AppVeyor, Azure and Travis
+
 ## 4.4.3 (December 11, 2018)
  - Add signing scripts
  - Same as 4.4.3-beta1 but signed
