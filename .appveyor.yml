@@ -4,6 +4,8 @@ environment:
     PSEdition: Core
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     PSEdition: Desktop
+  - APPVEYOR_BUILD_WORKER_IMAGE: WMF 4
+    PSEdition: Desktop
 
 skip_branch_with_pr: true
 build: off
