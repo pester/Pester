@@ -432,49 +432,92 @@ b "executing all test and teardown" {
 
         $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
     }
-}
 
-b "setups and teardowns don't run if there are no tests" {
-    $container = [PsCustomObject]@{ 
-        OneTimeSetupRun = $false
-        EachSetupRun = $false
-        EachTeardownRun = $false
-        OneTimeTeardownRun = $false
+    t "setups and teardowns don't run if there are no tests" {
+        $container = [PsCustomObject]@{ 
+            OneTimeSetupRun = $false
+            EachSetupRun = $false
+            EachTeardownRun = $false
+            OneTimeTeardownRun = $false
+        }
+        
+        $result = Invoke-Test {
+            New-OneTimeTestSetup {
+                $container.OneTimeSetupRun = $true
+            }
+
+            New-EachTestSetup {
+                $container.EachSetupRun = $true
+            }
+
+            New-EachTestTeardown {
+                $container.EachTeardownRun = $true
+            }
+
+            New-OneTimeTestTeardown {
+                $container.OneTimeTeardownRun = $true
+            }
+
+            New-Block "block1" { 
+                New-Test "test1" {}
+            }
+        }
+
+        # the test should execute but non of the above setups should run
+        # those setups are running only for the tests in the current block
+
+        $result.Blocks[0].Tests[0].Executed | Verify-True
+        
+        $container.OneTimeSetupRun | Verify-False
+        $container.EachSetupRun | Verify-False
+        $container.EachTeardownRun | Verify-False
+        $container.OneTimeTeardownRun | Verify-False
+
     }
-    
-    $result = Invoke-Test {
-        New-OneTimeTestSetup {
-            $container.EachTeardownRun = $true
-        }
 
-        New-EachTestSetup {
-            $container.EachSetupRun = $true
+    t "one time setups&teardowns run one time and each time setups&teardowns run for every test" {
+        $container = [PsCustomObject]@{ 
+            OneTimeSetup = 0
+            EachSetup = 0
+            EachTeardown = 0
+            OneTimeTeardown = 0
         }
+        
+        $result = Invoke-Test {
+            New-OneTimeTestSetup {
+                $container.OneTimeSetup++
+            }
 
-        New-EachTestTeardown {
-            $container.EachTeardownRun = $true
-        }
+            New-EachTestSetup {
+                $container.EachSetup++
+            }
 
-        New-OneTimeTestTeardown {
-            $container.OneTimeTeardownRun = $true
-        }
+            New-EachTestTeardown {
+                $container.EachTeardown++
+            }
 
-        New-Block "block1" { 
+            New-OneTimeTestTeardown {
+                $container.OneTimeTeardown++
+            }
+            
             New-Test "test1" {}
+            New-Test "test2" {}
         }
+
+        # the test should execute but non of the above setups should run
+        # those setups are running only for the tests in the current block
+
+        $result.Tests[0].Executed | Verify-True
+        
+        $container.OneTimeSetup | Verify-Equal 1
+        $container.EachSetup | Verify-Equal 2
+        $container.EachTeardown | Verify-Equal 2
+        $container.OneTimeTeardown | Verify-1
+
     }
-
-    # the test should execute but non of the above setups should run
-    # those setups are running only for the tests in the current block
-
-    $result.Blocks[0].Tests[0].Executed | Verify-True
-    
-    $container.OneTimeSetupRun | Verify-False
-    $container.EachSetupRun | Verify-False
-    $container.EachTeardownRun | Verify-False
-    $container.OneTimeTeardownRun | Verify-False
-
 }
+
+
 
 b "Block teardown and setup" {
     t "block setups run and run in correct scopes"{
