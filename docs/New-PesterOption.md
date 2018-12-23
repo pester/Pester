@@ -13,7 +13,8 @@ Creates an object that contains advanced options for Invoke-Pester
 ## SYNTAX
 
 ```
-New-PesterOption [-IncludeVSCodeMarker] [[-TestSuiteName] <String>] [<CommonParameters>]
+New-PesterOption [-IncludeVSCodeMarker] [[-TestSuiteName] <String>] [-Experimental] [-ShowScopeHints]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,7 +41,7 @@ When this switch is set, an extra line of output will be written to the console 
 for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -56,7 +57,7 @@ When generating NUnit XML output, this controls the name assigned to the root "t
 Defaults to "Pester".
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -67,9 +68,38 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Experimental
+Enables experimental features of Pester to be enabled.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ShowScopeHints
+EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable.
-For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

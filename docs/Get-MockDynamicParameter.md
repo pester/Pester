@@ -43,7 +43,7 @@ PS C:\> {{ Add example code here }}
 {{Fill CmdletName Description}}
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: Cmdlet
 Aliases:
 
@@ -58,7 +58,7 @@ Accept wildcard characters: False
 {{Fill FunctionName Description}}
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: Function
 Aliases:
 
@@ -73,7 +73,7 @@ Accept wildcard characters: False
 {{Fill ModuleName Description}}
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: Function
 Aliases:
 
@@ -88,7 +88,7 @@ Accept wildcard characters: False
 {{Fill Parameters Description}}
 
 ```yaml
-Type: System.Collections.IDictionary
+Type: IDictionary
 Parameter Sets: (All)
 Aliases:
 
@@ -103,7 +103,7 @@ Accept wildcard characters: False
 {{Fill Cmdlet Description}}
 
 ```yaml
-Type: System.Object
+Type: Object
 Parameter Sets: (All)
 Aliases:
 
@@ -115,8 +115,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable.
-For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

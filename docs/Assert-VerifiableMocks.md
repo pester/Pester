@@ -1,8 +1,8 @@
 ---
 external help file: Pester-help.xml
+https: //github.com/pester/Pester/issues/880
 Module Name: Pester
 online version: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
-https://github.com/pester/Pester/issues/880
 schema: 2.0.0
 ---
 
@@ -35,8 +35,7 @@ PS C:\> {{ Add example code here }}
 ## PARAMETERS
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable.
-For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

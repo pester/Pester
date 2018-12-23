@@ -132,7 +132,7 @@ the -Path parameter set to any other value.
 The mocked command whose call history should be checked.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -148,7 +148,7 @@ The number of times that the mock must be called to avoid an exception
 from throwing.
 
 ```yaml
-Type: System.Int32
+Type: Int32
 Parameter Sets: (All)
 Aliases:
 
@@ -166,7 +166,7 @@ calls to the mock whose parameters cause this filter to return true
 will be counted.
 
 ```yaml
-Type: System.Management.Automation.ScriptBlock
+Type: ScriptBlock
 Parameter Sets: ParameterFilter
 Aliases:
 
@@ -188,7 +188,7 @@ Assert-MockCalled SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
 Assert-MockCalled SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
 
 ```yaml
-Type: System.Management.Automation.ScriptBlock
+Type: ScriptBlock
 Parameter Sets: ExclusiveFilter
 Aliases:
 
@@ -205,7 +205,7 @@ This is optional,
 and must match the ModuleName that was used when setting up the Mock.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -228,7 +228,7 @@ Context, the command will identify all calls to the mocked command in the
 current Describe / Context block, as well as all child scopes of that block.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -248,7 +248,7 @@ If the value
 passed to the Times parameter is zero, the Exactly switch is implied.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -260,8 +260,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable.
-For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

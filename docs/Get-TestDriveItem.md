@@ -47,7 +47,7 @@ Wildcards are permitted.
 This parameter is required, but the parameter name ("Path") is optional.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 

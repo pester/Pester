@@ -93,7 +93,7 @@ Runs all *.feature specifications in the current directory, and generates a cove
 Rerun only the scenarios which failed last time
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: RetestFailed
 Aliases:
 
@@ -110,7 +110,7 @@ This parameter indicates which feature files should be tested.
 Aliased to 'Script' for compatibility with Pester, but does not support hashtables, since feature files don't take parameters.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases: Script, relative_path
 
@@ -127,7 +127,7 @@ When set, invokes testing of scenarios which match this name.
 Aliased to 'Name' and 'TestName' for compatibility with Pester.
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases: Name, TestName
 
@@ -143,7 +143,7 @@ Will cause Invoke-Gherkin to exit with a exit code equal to the number of failed
 Use this to "fail" a build when any tests fail.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -158,7 +158,7 @@ Accept wildcard characters: False
 Filters Scenarios and Features and runs only the ones tagged with the specified tags.
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases: Tags
 
@@ -173,7 +173,7 @@ Accept wildcard characters: False
 Informs Invoke-Gherkin to not run blocks tagged with the tags specified.
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases:
 
@@ -201,7 +201,7 @@ If only EndLine is present, all lines in the script file up to and including End
 Both Function and Path (as well as simple strings passed instead of hashtables) may contain wildcards.
 
 ```yaml
-Type: System.Object[]
+Type: Object[]
 Parameter Sets: (All)
 Aliases:
 
@@ -218,7 +218,7 @@ Useful for continuous integration where you need
 to make sure all tests passed.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -234,7 +234,7 @@ The path to write a report file to.
 If this path is not provided, no log will be generated.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -249,7 +249,7 @@ Accept wildcard characters: False
 The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -266,7 +266,7 @@ No other output is generated unless you specify PassThru,
 or one of the Output parameters.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -285,7 +285,7 @@ in which the keys are option names and the values are option values.
 For more information on the options available, see the help for New-PesterOption.
 
 ```yaml
-Type: System.Object
+Type: Object
 Parameter Sets: (All)
 Aliases:
 
@@ -314,7 +314,7 @@ This parameter does not affect the PassThru custom object or the XML output that
 is written when you use the Output parameters.
 
 ```yaml
-Type: Pester.OutputTypes
+Type: OutputTypes
 Parameter Sets: (All)
 Aliases:
 Accepted values: None, Default, Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, Fails, All
@@ -334,7 +334,7 @@ use the PassThru parameter.
 To suppress the host output, use the Quiet parameter.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -346,8 +346,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable.
-For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

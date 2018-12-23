@@ -19,16 +19,16 @@ Runs Pester tests
 ```
 Invoke-Pester [[-Script] <Object[]>] [[-TestName] <String[]>] [-EnableExit] [[-Tag] <String[]>]
  [-ExcludeTag <String[]>] [-PassThru] [-CodeCoverage <Object[]>] [-CodeCoverageOutputFile <String>]
- [-CodeCoverageOutputFileFormat <String>] [-Strict] [-Quiet] [-PesterOption <Object>] [-Show <OutputTypes>]
- [<CommonParameters>]
+ [-CodeCoverageOutputFileFormat <String>] [-DetailedCodeCoverage] [-Strict] [-Quiet] [-PesterOption <Object>]
+ [-Show <OutputTypes>] [<CommonParameters>]
 ```
 
 ### NewOutputSet
 ```
 Invoke-Pester [[-Script] <Object[]>] [[-TestName] <String[]>] [-EnableExit] [[-Tag] <String[]>]
  [-ExcludeTag <String[]>] [-PassThru] [-CodeCoverage <Object[]>] [-CodeCoverageOutputFile <String>]
- [-CodeCoverageOutputFileFormat <String>] [-Strict] -OutputFile <String> [-OutputFormat <String>] [-Quiet]
- [-PesterOption <Object>] [-Show <OutputTypes>] [<CommonParameters>]
+ [-CodeCoverageOutputFileFormat <String>] [-DetailedCodeCoverage] [-Strict] -OutputFile <String>
+ [-OutputFormat <String>] [-Quiet] [-PesterOption <Object>] [-Show <OutputTypes>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -51,7 +51,7 @@ To run Pester tests in scripts that take parameter values, use the Script
 parameter with a hash table value.
 
 Also, by default, Pester tests write test results to the console host, much like
-Write-Host does, but you can use the Quiet parameter to suppress the host
+Write-Host does, but you can use the Show parameter set to None to suppress the host
 messages, use the PassThru parameter to generate a custom object
 (PSCustomObject) that contains the test results, use the OutputXml and
 OutputFormat parameters to write the test results to an XML file, and use the
@@ -99,12 +99,23 @@ parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01
 
 ### EXAMPLE 4
 ```
+Invoke-Pester -Script @{Script = $scriptText}
+```
+
+This command runs all tests passed as string in $scriptText variable with no aditional parameters and arguments.
+This notation can be combined with
+Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
+if needed.
+This command can be used when tests and scripts are stored not on the FileSystem, but somewhere else, and it is impossible to provide a path to it.
+
+### EXAMPLE 5
+```
 Invoke-Pester -TestName "Add Numbers"
 ```
 
 This command runs only the tests in the Describe block named "Add Numbers".
 
-### EXAMPLE 5
+### EXAMPLE 6
 ```
 $results = Invoke-Pester -Script D:\MyModule -PassThru -Show None
 ```
@@ -136,9 +147,9 @@ This examples uses the PassThru parameter to return a custom object with the
 Pester test results.
 By default, Invoke-Pester writes to the host program, but not
 to the output stream.
-It also uses the Quiet parameter to suppress the host output.
+It also uses the Show parameter set to None to suppress the host output.
 
-The first command runs Invoke-Pester with the PassThru and Quiet parameters and
+The first command runs Invoke-Pester with the PassThru and Show parameters and
 saves the PassThru output in the $results variable.
 
 The second command gets only failing results and saves them in the $failed variable.
@@ -152,7 +163,7 @@ The
 property values describe the test, the expected result, the actual result, and
 useful values, including a stack trace.
 
-### EXAMPLE 6
+### EXAMPLE 7
 ```
 Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
 ```
@@ -163,7 +174,7 @@ writes the results to the TestResults.xml file using the NUnitXml schema.
 The
 test returns an exit code equal to the number of test failures.
 
-### EXAMPLE 7
+### EXAMPLE 8
 ```
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
 ```
@@ -171,7 +182,7 @@ Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
 report for all commands in the "ScriptUnderTest.ps1" file.
 
-### EXAMPLE 8
+### EXAMPLE 9
 ```
 Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
 ```
@@ -179,7 +190,7 @@ Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'Functio
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
 report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
 
-### EXAMPLE 9
+### EXAMPLE 10
 ```
 Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1' -CodeCoverageOutputFile '.\artifacts\TestOutput.xml'
 ```
@@ -188,7 +199,7 @@ Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
 report for all commands in the "ScriptUnderTest.ps1" file, and writes the coverage report to TestOutput.xml
 file using the JaCoCo XML Report DTD.
 
-### EXAMPLE 10
+### EXAMPLE 11
 ```
 Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
 ```
@@ -196,7 +207,7 @@ Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; End
 Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
 report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
 
-### EXAMPLE 11
+### EXAMPLE 12
 ```
 Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
 ```
@@ -249,7 +260,7 @@ Use this key to pass values to positional
    parameters.
 
 ```yaml
-Type: System.Object[]
+Type: Object[]
 Parameter Sets: (All)
 Aliases: Path, relative_path
 
@@ -268,7 +279,7 @@ If you specify multiple TestName values, Invoke-Pester runs tests that have any
 of the values in the Describe name (it ORs the TestName values).
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases: Name
 
@@ -285,7 +296,7 @@ tests once all tests have been run.
 Use this to "fail" a build when any tests fail.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -311,7 +322,7 @@ specified TestName values and one of the specified Tag values.
 If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases: Tags
 
@@ -338,7 +349,7 @@ of the specified TestName values and one of the specified Tag values.
 If you use both Tag and ExcludeTag, ExcludeTag takes precedence
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases:
 
@@ -356,10 +367,10 @@ By default, Invoke-Pester writes to the host program, not to the output stream (
 If you try to save the result in a variable, the variable is empty unless you
 use the PassThru parameter.
 
-To suppress the host output, use the Quiet parameter.
+To suppress the host output, use the Show parameter set to None.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -417,7 +428,7 @@ Default is line 1.
    Default is the last line of the script.
 
 ```yaml
-Type: System.Object[]
+Type: Object[]
 Parameter Sets: (All)
 Aliases:
 
@@ -437,7 +448,7 @@ a required extension (usually the xml).
 If this path is not provided, no file will be generated.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -457,7 +468,7 @@ Currently supported formats are:
 - JaCoCo - this XML file format is compatible with the VSTS/TFS
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -468,13 +479,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -DetailedCodeCoverage
+Add the sourcefile names and lines covered and missed to the codecoverage file.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Strict
 Makes Pending and Skipped tests to Failed tests.
 Useful for continuous
 integration where you need to make sure all tests passed.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -494,7 +520,7 @@ the xml extension.
 If this path is not provided, no log will be generated.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: NewOutputSet
 Aliases:
 
@@ -511,7 +537,7 @@ Two formats of output are supported: NUnitXML and
 LegacyNUnitXML.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: NewOutputSet
 Aliases:
 
@@ -536,7 +562,7 @@ This parameter does not affect the PassThru custom object or the XML output that
 is written when you use the Output parameters.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -555,7 +581,7 @@ in which the keys are option names and the values are option values.
 For more information on the options available, see the help for New-PesterOption.
 
 ```yaml
-Type: System.Object
+Type: Object
 Parameter Sets: (All)
 Aliases:
 
@@ -584,7 +610,7 @@ This parameter does not affect the PassThru custom object or the XML output that
 is written when you use the Output parameters.
 
 ```yaml
-Type: Pester.OutputTypes
+Type: OutputTypes
 Parameter Sets: (All)
 Aliases:
 Accepted values: None, Default, Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, Fails, All

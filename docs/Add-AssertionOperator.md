@@ -13,8 +13,8 @@ Register an Assertion Operator with Pester
 ## SYNTAX
 
 ```
-Add-AssertionOperator [-Name] <String> [-Test] <ScriptBlock> [[-Alias] <String[]>] [-SupportsArrayInput]
- [<CommonParameters>]
+Add-AssertionOperator [-Name] <String> [-Test] <ScriptBlock> [[-Alias] <String[]>] [[-InternalName] <String>]
+ [-SupportsArrayInput] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -64,7 +64,7 @@ The name of the assertion.
 This will become a Named Parameter of Should.
 
 ```yaml
-Type: System.String
+Type: String
 Parameter Sets: (All)
 Aliases:
 
@@ -80,7 +80,7 @@ The test function.
 The function must return a PSObject with a \[Bool\]succeeded and a \[string\]failureMessage property.
 
 ```yaml
-Type: System.Management.Automation.ScriptBlock
+Type: ScriptBlock
 Parameter Sets: (All)
 Aliases:
 
@@ -95,7 +95,7 @@ Accept wildcard characters: False
 A list of aliases for the Named Parameter.
 
 ```yaml
-Type: System.String[]
+Type: String[]
 Parameter Sets: (All)
 Aliases:
 
@@ -106,11 +106,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -InternalName
+If -Name is different from the actual function name, record the actual function name here.
+Used by Get-ShouldOperator to pull function help.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 4
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -SupportsArrayInput
 Does the test function support the passing an array of values to test.
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -122,8 +138,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable.
-For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see about_CommonParameters (http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
