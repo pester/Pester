@@ -79,13 +79,13 @@ function New-Block {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-    
+
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = Get-ScopeHistory | % Name
     v "Entering path $($path -join '.')"
-    
+
     $block = $null
-    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {   
+    if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
         v "Adding block $Name to discovered blocks"
         $block = New-BlockObject -Name $Name -Path $path
         # we attach the current block to the parent
@@ -93,14 +93,14 @@ function New-Block {
     }
 
     $previousBlock = Get-CurrentBlock
-    if ($null -eq $block) { 
+    if ($null -eq $block) {
         # we have run discovery and now
-        # we are executing tests 
+        # we are executing tests
         # so we need to find where we are
         $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
     }
-    Set-CurrentBlock -Block $block 
-    
+    Set-CurrentBlock -Block $block
+
     try {
         if (Is-Discovery) {
             v "Discovering in body of block $Name"
@@ -109,13 +109,40 @@ function New-Block {
         }
         else {
             v "Executing body of block $Name"
-            # this would be block setup and teardown
-            $setup =  {}
-            $teardown = {}
-            $result = Invoke-ScriptBlock -ScriptBlock $ScriptBlock -Setup $setup -Teardown $teardown
+            $oneTimeBlockSetupResult = $null
+            if ($null -ne $previousBlock.OneTimeBlockSetup) {
+                $oneTimeBlockSetupResult = Invoke-ScriptBlock `
+                    -ScriptBlock $previousBlock.OneTimeBlockSetup `
+                    -SameScope `
+                    -NoNewScope
+            }
+
+            $result = Invoke-ScriptBlock `
+                -ScriptBlock $ScriptBlock `
+                -Setup $previousBlock.EachBlockSetup `
+                -Teardown $previousBlock.EachBlockTeardown `
+                -SameScope
+
+            $oneTimeBlockTeardownResult = $null
+            if ($null -ne $previousBlock.OneTimeBlockTeardown) {
+                $oneTimeBlockTeardownResult = Invoke-ScriptBlock `
+                    -ScriptBlock $previousBlock.OneTimeBlockTeardown `
+                    -SameScope `
+                    -NoNewScope
+            }
+
             $block.Executed = $true
-            $block.Passed = $result.Success
-            $block.StandardOutput = $result.StandardOutput
+            $block.Passed = `
+                ($oneTimeBlockSetupResult | tryExpandProperty Success | or $true) `
+                -and $result.Success `
+                -and ($oneTimeBlockTeardownResult | tryExpandProperty Success | or $true)
+
+            $block.StandardOutput = combineNonNull @(
+                $oneTimeBlockSetupResult | tryExpandProperty StandardOutput
+                $result.StandardOutput
+                $oneTimeBlockTeardownResult | tryExpandProperty StandardOutput
+            )
+
             $block.ErrorRecord = $result.ErrorRecord
             v "Finished executing body of block $Name"
         }
@@ -143,7 +170,7 @@ function New-Test {
     try {
         $path = Get-ScopeHistory | % Name
         v "Entering path $($path -join '.')"
-        
+
         # do this setup when we are running discovery
         # or when we skipped it
         if ((Is-Discovery) -or (Is-DiscoverySkipped)) {
@@ -159,18 +186,15 @@ function New-Test {
             }
 
             $block = Get-CurrentBlock
-            
-            $eachSetup = $block.EachTestSetup | or {}
-            $eachTeardown = $block.EachTestTeardown | or {}
-            
+
             v "Running test '$Name'."
-            
+
             $oneTimeTestSetupResult = $null
             if ($null -ne $block.OneTimeTestSetup) {
                 # todo: emulate break by skipping the body when break was used in allSetup
                 # todo: emulate finally by skipping the body when the setup fails and jumping directly to teardown
                 # we want to get the values into the current scope (a body of a 'block')
-                # so we use -SameScope and -NoNewScope to dot source both the provided 
+                # so we use -SameScope and -NoNewScope to dot source both the provided
                 # scriptBlock (which contains setup) and the wrapper scriptblock (which provides
                 # extra scope when we need to prevent variables from leaking)
                 $oneTimeTestSetupResult = Invoke-ScriptBlock -ScriptBlock $block.OneTimeTestSetup -SameScope -NoNewScope
@@ -183,22 +207,31 @@ function New-Test {
                 $oneTimeTestTeardownResult = Invoke-ScriptBlock -ScriptBlock $block.OneTimeTestTeardown -SameScope -NoNewScope
             }
 
-            $standardOutput = combineNonNull ($oneTimeTestSetupResult | tryExpandProperty StandardOutput) $result.StandardOutput ($oneTimeTestTeardownResult | tryExpandProperty StandardOutput)
+            $test.Executed = $true
+            $test.Passed = `
+                ($oneTimeTestSetupResult | tryExpandProperty Success | or $true) `
+                -and $result.Success `
+                -and ($oneTimeTestTeardownResult | tryExpandProperty Success | or $true)
 
-            # todo: this migh change if one time setup or teardown fails
-            $test.Executed = $true 
-            # todo: this migh change if one time setup or teardown fails
-            $test.Passed = ($oneTimeTestSetupResult | tryExpandProperty Success | or $true) -and $result.Success -and ($oneTimeTestTeardownResult | tryExpandProperty Success | or $true)
-            $test.StandardOutput = $standardOutput
-            #todo: combine errors? 
-            $test.ErrorRecord = $result.ErrorRecord
-            
-            
+            $test.StandardOutput = combineNonNull @(
+                $oneTimeTestSetupResult | tryExpandProperty StandardOutput
+                $result.StandardOutput
+                $oneTimeTestTeardownResult | tryExpandProperty StandardOutput
+            )
+
+            #todo: combine errors?
+            $test.ErrorRecord = combineNonNull @(
+                $oneTimeTestSetupResult | tryExpandProperty ErrorRecord
+                $result.ErrorRecord
+                $oneTimeTestTeardownResult | tryExpandProperty ErrorRecord
+            ) | Select -Last 1
+
+
 
             if (-not $oneTimeTestTeardownResult.Success) { v "Test $Name failed with $($oneTimeTestTeardownResult.ErrorRecord.Exception)"}
             if (-not $oneTimeTestSetupResult.Success) { v "Test $Name failed with $($oneTimeTestSetupResult.ErrorRecord.Exception)"}
             if (-not $result.Success) { v "Test $Name failed with $($result.ErrorRecord.Exception)"}
-        }   
+        }
     }
     finally {
 
@@ -231,7 +264,7 @@ function New-EachTestTeardown {
 
 # endpoint for adding a setup for all tests in the block
 function New-OneTimeTestSetup {
-    [CmdletBinding(DefaultParameterSetName = "Empty")]
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
@@ -242,13 +275,55 @@ function New-OneTimeTestSetup {
 
 # endpoint for adding a teardown for all tests in the block
 function New-OneTimeTestTeardown {
-    [CmdletBinding(DefaultParameterSetName = "Empty")]
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
 
     (Get-CurrentBlock).OneTimeTestTeardown = $ScriptBlock
+}
+
+# endpoint for adding a setup for each block in the current block
+function New-EachBlockSetup {
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).EachBlockSetup = $ScriptBlock
+}
+
+# endpoint for adding a teardown for each block in the current block
+function New-EachBlockTeardown {
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).EachBlockTeardown = $ScriptBlock
+}
+
+# endpoint for adding a setup for all blocks in the current block
+function New-OneTimeBlockSetup {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).OneTimeBlockSetup = $ScriptBlock
+}
+
+# endpoint for adding a teardown for all clocks in the current block
+function New-OneTimeBlockTeardown {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).OneTimeBlockTeardown = $ScriptBlock
 }
 
 function Get-CurrentBlock {
@@ -307,6 +382,10 @@ function New-BlockObject {
         [ScriptBlock] $OneTimeTestSetup,
         [ScriptBlock] $EachTestTeardown,
         [ScriptBlock] $OneTimeTestTeardown,
+        [ScriptBlock] $EachBlockSetup,
+        [ScriptBlock] $OneTimeBlockSetup,
+        [ScriptBlock] $EachBlockTeardown,
+        [ScriptBlock] $OneTimeBlockTeardown,
         $Block = @()
     )
 
@@ -315,11 +394,14 @@ function New-BlockObject {
         Path = $Path
         # all tests within the block
         Tests = $Test
-        # setup that will be run before every test
         EachTestSetup = $EachTestSetup
         OneTimeTestSetup = $OneTimeTestSetup
         EachTestTeardown = $EachTestTeardown
         OneTimeTestTeardown = $OneTimeTestTeardown
+        EachBlockSetup = $EachBlockSetup
+        OneTimeBlockSetup = $OneTimeBlockSetup
+        EachBlockTeardown = $EachBlockTeardown
+        OneTimeBlockTeardown = $OneTimeBlockTeardown
         Blocks = @()
         Executed = $false
         Passed = $false
@@ -364,11 +446,11 @@ function Start-Test {
 function Invoke-ScriptBlock {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true )]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
         [ScriptBlock] $Setup,
         [ScriptBlock] $Teardown,
-        # setup, body and teardown will all run (be-dotsourced into) 
+        # setup, body and teardown will all run (be-dotsourced into)
         # the same scope
         [Switch] $SameScope,
         # will dot-source the wrapper scriptblock instead of invoking it
@@ -428,21 +510,21 @@ function Invoke-ScriptBlock {
     $success = $true
     $break = $true
     try {
-        do {   
+        do {
             $standardOutput = if ($NoNewScope) {
-                    . $scriptBlockWithContext @{ 
+                    . $scriptBlockWithContext @{
                         ScriptBlock = $ScriptBlock
                         Setup = $Setup
                         Teardown = $Teardown
-                        SameScope = $SameScope 
+                        SameScope = $SameScope
                     }
-                } 
+                }
                 else {
-                    & $scriptBlockWithContext @{ 
+                    & $scriptBlockWithContext @{
                         ScriptBlock = $ScriptBlock
                         Setup = $Setup
                         Teardown = $Teardown
-                        SameScope = $SameScope 
+                        SameScope = $SameScope
                     }
                 }
             # if the code reaches here we did not break
@@ -505,20 +587,20 @@ function Is-TestExcluded {
         [Parameter(Mandatory=$true)]
         $Test
     )
-    
+
     if ($script:filter.Length -eq 0) {
         v "Test with path $fullTestPath is included, beause there is no filter"
         return $false
     }
     $fullTestPath = $Test.Path -join '.'
     $allPaths = $script:filter | % { $_ -join '.' }
-    $include = $allPaths -contains $fullTestPath 
+    $include = $allPaths -contains $fullTestPath
     if ($include) {
         v "Test with path $fullTestPath is included"
-    } 
+    }
     else {
         v "Test with path $fullTestPath is exluded"
-        
+
     }
     -not $include
 }
@@ -564,9 +646,9 @@ function View-Flat {
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         $Block
     )
-    
+
     # invert to make tests all at the same level
-    $blocks = flattenBlock -Block $Block -Accumulator @() 
+    $blocks = flattenBlock -Block $Block -Accumulator @()
     foreach ($block in $blocks) {
         foreach ($test in $block.Tests) {
             $test | select *, @{n="Block"; e={$block}}
@@ -619,7 +701,7 @@ function or {
         $InputObject
     )
 
-    if ($InputObject) { 
+    if ($InputObject) {
         $InputObject
     }
     else {
@@ -641,7 +723,7 @@ function tryExpandProperty {
     }
 
     $InputObject.$PropertyName
-    
+
     # this would be useful if we looked for property that might not exist
     # but that is not the case so-far. Originally I implemented this incorrectly
     # so I will keep this here for reference in case I was wrong the second time as well
@@ -652,15 +734,14 @@ function tryExpandProperty {
 }
 
 
-# combines collections that are not null or empty, but does not remove null values 
-# from collections so e.g. combineNonNull @(1,$null) @(1,2,3) $null $null 10
+# combines collections that are not null or empty, but does not remove null values
+# from collections so e.g. combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
 # returns 1, $null, 1, 2, 3, 10
-function combineNonNull {
-    
-    foreach ($arg in $args) {
-       
-        $arr = @($arg)
-        if ($null -ne $arg -and $arr.Length -gt 0) {
+function combineNonNull ($Array) {
+    foreach ($i in $Array) {
+
+        $arr = @($i)
+        if ($null -ne $i -and $arr.Length -gt 0) {
             foreach ($a in $arr) {
                 $a
             }
@@ -674,7 +755,7 @@ function combineNonNull {
 
 # function d {
 #     param(
-#         [String] $Name, 
+#         [String] $Name,
 #         [ScriptBlock] $Block
 #     )
 #     if ($script:Discovery) {
@@ -715,7 +796,7 @@ function combineNonNull {
 
 # function i {
 #     param(
-#         [String] $Name, 
+#         [String] $Name,
 #         [ScriptBlock] $Test
 #     )
 #     if ($script:Discovery) {
@@ -751,11 +832,11 @@ function combineNonNull {
 #         [ScriptBlock]
 #         $Work
 #     )
-#     if ($script:Discovery) 
+#     if ($script:Discovery)
 #     {
 #         Write-Host "Skipping this piece of code { $($Work.ToString().Trim()) }, because we are Found tests." -ForegroundColor Yellow
 #     }
-#     else 
+#     else
 #     {
 #         &$Work
 #     }
@@ -763,14 +844,14 @@ function combineNonNull {
 
 # # dot-sources a piece of script during the Discovery pass so all possible dependencies
 # # are in scope and we can discover even tests that are "hidden" in custom functions
-# # this function must be defined to run without additional scope (like the Mock prototype), 
+# # this function must be defined to run without additional scope (like the Mock prototype),
 # # atm I will just return a populated or empty scriptBlock and dot-source it to get the same effect
 # function TestDependency {
 #     param (
 #         [string]
 #         $Path
 #     )
-#     if ($script:Discovery) 
+#     if ($script:Discovery)
 #     {
 #         if (-not (Test-Path $Path)) {
 #             throw "Test dependency path does not exist"
@@ -785,14 +866,14 @@ function combineNonNull {
 
 # # dot-sources a piece of script during the Run pass so all possible dependencies
 # # to the i blocks are in scope run the tests
-# # this function must be defined to run without additional scope (like the Mock prototype), 
+# # this function must be defined to run without additional scope (like the Mock prototype),
 # # atm I will just return a populated or empty scriptBlock and dot-source it to get the same effect
 # function Dependency {
 #     param (
 #         [string]
 #         $Path
 #     )
-#     if ($script:Discovery) 
+#     if ($script:Discovery)
 #     {
 #         {}
 #     }

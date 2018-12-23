@@ -476,6 +476,37 @@ b "setups and teardowns don't run if there are no tests" {
 
 }
 
+b "Block teardown and setup" {
+    t "block setups run and run in correct scopes"{
+        $actual = Invoke-Test -ScriptBlock {
+
+            New-OneTimeBlockSetup {
+                $g = 'one time setup'
+            }
+            New-EachBlockSetup {
+                if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
+                $g = 'each setup'
+            }
+
+            New-Block 'block1' {
+                New-Test "test1" {}
+            }
+ 
+            New-EachBlockTeardown {
+                if ($g -ne 'Block') {throw "`$g ($g) is not set to 'Block' did the Block body run? does the body run in the same scope as the setup and teardown?" }
+                $g = 'each teardown'
+            }
+            New-OneTimeBlockTeardown {
+                if ($g -eq 'each teardown') { "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so Blocks are isolated from each other." }
+                if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
+                $g
+            }
+        }
+
+        $actual.Blocks[0].StandardOutput | Verify-Equal 'one time setup'
+    }
+}
+
 
 b "tryExpandProperty" {
     t "given null it returns null" {
@@ -500,7 +531,7 @@ b "or" {
 
 b "combineNonNull" { 
     t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
-        $r = combineNonNull @(1,$null) @(1,2,3) $null $null 10
+        $r = combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
         # expecting: 1, $null, 1, 2, 3, 10
         $r[0] | Verify-Equal 1
         $r[1] | Verify-Null
