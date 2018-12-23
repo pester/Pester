@@ -102,9 +102,23 @@ function New-Block {
     Set-CurrentBlock -Block $block 
     
     try {
-        v "Executing body of block $Name"
-        & $ScriptBlock
-        v "Finished executing body of block $Name"
+        if (Is-Discovery) {
+            v "Discovering in body of block $Name"
+            & $ScriptBlock
+            v "Finished discovering in body of block $Name"
+        }
+        else {
+            v "Executing body of block $Name"
+            # this would be block setup and teardown
+            $setup =  {}
+            $teardown = {}
+            $result = Invoke-ScriptBlock -ScriptBlock $ScriptBlock -Setup $setup -Teardown $teardown
+            $block.Executed = $true
+            $block.Passed = $result.Success
+            $block.StandardOutput = $result.StandardOutput
+            $block.ErrorRecord = $result.ErrorRecord
+            v "Finished executing body of block $Name"
+        }
     }
     finally {
         v "Leaving path $($path -join '.')"
@@ -146,16 +160,44 @@ function New-Test {
 
             $block = Get-CurrentBlock
             
-            $setup = $block.EachTestSetup | or {}
-            $teardown = $block.EachTestTeardown | or {}
+            $eachSetup = $block.EachTestSetup | or {}
+            $eachTeardown = $block.EachTestTeardown | or {}
             
             v "Running test '$Name'."
             
-            $result = Invoke-ScriptBlockSafe -ScriptBlock $ScriptBlock -Setup $setup -Teardown $teardown
-            $test.Executed = $true
-            $test.Passed = $result.Success
-            $test.StandardOutput = $result.StandardOutput
+            $oneTimeTestSetupResult = $null
+            if ($null -ne $block.OneTimeTestSetup) {
+                # todo: emulate break by skipping the body when break was used in allSetup
+                # todo: emulate finally by skipping the body when the setup fails and jumping directly to teardown
+                # we want to get the values into the current scope (a body of a 'block')
+                # so we use -SameScope and -NoNewScope to dot source both the provided 
+                # scriptBlock (which contains setup) and the wrapper scriptblock (which provides
+                # extra scope when we need to prevent variables from leaking)
+                $oneTimeTestSetupResult = Invoke-ScriptBlock -ScriptBlock $block.OneTimeTestSetup -SameScope -NoNewScope
+            }
+            # invokes the body of the test
+            $result = Invoke-ScriptBlock -ScriptBlock $ScriptBlock -Setup $block.EachTestSetup -Teardown $block.EachTestTeardown -SameScope
+
+            $oneTimeTestTeardownResult = $null
+            if ($null -ne $block.OneTimeTestTeardown) {
+                $oneTimeTestTeardownResult = Invoke-ScriptBlock -ScriptBlock $block.OneTimeTestTeardown -SameScope -NoNewScope
+            }
+
+            $standardOutput = combineNonNull ($oneTimeTestSetupResult | tryExpandProperty StandardOutput) $result.StandardOutput ($oneTimeTestTeardownResult | tryExpandProperty StandardOutput)
+
+            # todo: this migh change if one time setup or teardown fails
+            $test.Executed = $true 
+            # todo: this migh change if one time setup or teardown fails
+            $test.Passed = ($oneTimeTestSetupResult | tryExpandProperty Success | or $true) -and $result.Success -and ($oneTimeTestTeardownResult | tryExpandProperty Success | or $true)
+            $test.StandardOutput = $standardOutput
+            #todo: combine errors? 
             $test.ErrorRecord = $result.ErrorRecord
+            
+            
+
+            if (-not $oneTimeTestTeardownResult.Success) { v "Test $Name failed with $($oneTimeTestTeardownResult.ErrorRecord.Exception)"}
+            if (-not $oneTimeTestSetupResult.Success) { v "Test $Name failed with $($oneTimeTestSetupResult.ErrorRecord.Exception)"}
+            if (-not $result.Success) { v "Test $Name failed with $($result.ErrorRecord.Exception)"}
         }   
     }
     finally {
@@ -188,14 +230,25 @@ function New-EachTestTeardown {
 }
 
 # endpoint for adding a setup for all tests in the block
-function New-AllTestSetup {
+function New-OneTimeTestSetup {
     [CmdletBinding(DefaultParameterSetName = "Empty")]
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
 
-    (Get-CurrentBlock).AllTestSetup = $ScriptBlock
+    (Get-CurrentBlock).OneTimeTestSetup = $ScriptBlock
+}
+
+# endpoint for adding a teardown for all tests in the block
+function New-OneTimeTestTeardown {
+    [CmdletBinding(DefaultParameterSetName = "Empty")]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    (Get-CurrentBlock).OneTimeTestTeardown = $ScriptBlock
 }
 
 function Get-CurrentBlock {
@@ -251,9 +304,9 @@ function New-BlockObject {
         [string[]] $Path,
         $Test = @(),
         [ScriptBlock] $EachTestSetup,
-        [ScriptBlock] $AllTestSetup,
+        [ScriptBlock] $OneTimeTestSetup,
         [ScriptBlock] $EachTestTeardown,
-        [ScriptBlock] $AllTestTeardown,
+        [ScriptBlock] $OneTimeTestTeardown,
         $Block = @()
     )
 
@@ -264,10 +317,14 @@ function New-BlockObject {
         Tests = $Test
         # setup that will be run before every test
         EachTestSetup = $EachTestSetup
-        AllTestSetup = $AllTestSetup
+        OneTimeTestSetup = $OneTimeTestSetup
         EachTestTeardown = $EachTestTeardown
-        AllTestTeardown = $AllTestTeardown
+        OneTimeTestTeardown = $OneTimeTestTeardown
         Blocks = @()
+        Executed = $false
+        Passed = $false
+        StandardOutput = $null
+        ErrorRecord = $null
     }
 }
 
@@ -304,52 +361,20 @@ function Start-Test {
     $script:root
 }
 
-function Invoke-ScriptBlockSafe {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock] $Setup,
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock] $Teardown
-    )
-
-    $success = $true
-    $standardOutput = $null
-    try {
-        do {
-
-            $standardOutput = Invoke-WithSetupAndTeardown -ScriptBlock $ScriptBlock -Setup $Setup -Teardown $Teardown
-            # possibly I could add $break = $false here 
-            # if the code breaks that line is not reached
-            # but is there any value in knowing that the script
-            # block used break?
-        } while ($false)
-    }
-    catch {
-        $err = $_
-        $success = $false
-    }
-
-    return New-PSObject -Type ScriptBlockInvocationResult @{
-        Success = $success
-        ErrorRecord = $err
-        StandardOutput = $standardOutput
-        Setup = $Setup
-        ScriptBlock = $ScriptBlock
-    }
-}
-
-function Invoke-WithSetupAndTeardown {
+function Invoke-ScriptBlock {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true )]
         [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory=$true)]
         [ScriptBlock] $Setup,
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock] $Teardown
+        [ScriptBlock] $Teardown,
+        # setup, body and teardown will all run (be-dotsourced into) 
+        # the same scope
+        [Switch] $SameScope,
+        # will dot-source the wrapper scriptblock instead of invoking it
+        # so in combination with the SameScope switch we are effectively
+        # running the code in the current scope
+        [Switch] $NoNewScope
     )
 
     # this is what the code below does
@@ -370,14 +395,25 @@ function Invoke-WithSetupAndTeardown {
     # is not correct,
 
     $scriptBlockWithContext = {
+        # THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($pester_context)
-
-        try {
-            . $pester_context.Setup
-            . $pester_context.ScriptBlock
-        }
-        finally {
-            . $pester_context.Teardown
+        if ($pester_context) {
+            try {
+                if ($null -ne $pester_context.Setup) {
+                    . $pester_context.Setup
+                }
+                if ($pester_context.SameScope) {
+                    . $pester_context.ScriptBlock
+                }
+                else {
+                    & $pester_context.ScriptBlock
+                }
+            }
+            finally {
+                if ($null -ne $pester_context.Teardown) {
+                    . $pester_context.Teardown
+                }
+            }
         }
     }
 
@@ -389,7 +425,44 @@ function Invoke-WithSetupAndTeardown {
     # making it invoke in the same scope as $ScriptBlock
     $scriptBlockWithContext.GetType().GetProperty('SessionStateInternal', $flags).SetValue($scriptBlockWithContext, $SessionStateInternal, $null)
 
-    & $scriptBlockWithContext @{ ScriptBlock = $ScriptBlock; Setup = $Setup; Teardown = $Teardown }
+    $success = $true
+    $break = $true
+    try {
+        do {   
+            $standardOutput = if ($NoNewScope) {
+                    . $scriptBlockWithContext @{ 
+                        ScriptBlock = $ScriptBlock
+                        Setup = $Setup
+                        Teardown = $Teardown
+                        SameScope = $SameScope 
+                    }
+                } 
+                else {
+                    & $scriptBlockWithContext @{ 
+                        ScriptBlock = $ScriptBlock
+                        Setup = $Setup
+                        Teardown = $Teardown
+                        SameScope = $SameScope 
+                    }
+                }
+            # if the code reaches here we did not break
+            $break = $false
+        } while ($false)
+    }
+    catch {
+        $success = $false
+        $err = $_
+    }
+
+    return New-PSObject -Type ScriptBlockInvocationResult @{
+        Success = $success
+        ErrorRecord = $err
+        StandardOutput = $standardOutput
+        Break = $break
+        Setup = $Setup
+        Teardown = $Teardown
+        ScriptBlock = $ScriptBlock
+    }
 }
 
 function Find-CurrentTest {
@@ -551,6 +624,47 @@ function or {
     }
     else {
         $DefaultValue
+    }
+}
+
+# looks for a property on object that might be null
+function tryExpandProperty {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position = 0)]
+        $PropertyName,
+        [Parameter(ValueFromPipeline = $true)]
+        $InputObject
+    )
+    if ($null -eq $InputObject) {
+        return
+    }
+
+    $InputObject.$PropertyName
+    
+    # this would be useful if we looked for property that might not exist
+    # but that is not the case so-far. Originally I implemented this incorrectly
+    # so I will keep this here for reference in case I was wrong the second time as well
+    # $property = $InputObject.PSObject.Properties.Item($PropertyName)
+    # if ($null -ne $property) {
+    #     $property.Value
+    # }
+}
+
+
+# combines collections that are not null or empty, but does not remove null values 
+# from collections so e.g. combineNonNull @(1,$null) @(1,2,3) $null $null 10
+# returns 1, $null, 1, 2, 3, 10
+function combineNonNull {
+    
+    foreach ($arg in $args) {
+       
+        $arr = @($arg)
+        if ($null -ne $arg -and $arr.Length -gt 0) {
+            foreach ($a in $arr) {
+                $a
+            }
+        }
     }
 }
 

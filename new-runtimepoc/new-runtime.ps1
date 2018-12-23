@@ -76,11 +76,11 @@ b "Finding setup for all tests" {
     t "Find setup to run before all tests in the block" {
         Reset-TestSuite
         $actual = Find-Test {
-            New-AllTestSetup {allSetup}
+            New-OneTimeTestSetup {oneTimeSetup}
             New-Test "test1" {}
         }
 
-        $actual[0].AllTestSetup | Verify-Equal 'allSetup'
+        $actual[0].OneTimeTestSetup | Verify-Equal 'oneTimeSetup'
     }
 }
 
@@ -287,7 +287,7 @@ b "discover and execute tests" {
     }
 }
 
-b "executing each setup & teardown" {
+b "executing each setup & teardown on test" {
     t "given a test with setup it executes the setup right before the test and makes the variables avaliable to test" {
         $actual = Invoke-Test -ScriptBlock {
             # $s is set to 'block' here
@@ -305,12 +305,67 @@ b "executing each setup & teardown" {
                     $g
                 }
                 New-EachTestSetup {
+                    # setup runs on top of test and in the same scope
+                    # so $g is modifiable and becomes the value of $s
+                    # test then reports the $s value not the original $g value
                     $g = $s
                 }
             }
         }
 
         $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+
+      t "given a test with setups and teardowns they run in correct scopes" {
+
+        # what I want here is that the test runs in this fashion 
+        # so that each setup the test body and each teardown all run
+        # in the same scope so their variables are accessible and writable.
+        # the all setup runs one level up, so it's variables are not writable
+        # to keep each test isolated from the other tests
+        # block {
+        #     # . all setup
+        #     test {
+        #         # . each setup
+        #         # . body        
+        #         # . each teardown
+        #     }
+
+        #     test {
+        #         # . each setup
+        #         # . body
+        #         # . each teardown
+        #     }
+        #     # . all teardown
+        # }
+
+        $actual = Invoke-Test -ScriptBlock {
+            New-Block 'block1' {
+                New-OneTimeTestSetup {
+                    $g = 'one time setup'
+                }
+                New-EachTestSetup {
+                    if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
+                    $g = 'each setup'
+                }
+
+                New-Test "test1" {
+                    if ($g -ne 'each setup') {throw "`$g ($g) is not set to 'each setup' did the each setup run" }
+                    $g = 'test'
+                }
+
+                New-EachTestTeardown {
+                    if ($g -ne 'test') {throw "`$g ($g) is not set to 'test' did the test body run? does the body run in the same scope as the setup and teardown?" }
+                    $g = 'each teardown'
+                }
+                New-OneTimeTestTeardown {
+                    if ($g -eq 'each teardown') { "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so tests are isolated from each other." }
+                    if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
+                    $g
+                }
+            }
+        }
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal 'one time setup'
     }
 
     t "given a test with teardown it executes the teardown right after the test and has the variables avaliable from the test" {
@@ -337,6 +392,84 @@ b "executing each setup & teardown" {
         $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
     }
 }
+
+b "executing all test and teardown" {
+    t "given a test with all setup it executes the setup right before the first test and keeps the variables in upper scope" {
+        $actual = Invoke-Test -ScriptBlock {
+            # $s is set to 'block' here
+            $s = "block"
+            New-Block 'block1' {
+                # $s will still be 'block' here so if we invoke the setup on the
+                # start of the block then $s would be 'block'
+                $s = "test"
+                # if the test does not run then this value will stay in $g
+                $g = "setup did not run"
+                # here $s is 'test', and here is where we want to invoke the script right before each setup and test
+                New-Test 'test1' {
+                    # each setup technically runs here
+
+                    # $g should be test here, because we run the setup right before
+                    # this scriptblock and kept the changed value of $g in scope
+                    if ($g -ne 'test') { throw "setup did not run ($g)" }
+                    # $g should be one scope below one time setup so this change 
+                    # should not be visible in the teardown
+                    $g = 10
+                    
+                }
+                New-OneTimeTestSetup {
+                    if (-not $s) { 
+                        throw "`$s is not defined are we running in the correct scope? $($executionContext.SessionState.Module)" }
+                    $g = $s
+                }
+                New-OneTimeTestTeardown {
+                    # teardown runs in the scope after the test scope dies so 
+                    # 10 is not written in it and it should be test, to which the setup 
+                    # set it
+                    $g 
+                }
+            }
+        }
+
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+}
+
+b "tryExpandProperty" {
+    t "given null it returns null" {
+        $null | tryExpandProperty Name | Verify-Null 
+    }
+
+    t "given an object that has the property it return the correct value" {
+        (Get-Process -Id $Pid) | tryExpandProperty Name | Verify-Equal 'pwsh'
+    }
+}
+
+b "or" {
+    
+    t "given a non-null value it returns it" {
+        "a" | or "b" | Verify-Equal "a"
+    }
+
+    t "given null it returns the default value" {
+        $null | or "b" | Verify-Equal "b"
+    }
+}
+
+b "combineNonNull" { 
+    t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
+        $r = combineNonNull @(1,$null) @(1,2,3) $null $null 10
+        # expecting: 1, $null, 1, 2, 3, 10
+        $r[0] | Verify-Equal 1
+        $r[1] | Verify-Null
+        $r[2] | Verify-Equal 1
+        $r[3] | Verify-Equal 2
+        $r[4] | Verify-Equal 3
+        $r[5] | Verify-Equal 10
+    }
+
+} 
+
+
 
 
 }
