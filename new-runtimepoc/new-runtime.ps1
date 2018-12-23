@@ -434,6 +434,49 @@ b "executing all test and teardown" {
     }
 }
 
+b "setups and teardowns don't run if there are no tests" {
+    $container = [PsCustomObject]@{ 
+        OneTimeSetupRun = $false
+        EachSetupRun = $false
+        EachTeardownRun = $false
+        OneTimeTeardownRun = $false
+    }
+    
+    $result = Invoke-Test {
+        New-OneTimeTestSetup {
+            $container.EachTeardownRun = $true
+        }
+
+        New-EachTestSetup {
+            $container.EachSetupRun = $true
+        }
+
+        New-EachTestTeardown {
+            $container.EachTeardownRun = $true
+        }
+
+        New-OneTimeTestTeardown {
+            $container.OneTimeTeardownRun = $true
+        }
+
+        New-Block "block1" { 
+            New-Test "test1" {}
+        }
+    }
+
+    # the test should execute but non of the above setups should run
+    # those setups are running only for the tests in the current block
+
+    $result.Blocks[0].Tests[0].Executed | Verify-True
+    
+    $container.OneTimeSetupRun | Verify-False
+    $container.EachSetupRun | Verify-False
+    $container.EachTeardownRun | Verify-False
+    $container.OneTimeTeardownRun | Verify-False
+
+}
+
+
 b "tryExpandProperty" {
     t "given null it returns null" {
         $null | tryExpandProperty Name | Verify-Null 
