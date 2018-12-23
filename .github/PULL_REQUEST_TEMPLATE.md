@@ -14,9 +14,9 @@ Our continues integration system doesn't send any notifications about failed tes
 
 Please provide a descriptive title of the pull request in the field 'Title' too.
 
-Please provide us information on how your pull request improves Pester or what fixes.
+Please provide us with information on how your pull request improves Pester or what fixes.
 
-If your pull request integrate Pester with another system (e.g. a continues integration product) please provide instruction how the updated code can be tested.
+If your pull request integrates Pester with another system (e.g., a continues integration product), please provide instruction how the updated code can be tested.
 
 If your pull request resolves the issue reported previously, please mention it by using `#<issue_number>` syntax.
 
