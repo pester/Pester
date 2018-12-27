@@ -781,9 +781,14 @@ the xml extension.
 
 If this path is not provided, no log will be generated.
 
+Since OutputFile is a string array, multiple output files may be specified.
+The order of the OutputFile parameter must match with the order of the OutputFormat parameter.
+
 .PARAMETER OutputFormat
-The format of output. Two formats of output are supported: NUnitXML and
-LegacyNUnitXML.
+The format of output. Two formats of output are supported: NUnitXML and html.
+
+Since OutputFormat is a string array, multiple output formats may be specified.
+The order of the OutputFormat parameter must match with the order of the OutputFile parameter.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values.
@@ -1061,11 +1066,11 @@ New-PesterOption
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
-        [string] $OutputFile,
+        [string[]] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('NUnitXml')]
-        [string] $OutputFormat = 'NUnitXml',
+        [ValidateSet('NUnitXml', 'html')]
+        [string[]] $OutputFormat = @('NUnitXml', 'html'),
 
         [Switch]$Quiet,
 
@@ -1589,3 +1594,4 @@ Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] Convert-Report

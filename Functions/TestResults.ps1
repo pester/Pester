@@ -30,20 +30,67 @@ function Export-PesterResults
 {
     param (
         $PesterState,
-        [string] $Path,
-        [string] $Format
+        [string[]] $Path,
+        [string[]] $Format,
+        [switch] $Gherkin
     )
 
-    switch ($Format)
+    $nUnitXmlFormat = "NUnitXml"
+    $htmlFormat = "html"
+    $htmlIndex = [array]::indexof($Format, $htmlFormat)
+    $nUnitXmlIndex = [array]::indexof($Format, $nUnitXmlFormat)
+    $nUnitXmlPath = $null
+    $htmlPath = $null
+    
+    if ($nUnitXmlIndex -ge 0) {
+        # NUnit XML path found
+        $nUnitXmlPath = $Path[$nUnitXmlIndex]
+    }
+    $deleteReport = $false
+    if ($htmlIndex -ge 0) {
+        # HTML path found
+        $htmlPath = $Path[$htmlIndex]
+        if (-not $nUnitXmlPath) {
+            # HTML path exist, but no NUnit XML path
+            # We use temporary NUnit XML path since it is required to create the HTML file
+            $nUnitXmlPath = $htmlPath + ".nunit.temp"
+            $deleteReport = $true
+        }
+    }
+
+    switch ($nUnitXmlFormat)
     {
-        'NUnitXml'       { Export-NUnitReport -PesterState $PesterState -Path $Path }
+        $nUnitXmlFormat  { Export-NUnitReport -PesterState $PesterState -Path $nUnitXmlPath }
 
         default
         {
             throw "'$Format' is not a valid Pester export format."
         }
     }
+
+    if ($htmlPath) {
+        # Default XSL transform parameters
+        $transformParameters = @{
+            powerShellVersion = $PSVersionTable.PSVersion.ToString()
+        }
+        if ($Gherkin) {
+            # Slightly different content for Gherkin in the transformed text
+            $transformParameters.testRunTitle = "Pester Gherkin Run"
+            $transformParameters.mainGroupName = "Features"
+            $transformParameters.subGroupName = "Scenarios"
+            $transformParameters.singleGroupName = "Steps"
+        }
+
+        # Transform NUnit XML to HTML
+        Convert-Report -InputFile $nUnitXmlPath -OutputFile $htmlPath -InputFormat $nUnitXmlFormat -OutputFormat $htmlFormat -TransformParameters $transformParameters
+        if ($deleteReport) {
+            # We delete the temporary NUnit XML file, if we only want HTML output
+            Remove-Item $nUnitXmlPath
+            Write-Verbose "Temporary report $nUnitXmlPath deleted"
+        }
+    }
 }
+
 function Export-NUnitReport {
     param (
         [parameter(Mandatory=$true,ValueFromPipeline=$true)]
@@ -504,4 +551,76 @@ function Get-GroupResult ($InputObject)
     if ($InputObject.SkippedCount -gt 0) { return 'Ignored' }
     if ($InputObject.PendingCount -gt 0) { return 'Inconclusive' }
     return 'Success'
+}
+
+function Convert-Report {
+    <#
+    .SYNOPSIS
+        Converts a XML test result report into a more human-friendly format like HTML
+
+    .PARAMETER InputFile
+        The already created XML test report
+
+    .PARAMETER OutputFile
+        The transformed output file which will be created
+
+    .PARAMETER InputFormat
+        The input format, e.g. NUnitXml
+
+    .PARAMETER OutputFormat
+        The output format, e.g. html
+
+    .PARAMETER TransformParameters
+        The optional parameters which will be passed to the XSLT file
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)][string]$InputFile,
+        [Parameter(Mandatory=$true)][string]$OutputFile,
+        [Parameter(Mandatory=$true)][string]$InputFormat,
+        [Parameter(Mandatory=$true)][string]$OutputFormat,
+        [hashtable]$TransformParameters = @{}
+    )
+
+    Write-Debug ''
+    Write-Debug ('-' * 120)
+    Write-Debug "Convert XML Report"
+    Write-Debug ('-' * 120)
+    Write-Debug "Input file name:      $InputFile"
+    Write-Debug "Output file name:     $OutputFile"
+    Write-Debug "Input format:         $InputFormat"
+    Write-Debug "Output format:        $OutputFormat"
+    $xsltFile = "${Script:PesterRoot}\Functions\$InputFormat-$OutputFormat.xslt"
+    $fullInputFile = Resolve-Path $InputFile
+    if ($InputFile -ne $fullInputFile) {
+        Write-Debug "Full input file name: $fullInputFile"
+    }
+    Write-Debug "XSLT file:            $xsltFile"
+    Write-Debug ('-' * 120)
+
+    $argList = New-Object System.Xml.Xsl.XsltArgumentList
+    foreach ($transformParameter in $TransformParameters.GetEnumerator()) {
+        $argList.AddParam($transformParameter.Key, "", $transformParameter.Value)
+        Write-Debug "Parameter added: $($transformParameter.Key) => $($transformParameter.Value)"
+    }
+
+    $outputStream = New-Object System.IO.MemoryStream
+    $xslt = New-Object System.Xml.Xsl.XslCompiledTransform
+    $reader = New-object System.IO.StreamReader($outputStream)
+    try {
+        $xslt.Load([string] $xsltFile)
+        Write-Debug "XSLT file loaded"
+        $xslt.Transform($fullInputFile, $arglist, $outputStream)
+        Write-Debug "XML source file transformed"
+        $outputStream.position = 0
+        $transformed = [string] $reader.ReadToEnd()
+        $transformed > $OutputFile
+        Write-Debug "Output file written"
+        Write-Verbose "XML report $InputFile ($InputFormat) converted successfully to $OutputFile ($OutputFormat)"
+    } catch {
+        Write-Error $_.Exception
+    } finally {
+        $reader.Close()
+    }
+    Write-Debug ('-' * 120)
 }

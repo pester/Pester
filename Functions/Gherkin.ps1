@@ -105,8 +105,14 @@ function Invoke-Gherkin {
         .PARAMETER OutputFile
             The path to write a report file to. If this path is not provided, no log will be generated.
 
+            Since OutputFile is a string array, multiple output files may be specified.
+            The order of the OutputFile parameter must match with the order of the OutputFormat parameter.
+
         .PARAMETER OutputFormat
-            The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
+            The format of output. Two formats of output are supported: NUnitXML and html.
+
+            Since OutputFormat is a string array, multiple output formats may be specified.
+            The order of the OutputFormat parameter must match with the order of the OutputFile parameter.
 
         .PARAMETER Quiet
             Disables the output Pester writes to screen. No other output is generated unless you specify PassThru,
@@ -207,10 +213,10 @@ function Invoke-Gherkin {
 
         [Switch]$Strict,
 
-        [string] $OutputFile,
+        [string[]] $OutputFile,
 
-        [ValidateSet('NUnitXml')]
-        [string] $OutputFormat = 'NUnitXml',
+        [ValidateSet('NUnitXml', 'html')]
+        [string[]] $OutputFormat = @('NUnitXml', 'html'),
 
         [Switch]$Quiet,
 
@@ -297,7 +303,7 @@ function Invoke-Gherkin {
         Exit-CoverageAnalysis -PesterState $pester
 
         if (& $SafeCommands["Get-Variable"]-Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
-            Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
+            Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat -Gherkin
         }
 
         if ($PassThru) {

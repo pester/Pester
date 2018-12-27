@@ -1,6 +1,13 @@
 Set-StrictMode -Version Latest
 
+# TODO Avoid global variable here
+$global:scriptRootForTestResults = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
+
 InModuleScope Pester {
+
+    # Include XML helper functions for testing
+    . ("$global:scriptRootForTestResults{0}Functions{0}TestUtilities{0}Xml.ps1" -f [System.IO.Path]::DirectorySeparatorChar)
+
     if ((GetPesterOs) -eq 'Windows') {
         Describe "Write nunit test results" {
             Setup -Dir "Results"
@@ -226,6 +233,74 @@ InModuleScope Pester {
                     { $xmlResult.Validate({throw $args.Exception }) } | Should -Not -Throw
                 }
             }
+        }
+
+        Describe "Export test results to all formats" {
+
+            $reportFile1 = "$TestDrive{0}Results{0}my_unit1.xml" -f [System.IO.Path]::DirectorySeparatorChar
+            $reportFile2 = "$TestDrive{0}Results{0}my_unit2.xml" -f [System.IO.Path]::DirectorySeparatorChar
+            $htmlFile1 = "$TestDrive{0}Results{0}my_unit1.html" -f [System.IO.Path]::DirectorySeparatorChar
+            $htmlFile2 = "$TestDrive{0}Results{0}my_unit2.html" -f [System.IO.Path]::DirectorySeparatorChar
+
+            Setup -Dir "Results"
+
+            function CreateDummyResults($testFile, $testGroup, $testCase) {
+                $testResults = New-PesterState -Path TestDrive:\
+                $testResults.EnterTestGroup($testFile, 'Script')
+                $testResults.EnterTestGroup($testGroup, 'Describe')
+                $testResults.AddTestResult($testCase, 'Passed')
+                return $testResults
+            }
+
+            It "should export test results to NUnit XML only" {
+                $TestResults = (CreateDummyResults "fakedTestFile1" "testGroup1" "testCase1")
+                Export-PesterResults $TestResults $reportFile1 "NUnitXml"
+                $reportFile1 | Should -Exist
+                $xmlResult = [xml] (Get-Content $reportFile1)
+                Get-XmlValue $xmlResult '//test-case/@name' | Should -Be "testGroup1.testCase1"
+            }
+
+            It "should export test results to HTML only" {
+                $TestResults = (CreateDummyResults "fakedTestFile2" "testGroup2" "testCase2")
+                Export-PesterResults $TestResults $htmlFile1 "html"
+                $htmlFile1 | Should -Exist
+                $htmlResult = [xml] (Get-Content $htmlFile1)
+                Get-XmlInnerText $htmlResult '//summary/strong' | Should -Be "testGroup2"
+                Get-XmlInnerText $htmlResult '//div[@class="success"]' | Should -Be "testCase2"
+                Get-XmlInnerText $htmlResult "//h1[1]" | Should -BeExactly "Pester Spec Run"
+                Get-XmlInnerText $htmlResult '//div[@id="results"]//table/tr[2]/th[1]' | Should -BeExactly "Files:"
+                Get-XmlInnerText $htmlResult '//div[@id="results"]//table/tr[3]/th[1]' | Should -BeExactly "Groups:"
+                Get-XmlInnerText $htmlResult '//div[@id="results"]//table/tr[4]/th[1]' | Should -BeExactly "Specs:"
+            }
+
+            It "should export test results to NUnit XML and HTML" {
+                $TestResults = (CreateDummyResults "fakedTestFile3" "testGroup3" "testCase3")
+                Export-PesterResults $TestResults @($reportFile2, $htmlFile2) @("NUnitXml", "html")
+
+                $reportFile2 | Should -Exist
+                $xmlResult = [xml] (Get-Content $reportFile2)
+                Get-XmlValue $xmlResult '//test-case/@name' | Should -Be "testGroup3.testCase3"
+
+                $htmlFile2 | Should -Exist
+                $htmlResult = [xml] (Get-Content $htmlFile2)
+                Get-XmlInnerText $htmlResult '//summary/strong' | Should -Be "testGroup3"
+                Get-XmlInnerText $htmlResult '//div[@class="success"]' | Should -Be "testCase3"
+            }
+
+            It "should export test results to NUnit XML and HTML with switched arguments" {
+                $TestResults = (CreateDummyResults $fakedTestFile3 "testGroup3" "testCase3")
+                Export-PesterResults $TestResults @($htmlFile2, $reportFile2) @("html", "NUnitXml")
+
+                $reportFile2 | Should -Exist
+                $xmlResult = [xml] (Get-Content $reportFile2)
+                Get-XmlValue $xmlResult '//test-case/@name' | Should -Be "testGroup3.testCase3"
+
+                $htmlFile2 | Should -Exist
+                $htmlResult = [xml] (Get-Content $htmlFile2)
+                Get-XmlInnerText $htmlResult '//summary/strong' | Should -Be "testGroup3"
+                Get-XmlInnerText $htmlResult '//div[@class="success"]' | Should -Be "testCase3"
+            }
+
         }
     }
 

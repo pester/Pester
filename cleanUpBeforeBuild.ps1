@@ -25,5 +25,10 @@ if (Test-Path "$PSScriptRoot\doc") {
     Remove-Item "$PSScriptRoot\doc" -Recurse -Force -Confirm:$false -Verbose -ErrorAction 'Stop'
 }
 
+if (Test-Path "$PSScriptRoot\Functions\TestUtilities") {
+    Write-Verbose "Removing test utilities"
+    Remove-Item "$PSScriptRoot\Functions\TestUtilities" -Recurse -Force -Confirm:$false -Verbose -ErrorAction 'Stop'
+}
+
 Write-Verbose "Removing all Test Files"
 Get-ChildItem $PSScriptRoot -Recurse -Filter *.Tests.ps1 | Remove-Item -Force -Verbose -ErrorAction 'Stop'
