@@ -155,7 +155,12 @@ function New-PesterState
 
             if ($null -eq $Time)
             {
-                $Time = $script:TestFinishTime - $script:TestStartTime
+                if( "Skipped","Pending" -contains $Result ){
+                    $Time = $script:TestFinishTime - $script:TestStartTime
+                } else {
+                    # EnterTest or LeaveTest were not called. Typically a skipped or pending test.
+                    $Time = 0
+                }
             }
 
             if (-not $script:Strict)
