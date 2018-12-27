@@ -72,6 +72,36 @@ InModuleScope Pester {
         context "adding test result" {
             $p.EnterTestGroup('Describe', 'Describe')
 
+            it "times test accurately within 10 milliseconds" {
+                $p.EnterTest()
+                $Time = Measure-Command -Expression {
+                    Start-Sleep -Milliseconds 100
+                }
+                $p.LeaveTest()
+                $p.AddTestResult("result","Passed",$null)
+                $result = $p.TestResult[-1]
+                [int]($result.time.TotalMilliseconds) | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
+                [int]($result.time.TotalMilliseconds) | Should -BeLessOrEqual ($Time.Milliseconds+10)
+            }
+
+            it "times test group accurately within 150 milliseconds" {
+                $p.EnterTestGroup()
+                $Time = Measure-Command -Expression {
+                    # Sleeping to simulate setup time
+                    Start-Sleep -Milliseconds 100
+                    $p.EnterTest()
+                    # Sleeping to simulate test time
+                    Start-Sleep -Milliseconds 100
+                    $p.LeaveTest()
+                    $p.AddTestResult("result","Passed",$null)
+                    # Sleeping to simulate teardown time
+                    Start-Sleep -Milliseconds 100
+                }
+                $p.LeaveTestGroup()
+                [int]($p.time.TotalMilliseconds) | Should -BeGreaterOrEqual ($Time.Milliseconds-150)
+                [int]($p.time.TotalMilliseconds) | Should -BeLessOrEqual ($Time.Milliseconds+150)
+            }
+
             it "adds passed test" {
                 $p.AddTestResult("result","Passed", 100)
                 $result = $p.TestResult[-1]
