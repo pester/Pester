@@ -50,10 +50,10 @@ function New-PesterState
 
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-        $script:TestGroupStartTime = 0
-        $script:TestGroupStopTime = 0
-        $script:TestStartTime = 0
-        $script:TestStopTime = 0
+        $script:TestGroupStartTime = $null
+        $script:TestGroupStopTime = [timespan]0
+        $script:TestStartTime = $null
+        $script:TestStopTime = [timespan]0
         $script:CommandCoverage = @()
         $script:Strict = $Strict
         $script:Show = $Show
@@ -123,6 +123,7 @@ function New-PesterState
             if ( $script:TestGroupStartTime ) {
                 $script:Time += $script:TestGroupStopTime - $script:TestGroupStartTime
                 $script:TestGroupStartTime = $null
+                $script:TestGroupStopTime = [timespan]0
             }
 
             if ($currentGroup.Name -ne $Name -or $currentGroup.Hint -ne $Hint)
@@ -157,11 +158,12 @@ function New-PesterState
 
             if ($null -eq $Time)
             {
-                if( $null -eq $script:TestStopTime -or $null -eq $script:TestStartTime ){
-                    # EnterTest or LeaveTest were not called. Typically a skipped or pending test.
-                    $Time = 0
-                } else {
+                if ( $script:TestStartTime ) {
                     $Time = $script:TestStopTime - $script:TestStartTime
+                    $script:TestStartTime = $null
+                    $script:TestStopTime = [timespan]0
+                } else {
+                    $Time = [timespan]0
                 }
             }
 
