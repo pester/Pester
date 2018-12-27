@@ -50,7 +50,8 @@ function New-PesterState
 
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-        $script:MostRecentTimestamp = 0
+        $script:TestGroupStartTime = 0
+        $script:TestStartTime = 0
         $script:CommandCoverage = @()
         $script:Strict = $Strict
         $script:Show = $Show
@@ -109,12 +110,18 @@ function New-PesterState
         {
             $newGroup = New-TestGroup @PSBoundParameters
             $null = $script:TestGroupStack.Peek().Actions.Add($newGroup)
+            $script:TestGroupStartTime = $script:Stopwatch.Elapsed
             $script:TestGroupStack.Push($newGroup)
         }
 
         function LeaveTestGroup([string] $Name, [string] $Hint)
         {
             $currentGroup = $script:TestGroupStack.Pop()
+            $script:TestGroupStopTime = $script:Stopwatch.Elapsed
+            if ( $script:TestGroupStartTime ) {
+                $script:Time += $script:TestGroupStopTime - $script:TestGroupStartTime
+                $script:TestGroupStartTime = $null
+            }
 
             if ($currentGroup.Name -ne $Name -or $currentGroup.Hint -ne $Hint)
             {
@@ -146,12 +153,9 @@ function New-PesterState
                 return $errorRecord
             }
 
-            $previousTime = $script:MostRecentTimestamp
-            $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
-
             if ($null -eq $Time)
             {
-                $Time = $script:MostRecentTimestamp - $previousTime
+                $Time = $script:TestFinishTime - $script:TestStartTime
             }
 
             if (-not $script:Strict)
@@ -171,7 +175,6 @@ function New-PesterState
             }
 
             $script:TotalCount++
-            $script:Time += $Time
 
             switch ($Result)
             {
@@ -324,11 +327,13 @@ function New-PesterState
                 throw 'You are already in a test case.'
             }
 
+            $script:TestStartTime = $script:Stopwatch.Elapsed
             $script:InTest = $true
         }
 
         function LeaveTest
         {
+            $script:TestFinishTime = $script:Stopwatch.Elapsed
             $script:InTest = $false
         }
 
