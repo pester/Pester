@@ -71,7 +71,7 @@ function Export-PesterResults
     if ($htmlPath) {
         # Default XSL transform parameters
         $transformParameters = @{
-            powerShellVersion = $PSVersionTable.PSVersion.ToString()
+            powerShellVersion = "$($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition))"
         }
         if ($Gherkin) {
             # Slightly different content for Gherkin in the transformed text
