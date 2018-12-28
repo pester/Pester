@@ -1,19 +1,17 @@
-
-
-$script:root = $null
-$script:currentBlock = $null
-$script:discovery = $false
-$script:discoverySkipped = $false
-$script:filter = $null
+$script:state = [PSCustomObject]@{
+    Root = $null
+    CurrentBlock = $null
+    Discovery = $false
+    Filter = $null
+}
 
 # resets the module state to the default
 function Reset-TestSuite {
     v "Resetting internal state to default."
-    $script:root = $null
-    $script:discovery = $false
-    $script:discoverySkipped = $true
-    $script:currentBlock = $script:root = New-BlockObject -Name "Block"
-    $script:filter = $null
+    $script:state.Root = $null
+    $script:state.Discovery = $false
+    $script:state.CurrentBlock = $script:state.Root = New-BlockObject -Name "Block"
+    $script:state.Filter = $null
     Reset-Scope
 }
 
@@ -59,12 +57,11 @@ function Find-Test {
         [ScriptBlock] $ScriptBlock
     )
     v "Starting test discovery."
-    $script:discovery = $true
-    $script:discoverySkipped = $false
+    $script:state.Discovery = $true
 
     & $ScriptBlock
 
-    $script:root
+    $script:state.Root
     v "Test discovery finished."
 }
 
@@ -284,7 +281,7 @@ function New-OneTimeBlockTeardown {
 function Get-CurrentBlock {
     [CmdletBinding()]
     param ( )
-    $script:currentBlock
+    $script:state.CurrentBlock
 }
 
 function Set-CurrentBlock {
@@ -294,7 +291,7 @@ function Set-CurrentBlock {
         $Block
     )
 
-    $script:currentBlock = $Block
+    $script:state.CurrentBlock = $Block
 }
 
 function Add-Test {
@@ -385,7 +382,7 @@ function Add-Block {
 }
 
 function Is-Discovery {
-    $script:discovery
+    $script:state.Discovery
 }
 
 # test invocation
@@ -396,10 +393,10 @@ function Start-Test {
         [ScriptBlock] $ScriptBlock
     )
 
-    $script:discovery = $false
+    $script:state.Discovery = $false
     # do we want this output?
     $null = & $ScriptBlock
-    $script:root
+    $script:state.Root
 }
 
 function Invoke-ScriptBlock {
@@ -605,7 +602,7 @@ function Set-Filter {
         $Filter
     )
 
-    $script:filter = $Filter
+    $script:state.Filter = $Filter
 }
 
 function Test-ShouldRun {
@@ -690,8 +687,8 @@ function Invoke-Test {
     }
     $found = Find-Test $ScriptBlock
 
-    $script:currentBlock = $script:root
-    PostProcess-Test $script:root
+    $script:state.CurrentBlock = $script:state.Root
+    PostProcess-Test $script:state.Root
 
     $result = Start-Test $ScriptBlock
     $result
@@ -708,7 +705,7 @@ function PostProcess-Test {
     $blockShouldRun = $false
     if (any $tests) {
         foreach ($t in $tests) {
-            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $script:filter
+            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $script:state.Filter
         }
 
         $testsToRun = $tests | where { $_.ShouldRun }
@@ -906,14 +903,14 @@ function none ($InputObject) {
 
 # $script:beforeAlls = @{}
 # $script:beforeEaches = @{}
-# $script:Discovery = $true
+# $script:state.Discovery = $true
 
 # function d {
 #     param(
 #         [String] $Name,
 #         [ScriptBlock] $Block
 #     )
-#     if ($script:Discovery) {
+#     if ($script:state.Discovery) {
 #         Write-Host "Found block $Name" -ForegroundColor Cyan
 #         & $Block
 #     }
@@ -934,7 +931,7 @@ function none ($InputObject) {
 #         [ScriptBlock] $Block
 #     )
 
-#     if ($script:Discovery) {
+#     if ($script:state.Discovery) {
 #         $script:beforeAlls[$Name] = $Block
 #     }
 # }
@@ -944,7 +941,7 @@ function none ($InputObject) {
 #         [ScriptBlock] $Block
 #     )
 
-#     if ($script:Discovery) {
+#     if ($script:state.Discovery) {
 #         $script:beforeEaches[$Name] = $Block
 #     }
 # }
@@ -954,7 +951,7 @@ function none ($InputObject) {
 #         [String] $Name,
 #         [ScriptBlock] $Test
 #     )
-#     if ($script:Discovery) {
+#     if ($script:state.Discovery) {
 #         Write-Host "Found test $Name" -ForegroundColor Cyan
 #     }
 #     else {
@@ -971,13 +968,13 @@ function none ($InputObject) {
 #         [ScriptBlock] $Suite
 #     )
 
-#     $script:Discovery = $true
+#     $script:state.Discovery = $true
 
 #     & {
 #         param ($phase)
 #         . $Suite
 #         # this variable should go away somehog
-#         $script:Discovery = $false
+#         $script:state.Discovery = $false
 #         & $Suite
 #     }
 # }
@@ -987,7 +984,7 @@ function none ($InputObject) {
 #         [ScriptBlock]
 #         $Work
 #     )
-#     if ($script:Discovery)
+#     if ($script:state.Discovery)
 #     {
 #         Write-Host "Skipping this piece of code { $($Work.ToString().Trim()) }, because we are Found tests." -ForegroundColor Yellow
 #     }
@@ -1006,7 +1003,7 @@ function none ($InputObject) {
 #         [string]
 #         $Path
 #     )
-#     if ($script:Discovery)
+#     if ($script:state.Discovery)
 #     {
 #         if (-not (Test-Path $Path)) {
 #             throw "Test dependency path does not exist"
@@ -1028,7 +1025,7 @@ function none ($InputObject) {
 #         [string]
 #         $Path
 #     )
-#     if ($script:Discovery)
+#     if ($script:state.Discovery)
 #     {
 #         {}
 #     }
