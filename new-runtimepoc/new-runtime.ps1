@@ -140,7 +140,7 @@ b "Finding blocks" {
 b "Executing tests" {
     t "Executes 1 test" {
         Reset-TestSuite 
-        $actual = Start-Test {
+        $actual = Invoke-Test {
             New-Test "test1" { "a" }
         }
 
@@ -152,7 +152,7 @@ b "Executing tests" {
 
     t "Executes 2 tests next to each other" {
         Reset-TestSuite 
-        $actual = Start-Test {
+        $actual = Invoke-Test {
             New-Test "test1" { "a" }
             New-Test "test2" { "b" }
         }
@@ -170,7 +170,7 @@ b "Executing tests" {
 
     t "Executes 2 tests in blocks next to each other" {
         Reset-TestSuite 
-        $actual = Start-Test {
+        $actual = Invoke-Test {
             New-Block "block1" {
                 New-Test "test1" { "a" }
             } 
@@ -194,7 +194,7 @@ b "Executing tests" {
 
     t "Executes 2 tests deeper in blocks" {
         Reset-TestSuite 
-        $actual = Start-Test {
+        $actual = Invoke-Test {
             New-Block "block1" {
                 New-Test "test1" { "a" }
                     New-Block "block2" {
@@ -359,7 +359,7 @@ b "executing each setup & teardown on test" {
                     $g = 'each teardown'
                 }
                 New-OneTimeTestTeardown {
-                    if ($g -eq 'each teardown') { "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so tests are isolated from each other." }
+                    if ($g -eq 'each teardown') { throw "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so tests are isolated from each other." }
                     if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
                     $g
                 }
@@ -512,7 +512,7 @@ b "executing all test and teardown" {
         $container.OneTimeSetup | Verify-Equal 1
         $container.EachSetup | Verify-Equal 2
         $container.EachTeardown | Verify-Equal 2
-        $container.OneTimeTeardown | Verify-1
+        $container.OneTimeTeardown | Verify-Equal 1
 
     }
 }
