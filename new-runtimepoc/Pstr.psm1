@@ -51,7 +51,7 @@ function v {
         [String] $Message
     )
 
-    Write-Host -ForegroundColor Blue $Message
+    # Write-Host -ForegroundColor Blue $Message
 }
 
 function Find-Test {
@@ -126,17 +126,20 @@ function New-Block {
                     $previousBlock.EachBlockSetup
                 ) ) `
                 -Teardown ( combineNonNull @(
-                    $script:state.Plugin | tryGetProperty EachBlockTeardown
                     $previousBlock.EachBlockTeardown
+                    $script:state.Plugin | tryGetProperty EachBlockTeardown
                 ) ) `
                 -OuterTeardown (
                     combineNonNull @(
-                        $script:state.Plugin | tryGetProperty OneTimeBlockTeardown
                         $previousBlock.OneTimeBlockTeardown
-                ) )
+                        $script:state.Plugin | tryGetProperty OneTimeBlockTeardown
+                ) ) `
+                -Context @{
+                    Context = $block | Select -Property Name
+                }
 
             $block.Executed = $true
-            $block.Passed = 0 -eq $result.ErrorRecord.Length
+            $block.Passed = $result.Success
             $block.StandardOutput = $result.StandardOutput
 
             $block.ErrorRecord = $result.ErrorRecord
@@ -183,44 +186,51 @@ function New-Test {
             $block = Get-CurrentBlock
 
             v "Running test '$Name'."
-
-
-            # invokes the body of the test
-            $result = Invoke-ScriptBlock `
+            $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                    if ($test.First) {
-                        combineNonNull @(
-                            $script:state.Plugin.OneTimeTestSetup
-                            $block.OneTimeTestSetup
-                        )
-                    }
+                    if ($test.First) { $script:state.Plugin.OneTimeTestSetup | hasValue }
                 ) `
-                -Setup @( combineNonNull @(
-                    $script:state.Plugin.EachTestSetup
-                    $block.EachTestSetup | hasValue 
-                ) ) `
-                -ScriptBlock $ScriptBlock `
-                -Teardown @( combineNonNull @(
-                    $script:state.Plugin.EachTestTeardown
-                    $block.EachTestTeardown  
-                ) ) `
-                -OuterTeardown @( 
-                    if ($test.Last) {
-                        combineNonNull @(
-                            $script:state.Plugin.OneTimeTestTeardown
-                            $block.OneTimeTestTeardown 
-                            )
+                -Setup @( $script:state.Plugin.EachTestSetup | hasValue ) `
+                -ScriptBlock {} `
+                -Context @{
+                    Context = $Test | Select -Property Name, Path
+                }
+
+            if ($frameworkSetupResult.Success) {
+                # invokes the body of the test
+                $result = Invoke-ScriptBlock `
+                    -OuterSetup @(
+                        if ($test.First) { $block.OneTimeTestSetup | hasValue }
+                    ) `
+                    -Setup @( $block.EachTestSetup | hasValue ) `
+                    -ScriptBlock $ScriptBlock `
+                    -Teardown @( $block.EachTestTeardown | hasValue ) `
+                    -OuterTeardown @(
+                        if ($test.Last) { $block.OneTimeTestTeardown | hasValue }
+                    ) `
+                    -Context @{
+                        Context = $Test | Select -Property Name, Path
                     }
-                )
 
+                $test.Executed = $true
+                $test.Passed = $result.Success
+                $test.StandardOutput = $result.StandardOutput
+                $test.ErrorRecord = $result.ErrorRecord
+            }
 
+            $frameworkTeardownResult = Invoke-ScriptBlock `
+                -ScriptBlock {} `
+                -Teardown @( $script:state.Plugin.EachTestTeardown | hasValue ) `
+                -OuterTeardown @(
+                    if ($test.Last) { $script:state.Plugin.OneTimeTestTeardown | hasValue }
+                ) `
+                -Context @{
+                    Context = $Test | Select -Property Name, Path, Passed, ErrorRecord
+                }
 
-            $test.Executed = $true
-            $test.Passed = 0 -eq $result.ErrorRecord.Length
-
-            $test.StandardOutput = $result.StandardOutput
-
-            $test.ErrorRecord = $result.ErrorRecord
+            if (-not $frameworkTeardownResult.Success -or -not $frameworkTeardownResult.Success) {
+                throw "framework error"
+            }
         }
     }
     finally {
@@ -445,14 +455,15 @@ function Invoke-ScriptBlock {
         [ScriptBlock[]] $OuterSetup,
         [ScriptBlock[]] $Setup,
         [ScriptBlock[]] $Teardown,
-        [ScriptBlock[]] $OuterTeardown
+        [ScriptBlock[]] $OuterTeardown,
+        $Context = @{},
         # # setup, body and teardown will all run (be-dotsourced into)
         # # the same scope
         # [Switch] $SameScope,
         # will dot-source the wrapper scriptblock instead of invoking it
         # so in combination with the SameScope switch we are effectively
         # running the code in the current scope
-        # [Switch] $NoNewScope
+        [Switch] $NoNewScope
     )
 
     # this is what the code below does
@@ -477,14 +488,14 @@ function Invoke-ScriptBlock {
     $scriptBlockWithContext = {
         # THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______context)
-
+        $______splat = $______context.Parameters
         try {
             if ($null -ne $______context.OuterSetup -and $______context.OuterSetup.Length -gt 0) {
                 &$______context.WriteDebug "Running outer setups"
                 foreach ($______current in $______context.OuterSetup) {
                     &$______context.WriteDebug "Running outer setup { $______current }"
                     $______context.CurrentlyExecutingScriptBlock = $______current
-                    . $______current
+                    . $______current @______splat
                 }
                 &$______context.WriteDebug "Done running outer setups"
             }
@@ -500,7 +511,7 @@ function Invoke-ScriptBlock {
                         foreach ($______current in $______context.Setup) {
                             &$______context.WriteDebug "Running inner setup { $______current }"
                             $______context.CurrentlyExecutingScriptBlock = $______current
-                            . $______current
+                            . $______current @______splat
                         }
                         &$______context.WriteDebug "Done running inner setups"
                     }
@@ -509,7 +520,7 @@ function Invoke-ScriptBlock {
                     }
 
                     &$______context.WriteDebug "Running scriptblock"
-                    . $______context.ScriptBlock
+                    . $______context.ScriptBlock @______splat
                     &$______context.WriteDebug "Done running scriptblock"
                 }
                 catch {
@@ -523,7 +534,7 @@ function Invoke-ScriptBlock {
                             try {
                                 &$______context.WriteDebug "Running inner teardown { $______current }"
                                 $______context.CurrentlyExecutingScriptBlock = $______current
-                                . $______current
+                                . $______current @______splat
                                 &$______context.WriteDebug "Done running inner teardown"
                             }
                             catch {
@@ -547,7 +558,7 @@ function Invoke-ScriptBlock {
                     try {
                         &$______context.WriteDebug "Running outer teardown { $______current }"
                         $______context.CurrentlyExecutingScriptBlock = $______current
-                        . $______current
+                        . $______current @______splat
                         &$______context.WriteDebug "Done running outer teardown"
                     }
                     catch {
@@ -584,7 +595,8 @@ function Invoke-ScriptBlock {
                 SameScope = $SameScope
                 CurrentlyExecutingScriptBlock = $null
                 ErrorRecord = @()
-                WriteDebug = { param($Message )  Write-Host -ForegroundColor Magenta $Message }
+                Parameters = $Context
+                WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Magenta $Message }
             }
             $standardOutput = if ($NoNewScope) {
                     . $scriptBlockWithContext $context

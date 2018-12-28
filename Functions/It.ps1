@@ -118,7 +118,10 @@ about_should
         [Switch] $Skip
     )
 
-    ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
+    if (-not $InvokedByInvokePester) {
+        pstr\New-Test -Name $Name -ScriptBlock $Test
+    }
+    # ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
 }
 
 function ItImpl

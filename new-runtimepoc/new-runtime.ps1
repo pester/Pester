@@ -4,7 +4,7 @@ Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 
 Get-Module Pstr, P, Pester, Axiom, Stack | Remove-Module
-Import-Module Pester -MinimumVersion 4.4.3
+# Import-Module Pester -MinimumVersion 4.4.3
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\Pstr.psm1 -DisableNameChecking
@@ -748,6 +748,35 @@ b "plugins" {
 
         $container.EachBlockTeardown | Verify-Equal 2
         # $container.OneTimeBlockTeardown | Verify-Equal 1
+    }
+
+    t "Plugin has access to test info" {
+        $container = [PSCustomObject]@{
+            Context = $null
+        }
+        $p = New-PluginObject -Name "readContext" `
+            -EachTestTeardown { param($context) $container.Context = $context }
+
+        $null = Invoke-Test -ScriptBlock { 
+            New-Test "test1" {}
+        } -Plugin $p
+
+        $container.Context.Name | Verify-Equal "test1"
+        $container.Context.Passed | Verify-True
+    }
+
+    t "Plugin has access to block info" {
+        
+        $p = New-PluginObject -Name "readContext" `
+            -EachBlockSetup { param($context) $context.Name }
+
+        $actual = Invoke-Test -ScriptBlock { 
+            New-Block -Name "block1" {
+                New-Test "test1" {}
+            }
+        } -Plugin $p
+
+        $actual.Blocks[0].StandardOutput | Verify-Equal "block1"
     }
 }
 
