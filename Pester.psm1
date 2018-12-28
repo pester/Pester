@@ -1,4 +1,6 @@
-﻿if ($PSVersionTable.PSVersion.Major -ge 3)
+﻿Get-Module pstr | Remove-module ; Import-Module $PSScriptRoot\new-runtimepoc\Pstr.psm1 -DisableNameChecking
+
+if ($PSVersionTable.PSVersion.Major -ge 3)
 {
     $script:IgnoreErrorPreference = 'Ignore'
     $outNullModule = 'Microsoft.PowerShell.Core'

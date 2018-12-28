@@ -3,7 +3,10 @@ $script:state = [PSCustomObject]@{
     CurrentBlock = $null
     Discovery = $false
     Filter = $null
+    Plugin = $null
 }
+
+Get-Module Scope | Remove-module ; Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 
 # resets the module state to the default
 function Reset-TestSuite {
@@ -12,6 +15,7 @@ function Reset-TestSuite {
     $script:state.Discovery = $false
     $script:state.CurrentBlock = $script:state.Root = New-BlockObject -Name "Block"
     $script:state.Filter = $null
+    $script:state.Plugin = $null
     Reset-Scope
 }
 
@@ -110,12 +114,26 @@ function New-Block {
             }
             v "Executing body of block $Name"
 
+
             $result = Invoke-ScriptBlock `
                 -ScriptBlock $ScriptBlock `
-                -OuterSetup  @( $previousBlock.OneTimeBlockSetup | hasValue )`
-                -Setup @( $previousBlock.EachBlockSetup | hasValue ) `
-                -Teardown @( $previousBlock.EachBlockTeardown | hasValue ) `
-                -OuterTeardown @( $previousBlock.OneTimeBlockTeardown | hasValue )
+                -OuterSetup ( combineNonNull @(
+                        $script:state.Plugin | tryGetProperty OneTimeBlockSetup
+                        $previousBlock.OneTimeBlockSetup
+                ) ) `
+                -Setup ( combineNonNull @(
+                    $script:state.Plugin | tryGetProperty EachBlockSetup
+                    $previousBlock.EachBlockSetup
+                ) ) `
+                -Teardown ( combineNonNull @(
+                    $script:state.Plugin | tryGetProperty EachBlockTeardown
+                    $previousBlock.EachBlockTeardown
+                ) ) `
+                -OuterTeardown (
+                    combineNonNull @(
+                        $script:state.Plugin | tryGetProperty OneTimeBlockTeardown
+                        $previousBlock.OneTimeBlockTeardown
+                ) )
 
             $block.Executed = $true
             $block.Passed = 0 -eq $result.ErrorRecord.Length
@@ -169,11 +187,31 @@ function New-Test {
 
             # invokes the body of the test
             $result = Invoke-ScriptBlock `
-                -OuterSetup @( $block.OneTimeTestSetup | where { $test.First } | hasValue ) `
-                -Setup @( $block.EachTestSetup | hasValue ) `
+                -OuterSetup @(
+                    if ($test.First) {
+                        combineNonNull @(
+                            $script:state.Plugin.OneTimeTestSetup
+                            $block.OneTimeTestSetup
+                        )
+                    }
+                ) `
+                -Setup @( combineNonNull @(
+                    $script:state.Plugin.EachTestSetup
+                    $block.EachTestSetup | hasValue 
+                ) ) `
                 -ScriptBlock $ScriptBlock `
-                -Teardown @( $block.EachTestTeardown | hasValue ) `
-                -OuterTeardown @( $block.OneTimeTestTeardown | where { $test.Last } | hasValue )
+                -Teardown @( combineNonNull @(
+                    $script:state.Plugin.EachTestTeardown
+                    $block.EachTestTeardown  
+                ) ) `
+                -OuterTeardown @( 
+                    if ($test.Last) {
+                        combineNonNull @(
+                            $script:state.Plugin.OneTimeTestTeardown
+                            $block.OneTimeTestTeardown 
+                            )
+                    }
+                )
 
 
 
@@ -609,7 +647,7 @@ function Test-ShouldRun {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        $Test, 
+        $Test,
         $Filter
     )
     $fullTestPath = $Test.Path -join "."
@@ -678,10 +716,12 @@ function Invoke-Test {
     param (
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock,
-        $Filter
+        $Filter,
+        $Plugin
     )
 
     Reset-TestSuite
+    $script:state.Plugin = $Plugin
     if ($filter) {
         Set-Filter $filter
     }
@@ -809,6 +849,34 @@ function New-FilterObject {
     }
 }
 
+function New-PluginObject {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [String] $Name,
+        [ScriptBlock] $OneTimeBlockSetup,
+        [ScriptBlock] $EachBlockSetup,
+        [ScriptBlock] $OneTimeTestSetup,
+        [ScriptBlock] $EachTestSetup,
+        [ScriptBlock] $EachTestTeardown,
+        [ScriptBlock] $OneTimeTestTeardown,
+        [ScriptBlock] $EachBlockTeardown,
+        [ScriptBlock] $OneTimeBlockTeardown
+    )
+
+    New-PSObject -Type "Plugin" @{
+        OneTimeBlockSetup = $OneTimeBlockSetup
+        EachBlockSetup = $EachBlockSetup
+        OneTimeTestSetup = $OneTimeTestSetup
+        EachTestSetup = $EachTestSetup
+        EachTestTeardown = $EachTestTeardown
+        OneTimeTestTeardown = $OneTimeTestTeardown
+        EachBlockTeardown = $EachBlockTeardown
+        OneTimeBlockTeardown = $OneTimeBlockTeardown
+    }
+}
+
+
 function or {
     [CmdletBinding()]
     param (
@@ -825,6 +893,9 @@ function or {
         $DefaultValue
     }
 }
+
+
+
 
 # looks for a property on object that might be null
 function tryGetProperty {

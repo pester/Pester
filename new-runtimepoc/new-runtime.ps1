@@ -609,18 +609,18 @@ b "Block teardown and setup" {
             }
 
             New-Block 'no test block' {
-                
+
             }
 
             New-Block 'no running tests' {
                 New-Test "do not run test" -Tag "DoNotRun" {}
             }
 
-            New-EachBlockTeardown { 
-                $container.EachBlockTeardown1++ 
+            New-EachBlockTeardown {
+                $container.EachBlockTeardown1++
             }
-            New-OneTimeBlockTeardown { 
-                $container.OneTimeBlockTeardown1++ 
+            New-OneTimeBlockTeardown {
+                $container.OneTimeBlockTeardown1++
             }
         } -Filter (New-FilterObject -ExcludeTag DoNotRun)
 
@@ -650,7 +650,7 @@ b "filtering" {
     }
 
     t "Given a test without tags it includes it when it does not match exclude filter " {
-        $t = New-TestObject -Name "test1" -Path "p" 
+        $t = New-TestObject -Name "test1" -Path "p"
 
         $f = New-FilterObject -ExcludeTag "a"
 
@@ -677,7 +677,7 @@ b "filtering" {
     }
 
     t "Given a test without tags it excludes it when it does not match any other filter" {
-        $t = New-TestObject -Name "test1" -Path "p" 
+        $t = New-TestObject -Name "test1" -Path "p"
 
         $f = New-FilterObject -Tag "a"
 
@@ -686,7 +686,7 @@ b "filtering" {
     }
 
     t "Given a test without tags it include it when it matches path filter" {
-        $t = New-TestObject -Name "test1" -Path "p" 
+        $t = New-TestObject -Name "test1" -Path "p"
 
         $f = New-FilterObject -Tag "a" -Path "p"
 
@@ -701,6 +701,53 @@ b "filtering" {
 
         $actual = Test-ShouldRun -Test $t -Filter $f
         $actual | Verify-True
+    }
+}
+
+b "plugins" {
+    t "Given a plugin it is used in the run" {
+        $container = [PSCustomObject] @{
+            OneTimeBlockSetup = 0
+            EachBlockSetup = 0
+            OneTimeTestSetup = 0
+            EachTestSetup = 0
+            EachTestTeardown = 0
+            OneTimeTestTeardown = 0
+            EachBlockTeardown = 0
+            OneTimeBlockTeardown = 0
+        }
+        $p = New-PluginObject -Name "CountCalls" `
+            -OneTimeBlockSetup { $container.OneTimeBlockSetup++ } `
+            -EachBlockSetup { $container.EachBlockSetup++ } `
+            -OneTimeTestSetup { $container.OneTimeTestSetup++ } `
+            -EachTestSetup { $container.EachTestSetup++ } `
+            -EachTestTeardown { $container.EachTestTeardown++ } `
+            -OneTimeTestTeardown { $container.OneTimeTestTeardown++ } `
+            -EachBlockTeardown { $container.EachBlockTeardown++ } `
+            -OneTimeBlockTeardown { $container.OneTimeBlockTeardown++ }
+
+        $null = Invoke-Test -ScriptBlock { 
+            New-Block 'block1' {
+                New-Test "test1" {}
+                New-Test "test2" {}
+            }
+
+            New-Block 'block2' {
+                New-Test "test3" {}
+            }
+        } -Plugin $p
+
+        # $container.OneTimeBlockSetup | Verify-Equal 1
+        $container.EachBlockSetup | Verify-Equal 2
+
+        $container.OneTimeTestSetup | Verify-Equal 2
+        $container.EachTestSetup | Verify-Equal 3
+
+        $container.EachTestTeardown | Verify-Equal 3
+        $container.OneTimeTestTeardown | Verify-Equal 2
+
+        $container.EachBlockTeardown | Verify-Equal 2
+        # $container.OneTimeBlockTeardown | Verify-Equal 1
     }
 }
 
