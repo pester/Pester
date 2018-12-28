@@ -183,8 +183,6 @@ function New-Test {
             $test.StandardOutput = $result.StandardOutput
 
             $test.ErrorRecord = $result.ErrorRecord
-
-            if (-not $result.Success) { Write-Host -ForegroundColor Red "Test $Name failed with $($result.ErrorRecord.Exception | Out-String)"}
         }
     }
     finally {

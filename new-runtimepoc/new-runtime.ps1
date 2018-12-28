@@ -12,6 +12,34 @@ Import-Module $PSScriptRoot\Pstr.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
+function Verify-TestPassed { 
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)] 
+        $Actual,
+        $StandardOutput
+    )
+
+    if (-not $Actual.Passed) {
+        throw "Test $($actual.Name) failed with $($actual.ErrorRecord.Count) errors: `n$($actual.ErrorRecord | Format-List -Force *  | Out-String)"
+    }
+
+    if ($StandardOutput -ne $actual.StandardOutput) {
+        throw "Expected standard output '$StandardOutput' but got '$($actual.StandardOutput)'."
+    }
+}
+
+function Verify-TestFailed { 
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)] 
+        $Actual
+    )
+
+    if ($Actual.Passed) {
+        throw "Test $($actual.Name) passed but it should have failed."
+    }
+}
+
+
 
 
 Set-StrictMode -Version Latest
