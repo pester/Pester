@@ -84,8 +84,9 @@ InModuleScope Pester {
                 $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
             }
 
-            it "times test group accurately within 200 milliseconds" {
-                $p.EnterTestGroup()
+            it "times test group accurately within 10 milliseconds" {
+                $TotalTimeStart = $p.time;
+                $p.EnterTestGroup('My Test Group', 'Script')
                 $Time = Measure-Command -Expression {
                     # Sleeping to simulate setup time
                     Start-Sleep -Milliseconds 100
@@ -97,9 +98,10 @@ InModuleScope Pester {
                     # Sleeping to simulate teardown time
                     Start-Sleep -Milliseconds 100
                 }
-                $p.LeaveTestGroup()
-                $p.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-200)
-                $p.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+200)
+                $p.LeaveTestGroup('My Test Group', 'Script')
+                $TimeRecorded = $p.time - $TotalTimeStart
+                $TimeRecorded.Milliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
+                $TimeRecorded.Milliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
             }
 
             it "adds passed test" {

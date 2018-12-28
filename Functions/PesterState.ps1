@@ -112,18 +112,25 @@ function New-PesterState
         {
             $newGroup = New-TestGroup @PSBoundParameters
             $null = $script:TestGroupStack.Peek().Actions.Add($newGroup)
-            $script:TestGroupStartTime = $script:Stopwatch.Elapsed
+
+            if( $Hint -eq 'Script' ) {
+                $script:TestGroupStartTime = $script:Stopwatch.Elapsed
+            }
+            
             $script:TestGroupStack.Push($newGroup)
         }
 
         function LeaveTestGroup([string] $Name, [string] $Hint)
         {
             $currentGroup = $script:TestGroupStack.Pop()
-            $script:TestGroupStopTime = $script:Stopwatch.Elapsed
-            if ( $script:TestGroupStartTime ) {
-                $script:Time += $script:TestGroupStopTime - $script:TestGroupStartTime
-                $script:TestGroupStartTime = $null
-                $script:TestGroupStopTime = [timespan]0
+            
+            if( $Hint -eq 'Script' ) {
+                $script:TestGroupStopTime = $script:Stopwatch.Elapsed
+                if ( $script:TestGroupStartTime ) {
+                    $script:Time += $script:TestGroupStopTime - $script:TestGroupStartTime
+                    $script:TestGroupStartTime = $null
+                    $script:TestGroupStopTime = [timespan]0
+                }
             }
 
             if ($currentGroup.Name -ne $Name -or $currentGroup.Hint -ne $Hint)
