@@ -123,7 +123,15 @@
           <tr>
             <th>Operating system:</th>
             <td class="left">
-              <xsl:value-of select="substring-before(environment/@platform,'|')"/>
+            <xsl:variable name="operatingSystemShort" select="substring-before(environment/@platform,'|')" />
+            <xsl:choose>
+                <xsl:when test="$operatingSystemShort != ''">
+                    <xsl:value-of select="$operatingSystem"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="environment/@platform"/>
+                </xsl:otherwise>
+            </xsl:choose>
             </td>
           </tr>
           <tr>
