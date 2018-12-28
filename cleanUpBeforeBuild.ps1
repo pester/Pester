@@ -20,9 +20,9 @@ if (Test-Path "$PSScriptRoot\Examples") {
     Remove-Item "$PSScriptRoot\Examples" -Recurse -Force -Confirm:$false -Verbose -ErrorAction 'Stop'
 }
 
-if (Test-Path "$PSScriptRoot\doc") {
-    Write-Verbose "Removing docs"
-    Remove-Item "$PSScriptRoot\doc" -Recurse -Force -Confirm:$false -Verbose -ErrorAction 'Stop'
+if (Test-Path "$PSScriptRoot\images") {
+    Write-Verbose "Removing images"
+    Remove-Item "$PSScriptRoot\images" -Recurse -Force -Confirm:$false -Verbose -ErrorAction 'Stop'
 }
 
 if (Test-Path "$PSScriptRoot\Functions\TestUtilities") {
