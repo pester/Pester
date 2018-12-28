@@ -470,7 +470,8 @@ function Invoke-GherkinFeature {
         continue
     }
 
-    $Pester.EnterTestGroup($FeatureFile.FullName, 'Script')
+    # To create a more user-friendly test report, we use the feature name for the test group
+    $Pester.EnterTestGroup($Feature.Name, 'Script')
 
     $null = $Pester.Features.Add($Feature)
     Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
@@ -518,7 +519,7 @@ function Invoke-GherkinFeature {
 
     Invoke-GherkinHook AfterEachFeature $Feature.Name $Feature.Tags
 
-    $Pester.LeaveTestGroup($FeatureFile.FullName, 'Script')
+    $Pester.LeaveTestGroup($Feature.Name, 'Script')
 
 }
 

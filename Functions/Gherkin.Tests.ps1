@@ -309,9 +309,6 @@ Describe "A generated NUnit report" -Tag Gherkin {
         return (Get-XmlNode $xPath).Count
     }
 
-    $expectedFeatureFileName1 = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting1.feature)
-    $expectedFeatureFileName2 = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting2.feature)
-
     $featuresXPath = "/test-results/test-suite/results/test-suite"
     $feature1ScenariosXPath = "$featuresXPath[1]/results/test-suite"
     $feature2ScenariosXPath = "$featuresXPath[2]/results/test-suite"
@@ -322,11 +319,11 @@ Describe "A generated NUnit report" -Tag Gherkin {
     }
 
     It 'should contain feature 1' {
-        Get-XmlValue "$featuresXPath[1]/@name" | Should -Be $expectedFeatureFileName1
+        Get-XmlValue "$featuresXPath[1]/@name" | Should -Be 'A test feature for reporting 1'
     }
 
     It 'should contain feature 2' {
-        Get-XmlValue "$featuresXPath[2]/@name" | Should -Be $expectedFeatureFileName2
+        Get-XmlValue "$featuresXPath[2]/@name" | Should -Be 'A test feature for reporting 2'
     }
 
     It 'should contain all scenarios of feature 1 with correct names and test results' {
