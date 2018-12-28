@@ -80,8 +80,8 @@ InModuleScope Pester {
                 $p.LeaveTest()
                 $p.AddTestResult("result","Passed",$null)
                 $result = $p.TestResult[-1]
-                [int]($result.time.TotalMilliseconds) | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
-                [int]($result.time.TotalMilliseconds) | Should -BeLessOrEqual ($Time.Milliseconds+10)
+                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
+                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
             }
 
             it "times test group accurately within 200 milliseconds" {
@@ -98,8 +98,8 @@ InModuleScope Pester {
                     Start-Sleep -Milliseconds 100
                 }
                 $p.LeaveTestGroup()
-                [int]($p.time.TotalMilliseconds) | Should -BeGreaterOrEqual ($Time.Milliseconds-200)
-                [int]($p.time.TotalMilliseconds) | Should -BeLessOrEqual ($Time.Milliseconds+200)
+                $p.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-200)
+                $p.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+200)
             }
 
             it "adds passed test" {
