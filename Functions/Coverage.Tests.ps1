@@ -33,7 +33,26 @@ InModuleScope Pester {
                 'I am function two.  I never get called.'
             }
 
+            class MyClass
+            {
+                MyClass()
+                {
+                    'I am the constructor.'
+                }
+
+                MethodOne()
+                {
+                    'I am method one.'
+                }
+
+                hidden static MethodTwo()
+                {
+                    'I am method two. I never get called.'
+                }
+            }
+
             FunctionOne
+            [MyClass]::new().MethodOne()
 
 '@
 
@@ -53,7 +72,7 @@ InModuleScope Pester {
             Enter-CoverageAnalysis -CodeCoverage "$(Join-Path -Path $root -ChildPath TestScript.ps1)", "$(Join-Path -Path $root -ChildPath TestScript.ps1)", "$(Join-Path -Path $root -ChildPath TestScript2.ps1)" -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should -Be 12
+                $testState.CommandCoverage.Count | Should -Be 16
             }
 
             $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
@@ -61,11 +80,11 @@ InModuleScope Pester {
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 10
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 13
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 12
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 16
             }
 
             It 'Reports the proper number of analyzed files' {
@@ -73,20 +92,34 @@ InModuleScope Pester {
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 2
+                $coverageReport.MissedCommands.Count | Should -Be 3
             }
 
             It 'Reports the correct missed command' {
                 $coverageReport.MissedCommands[0].Command | Should -Be "'I cannot get called.'"
                 $coverageReport.MissedCommands[1].Command | Should -Be "'I am function two.  I never get called.'"
+                $coverageReport.MissedCommands[2].Command | Should -Be "'I am method two. I never get called.'"
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 10
+                $coverageReport.HitCommands.Count | Should -Be 13
             }
 
             It 'Reports the correct hit command' {
                 $coverageReport.HitCommands[0].Command | Should -Be "'I am the nested function.'"
+            }
+
+            It 'Reports the correct class names' {
+                $coverageReport.HitCommands[0].Class | Should -BeNullOrEmpty
+                $coverageReport.HitCommands[8].Class | Should -Be 'MyClass'
+                $coverageReport.MissedCommands[2].Class | Should -Be 'MyClass'
+            }
+
+            It 'Reports the correct function names' {
+                $coverageReport.HitCommands[0].Function | Should -Be 'NestedFunction'
+                $coverageReport.HitCommands[2].Function | Should -Be 'FunctionOne'
+                $coverageReport.HitCommands[8].Function | Should -Be 'MyClass'
+                $coverageReport.MissedCommands[2].Function | Should -Be 'MethodTwo'
             }
 
             It 'JaCoCo report must be correct'{
@@ -96,7 +129,7 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
                 $jaCoCoReportXml = $jaCoCoReportXml.Replace($root.Replace('\', '/'), '')
-                $jaCoCoReportXml | should -be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><package name="PowerShell"><class name="TestScript.ps1" sourcefilename="/TestScript.ps1"><method name="NestedFunction" desc="()" line="5"><counter type="INSTRUCTION" missed="0" covered="2" /><counter type="LINE" missed="0" covered="2" /><counter type="METHOD" missed="0" covered="1" /></method><method name="FunctionOne" desc="()" line="9"><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="0" covered="5" /><counter type="METHOD" missed="0" covered="1" /></method><method name="FunctionTwo" desc="()" line="22"><counter type="INSTRUCTION" missed="1" covered="0" /><counter type="LINE" missed="1" covered="0" /><counter type="METHOD" missed="1" covered="0" /></method><method name="&lt;script&gt;" desc="()" line="25"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><counter type="INSTRUCTION" missed="2" covered="9" /><counter type="LINE" missed="1" covered="8" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></class><class name="TestScript2.ps1" sourcefilename="/TestScript2.ps1"><method name="&lt;script&gt;" desc="()" line="1"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /><counter type="CLASS" missed="0" covered="1" /></class><sourcefile name="/TestScript.ps1"><line nr="5" mi="0" ci="1" /><line nr="6" mi="0" ci="1" /><line nr="9" mi="0" ci="1" /><line nr="11" mi="0" ci="1" /><line nr="12" mi="0" ci="1" /><line nr="15" mi="1" ci="1" /><line nr="17" mi="0" ci="2" /><line nr="22" mi="1" ci="0" /><line nr="25" mi="0" ci="1" /><counter type="INSTRUCTION" missed="2" covered="9" /><counter type="LINE" missed="1" covered="8" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></sourcefile><sourcefile name="/TestScript2.ps1"><line nr="1" mi="0" ci="1" /><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /><counter type="CLASS" missed="0" covered="1" /></sourcefile><counter type="INSTRUCTION" missed="2" covered="10" /><counter type="LINE" missed="1" covered="9" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></package><counter type="INSTRUCTION" missed="2" covered="10" /><counter type="LINE" missed="1" covered="9" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></report>'
+                $jaCoCoReportXml | should -be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><package name="PowerShell"><class name="TestScript.ps1" sourcefilename="/TestScript.ps1"><method name="NestedFunction" desc="()" line="5"><counter type="INSTRUCTION" missed="0" covered="2" /><counter type="LINE" missed="0" covered="2" /><counter type="METHOD" missed="0" covered="1" /></method><method name="FunctionOne" desc="()" line="9"><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="0" covered="5" /><counter type="METHOD" missed="0" covered="1" /></method><method name="FunctionTwo" desc="()" line="22"><counter type="INSTRUCTION" missed="1" covered="0" /><counter type="LINE" missed="1" covered="0" /><counter type="METHOD" missed="1" covered="0" /></method><method name="MyClass" desc="()" line="29"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><method name="MethodOne" desc="()" line="34"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><method name="MethodTwo" desc="()" line="39"><counter type="INSTRUCTION" missed="1" covered="0" /><counter type="LINE" missed="1" covered="0" /><counter type="METHOD" missed="1" covered="0" /></method><method name="&lt;script&gt;" desc="()" line="43"><counter type="INSTRUCTION" missed="0" covered="2" /><counter type="LINE" missed="0" covered="2" /><counter type="METHOD" missed="0" covered="1" /></method><counter type="INSTRUCTION" missed="3" covered="12" /><counter type="LINE" missed="2" covered="11" /><counter type="METHOD" missed="2" covered="5" /><counter type="CLASS" missed="0" covered="1" /></class><class name="TestScript2.ps1" sourcefilename="/TestScript2.ps1"><method name="&lt;script&gt;" desc="()" line="1"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /><counter type="CLASS" missed="0" covered="1" /></class><sourcefile name="/TestScript.ps1"><line nr="5" mi="0" ci="1" /><line nr="6" mi="0" ci="1" /><line nr="9" mi="0" ci="1" /><line nr="11" mi="0" ci="1" /><line nr="12" mi="0" ci="1" /><line nr="15" mi="1" ci="1" /><line nr="17" mi="0" ci="2" /><line nr="22" mi="1" ci="0" /><line nr="29" mi="0" ci="1" /><line nr="34" mi="0" ci="1" /><line nr="39" mi="1" ci="0" /><line nr="43" mi="0" ci="1" /><line nr="44" mi="0" ci="1" /><counter type="INSTRUCTION" missed="3" covered="12" /><counter type="LINE" missed="2" covered="11" /><counter type="METHOD" missed="2" covered="5" /><counter type="CLASS" missed="0" covered="1" /></sourcefile><sourcefile name="/TestScript2.ps1"><line nr="1" mi="0" ci="1" /><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /><counter type="CLASS" missed="0" covered="1" /></sourcefile><counter type="INSTRUCTION" missed="3" covered="13" /><counter type="LINE" missed="2" covered="12" /><counter type="METHOD" missed="2" covered="6" /><counter type="CLASS" missed="0" covered="2" /></package><counter type="INSTRUCTION" missed="3" covered="13" /><counter type="LINE" missed="2" covered="12" /><counter type="METHOD" missed="2" covered="6" /><counter type="CLASS" missed="0" covered="2" /></report>'
             }
 
             It 'Reports the right line numbers' {
@@ -108,6 +141,37 @@ InModuleScope Pester {
             It 'Reports the right column numbers' {
                 $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].StartColumn | Should -Be 13
                 $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].EndColumn | Should -Be 24
+            }
+
+            Exit-CoverageAnalysis -PesterState $testState
+        }
+
+        Context 'Single class' {
+            $testState = New-PesterState -Path $root
+
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath TestScript.ps1)"; Class = 'MyClass'} -PesterState $testState
+
+            It 'Has the proper number of breakpoints defined' {
+                $testState.CommandCoverage.Count | Should -Be 3
+            }
+
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
+            $coverageReport = Get-CoverageReport -PesterState $testState
+
+            It 'Reports the proper number of executed commands' {
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 2
+            }
+
+            It 'Reports the proper number of analyzed commands' {
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3
+            }
+
+            It 'Reports the proper number of missed commands' {
+                $coverageReport.MissedCommands.Count | Should -Be 1
+            }
+
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should -Be 2
             }
 
             Exit-CoverageAnalysis -PesterState $testState
@@ -218,24 +282,55 @@ InModuleScope Pester {
             Exit-CoverageAnalysis -PesterState $testState
         }
 
-        Context 'Wildcard resolution' {
+        Context 'Class wildcard resolution' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' } -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath TestScript.ps1)"; Class = '*'} -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should -Be 10
+                $testState.CommandCoverage.Count | Should -Be 3
             }
 
             $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 8
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 2
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 10
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3
+            }
+
+            It 'Reports the proper number of missed commands' {
+                $coverageReport.MissedCommands.Count | Should -Be 1
+            }
+
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should -Be 2
+            }
+
+            Exit-CoverageAnalysis -PesterState $testState
+        }
+
+        Context 'Function wildcard resolution' {
+            $testState = New-PesterState -Path $root
+
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' } -PesterState $testState
+
+            It 'Has the proper number of breakpoints defined' {
+                $testState.CommandCoverage.Count | Should -Be 13
+            }
+
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
+            $coverageReport = Get-CoverageReport -PesterState $testState
+
+            It 'Reports the proper number of executed commands' {
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 10
+            }
+
+            It 'Reports the proper number of analyzed commands' {
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 13
             }
 
             It 'Reports the proper number of analyzed files' {
@@ -243,7 +338,7 @@ InModuleScope Pester {
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 2
+                $coverageReport.MissedCommands.Count | Should -Be 3
             }
 
             It 'Reports the correct missed command' {
@@ -252,11 +347,42 @@ InModuleScope Pester {
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 8
+                $coverageReport.HitCommands.Count | Should -Be 10
             }
 
             It 'Reports the correct hit command' {
                 $coverageReport.HitCommands[0].Command | Should -Be "'I am the nested function.'"
+            }
+
+            Exit-CoverageAnalysis -PesterState $testState
+        }
+
+        Context 'Class and function filter' {
+            $testState = New-PesterState -Path $root
+
+            Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath TestScript.ps1)"; Class = 'MyClass'; Function = 'MethodTwo'} -PesterState $testState
+
+            It 'Has the proper number of breakpoints defined' {
+                $testState.CommandCoverage.Count | Should -Be 1
+            }
+
+            $null = & "$(Join-Path -Path $root -ChildPath TestScript.ps1)"
+            $coverageReport = Get-CoverageReport -PesterState $testState
+
+            It 'Reports the proper number of executed commands' {
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 0
+            }
+
+            It 'Reports the proper number of analyzed commands' {
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 1
+            }
+
+            It 'Reports the proper number of missed commands' {
+                $coverageReport.MissedCommands.Count | Should -Be 1
+            }
+
+            It 'Reports the proper number of hit commands' {
+                $coverageReport.HitCommands.Count | Should -Be 0
             }
 
             Exit-CoverageAnalysis -PesterState $testState

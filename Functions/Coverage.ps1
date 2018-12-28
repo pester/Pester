@@ -64,10 +64,11 @@ function Get-CoverageInfoFromUserInput
 
 function New-CoverageInfo
 {
-    param ([string] $Path, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0)
+    param ([string] $Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0)
 
     return [pscustomobject]@{
         Path = $Path
+        Class = $Class
         Function = $Function
         StartLine = $StartLine
         EndLine = $EndLine
@@ -86,12 +87,13 @@ function Get-CoverageInfoFromDictionary
 
     $startLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'StartLine', 'Start', 's'
     $endLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'EndLine', 'End', 'e'
+    [string] $class = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Class', 'c'
     [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
 
-    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Function $function
+    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function
 }
 
 function Convert-UnknownValueToInt
@@ -141,6 +143,7 @@ function Resolve-CoverageInfo
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
         EndLine = $UnresolvedCoverageInfo.EndLine
+        Class = $UnresolvedCoverageInfo.Class
         Function = $UnresolvedCoverageInfo.Function
     }
 
@@ -216,9 +219,9 @@ function Test-CoverageOverlapsCommand
 {
     param ([object] $CoverageInfo, [System.Management.Automation.Language.Ast] $Command)
 
-    if ($CoverageInfo.Function)
+    if ($CoverageInfo.Class -or $CoverageInfo.Function)
     {
-        Test-CommandInsideFunction -Command $Command -Function $CoverageInfo.Function
+        Test-CommandInScope -Command $Command -Class $CoverageInfo.Class -Function $CoverageInfo.Function
     }
     else
     {
@@ -227,15 +230,29 @@ function Test-CoverageOverlapsCommand
 
 }
 
-function Test-CommandInsideFunction
+function Test-CommandInScope
 {
-    param ([System.Management.Automation.Language.Ast] $Command, [string] $Function)
+    param ([System.Management.Automation.Language.Ast] $Command, [string] $Class, [string] $Function)
 
+    $classResult = !$Class
+    $functionResult = !$Function
     for ($ast = $Command; $null -ne $ast; $ast = $ast.Parent)
     {
-        $functionAst = $ast -as [System.Management.Automation.Language.FunctionDefinitionAst]
-        if ($null -ne $functionAst -and $functionAst.Name -like $Function)
-        {
+        if (!$classResult) {
+            $classAst = $ast -as [System.Management.Automation.Language.TypeDefinitionAst]
+            if ($null -ne $classAst -and $classAst.Name -like $Class)
+            {
+                $classResult = $true
+            }
+        }
+        if (!$functionResult) {
+            $functionAst = $ast -as [System.Management.Automation.Language.FunctionDefinitionAst]
+            if ($null -ne $functionAst -and $functionAst.Name -like $Function)
+            {
+                $functionResult = $true
+            }
+        }
+        if ($classResult -and $functionResult) {
             return $true
         }
     }
@@ -283,6 +300,7 @@ function New-CoverageBreakpoint
 
     [pscustomobject] @{
         File        = $Command.Extent.File
+		Class       = Get-ParentClassName -Ast $Command
         Function    = Get-ParentFunctionName -Ast $Command
         StartLine   = $Command.Extent.StartLineNumber
         EndLine     = $Command.Extent.EndLineNumber
@@ -384,6 +402,27 @@ function IsClosingLoopCondition
     }
 
     return $false
+}
+
+function Get-ParentClassName
+{
+    param ([System.Management.Automation.Language.Ast] $Ast)
+
+    $parent = $Ast.Parent
+
+    while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.TypeDefinitionAst])
+    {
+        $parent = $parent.Parent
+    }
+
+    if ($null -eq $parent)
+    {
+        return ''
+    }
+    else
+    {
+        return $parent.Name
+    }
 }
 
 function Get-ParentFunctionName
@@ -494,6 +533,7 @@ function Get-CoverageReport
         'EndLine'
         'StartColumn'
         'EndColumn'
+		'Class'
         'Function'
         'Command'
         @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
