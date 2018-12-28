@@ -288,7 +288,7 @@ InModuleScope Pester {
             }
 
             It "should export test results to NUnit XML and HTML with switched arguments" {
-                $TestResults = (CreateDummyResults $fakedTestFile3 "testGroup3" "testCase3")
+                $TestResults = (CreateDummyResults "fakedTestFile3" "testGroup3" "testCase3")
                 Export-PesterResults $TestResults @($htmlFile2, $reportFile2) @("html", "NUnitXml")
 
                 $reportFile2 | Should -Exist
