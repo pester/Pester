@@ -13,7 +13,7 @@ function Reset-TestSuite {
     $script:discovery = $false
     $script:discoverySkipped = $true
     $script:currentBlock = $script:root = New-BlockObject -Name "Block"
-    $script:filter = @()
+    $script:filter = $null
     Reset-Scope
 }
 
@@ -49,7 +49,7 @@ function v {
         [String] $Message
     )
 
-   #  Write-Host -ForegroundColor Blue $Message
+    Write-Host -ForegroundColor Blue $Message
 }
 
 function Find-Test {
@@ -85,14 +85,14 @@ function New-Block {
     v "Entering path $($path -join '.')"
 
     $block = $null
-    
+
     if (Is-Discovery) {
         v "Adding block $Name to discovered blocks"
         $block = New-BlockObject -Name $Name -Path $path
         # we attach the current block to the parent
         Add-Block -Block $block
     }
-    
+
     $previousBlock = Get-CurrentBlock
     if ($null -eq $block) {
         $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
@@ -107,6 +107,10 @@ function New-Block {
             v "Finished discovering in body of block $Name"
         }
         else {
+            if (-not $block.ShouldRun) {
+                v "Block is excluded from run, returning"
+                return
+            }
             v "Executing body of block $Name"
 
             $result = Invoke-ScriptBlock `
@@ -114,8 +118,7 @@ function New-Block {
                 -OuterSetup  @( $previousBlock.OneTimeBlockSetup | hasValue )`
                 -Setup @( $previousBlock.EachBlockSetup | hasValue ) `
                 -Teardown @( $previousBlock.EachBlockTeardown | hasValue ) `
-                -OuterTeardown @( $previousBlock.OneTimeBlockTeardown | hasValue ) `
-                -NoNewScope
+                -OuterTeardown @( $previousBlock.OneTimeBlockTeardown | hasValue )
 
             $block.Executed = $true
             $block.Passed = 0 -eq $result.ErrorRecord.Length
@@ -140,7 +143,8 @@ function New-Test {
         [Parameter(Mandatory=$true)]
         [String] $Name,
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [ScriptBlock] $ScriptBlock,
+        [String[]] $Tag = @()
     )
 
     v "Entering test $Name"
@@ -151,12 +155,12 @@ function New-Test {
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
-            Add-Test -Test (New-TestObject -Name $Name -Path $path)
+            Add-Test -Test (New-TestObject -Name $Name -Path $path -Tag $Tag)
             v "Added test '$Name'"
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
-            if (Is-TestExcluded -Test $test) {
+            if (-not $test.ShouldRun) {
                 v "Test is excluded from run, returning"
                 return
             }
@@ -165,17 +169,16 @@ function New-Test {
 
             v "Running test '$Name'."
 
-            
+
             # invokes the body of the test
             $result = Invoke-ScriptBlock `
                 -OuterSetup @( $block.OneTimeTestSetup | where { $test.First } | hasValue ) `
                 -Setup @( $block.EachTestSetup | hasValue ) `
                 -ScriptBlock $ScriptBlock `
                 -Teardown @( $block.EachTestTeardown | hasValue ) `
-                -OuterTeardown @( $block.OneTimeTestTeardown | where { $test.Last } | hasValue ) `
-                -NoNewScope
+                -OuterTeardown @( $block.OneTimeTestTeardown | where { $test.Last } | hasValue )
 
-         
+
 
             $test.Executed = $true
             $test.Passed = 0 -eq $result.ErrorRecord.Length
@@ -310,18 +313,21 @@ function New-TestObject {
     param (
         [Parameter(Mandatory=$true)]
         [String] $Name,
-        [string[]] $Path
+        [String[]] $Path,
+        [String[]] $Tag
     )
 
     New-PSObject -Type DiscoveredTest @{
         Name = $Name
         Path = $Path
+        Tag = $Tag
         Executed = $false
         Passed = $false
         StandardOutput = $null
-        ErrorRecord = $null
+        ErrorRecord = @()
         First = $false
         Last = $false
+        ShouldRun = $false
     }
 }
 
@@ -362,7 +368,8 @@ function New-BlockObject {
         First = $false
         Last = $false
         StandardOutput = $null
-        ErrorRecord = $null
+        ErrorRecord = @()
+        ShouldRun = $false
     }
 }
 
@@ -403,14 +410,14 @@ function Invoke-ScriptBlock {
         [ScriptBlock[]] $OuterSetup,
         [ScriptBlock[]] $Setup,
         [ScriptBlock[]] $Teardown,
-        [ScriptBlock[]] $OuterTeardown,
+        [ScriptBlock[]] $OuterTeardown
         # # setup, body and teardown will all run (be-dotsourced into)
         # # the same scope
         # [Switch] $SameScope,
         # will dot-source the wrapper scriptblock instead of invoking it
         # so in combination with the SameScope switch we are effectively
         # running the code in the current scope
-        [Switch] $NoNewScope
+        # [Switch] $NoNewScope
     )
 
     # this is what the code below does
@@ -435,56 +442,88 @@ function Invoke-ScriptBlock {
     $scriptBlockWithContext = {
         # THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______context)
-        
+
         try {
             if ($null -ne $______context.OuterSetup -and $______context.OuterSetup.Length -gt 0) {
+                &$______context.WriteDebug "Running outer setups"
                 foreach ($______current in $______context.OuterSetup) {
+                    &$______context.WriteDebug "Running outer setup { $______current }"
                     $______context.CurrentlyExecutingScriptBlock = $______current
                     . $______current
                 }
+                &$______context.WriteDebug "Done running outer setups"
+            }
+            else {
+                &$______context.WriteDebug "There are no outer setups"
             }
 
             & {
                 try {
 
                     if ($null -ne $______context.Setup -and $______context.Setup.Length -gt 0) {
+                        &$______context.WriteDebug "Running inner setups"
                         foreach ($______current in $______context.Setup) {
+                            &$______context.WriteDebug "Running inner setup { $______current }"
                             $______context.CurrentlyExecutingScriptBlock = $______current
                             . $______current
                         }
+                        &$______context.WriteDebug "Done running inner setups"
+                    }
+                    else {
+                        &$______context.WriteDebug "There are no inner setups"
                     }
 
+                    &$______context.WriteDebug "Running scriptblock"
                     . $______context.ScriptBlock
+                    &$______context.WriteDebug "Done running scriptblock"
                 }
                 catch {
                     $______context.ErrorRecord += $_
+                    &$______context.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {
                     if ($null -ne $______context.Teardown -and $______context.Teardown.Length -gt 0) {
-                        foreach ($______current in $______context.Teardown) {            
+                        &$______context.WriteDebug "Running inner teardowns"
+                        foreach ($______current in $______context.Teardown) {
                             try {
+                                &$______context.WriteDebug "Running inner teardown { $______current }"
                                 $______context.CurrentlyExecutingScriptBlock = $______current
                                 . $______current
+                                &$______context.WriteDebug "Done running inner teardown"
                             }
                             catch {
                                 $______context.ErrorRecord += $_
+                                &$______context.WriteDebug "Fail running inner teardown"
                             }
                         }
+                        &$______context.WriteDebug "Done running inner teardowns"
+                    }
+                    else {
+                        &$______context.WriteDebug "There are no inner teardowns"
                     }
                 }
             }
         }
         finally {
+
             if ($null -ne $______context.OuterTeardown -and $______context.OuterTeardown.Length -gt 0) {
+                &$______context.WriteDebug "Running outer teardowns"
                 foreach ($______current in $______context.OuterTeardown) {
                     try {
+                        &$______context.WriteDebug "Running outer teardown { $______current }"
                         $______context.CurrentlyExecutingScriptBlock = $______current
                         . $______current
+                        &$______context.WriteDebug "Done running outer teardown"
                     }
                     catch {
+                        &$______context.WriteDebug "Fail running outer teardown"
                         $______context.ErrorRecord += $_
                     }
                 }
+                &$______context.WriteDebug "Done running outer teardowns"
+            }
+            else {
+                &$______context.WriteDebug "There are no outer teardowns"
             }
         }
     }
@@ -510,6 +549,7 @@ function Invoke-ScriptBlock {
                 SameScope = $SameScope
                 CurrentlyExecutingScriptBlock = $null
                 ErrorRecord = @()
+                WriteDebug = { param($Message )  Write-Host -ForegroundColor Magenta $Message }
             }
             $standardOutput = if ($NoNewScope) {
                     . $scriptBlockWithContext $context
@@ -528,7 +568,7 @@ function Invoke-ScriptBlock {
     $errors = @( ($context.ErrorRecord + $err) | hasValue )
 
     return New-PSObject -Type ScriptBlockInvocationResult @{
-        Success = 0 -eq $errors.Length 
+        Success = 0 -eq $errors.Length
         ErrorRecord = $errors
         StandardOutput = $standardOutput
         Break = $break
@@ -564,33 +604,76 @@ function Set-Filter {
         [Parameter(Mandatory=$true)]
         $Filter
     )
-    $paths = $filter | % { $_ -join '.' } | % {"`n$_"}
-    v "Setting path filter with $($filter.Count) paths: $paths"
+
     $script:filter = $Filter
 }
 
-function Is-TestExcluded {
+function Test-ShouldRun {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        $Test
+        $Test, 
+        $Filter
     )
+    $fullTestPath = $Test.Path -join "."
+    if ($null -eq $Filter) {
+        v "($fullTestPath) Test is included, because there is no filter."
+        return $true
+    }
 
-    if ($script:filter.Length -eq 0) {
-        v "Test with path $fullTestPath is included, beause there is no filter"
-        return $false
+    # test is excluded when any of the exclude tags match
+    $tagFilter = $Filter.ExcludeTag
+    if (any $tagFilter) {
+        foreach ($f in $tagFilter) {
+            foreach ($t in $Test.Tag) {
+                if ($t -like $f) {
+                    v "($fullTestPath) Test is excluded, because it's tag '$t' matches exclude tag filter '$f'."
+                    return $false
+                }
+            }
+        }
     }
-    $fullTestPath = $Test.Path -join '.'
-    $allPaths = $script:filter | % { $_ -join '.' }
-    $include = $allPaths -contains $fullTestPath
-    if ($include) {
-        v "Test with path $fullTestPath is included"
-    }
-    else {
-        v "Test with path $fullTestPath is exluded"
 
+
+    $hasTagFilter = $false
+    $hasMatchingTag = $false
+    # test is included when it has tags and the any of the tags match
+    $tagFilter = $Filter | tryGetProperty Tag
+    if (any $tagFilter) {
+        $hasTagFilter = $true
+        if (none $test.Tag) {
+            v "($fullTestPath) Test is excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
+        }
+        else {
+            foreach ($f in $tagFilter) {
+                foreach ($t in $Test.Tag) {
+                    if ($t -like $f) {
+                        v "($fullTestPath) Test is included, because it's tag '$t' matches tag filter '$f'."
+                        $hasMatchingTag = $true
+                        break
+                    }
+                }
+            }
+        }
     }
-    -not $include
+
+    $hasMatchingPath = $false
+    $hasPathFilter = $false
+    $allPaths = $Filter | tryGetProperty Path | % { $_ -join '.' }
+    if (any $allPaths) {
+        $hasPathFilter = $true
+        $include = $allPaths -contains $fullTestPath
+        if ($include) {
+            v "($fullTestPath) Test is included, because it matches full path filter."
+            $hasMatchingPath = $true
+        }
+        else {
+            v "($fullTestPath) Test is excluded, because is full path does not match the path filter."
+        }
+    }
+
+
+    (-not $hasTagFilter -and -not $hasPathFilter) -or ($hasTagFilter -and $hasMatchingTag) -or ($hasPathFilter -and $hasMatchingPath)
 }
 
 function Invoke-Test {
@@ -621,11 +704,19 @@ function PostProcess-Test {
         $Block
     )
 
-    $tests = $Block.Tests 
+    $tests = $Block.Tests
+    $blockShouldRun = $false
     if (any $tests) {
-        $tests[0].First = $true
-        $tests[-1].Last = $true
+        foreach ($t in $tests) {
+            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $script:filter
+        }
+
+        $testsToRun = $tests | where { $_.ShouldRun }
+        $testsToRun | select -First 1 | trySetProperty First $true
+        $testsToRun | select -Last 1 | trySetProperty Last $true
+        $blockShouldRun = any $testsToRun
     }
+
     $blocks = $Block.Blocks
     if (any $blocks) {
         $blocks[0].First = $true
@@ -634,6 +725,9 @@ function PostProcess-Test {
             PostProcess-Test -Block $b
         }
     }
+
+    $anyChildBlockShouldRun = $blocks | where { $_.ShouldRun }
+    $block.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
 }
 
 # initialize the internal state
@@ -703,6 +797,21 @@ function Find-CurrentBlock {
     }
 }
 
+function New-FilterObject {
+    [CmdletBinding()]
+    param (
+        [String[][]] $Path,
+        [String[]] $Tag,
+        [String[]] $ExcludeTag
+    )
+
+    New-PSObject -Type "Filter" -Property @{
+        Path = $Path
+        Tag = $Tag
+        ExcludeTag = $ExcludeTag
+    }
+}
+
 function or {
     [CmdletBinding()]
     param (
@@ -721,7 +830,7 @@ function or {
 }
 
 # looks for a property on object that might be null
-function tryExpandProperty {
+function tryGetProperty {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true, Position = 0)]
@@ -742,6 +851,24 @@ function tryExpandProperty {
     # if ($null -ne $property) {
     #     $property.Value
     # }
+}
+
+function trySetProperty {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position = 0)]
+        $PropertyName,
+        [Parameter(Mandatory=$true, Position = 1)]
+        $Value,
+        [Parameter(ValueFromPipeline = $true)]
+        $InputObject
+    )
+
+    if ($null -eq $InputObject) {
+        return
+    }
+
+    $InputObject.$PropertyName = $Value
 }
 
 
@@ -775,6 +902,8 @@ function any ($InputObject) {
 function none ($InputObject) {
     -not (any $InputObject)
 }
+
+
 # $script:beforeAlls = @{}
 # $script:beforeEaches = @{}
 # $script:Discovery = $true
