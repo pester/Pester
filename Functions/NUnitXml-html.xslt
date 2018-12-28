@@ -126,7 +126,7 @@
             <xsl:variable name="operatingSystemShort" select="substring-before(environment/@platform,'|')" />
             <xsl:choose>
                 <xsl:when test="$operatingSystemShort != ''">
-                    <xsl:value-of select="$operatingSystem"/>
+                    <xsl:value-of select="$operatingSystemShort"/>
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:value-of select="environment/@platform"/>
