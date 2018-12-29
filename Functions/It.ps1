@@ -119,7 +119,7 @@ about_should
     )
 
     if (-not $InvokedByInvokePester) {
-        pstr\New-Test -Name $Name -ScriptBlock $Test
+        Pester.Runtime\New-Test -Name $Name -ScriptBlock $Test
     }
     # ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
 }

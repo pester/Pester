@@ -1,4 +1,4 @@
-﻿Get-Module pstr | Remove-module ; Import-Module $PSScriptRoot\new-runtimepoc\Pstr.psm1 -DisableNameChecking
+﻿Get-Module Pester.Runtime | Remove-module ; Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
 
 if ($PSVersionTable.PSVersion.Major -ge 3)
 {

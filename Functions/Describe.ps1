@@ -89,7 +89,7 @@ about_TestDrive
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
 
 
-        $writeScreen = pstr\New-PluginObject -Name "WriteScreen" -EachBlockSetup {
+        $writeScreen = Pester.Runtime\New-PluginObject -Name "WriteScreen" -EachBlockSetup {
             param ($Context) 
             Write-Host "Describe $($context.Name)" -ForegroundColor Yellow
         } -EachTestTeardown {
@@ -104,10 +104,10 @@ about_TestDrive
 
         $plugins = @($writeScreen)
 
-        pstr\Invoke-Test { New-Block -Name $Name -ScriptBlock $Fixture } -Plugin $plugins
+        Pester.Runtime\Invoke-Test { New-Block -Name $Name -ScriptBlock $Fixture } -Plugin $plugins
     }
     else {
-        pstr\New-Block -Name $Name -ScriptBlock $Fixture
+        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture
     }
 
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
