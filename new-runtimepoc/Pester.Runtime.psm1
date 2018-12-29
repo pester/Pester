@@ -1,4 +1,4 @@
-$script:state = [PSCustomObject]@{
+$state = [PSCustomObject]@{
     Root = $null
     CurrentBlock = $null
     Discovery = $false
@@ -6,14 +6,15 @@ $script:state = [PSCustomObject]@{
     Plugin = $null
 }
 
+Write-Host -ForegroundColor Cyan "----> Importing pester runtime"
 # resets the module state to the default
 function Reset-TestSuite {
     v "Resetting internal state to default."
-    $script:state.Root = $null
-    $script:state.Discovery = $false
-    $script:state.CurrentBlock = $script:state.Root = New-BlockObject -Name "Block"
-    $script:state.Filter = $null
-    $script:state.Plugin = $null
+    $state.Root = $null
+    $state.Discovery = $false
+    $state.CurrentBlock = $state.Root = New-BlockObject -Name "Block"
+    $state.Filter = $null
+    $state.Plugin = $null
     Reset-Scope
 }
 
@@ -56,14 +57,14 @@ function Find-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [PsTypeName("TestContainer")] $Test
     )
     v "Starting test discovery."
-    $script:state.Discovery = $true
+    $state.Discovery = $true
 
-    & $ScriptBlock
+    $null = Invoke-TestContainer -Test $Test
 
-    $script:state.Root
+    $state.Root
     v "Test discovery finished."
 }
 
@@ -116,21 +117,21 @@ function New-Block {
             $result = Invoke-ScriptBlock `
                 -ScriptBlock $ScriptBlock `
                 -OuterSetup ( combineNonNull @(
-                        $script:state.Plugin | tryGetProperty OneTimeBlockSetup
+                        $state.Plugin | tryGetProperty OneTimeBlockSetup
                         $previousBlock.OneTimeBlockSetup
                 ) ) `
                 -Setup ( combineNonNull @(
-                    $script:state.Plugin | tryGetProperty EachBlockSetup
+                    $state.Plugin | tryGetProperty EachBlockSetup
                     $previousBlock.EachBlockSetup
                 ) ) `
                 -Teardown ( combineNonNull @(
                     $previousBlock.EachBlockTeardown
-                    $script:state.Plugin | tryGetProperty EachBlockTeardown
+                    $state.Plugin | tryGetProperty EachBlockTeardown
                 ) ) `
                 -OuterTeardown (
                     combineNonNull @(
                         $previousBlock.OneTimeBlockTeardown
-                        $script:state.Plugin | tryGetProperty OneTimeBlockTeardown
+                        $state.Plugin | tryGetProperty OneTimeBlockTeardown
                 ) ) `
                 -Context @{
                     Context = $block | Select -Property Name
@@ -186,9 +187,9 @@ function New-Test {
             v "Running test '$Name'."
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                    if ($test.First) { $script:state.Plugin.OneTimeTestSetup | hasValue }
+                    if ($test.First) { $state.Plugin.OneTimeTestSetup | hasValue }
                 ) `
-                -Setup @( $script:state.Plugin.EachTestSetup | hasValue ) `
+                -Setup @( $state.Plugin.EachTestSetup | hasValue ) `
                 -ScriptBlock {} `
                 -Context @{
                     Context = $Test | Select -Property Name, Path
@@ -218,9 +219,9 @@ function New-Test {
 
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
-                -Teardown @( $script:state.Plugin.EachTestTeardown | hasValue ) `
+                -Teardown @( $state.Plugin.EachTestTeardown | hasValue ) `
                 -OuterTeardown @(
-                    if ($test.Last) { $script:state.Plugin.OneTimeTestTeardown | hasValue }
+                    if ($test.Last) { $state.Plugin.OneTimeTestTeardown | hasValue }
                 ) `
                 -Context @{
                     Context = $Test | Select -Property Name, Path, Passed, ErrorRecord
@@ -327,7 +328,7 @@ function New-OneTimeBlockTeardown {
 function Get-CurrentBlock {
     [CmdletBinding()]
     param ( )
-    $script:state.CurrentBlock
+    $state.CurrentBlock
 }
 
 function Set-CurrentBlock {
@@ -337,7 +338,7 @@ function Set-CurrentBlock {
         $Block
     )
 
-    $script:state.CurrentBlock = $Block
+    $state.CurrentBlock = $Block
 }
 
 function Add-Test {
@@ -428,7 +429,7 @@ function Add-Block {
 }
 
 function Is-Discovery {
-    $script:state.Discovery
+    $state.Discovery
 }
 
 # test invocation
@@ -436,13 +437,13 @@ function Start-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [PSTypeName("TestContainer")] $Test
     )
 
-    $script:state.Discovery = $false
+    $state.Discovery = $false
     # do we want this output?
-    $null = & $ScriptBlock
-    $script:state.Root
+    $null = Invoke-TestContainer $Test
+    $state.Root
 }
 
 function Invoke-ScriptBlock {
@@ -650,7 +651,7 @@ function Set-Filter {
         $Filter
     )
 
-    $script:state.Filter = $Filter
+    $state.Filter = $Filter
 }
 
 function Test-ShouldRun {
@@ -725,23 +726,27 @@ function Invoke-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock,
+        [PSTypeName("TestContainer")][PSObject[]] $Test,
         $Filter,
         $Plugin
     )
 
-    Reset-TestSuite
-    $script:state.Plugin = $Plugin
-    if ($filter) {
-        Set-Filter $filter
+    
+    foreach ($container in $Test) {
+        Reset-TestSuite
+        $state.Plugin = $Plugin
+        if ($filter) {
+            Set-Filter $filter
+        }
+
+        $found = Find-Test $container
+
+        $state.CurrentBlock = $state.Root
+        PostProcess-Test $state.Root
+
+        $result = Start-Test $container
+        $result
     }
-    $found = Find-Test $ScriptBlock
-
-    $script:state.CurrentBlock = $script:state.Root
-    PostProcess-Test $script:state.Root
-
-    $result = Start-Test $ScriptBlock
-    $result
 }
 
 function PostProcess-Test {
@@ -755,7 +760,7 @@ function PostProcess-Test {
     $blockShouldRun = $false
     if (any $tests) {
         foreach ($t in $tests) {
-            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $script:state.Filter
+            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $state.Filter
         }
 
         $testsToRun = $tests | where { $_.ShouldRun }
@@ -881,6 +886,41 @@ function New-PluginObject {
     }
 }
 
+function Invoke-TestContainer { 
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [PSTypeName("TestContainer")] $Test
+    )
+
+    switch ($Test.Type) {
+        "ScriptBlock" { & $Test.Content } 
+        "File" { & $Test.Content.PSPath }
+        default { throw [System.ArgumentOutOfRangeException]"" }
+    }
+}
+function New-TestContainerObject {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory, ParameterSetName = "File")]
+        [String] $Path
+    )
+
+
+    $content = switch ($PSCmdlet.ParameterSetName) {
+        "ScriptBlock" { $ScriptBlock }
+        "File" { Get-Item $Path }
+        default { throw [System.ArgumentOutOfRangeException]"" }
+    }
+
+    New-PSObject -Type "TestContainer" @{
+        Type = $PSCmdlet.ParameterSetName
+        Content = $content
+    }
+}
+
 
 function or {
     [CmdletBinding()]
@@ -898,9 +938,6 @@ function or {
         $DefaultValue
     }
 }
-
-
-
 
 # looks for a property on object that might be null
 function tryGetProperty {
@@ -999,4 +1036,5 @@ Export-ModuleMember -Function @(
 
     'New-FilterObject'
     'New-PluginObject'
+    'New-TestContainerObject'
 )

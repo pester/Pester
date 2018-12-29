@@ -1,4 +1,5 @@
-﻿Get-Module Pester.Runtime | Remove-module ; Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
+﻿Get-Module Pester.Runtime | Remove-module
+Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
 
 if ($PSVersionTable.PSVersion.Major -ge 3)
 {
@@ -1104,143 +1105,151 @@ New-PesterOption
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
         $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
+
+        
+
+
         try
         {
-            Write-PesterStart $pester $Script
+              
+    #         Write-PesterStart $pester $Script
+            
+    #         $invokeTestScript = {
+    #             param (
+    #                 [Parameter(Position = 0)]
+    #                 [string] $Path,
+    #                 [string] $Script,
+    #                 [object[]] $Arguments = @(),
+    #                 [System.Collections.IDictionary] $Parameters = @{}
+    #             )
 
-            $invokeTestScript = {
-                param (
-                    [Parameter(Position = 0)]
-                    [string] $Path,
-                    [string] $Script,
-                    [object[]] $Arguments = @(),
-                    [System.Collections.IDictionary] $Parameters = @{}
-                )
+    #             if(-not [string]::IsNullOrEmpty($Path))
+    #             {
+    #                 & $Path @Parameters @Arguments
+    #             }
+    #             elseif(-not [string]::IsNullOrEmpty($Script))
+    #             {
+    #                 $scriptBlock = [scriptblock]::Create($Script)
+    #                 Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
+    #                 Invoke-Command -ScriptBlock ($scriptBlock)
+    #             }
+    #         }
 
-                if(-not [string]::IsNullOrEmpty($Path))
-                {
-                    & $Path @Parameters @Arguments
-                }
-                elseif(-not [string]::IsNullOrEmpty($Script))
-                {
-                    $scriptBlock = [scriptblock]::Create($Script)
-                    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
-                    Invoke-Command -ScriptBlock ($scriptBlock)
-                }
-            }
+    #         Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
+    #         $testScripts = @(ResolveTestScripts $Script)
+              $testScripts  = Pester.RSpec\Find-TestFiles -Path $Script
 
-            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
-            $testScripts = @(ResolveTestScripts $Script)
+    #         if ($DetailedCodeCoverage)
+    #         {
+    #             $pester.FindCodeCoverage = $true
+    #             $pester.CodeCoverage = $CodeCoverage
 
-
-            if ($DetailedCodeCoverage)
-            {
-                $pester.FindCodeCoverage = $true
-                $pester.CodeCoverage = $CodeCoverage
-
-                # find describe codecoverage here
-                foreach ($testScript in $testScripts)
-                {
-                    try
-                    {
-                        do
-                        {
-                            Write-ScriptBlockInvocationHint -Hint "Invoke-Pester" -ScriptBlock $invokeTestScript
-                            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-                        } until ($true)
-                    }
-                    catch
-                    { }
-                }
-
-
-                $pester.FindCodeCoverage = $false
-                $CodeCoverage = $pester.CodeCoverage
-            }
+    #             # find describe codecoverage here
+    #             foreach ($testScript in $testScripts)
+    #             {
+    #                 try
+    #                 {
+    #                     do
+    #                     {
+    #                         Write-ScriptBlockInvocationHint -Hint "Invoke-Pester" -ScriptBlock $invokeTestScript
+    #                         & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+    #                     } until ($true)
+    #                 }
+    #                 catch
+    #                 { }
+    #             }
 
 
-            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+    #             $pester.FindCodeCoverage = $false
+    #             $CodeCoverage = $pester.CodeCoverage
+    #         }
 
-            foreach ($testScript in $testScripts)
-            {
-                #Get test description for better output
-                if(-not [string]::IsNullOrEmpty($testScript.Path)){
-                    $testDescription = $testScript.Path
-                }elseif(-not [string]::IsNullOrEmpty($testScript.Script)){
-                    $testDescription = $testScript.Script
-                }
 
-                try
-                {
-                    $pester.EnterTestGroup($testDescription, 'Script')
-                    Write-Describe $testDescription -CommandUsed Script
-                    do
-                    {
-                        $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-                    } until ($true)
-                }
-                catch
-                {
-                    $firstStackTraceLine = $null
-                    if (($_ | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) -and $null -ne $_.ScriptStackTrace) {
-                        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
-                    }
-                    $pester.AddTestResult("Error occurred in test script '$($testDescription)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+    #         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-                    # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
-                    # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
-                    # planned for v4.0
-                    $pester.TestResult[-1].Describe = "Error in $($testDescription)"
+             foreach ($testScript in $testScripts) {
+                Pester.Runtime\Invoke-Test -
+             }
+    #         foreach ($testScript in $testScripts)
+    #         {
+    #             #Get test description for better output
+    #             if(-not [string]::IsNullOrEmpty($testScript.Path)){
+    #                 $testDescription = $testScript.Path
+    #             }elseif(-not [string]::IsNullOrEmpty($testScript.Script)){
+    #                 $testDescription = $testScript.Script
+    #             }
 
-                    $pester.TestResult[-1] | Write-PesterResult
-                }
-                finally
-                {
-                    Exit-MockScope
-                    $pester.LeaveTestGroup($testDescription, 'Script')
-                }
-            }
+    #             try
+    #             {
+    #                 $pester.EnterTestGroup($testDescription, 'Script')
+    #                 Write-Describe $testDescription -CommandUsed Script
+    #                 do
+    #                 {
+    #                     $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+    #                 } until ($true)
+    #             }
+    #             catch
+    #             {
+    #                 $firstStackTraceLine = $null
+    #                 if (($_ | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) -and $null -ne $_.ScriptStackTrace) {
+    #                     $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
+    #                 }
+    #                 $pester.AddTestResult("Error occurred in test script '$($testDescription)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
-            $pester | Write-PesterReport
-            $coverageReport = Get-CoverageReport -PesterState $pester
-            if ($DetailedCodeCoverage -eq $false)
-            {
-                Write-CoverageReport -CoverageReport $coverageReport
-            }
-            if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
-                -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
-                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
-                $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
-            }
-            Exit-CoverageAnalysis -PesterState $pester
-        }
-        finally
-        {
-            Exit-MockScope
-        }
+    #                 # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
+    #                 # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
+    #                 # planned for v4.0
+    #                 $pester.TestResult[-1].Describe = "Error in $($testDescription)"
 
-        Set-PesterStatistics
+    #                 $pester.TestResult[-1] | Write-PesterResult
+    #             }
+    #             finally
+    #             {
+    #                 Exit-MockScope
+    #                 $pester.LeaveTestGroup($testDescription, 'Script')
+    #             }
+    #         }
 
-        if (& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
-            Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
-        }
+    #         $pester | Write-PesterReport
+    #         $coverageReport = Get-CoverageReport -PesterState $pester
+    #         if ($DetailedCodeCoverage -eq $false)
+    #         {
+    #             Write-CoverageReport -CoverageReport $coverageReport
+    #         }
+    #         if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
+    #             -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
+    #             $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
+    #             $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
+    #         }
+    #         Exit-CoverageAnalysis -PesterState $pester
+    #     }
+    #     finally
+    #     {
+    #         Exit-MockScope
+    #     }
 
-    if ($PassThru) {
-        # Remove all runtime properties like current* and Scope
-        $properties = @(
-            "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
+    #     Set-PesterStatistics
 
-                if ($CodeCoverage)
-                {
-                    @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
-                }
-            )
+    #     if (& $script:SafeCommands['Get-Variable'] -Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+    #         Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
+    #     }
 
-            $pester | & $script:SafeCommands['Select-Object'] -Property $properties
-        }
+    # if ($PassThru) {
+    #     # Remove all runtime properties like current* and Scope
+    #     $properties = @(
+    #         "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
 
-        if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
-    }
+    #             if ($CodeCoverage)
+    #             {
+    #                 @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+    #             }
+    #         )
+
+    #         $pester | & $script:SafeCommands['Select-Object'] -Property $properties
+    #     }
+
+    #     if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
+    # }
 }
 
 function New-PesterOption

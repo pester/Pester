@@ -44,14 +44,53 @@ function Verify-TestFailed {
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'stop'
-& (Get-Module Pester.Runtime) {
+
 i {
+
+& (Get-Module Pester.Runtime) {
+
+    
+b "tryGetProperty" {
+    t "given null it returns null" {
+        $null | tryGetProperty Name | Verify-Null
+    }
+
+    t "given an object that has the property it return the correct value" {
+        (Get-Process -Id $Pid) | tryGetProperty Name | Verify-Equal 'pwsh'
+    }
+}
+
+b "or" {
+
+    t "given a non-null value it returns it" {
+        "a" | or "b" | Verify-Equal "a"
+    }
+
+    t "given null it returns the default value" {
+        $null | or "b" | Verify-Equal "b"
+    }
+}
+
+b "combineNonNull" {
+    t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
+        $r = combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
+        # expecting: 1, $null, 1, 2, 3, 10
+        $r[0] | Verify-Equal 1
+        $r[1] | Verify-Null
+        $r[2] | Verify-Equal 1
+        $r[3] | Verify-Equal 2
+        $r[4] | Verify-Equal 3
+        $r[5] | Verify-Equal 10
+    }
+
+}
+
 b "Basic" {
     t "Given a scriptblock with 1 test in it, it finds 1 test" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Test "test1" { }
-        } | select -Expand Tests
+        }) | select -Expand Tests
 
         @($actual).Length | Verify-Equal 1
         $actual.Name | Verify-Equal "test1"
@@ -59,11 +98,11 @@ b "Basic" {
 
     t "Given scriptblock with 2 tests in it it finds 2 tests" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Test "test1" { }
 
             New-Test "test2" { }
-        } | select -Expand Tests
+        }) | select -Expand Tests
 
         @($actual).Length | Verify-Equal 2
         $actual.Name[0] | Verify-Equal "test1"
@@ -74,16 +113,16 @@ b "Basic" {
 b "block" {
     t "Given 0 tests it returns block called by the default name" {
         Reset-TestSuite
-        $actual = Find-Test { }
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock { })
 
         $actual.Name | Verify-Equal "Block"
     }
 
     t "Given 0 tests it returns block containing 0 tests" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Test "test1" {}
-         }
+        })
 
         $actual.Tests.Length | Verify-Equal 1
     }
@@ -92,10 +131,10 @@ b "block" {
 b "Find common setup for each test" {
     t "Given block that has test setup for each test it finds it" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-EachTestSetup {setup}
             New-Test "test1" {}
-        }
+        })
 
         $actual[0].EachTestSetup | Verify-Equal 'setup'
     }
@@ -104,10 +143,10 @@ b "Find common setup for each test" {
 b "Finding setup for all tests" {
     t "Find setup to run before all tests in the block" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-OneTimeTestSetup {oneTimeSetup}
             New-Test "test1" {}
-        }
+        })
 
         $actual[0].OneTimeTestSetup | Verify-Equal 'oneTimeSetup'
     }
@@ -116,11 +155,11 @@ b "Finding setup for all tests" {
 b "Finding blocks" {
     t "Find tests in block that is explicitly specified" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" {}
             }
-        }
+        })
 
         $actual.Blocks[0].Tests.Length | Verify-Equal 1
         $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
@@ -128,7 +167,7 @@ b "Finding blocks" {
 
     t "Find tests in blocks that are next to each other" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" {}
             }
@@ -136,7 +175,7 @@ b "Finding blocks" {
             New-Block "block2" {
                 New-Test "test2" {}
             }
-        }
+        })
 
         $actual.Blocks.Length | Verify-Equal 2
         $actual.Blocks[0].Tests.Length | Verify-Equal 1
@@ -147,14 +186,14 @@ b "Finding blocks" {
 
     t "Find tests in blocks that are inside of each other" {
         Reset-TestSuite
-        $actual = Find-Test {
+        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" {}
                 New-Block "block2" {
                     New-Test "test2" {}
                 }
             }
-        }
+        })
 
         $actual.Blocks.Length | Verify-Equal 1
         $actual.Blocks[0].Tests.Length | Verify-Equal 1
@@ -169,9 +208,9 @@ b "Finding blocks" {
 b "Executing tests" {
     t "Executes 1 test" {
         Reset-TestSuite
-        $actual = Invoke-Test {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Test "test1" { "a" }
-        }
+        })
 
         $actual.Tests[0].Executed | Verify-True
         $actual.Tests[0].Passed | Verify-True
@@ -181,10 +220,10 @@ b "Executing tests" {
 
     t "Executes 2 tests next to each other" {
         Reset-TestSuite
-        $actual = Invoke-Test {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Test "test1" { "a" }
             New-Test "test2" { "b" }
-        }
+        })
 
         $actual.Tests[0].Executed | Verify-True
         $actual.Tests[0].Passed | Verify-True
@@ -199,14 +238,14 @@ b "Executing tests" {
 
     t "Executes 2 tests in blocks next to each other" {
         Reset-TestSuite
-        $actual = Invoke-Test {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" { "a" }
             }
             New-Block "block2" {
                 New-Test "test2" { "b" }
             }
-        }
+        })
 
         $actual.Blocks[0].Name | Verify-Equal "block1"
         $actual.Blocks[0].Tests[0].Executed | Verify-True
@@ -223,14 +262,14 @@ b "Executing tests" {
 
     t "Executes 2 tests deeper in blocks" {
         Reset-TestSuite
-        $actual = Invoke-Test {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" { "a" }
                     New-Block "block2" {
                     New-Test "test2" { "b" }
                 }
             }
-        }
+        })
 
         $actual.Blocks[0].Name | Verify-Equal "block1"
         $actual.Blocks[0].Tests[0].Executed | Verify-True
@@ -246,395 +285,9 @@ b "Executing tests" {
     }
 }
 
-b "discover and execute tests" {
-    t "discovers and executes one test" {
-        $actual = Invoke-Test {
-            New-Test "test1" { "a" }
-        }
-
-        $actual.Tests[0].Executed | Verify-True
-        $actual.Tests[0].Passed | Verify-True
-        $actual.Tests[0].Name | Verify-Equal "test1"
-        $actual.Tests[0].StandardOutput | Verify-Equal "a"
-    }
-
-    t "re-runs failing tests" {
-        $sb =  {
-            New-Block "block1" {
-                New-Test "test1" { "a" }
-                New-Block "block2" {
-                    New-Test "test2" {
-                        throw
-                    }
-                }
-            }
-
-            New-Block "block3" {
-                New-Test "test3" {
-                    if (-not $willPass) { throw }
-                }
-            }
-        }
-
-        $willPass = $false
-        $pre = Invoke-Test $sb
-
-        # validate the precondition
-        $pre.Blocks[0].Tests[0].Executed | Verify-True
-        $pre.Blocks[0].Tests[0].Passed | Verify-True
-        $pre.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-        $pre.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
-
-        $pre.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
-        $pre.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
-        $pre.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
-
-        $pre.Blocks[1].Tests[0].Executed | Verify-True
-        $pre.Blocks[1].Tests[0].Passed | Verify-False
-        $pre.Blocks[1].Tests[0].Name | Verify-Equal "test3"
-
-        # here I have the failed tests, I need to accumulate paths
-        # on them and use them for filtering the run in the next run
-        # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
-        $paths = $pre | Where-Failed | % { ,($_.Path) }
-
-        Write-Host "`n`n`n"
-        # set the test3 to pass this time so we have some difference
-        $willPass = $true
-        $result = Invoke-Test -Filter (New-FilterObject -Path $paths) -ScriptBlock $sb
-
-        $actual = @($result | View-Flat | where { $_.Executed })
-
-        $actual.Length | Verify-Equal 2
-        $actual[0].Name | Verify-Equal test2
-        $actual[0].Executed | Verify-True
-        $actual[0].Passed | Verify-False
-
-        $actual[1].Name | Verify-Equal test3
-        $actual[1].Executed | Verify-True
-        $actual[1].Passed | Verify-True
-    }
-}
-
-b "executing each setup & teardown on test" {
-    t "given a test with setup it executes the setup right before the test and makes the variables avaliable to test" {
-        $actual = Invoke-Test -ScriptBlock {
-            # $s is set to 'block' here
-            $s = "block"
-            New-Block 'block1' {
-                # $s will still be 'block' here so if we invoke the setup on the
-                # start of the block then $s would be 'block'
-                $s = "test"
-                # if the test does not run then this value will stay in $g
-                $g = "setup did not run"
-                # here $s is 'test', and here is where we want to invoke the script
-                New-Test 'test1' {
-                    # $g should be test here, because we run the setup right before
-                    # this scriptblock and kept the changed value of $g in scope
-                    $g
-                }
-                New-EachTestSetup {
-                    # setup runs on top of test and in the same scope
-                    # so $g is modifiable and becomes the value of $s
-                    # test then reports the $s value not the original $g value
-                    $g = $s
-                }
-            }
-        }
-
-        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
-    }
-
-      t "given a test with setups and teardowns they run in correct scopes" {
-
-        # what I want here is that the test runs in this fashion
-        # so that each setup the test body and each teardown all run
-        # in the same scope so their variables are accessible and writable.
-        # the all setup runs one level up, so it's variables are not writable
-        # to keep each test isolated from the other tests
-        # block {
-        #     # . all setup
-        #     test {
-        #         # . each setup
-        #         # . body
-        #         # . each teardown
-        #     }
-
-        #     test {
-        #         # . each setup
-        #         # . body
-        #         # . each teardown
-        #     }
-        #     # . all teardown
-        # }
-
-        $actual = Invoke-Test -ScriptBlock {
-            New-Block 'block1' {
-                New-OneTimeTestSetup {
-                    $g = 'one time setup'
-                }
-                New-EachTestSetup {
-                    if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
-                    $g = 'each setup'
-                }
-
-                New-Test "test1" {
-                    if ($g -ne 'each setup') {throw "`$g ($g) is not set to 'each setup' did the each setup run" }
-                    $g = 'test'
-                }
-
-                New-EachTestTeardown {
-                    if ($g -ne 'test') {throw "`$g ($g) is not set to 'test' did the test body run? does the body run in the same scope as the setup and teardown?" }
-                    $g = 'each teardown'
-                }
-                New-OneTimeTestTeardown {
-                    if ($g -eq 'each teardown') { throw "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so tests are isolated from each other." }
-                    if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
-                    $g
-                }
-            }
-        }
-        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal 'one time setup'
-    }
-
-    t "given a test with teardown it executes the teardown right after the test and has the variables avaliable from the test" {
-        $actual = Invoke-Test -ScriptBlock {
-            New-Block 'block1' {
-                # if the teardown would run in block without
-                # including the test the $s would remain 'block'
-                # because setting s to test would die within that scope
-                $s = "block"
-
-                New-Test 'test1' {
-                    $s = "test"
-                    $g = "setup did not run"
-                }
-                # teardown should run here
-                $s = "teardown run too late"
-                New-EachTestTeardown {
-                    $g = $s
-                    $g
-                }
-            }
-        }
-
-        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
-    }
-}
-
-b "executing all test and teardown" {
-    t "given a test with all setup it executes the setup right before the first test and keeps the variables in upper scope" {
-        $actual = Invoke-Test -ScriptBlock {
-            # $s is set to 'block' here
-            $s = "block"
-            New-Block 'block1' {
-                # $s will still be 'block' here so if we invoke the setup on the
-                # start of the block then $s would be 'block'
-                $s = "test"
-                # if the test does not run then this value will stay in $g
-                $g = "setup did not run"
-                # here $s is 'test', and here is where we want to invoke the script right before each setup and test
-                New-Test 'test1' {
-                    # each setup technically runs here
-
-                    # $g should be test here, because we run the setup right before
-                    # this scriptblock and kept the changed value of $g in scope
-                    if ($g -ne 'test') { throw "setup did not run ($g)" }
-                    # $g should be one scope below one time setup so this change
-                    # should not be visible in the teardown
-                    $g = 10
-
-                }
-                New-OneTimeTestSetup {
-                    if (-not $s) {
-                        throw "`$s is not defined are we running in the correct scope? $($executionContext.SessionState.Module)" }
-                    $g = $s
-                }
-                New-OneTimeTestTeardown {
-                    # teardown runs in the scope after the test scope dies so
-                    # 10 is not written in it and it should be test, to which the setup
-                    # set it
-                    $g
-                }
-            }
-        }
-
-        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
-    }
-
-    t "setups and teardowns don't run if there are no tests" {
-        $container = [PsCustomObject]@{
-            OneTimeSetupRun = $false
-            EachSetupRun = $false
-            EachTeardownRun = $false
-            OneTimeTeardownRun = $false
-        }
-
-        $result = Invoke-Test {
-            New-OneTimeTestSetup {
-                $container.OneTimeSetupRun = $true
-            }
-
-            New-EachTestSetup {
-                $container.EachSetupRun = $true
-            }
-
-            New-EachTestTeardown {
-                $container.EachTeardownRun = $true
-            }
-
-            New-OneTimeTestTeardown {
-                $container.OneTimeTeardownRun = $true
-            }
-
-            New-Block "block1" {
-                New-Test "test1" {}
-            }
-        }
-
-        # the test should execute but non of the above setups should run
-        # those setups are running only for the tests in the current block
-
-        $result.Blocks[0].Tests[0].Executed | Verify-True
-
-        $container.OneTimeSetupRun | Verify-False
-        $container.EachSetupRun | Verify-False
-        $container.EachTeardownRun | Verify-False
-        $container.OneTimeTeardownRun | Verify-False
-
-    }
-
-    t "one time setups&teardowns run one time and each time setups&teardowns run for every test" {
-        $container = [PsCustomObject]@{
-            OneTimeSetup = 0
-            EachSetup = 0
-            EachTeardown = 0
-            OneTimeTeardown = 0
-        }
-
-        $result = Invoke-Test {
-            New-OneTimeTestSetup {
-                $container.OneTimeSetup++
-            }
-
-            New-EachTestSetup {
-                $container.EachSetup++
-            }
-
-            New-EachTestTeardown {
-                $container.EachTeardown++
-            }
-
-            New-OneTimeTestTeardown {
-                $container.OneTimeTeardown++
-            }
-
-            New-Test "test1" {}
-            New-Test "test2" {}
-        }
-
-        # the test should execute but non of the above setups should run
-        # those setups are running only for the tests in the current block
-
-        $result.Tests[0].Executed | Verify-True
-
-        $container.OneTimeSetup | Verify-Equal 1
-        $container.EachSetup | Verify-Equal 2
-        $container.EachTeardown | Verify-Equal 2
-        $container.OneTimeTeardown | Verify-Equal 1
-
-    }
-}
-
-b "Skipping tests" {
-    t "tests can be skipped based on tags" {
-        $result = Invoke-Test {
-            New-Test "test1" -Tag run {}
-            New-Test "test2" {}
-        } -Filter (New-FilterObject -Tag 'Run')
-
-        $result.Tests[0].Executed | Verify-True
-        $result.Tests[1].Executed | Verify-False
-    }
-}
-
-
-
-
-b "Block teardown and setup" {
-    t "block setups&teardowns run and run in correct scopes"{
-        $actual = Invoke-Test -ScriptBlock {
-
-            New-OneTimeBlockSetup {
-                $g = 'one time setup'
-            }
-            New-EachBlockSetup {
-                if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
-                $g = 'each setup'
-            }
-
-            New-Block 'block1' {
-                New-Test "test1" {}
-            }
-
-            New-EachBlockTeardown {
-                if ($g -ne 'Block') {throw "`$g ($g) is not set to 'Block' did the Block body run? does the body run in the same scope as the setup and teardown?" }
-                $g = 'each teardown'
-            }
-            New-OneTimeBlockTeardown {
-                if ($g -eq 'each teardown') { "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so Blocks are isolated from each other." }
-                if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
-                $g
-            }
-        }
-
-        $actual.Blocks[0].StandardOutput | Verify-Equal 'one time setup'
-    }
-
-    t "block setups&teardowns run only when there are some tests to run in the block" {
-        $container = [PSCustomObject]@{
-            OneTimeBlockSetup1 = 0
-            EachBlockSetup1 = 0
-            EachBlockTeardown1 = 0
-            OneTimeBlockTeardown1 = 0
-        }
-        $actual = Invoke-Test -ScriptBlock {
-
-            New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
-            New-EachBlockSetup { $container.EachBlockSetup1++ }
-
-            New-Block 'block1' {
-                New-Test "test1" {
-                    "here"
-                }
-            }
-
-            New-Block 'no test block' {
-
-            }
-
-            New-Block 'no running tests' {
-                New-Test "do not run test" -Tag "DoNotRun" {}
-            }
-
-            New-EachBlockTeardown {
-                $container.EachBlockTeardown1++
-            }
-            New-OneTimeBlockTeardown {
-                $container.OneTimeBlockTeardown1++
-            }
-        } -Filter (New-FilterObject -ExcludeTag DoNotRun)
-
-        # $container.OneTimeBlockSetup1 | Verify-Equal 1
-        $container.EachBlockSetup1 | Verify-Equal 1
-        $container.EachBlockTeardown1 | Verify-Equal 1
-        # $container.OneTimeBlockTeardown1 | Verify-Equal 1
-    }
-}
-
 b "filtering" {
 
-     t "Given null filter it returns true" {
+    t "Given null filter it returns true" {
         $t = New-TestObject -Name "test1" -Path "p"  -Tag a
 
         $actual = Test-ShouldRun -Test $t -Filter $null
@@ -704,6 +357,392 @@ b "filtering" {
         $actual | Verify-True
     }
 }
+}
+
+# outside of module
+
+b "discover and execute tests" {
+    t "discovers and executes one test" {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            New-Test "test1" { "a" }
+        })
+
+        $actual.Tests[0].Executed | Verify-True
+        $actual.Tests[0].Passed | Verify-True
+        $actual.Tests[0].Name | Verify-Equal "test1"
+        $actual.Tests[0].StandardOutput | Verify-Equal "a"
+    }
+
+    t "re-runs failing tests" {
+        $sb =  {
+            New-Block "block1" {
+                New-Test "test1" { "a" }
+                New-Block "block2" {
+                    New-Test "test2" {
+                        throw
+                    }
+                }
+            }
+
+            New-Block "block3" {
+                New-Test "test3" {
+                    if (-not $willPass) { throw }
+                }
+            }
+        }
+
+        $willPass = $false
+        $pre = Invoke-Test -Test (New-TestContainerObject -ScriptBlock $sb)
+
+        # validate the precondition
+        $pre.Blocks[0].Tests[0].Executed | Verify-True
+        $pre.Blocks[0].Tests[0].Passed | Verify-True
+        $pre.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        $pre.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+
+        $pre.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+        $pre.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
+        $pre.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+
+        $pre.Blocks[1].Tests[0].Executed | Verify-True
+        $pre.Blocks[1].Tests[0].Passed | Verify-False
+        $pre.Blocks[1].Tests[0].Name | Verify-Equal "test3"
+
+        # here I have the failed tests, I need to accumulate paths
+        # on them and use them for filtering the run in the next run
+        # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
+        $paths = $pre | Where-Failed | % { ,($_.Path) }
+
+        Write-Host "`n`n`n"
+        # set the test3 to pass this time so we have some difference
+        $willPass = $true
+        $result = Invoke-Test -Filter (New-FilterObject -Path $paths) -Test (New-TestContainerObject -ScriptBlock $sb)
+
+        $actual = @($result | View-Flat | where { $_.Executed })
+
+        $actual.Length | Verify-Equal 2
+        $actual[0].Name | Verify-Equal test2
+        $actual[0].Executed | Verify-True
+        $actual[0].Passed | Verify-False
+
+        $actual[1].Name | Verify-Equal test3
+        $actual[1].Executed | Verify-True
+        $actual[1].Passed | Verify-True
+    }
+}
+
+b "executing each setup & teardown on test" {
+    t "given a test with setup it executes the setup right before the test and makes the variables avaliable to test" {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            # $s is set to 'block' here
+            $s = "block"
+            New-Block 'block1' {
+                # $s will still be 'block' here so if we invoke the setup on the
+                # start of the block then $s would be 'block'
+                $s = "test"
+                # if the test does not run then this value will stay in $g
+                $g = "setup did not run"
+                # here $s is 'test', and here is where we want to invoke the script
+                New-Test 'test1' {
+                    # $g should be test here, because we run the setup right before
+                    # this scriptblock and kept the changed value of $g in scope
+                    $g
+                }
+                New-EachTestSetup {
+                    # setup runs on top of test and in the same scope
+                    # so $g is modifiable and becomes the value of $s
+                    # test then reports the $s value not the original $g value
+                    $g = $s
+                }
+            }
+        })
+
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+
+      t "given a test with setups and teardowns they run in correct scopes" {
+
+        # what I want here is that the test runs in this fashion
+        # so that each setup the test body and each teardown all run
+        # in the same scope so their variables are accessible and writable.
+        # the all setup runs one level up, so it's variables are not writable
+        # to keep each test isolated from the other tests
+        # block {
+        #     # . all setup
+        #     test {
+        #         # . each setup
+        #         # . body
+        #         # . each teardown
+        #     }
+
+        #     test {
+        #         # . each setup
+        #         # . body
+        #         # . each teardown
+        #     }
+        #     # . all teardown
+        # }
+
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            New-Block 'block1' {
+                New-OneTimeTestSetup {
+                    $g = 'one time setup'
+                }
+                New-EachTestSetup {
+                    if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
+                    $g = 'each setup'
+                }
+
+                New-Test "test1" {
+                    if ($g -ne 'each setup') {throw "`$g ($g) is not set to 'each setup' did the each setup run" }
+                    $g = 'test'
+                }
+
+                New-EachTestTeardown {
+                    if ($g -ne 'test') {throw "`$g ($g) is not set to 'test' did the test body run? does the body run in the same scope as the setup and teardown?" }
+                    $g = 'each teardown'
+                }
+                New-OneTimeTestTeardown {
+                    if ($g -eq 'each teardown') { throw "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so tests are isolated from each other." }
+                    if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
+                    $g
+                }
+            }
+        })
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal 'one time setup'
+    }
+
+    t "given a test with teardown it executes the teardown right after the test and has the variables avaliable from the test" {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            New-Block 'block1' {
+                # if the teardown would run in block without
+                # including the test the $s would remain 'block'
+                # because setting s to test would die within that scope
+                $s = "block"
+
+                New-Test 'test1' {
+                    $s = "test"
+                    $g = "setup did not run"
+                }
+                # teardown should run here
+                $s = "teardown run too late"
+                New-EachTestTeardown {
+                    $g = $s
+                    $g
+                }
+            }
+        })
+
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+}
+
+b "executing all test and teardown" {
+    t "given a test with all setup it executes the setup right before the first test and keeps the variables in upper scope" {
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            # $s is set to 'block' here
+            $s = "block"
+            New-Block 'block1' {
+                # $s will still be 'block' here so if we invoke the setup on the
+                # start of the block then $s would be 'block'
+                $s = "test"
+                # if the test does not run then this value will stay in $g
+                $g = "setup did not run"
+                # here $s is 'test', and here is where we want to invoke the script right before each setup and test
+                New-Test 'test1' {
+                    # each setup technically runs here
+
+                    # $g should be test here, because we run the setup right before
+                    # this scriptblock and kept the changed value of $g in scope
+                    if ($g -ne 'test') { throw "setup did not run ($g)" }
+                    # $g should be one scope below one time setup so this change
+                    # should not be visible in the teardown
+                    $g = 10
+
+                }
+                New-OneTimeTestSetup {
+                    if (-not $s) {
+                        throw "`$s is not defined are we running in the correct scope? $($executionContext.SessionState.Module)" }
+                    $g = $s
+                }
+                New-OneTimeTestTeardown {
+                    # teardown runs in the scope after the test scope dies so
+                    # 10 is not written in it and it should be test, to which the setup
+                    # set it
+                    $g
+                }
+            }
+        })
+
+        $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+    }
+
+    t "setups and teardowns don't run if there are no tests" {
+        $container = [PsCustomObject]@{
+            OneTimeSetupRun = $false
+            EachSetupRun = $false
+            EachTeardownRun = $false
+            OneTimeTeardownRun = $false
+        }
+
+        $result = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            New-OneTimeTestSetup {
+                $container.OneTimeSetupRun = $true
+            }
+
+            New-EachTestSetup {
+                $container.EachSetupRun = $true
+            }
+
+            New-EachTestTeardown {
+                $container.EachTeardownRun = $true
+            }
+
+            New-OneTimeTestTeardown {
+                $container.OneTimeTeardownRun = $true
+            }
+
+            New-Block "block1" {
+                New-Test "test1" {}
+            }
+        })
+
+        # the test should execute but non of the above setups should run
+        # those setups are running only for the tests in the current block
+
+        $result.Blocks[0].Tests[0].Executed | Verify-True
+
+        $container.OneTimeSetupRun | Verify-False
+        $container.EachSetupRun | Verify-False
+        $container.EachTeardownRun | Verify-False
+        $container.OneTimeTeardownRun | Verify-False
+
+    }
+
+    t "one time setups&teardowns run one time and each time setups&teardowns run for every test" {
+        $container = [PsCustomObject]@{
+            OneTimeSetup = 0
+            EachSetup = 0
+            EachTeardown = 0
+            OneTimeTeardown = 0
+        }
+
+        $result = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            New-OneTimeTestSetup {
+                $container.OneTimeSetup++
+            }
+
+            New-EachTestSetup {
+                $container.EachSetup++
+            }
+
+            New-EachTestTeardown {
+                $container.EachTeardown++
+            }
+
+            New-OneTimeTestTeardown {
+                $container.OneTimeTeardown++
+            }
+
+            New-Test "test1" {}
+            New-Test "test2" {}
+        })
+
+        # the test should execute but non of the above setups should run
+        # those setups are running only for the tests in the current block
+
+        $result.Tests[0].Executed | Verify-True
+
+        $container.OneTimeSetup | Verify-Equal 1
+        $container.EachSetup | Verify-Equal 2
+        $container.EachTeardown | Verify-Equal 2
+        $container.OneTimeTeardown | Verify-Equal 1
+
+    }
+}
+
+b "Skipping tests" {
+    t "tests can be skipped based on tags" {
+        $result = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+            New-Test "test1" -Tag run {}
+            New-Test "test2" {}
+        }) -Filter (New-FilterObject -Tag 'Run')
+
+        $result.Tests[0].Executed | Verify-True
+        $result.Tests[1].Executed | Verify-False
+    }
+}
+
+b "Block teardown and setup" {
+    t "block setups&teardowns run and run in correct scopes"{
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+
+            New-OneTimeBlockSetup {
+                $g = 'one time setup'
+            }
+            New-EachBlockSetup {
+                if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
+                $g = 'each setup'
+            }
+
+            New-Block 'block1' {
+                New-Test "test1" {}
+            }
+
+            New-EachBlockTeardown {
+                if ($g -ne 'Block') {throw "`$g ($g) is not set to 'Block' did the Block body run? does the body run in the same scope as the setup and teardown?" }
+                $g = 'each teardown'
+            }
+            New-OneTimeBlockTeardown {
+                if ($g -eq 'each teardown') { "`$g ($g) is set to 'each teardown', is it incorrectly running in the same scope as the each teardown? It should be running one scope above each teardown so Blocks are isolated from each other." }
+                if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the setup run?" }
+                $g
+            }
+        })
+
+        $actual.Blocks[0].StandardOutput | Verify-Equal 'one time setup'
+    }
+
+    t "block setups&teardowns run only when there are some tests to run in the block" {
+        $container = [PSCustomObject]@{
+            OneTimeBlockSetup1 = 0
+            EachBlockSetup1 = 0
+            EachBlockTeardown1 = 0
+            OneTimeBlockTeardown1 = 0
+        }
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+
+            New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
+            New-EachBlockSetup { $container.EachBlockSetup1++ }
+
+            New-Block 'block1' {
+                New-Test "test1" {
+                    "here"
+                }
+            }
+
+            New-Block 'no test block' {
+
+            }
+
+            New-Block 'no running tests' {
+                New-Test "do not run test" -Tag "DoNotRun" {}
+            }
+
+            New-EachBlockTeardown {
+                $container.EachBlockTeardown1++
+            }
+            New-OneTimeBlockTeardown {
+                $container.OneTimeBlockTeardown1++
+            }
+        }) -Filter (New-FilterObject -ExcludeTag DoNotRun)
+
+        # $container.OneTimeBlockSetup1 | Verify-Equal 1
+        $container.EachBlockSetup1 | Verify-Equal 1
+        $container.EachBlockTeardown1 | Verify-Equal 1
+        # $container.OneTimeBlockTeardown1 | Verify-Equal 1
+    }
+}
 
 b "plugins" {
     t "Given a plugin it is used in the run" {
@@ -727,7 +766,7 @@ b "plugins" {
             -EachBlockTeardown { $container.EachBlockTeardown++ } `
             -OneTimeBlockTeardown { $container.OneTimeBlockTeardown++ }
 
-        $null = Invoke-Test -ScriptBlock { 
+        $null = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block 'block1' {
                 New-Test "test1" {}
                 New-Test "test2" {}
@@ -736,7 +775,7 @@ b "plugins" {
             New-Block 'block2' {
                 New-Test "test3" {}
             }
-        } -Plugin $p
+        }) -Plugin $p
 
         # $container.OneTimeBlockSetup | Verify-Equal 1
         $container.EachBlockSetup | Verify-Equal 2
@@ -758,70 +797,84 @@ b "plugins" {
         $p = New-PluginObject -Name "readContext" `
             -EachTestTeardown { param($context) $container.Context = $context }
 
-        $null = Invoke-Test -ScriptBlock { 
+        $null = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Test "test1" {}
-        } -Plugin $p
+        }) -Plugin $p
 
         $container.Context.Name | Verify-Equal "test1"
         $container.Context.Passed | Verify-True
     }
 
     t "Plugin has access to block info" {
-        
+
         $p = New-PluginObject -Name "readContext" `
             -EachBlockSetup { param($context) $context.Name }
 
-        $actual = Invoke-Test -ScriptBlock { 
+        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
             New-Block -Name "block1" {
                 New-Test "test1" {}
             }
-        } -Plugin $p
+        }) -Plugin $p
 
         $actual.Blocks[0].StandardOutput | Verify-Equal "block1"
     }
 }
 
+b "running from files" {
+    t "given a path to file with tests it can execute it" {
+        $tempPath = [IO.Path]::GetTempPath() + "/" + (New-Guid).Guid + ".Tests.ps1"
+        try {
+            $c = {
+                New-Block "block1" {
+                    New-Test "test1" {
+                        throw "I fail"
+                    }
+                }
+            }
 
-b "tryGetProperty" {
-    t "given null it returns null" {
-        $null | tryGetProperty Name | Verify-Null
+            $c | Set-Content -Encoding UTF8 -Path $tempPath
+
+            $actual = Invoke-Test -Test (New-TestContainerObject -Path $tempPath)
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-False
+        }
+        finally {
+            if (Test-Path $tempPath) {
+                Remove-Item $tempPath -Force
+            }
+        }
     }
 
-    t "given an object that has the property it return the correct value" {
-        (Get-Process -Id $Pid) | tryGetProperty Name | Verify-Equal 'pwsh'
+    t "given a path to multiple files with tests it can execute it" {
+        $tempPath = [IO.Path]::GetTempPath() + "/" + (New-Guid).Guid + ".Tests.ps1"
+        try {
+            $c = {
+                New-Block "block1" {
+                    New-Test "test1" {
+                        throw "I fail"
+                    }
+                }
+            }
+
+            $c | Set-Content -Encoding UTF8 -Path $tempPath
+
+            $actual = Invoke-Test -Test (New-TestContainerObject -Path $tempPath), (New-TestContainerObject -Path $tempPath)
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-False
+            $actual.Blocks[1].Tests[0].Passed | Verify-False
+        }
+        finally {
+            if (Test-Path $tempPath) {
+                Remove-Item $tempPath -Force
+            }
+        }
     }
 }
 
-b "or" {
-
-    t "given a non-null value it returns it" {
-        "a" | or "b" | Verify-Equal "a"
-    }
-
-    t "given null it returns the default value" {
-        $null | or "b" | Verify-Equal "b"
-    }
-}
-
-b "combineNonNull" {
-    t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
-        $r = combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
-        # expecting: 1, $null, 1, 2, 3, 10
-        $r[0] | Verify-Equal 1
-        $r[1] | Verify-Null
-        $r[2] | Verify-Equal 1
-        $r[3] | Verify-Equal 2
-        $r[4] | Verify-Equal 3
-        $r[5] | Verify-Equal 10
-    }
-
-}
-
-
 
 
 }
-}
+
 
 
 
