@@ -82,8 +82,14 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    if (-not $InvokedByInvokePester) {
-        $p = pstr\New-PluginObject -Name "WriteScreen" -EachBlockSetup {
+    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    {
+        # User has executed a test script directly instead of calling Invoke-Pester
+        Remove-MockFunctionsAndAliases 
+        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
+
+
+        $writeScreen = pstr\New-PluginObject -Name "WriteScreen" -EachBlockSetup {
             param ($Context) 
             Write-Host "Describe $($context.Name)" -ForegroundColor Yellow
         } -EachTestTeardown {
@@ -95,7 +101,10 @@ about_TestDrive
                 Write-Host -ForegroundColor Red "[-] $($Context.Path -join ".")`n$($Context.ErrorRecord | Format-List -Force * | Out-String)"
             }
         }
-        pstr\Invoke-Test { New-Block -Name $Name -ScriptBlock $Fixture } -Plugin $p
+
+        $plugins = @($writeScreen)
+
+        pstr\Invoke-Test { New-Block -Name $Name -ScriptBlock $Fixture } -Plugin $plugins
     }
     else {
         pstr\New-Block -Name $Name -ScriptBlock $Fixture
