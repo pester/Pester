@@ -238,21 +238,25 @@ function Test-CommandInScope
     $functionResult = !$Function
     for ($ast = $Command; $null -ne $ast; $ast = $ast.Parent)
     {
-        if (!$classResult) {
+        if (!$classResult -and $PSVersionTable.PSVersion.Major -ge 5)
+        {
+            # Classes have been introduced in PowerShell 5.0
             $classAst = $ast -as [System.Management.Automation.Language.TypeDefinitionAst]
             if ($null -ne $classAst -and $classAst.Name -like $Class)
             {
                 $classResult = $true
             }
         }
-        if (!$functionResult) {
+        if (!$functionResult)
+        {
             $functionAst = $ast -as [System.Management.Automation.Language.FunctionDefinitionAst]
             if ($null -ne $functionAst -and $functionAst.Name -like $Function)
             {
                 $functionResult = $true
             }
         }
-        if ($classResult -and $functionResult) {
+        if ($classResult -and $functionResult)
+        {
             return $true
         }
     }
@@ -408,11 +412,16 @@ function Get-ParentClassName
 {
     param ([System.Management.Automation.Language.Ast] $Ast)
 
-    $parent = $Ast.Parent
-
-    while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.TypeDefinitionAst])
+    if ($PSVersionTable.PSVersion.Major -ge 5)
     {
-        $parent = $parent.Parent
+        # Classes have been introduced in PowerShell 5.0
+
+        $parent = $Ast.Parent
+
+        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.TypeDefinitionAst])
+        {
+            $parent = $parent.Parent
+        }
     }
 
     if ($null -eq $parent)
