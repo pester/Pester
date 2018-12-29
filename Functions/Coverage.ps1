@@ -582,9 +582,7 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory=$true)]
         $PesterState,
         [parameter(Mandatory=$true)]
-        [object] $CoverageReport,
-
-        [Switch]$DetailedCodeCoverage
+        [object] $CoverageReport
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
