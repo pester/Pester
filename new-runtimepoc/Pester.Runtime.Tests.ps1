@@ -44,6 +44,7 @@ function Verify-TestFailed {
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'stop'
+& (Get-Module Pester.Runtime) {
 i {
 b "Basic" {
     t "Given a scriptblock with 1 test in it, it finds 1 test" {
@@ -819,6 +820,7 @@ b "combineNonNull" {
 
 
 
+}
 }
 
 

@@ -6,8 +6,6 @@ $script:state = [PSCustomObject]@{
     Plugin = $null
 }
 
-Get-Module Scope | Remove-module ; Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
-
 # resets the module state to the default
 function Reset-TestSuite {
     v "Resetting internal state to default."
@@ -779,11 +777,6 @@ function PostProcess-Test {
     $block.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
 }
 
-# initialize the internal state
-Reset-TestSuite
-
-
-
 function Where-Failed {
     [CmdletBinding()]
     param (
@@ -983,140 +976,27 @@ function none ($InputObject) {
     -not (any $InputObject)
 }
 
+Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
+# initialize internal state
+Reset-TestSuite
 
-# $script:beforeAlls = @{}
-# $script:beforeEaches = @{}
-# $script:state.Discovery = $true
+Export-ModuleMember -Function @(
+    'Reset-TestSuite'
+    'New-Block'
+    'New-Test'
+    'New-EachTestSetup'
+    'New-EachTestTeardown'
+    'New-OneTimeTestSetup'
+    'New-OneTimeTestTeardown'
+    'New-EachBlockSetup'
+    'New-EachBlockTeardown'
+    'New-OneTimeBlockSetup'
+    'New-OneTimeBlockTeardown'
+    'Invoke-Test'
 
-# function d {
-#     param(
-#         [String] $Name,
-#         [ScriptBlock] $Block
-#     )
-#     if ($script:state.Discovery) {
-#         Write-Host "Found block $Name" -ForegroundColor Cyan
-#         & $Block
-#     }
-#     else {
-#         Write-Host "Executing block $Name" -ForegroundColor Green
-#         if ($script:beforeAlls.contains($name)) {
-#             &$script:beforeAlls[$Name]
-#         }
-#         & $Block
-#     }
+    'Where-Failed'
+    'View-Flat'
 
-
-
-# }
-
-# function ba {
-#     param(
-#         [ScriptBlock] $Block
-#     )
-
-#     if ($script:state.Discovery) {
-#         $script:beforeAlls[$Name] = $Block
-#     }
-# }
-
-# function be {
-#     param(
-#         [ScriptBlock] $Block
-#     )
-
-#     if ($script:state.Discovery) {
-#         $script:beforeEaches[$Name] = $Block
-#     }
-# }
-
-# function i {
-#     param(
-#         [String] $Name,
-#         [ScriptBlock] $Test
-#     )
-#     if ($script:state.Discovery) {
-#         Write-Host "Found test $Name" -ForegroundColor Cyan
-#     }
-#     else {
-#         Write-Host "Executing test $Name" -ForegroundColor Green
-#         if ($script:beforeAlls.contains($name)) {
-#             &$script:beforeAlls[$Name]
-#         }
-#         & $Test
-#     }
-# }
-
-# function Invoke-P {
-#     param(
-#         [ScriptBlock] $Suite
-#     )
-
-#     $script:state.Discovery = $true
-
-#     & {
-#         param ($phase)
-#         . $Suite
-#         # this variable should go away somehog
-#         $script:state.Discovery = $false
-#         & $Suite
-#     }
-# }
-
-# function Work {
-#     param (
-#         [ScriptBlock]
-#         $Work
-#     )
-#     if ($script:state.Discovery)
-#     {
-#         Write-Host "Skipping this piece of code { $($Work.ToString().Trim()) }, because we are Found tests." -ForegroundColor Yellow
-#     }
-#     else
-#     {
-#         &$Work
-#     }
-# }
-
-# # dot-sources a piece of script during the Discovery pass so all possible dependencies
-# # are in scope and we can discover even tests that are "hidden" in custom functions
-# # this function must be defined to run without additional scope (like the Mock prototype),
-# # atm I will just return a populated or empty scriptBlock and dot-source it to get the same effect
-# function TestDependency {
-#     param (
-#         [string]
-#         $Path
-#     )
-#     if ($script:state.Discovery)
-#     {
-#         if (-not (Test-Path $Path)) {
-#             throw "Test dependency path does not exist"
-#         }
-#         Write-Host Importing $Path
-#         $Path
-#     }
-#     else{
-#         {}
-#     }
-# }
-
-# # dot-sources a piece of script during the Run pass so all possible dependencies
-# # to the i blocks are in scope run the tests
-# # this function must be defined to run without additional scope (like the Mock prototype),
-# # atm I will just return a populated or empty scriptBlock and dot-source it to get the same effect
-# function Dependency {
-#     param (
-#         [string]
-#         $Path
-#     )
-#     if ($script:state.Discovery)
-#     {
-#         {}
-#     }
-#     else{
-#         if (-not (Test-Path $Path)) {
-#             throw "dependency path does not exist"
-#         }
-#         Write-Host Importing $Path
-#         $Path
-#     }
-# }
+    'New-FilterObject'
+    'New-PluginObject'
+)
