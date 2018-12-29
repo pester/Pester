@@ -1,6 +1,3 @@
-Get-MOdule Pester | Remove-Module
-Import-Module $PSScriptRoot\..\Pester.psd1 
-
 
 
 $null = Describe "does not run" { 
@@ -13,7 +10,7 @@ $r = Describe "runs" {
     }
 
     it "fails" {
-        throw "a"
+        throw "this is expected errror"
     }
 }
 

@@ -1,5 +1,6 @@
-﻿Get-Module Pester.Runtime | Remove-module
+﻿Get-Module Pester.Runtime, Pester.RSpec | Remove-module
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\new-runtimepoc\Pester.RSpec.psm1 -DisableNameChecking
 
 if ($PSVersionTable.PSVersion.Major -ge 3)
 {
@@ -1103,14 +1104,18 @@ New-PesterOption
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        # $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+
+        $pester = 1
 
 
-        
+        $testScripts  = Pester.RSpec\Find-TestFiles -Path $Script | foreach { Pester.Runtime\New-TestContainerObject -Path $_ }
+        $r = Pester.Runtime\Invoke-Test -Test $testScripts        
 
-
-        try
-        {
+        $r
+    }
+        # try
+        # {
               
     #         Write-PesterStart $pester $Script
             
@@ -1137,7 +1142,7 @@ New-PesterOption
 
     #         Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
     #         $testScripts = @(ResolveTestScripts $Script)
-              $testScripts  = Pester.RSpec\Find-TestFiles -Path $Script
+              
 
     #         if ($DetailedCodeCoverage)
     #         {
@@ -1167,9 +1172,8 @@ New-PesterOption
 
     #         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-             foreach ($testScript in $testScripts) {
-                Pester.Runtime\Invoke-Test -
-             }
+             
+            
     #         foreach ($testScript in $testScripts)
     #         {
     #             #Get test description for better output

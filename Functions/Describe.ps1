@@ -84,6 +84,7 @@ about_TestDrive
 
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
+        
         # User has executed a test script directly instead of calling Invoke-Pester
         Remove-MockFunctionsAndAliases 
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
@@ -104,7 +105,7 @@ about_TestDrive
 
         $plugins = @($writeScreen)
 
-        Pester.Runtime\Invoke-Test { New-Block -Name $Name -ScriptBlock $Fixture } -Plugin $plugins
+        Pester.Runtime\Invoke-Test -Test (New-TestContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture }) -Plugin $plugins
     }
     else {
         Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture
