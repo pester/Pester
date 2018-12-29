@@ -282,11 +282,14 @@ function New-CoverageBreakpoint
     $breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
 
     [pscustomobject] @{
-        File       = $Command.Extent.File
-        Function   = Get-ParentFunctionName -Ast $Command
-        Line       = $Command.Extent.StartLineNumber
-        Command    = Get-CoverageCommandText -Ast $Command
-        Breakpoint = $breakpoint
+        File        = $Command.Extent.File
+        Function    = Get-ParentFunctionName -Ast $Command
+        StartLine   = $Command.Extent.StartLineNumber
+        EndLine     = $Command.Extent.EndLineNumber
+        StartColumn = $Command.Extent.StartColumnNumber
+        EndColumn   = $Command.Extent.EndColumnNumber
+        Command     = Get-CoverageCommandText -Ast $Command
+        Breakpoint  = $breakpoint
     }
 }
 
@@ -484,24 +487,28 @@ function Get-CoverageReport
 {
     param ([object] $PesterState)
 
-    $totalCommandCount = $PesterState.CommandCoverage.Count
-
-    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
-    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
-    $allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
+    $properties = @(
+        'File'
+        @{ Name = 'Line'; Expression = { $_.StartLine } }
+        'StartLine'
+        'EndLine'
+        'StartColumn'
+        'EndColumn'
+        'Function'
+        'Command'
+        @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
+    )
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] $properties)
+    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] $properties)
     $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
-    $fileCount = $analyzedFiles.Count
-
-    $executedCommandCount = $totalCommandCount - $missedCommands.Count
 
     [pscustomobject] @{
-        NumberOfCommandsAnalyzed = $totalCommandCount
-        NumberOfFilesAnalyzed    = $fileCount
-        NumberOfCommandsExecuted = $executedCommandCount
+        NumberOfCommandsAnalyzed = $PesterState.CommandCoverage.Count
+        NumberOfFilesAnalyzed    = $analyzedFiles.Count
+        NumberOfCommandsExecuted = $hitCommands.Count
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
-        AllCommands              = $allCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
@@ -610,7 +617,7 @@ function Get-JaCoCoReportXml {
         $file = $command.File
         $function = $command.Function
         if (!$function) { $function = '<script>' }
-        $line = $command.Line.ToString()
+        $line = $command.StartLine.ToString()
 
         $missed = if ($command.Breakpoint.HitCount) { 0 } else { 1 }
         $covered = if ($command.Breakpoint.HitCount) { 1 } else { 0 }
