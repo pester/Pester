@@ -168,13 +168,13 @@ function ConvertTo-PesterResult {
     )
 
     $testResult = @{
-        name = $Name
-        time = $time
-        failureMessage = ""
-        stackTrace = ""
+        Name = $Name
+        Time = $time
+        FailureMessage = ""
+        StackTrace = ""
         ErrorRecord = $null
-        success = $false
-        result = "Failed"
+        Success = $false
+        Result = "Failed"
     }
 
     if(-not $ErrorRecord)
