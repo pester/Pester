@@ -272,7 +272,7 @@ InModuleScope Pester {
 
         Context 'Passing in Dictionaries instead of Strings' {
             It 'Allows the use of a "P" key instead of "Path"' {
-                $result = @(ResolveTestScripts @{ P = (Join-Path $TestDrive 'SomeFile.ps1') })
+                $result = @(ResolveTestScripts @{ p = (Join-Path $TestDrive 'SomeFile.ps1') })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
@@ -290,7 +290,7 @@ InModuleScope Pester {
             }
 
             It 'Allows the use of an "Args" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Args = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); args = $testArgs })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
@@ -300,7 +300,7 @@ InModuleScope Pester {
             }
 
             It 'Allows the use of an "A" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); A = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); a = $testArgs })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
@@ -321,7 +321,7 @@ InModuleScope Pester {
             }
 
             It 'Allows the use of a "Params" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Params = $testParams })
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); params = $testParams })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
