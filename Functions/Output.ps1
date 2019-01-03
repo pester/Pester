@@ -188,7 +188,7 @@ function ConvertTo-PesterResult {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
-        $failureMessage = $details.Message
+        $failureMessage = $details.Data.Because
         $file = $details.File
         $line = $details.Line
         $Text = $details.LineText
