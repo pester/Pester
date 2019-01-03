@@ -165,19 +165,19 @@ function ConvertTo-PesterResult {
     )
 
     $testResult = @{
-        name = $Name
-        time = $time
-        failureMessage = ""
-        stackTrace = ""
+        Name = $Name
+        Time = $time
+        FailureMessage = ""
+        StackTrace = ""
         ErrorRecord = $null
-        success = $false
-        result = "Failed"
+        Success = $false
+        Result = "Failed"
     }
 
     if(-not $ErrorRecord)
     {
         $testResult.Result = "Passed"
-        $testResult.success = $true
+        $testResult.Success = $true
         return $testResult
     }
 
@@ -211,8 +211,8 @@ function ConvertTo-PesterResult {
         $Text = $ErrorRecord.InvocationInfo.Line
     }
 
-    $testResult.failureMessage = $failureMessage
-    $testResult.stackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
+    $testResult.FailureMessage = $failureMessage
+    $testResult.StackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
     $testResult.ErrorRecord = $ErrorRecord
 
     return $testResult
@@ -242,7 +242,7 @@ function Write-PesterResult {
 
         $margin = $ReportStrings.Margin * ($pester.IndentLevel + 1)
         $error_margin = $margin + $ReportStrings.Margin
-        $output = $TestResult.name
+        $output = $TestResult.Name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 
         if (-not ($OutputType | Has-Flag 'Default, Summary'))
@@ -260,8 +260,8 @@ function Write-PesterResult {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime $humanTime
 
                     if($pester.IncludeVSCodeMarker) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.StackTrace -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.FailureMessage -replace '(?m)^',$error_margin)
                     }
                     else {
                         $TestResult.ErrorRecord |

@@ -1,7 +1,7 @@
 function GetPesterPsVersion
 {
     # accessing the value indirectly so it can be mocked
-    (Get-Variable 'PSVersionTable' -ValueOnly).PsVersion.Major
+    (Get-Variable 'PSVersionTable' -ValueOnly).PSVersion.Major
 }
 
 function GetPesterOs
