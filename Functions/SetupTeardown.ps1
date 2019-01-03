@@ -294,7 +294,7 @@ function Get-GroupStartTokenForCommand
 
     $commandName = $Tokens[$CommandIndex].Content
 
-    #Scriptblock positional paramter
+    # gets ScriptBlock from positional parameter e.g. BeforeEach { <code> }
     if ($CommandIndex + 1 -lt $tokens.Count -and
         ($tokens[$CommandIndex + 1].Type -eq [System.Management.Automation.PSTokenType]::GroupStart -or
         $tokens[$CommandIndex + 1].Content -eq '{'))
@@ -302,7 +302,7 @@ function Get-GroupStartTokenForCommand
         return $CommandIndex + 1
     }
 
-    #Scriptblack as named paramter value
+    # gets ScriptBlock from named parameter e.g. BeforeEach -ScriptBlock { <code> }
     if ($CommandIndex + 2 -lt $tokens.Count -and
         ($tokens[$CommandIndex + 2].Type -eq [System.Management.Automation.PSTokenType]::GroupStart -or
         $tokens[$CommandIndex + 2].Content -eq '{'))
