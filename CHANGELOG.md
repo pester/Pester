@@ -1,3 +1,6 @@
+## 4.4.4 (January 3, 2019)
+ - Fix hashtable casing which caused fails on Ubuntu with C.UTF-8 LANG [GH-1193]
+
 ## 4.4.3 (December 11, 2018)
  - Add signing scripts
  - Same as 4.4.3-beta1 but signed
