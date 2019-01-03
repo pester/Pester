@@ -289,9 +289,6 @@ function Get-GroupStartTokenForCommand
         [int] $CommandIndex
     )
 
-    # We may want to allow newlines, other parameters, etc at some point.  For now it's good enough to
-    # just verify that the next token after our BeforeEach or AfterEach command is an opening curly brace.
-
     $commandName = $Tokens[$CommandIndex].Content
 
     # gets ScriptBlock from positional parameter e.g. BeforeEach { <code> }
