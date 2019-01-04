@@ -6,7 +6,6 @@ $manifestPath  = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
-#
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:manifest = $null
     $script:tagVersion = $null
@@ -271,8 +270,8 @@ InModuleScope Pester {
         }
 
         Context 'Passing in Dictionaries instead of Strings' {
-            It 'Allows the use of a "P" key instead of "Path"' {
-                $result = @(ResolveTestScripts @{ P = (Join-Path $TestDrive 'SomeFile.ps1') })
+            It 'Allows the use of a "p" key instead of "Path"' {
+                $result = @(ResolveTestScripts @{ p = (Join-Path $TestDrive 'SomeFile.ps1') })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
@@ -289,8 +288,8 @@ InModuleScope Pester {
                 $result[0].Arguments[0] | Should -Be 'I am a string'
             }
 
-            It 'Allows the use of an "Args" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Args = $testArgs })
+            It 'Allows the use of an "args" key in the dictionary' {
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); args = $testArgs })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
@@ -299,8 +298,8 @@ InModuleScope Pester {
                 $result[0].Arguments[0] | Should -Be 'I am a string'
             }
 
-            It 'Allows the use of an "A" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); A = $testArgs })
+            It 'Allows the use of an "a" key in the dictionary' {
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); a = $testArgs })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
@@ -320,8 +319,8 @@ InModuleScope Pester {
                 $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
             }
 
-            It 'Allows the use of a "Params" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Params = $testParams })
+            It 'Allows the use of a "params" key in the dictionary' {
+                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); params = $testParams })
 
                 $result.Count | Should -Be 1
                 $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')

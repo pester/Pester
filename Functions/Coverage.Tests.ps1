@@ -40,7 +40,9 @@ InModuleScope Pester {
         $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript2.ps1) -ItemType File -ErrorAction SilentlyContinue
 
         Set-Content -Path $(Join-Path -Path $root -ChildPath TestScript2.ps1) -Value @'
-            'Some other file'
+            'Some {0} file' `
+                -f `
+                'other'
 
 '@
 
@@ -88,7 +90,7 @@ InModuleScope Pester {
             }
 
             It 'JaCoCo report must be correct'{
-                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -PesterState $testState -CoverageReport $coverageReport -DetailedCodeCoverage
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -PesterState $testState -CoverageReport $coverageReport
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
@@ -96,6 +98,18 @@ InModuleScope Pester {
                 $jaCoCoReportXml = $jaCoCoReportXml.Replace($root.Replace('\', '/'), '')
                 $jaCoCoReportXml | should -be '<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"><report name="Pester (date)"><sessioninfo id="this" start="" dump="" /><package name="PowerShell"><class name="TestScript.ps1" sourcefilename="/TestScript.ps1"><method name="NestedFunction" desc="()" line="5"><counter type="INSTRUCTION" missed="0" covered="2" /><counter type="LINE" missed="0" covered="2" /><counter type="METHOD" missed="0" covered="1" /></method><method name="FunctionOne" desc="()" line="9"><counter type="INSTRUCTION" missed="1" covered="6" /><counter type="LINE" missed="0" covered="5" /><counter type="METHOD" missed="0" covered="1" /></method><method name="FunctionTwo" desc="()" line="22"><counter type="INSTRUCTION" missed="1" covered="0" /><counter type="LINE" missed="1" covered="0" /><counter type="METHOD" missed="1" covered="0" /></method><method name="&lt;script&gt;" desc="()" line="25"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><counter type="INSTRUCTION" missed="2" covered="9" /><counter type="LINE" missed="1" covered="8" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></class><class name="TestScript2.ps1" sourcefilename="/TestScript2.ps1"><method name="&lt;script&gt;" desc="()" line="1"><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /></method><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /><counter type="CLASS" missed="0" covered="1" /></class><sourcefile name="/TestScript.ps1"><line nr="5" mi="0" ci="1" /><line nr="6" mi="0" ci="1" /><line nr="9" mi="0" ci="1" /><line nr="11" mi="0" ci="1" /><line nr="12" mi="0" ci="1" /><line nr="15" mi="1" ci="1" /><line nr="17" mi="0" ci="2" /><line nr="22" mi="1" ci="0" /><line nr="25" mi="0" ci="1" /><counter type="INSTRUCTION" missed="2" covered="9" /><counter type="LINE" missed="1" covered="8" /><counter type="METHOD" missed="1" covered="3" /><counter type="CLASS" missed="0" covered="1" /></sourcefile><sourcefile name="/TestScript2.ps1"><line nr="1" mi="0" ci="1" /><counter type="INSTRUCTION" missed="0" covered="1" /><counter type="LINE" missed="0" covered="1" /><counter type="METHOD" missed="0" covered="1" /><counter type="CLASS" missed="0" covered="1" /></sourcefile><counter type="INSTRUCTION" missed="2" covered="10" /><counter type="LINE" missed="1" covered="9" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></package><counter type="INSTRUCTION" missed="2" covered="10" /><counter type="LINE" missed="1" covered="9" /><counter type="METHOD" missed="1" covered="4" /><counter type="CLASS" missed="0" covered="2" /></report>'
             }
+
+            It 'Reports the right line numbers' {
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].Line | Should -Be 1
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].StartLine | Should -Be 1
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].EndLine | Should -Be 3
+            }
+
+            It 'Reports the right column numbers' {
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].StartColumn | Should -Be 13
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted-1].EndColumn | Should -Be 24
+            }
+
             Exit-CoverageAnalysis -PesterState $testState
         }
 
