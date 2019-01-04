@@ -349,94 +349,94 @@ InModuleScope Pester {
         {
             Context 'Single class' {
                 $testState = New-PesterState -Path $root
-    
+
                 Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'} -PesterState $testState
-    
+
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 3
                 }
-    
+
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -PesterState $testState
-    
+
                 It 'Reports the proper number of executed commands' {
                     $coverageReport.NumberOfCommandsExecuted | Should -Be 2
                 }
-    
+
                 It 'Reports the proper number of analyzed commands' {
                     $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3
                 }
-    
+
                 It 'Reports the proper number of missed commands' {
                     $coverageReport.MissedCommands.Count | Should -Be 1
                 }
-    
+
                 It 'Reports the proper number of hit commands' {
                     $coverageReport.HitCommands.Count | Should -Be 2
                 }
-    
+
                 Exit-CoverageAnalysis -PesterState $testState
             }
-    
+
             Context 'Class wildcard resolution' {
                 $testState = New-PesterState -Path $root
-    
+
                 Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*'} -PesterState $testState
-    
+
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 3
                 }
-    
+
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -PesterState $testState
-    
+
                 It 'Reports the proper number of executed commands' {
                     $coverageReport.NumberOfCommandsExecuted | Should -Be 2
                 }
-    
+
                 It 'Reports the proper number of analyzed commands' {
                     $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3
                 }
-    
+
                 It 'Reports the proper number of missed commands' {
                     $coverageReport.MissedCommands.Count | Should -Be 1
                 }
-    
+
                 It 'Reports the proper number of hit commands' {
                     $coverageReport.HitCommands.Count | Should -Be 2
                 }
-    
+
                 Exit-CoverageAnalysis -PesterState $testState
             }
-    
+
             Context 'Class and function filter' {
                 $testState = New-PesterState -Path $root
-    
+
                 Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo'} -PesterState $testState
-    
+
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 1
                 }
-    
+
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -PesterState $testState
-    
+
                 It 'Reports the proper number of executed commands' {
                     $coverageReport.NumberOfCommandsExecuted | Should -Be 0
                 }
-    
+
                 It 'Reports the proper number of analyzed commands' {
                     $coverageReport.NumberOfCommandsAnalyzed | Should -Be 1
                 }
-    
+
                 It 'Reports the proper number of missed commands' {
                     $coverageReport.MissedCommands.Count | Should -Be 1
                 }
-    
+
                 It 'Reports the proper number of hit commands' {
                     $coverageReport.HitCommands.Count | Should -Be 0
                 }
-    
+
                 Exit-CoverageAnalysis -PesterState $testState
             }
         }
@@ -444,32 +444,32 @@ InModuleScope Pester {
         {
             Context 'Single class when not supported' {
                 $testState = New-PesterState -Path $root
-    
+
                 Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'} -PesterState $testState
-    
+
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 0
                 }
-    
+
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -PesterState $testState
-    
+
                 It 'Reports the proper number of executed commands' {
                     $coverageReport.NumberOfCommandsExecuted | Should -Be 0
                 }
-    
+
                 It 'Reports the proper number of analyzed commands' {
                     $coverageReport.NumberOfCommandsAnalyzed | Should -Be 0
                 }
-    
+
                 It 'Reports the proper number of missed commands' {
                     $coverageReport.MissedCommands.Count | Should -Be 0
                 }
-    
+
                 It 'Reports the proper number of hit commands' {
                     $coverageReport.HitCommands.Count | Should -Be 0
                 }
-    
+
                 Exit-CoverageAnalysis -PesterState $testState
             }
         }
