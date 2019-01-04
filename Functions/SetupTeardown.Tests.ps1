@@ -17,6 +17,23 @@ Describe 'Describe-Scoped Test Case setup' {
     }
 }
 
+Describe 'Describe-Scoped Test Case setup using named ScriptBlock-parameter' {
+    BeforeEach -Scriptblock {
+        $testVariable = 'From BeforeEach'
+    }
+
+    $testVariable = 'Set in Describe'
+
+    It 'Assigns the correct value in first test' {
+        $testVariable | Should -Be 'From BeforeEach'
+        $testVariable = 'Set in It'
+    }
+
+    It 'Assigns the correct value in subsequent tests' {
+        $testVariable | Should -Be 'From BeforeEach'
+    }
+}
+
 Describe 'Context-scoped Test Case setup' {
     $testVariable = 'Set in Describe'
 

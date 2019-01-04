@@ -258,13 +258,115 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
         $gherkin.Results.Features | Should -Be "PesterResult shows executed feature names"
     }
 
+<<<<<<< HEAD
      It 'Should show the names of the passed secnarios' {
         $gherkin.Results.PassedScenarios | Should -Be @('The PesterResult object shows the executed feature names', 'The Pester test report shows scenario names with examples [A Passing Scenario 1]')
     }
 
     It 'Should show the names of the failed scenarios' {
         $gherkin.Results.FailedScenarios | Should -Be "The Pester test report shows scenario names with examples [A Failing Scenario 1]"
+=======
+    It 'Should show the names of the passed scenarios' {
+        $gherkin.Results.PassedScenarios | Should -Be @(
+            'The PesterResult object shows the executed feature names',
+            'The Pester test report shows scenario names with examples: Examples: A Passing Scenario'
+        )
     }
+
+    It 'Should show the names of the failed scenarios' {
+        $gherkin.Results.FailedScenarios | Should -Be @(
+            'The Pester test report shows scenario names with examples: Examples: Failing Scenario (later)'
+            'The Pester test report shows scenario names with examples: Examples: Failing Scenario (early)'
+            'The Pester test report shows scenario names with examples: Examples: Failing Scenario (inconclusive)'
+        )
+>>>>>>> master
+    }
+
+}
+
+Describe "Check test results of steps" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    $testResults = $gherkin.Results |
+        Select-Object -ExpandProperty TestResult |
+        Select-Object -ExpandProperty Result
+
+    It "Should have the expected number of test results" {
+        $testResults.Count | Should -Be 15
+    }
+
+    It "Test result 1 is correct" {
+        $testResults[0] | Should -Be 'Passed'
+    }
+
+    It "Test result 2 is correct" {
+        $testResults[1] | Should -Be 'Passed'
+    }
+
+    It "Test result 3 is correct" {
+        $testResults[2] | Should -Be 'Passed'
+    }
+
+    It "Test result 4 is correct" {
+        $testResults[3] | Should -Be 'Passed'
+    }
+
+    It "Test result 5 is correct" {
+        $testResults[4] | Should -Be 'Passed'
+    }
+
+    It "Test result 6 is correct" {
+        $testResults[5] | Should -Be 'Passed'
+    }
+
+    It "Test result 7 is correct" {
+        $testResults[6] | Should -Be 'Passed'
+    }
+
+    It "Test result 8 is correct" {
+        $testResults[7] | Should -Be 'Passed'
+    }
+
+    It "Test result 9 is correct" {
+        $testResults[8] | Should -Be 'Failed'
+    }
+
+    It "Test result 10 is correct" {
+        $testResults[9] | Should -Be "Failed"
+    }
+
+    It "Test result 11 is correct" {
+        $testResults[10] | Should -Be 'Passed'
+    }
+
+    It "Test result 12 is correct" {
+        $testResults[11] | Should -Be 'Failed'
+    }
+
+    It "Test result 13 is correct" {
+        $testResults[12] | Should -Be 'Inconclusive'
+    }
+
+    It "Test result 14 is correct" {
+        $testResults[13] | Should -Be 'Passed'
+    }
+
+    It "Test result 15 is correct" {
+        $testResults[14] | Should -Be 'Inconclusive'
+    }
+
 }
 
 
@@ -299,6 +401,11 @@ Describe "A generated NUnit report" -Tag Gherkin {
         return (Select-Xml -Xml $nUnitReportXml -XPath $xPath | Select-Object -ExpandProperty Node)
     }
 
+    # Helper function to get the inner text of a XML node from a XPath expression
+    function Get-XmlInnerText($xPath) {
+        return (Get-XmlNode $xPath).InnerText
+    }
+
     # Helper function to get the value of a XML node from a XPath expression
     function Get-XmlValue($xPath) {
         return (Get-XmlNode $xPath).Value
@@ -309,9 +416,15 @@ Describe "A generated NUnit report" -Tag Gherkin {
         return (Get-XmlNode $xPath).Count
     }
 
+    $expectedFeatureFileName1 = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting1.feature)
+    $expectedFeatureFileName2 = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting2.feature)
+    $expectedImplementationFileName = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting.Steps.ps1)
+
     $featuresXPath = "/test-results/test-suite/results/test-suite"
     $feature1ScenariosXPath = "$featuresXPath[1]/results/test-suite"
     $feature2ScenariosXPath = "$featuresXPath[2]/results/test-suite"
+
+    $expectFeatureFileNameInStackTrace = $PSVersionTable.PSVersion.Major -gt 2
 
     It 'should be an existing and well formed XML file' {
         $reportFile | Should -Exist
@@ -384,6 +497,12 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[4]" | Should -Be "Success"
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[5]" | Should -Be "Failure"
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be "Success"
+
+        Get-XmlInnerText "$scenario2Examples1StepsXPath[5]/failure/message" | Should -Be "An example error"
+        if ($expectFeatureFileNameInStackTrace) {
+            Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 15*"
+        }
+        Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 23*"
     }
 
     It 'should contain all steps of scenario 2 (examples 2) with correct names and test results' {
@@ -422,6 +541,12 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario3StepsXPath/@result)[3]" | Should -Be "Success"
         Get-XmlValue "($scenario3StepsXPath/@result)[4]" | Should -Be "Success"
         Get-XmlValue "($scenario3StepsXPath/@result)[5]" | Should -Be "Failure"
+
+        Get-XmlInnerText "$scenario3StepsXPath[5]/failure/message" | Should -Be "Another example error"
+        if ($expectFeatureFileNameInStackTrace) {
+            Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 32*"
+        }
+        Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 57*"
     }
 
     It 'should contain all steps of scenario 4 with correct names and test results' {
@@ -433,9 +558,13 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario4StepsXPath/@name)[2]" | Should -Be "Scenario 4.When step_402"
         Get-XmlValue "($scenario4StepsXPath/@name)[3]" | Should -Be "Scenario 4.Then step_403"
 
-        Get-XmlValue "($scenario4StepsXPath/@result)[1]" | Should -Be "Failure"
-        Get-XmlValue "($scenario4StepsXPath/@result)[2]" | Should -Be "Failure"
-        Get-XmlValue "($scenario4StepsXPath/@result)[3]" | Should -Be "Failure"
+        Get-XmlValue "($scenario4StepsXPath/@result)[1]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario4StepsXPath/@result)[2]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario4StepsXPath/@result)[3]" | Should -Be "Inconclusive"
+
+        Get-XmlInnerText "($scenario4StepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario4StepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario4StepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
     }
 
     It 'should contain all steps of scenario 5 (examples 1) with correct names and test results' {
@@ -447,9 +576,13 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples1StepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 1 1].When step_502"
         Get-XmlValue "($scenario5Examples1StepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 1 1].Then step_503"
 
-        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[1]" | Should -Be "Failure"
-        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[2]" | Should -Be "Failure"
-        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[3]" | Should -Be "Failure"
+        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[1]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[2]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[3]" | Should -Be "Inconclusive"
+
+        Get-XmlInnerText "($scenario5Examples1StepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples1StepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples1StepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
     }
 
     It 'should contain all steps of scenario 5 (examples 2) with correct names and test results' {
@@ -461,9 +594,13 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples2StepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 2 1].When step_602"
         Get-XmlValue "($scenario5Examples2StepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 2 1].Then step_603"
 
-        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[1]" | Should -Be "Failure"
-        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[2]" | Should -Be "Failure"
-        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[3]" | Should -Be "Failure"
+        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[1]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[2]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[3]" | Should -Be "Inconclusive"
+
+        Get-XmlInnerText "($scenario5Examples2StepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples2StepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples2StepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
     }
 
 }

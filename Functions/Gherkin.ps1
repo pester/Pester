@@ -707,7 +707,7 @@ function Invoke-GherkinStep {
         ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] -First 1
 
         if (!$StepCommand) {
-            $PesterErrorRecord = New-InconclusiveErrorRecord -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
+            $PesterErrorRecord = New-PesterErrorRecord -Result Inconclusive -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
         } else {
 
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
@@ -757,7 +757,7 @@ function Invoke-GherkinStep {
             # Unless we really are a StackTrace...
             ${Pester Result}.StackTrace += "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
-        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterErrorRecord.Exception.Message, ${Pester Result}.StackTrace, $null, $NamedArguments, $PesterErrorRecord )
+        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, ${Pester Result}.FailureMessage, ${Pester Result}.StackTrace, $null, $NamedArguments, $PesterErrorRecord)
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
