@@ -89,6 +89,9 @@ foreach ($data in $multiLanguageTestData.GetEnumerator()) {
             [xml] $nUnitReportXml = Get-Content -Path $reportFile
             $reportFile | Should -Exist
             $nUnitReportXml | Should -Not -BeNullOrEmpty
+            $scenarioName = $nUnitReportXml.'test-results'.'test-suite'.results.'test-suite'.results.'test-suite'[0].name
+            $scenarioName | Should -Not -BeNullOrEmpty
+            $scenarioName | Should -Be $featureTestData.namedScenario
         }
     }
 }
