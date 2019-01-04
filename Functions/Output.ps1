@@ -267,7 +267,7 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
@@ -275,7 +275,7 @@ function Write-PesterResult {
                 }
 
                 Pending {
-                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
@@ -283,7 +283,7 @@ function Write-PesterResult {
                 }
 
                 Inconclusive {
-                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"

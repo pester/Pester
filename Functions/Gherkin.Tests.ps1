@@ -490,7 +490,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be "Success"
 
         Get-XmlInnerText "$scenario2Examples1StepsXPath[5]/failure/message" | Should -Be "An example error"
-        if ($expectFeatureFileNameInStackTrace) { 
+        if ($expectFeatureFileNameInStackTrace) {
             Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 15*"
         }
         Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 23*"
@@ -534,7 +534,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario3StepsXPath/@result)[5]" | Should -Be "Failure"
 
         Get-XmlInnerText "$scenario3StepsXPath[5]/failure/message" | Should -Be "Another example error"
-        if ($expectFeatureFileNameInStackTrace) { 
+        if ($expectFeatureFileNameInStackTrace) {
             Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 32*"
         }
         Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 57*"
