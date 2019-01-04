@@ -304,7 +304,7 @@ function New-CoverageBreakpoint
 
     [pscustomobject] @{
         File        = $Command.Extent.File
-		Class       = Get-ParentClassName -Ast $Command
+        Class       = Get-ParentClassName -Ast $Command
         Function    = Get-ParentFunctionName -Ast $Command
         StartLine   = $Command.Extent.StartLineNumber
         EndLine     = $Command.Extent.EndLineNumber
@@ -542,7 +542,7 @@ function Get-CoverageReport
         'EndLine'
         'StartColumn'
         'EndColumn'
-		'Class'
+        'Class'
         'Function'
         'Command'
         @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
