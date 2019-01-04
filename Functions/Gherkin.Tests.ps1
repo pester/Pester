@@ -17,13 +17,18 @@ foreach ($data in $multiLanguageTestData.GetEnumerator()) {
 
     Describe "Invoke-Gherkin $fileName ($language)" -Tag Gherkin {
 
+        # Use temporary report file with Pester's test drive feature
+        $reportFile = "$TestDrive\my_unit_$language.xml"
+        $reportFileShort = Split-Path $reportFile -Leaf
+
         # Calling this in a job so we don't monkey with the active pester state that's already running
-        $job = Start-Job -ArgumentList $scriptRoot, $fileName, $featureTestData -ScriptBlock {
-            param ($scriptRoot, $fileName, $featureTestData)
+        $job = Start-Job -ArgumentList $scriptRoot, $fileName, $featureTestData, $reportFile -ScriptBlock {
+            param ($scriptRoot, $fileName, $featureTestData, $reportFile)
             Get-Module Pester | Remove-Module -Force
             Import-Module $scriptRoot\Pester.psd1 -Force
             $fullFileName = (Join-Path $scriptRoot "Examples\Validator\$fileName")
             New-Object psobject -Property @{
+                WithReports   = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Show None -OutputFile $reportFile
                 Results       = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Show None
                 Mockery       = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Mockery -Show None
                 Examples      = Invoke-Gherkin $fullFileName -WarningAction SilentlyContinue -PassThru -Tag Examples -Show None
@@ -78,6 +83,12 @@ foreach ($data in $multiLanguageTestData.GetEnumerator()) {
             # Note that each example outputs as a scenario ...
             @($gherkin.Results.PassedScenarios).Count | Should -Be (3 + $featureTestData.additionalScenarios)
             @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
+        }
+ 
+        It "should be converted into a well-formed NUnit XML file ($reportFileShort)" {
+            [xml] $nUnitReportXml = Get-Content -Path $reportFile
+            $reportFile | Should -Exist
+            $nUnitReportXml | Should -Not -BeNullOrEmpty
         }
     }
 }
