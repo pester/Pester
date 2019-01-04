@@ -168,9 +168,8 @@ function Add-SetupAndTeardownV3
         param ([System.Management.Automation.Language.Ast] $Ast)
 
         $Ast -is [System.Management.Automation.Language.CommandAst] -and
-        $Ast.CommandElements.Count -eq 2 -and
         $Ast.CommandElements[0].ToString() -match $pattern -and
-        $Ast.CommandElements[1] -is [System.Management.Automation.Language.ScriptBlockExpressionAst]
+        $Ast.CommandElements[-1] -is [System.Management.Automation.Language.ScriptBlockExpressionAst]
     }
 
     $searchNestedBlocks = $false
@@ -188,7 +187,7 @@ function Add-SetupAndTeardownV3
         $flags = [System.Reflection.BindingFlags]'Instance, NonPublic'
         $constructor = [scriptblock].GetConstructor($flags, $null, [Type[]]@($iPmdProviderType, [bool]), $null)
 
-        $block = $constructor.Invoke(@($call.CommandElements[1].ScriptBlock, $false))
+        $block = $constructor.Invoke(@($call.CommandElements[-1].ScriptBlock, $false))
 
         Set-ScriptBlockScope -ScriptBlock $block -SessionState $pester.SessionState
         $commandName = $call.CommandElements[0].ToString()
@@ -290,19 +289,25 @@ function Get-GroupStartTokenForCommand
         [int] $CommandIndex
     )
 
-    # We may want to allow newlines, other parameters, etc at some point.  For now it's good enough to
-    # just verify that the next token after our BeforeEach or AfterEach command is an opening curly brace.
-
     $commandName = $Tokens[$CommandIndex].Content
 
-    if ($CommandIndex + 1 -ge $tokens.Count -or
-        $tokens[$CommandIndex + 1].Type -ne [System.Management.Automation.PSTokenType]::GroupStart -or
-        $tokens[$CommandIndex + 1].Content -ne '{')
+    # gets ScriptBlock from positional parameter e.g. BeforeEach { <code> }
+    if ($CommandIndex + 1 -lt $tokens.Count -and
+        ($tokens[$CommandIndex + 1].Type -eq [System.Management.Automation.PSTokenType]::GroupStart -or
+        $tokens[$CommandIndex + 1].Content -eq '{'))
     {
-        throw "The $commandName command must be immediately followed by the opening brace of a script block."
+        return $CommandIndex + 1
     }
 
-    return $CommandIndex + 1
+    # gets ScriptBlock from named parameter e.g. BeforeEach -ScriptBlock { <code> }
+    if ($CommandIndex + 2 -lt $tokens.Count -and
+        ($tokens[$CommandIndex + 2].Type -eq [System.Management.Automation.PSTokenType]::GroupStart -or
+        $tokens[$CommandIndex + 2].Content -eq '{'))
+    {
+        return $CommandIndex + 2
+    }
+    
+    throw "The $commandName command must be followed by the script block as the first argument or named parameter value."
 }
 
 & $SafeCommands['Add-Type'] -TypeDefinition @'
