@@ -726,7 +726,7 @@ This feature is ideal for build systems and other processes that require success
 on every test.
 
 To help with test design, Invoke-Pester includes a CodeCoverage parameter that
-lists commands, functions, and lines of code that did not run during test
+lists commands, classes, functions, and lines of code that did not run during test
 execution and returns the code that ran as a percentage of all tested code.
 
 Invoke-Pester, and the Pester module that exports it, are products of an
@@ -838,16 +838,18 @@ Enter the path to the files of code under test (not the test file).
 Wildcard characters are supported. If you omit the path, the default is local
 directory, not the directory specified by the Script parameter.
 
-To run a code coverage test only on selected functions or lines in a script,
+To run a code coverage test only on selected classes, functions or lines in a script,
 enter a hash table value with the following keys:
 
 -- Path (P)(mandatory) <string>. Enter one path to the files. Wildcard characters
    are supported, but only one string is permitted.
 
-One of the following: Function or StartLine/EndLine
+One of the following: Class/Function or StartLine/EndLine
 
+-- Class (C) <string>: Enter the class name. Wildcard characters are
+   supported, but only one string is permitted. Default is *.
 -- Function (F) <string>: Enter the function name. Wildcard characters are
-   supported, but only one string is permitted.
+   supported, but only one string is permitted. Default is *.
 
 -or-
 

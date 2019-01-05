@@ -99,15 +99,23 @@ Describe 'Testing Gherkin Hook' -Tag Gherkin {
             AfterEachScenario
             BeforeEachScenario
             Scenario Two
+            AfterEachScenario
+            BeforeEachScenario
             Scenario Two
             AfterEachScenario
             BeforeEachScenario
             Scenario Two
-            Scenario Two
+            AfterEachScenario
+            BeforeEachScenario
             Scenario Two
             AfterEachScenario
             BeforeEachScenario
             Scenario Two
+            AfterEachScenario
+            BeforeEachScenario
+            Scenario Two
+            AfterEachScenario
+            BeforeEachScenario
             Scenario Two
             AfterEachScenario
             AfterEachFeature

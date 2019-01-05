@@ -406,11 +406,17 @@ function Import-GherkinFeature {
         }
 
         if( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
+            # If there is no example set name, the following index will be included in the scenario name
+            $ScenarioIndex = 0
             foreach ($ExampleSet in $Scenario.Examples) {
                 ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
                 $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
-                $Steps = foreach ($Example in $ExampleSet.TableBody) {
-                    foreach ($Step in $Scenario.Steps) {
+                # If there is an example set name, the following index will be included in the scenario name
+                $ExampleSetIndex = 0
+                foreach ($Example in $ExampleSet.TableBody) {
+                    $ScenarioIndex++
+                    $ExampleSetIndex++
+                    $Steps = foreach ($Step in $Scenario.Steps) {
                         [string]$StepText = $Step.Text
                         if ($StepText -match $NamesPattern) {
                             for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
@@ -426,12 +432,16 @@ function Import-GherkinFeature {
                             $Step
                         }
                     }
+                    $ScenarioName = $Scenario.Name
+                    if ($ExampleSet.Name) {
+                        # Include example set name and index of example
+                        $ScenarioName = $ScenarioName + " [$($ExampleSet.Name.Trim()) $ExampleSetIndex]"
+                    } else {
+                        # Only include index of scenario
+                        $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
+                    }
+                    & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                 }
-                $ScenarioName = $Scenario.Name
-                if ($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  $(Get-Translation 'examples' $Feature.Language): " + $ExampleSet.Name.Trim()
-                }
-                & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
         } else {
             $Scenario
@@ -699,7 +709,7 @@ function Invoke-GherkinStep {
         ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] -First 1
 
         if (!$StepCommand) {
-            $PesterErrorRecord = New-InconclusiveErrorRecord -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
+            $PesterErrorRecord = New-PesterErrorRecord -Result Inconclusive -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
         } else {
 
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
@@ -749,7 +759,7 @@ function Invoke-GherkinStep {
             # Unless we really are a StackTrace...
             ${Pester Result}.StackTrace += "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
-        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterErrorRecord.Exception.Message, ${Pester Result}.StackTrace, $null, $NamedArguments, $PesterErrorRecord )
+        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, ${Pester Result}.FailureMessage, ${Pester Result}.StackTrace, $null, $NamedArguments, $PesterErrorRecord)
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
