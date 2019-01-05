@@ -560,16 +560,18 @@ function Invoke-GherkinScenario {
         New-TestDrive
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
+        $testResultIndexStart = $Pester.TestResult.Count
+
         # If there's a background, run that before the test, but after hooks
         if ($Background) {
             foreach ($Step in $Background.Steps) {
                 # Run Background steps -Background so they don't output in each scenario
-                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible
+                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
             }
         }
 
         foreach ($Step in $Scenario.Steps) {
-            Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible
+            Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
         }
 
         Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
@@ -673,6 +675,9 @@ function Invoke-GherkinStep {
 
         .PARAMETER ScenarioState
             Gherkin state object. For internal use only
+
+        .PARAMETER TestResultIndexStart
+            Used to hold the test result index of the first step of the current scenario. For internal use only
     #>
     [CmdletBinding()]
     param (
@@ -682,7 +687,9 @@ function Invoke-GherkinStep {
 
         $Pester,
 
-        $ScenarioState
+        $ScenarioState,
+
+        [int] $TestResultIndexStart
     )
     if ($Step -is [string]) {
         $KeyWord, $StepText = $Step -split "(?<=^(?:Given|When|Then|And|But))\s+"
@@ -708,10 +715,23 @@ function Invoke-GherkinStep {
             }
         ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] -First 1
 
-        if (!$StepCommand) {
-            $PesterErrorRecord = New-PesterErrorRecord -Result Inconclusive -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
+        $previousStepsNotSuccessful = $false
+        # Iterate over the test results of the previous steps
+        for ($i = $TestResultIndexStart; $i -lt ($Pester.TestResult.Count); $i++) {
+            $previousTestResult = $Pester.TestResult[$i].Result
+            if ($previousTestResult -eq "Failed" -or $previousTestResult -eq "Inconclusive") {
+                $previousStepsNotSuccessful = $true
+                break
+            }
+        }
+        if (!$StepCommand -or $previousStepsNotSuccessful) {
+            $skipMessage = if (!$StepCommand) {
+                "Could not find implementation for step!"
+            } else {
+                "Step skipped (previous step did not pass)"
+            }
+            $PesterErrorRecord = New-PesterErrorRecord -Result Inconclusive -Message $skipMessage -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
         } else {
-
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
             $watch = & $SafeCommands["New-Object"] System.Diagnostics.Stopwatch
             $watch.Start()
