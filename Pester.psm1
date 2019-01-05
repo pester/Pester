@@ -1109,7 +1109,7 @@ New-PesterOption
         $pester = 1
 
 
-        $testScripts  = Pester.RSpec\Find-TestFiles -Path $Script | foreach { Pester.Runtime\New-TestContainerObject -Path $_ }
+        $testScripts  = Pester.RSpec\Find-TestFiles -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -Path $_ }
         $r = Pester.Runtime\Invoke-Test -Test $testScripts        
 
         $r

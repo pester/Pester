@@ -87,8 +87,8 @@ b "combineNonNull" {
 
 b "Basic" {
     t "Given a scriptblock with 1 test in it, it finds 1 test" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" { }
         }) | select -Expand Tests
 
@@ -97,8 +97,8 @@ b "Basic" {
     }
 
     t "Given scriptblock with 2 tests in it it finds 2 tests" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" { }
 
             New-Test "test2" { }
@@ -112,15 +112,15 @@ b "Basic" {
 
 b "block" {
     t "Given 0 tests it returns block called by the default name" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock { })
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock { })
 
         $actual.Name | Verify-Equal "Block"
     }
 
     t "Given 0 tests it returns block containing 0 tests" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" {}
         })
 
@@ -130,8 +130,8 @@ b "block" {
 
 b "Find common setup for each test" {
     t "Given block that has test setup for each test it finds it" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-EachTestSetup {setup}
             New-Test "test1" {}
         })
@@ -142,8 +142,8 @@ b "Find common setup for each test" {
 
 b "Finding setup for all tests" {
     t "Find setup to run before all tests in the block" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-OneTimeTestSetup {oneTimeSetup}
             New-Test "test1" {}
         })
@@ -154,8 +154,8 @@ b "Finding setup for all tests" {
 
 b "Finding blocks" {
     t "Find tests in block that is explicitly specified" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" {}
             }
@@ -166,8 +166,8 @@ b "Finding blocks" {
     }
 
     t "Find tests in blocks that are next to each other" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" {}
             }
@@ -185,8 +185,8 @@ b "Finding blocks" {
     }
 
     t "Find tests in blocks that are inside of each other" {
-        Reset-TestSuite
-        $actual = Find-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" {}
                 New-Block "block2" {
@@ -207,8 +207,8 @@ b "Finding blocks" {
 
 b "Executing tests" {
     t "Executes 1 test" {
-        Reset-TestSuite
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" { "a" }
         })
 
@@ -219,8 +219,8 @@ b "Executing tests" {
     }
 
     t "Executes 2 tests next to each other" {
-        Reset-TestSuite
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" { "a" }
             New-Test "test2" { "b" }
         })
@@ -237,8 +237,8 @@ b "Executing tests" {
     }
 
     t "Executes 2 tests in blocks next to each other" {
-        Reset-TestSuite
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" { "a" }
             }
@@ -261,8 +261,8 @@ b "Executing tests" {
     }
 
     t "Executes 2 tests deeper in blocks" {
-        Reset-TestSuite
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        Reset-TestSuiteState
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block "block1" {
                 New-Test "test1" { "a" }
                     New-Block "block2" {
@@ -363,7 +363,7 @@ b "filtering" {
 
 b "discover and execute tests" {
     t "discovers and executes one test" {
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" { "a" }
         })
 
@@ -392,7 +392,7 @@ b "discover and execute tests" {
         }
 
         $willPass = $false
-        $pre = Invoke-Test -Test (New-TestContainerObject -ScriptBlock $sb)
+        $pre = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
         # validate the precondition
         $pre.Blocks[0].Tests[0].Executed | Verify-True
@@ -416,7 +416,7 @@ b "discover and execute tests" {
         Write-Host "`n`n`n"
         # set the test3 to pass this time so we have some difference
         $willPass = $true
-        $result = Invoke-Test -Filter (New-FilterObject -Path $paths) -Test (New-TestContainerObject -ScriptBlock $sb)
+        $result = Invoke-Test -Filter (New-FilterObject -Path $paths) -Test (New-BlockContainerObject -ScriptBlock $sb)
 
         $actual = @($result | View-Flat | where { $_.Executed })
 
@@ -433,7 +433,7 @@ b "discover and execute tests" {
 
 b "executing each setup & teardown on test" {
     t "given a test with setup it executes the setup right before the test and makes the variables avaliable to test" {
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             # $s is set to 'block' here
             $s = "block"
             New-Block 'block1' {
@@ -483,7 +483,7 @@ b "executing each setup & teardown on test" {
         #     # . all teardown
         # }
 
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block 'block1' {
                 New-OneTimeTestSetup {
                     $g = 'one time setup'
@@ -513,7 +513,7 @@ b "executing each setup & teardown on test" {
     }
 
     t "given a test with teardown it executes the teardown right after the test and has the variables avaliable from the test" {
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block 'block1' {
                 # if the teardown would run in block without
                 # including the test the $s would remain 'block'
@@ -539,7 +539,7 @@ b "executing each setup & teardown on test" {
 
 b "executing all test and teardown" {
     t "given a test with all setup it executes the setup right before the first test and keeps the variables in upper scope" {
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             # $s is set to 'block' here
             $s = "block"
             New-Block 'block1' {
@@ -585,7 +585,7 @@ b "executing all test and teardown" {
             OneTimeTeardownRun = $false
         }
 
-        $result = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $result = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-OneTimeTestSetup {
                 $container.OneTimeSetupRun = $true
             }
@@ -627,7 +627,7 @@ b "executing all test and teardown" {
             OneTimeTeardown = 0
         }
 
-        $result = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $result = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-OneTimeTestSetup {
                 $container.OneTimeSetup++
             }
@@ -663,7 +663,7 @@ b "executing all test and teardown" {
 
 b "Skipping tests" {
     t "tests can be skipped based on tags" {
-        $result = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $result = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" -Tag run {}
             New-Test "test2" {}
         }) -Filter (New-FilterObject -Tag 'Run')
@@ -675,7 +675,7 @@ b "Skipping tests" {
 
 b "Block teardown and setup" {
     t "block setups&teardowns run and run in correct scopes"{
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
 
             New-OneTimeBlockSetup {
                 $g = 'one time setup'
@@ -710,7 +710,7 @@ b "Block teardown and setup" {
             EachBlockTeardown1 = 0
             OneTimeBlockTeardown1 = 0
         }
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
 
             New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
             New-EachBlockSetup { $container.EachBlockSetup1++ }
@@ -766,7 +766,7 @@ b "plugins" {
             -EachBlockTeardown { $container.EachBlockTeardown++ } `
             -OneTimeBlockTeardown { $container.OneTimeBlockTeardown++ }
 
-        $null = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $null = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block 'block1' {
                 New-Test "test1" {}
                 New-Test "test2" {}
@@ -797,7 +797,7 @@ b "plugins" {
         $p = New-PluginObject -Name "readContext" `
             -EachTestTeardown { param($context) $container.Context = $context }
 
-        $null = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $null = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" {}
         }) -Plugin $p
 
@@ -810,7 +810,7 @@ b "plugins" {
         $p = New-PluginObject -Name "readContext" `
             -EachBlockSetup { param($context) $context.Name }
 
-        $actual = Invoke-Test -Test (New-TestContainerObject -ScriptBlock {
+        $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block -Name "block1" {
                 New-Test "test1" {}
             }
@@ -834,7 +834,7 @@ b "running from files" {
 
             $c | Set-Content -Encoding UTF8 -Path $tempPath
 
-            $actual = Invoke-Test -Test (New-TestContainerObject -Path $tempPath)
+            $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -Path $tempPath)
 
             $actual.Blocks[0].Tests[0].Passed | Verify-False
         }
@@ -858,7 +858,7 @@ b "running from files" {
 
             $c | Set-Content -Encoding UTF8 -Path $tempPath
 
-            $actual = Invoke-Test -Test (New-TestContainerObject -Path $tempPath), (New-TestContainerObject -Path $tempPath)
+            $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -Path $tempPath), (New-BlockContainerObject -Path $tempPath)
 
             $actual.Blocks[0].Tests[0].Passed | Verify-False
             $actual.Blocks[1].Tests[0].Passed | Verify-False

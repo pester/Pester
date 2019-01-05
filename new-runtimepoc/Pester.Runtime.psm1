@@ -1,20 +1,27 @@
-$state = [PSCustomObject]@{
+$state = [PSCustomObject] @{
+
+    Discovery = $false
+
     Root = $null
     CurrentBlock = $null
-    Discovery = $false
-    Filter = $null
-    Plugin = $null
+
+    Plugin = $null   
 }
 
 Write-Host -ForegroundColor Cyan "----> Importing pester runtime"
 # resets the module state to the default
-function Reset-TestSuite {
+function Reset-TestSuiteState {
     v "Resetting internal state to default."
-    $state.Root = $null
-    $state.Discovery = $false
-    $state.CurrentBlock = $state.Root = New-BlockObject -Name "Block"
-    $state.Filter = $null
+    $state.Discovery = $false  
+
     $state.Plugin = $null
+
+    Reset-PerContainerState
+}
+
+function Reset-PerContainerState { 
+    $state.Root = $null
+    $state.CurrentBlock = $state.Root = New-BlockObject -Name "Block"
     Reset-Scope
 }
 
@@ -57,14 +64,25 @@ function Find-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [PsTypeName("TestContainer")] $Test
+        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
+        [PSTypeName("Filter")] $Filter
     )
-    v "Starting test discovery."
+    v "Starting test discovery in $(@($BlockContainer).Length) test containers."
+    
     $state.Discovery = $true
+    $found = foreach ($container in $BlockContainer) {
+        # is there any output, do we want it?
+        Reset-PerContainerState
+        
+        $null = Invoke-BlockContainer -BlockContainer $container
+        $state.Root.BlockContainer = $container
+        
+        PostProcess-Block -Block $state.Root -Filter $Filter
 
-    $null = Invoke-TestContainer -Test $Test
+        New-DiscoveredBlockContainerObject -Block $state.Root -BlockContainer $container
+    } 
 
-    $Test.Blocks = $state.Root
+    $found
     v "Test discovery finished."
 }
 
@@ -387,6 +405,8 @@ function New-BlockObject {
         Name = $Name
         Path = @()
         Tests = @()
+        BlockContainer = $null
+        Parent = $null
         EachTestSetup = $null
         OneTimeTestSetup = $null
         EachTestTeardown = $null
@@ -414,7 +434,10 @@ function Add-Block {
         $Block
     )
 
-    (Get-CurrentBlock).Blocks += $block
+    $currentBlock = (Get-CurrentBlock)
+    $Block.Parent = $currentBlock
+    $Block.BlockContainer = $currentBlock.BlockContainer
+    $currentBlock.Blocks += $Block
 }
 
 function Is-Discovery {
@@ -426,13 +449,16 @@ function Start-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [PSTypeName("TestContainer")] $Test
+        [PSTypeName("DiscoveredBlockContainer")] $BlockContainer
     )
 
     $state.Discovery = $false
-    # do we want this output?
-    $null = Invoke-TestContainer $Test
-    $state.Root
+    foreach ($container in $BlockContainer) {
+        $state.Root = $state.CurrentBlock = $container.Blocks
+        # do we want this output?
+        $null = Invoke-BlockContainer $container
+        $state.Root
+    }
 }
 
 function Invoke-ScriptBlock {
@@ -633,16 +659,6 @@ function Find-CurrentTest {
     }
 }
 
-function Set-Filter {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        $Filter
-    )
-
-    $state.Filter = $Filter
-}
-
 function Test-ShouldRun {
     [CmdletBinding()]
     param (
@@ -715,60 +731,64 @@ function Invoke-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [PSTypeName("TestContainer")][PSObject[]] $Test,
+        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
         $Filter,
         $Plugin
     )
-
     
-    foreach ($container in $Test) {
-        Reset-TestSuite
         $state.Plugin = $Plugin
-        if ($filter) {
-            Set-Filter $filter
-        }
-
-        $found = Find-Test $container
-
-        $state.CurrentBlock = $state.Root
-        PostProcess-Test $state.Root
-
-        $result = Start-Test $container
+                    
+        $found = Find-Test -BlockContainer $BlockContainer -Filter $Filter
+        
+        $result = Start-Test -BlockContainer $found
         $result
-    }
 }
 
-function PostProcess-Test {
+function PostProcess-Block {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        $Block
+        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
+        [PSTypeName("Filter")] $Filter
     )
 
-    $tests = $Block.Tests
-    $blockShouldRun = $false
-    if (any $tests) {
-        foreach ($t in $tests) {
-            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $state.Filter
+    process {
+        foreach ($b in $Block) {
+            $tests = $b.Tests
+            $blockShouldRun = $false
+            if (any $tests) {
+                foreach ($t in $tests) {
+                    $t.ShouldRun = Test-ShouldRun -Test $t -Filter $Filter
+                }
+
+                $testsToRun = $tests | where { $_.ShouldRun }
+                if (any $testsToRun) {
+                    $testsToRun[0].First = $true
+                    $testsToRun[-1].Last = $true
+                    $blockShouldRun = $true
+                }
+            }
+
+            $childBlocks = $b.Blocks
+            $anyChildBlockShouldRun = $false
+            if (any $childBlocks) {
+                foreach($cb in $childBlocks) {
+                    $cb.Parent = $b
+                    $cb.BlockContainer = $b.BlockContainer
+                    PostProcess-Block -Block $cb -Filter $Filter
+                }
+
+                $childBlocksToRun = $childBlocks | where { $_.ShouldRun }
+                $anyChildBlockShouldRun = any $childBlocksToRun
+                if ($anyChildBlockShouldRun) {
+                    $childBlocksToRun[0].First = $true
+                    $childBlocksToRun[-1].Last = $true
+                }
+            }
+
+            $b.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
         }
-
-        $testsToRun = $tests | where { $_.ShouldRun }
-        $testsToRun | select -First 1 | trySetProperty First $true
-        $testsToRun | select -Last 1 | trySetProperty Last $true
-        $blockShouldRun = any $testsToRun
     }
-
-    $blocks = $Block.Blocks
-    if (any $blocks) {
-        $blocks[0].First = $true
-        $blocks[-1].Last = $true
-        foreach($b in $blocks) {
-            PostProcess-Test -Block $b
-        }
-    }
-
-    $anyChildBlockShouldRun = $blocks | where { $_.ShouldRun }
-    $block.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
 }
 
 function Where-Failed {
@@ -875,20 +895,24 @@ function New-PluginObject {
     }
 }
 
-function Invoke-TestContainer { 
+function Invoke-BlockContainer { 
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [PSTypeName("TestContainer")] $Test
+        # relaxing the type here, I need it to have two forms and 
+        # PowerShell cannot do that probably
+        # [PSTypeName("BlockContainer"] | [PSTypeName("DiscoveredBlockContainer")]
+        $BlockContainer
     )
 
-    switch ($Test.Type) {
-        "ScriptBlock" { & $Test.Content } 
-        "File" { & $Test.Content.PSPath }
+    switch ($BlockContainer.Type) {
+        "ScriptBlock" { & $BlockContainer.Content } 
+        "File" { & $BlockContainer.Content.PSPath }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 }
-function New-TestContainerObject {
+
+function New-BlockContainerObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
@@ -904,11 +928,25 @@ function New-TestContainerObject {
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
-    New-PSObject -Type "TestContainer" @{
-        Id = (New-Guid).Guid
+    New-PSObject -Type "BlockContainer" @{
         Type = $PSCmdlet.ParameterSetName
-        Content = $content,
-        Blocks = @()
+        Content = $content
+    }
+}
+
+function New-DiscoveredBlockContainerObject {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [PSTypeName('BlockContainer')] $BlockContainer,
+        [Parameter(Mandatory)]
+        [PSTypeName('DiscoveredBlock')][PSObject[]] $Block
+    )
+
+    New-PSObject -Type "DiscoveredBlockContainer" @{
+        Type = $BlockContainer.Type
+        Content = $BlockContainer.Content
+        Blocks = $Block
     }
 }
 
@@ -1006,10 +1044,10 @@ function none ($InputObject) {
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 # initialize internal state
-Reset-TestSuite
+Reset-TestSuiteState
 
 Export-ModuleMember -Function @(
-    'Reset-TestSuite'
+    'Reset-TestSuiteState'
     'New-Block'
     'New-Test'
     'New-EachTestSetup'
@@ -1020,12 +1058,13 @@ Export-ModuleMember -Function @(
     'New-EachBlockTeardown'
     'New-OneTimeBlockSetup'
     'New-OneTimeBlockTeardown'
-    'Invoke-Test'
+    'Invoke-Test',
+    'Find-Test'
 
     'Where-Failed'
     'View-Flat'
 
     'New-FilterObject'
     'New-PluginObject'
-    'New-TestContainerObject'
+    'New-BlockContainerObject'
 )

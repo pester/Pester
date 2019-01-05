@@ -105,7 +105,7 @@ about_TestDrive
 
         $plugins = @($writeScreen)
 
-        Pester.Runtime\Invoke-Test -Test (New-TestContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture }) -Plugin $plugins
+        Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture }) -Plugin $plugins
     }
     else {
         Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture
