@@ -33,8 +33,6 @@ Then 'MyValidator gets called once' {
     Assert-MockCalled -Module ValidatorTest MyValidator 1
 }
 
-Given 'MyValidator' {}
-
 When 'MyValidator is called with (?<word>\w+)' {
     param($word)
     if($GherkinOrderTests) { Add-Content -Path $global:GherkinOrderTests -Value "Scenario Two" }

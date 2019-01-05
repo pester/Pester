@@ -8,14 +8,18 @@ You can use one of the following methods to obtain the checksum
 
 CHECKSUMS
 
-  file: lib\core\Gherkin.dll
+  file: lib\Gherkin\core\Gherkin.dll
   checksum: 352A6A598BA8D1E350F497791A9FB9AC64BA11E977FF6CCB7432D8516DDF7685
   algorithm: sha256
 
-  file: lib\legacy\Gherkin.dll
+  file: lib\Gherkin\legacy\Gherkin.dll
   checksum: 2BF80E108FC1A112D9AC9E631D29903028EEBABD2A7831ACFCE88CCBEFDF773E
   algorithm: sha256
 
-  file: lib\legacy\Newtonsoft.Json.dll
+  file: lib\Gherkin\legacy\Newtonsoft.Json.dll
   checksum: EFD8CF9A3BC2AB4E15FA33D42771E18D78539759CBF30652DF4C43E6825CE5F0
+  algorithm: sha256
+
+  file: lib\Gherkin\gherkin-languages.json
+  checksum: 8201E11FEF81C3320FA8845B85E9850F2547415C27DCD9F0D07C5E2E3D104CF3
   algorithm: sha256
