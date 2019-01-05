@@ -35,6 +35,11 @@ function Exit-CoverageAnalysis
 
     & $SafeCommands['Set-StrictMode'] -Off
 
+    # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne. 
+    # BUT that is correct in this case. We are filtering the list of breakpoints
+    # to only get those that are not $null
+    # (like if we did $breakpoints | where {$_ -ne $null})
+    # so DON'T change this.
     $breakpoints = @($PesterState.CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0)
     {
