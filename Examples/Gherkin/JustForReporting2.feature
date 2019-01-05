@@ -19,3 +19,9 @@ Feature: A test feature for reporting 2
     Examples: Examples 2
       | given | when | then |
       | 601   | 602  | 603  |
+
+    Examples: Examples 3
+      | given | when | then |
+      | 701   | 702  | 703  |
+      | 801   | 802  | 803  |
+      | 901   | 902  | 903  |

@@ -20,7 +20,7 @@ When "and_102" {
 }
 
 Then "step_103" {
-    throw "An example error"
+    throw "An example error in the then clause"
 }
 
 Then "and_103" {
@@ -54,5 +54,25 @@ Then "step_303" {
 }
 
 Then "step_304" {
-    throw "Another example error"
+    throw "Another example error in the then clause"
+}
+
+Given "step_401" {
+}
+
+When "step_402" {
+    throw "An example error in the when clause"
+}
+
+Then "step_403" {
+}
+
+Given "step_701" {
+    throw "An example error in the given clause"
+}
+
+When "step_702" {
+}
+
+Then "step_703" {
 }
