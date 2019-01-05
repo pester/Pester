@@ -64,7 +64,7 @@ function Find-Test {
 
     $null = Invoke-TestContainer -Test $Test
 
-    $state.Root
+    $Test.Blocks = $state.Root
     v "Test discovery finished."
 }
 
@@ -380,32 +380,21 @@ function New-BlockObject {
     param (
         [Parameter(Mandatory=$true)]
         [String] $Name,
-        [string[]] $Path,
-        $Test = @(),
-        [ScriptBlock] $EachTestSetup,
-        [ScriptBlock] $OneTimeTestSetup,
-        [ScriptBlock] $EachTestTeardown,
-        [ScriptBlock] $OneTimeTestTeardown,
-        [ScriptBlock] $EachBlockSetup,
-        [ScriptBlock] $OneTimeBlockSetup,
-        [ScriptBlock] $EachBlockTeardown,
-        [ScriptBlock] $OneTimeBlockTeardown,
-        $Block = @()
+        [string[]] $Path
     )
 
     New-PSObject -Type DiscoveredBlock @{
         Name = $Name
-        Path = $Path
-        # all tests within the block
-        Tests = $Test
-        EachTestSetup = $EachTestSetup
-        OneTimeTestSetup = $OneTimeTestSetup
-        EachTestTeardown = $EachTestTeardown
-        OneTimeTestTeardown = $OneTimeTestTeardown
-        EachBlockSetup = $EachBlockSetup
-        OneTimeBlockSetup = $OneTimeBlockSetup
-        EachBlockTeardown = $EachBlockTeardown
-        OneTimeBlockTeardown = $OneTimeBlockTeardown
+        Path = @()
+        Tests = @()
+        EachTestSetup = $null
+        OneTimeTestSetup = $null
+        EachTestTeardown = $null
+        OneTimeTestTeardown = $null
+        EachBlockSetup = $null
+        OneTimeBlockSetup = $null
+        EachBlockTeardown = $null
+        OneTimeBlockTeardown = $null
         Blocks = @()
         Executed = $false
         Passed = $false
@@ -916,8 +905,10 @@ function New-TestContainerObject {
     }
 
     New-PSObject -Type "TestContainer" @{
+        Id = (New-Guid).Guid
         Type = $PSCmdlet.ParameterSetName
-        Content = $content
+        Content = $content,
+        Blocks = @()
     }
 }
 
