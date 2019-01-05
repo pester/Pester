@@ -12,6 +12,8 @@ param (
 
 )
 
+.\updateGherkinLanguageFile.ps1
+
 $ErrorActionPreference = 'Stop'
 # run this in seperate instance otherwise Gherkin.dll is loaded and
 $process = Start-Process powershell -ArgumentList "-c", ".\testRelease.ps1 -LocalBuild" -NoNewWindow -Wait -PassThru

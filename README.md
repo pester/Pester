@@ -76,7 +76,7 @@ Not running Windows 10 or facing problems? See the [full installation and update
 
 Pester runs your tests and prints a nicely formatted output to the screen.
 
-![test run output](doc/readme/output.PNG)
+![test run output](images/readme/output.PNG)
 
 Command line output is not the only output option, Pester also integrates with Visual Studio Code, Visual Studio, and any tool that can consume nUnit XML output.
 
@@ -120,7 +120,7 @@ Learn more [about Mocking here](https://github.com/pester/Pester/wiki/Mock).
 
 Pester can measure how much of your code is covered by tests and export it to JaCoCo format that is easily understood by build servers.
 
-![JaCoCo code coverage report](doc/readme/jacoco.PNG)
+![JaCoCo code coverage report](images/readme/jacoco.PNG)
 
 Learn more about [code coverage here](https://github.com/pester/Pester/wiki/Code-Coverage).
 
@@ -163,8 +163,8 @@ Do you like what you see? Learn how to use Pester with our [wiki guide](https://
 
 Got questions or you just want to get in touch? Use our issues page or one of these channels:
 
-[![Pester Twitter](doc/readme/twitter-64.PNG)](https://twitter.com/PSPester)
-[![Pester on StackOverflow](doc/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
-[![Testing channel on Powershell Slack](doc/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
-[![Pester Gitter](doc/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Pester on PowerShell.org](doc/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
+[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester)
+[![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
+[![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
+[![Pester Gitter](images/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Pester on PowerShell.org](images/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)

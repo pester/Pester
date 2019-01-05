@@ -71,7 +71,7 @@ Describe 'ConvertTo-PesterResult' {
         $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
 
         It 'records the correct stack line number' {
-            $result.Stacktrace | should -match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
+            $result.StackTrace | should -match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
         }
         It 'records the correct error record' {
             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
@@ -111,7 +111,7 @@ Describe 'ConvertTo-PesterResult' {
 
 
         It 'records the correct stack line number' {
-            $result.Stacktrace | should -match "${escapedTestPath}: line 2"
+            $result.StackTrace | should -match "${escapedTestPath}: line 2"
         }
         It 'records the correct error record' {
             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true

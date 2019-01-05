@@ -76,7 +76,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
     }
     elseif ($null -ne ($path -as [hashtable[]]))
     {
-        ($path | foreach { $_.Path }) -join $Delimiter
+        ($path | ForEach-Object { $_.Path }) -join $Delimiter
     }
     # needs to stay at the bottom because almost everything can be upcast to array of string
     elseif ($Path -as [String[]])
@@ -84,6 +84,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
         $Path -join $Delimiter
     }
 }
+
 function Write-PesterStart {
     param(
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
@@ -129,7 +130,7 @@ function Write-Describe {
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
         if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
-            $Describe.Description -split "$([System.Environment]::NewLine)" | ForEach {
+            $Describe.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
                 & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
         }
@@ -153,7 +154,7 @@ function Write-Context {
         & $SafeCommands['Write-Host'] ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
         # If the scenario has a longer description, write that too
         if($Context.PSObject.Properties['Description'] -and $Context.Description) {
-            $Context.Description -split "$([System.Environment]::NewLine)" | ForEach {
+            $Context.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
                 & $SafeCommands['Write-Host'] (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
             }
         }
@@ -168,19 +169,19 @@ function ConvertTo-PesterResult {
     )
 
     $testResult = @{
-        name = $Name
-        time = $time
-        failureMessage = ""
-        stackTrace = ""
+        Name = $Name
+        Time = $time
+        FailureMessage = ""
+        StackTrace = ""
         ErrorRecord = $null
-        success = $false
-        result = "Failed"
+        Success = $false
+        Result = "Failed"
     }
 
     if(-not $ErrorRecord)
     {
         $testResult.Result = "Passed"
-        $testResult.success = $true
+        $testResult.Success = $true
         return $testResult
     }
 
@@ -205,8 +206,8 @@ function ConvertTo-PesterResult {
         $Text = $ErrorRecord.InvocationInfo.Line
     }
 
-    $testResult.failureMessage = $failureMessage
-    $testResult.stackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
+    $testResult.FailureMessage = $failureMessage
+    $testResult.StackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
     $testResult.ErrorRecord = $ErrorRecord
 
     return $testResult
@@ -236,7 +237,7 @@ function Write-PesterResult {
 
         $margin = $ReportStrings.Margin * ($pester.IndentLevel + 1)
         $error_margin = $margin + $ReportStrings.Margin
-        $output = $TestResult.name
+        $output = $TestResult.Name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 
         if (-not ($OutputType | Has-Flag 'Default, Summary'))
@@ -254,20 +255,20 @@ function Write-PesterResult {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
                     if($pester.IncludeVSCodeMarker) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.stackTrace -replace '(?m)^',$error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.failureMessage -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.StackTrace -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.FailureMessage -replace '(?m)^',$error_margin)
                     }
                     else {
                         $TestResult.ErrorRecord |
                         ConvertTo-FailureLines |
-                        foreach {$_.Message + $_.Trace} |
-                        foreach { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^',$error_margin) }
+                        ForEach-Object {$_.Message + $_.Trace} |
+                        ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^',$error_margin) }
                     }
                     break
                 }
 
                 Skipped {
-                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
@@ -275,7 +276,7 @@ function Write-PesterResult {
                 }
 
                 Pending {
-                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
@@ -283,7 +284,7 @@ function Write-PesterResult {
                 }
 
                 Inconclusive {
-                    $because = if ($testresult.FailureMessage) { ", because $($testresult.FailureMessage)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
@@ -366,6 +367,7 @@ function Write-CoverageReport {
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
     $report = $CoverageReport.MissedCommands | & $SafeCommands['Select-Object'] -Property @(
         @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
+        'Class'
         'Function'
         'Line'
         'Command'
