@@ -901,7 +901,7 @@ function ConvertFrom-Json2([string] $jsonString) {
         .OUTPUTS
             the JSON content as array
     #>
-    if ($PSVersionTable.PSVersion.Major -le 2) { 
+    if ($PSVersionTable.PSVersion.Major -le 2) {
         # On PowerShell <= 2 we use JavaScriptSerializer
         Add-Type -Assembly System.Web.Extensions
         return ,(New-Object System.Web.Script.Serialization.JavaScriptSerializer).DeserializeObject($jsonString)

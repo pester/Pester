@@ -84,7 +84,7 @@ foreach ($data in $multiLanguageTestData.GetEnumerator()) {
             @($gherkin.Results.PassedScenarios).Count | Should -Be (6 + $featureTestData.additionalScenarios)
             @($gherkin.NamedScenario.PassedScenarios).Count | Should -Be 1
         }
- 
+
         It "should be converted into a well-formed NUnit XML file ($reportFileShort)" {
             [xml] $nUnitReportXml = Get-Content -Path $reportFile
             $reportFile | Should -Exist
@@ -526,7 +526,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be "Success"
 
         Get-XmlInnerText "$scenario2Examples1StepsXPath[5]/failure/message" | Should -Be "An example error in the then clause"
-        if ($expectFeatureFileNameInStackTrace) { 
+        if ($expectFeatureFileNameInStackTrace) {
             Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 15*"
         }
         Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 23*"
@@ -570,7 +570,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario3StepsXPath/@result)[5]" | Should -Be "Failure"
 
         Get-XmlInnerText "$scenario3StepsXPath[5]/failure/message" | Should -Be "Another example error in the then clause"
-        if ($expectFeatureFileNameInStackTrace) { 
+        if ($expectFeatureFileNameInStackTrace) {
             Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 32*"
         }
         Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 57*"
@@ -590,7 +590,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario4StepsXPath/@result)[3]" | Should -Be "Success"
 
         Get-XmlInnerText "$scenario4StepsXPath[2]/failure/message" | Should -Be "An example error in the when clause"
-        if ($expectFeatureFileNameInStackTrace) { 
+        if ($expectFeatureFileNameInStackTrace) {
             Get-XmlInnerText "($scenario4StepsXPath)[2]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName2): line 6*"
         }
         Get-XmlInnerText "($scenario4StepsXPath)[2]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 64*"
@@ -662,7 +662,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[3]" | Should -Be "Inconclusive"
 
         Get-XmlInnerText "$scenario5Examples3aStepsXPath[1]/failure/message" | Should -Be "An example error in the given clause"
-        if ($expectFeatureFileNameInStackTrace) { 
+        if ($expectFeatureFileNameInStackTrace) {
             Get-XmlInnerText "($scenario5Examples3aStepsXPath)[1]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName2): line 11"
         }
         Get-XmlInnerText "($scenario5Examples3aStepsXPath)[1]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 71*"

@@ -1,3 +1,12 @@
+## 4.5.0-beta2 (January 5, 2018)
+ - Add more info to code coverage passthru [GH-1190]
+ - Add scenario for every example in Gherkin [GH-1168]
+ - Add support for other languages to Gherkin [GH-1166]
+ - Fix skipping tests in Gherkin [GH-1174]
+ - Fix hashtable casing to avoid fails on Ubuntu [GH-1193]
+ - Fix NUnit xml report for Gherkin [GH-1180]
+ - Remove DetailedCodeCoverage because it is the default [GH-1189] 
+
 ## 4.5.0-beta1 (December 20, 2018)
  - Add TestRegistry [GH-1112]
  - Add set test result and message from inside of test [GH-1026]

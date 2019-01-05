@@ -306,7 +306,7 @@ function Get-GroupStartTokenForCommand
     {
         return $CommandIndex + 2
     }
-    
+
     throw "The $commandName command must be followed by the script block as the first argument or named parameter value."
 }
 
