@@ -343,13 +343,11 @@ function New-Test {
         }
     }
     finally {
-
         v "Leaving path $($path -join '.')"
         $null = Pop-Scope
         v "Left test $Name"
     }
 
-    $state.BlockStopWatch.Elapsed
 }
 
 # endpoint for adding a setup for each test in the block
