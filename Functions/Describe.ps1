@@ -190,25 +190,12 @@ about_TestDrive
 #         & $DescribeOutputBlock $Name $CommandUsed
 #     }
 
-#     $testDriveAdded = $false
 #     $testRegistryAdded = $false
 #     try
 #     {
 #         try
 #         {
-#             if (-not $NoTestDrive)
-#             {
-#                 if (-not (Test-Path TestDrive:\))
-#                 {
-#                     New-TestDrive
-#                     $testDriveAdded = $true
-#                 }
-#                 else
-#                 {
-#                     $TestDriveContent = Get-TestDriveChildItem
-#                 }
-#             }
-
+#             
 #             if (-not $NoTestRegistry)
 #             {
 #                 if (-not (Test-Path TestRegistry:\))
@@ -235,17 +222,7 @@ about_TestDrive
 #         {
 #             Invoke-TestGroupTeardownBlocks
 
-#             if (-not $NoTestDrive)
-#             {
-#                 if ($testDriveAdded)
-#                 {
-#                     Remove-TestDrive
-#                 }
-#                 else
-#                 {
-#                     Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
-#                 }
-#             }
+#             
 
 #             if (-not $NoTestRegistry)
 #             {

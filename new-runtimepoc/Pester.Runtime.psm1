@@ -8,6 +8,7 @@ $state = [PSCustomObject] @{
     CurrentBlock = $null
 
     Plugin = $null
+    PluginState = @{}
 
     TotalStopWatch = $null
     TestStopWatch = $null
@@ -22,6 +23,7 @@ function Reset-TestSuiteState {
     $state.Discovery = $false
 
     $state.Plugin = $null
+    $state.PluginState = @{}
 
     $state.CurrentBlock = $null
     Reset-Scope
@@ -34,6 +36,7 @@ function Reset-PerContainerState {
         [PSTypeName("DiscoveredBlock")] $RootBlock
     )
     $state.CurrentBlock = $RootBlock
+    $state.PluginState = @{}
     Reset-Scope
 }
 
@@ -221,6 +224,7 @@ function New-Block {
                 -Context @{
                     Context = @{
                         Block = $Block
+                        PluginState = $state.PluginState
                     }
                 }
 
@@ -263,8 +267,10 @@ function New-Block {
                 -Context @{
                     Context = @{
                         Block = $block
+                        PluginState = $state.PluginState
                     }
                 }
+
 
             if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
                 throw "framework fail"
@@ -331,6 +337,7 @@ function New-Test {
                 -Context @{
                         Context = @{
                             Test = $test
+                            PluginState = $state.PluginState
                         }
                     }
 
@@ -370,6 +377,7 @@ function New-Test {
                 -Context @{
                     Context = @{
                         Test = $test
+                        PluginState = $state.PluginState
                     }
                 }
 

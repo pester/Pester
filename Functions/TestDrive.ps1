@@ -1,4 +1,42 @@
-#
+function Get-TestDrivePlugin () {
+    
+    Pester.Runtime\New-PluginObject -Name "TestDrive" -EachBlockSetup { 
+        param($Context)
+        if (-not ($Context.PluginState.ContainsKey('TestDrive'))) {
+            $Context.PluginState.Add('TestDrive', @{ 
+                TestDriveAdded = $false 
+                TestDriveContent = $null
+            })
+        }
+        # TODO: Add option, but probably in a more generic way
+        # if (-not $NoTestDrive)
+        # {
+            if (-not (Test-Path TestDrive:\))
+            {
+                New-TestDrive
+                $Context.PluginState.TestDrive.TestDriveAdded = $true
+            }
+            else
+            {
+                $Context.PluginState.TestDrive.TestDriveContent = Get-TestDriveChildItem
+            }
+        # }
+
+    } -EachBlockTearDown {
+        # if (-not $NoTestDrive)
+        # {
+            if ($Context.PluginState.TestDrive.TestDriveAdded)
+            {
+                Remove-TestDrive
+            }
+            else
+            {
+                Clear-TestDrive -Exclude ( $Context.PluginState.TestDrive.TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+            }
+        # }
+    }
+}
+
 function New-TestDrive ([Switch]$PassThru, [string] $Path) {
     if ($Path -notmatch '\S')
     {
@@ -141,10 +179,11 @@ function Remove-TestDrive {
         $Drive | & $SafeCommands['Remove-PSDrive'] -Force #This should fail explicitly as it impacts future pester runs
     }
 
-    Remove-TestDriveSymbolicLinks -Path $Path
+    
 
-    if (& $SafeCommands['Test-Path'] -Path $Path)
+    if ($null -ne $Path -and (& $SafeCommands['Test-Path'] -Path $Path))
     {
+        Remove-TestDriveSymbolicLinks -Path $Path
         & $SafeCommands['Remove-Item'] -Path $Path -Force -Recurse
     }
 
