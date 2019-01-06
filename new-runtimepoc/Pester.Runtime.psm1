@@ -16,12 +16,24 @@ function Reset-TestSuiteState {
 
     $state.Plugin = $null
 
-    Reset-PerContainerState
+    Reset-PerContainerState -BlockContainer $null
 }
 
 function Reset-PerContainerState { 
-    $state.Root = $null
-    $state.CurrentBlock = $state.Root = New-BlockObject -Name "Block"
+    param (
+        $BlockContainer
+    )
+    
+    # this resets the per container state so we can do 
+    # discovery / run in a clean state while keeping all the 
+    # other settings. 
+    # when the provided container can be $null when we are resetting the whole suite
+    # or populated when we are discovering tests
+
+    $block = New-BlockObject -Name "Root"
+    $block.BlockContainer = $BlockContainer
+    
+    $state.CurrentBlock = $state.Root = $block
     Reset-Scope
 }
 

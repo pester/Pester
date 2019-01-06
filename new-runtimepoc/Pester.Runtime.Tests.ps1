@@ -115,7 +115,7 @@ b "block" {
         Reset-TestSuiteState
         $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock { }) | % Blocks
 
-        $actual.Name | Verify-Equal "Block"
+        $actual.Name | Verify-Equal "Root"
     }
 
     t "Given 0 tests it returns block containing 0 tests" {
