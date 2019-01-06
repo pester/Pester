@@ -1104,21 +1104,23 @@ New-PesterOption
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
-        # $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         $pester = 1
 
+        $plugins = @(Get-WriteScreenPlugin)
 
-        $testScripts  = Pester.RSpec\Find-TestFiles -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -Path $_ }
-        $r = Pester.Runtime\Invoke-Test -Test $testScripts        
+        $testScripts  = Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -Path $_ }
+        $r = Pester.Runtime\Invoke-Test -BlockContainer $testScripts  -Plugin $plugins
 
-        $r
+        if ($PassThru) {
+            $r
+        }
     }
         # try
         # {
-              
-    #         Write-PesterStart $pester $Script
-            
+
+    #
+
     #         $invokeTestScript = {
     #             param (
     #                 [Parameter(Position = 0)]
@@ -1142,7 +1144,7 @@ New-PesterOption
 
     #         Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
     #         $testScripts = @(ResolveTestScripts $Script)
-              
+
 
     #         if ($DetailedCodeCoverage)
     #         {
@@ -1172,8 +1174,8 @@ New-PesterOption
 
     #         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
-             
-            
+
+
     #         foreach ($testScript in $testScripts)
     #         {
     #             #Get test description for better output
@@ -1214,7 +1216,7 @@ New-PesterOption
     #             }
     #         }
 
-    #         $pester | Write-PesterReport
+
     #         $coverageReport = Get-CoverageReport -PesterState $pester
     #         if ($DetailedCodeCoverage -eq $false)
     #         {

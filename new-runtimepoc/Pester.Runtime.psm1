@@ -7,7 +7,7 @@ $state = [PSCustomObject] @{
     # the current block we are in
     CurrentBlock = $null
 
-    Plugin = $null   
+    Plugin = $null
 
     TotalStopWatch = $null
     TestStopWatch = $null
@@ -19,7 +19,7 @@ $state = [PSCustomObject] @{
 function Reset-TestSuiteState {
     # resets the module state to the default
     v "Resetting internal state to default."
-    $state.Discovery = $false  
+    $state.Discovery = $false
 
     $state.Plugin = $null
 
@@ -28,11 +28,11 @@ function Reset-TestSuiteState {
     Reset-TestSuiteTimer
 }
 
-function Reset-PerContainerState { 
+function Reset-PerContainerState {
     param(
         [Parameter(Mandatory=$true)]
         [PSTypeName("DiscoveredBlock")] $RootBlock
-    ) 
+    )
     $state.CurrentBlock = $RootBlock
     Reset-Scope
 }
@@ -80,7 +80,7 @@ function Find-Test {
         [PSTypeName("Filter")] $Filter
     )
 
-    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter 
+    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter
     foreach ($f in $found) {
         ConvertTo-DiscoveredBlockContainer -Block $f
     }
@@ -119,9 +119,9 @@ function ConvertTo-DiscoveredBlockContainer {
             @{n="Type"; e={$type}},
             @{n="PSTypename"; e={"DiscoveredBlockContainer"}}
             '*'
-        ) 
+        )
 
-    $b 
+    $b
 }
 
 function ConvertTo-ExecutedBlockContainer {
@@ -151,9 +151,9 @@ function ConvertTo-ExecutedBlockContainer {
             @{n="Type"; e={$type}},
             @{n="PSTypename"; e={"ExecutedBlockContainer"}}
             '*'
-        ) 
+        )
 
-    $b 
+    $b
 }
 
 
@@ -165,13 +165,14 @@ function New-Block {
         [Parameter(Mandatory=$true)]
         [String] $Name,
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [ScriptBlock] $ScriptBlock,
+        [HashTable] $ExtendedData = @{}
     )
 
     Switch-Timer -Scope Framework
     $blockStartTime = $state.BlockStopWatch.Elapsed
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
-    
+
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = Get-ScopeHistory | % Name
     v "Entering path $($path -join '.')"
@@ -180,7 +181,7 @@ function New-Block {
 
     if (Is-Discovery) {
         v "Adding block $Name to discovered blocks"
-        $block = New-BlockObject -Name $Name -Path $path
+        $block = New-BlockObject -Name $Name -Path $path -ExtendedData $ExtendedData
         # we attach the current block to the parent
         Add-Block -Block $block
     }
@@ -205,38 +206,68 @@ function New-Block {
             }
             v "Executing body of block $Name"
 
-
-            $result = Invoke-ScriptBlock `
-                -ScriptBlock $ScriptBlock `
-                -OuterSetup ( combineNonNull @(
-                        $state.Plugin | tryGetProperty OneTimeBlockSetup
-                        $previousBlock.OneTimeBlockSetup
-                ) ) `
-                -Setup ( combineNonNull @(
-                    $state.Plugin | tryGetProperty EachBlockSetup
-                    $previousBlock.EachBlockSetup
-                ) ) `
-                -Teardown ( combineNonNull @(
-                    $previousBlock.EachBlockTeardown
-                    $state.Plugin | tryGetProperty EachBlockTeardown
-                ) ) `
-                -OuterTeardown (
-                    combineNonNull @(
-                        $previousBlock.OneTimeBlockTeardown
-                        $state.Plugin | tryGetProperty OneTimeBlockTeardown
-                ) ) `
+            # TODO: no callbacks are provided because we are not transitioning between any states,
+            # it might be nice to add a parameter to indicate that we run in the same scope
+            # so we can avoid getting and setting the scope on scriptblock that already has that
+            # scope, which is _potentially_ slow because of reflection, it would also allow
+            # making the transition callbacks mandatory unless the parameter is provided
+            $frameworkSetupResult = Invoke-ScriptBlock `
+                -OuterSetup @(
+                    if ($block.First) { $state.Plugin.OneTimeBlockSetup | hasValue }
+                ) `
+                -Setup @( $state.Plugin.EachBlockSetup | hasValue ) `
+                -ScriptBlock {} `
                 -Context @{
-                    Context = $block | Select -Property Name
-                } `
-                -OnUserScopeTransition { Switch-Timer -Scope Block } `
-                -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+                    Context = @{
+                        Block = $Block
+                    }
+                }
 
-            $block.Executed = $true
-            $block.Passed = $result.Success
-            $block.StandardOutput = $result.StandardOutput
+            if ($frameworkSetupResult.Success) {
+                $result = Invoke-ScriptBlock `
+                    -ScriptBlock $ScriptBlock `
+                    -OuterSetup ( combineNonNull @(
+                            $previousBlock.OneTimeBlockSetup
+                    ) ) `
+                    -Setup ( combineNonNull @(
+                        $previousBlock.EachBlockSetup
+                    ) ) `
+                    -Teardown ( combineNonNull @(
+                        $previousBlock.EachBlockTeardown
+                    ) ) `
+                    -OuterTeardown (
+                        combineNonNull @(
+                            $previousBlock.OneTimeBlockTeardown
+                    ) ) `
+                    -Context @{
+                        Context = $block | Select -Property Name
+                    } `
+                    -OnUserScopeTransition { Switch-Timer -Scope Block } `
+                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
-            $block.ErrorRecord = $result.ErrorRecord
-            v "Finished executing body of block $Name"
+                $block.Executed = $true
+                $block.Passed = $result.Success
+                $block.StandardOutput = $result.StandardOutput
+
+                $block.ErrorRecord = $result.ErrorRecord
+                v "Finished executing body of block $Name"
+            }
+
+            $frameworkTeardownResult = Invoke-ScriptBlock `
+                -ScriptBlock {} `
+                -Teardown @( $state.Plugin.EachBlockTeardown | hasValue ) `
+                -OuterTeardown @(
+                    if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | hasValue }
+                ) `
+                -Context @{
+                    Context = @{
+                        Block = $block
+                    }
+                }
+
+            if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
+                throw "framework fail"
+            }
         }
     }
     finally {
@@ -287,7 +318,7 @@ function New-Test {
             v "Running test '$Name'."
             # TODO: no callbacks are provided because we are not transitioning between any states,
             # it might be nice to add a parameter to indicate that we run in the same scope
-            # so we can avoid getting and setting the scope on scriptblock that already has that 
+            # so we can avoid getting and setting the scope on scriptblock that already has that
             # scope, which is _potentially_ slow because of reflection, it would also allow
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
@@ -297,8 +328,10 @@ function New-Test {
                 -Setup @( $state.Plugin.EachTestSetup | hasValue ) `
                 -ScriptBlock {} `
                 -Context @{
-                    Context = $Test | Select -Property Name, Path
-                }
+                        Context = @{
+                            Test = $test
+                        }
+                    }
 
             if ($frameworkSetupResult.Success) {
                 # invokes the body of the test
@@ -334,11 +367,13 @@ function New-Test {
                     if ($test.Last) { $state.Plugin.OneTimeTestTeardown | hasValue }
                 ) `
                 -Context @{
-                    Context = $Test | Select -Property Name, Path, Duration, Passed, ErrorRecord
+                    Context = @{
+                        Test = $test
+                    }
                 }
 
             if (-not $frameworkTeardownResult.Success -or -not $frameworkTeardownResult.Success) {
-                throw "framework error"
+                throw $frameworkTeardownResult.ErrorRecord[-1]
             }
         }
     }
@@ -347,7 +382,6 @@ function New-Test {
         $null = Pop-Scope
         v "Left test $Name"
     }
-
 }
 
 # endpoint for adding a setup for each test in the block
@@ -468,7 +502,7 @@ function New-TestObject {
         [String] $Name,
         [String[]] $Path,
         [String[]] $Tag
-    ) 
+    )
 
     New-PSObject -Type DiscoveredTest @{
         Name = $Name
@@ -491,7 +525,8 @@ function New-BlockObject {
     param (
         [Parameter(Mandatory=$true)]
         [String] $Name,
-        [string[]] $Path
+        [string[]] $Path,
+        [HashTable] $ExtendedData = @{}
     )
 
     New-PSObject -Type DiscoveredBlock @{
@@ -521,6 +556,7 @@ function New-BlockObject {
         FrameworkDuration = [timespan]::Zero
         AggregatedDuration = [timespan]::Zero
         AggregatedPassed = $false
+        ExtendedData = $ExtendedData
     }
 }
 
@@ -549,20 +585,20 @@ function Discover-Test {
         [PSTypeName("Filter")] $Filter
     )
     v "Starting test discovery in $(@($BlockContainer).Length) test containers."
-    
+
     $state.Discovery = $true
     foreach ($container in $BlockContainer) {
-        # this is a block object that we add so we can capture 
+        # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
         $root = New-BlockObject -Name "Root"
         Reset-PerContainerState -RootBlock $root
 
         $null = Invoke-BlockContainer -BlockContainer $container
-        
+
         PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $container
         $root
-    } 
+    }
 
     v "Test discovery finished."
 }
@@ -746,10 +782,10 @@ function Invoke-ScriptBlock {
 
         # here we are moving into the user scope if the provided
         # scriptblock was bound to user scope, so we want to take some actions
-        # typically switching between user and framework timer. There are still tiny pieces of 
-        # framework code running in the scriptblock but we can safely ignore those becasue they are 
+        # typically switching between user and framework timer. There are still tiny pieces of
+        # framework code running in the scriptblock but we can safely ignore those becasue they are
         # just logging, so the time difference is miniscule.
-        # The code might also run just in framework scope, in that case the callback can remain empty, 
+        # The code might also run just in framework scope, in that case the callback can remain empty,
         # eg when we are invoking framework setup.
         & $OnUserScopeTransition
         do {
@@ -782,36 +818,36 @@ function Invoke-ScriptBlock {
 
 function Reset-TestSuiteTimer {
     if ($null -eq $state.TotalStopWatch) {
-        $state.TotalStopWatch = New-Object Diagnostics.Stopwatch 
+        $state.TotalStopWatch = New-Object Diagnostics.Stopwatch
     }
 
     if ($null -eq $state.TestStopWatch) {
-        $state.TestStopWatch = New-Object Diagnostics.Stopwatch 
+        $state.TestStopWatch = New-Object Diagnostics.Stopwatch
     }
 
     if ($null -eq $state.BlockStopWatch) {
-        $state.BlockStopWatch = New-Object Diagnostics.Stopwatch 
+        $state.BlockStopWatch = New-Object Diagnostics.Stopwatch
     }
 
     if ($null -eq $state.FrameworkStopWatch) {
-        $state.FrameworkStopWatch = New-Object Diagnostics.Stopwatch 
+        $state.FrameworkStopWatch = New-Object Diagnostics.Stopwatch
     }
 
     $state.TotalStopWatch.Restart()
-    $state.FrameworkStopWatch.Restart() 
+    $state.FrameworkStopWatch.Restart()
     $state.BlockStopWatch.Reset()
     $state.TestStopWatch.Reset()
 }
 
-function Switch-Timer { 
+function Switch-Timer {
     param (
         [Parameter(Mandatory)]
         [ValidateSet("Framework", "Block", "Test")]
         $Scope
     )
 
-    switch ($Scope) {          
-        "Framework" {  
+    switch ($Scope) {
+        "Framework" {
             # running in framework code adds time only to the overhead timer
             $state.TestStopWatch.Stop()
             $state.BlockStopWatch.Stop()
@@ -931,11 +967,11 @@ function Invoke-Test {
         $Filter,
         $Plugin
     )
-    
+
         $state.Plugin = $Plugin
-                    
+
         $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter
-        
+
         Run-Test -Block $found
 }
 
@@ -949,9 +985,9 @@ function PostProcess-DiscoveredBlock
         [PSTypeName("BlockContainer")] $BlockContainer
     )
 
-    # traverses the block structure after a block was found and 
-    # link childs to their parents, filter blocks and tests to 
-    # determine which should run, and mark blocks and tests 
+    # traverses the block structure after a block was found and
+    # link childs to their parents, filter blocks and tests to
+    # determine which should run, and mark blocks and tests
     # as first or last to know when one time setups & teardowns should run
 
     process {
@@ -1003,14 +1039,14 @@ function PostProcess-ExecutedBlock
         [PSTypeName("DiscoveredBlock")][PSObject[]] $Block
     )
 
-    
-    # traverses the block structure after a block was executed and 
-    # and sets the failures correctly so the aggreagatted failures 
-    # propagate towards the root so if a child test fails it's block 
+
+    # traverses the block structure after a block was executed and
+    # and sets the failures correctly so the aggreagatted failures
+    # propagate towards the root so if a child test fails it's block
     # aggregated result should be marked as failed
 
     process {
-        foreach ($b in $Block) { 
+        foreach ($b in $Block) {
             $thisBlockFailed = -not $b.Passed
             $tests = $b.Tests
             $anyTestFailed = any ($tests | where { $_.Executed -and -not $_.Passed })
@@ -1026,7 +1062,7 @@ function PostProcess-ExecutedBlock
                 $aggregatedChildDuration = sum $childBlocks 'AggregatedDuration' ([TimeSpan]::Zero)
                 $anyChildBlockFailed = any ($childBlocks | where { $_.Executed -and -not $_.Passed })
             }
-           
+
 
             $b.AggregatedPassed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
             $b.AggregatedDuration = $b.Duration + $testDuration + $aggregatedChildDuration
@@ -1137,18 +1173,18 @@ function New-PluginObject {
     }
 }
 
-function Invoke-BlockContainer { 
+function Invoke-BlockContainer {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        # relaxing the type here, I need it to have two forms and 
+        # relaxing the type here, I need it to have two forms and
         # PowerShell cannot do that probably
         # [PSTypeName("BlockContainer"] | [PSTypeName("DiscoveredBlockContainer")]
         $BlockContainer
     )
 
     switch ($BlockContainer.Type) {
-        "ScriptBlock" { & $BlockContainer.Content } 
+        "ScriptBlock" { & $BlockContainer.Content }
         "File" { & $BlockContainer.Content.PSPath }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
@@ -1190,7 +1226,7 @@ function New-DiscoveredBlockContainerObject {
         Content = $BlockContainer.Content
         # I create a Root block to keep the discovery unaware of containers,
         # but I don't want to publish that root block because it contains properties
-        # that do not make sense on container level like Name and Parent, 
+        # that do not make sense on container level like Name and Parent,
         # so here we don't want to take the root block but the blocks inside of it
         # and copy the rest of the meaningful properties
         Blocks = $Block.Blocks

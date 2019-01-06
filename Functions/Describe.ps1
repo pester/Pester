@@ -82,6 +82,7 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
+    $ExtendedData = @{ CommandUsed = "Describe" }
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     {
         
@@ -90,25 +91,10 @@ about_TestDrive
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
 
 
-        $writeScreen = Pester.Runtime\New-PluginObject -Name "WriteScreen" -EachBlockSetup {
-            param ($Context) 
-            Write-Host "Describe $($context.Name)" -ForegroundColor Yellow
-        } -EachTestTeardown {
-            param ($Context) 
-            if ($Context.Passed) {
-                Write-Host -ForegroundColor Green "[+] $($Context.Path -join ".")"
-            }
-            else {
-                Write-Host -ForegroundColor Red "[-] $($Context.Path -join ".")`n$($Context.ErrorRecord | Format-List -Force * | Out-String)"
-            }
-        }
-
-        $plugins = @($writeScreen)
-
-        Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture }) -Plugin $plugins
+        Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -ExtendedData $extendedData })
     }
     else {
-        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture
+        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -ExtendedData $extendedData
     }
 
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
