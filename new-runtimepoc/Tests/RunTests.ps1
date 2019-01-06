@@ -58,7 +58,7 @@ function Fold-Container {
         }
     }
 }
-function shouldRun ($bool) { if ($bool) { '✔' } else { '✖' }}
+function yOrN ($bool) { if ($bool) { '✔' } else { '✖' }}
 
 
 
@@ -74,9 +74,19 @@ Fold-Container -Container $found `
         $path = if ($container.Type -eq 'ScriptBlock') { $container.Content.File } else { $container.content.FullName }
         Write-Host -ForegroundColor Magenta $container.type - $path
     } `
-    -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (shouldRun $block.ShouldRun) $block.Name; $acc + 1 } `
-    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(shouldRun $test.ShouldRun) $($test.Name)" }
+    -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.ShouldRun) $block.Name; $acc + 1 } `
+    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.ShouldRun) $($test.Name)" }
 
 
-$runResult = Pester.Runtime\Invoke-Test -BlockContainer $containers -Filter $filter
+$runResult = Pester.Runtime\Invoke-Test -BlockContainer $containers # -Filter $filter
 $runResult | Fold-Container -OnTest { param($test) Write-Host $test.standardoutput  }
+
+
+$runResult | Fold-Container `
+    -OnContainer {
+        param($container, $acc)
+        $path = if ($container.Type -eq 'ScriptBlock') { $container.Content.File } else { $container.content.FullName }
+        Write-Host -ForegroundColor Magenta $container.type - $path
+    } `
+    -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.Passed) $block.Name $($block.Duration.TotalMilliseconds) ms with overhead $($block.OverheadDuration.TotalMilliseconds) ms;  $acc + 1 } `
+    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" }

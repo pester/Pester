@@ -8,6 +8,11 @@ $state = [PSCustomObject] @{
     CurrentBlock = $null
 
     Plugin = $null   
+
+    TotalStopWatch = $null
+    TestStopWatch = $null
+    BlockStopWatch = $null
+    FrameworkBlockStopWatch = $null
 }
 
 Write-Host -ForegroundColor Cyan "----> Importing pester runtime"
@@ -20,6 +25,7 @@ function Reset-TestSuiteState {
 
     $state.CurrentBlock = $null
     Reset-Scope
+    Reset-TestSuiteTimer
 }
 
 function Reset-PerContainerState { 
@@ -29,6 +35,7 @@ function Reset-PerContainerState {
     ) 
     $state.CurrentBlock = $RootBlock
     Reset-Scope
+    Reset-PerBlockTimer
 }
 
 # compatibility
@@ -64,34 +71,6 @@ function v {
     )
 
     # Write-Host -ForegroundColor Blue $Message
-}
-
-function Discover-Test {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
-        [PSTypeName("Filter")] $Filter
-    )
-    v "Starting test discovery in $(@($BlockContainer).Length) test containers."
-    
-    $state.Discovery = $true
-    foreach ($container in $BlockContainer) {
-       
-
-        # this is a block object that we add so we can capture 
-        # All* and Each* setups, and capture multiple blocks in a
-        # container
-        $root = New-BlockObject -Name "Root"
-        Reset-PerContainerState -RootBlock $root
-
-        $null = Invoke-BlockContainer -BlockContainer $container
-        
-        PostProcess-Block -Block $root -Filter $Filter -BlockContainer $container
-        $root
-    } 
-
-    v "Test discovery finished."
 }
 
 function Find-Test {
@@ -132,7 +111,10 @@ function ConvertTo-DiscoveredBlockContainer {
             "StandardOutput"
             "Passed"
             "Executed"
-            "Path"
+            "Path",
+            "StartedAt",
+            "Duration",
+            "Aggregated*"
         ) -Property @(
             @{n="Content"; e={$content}}
             @{n="Type"; e={$type}},
@@ -187,6 +169,9 @@ function New-Block {
         [ScriptBlock] $ScriptBlock
     )
 
+    Switch-Timer -Scope Framework
+    Reset-PerBlockTimer
+    
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = Get-ScopeHistory | % Name
     v "Entering path $($path -join '.')"
@@ -242,13 +227,19 @@ function New-Block {
                 ) ) `
                 -Context @{
                     Context = $block | Select -Property Name
-                }
+                } `
+                -OnUserScopeTransition { Switch-Timer -Scope Block } `
+                -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
             $block.Executed = $true
             $block.Passed = $result.Success
             $block.StandardOutput = $result.StandardOutput
 
             $block.ErrorRecord = $result.ErrorRecord
+
+            $time = Get-Timer
+            $block.Duration = $time.Block
+            $block.OverheadDuration = $Time.Framework
             v "Finished executing body of block $Name"
         }
     }
@@ -270,6 +261,8 @@ function New-Test {
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @()
     )
+    Switch-Timer -Scope Framework
+    Reset-PerTestTimer
 
     v "Entering test $Name"
     Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
@@ -292,6 +285,11 @@ function New-Test {
             $block = Get-CurrentBlock
 
             v "Running test '$Name'."
+            # TODO: no callbacks are provided because we are not transitioning between any states,
+            # it might be nice to add a parameter to indicate that we run in the same scope
+            # so we can avoid getting and setting the scope on scriptblock that already has that 
+            # scope, which is _potentially_ slow because of reflection, it would also allow
+            # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
                     if ($test.First) { $state.Plugin.OneTimeTestSetup | hasValue }
@@ -316,12 +314,17 @@ function New-Test {
                     ) `
                     -Context @{
                         Context = $Test | Select -Property Name, Path
-                    }
+                    } `
+                    -OnUserScopeTransition { Switch-Timer -Scope Test } `
+                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
                 $test.Executed = $true
                 $test.Passed = $result.Success
                 $test.StandardOutput = $result.StandardOutput
                 $test.ErrorRecord = $result.ErrorRecord
+
+                $time = Get-Timer
+                $test.Duration = $time.Test
             }
 
             $frameworkTeardownResult = Invoke-ScriptBlock `
@@ -479,6 +482,7 @@ function New-TestObject {
         First = $false
         Last = $false
         ShouldRun = $false
+        Duration = [timespan]::Zero
     }
 }
 
@@ -512,6 +516,11 @@ function New-BlockObject {
         StandardOutput = $null
         ErrorRecord = @()
         ShouldRun = $false
+        ExecutedAt = $null
+        Duration = [timespan]::Zero
+        OverheadDuration = [timespan]::Zero
+        AggregatedDuration = [timespan]::Zero
+        AggregatedPassed = $null
     }
 }
 
@@ -532,7 +541,32 @@ function Is-Discovery {
     $state.Discovery
 }
 
-# test invocation
+function Discover-Test {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
+        [PSTypeName("Filter")] $Filter
+    )
+    v "Starting test discovery in $(@($BlockContainer).Length) test containers."
+    
+    $state.Discovery = $true
+    foreach ($container in $BlockContainer) {
+        # this is a block object that we add so we can capture 
+        # OneTime* and Each* setups, and capture multiple blocks in a
+        # container
+        $root = New-BlockObject -Name "Root"
+        Reset-PerContainerState -RootBlock $root
+
+        $null = Invoke-BlockContainer -BlockContainer $container
+        
+        PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $container
+        $root
+    } 
+
+    v "Test discovery finished."
+}
+
 function Run-Test {
     [CmdletBinding()]
     param (
@@ -543,8 +577,10 @@ function Run-Test {
     $state.Discovery = $false
     foreach ($rootBlock in $Block) {
         Reset-PerContainerState -RootBlock $rootBlock
-        # do we want this output?
+
         $null = Invoke-BlockContainer $rootBlock.BlockContainer
+
+        PostProcess-ExecutedBlock -Block $rootBlock
         ConvertTo-ExecutedBlockContainer -Block $rootBlock
     }
 }
@@ -565,7 +601,9 @@ function Invoke-ScriptBlock {
         # will dot-source the wrapper scriptblock instead of invoking it
         # so in combination with the SameScope switch we are effectively
         # running the code in the current scope
-        [Switch] $NoNewScope
+        [Switch] $NoNewScope,
+        [ScriptBlock] $OnUserScopeTransition = {},
+        [ScriptBlock] $OnFrameworkScopeTransition = {}
     )
 
     # this is what the code below does
@@ -588,7 +626,7 @@ function Invoke-ScriptBlock {
     # is not correct,
 
     $scriptBlockWithContext = {
-        # THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
+        # THIS CAN RUN IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______context)
         $______splat = $______context.Parameters
         try {
@@ -687,19 +725,28 @@ function Invoke-ScriptBlock {
     $success = $true
     $break = $true
     try {
+        $context =  @{
+            ScriptBlock = $ScriptBlock
+            OuterSetup = $OuterSetup
+            Setup = $Setup
+            Teardown = $Teardown
+            OuterTeardown = $OuterTeardown
+            SameScope = $SameScope
+            CurrentlyExecutingScriptBlock = $null
+            ErrorRecord = @()
+            Parameters = $Context
+            WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Magenta $Message }
+        }
+
+        # here we are moving into the user scope if the provided
+        # scriptblock was bound to user scope, so we want to take some actions
+        # typically switching between user and framework timer. There are still tiny pieces of 
+        # framework code running in the scriptblock but we can safely ignore those becasue they are 
+        # just logging, so the time difference is miniscule.
+        # The code might also run just in framework scope, in that case the callback can remain empty, 
+        # eg when we are invoking framework setup.
+        & $OnUserScopeTransition
         do {
-            $context =  @{
-                ScriptBlock = $ScriptBlock
-                OuterSetup = $OuterSetup
-                Setup = $Setup
-                Teardown = $Teardown
-                OuterTeardown = $OuterTeardown
-                SameScope = $SameScope
-                CurrentlyExecutingScriptBlock = $null
-                ErrorRecord = @()
-                Parameters = $Context
-                WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Magenta $Message }
-            }
             $standardOutput = if ($NoNewScope) {
                     . $scriptBlockWithContext $context
                 }
@@ -714,6 +761,8 @@ function Invoke-ScriptBlock {
         $success = $false
         $err = $_
     }
+
+    & $OnFrameworkScopeTransition
     $errors = @( ($context.ErrorRecord + $err) | hasValue )
 
     return New-PSObject -Type ScriptBlockInvocationResult @{
@@ -721,6 +770,83 @@ function Invoke-ScriptBlock {
         ErrorRecord = $errors
         StandardOutput = $standardOutput
         Break = $break
+    }
+}
+
+
+function Reset-TestSuiteTimer {
+    if ($null -eq $state.TotalStopWatch) {
+        $state.TotalStopWatch = New-Object Diagnostics.Stopwatch 
+    }
+
+    if ($null -eq $state.TestStopWatch) {
+        $state.TestStopWatch = New-Object Diagnostics.Stopwatch 
+    }
+
+    if ($null -eq $state.BlockStopWatch) {
+        $state.BlockStopWatch = New-Object Diagnostics.Stopwatch 
+    }
+
+    if ($null -eq $state.FrameworkBlockStopWatch) {
+        $state.FrameworkBlockStopWatch = New-Object Diagnostics.Stopwatch 
+    }
+
+    $state.TotalStopWatch.Restart()
+    Reset-PerBlockTimer
+}
+
+function Reset-PerBlockTimer {       
+    # user stop watch should stay off because we are starting in framework code
+    # This also acts like a call to Switch-Timer -Scope Framework, 
+    # so we don't have to call it again
+    $state.FrameworkBlockStopWatch.Restart() 
+    $state.BlockStopWatch.Reset()
+}
+
+function Reset-PerTestTimer {  
+    $state.TestStopWatch.Reset()
+}
+
+function Switch-Timer { 
+    param (
+        [Parameter(Mandatory)]
+        [ValidateSet("Framework", "Block", "Test")]
+        $Scope
+    )
+
+    switch ($Scope) {          
+        "Framework" {  
+            # running in framework code adds time only to the overhead timer
+            $state.TestStopWatch.Stop()
+            $state.BlockStopWatch.Stop()
+            $state.FrameworkBlockStopWatch.Start()
+        }
+        "Block" {
+            $state.TestStopWatch.Stop()
+            $state.BlockStopWatch.Start()
+            $state.FrameworkBlockStopWatch.Stop()
+        }
+        "Test" {
+            $state.TestStopWatch.Start()
+            $state.BlockStopWatch.Stop()
+            $state.FrameworkBlockStopWatch.Stop()
+
+        }
+        default { throw [ArgumentException]"" }
+    }
+}
+
+function Get-Timer {
+    ## probably a bad idea, queries should be nullipotent
+    # # this function will always be called from
+    # # framework code so we reset to framework code to 
+    # # keep the measurements correct
+    # Switch-Timer -Scope Framework
+
+    New-PSObject -Type TimeMeasurement -Property @{
+        Block = $state.BlockStopWatch.Elapsed
+        Test = $state.BlockStopWatch.Elapsed
+        Framework = $state.FrameworkBlockStopWatch.Elapsed
     }
 }
 
@@ -831,7 +957,8 @@ function Invoke-Test {
         Run-Test -Block $found
 }
 
-function PostProcess-Block {
+function PostProcess-DiscoveredBlock
+{
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
@@ -839,6 +966,11 @@ function PostProcess-Block {
         [PSTypeName("Filter")] $Filter,
         [PSTypeName("BlockContainer")] $BlockContainer
     )
+
+    # traverses the block structure after a block was found and 
+    # link childs to their parents, filter blocks and tests to 
+    # determine which should run, and mark blocks and tests 
+    # as first or last to know when one time setups & teardowns should run
 
     process {
         foreach ($b in $Block) {
@@ -865,7 +997,7 @@ function PostProcess-Block {
                 foreach($cb in $childBlocks) {
                     $cb.Parent = $b
                     $cb.BlockContainer = $BlockContainer
-                    PostProcess-Block -Block $cb -Filter $Filter -BlockContainer $BlockContainer
+                    PostProcess-DiscoveredBlock -Block $cb -Filter $Filter -BlockContainer $BlockContainer
                 }
 
                 $childBlocksToRun = $childBlocks | where { $_.ShouldRun }
@@ -877,6 +1009,40 @@ function PostProcess-Block {
             }
 
             $b.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
+        }
+    }
+}
+
+function PostProcess-ExecutedBlock
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block
+    )
+
+    
+    # traverses the block structure after a block was executed and 
+    # and sets the failures and times correctly so the aggreagates 
+    # propagate towards the root so if a child test fails it's block 
+    # aggregated result should be marked as failed and the total time 
+    # should be all of it's childred added together
+
+    process {
+        foreach ($b in $Block) {
+            $tests = $b.Tests
+            $aggregatedTestDuration = sum $tests "Duration" ([TimeSpan]::Zero)
+
+            $aggregatedChildDuration = ([TimeSpan]::Zero)
+            $childBlocks = $b.Blocks
+            if (any $childBlocks) {
+                foreach($cb in $childBlocks) {
+                    PostProcess-ExecutedBlock -Block $cb
+                }
+                $aggregatedChildDuration = sum $childBlocks "Duration" ([TimeSpan]::Zero)
+            }
+
+            $b.AggregatedDuration = $block.Duration + $aggregatedChildDuration + $aggregatedTestDuration
         }
     }
 }
@@ -1135,6 +1301,21 @@ function any ($InputObject) {
 function none ($InputObject) {
     -not (any $InputObject)
 }
+
+function sum ($InputObject, $PropertyName, $Zero) {
+    if (none $InputObject.Length) {
+        return $Zero
+    }
+
+    $acc = $Zero
+    foreach ($i in $InputObject) {
+        $acc += $i.$PropertyName
+    }
+
+    $acc
+}
+
+
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 # initialize internal state
