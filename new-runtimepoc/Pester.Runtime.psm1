@@ -16,22 +16,11 @@ function Reset-TestSuiteState {
 
     $state.Plugin = $null
 
-    Reset-PerContainerState -BlockContainer $null
+    Reset-PerContainerState
 }
 
 function Reset-PerContainerState { 
-    param (
-        $BlockContainer
-    )
-    
-    # this resets the per container state so we can do 
-    # discovery / run in a clean state while keeping all the 
-    # other settings. 
-    # when the provided container can be $null when we are resetting the whole suite
-    # or populated when we are discovering tests
-
     $block = New-BlockObject -Name "Root"
-    $block.BlockContainer = $BlockContainer
     
     $state.CurrentBlock = $state.Root = $block
     Reset-Scope
@@ -72,7 +61,7 @@ function v {
     # Write-Host -ForegroundColor Blue $Message
 }
 
-function Find-Test {
+function Discover-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
@@ -82,20 +71,67 @@ function Find-Test {
     v "Starting test discovery in $(@($BlockContainer).Length) test containers."
     
     $state.Discovery = $true
-    $found = foreach ($container in $BlockContainer) {
+    foreach ($container in $BlockContainer) {
         # is there any output, do we want it?
+
         Reset-PerContainerState
         
         $null = Invoke-BlockContainer -BlockContainer $container
-        $state.Root.BlockContainer = $container
         
-        PostProcess-Block -Block $state.Root -Filter $Filter
-
-        New-DiscoveredBlockContainerObject -Block $state.Root -BlockContainer $container
+        PostProcess-Block -Block $state.Root -Filter $Filter -BlockContainer $container
+        $state.Root
     } 
 
-    $found
     v "Test discovery finished."
+}
+
+function Find-Test {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
+        [PSTypeName("Filter")] $Filter
+    )
+
+    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter 
+    foreach ($f in $found) {
+        ConvertTo-DiscoveredBlockContainer -Block $f
+    }
+}
+
+function ConvertTo-DiscoveredBlockContainer {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [PSTypeName("DiscoveredBlock")] $Block
+    )
+
+    # takes a root block and converts it to a discovered block container
+    # that we can publish from Find-Test, because keeping everything a block makes the internal
+    # code simpler
+    $container = $Block.BlockContainer
+    $content = $container | tryGetProperty Content
+    $type = $container | tryGetProperty Type
+
+    # TODO: Add other properties that are relevant to found tests
+    $b = $Block | Select -ExcludeProperty @(
+            "Parent"
+            "Name"
+            "Tag"
+            "First"
+            "Last"
+            "StandardOutput"
+            "Passed"
+            "Executed"
+            "Path"
+        ) -Property @(
+            @{n="Content"; e={$content}}
+            @{n="Type"; e={$type}},
+            @{n="PSTypename"; e={"DiscoveredBlockContainer"}}
+            '*'
+        ) 
+
+    $b 
 }
 
 
@@ -448,7 +484,6 @@ function Add-Block {
 
     $currentBlock = (Get-CurrentBlock)
     $Block.Parent = $currentBlock
-    $Block.BlockContainer = $currentBlock.BlockContainer
     $currentBlock.Blocks += $Block
 }
 
@@ -457,18 +492,19 @@ function Is-Discovery {
 }
 
 # test invocation
-function Start-Test {
+function Run-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [PSTypeName("DiscoveredBlockContainer")] $BlockContainer
+        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block
     )
 
     $state.Discovery = $false
-    foreach ($container in $BlockContainer) {
-        $state.Root = $state.CurrentBlock = $container.Blocks
+    foreach ($b in $Block) {
+        Reset-PerContainerState
+        $state.Root = $state.CurrentBlock = $b
         # do we want this output?
-        $null = Invoke-BlockContainer $container
+        $null = Invoke-BlockContainer $b.BlockContainer
         $state.Root
     }
 }
@@ -750,10 +786,9 @@ function Invoke-Test {
     
         $state.Plugin = $Plugin
                     
-        $found = Find-Test -BlockContainer $BlockContainer -Filter $Filter
+        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter
         
-        $result = Start-Test -BlockContainer $found
-        $result
+        Run-Test -Block $found
 }
 
 function PostProcess-Block {
@@ -761,11 +796,14 @@ function PostProcess-Block {
     param (
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
-        [PSTypeName("Filter")] $Filter
+        [PSTypeName("Filter")] $Filter,
+        [PSTypeName("BlockContainer")] $BlockContainer
     )
 
     process {
         foreach ($b in $Block) {
+            $b.BlockContainer = $BlockContainer
+
             $tests = $b.Tests
             $blockShouldRun = $false
             if (any $tests) {
@@ -786,8 +824,8 @@ function PostProcess-Block {
             if (any $childBlocks) {
                 foreach($cb in $childBlocks) {
                     $cb.Parent = $b
-                    $cb.BlockContainer = $b.BlockContainer
-                    PostProcess-Block -Block $cb -Filter $Filter
+                    $cb.BlockContainer = $BlockContainer
+                    PostProcess-Block -Block $cb -Filter $Filter -BlockContainer $BlockContainer
                 }
 
                 $childBlocksToRun = $childBlocks | where { $_.ShouldRun }
@@ -849,7 +887,6 @@ function Find-CurrentBlock {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
 
     $blocks = (Get-CurrentBlock).Blocks
     # todo: optimize this if too slow
@@ -958,7 +995,12 @@ function New-DiscoveredBlockContainerObject {
     New-PSObject -Type "DiscoveredBlockContainer" @{
         Type = $BlockContainer.Type
         Content = $BlockContainer.Content
-        Blocks = $Block
+        # I create a Root block to keep the discovery unaware of containers,
+        # but I don't want to publish that root block because it contains properties
+        # that do not make sense on container level like Name and Parent, 
+        # so here we don't want to take the root block but the blocks inside of it
+        # and copy the rest of the meaningful properties
+        Blocks = $Block.Blocks
     }
 }
 

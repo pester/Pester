@@ -7,8 +7,10 @@ function i  {
     )
     $script:failed = 0
     $script:total = 0
-    $passed = $script:total - $script:failed
+
     & $ScriptBlock
+
+    $passed = $script:total - $script:failed
     Write-Host -NoNewline "`npassed $($passed), " -ForegroundColor Green
     Write-Host -NoNewline "failed $($script:failed), " -ForegroundColor Red
     Write-Host "total $($script:total)" -ForegroundColor Gray
