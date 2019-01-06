@@ -334,7 +334,7 @@ function New-Test {
                     if ($test.Last) { $state.Plugin.OneTimeTestTeardown | hasValue }
                 ) `
                 -Context @{
-                    Context = $Test | Select -Property Name, Path, Passed, ErrorRecord
+                    Context = $Test | Select -Property Name, Path, Duration, Passed, ErrorRecord
                 }
 
             if (-not $frameworkTeardownResult.Success -or -not $frameworkTeardownResult.Success) {
