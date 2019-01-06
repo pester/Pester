@@ -14,18 +14,18 @@ $scriptBlockContainer = New-BlockContainerObject -ScriptBlock { New-Block "Same 
 
     New-Block "block 3" {
         New-Test "test 3 4" {
-            Start-Sleep -Milliseconds 350
+            Start-Sleep -Milliseconds 50
         }
 
 
         New-Block "block 4" {
             
             New-Test "test 6" {
-                Start-Sleep -Milliseconds 500 
+                Start-Sleep -Milliseconds 30
             }
         }
         New-Test "test 3" {
-            Start-Sleep -Milliseconds 350
+            Start-Sleep -Milliseconds 40
         }
 
         New-Test "test 4" {
@@ -85,8 +85,6 @@ function yOrN ($bool) { if ($bool) { '✔' } else { '✖' }}
 
 
 $containers = @($fileContainers) + $scriptBlockContainer
-# HACK!
-$containers = @($scriptBlockContainer)
 
 $filter = (New-FilterObject -Tag sb3)
 $found = Pester.Runtime\Find-Test $containers -Filter $filter
@@ -112,4 +110,4 @@ $runResult | Fold-Container `
         Write-Host -ForegroundColor Magenta $container.type - $path "$($container.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($container.FrameworkDuration.TotalMilliseconds)" ms
     } `
     -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.AggregatedPassed) (yOrN $block.Passed) $block.Name "$($block.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($block.FrameworkDuration.TotalMilliseconds)" ms;  $acc + 1 } `
-    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" with overhead "$($test.FrameworkDuration.TotalMilliseconds)" ms }
+    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" with overhead "$($test.FrameworkDuration.TotalMilliseconds)" ms ; $acc}
