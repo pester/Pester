@@ -12,12 +12,12 @@ $state = [PSCustomObject] @{
     TotalStopWatch = $null
     TestStopWatch = $null
     BlockStopWatch = $null
-    FrameworkBlockStopWatch = $null
+    FrameworkStopWatch = $null
 }
 
-Write-Host -ForegroundColor Cyan "----> Importing pester runtime"
-# resets the module state to the default
+
 function Reset-TestSuiteState {
+    # resets the module state to the default
     v "Resetting internal state to default."
     $state.Discovery = $false  
 
@@ -35,7 +35,6 @@ function Reset-PerContainerState {
     ) 
     $state.CurrentBlock = $RootBlock
     Reset-Scope
-    Reset-PerBlockTimer
 }
 
 # compatibility
@@ -170,7 +169,8 @@ function New-Block {
     )
 
     Switch-Timer -Scope Framework
-    Reset-PerBlockTimer
+    $blockStartTime = $state.BlockStopWatch.Elapsed
+    $overheadStartTime = $state.FrameworkStopWatch.Elapsed
     
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = Get-ScopeHistory | % Name
@@ -236,14 +236,12 @@ function New-Block {
             $block.StandardOutput = $result.StandardOutput
 
             $block.ErrorRecord = $result.ErrorRecord
-
-            $time = Get-Timer
-            $block.Duration = $time.Block
-            $block.OverheadDuration = $Time.Framework
             v "Finished executing body of block $Name"
         }
     }
     finally {
+        $block.Duration = $state.BlockStopWatch.Elapsed - $blockStartTime
+        $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         v "Leaving path $($path -join '.')"
         Set-CurrentBlock -Block $previousBlock
         $null = Pop-Scope
@@ -262,7 +260,8 @@ function New-Test {
         [String[]] $Tag = @()
     )
     Switch-Timer -Scope Framework
-    Reset-PerTestTimer
+    $testStartTime = $state.TestStopWatch.Elapsed
+    $overheadStartTime = $state.FrameworkStopWatch.Elapsed
 
     v "Entering test $Name"
     Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
@@ -277,6 +276,7 @@ function New-Test {
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
+
             if (-not $test.ShouldRun) {
                 v "Test is excluded from run, returning"
                 return
@@ -323,8 +323,8 @@ function New-Test {
                 $test.StandardOutput = $result.StandardOutput
                 $test.ErrorRecord = $result.ErrorRecord
 
-                $time = Get-Timer
-                $test.Duration = $time.Test
+                $test.Duration = $state.TestStopWatch.Elapsed - $testStartTime
+                $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
             }
 
             $frameworkTeardownResult = Invoke-ScriptBlock `
@@ -349,6 +349,7 @@ function New-Test {
         v "Left test $Name"
     }
 
+    $state.BlockStopWatch.Elapsed
 }
 
 # endpoint for adding a setup for each test in the block
@@ -469,7 +470,7 @@ function New-TestObject {
         [String] $Name,
         [String[]] $Path,
         [String[]] $Tag
-    )
+    ) 
 
     New-PSObject -Type DiscoveredTest @{
         Name = $Name
@@ -483,6 +484,7 @@ function New-TestObject {
         Last = $false
         ShouldRun = $false
         Duration = [timespan]::Zero
+        FrameworkDuration = [timespan]::Zero
     }
 }
 
@@ -518,9 +520,9 @@ function New-BlockObject {
         ShouldRun = $false
         ExecutedAt = $null
         Duration = [timespan]::Zero
-        OverheadDuration = [timespan]::Zero
+        FrameworkDuration = [timespan]::Zero
         AggregatedDuration = [timespan]::Zero
-        AggregatedPassed = $null
+        AggregatedPassed = $false
     }
 }
 
@@ -577,10 +579,16 @@ function Run-Test {
     $state.Discovery = $false
     foreach ($rootBlock in $Block) {
         Reset-PerContainerState -RootBlock $rootBlock
+        Switch-Timer -Scope Framework
+        $blockStartTime = $state.BlockStopWatch.Elapsed
+        $overheadStartTime = $state.FrameworkStopWatch.Elapsed
 
         $null = Invoke-BlockContainer $rootBlock.BlockContainer
 
+        $rootBlock.Duration = $state.BlockStopWatch.Elapsed - $blockStartTime
+        $rootBlock.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         PostProcess-ExecutedBlock -Block $rootBlock
+
         ConvertTo-ExecutedBlockContainer -Block $rootBlock
     }
 }
@@ -787,23 +795,13 @@ function Reset-TestSuiteTimer {
         $state.BlockStopWatch = New-Object Diagnostics.Stopwatch 
     }
 
-    if ($null -eq $state.FrameworkBlockStopWatch) {
-        $state.FrameworkBlockStopWatch = New-Object Diagnostics.Stopwatch 
+    if ($null -eq $state.FrameworkStopWatch) {
+        $state.FrameworkStopWatch = New-Object Diagnostics.Stopwatch 
     }
 
     $state.TotalStopWatch.Restart()
-    Reset-PerBlockTimer
-}
-
-function Reset-PerBlockTimer {       
-    # user stop watch should stay off because we are starting in framework code
-    # This also acts like a call to Switch-Timer -Scope Framework, 
-    # so we don't have to call it again
-    $state.FrameworkBlockStopWatch.Restart() 
+    $state.FrameworkStopWatch.Restart() 
     $state.BlockStopWatch.Reset()
-}
-
-function Reset-PerTestTimer {  
     $state.TestStopWatch.Reset()
 }
 
@@ -819,34 +817,20 @@ function Switch-Timer {
             # running in framework code adds time only to the overhead timer
             $state.TestStopWatch.Stop()
             $state.BlockStopWatch.Stop()
-            $state.FrameworkBlockStopWatch.Start()
+            $state.FrameworkStopWatch.Start()
         }
         "Block" {
             $state.TestStopWatch.Stop()
             $state.BlockStopWatch.Start()
-            $state.FrameworkBlockStopWatch.Stop()
+            $state.FrameworkStopWatch.Stop()
         }
         "Test" {
             $state.TestStopWatch.Start()
             $state.BlockStopWatch.Stop()
-            $state.FrameworkBlockStopWatch.Stop()
+            $state.FrameworkStopWatch.Stop()
 
         }
         default { throw [ArgumentException]"" }
-    }
-}
-
-function Get-Timer {
-    ## probably a bad idea, queries should be nullipotent
-    # # this function will always be called from
-    # # framework code so we reset to framework code to 
-    # # keep the measurements correct
-    # Switch-Timer -Scope Framework
-
-    New-PSObject -Type TimeMeasurement -Property @{
-        Block = $state.BlockStopWatch.Elapsed
-        Test = $state.BlockStopWatch.Elapsed
-        Framework = $state.FrameworkBlockStopWatch.Elapsed
     }
 }
 
@@ -1023,26 +1007,31 @@ function PostProcess-ExecutedBlock
 
     
     # traverses the block structure after a block was executed and 
-    # and sets the failures and times correctly so the aggreagates 
+    # and sets the failures correctly so the aggreagatted failures 
     # propagate towards the root so if a child test fails it's block 
-    # aggregated result should be marked as failed and the total time 
-    # should be all of it's childred added together
+    # aggregated result should be marked as failed
 
     process {
-        foreach ($b in $Block) {
+        foreach ($b in $Block) { 
+            $thisBlockFailed = -not $b.Passed
             $tests = $b.Tests
-            $aggregatedTestDuration = sum $tests "Duration" ([TimeSpan]::Zero)
+            $anyTestFailed = any ($tests | where { $_.Executed -and -not $_.Passed })
+            $testDuration = sum $tests 'Duration' ([TimeSpan]::Zero)
 
-            $aggregatedChildDuration = ([TimeSpan]::Zero)
             $childBlocks = $b.Blocks
+            $anyChildBlockFailed = $false
+            $aggregatedChildDuration = [TimeSpan]::Zero
             if (any $childBlocks) {
                 foreach($cb in $childBlocks) {
                     PostProcess-ExecutedBlock -Block $cb
                 }
-                $aggregatedChildDuration = sum $childBlocks "Duration" ([TimeSpan]::Zero)
+                $aggregatedChildDuration = sum $childBlocks 'AggregatedDuration' ([TimeSpan]::Zero)
+                $anyChildBlockFailed = any ($childBlocks | where { $_.Executed -and -not $_.Passed })
             }
+           
 
-            $b.AggregatedDuration = $block.Duration + $aggregatedChildDuration + $aggregatedTestDuration
+            $b.AggregatedPassed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
+            $b.AggregatedDuration = $b.Duration + $testDuration + $aggregatedChildDuration
         }
     }
 }

@@ -6,12 +6,33 @@ $files = Pester.RSpec\Find-RSpecTestFile $PSScriptRoot
 $fileContainers = $files | foreach { Pester.Runtime\New-BlockContainerObject -Path $_.FullName }
 $scriptBlockContainer = New-BlockContainerObject -ScriptBlock { New-Block "Same name" {
         New-Test "Same name" {
+            Write-host "sleeping"
+            Start-Sleep -Seconds 1
             "scriptblock3"
         } -Tag sb3
     }
 
     New-Block "block 3" {
+        New-Test "test 3 4" {
+            Start-Sleep -Milliseconds 350
+        }
+
+
+        New-Block "block 4" {
+            
+            New-Test "test 6" {
+                Start-Sleep -Milliseconds 500 
+            }
+        }
         New-Test "test 3" {
+            Start-Sleep -Milliseconds 350
+        }
+
+        New-Test "test 4" {
+            throw
+        }
+
+        New-Test "test 5" {
 
         }
     }
@@ -64,21 +85,23 @@ function yOrN ($bool) { if ($bool) { '✔' } else { '✖' }}
 
 
 $containers = @($fileContainers) + $scriptBlockContainer
+# HACK!
+$containers = @($scriptBlockContainer)
 
 $filter = (New-FilterObject -Tag sb3)
 $found = Pester.Runtime\Find-Test $containers -Filter $filter
 
-Fold-Container -Container $found `
-    -OnContainer {
-        param($container, $acc)
-        $path = if ($container.Type -eq 'ScriptBlock') { $container.Content.File } else { $container.content.FullName }
-        Write-Host -ForegroundColor Magenta $container.type - $path
-    } `
-    -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.ShouldRun) $block.Name; $acc + 1 } `
-    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.ShouldRun) $($test.Name)" }
+# Fold-Container -Container $found `
+#     -OnContainer {
+#         param($container, $acc)
+#         $path = if ($container.Type -eq 'ScriptBlock') { $container.Content.File } else { $container.content.FullName }
+#         Write-Host -ForegroundColor Magenta $container.type - $path
+#     } `
+#     -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.ShouldRun) $block.Name; $acc + 1 } `
+#     -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.ShouldRun) $($test.Name)" }
 
 
-$runResult = Pester.Runtime\Invoke-Test -BlockContainer $containers # -Filter $filter
+$runResult = Pester.Runtime\Invoke-Test -BlockContainer $containers #  -Filter $filter
 $runResult | Fold-Container -OnTest { param($test) Write-Host $test.standardoutput  }
 
 
@@ -86,7 +109,7 @@ $runResult | Fold-Container `
     -OnContainer {
         param($container, $acc)
         $path = if ($container.Type -eq 'ScriptBlock') { $container.Content.File } else { $container.content.FullName }
-        Write-Host -ForegroundColor Magenta $container.type - $path
+        Write-Host -ForegroundColor Magenta $container.type - $path "$($container.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($container.FrameworkDuration.TotalMilliseconds)" ms
     } `
-    -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.Passed) $block.Name $($block.Duration.TotalMilliseconds) ms with overhead $($block.OverheadDuration.TotalMilliseconds) ms;  $acc + 1 } `
-    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" }
+    -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (yOrN $block.AggregatedPassed) (yOrN $block.Passed) $block.Name "$($block.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($block.FrameworkDuration.TotalMilliseconds)" ms;  $acc + 1 } `
+    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" with overhead "$($test.FrameworkDuration.TotalMilliseconds)" ms }
