@@ -533,7 +533,7 @@ function New-BlockObject {
 
     New_PSObject -Type DiscoveredBlock @{
         Name = $Name
-        Path = @()
+        Path = $Path
         Tag = $Tag
         Tests = @()
         BlockContainer = $null
@@ -769,6 +769,7 @@ function Invoke-ScriptBlock {
 
     $success = $true
     $break = $true
+    $err = $null
     try {
         $context =  @{
             ScriptBlock = $ScriptBlock
@@ -776,7 +777,7 @@ function Invoke-ScriptBlock {
             Setup = $Setup
             Teardown = $Teardown
             OuterTeardown = $OuterTeardown
-            SameScope = $SameScope
+            # SameScope = $SameScope
             CurrentlyExecutingScriptBlock = $null
             ErrorRecord = @()
             Parameters = $Context

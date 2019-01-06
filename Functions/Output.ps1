@@ -366,7 +366,7 @@ function Get-WriteScreenPlugin {
         # and equivalent for Context  
 
         $block = $Context.Block
-        $level = $block.Path.Length
+        $level = $block.Path.Length - 1
         $margin = $ReportStrings.Margin * $level
 
         $text = $ReportStrings.$commandUsed -f $block.Name
