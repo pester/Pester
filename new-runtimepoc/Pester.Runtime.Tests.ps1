@@ -90,7 +90,7 @@ b "Basic" {
         Reset-TestSuiteState
         $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" { }
-        }) | select -Expand Tests
+        }) | % Blocks | % Tests
 
         @($actual).Length | Verify-Equal 1
         $actual.Name | Verify-Equal "test1"
@@ -102,7 +102,7 @@ b "Basic" {
             New-Test "test1" { }
 
             New-Test "test2" { }
-        }) | select -Expand Tests
+        }) | % Blocks | % Tests
 
         @($actual).Length | Verify-Equal 2
         $actual.Name[0] | Verify-Equal "test1"
@@ -113,7 +113,7 @@ b "Basic" {
 b "block" {
     t "Given 0 tests it returns block called by the default name" {
         Reset-TestSuiteState
-        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock { })
+        $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock { }) | % Blocks
 
         $actual.Name | Verify-Equal "Block"
     }
@@ -121,8 +121,8 @@ b "block" {
     t "Given 0 tests it returns block containing 0 tests" {
         Reset-TestSuiteState
         $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
-            New-Test "test1" {}
-        })
+            New-Test "test1" {} | % Blocks
+        }) | % Blocks
 
         $actual.Tests.Length | Verify-Equal 1
     }
@@ -133,8 +133,8 @@ b "Find common setup for each test" {
         Reset-TestSuiteState
         $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-EachTestSetup {setup}
-            New-Test "test1" {}
-        })
+            New-Test "test1" {} 
+        }) | % Blocks
 
         $actual[0].EachTestSetup | Verify-Equal 'setup'
     }
@@ -146,7 +146,7 @@ b "Finding setup for all tests" {
         $actual = Find-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-OneTimeTestSetup {oneTimeSetup}
             New-Test "test1" {}
-        })
+        }) | % Blocks
 
         $actual[0].OneTimeTestSetup | Verify-Equal 'oneTimeSetup'
     }
@@ -159,7 +159,7 @@ b "Finding blocks" {
             New-Block "block1" {
                 New-Test "test1" {}
             }
-        })
+        }) | % Blocks
 
         $actual.Blocks[0].Tests.Length | Verify-Equal 1
         $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
@@ -175,7 +175,7 @@ b "Finding blocks" {
             New-Block "block2" {
                 New-Test "test2" {}
             }
-        })
+        }) | % Blocks
 
         $actual.Blocks.Length | Verify-Equal 2
         $actual.Blocks[0].Tests.Length | Verify-Equal 1
@@ -193,7 +193,7 @@ b "Finding blocks" {
                     New-Test "test2" {}
                 }
             }
-        })
+        }) | % Blocks
 
         $actual.Blocks.Length | Verify-Equal 1
         $actual.Blocks[0].Tests.Length | Verify-Equal 1
@@ -416,7 +416,7 @@ b "discover and execute tests" {
         Write-Host "`n`n`n"
         # set the test3 to pass this time so we have some difference
         $willPass = $true
-        $result = Invoke-Test -Filter (New-FilterObject -Path $paths) -Test (New-BlockContainerObject -ScriptBlock $sb)
+        $result = Invoke-Test -Filter (New-FilterObject -Path $paths) -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
         $actual = @($result | View-Flat | where { $_.Executed })
 

@@ -58,7 +58,7 @@ function Fold-Container {
         }
     }
 }
-function shouldRun ($bool) { if ($bool) { '✔' } else {'❌'}}
+function shouldRun ($bool) { if ($bool) { '✔' } else { '✖' }}
 
 
 
@@ -75,7 +75,7 @@ Fold-Container -Container $found `
         Write-Host -ForegroundColor Magenta $container.type - $path
     } `
     -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) (shouldRun $block.ShouldRun) $block.Name; $acc + 1 } `
-    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Green "$(' ' * ($acc*2))-> $(shouldRun $test.ShouldRun) $($test.Name)" }
+    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(shouldRun $test.ShouldRun) $($test.Name)" }
 
 
 $runResult = Pester.Runtime\Invoke-Test -BlockContainer $containers -Filter $filter
