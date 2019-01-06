@@ -82,20 +82,24 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    $ExtendedData = @{ CommandUsed = "Describe" }
-    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
-    {
+    $AttachedData = 
+    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData @{ CommandUsed = "Describe" }
+
+    ### TODO: let's not focus on the interactive mode right now
+    # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    # {
         
-        # User has executed a test script directly instead of calling Invoke-Pester
-        Remove-MockFunctionsAndAliases 
-        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
+    #     # User has executed a test script directly instead of calling Invoke-Pester
+    #     Remove-MockFunctionsAndAliases 
+    #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
 
 
-        Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -ExtendedData $extendedData })
-    }
-    else {
-        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -ExtendedData $extendedData
-    }
+    #     Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -AttachedData $AttachedData })
+    # }
+    # else {
+    #     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData $AttachedData
+    # }
+    ### todo end
 
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     # {
@@ -271,6 +275,10 @@ about_TestDrive
 #     $Pester.LeaveTestGroup($Name, $CommandUsed)
 # }
 
+
+function Assert-DescribeInProgress {
+    # TODO: Enforce block structure in the Runtime.Pester if needed, in the meantime this is just a placeholder
+}
 # # Name is now misleading; rename later.  (Many files touched to change this.)
 # function Assert-DescribeInProgress
 # {

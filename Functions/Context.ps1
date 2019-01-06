@@ -61,14 +61,17 @@ about_TestDrive
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
+        
+    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -AttachedData @{ CommandUsed = "Context" }
 
-    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
-    {
-        # User has executed a test script directly instead of calling Invoke-Pester
-        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Context" -SessionState $PSCmdlet.SessionState
-        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState SessionState
-        $script:mockTable = @{}
-    }
+    # TODO: the interactive mode is not supported so far
+    # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    # {
+    #     # User has executed a test script directly instead of calling Invoke-Pester
+    #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Context" -SessionState $PSCmdlet.SessionState
+    #     $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState SessionState
+    #     $script:mockTable = @{}
+    # }
 
-    DescribeImpl @PSBoundParameters -CommandUsed 'Context' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
+    # DescribeImpl @PSBoundParameters -CommandUsed 'Context' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
 }

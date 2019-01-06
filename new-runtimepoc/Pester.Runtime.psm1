@@ -44,7 +44,7 @@ function Test-NullOrWhiteSpace ($Value) {
     $null -eq $Value -or $Value -match "^\s*$"
 }
 
-function New-PSObject {
+function New_PSObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
@@ -166,7 +166,8 @@ function New-Block {
         [String] $Name,
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock,
-        [HashTable] $ExtendedData = @{}
+        [String[]] $Tag = @(),
+        [HashTable] $AttachedData = @{}
     )
 
     Switch-Timer -Scope Framework
@@ -181,7 +182,7 @@ function New-Block {
 
     if (Is-Discovery) {
         v "Adding block $Name to discovered blocks"
-        $block = New-BlockObject -Name $Name -Path $path -ExtendedData $ExtendedData
+        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -AttachedData $AttachedData
         # we attach the current block to the parent
         Add-Block -Block $block
     }
@@ -504,7 +505,7 @@ function New-TestObject {
         [String[]] $Tag
     )
 
-    New-PSObject -Type DiscoveredTest @{
+    New_PSObject -Type DiscoveredTest @{
         Name = $Name
         Path = $Path
         Tag = $Tag
@@ -526,12 +527,14 @@ function New-BlockObject {
         [Parameter(Mandatory=$true)]
         [String] $Name,
         [string[]] $Path,
-        [HashTable] $ExtendedData = @{}
+        [string[]] $Tag,
+        [HashTable] $AttachedData = @{}
     )
 
-    New-PSObject -Type DiscoveredBlock @{
+    New_PSObject -Type DiscoveredBlock @{
         Name = $Name
         Path = @()
+        Tag = $Tag
         Tests = @()
         BlockContainer = $null
         Parent = $null
@@ -556,7 +559,7 @@ function New-BlockObject {
         FrameworkDuration = [timespan]::Zero
         AggregatedDuration = [timespan]::Zero
         AggregatedPassed = $false
-        ExtendedData = $ExtendedData
+        AttachedData = $AttachedData
     }
 }
 
@@ -807,7 +810,7 @@ function Invoke-ScriptBlock {
     & $OnFrameworkScopeTransition
     $errors = @( ($context.ErrorRecord + $err) | hasValue )
 
-    return New-PSObject -Type ScriptBlockInvocationResult @{
+    return New_PSObject -Type ScriptBlockInvocationResult @{
         Success = 0 -eq $errors.Length
         ErrorRecord = $errors
         StandardOutput = $standardOutput
@@ -1139,7 +1142,7 @@ function New-FilterObject {
         [String[]] $ExcludeTag
     )
 
-    New-PSObject -Type "Filter" -Property @{
+    New_PSObject -Type "Filter" -Property @{
         Path = $Path
         Tag = $Tag
         ExcludeTag = $ExcludeTag
@@ -1161,7 +1164,7 @@ function New-PluginObject {
         [ScriptBlock] $OneTimeBlockTeardown
     )
 
-    New-PSObject -Type "Plugin" @{
+    New_PSObject -Type "Plugin" @{
         OneTimeBlockSetup = $OneTimeBlockSetup
         EachBlockSetup = $EachBlockSetup
         OneTimeTestSetup = $OneTimeTestSetup
@@ -1206,7 +1209,7 @@ function New-BlockContainerObject {
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
-    New-PSObject -Type "BlockContainer" @{
+    New_PSObject -Type "BlockContainer" @{
         Type = $PSCmdlet.ParameterSetName
         Content = $content
     }
@@ -1221,7 +1224,7 @@ function New-DiscoveredBlockContainerObject {
         [PSTypeName('DiscoveredBlock')][PSObject[]] $Block
     )
 
-    New-PSObject -Type "DiscoveredBlockContainer" @{
+    New_PSObject -Type "DiscoveredBlockContainer" @{
         Type = $BlockContainer.Type
         Content = $BlockContainer.Content
         # I create a Root block to keep the discovery unaware of containers,

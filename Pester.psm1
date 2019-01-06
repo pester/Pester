@@ -1105,11 +1105,11 @@ New-PesterOption
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
 
-        $pester = 1
+        $pester = @{ SessionState = $PSCmdlet.SessionState }
 
         $plugins = @(Get-WriteScreenPlugin)
 
-        $testScripts  = Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -Path $_ }
+        $testScripts  = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -Path $_ })
         $r = Pester.Runtime\Invoke-Test -BlockContainer $testScripts  -Plugin $plugins
 
         if ($PassThru) {
