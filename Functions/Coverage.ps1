@@ -101,7 +101,7 @@ function Get-CoverageInfoFromDictionary
     $endLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'EndLine', 'End', 'e'
     [string] $class = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Class', 'c'
     [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
-    $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests', 'Tests' 't'
+    $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests', 't'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
