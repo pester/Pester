@@ -451,7 +451,7 @@ function Get-WriteScreenPlugin {
 
                 default {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
-                    if($null -eq $_test.Time) {
+                    if($null -eq $_test.Duration) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                     }
