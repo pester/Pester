@@ -1,8 +1,10 @@
 $state = [PSCustomObject] @{
-
+    # indicate whether or not we are currently
+    # running in discovery mode se we can change
+    # behavior of the commands appropriately
     Discovery = $false
 
-    Root = $null
+    # the current block we are in
     CurrentBlock = $null
 
     Plugin = $null   
@@ -16,13 +18,16 @@ function Reset-TestSuiteState {
 
     $state.Plugin = $null
 
-    Reset-PerContainerState
+    $state.CurrentBlock = $null
+    Reset-Scope
 }
 
 function Reset-PerContainerState { 
-    $block = New-BlockObject -Name "Root"
-    
-    $state.CurrentBlock = $state.Root = $block
+    param(
+        [Parameter(Mandatory=$true)]
+        [PSTypeName("DiscoveredBlock")] $RootBlock
+    ) 
+    $state.CurrentBlock = $RootBlock
     Reset-Scope
 }
 
@@ -72,14 +77,18 @@ function Discover-Test {
     
     $state.Discovery = $true
     foreach ($container in $BlockContainer) {
-        # is there any output, do we want it?
+       
 
-        Reset-PerContainerState
-        
+        # this is a block object that we add so we can capture 
+        # All* and Each* setups, and capture multiple blocks in a
+        # container
+        $root = New-BlockObject -Name "Root"
+        Reset-PerContainerState -RootBlock $root
+
         $null = Invoke-BlockContainer -BlockContainer $container
         
-        PostProcess-Block -Block $state.Root -Filter $Filter -BlockContainer $container
-        $state.Root
+        PostProcess-Block -Block $root -Filter $Filter -BlockContainer $container
+        $root
     } 
 
     v "Test discovery finished."
@@ -128,6 +137,38 @@ function ConvertTo-DiscoveredBlockContainer {
             @{n="Content"; e={$content}}
             @{n="Type"; e={$type}},
             @{n="PSTypename"; e={"DiscoveredBlockContainer"}}
+            '*'
+        ) 
+
+    $b 
+}
+
+function ConvertTo-ExecutedBlockContainer {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [PSTypeName("DiscoveredBlock")] $Block
+    )
+
+    # takes a root block and converts it to a executed block container
+    # that we can publish from Invoke-Test, because keeping everything a block makes the internal
+    # code simpler
+    $container = $Block.BlockContainer
+    $content = $container | tryGetProperty Content
+    $type = $container | tryGetProperty Type
+
+    $b = $Block | Select -ExcludeProperty @(
+            "Parent"
+            "Name"
+            "Tag"
+            "First"
+            "Last"
+            "StandardOutput"
+            "Path"
+        ) -Property @(
+            @{n="Content"; e={$content}}
+            @{n="Type"; e={$type}},
+            @{n="PSTypename"; e={"ExecutedBlockContainer"}}
             '*'
         ) 
 
@@ -500,12 +541,11 @@ function Run-Test {
     )
 
     $state.Discovery = $false
-    foreach ($b in $Block) {
-        Reset-PerContainerState
-        $state.Root = $state.CurrentBlock = $b
+    foreach ($rootBlock in $Block) {
+        Reset-PerContainerState -RootBlock $rootBlock
         # do we want this output?
-        $null = Invoke-BlockContainer $b.BlockContainer
-        $state.Root
+        $null = Invoke-BlockContainer $rootBlock.BlockContainer
+        ConvertTo-ExecutedBlockContainer -Block $rootBlock
     }
 }
 
