@@ -726,12 +726,13 @@ function Get-JaCoCoReportXml {
     }
 
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+    $commonParentLeaf = Split-Path $commonParent -Leaf
 
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
     $jaCoCoReport  = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
     $jaCoCoReport += '<report name="">'
     $jaCoCoReport += '<sessioninfo id="this" start="" dump="" />'
-    $jaCoCoReport += '<package name="PowerShell" />'
+    $jaCoCoReport += '<package name="" />'
     $jaCoCoReport += '</report>'
 
     [xml] $jaCoCoReportXml = $jaCoCoReport
@@ -739,14 +740,18 @@ function Get-JaCoCoReportXml {
     $reportElement.name = "Pester ($now)"
     $reportElement.sessioninfo.start = $startTime.ToString()
     $reportElement.sessioninfo.dump = $endTime.ToString()
+    $reportElement.package.name = $commonParentLeaf
     $packageElement = $reportElement.package
 
     foreach ($file in $package.Classes.Keys)
     {
         $class = $package.Classes.$file
+        $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\","/")
+        $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
+        $classElementName = $classElementName.Substring(0,$($classElementName.LastIndexOf(".")))
         $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
-            name           = (Get-RelativePath -Path $file -RelativeTo $commonParent).replace('\', '/')
-            sourcefilename = $file.replace('\', '/')
+            name           = $classElementName
+            sourcefilename = $classElementRelativePath
         })
 
         foreach ($function in $class.Methods.Keys)
@@ -772,7 +777,7 @@ function Get-JaCoCoReportXml {
     {
         $class = $package.Classes.$file
         $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-            name = $file.replace('\', '/')
+            name = (Get-RelativePath -Path $file -RelativeTo $commonParent).replace('\', '/')
         })
 
         foreach ($line in $class.Lines.Keys)
