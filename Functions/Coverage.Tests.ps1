@@ -545,18 +545,7 @@ InModuleScope Pester {
 
                 $PesterTests | Should -Be $path
             }
-
-            It 'Includes test files when t is true' {
-                $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
-
-                $coverageInfo = Get-CoverageInfoFromUserInput @{ p = $path; t = $true }
-
-                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-
-                $PesterTests | Should -Be $path
-            }
         }
-
     }
 
     Describe 'Stripping common parent paths' {
