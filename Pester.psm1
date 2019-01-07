@@ -1109,7 +1109,7 @@ New-PesterOption
 
         $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin))
 
-        $testScripts  = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -Path $_ })
+        $testScripts  = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
         $r = Pester.Runtime\Invoke-Test -BlockContainer $testScripts  -Plugin $plugins
 
         if ($PassThru) {

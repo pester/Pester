@@ -1205,16 +1205,18 @@ function Invoke-BlockContainer {
 function New-BlockContainerObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
+        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")] 
         [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory, ParameterSetName = "Path")]
+        [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
-        [String] $Path
+        [System.IO.FileInfo] $File
     )
 
-
-    $content = switch ($PSCmdlet.ParameterSetName) {
-        "ScriptBlock" { $ScriptBlock }
-        "File" { Get-Item $Path }
+    $type, $content = switch ($PSCmdlet.ParameterSetName) {
+        "ScriptBlock" { "ScriptBlock", $ScriptBlock }
+        "Path" { "File", (Get-Item $Path) }
+        "File" { "File", $File }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
