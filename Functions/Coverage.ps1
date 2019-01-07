@@ -61,7 +61,12 @@ function Get-CoverageInfoFromUserInput
     }
     else
     {
-        $unresolvedCoverageInfo = New-CoverageInfo -Path ([string]$InputObject)
+        $Path = $InputObject -as [string]
+
+        # Auto-detect IncludeTests-value from path-input
+        $IncludeTests = $Path -match '\.tests\.ps1$'
+
+        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
     }
 
     Resolve-CoverageInfo -UnresolvedCoverageInfo $unresolvedCoverageInfo
@@ -69,7 +74,7 @@ function Get-CoverageInfoFromUserInput
 
 function New-CoverageInfo
 {
-    param ([string] $Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0)
+    param ([string] $Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false)
 
     return [pscustomobject]@{
         Path = $Path
@@ -77,6 +82,7 @@ function New-CoverageInfo
         Function = $Function
         StartLine = $StartLine
         EndLine = $EndLine
+        IncludeTests = $IncludeTests
     }
 }
 
@@ -94,11 +100,13 @@ function Get-CoverageInfoFromDictionary
     $endLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'EndLine', 'End', 'e'
     [string] $class = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Class', 'c'
     [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
+    $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
+    [bool] $includeTests = Convert-UnknownValueToInt -Value $includeTests -DefaultValue 0
 
-    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function
+    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests
 }
 
 function Convert-UnknownValueToInt
@@ -121,9 +129,13 @@ function Resolve-CoverageInfo
 
     $path = $UnresolvedCoverageInfo.Path
 
+    $testsPattern = '\.tests\.ps1$'
+    $includeTests = $UnresolvedCoverageInfo.IncludeTests
+
     try
     {
-        $resolvedPaths = & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop
+        $resolvedPaths =  & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
+                        & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notmatch $testsPattern }
     }
     catch
     {

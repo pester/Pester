@@ -475,6 +475,79 @@ InModuleScope Pester {
         }
     }
 
+    Describe 'Path resolution for test files' {
+        $root = (Get-PSDrive TestDrive).Root
+
+        $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.ps1) -ItemType File -ErrorAction SilentlyContinue
+
+        $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
+
+        $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
+
+        Context 'Using Path-input (auto-detect)' {
+            It 'Excludes test files by default when using wildcard path' {
+                $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
+
+                $PesterTests = @($coverageInfo |
+                                Select-Object -ExpandProperty Path |
+                                Where-Object { $_ -match '\.tests.ps1$' })
+
+                $PesterTests | Should -BeNullOrEmpty
+            }
+
+            It 'Includes test files when specified in wildcard path' {
+                $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *.tests.ps1)"
+
+                $PesterTests = @($coverageInfo |
+                                Select-Object -ExpandProperty Path |
+                                Where-Object { $_ -match '\.tests.ps1$' })
+
+                $PesterTests.Count | Should -Be 2
+                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
+                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
+            }
+
+            It 'Includes test file when targeted directly using filepath' {
+                $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
+
+                $coverageInfo = Get-CoverageInfoFromUserInput $path
+
+                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+
+                $PesterTests | Should -Be $path
+            }
+
+        }
+
+        Context 'Using object-input' {
+            It 'Excludes test files when IncludeTests is not specified' {
+                $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)" }
+
+                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+
+                $PesterTests | Should -BeNullOrEmpty
+            }
+
+            It 'Excludes test files when IncludeTests is false' {
+                $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)"; IncludeTests = $false }
+
+                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+
+                $PesterTests | Should -BeNullOrEmpty
+            }
+
+            It 'Includes test files when IncludeTests is true' {
+                $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
+
+                $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = $path; IncludeTests = $true }
+
+                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+
+                $PesterTests | Should -Be $path
+            }
+        }
+    }
+
     Describe 'Stripping common parent paths' {
 
         If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or
