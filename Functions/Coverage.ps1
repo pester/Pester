@@ -35,7 +35,7 @@ function Exit-CoverageAnalysis
 
     & $SafeCommands['Set-StrictMode'] -Off
 
-    # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne. 
+    # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne.
     # BUT that is correct in this case. We are filtering the list of breakpoints
     # to only get those that are not $null
     # (like if we did $breakpoints | where {$_ -ne $null})
@@ -740,7 +740,7 @@ function Get-JaCoCoReportXml {
     $reportElement.name = "Pester ($now)"
     $reportElement.sessioninfo.start = $startTime.ToString()
     $reportElement.sessioninfo.dump = $endTime.ToString()
-    $reportElement.package.name = $commonParentLeaf
+    $reportElement.package.name = ($commonParentLeaf).ToString()
     $packageElement = $reportElement.package
 
     foreach ($file in $package.Classes.Keys)
