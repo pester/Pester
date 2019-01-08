@@ -223,7 +223,7 @@ function New-Block {
                 -ScriptBlock {} `
                 -Context @{
                     Context = @{
-                        Block = $Block
+                        Block = $block
                         PluginState = $state.PluginState
                     }
                 }
@@ -684,91 +684,91 @@ function Invoke-ScriptBlock {
     # scope so the value persist after the original has run which
     # is not correct,
 
-    $scriptBlockWithContext = {
+    $wrapperScriptBlock = {
         # THIS CAN RUN IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
-        param($______context)
-        $______splat = $______context.Parameters
+        param($______parameters)
+        $______splat = $______parameters.Context
         try {
-            if ($null -ne $______context.OuterSetup -and $______context.OuterSetup.Length -gt 0) {
-                &$______context.WriteDebug "Running outer setups"
-                foreach ($______current in $______context.OuterSetup) {
-                    &$______context.WriteDebug "Running outer setup { $______current }"
-                    $______context.CurrentlyExecutingScriptBlock = $______current
+            if ($null -ne $______parameters.OuterSetup -and $______parameters.OuterSetup.Length -gt 0) {
+                &$______parameters.WriteDebug "Running outer setups"
+                foreach ($______current in $______parameters.OuterSetup) {
+                    &$______parameters.WriteDebug "Running outer setup { $______current }"
+                    $______parameters.CurrentlyExecutingScriptBlock = $______current
                     . $______current @______splat
                 }
-                &$______context.WriteDebug "Done running outer setups"
+                &$______parameters.WriteDebug "Done running outer setups"
             }
             else {
-                &$______context.WriteDebug "There are no outer setups"
+                &$______parameters.WriteDebug "There are no outer setups"
             }
 
             & {
                 try {
 
-                    if ($null -ne $______context.Setup -and $______context.Setup.Length -gt 0) {
-                        &$______context.WriteDebug "Running inner setups"
-                        foreach ($______current in $______context.Setup) {
-                            &$______context.WriteDebug "Running inner setup { $______current }"
-                            $______context.CurrentlyExecutingScriptBlock = $______current
+                    if ($null -ne $______parameters.Setup -and $______parameters.Setup.Length -gt 0) {
+                        &$______parameters.WriteDebug "Running inner setups"
+                        foreach ($______current in $______parameters.Setup) {
+                            &$______parameters.WriteDebug "Running inner setup { $______current }"
+                            $______parameters.CurrentlyExecutingScriptBlock = $______current
                             . $______current @______splat
                         }
-                        &$______context.WriteDebug "Done running inner setups"
+                        &$______parameters.WriteDebug "Done running inner setups"
                     }
                     else {
-                        &$______context.WriteDebug "There are no inner setups"
+                        &$______parameters.WriteDebug "There are no inner setups"
                     }
 
-                    &$______context.WriteDebug "Running scriptblock"
-                    . $______context.ScriptBlock @______splat
-                    &$______context.WriteDebug "Done running scriptblock"
+                    &$______parameters.WriteDebug "Running scriptblock"
+                    . $______parameters.ScriptBlock @______splat
+                    &$______parameters.WriteDebug "Done running scriptblock"
                 }
                 catch {
-                    $______context.ErrorRecord += $_
-                    &$______context.WriteDebug "Fail running setups or scriptblock"
+                    $______parameters.ErrorRecord += $_
+                    &$______parameters.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {
-                    if ($null -ne $______context.Teardown -and $______context.Teardown.Length -gt 0) {
-                        &$______context.WriteDebug "Running inner teardowns"
-                        foreach ($______current in $______context.Teardown) {
+                    if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
+                        &$______parameters.WriteDebug "Running inner teardowns"
+                        foreach ($______current in $______parameters.Teardown) {
                             try {
-                                &$______context.WriteDebug "Running inner teardown { $______current }"
-                                $______context.CurrentlyExecutingScriptBlock = $______current
+                                &$______parameters.WriteDebug "Running inner teardown { $______current }"
+                                $______parameters.CurrentlyExecutingScriptBlock = $______current
                                 . $______current @______splat
-                                &$______context.WriteDebug "Done running inner teardown"
+                                &$______parameters.WriteDebug "Done running inner teardown"
                             }
                             catch {
-                                $______context.ErrorRecord += $_
-                                &$______context.WriteDebug "Fail running inner teardown"
+                                $______parameters.ErrorRecord += $_
+                                &$______parameters.WriteDebug "Fail running inner teardown"
                             }
                         }
-                        &$______context.WriteDebug "Done running inner teardowns"
+                        &$______parameters.WriteDebug "Done running inner teardowns"
                     }
                     else {
-                        &$______context.WriteDebug "There are no inner teardowns"
+                        &$______parameters.WriteDebug "There are no inner teardowns"
                     }
                 }
             }
         }
         finally {
 
-            if ($null -ne $______context.OuterTeardown -and $______context.OuterTeardown.Length -gt 0) {
-                &$______context.WriteDebug "Running outer teardowns"
-                foreach ($______current in $______context.OuterTeardown) {
+            if ($null -ne $______parameters.OuterTeardown -and $______parameters.OuterTeardown.Length -gt 0) {
+                &$______parameters.WriteDebug "Running outer teardowns"
+                foreach ($______current in $______parameters.OuterTeardown) {
                     try {
-                        &$______context.WriteDebug "Running outer teardown { $______current }"
-                        $______context.CurrentlyExecutingScriptBlock = $______current
+                        &$______parameters.WriteDebug "Running outer teardown { $______current }"
+                        $______parameters.CurrentlyExecutingScriptBlock = $______current
                         . $______current @______splat
-                        &$______context.WriteDebug "Done running outer teardown"
+                        &$______parameters.WriteDebug "Done running outer teardown"
                     }
                     catch {
-                        &$______context.WriteDebug "Fail running outer teardown"
-                        $______context.ErrorRecord += $_
+                        &$______parameters.WriteDebug "Fail running outer teardown"
+                        $______parameters.ErrorRecord += $_
                     }
                 }
-                &$______context.WriteDebug "Done running outer teardowns"
+                &$______parameters.WriteDebug "Done running outer teardowns"
             }
             else {
-                &$______context.WriteDebug "There are no outer teardowns"
+                &$______parameters.WriteDebug "There are no outer teardowns"
             }
         }
     }
@@ -779,13 +779,13 @@ function Invoke-ScriptBlock {
 
     # attach the original session state to the wrapper scriptblock
     # making it invoke in the same scope as $ScriptBlock
-    $scriptBlockWithContext.GetType().GetProperty('SessionStateInternal', $flags).SetValue($scriptBlockWithContext, $SessionStateInternal, $null)
+    $wrapperScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
 
     $success = $true
     $break = $true
     $err = $null
     try {
-        $context =  @{
+        $parameters =  @{
             ScriptBlock = $ScriptBlock
             OuterSetup = $OuterSetup
             Setup = $Setup
@@ -794,7 +794,7 @@ function Invoke-ScriptBlock {
             # SameScope = $SameScope
             CurrentlyExecutingScriptBlock = $null
             ErrorRecord = @()
-            Parameters = $Context
+            Context = $Context
             WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Magenta $Message }
         }
 
@@ -808,10 +808,10 @@ function Invoke-ScriptBlock {
         & $OnUserScopeTransition
         do {
             $standardOutput = if ($NoNewScope) {
-                    . $scriptBlockWithContext $context
+                    . $wrapperScriptBlock $parameters
                 }
                 else {
-                    & $scriptBlockWithContext $context
+                    & $wrapperScriptBlock $parameters
                 }
             # if the code reaches here we did not break
             $break = $false
@@ -823,7 +823,7 @@ function Invoke-ScriptBlock {
     }
 
     & $OnFrameworkScopeTransition
-    $errors = @( ($context.ErrorRecord + $err) | hasValue )
+    $errors = @( ($parameters.ErrorRecord + $err) | hasValue )
 
     return New_PSObject -Type ScriptBlockInvocationResult @{
         Success = 0 -eq $errors.Length

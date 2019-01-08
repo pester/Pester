@@ -792,23 +792,28 @@ b "plugins" {
 
     t "Plugin has access to test info" {
         $container = [PSCustomObject]@{
-            Context = $null
+            Test = $null
         }
         $p = New-PluginObject -Name "readContext" `
-            -EachTestTeardown { param($context) $container.Context = $context }
+            -EachTestTeardown { param($context) $container.Test = $context.Test }
 
         $null = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Test "test1" {}
         }) -Plugin $p
 
-        $container.Context.Name | Verify-Equal "test1"
-        $container.Context.Passed | Verify-True
+        $container.Test.Name | Verify-Equal "test1"
+        $container.Test.Passed | Verify-True
     }
 
     t "Plugin has access to block info" {
 
+        $container = [PSCustomObject]@{
+            Block = $null
+        }
+
         $p = New-PluginObject -Name "readContext" `
-            -EachBlockSetup { param($context) $context.Name }
+            -EachBlockSetup { param($context) 
+                $container.Block = $context.Block }
 
         $actual = Invoke-Test -BlockContainer (New-BlockContainerObject -ScriptBlock {
             New-Block -Name "block1" {
@@ -816,7 +821,7 @@ b "plugins" {
             }
         }) -Plugin $p
 
-        $actual.Blocks[0].StandardOutput | Verify-Equal "block1"
+        $container.Block.Name | Verify-Equal "block1"
     }
 }
 
