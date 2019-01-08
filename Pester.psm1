@@ -836,13 +836,19 @@ any code coverage information, because it's not supported by the schema.
 
 Enter the path to the files of code under test (not the test file).
 Wildcard characters are supported. If you omit the path, the default is local
-directory, not the directory specified by the Script parameter.
+directory, not the directory specified by the Script parameter. Pester test files
+are by default excluded from code coverage when a directory is provided. When you
+provide a test file directly using string, code coverage will be measured. To include
+tests in code coverage of a directory, use the dictionary syntax and provide
+IncludeTests = $true option, as shown below.
 
 To run a code coverage test only on selected classes, functions or lines in a script,
 enter a hash table value with the following keys:
 
--- Path (P)(mandatory) <string>. Enter one path to the files. Wildcard characters
+-- Path (P)(mandatory) <string>: Enter one path to the files. Wildcard characters
    are supported, but only one string is permitted.
+-- IncludeTests <bool>: Includes code coverage for Pester test files (*.tests.ps1).
+   Default is false.
 
 One of the following: Class/Function or StartLine/EndLine
 
