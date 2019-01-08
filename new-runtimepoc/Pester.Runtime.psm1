@@ -170,6 +170,7 @@ function New-Block {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
+        # TODO rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
         [HashTable] $AttachedData = @{}
     )
 
@@ -291,11 +292,12 @@ function New-Block {
 function New-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position = 0)]
         [String] $Name,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
-        [String[]] $Tag = @()
+        [String[]] $Tag = @(),
+        [HashTable] $Data = @{}
     )
     Switch-Timer -Scope Framework
     $testStartTime = $state.TestStopWatch.Elapsed
@@ -309,7 +311,7 @@ function New-Test {
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
-            Add-Test -Test (New-TestObject -Name $Name -Path $path -Tag $Tag)
+            Add-Test -Test (New-TestObject -Name $Name -Path $path -Tag $Tag -Data $Data)
             v "Added test '$Name'"
         }
         else {
@@ -319,6 +321,17 @@ function New-Test {
                 v "Test is excluded from run, returning"
                 return
             }
+
+            # TODO: overwrite the data captured during discovery with the data, 
+            # captured during execution, to make time sensitive data closer to the execution
+            # this should be a good choice because even though the data should not generally change
+            # when we for example do @{ Time = (Get-Date) } or load some counter, we should get the 
+            # data from the moment of execution, not from the moment of test discovery, which can
+            # potentially be few seconds earlier. This also means that we should never identify tests
+            # based on their names + data because the data can change. And also that we should not show 
+            # the data from the discovery when execution will follow (so it's not just a call to Find-Test)
+            # This choice might need to be revisited
+            $test.Data = $Data
 
             $block = Get-CurrentBlock
 
@@ -343,6 +356,12 @@ function New-Test {
 
             if ($frameworkSetupResult.Success) {
                 # invokes the body of the test
+                $testInfo = $Test | Select -Property Name, Path
+                # user provided data are merged with Pester provided context
+                # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
+                $context = @{ Context = $testInfo }
+                Merge-Hashtable -Source $test.Data -Destination $context
+
                 $result = Invoke-ScriptBlock `
                     -OuterSetup @(
                         if ($test.First) { $block.OneTimeTestSetup | hasValue }
@@ -353,9 +372,7 @@ function New-Test {
                     -OuterTeardown @(
                         if ($test.Last) { $block.OneTimeTestTeardown | hasValue }
                     ) `
-                    -Context @{
-                        Context = $Test | Select -Property Name, Path
-                    } `
+                    -Context $context `
                     -OnUserScopeTransition { Switch-Timer -Scope Test } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
@@ -390,6 +407,17 @@ function New-Test {
         v "Leaving path $($path -join '.')"
         $null = Pop-Scope
         v "Left test $Name"
+    }
+}
+
+function Merge-Hashtable ($Source, $Destination) {
+    foreach ($p in $Source.GetEnumerator()) {
+        # only add non existing keys so in case of conflict
+        # the framework name wins, as if we had explicit parameters
+        # on a scriptblock, then the parameter would also win
+        if (-not $Destination.ContainsKey($p.Key)) {
+            $Destination.Add($p.Key, $p.Value)
+        }
     }
 }
 
@@ -510,13 +538,15 @@ function New-TestObject {
         [Parameter(Mandatory=$true)]
         [String] $Name,
         [String[]] $Path,
-        [String[]] $Tag
+        [String[]] $Tag,
+        [HashTable] $Data
     )
 
     New_PSObject -Type DiscoveredTest @{
         Name = $Name
         Path = $Path
         Tag = $Tag
+        Data = $Data
         Executed = $false
         Passed = $false
         StandardOutput = $null
@@ -688,6 +718,14 @@ function Invoke-ScriptBlock {
         # THIS CAN RUN IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______parameters)
         $______splat = $______parameters.Context
+        # TODO: is this the correct place to put this, it will make the variables accessible to the 
+        # one time setup, is that what I want?
+        &$______parameters.WriteDebug "Setting context variables"
+        foreach ($p in $______splat.GetEnumerator()) {
+            &$______parameters.WriteDebug "Setting context variable '$($p.Key)' with value '$($p.Value)'"
+            New-Variable -Scope Local -Name $p.Key -Value $p.Value
+        }
+
         try {
             if ($null -ne $______parameters.OuterSetup -and $______parameters.OuterSetup.Length -gt 0) {
                 &$______parameters.WriteDebug "Running outer setups"
@@ -795,7 +833,7 @@ function Invoke-ScriptBlock {
             CurrentlyExecutingScriptBlock = $null
             ErrorRecord = @()
             Context = $Context
-            WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Magenta $Message }
+            WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Blue $Message }
         }
 
         # here we are moving into the user scope if the provided

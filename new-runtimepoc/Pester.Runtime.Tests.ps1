@@ -825,6 +825,60 @@ b "plugins" {
     }
 }
 
+b "test data" {
+    t "test can access data provided in -Data as variables" {
+        $container = @{
+            Value1 = $null
+        }
+
+        $actual = Invoke-Test -BlockContainer (
+            New-BlockContainerObject -ScriptBlock {
+                New-Block -Name "block1" {
+                    New-Test "test1" {
+                        $container.Value1 = $Value1
+                    } -Data @{ Value1 = 1 }
+                }
+            }
+        )
+
+        $container.Value1 | Verify-Equal 1
+    }
+
+    t "test can access data provided in -Data as parameters" {
+        $container = @{
+            Value1 = $null
+        }
+
+        $actual = Invoke-Test -BlockContainer (
+            New-BlockContainerObject -ScriptBlock {
+                New-Block -Name "block1" {
+                    New-Test "test1" {
+                        param ($Value1)
+                        $container.Value1 = $Value1
+                    } -Data @{ Value1 = 1 }
+                }
+            }
+        )
+
+        $container.Value1 | Verify-Equal 1
+    }
+
+    t "test result contains data provided in -Data" {
+
+        $actual = Invoke-Test -BlockContainer (
+            New-BlockContainerObject -ScriptBlock {
+                New-Block -Name "block1" {
+                    New-Test "test1" {
+                        
+                    } -Data @{ Value1 = 1 }
+                }
+            }
+        )
+
+        $actual.Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
+    }
+}
+
 b "running from files" {
     t "given a path to file with tests it can execute it" {
         $tempPath = [IO.Path]::GetTempPath() + "/" + (New-Guid).Guid + ".Tests.ps1"
