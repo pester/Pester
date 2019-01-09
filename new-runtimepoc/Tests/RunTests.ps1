@@ -1,6 +1,7 @@
-Get-Module Pester.Runtime, Pester.RSpec | Remove-Module
+Get-Module Pester.Runtime, Pester.RSpec, Pester.Utility | Remove-Module
 Import-Module $PSScriptRoot/../Pester.Runtime.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot/../Pester.RSpec.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot/../Pester.Utility.psm1 -DisableNameChecking
 
 $files = Pester.RSpec\Find-RSpecTestFile $PSScriptRoot
 $fileContainers = $files | foreach { Pester.Runtime\New-BlockContainerObject -Path $_.FullName }
@@ -14,7 +15,7 @@ $scriptBlockContainer = New-BlockContainerObject -ScriptBlock {
         }
     }
 
-    Add-Dependency  { 
+    Add-Dependency -SessionState $ExecutionContext.SessionState { 
         Write-Host -ForegroundColor Yellow "IMPORTING: Run dependency"
         $Something = 10
     }
@@ -55,47 +56,6 @@ $scriptBlockContainer = New-BlockContainerObject -ScriptBlock {
     }
 }
 
-function Fold-Block {
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)]
-        $Block, 
-        $OnBlock = {}, 
-        $OnTest = {}, 
-        $Accumulator
-    )
-    process {
-        foreach ($b in $Block) {
-            $Accumulator = & $OnBlock $Block $Accumulator
-            foreach ($test in $Block.Tests) {
-                $Accumulator = &$OnTest $test $Accumulator
-            }
-
-            foreach ($b in $Block.Blocks) {
-               Fold-Block -Block $b -OnTest $OnTest -OnBlock $OnBlock -Accumulator $Accumulator
-            }
-        }
-    }
-}
-
-function Fold-Container {
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        $Container,
-        $OnContainer = {},
-        $OnBlock = {},
-        $OnTest = {},
-        $Accumulator
-    )
-
-    process {
-        foreach ($c in $Container) { 
-            $Accumulator = & $OnContainer $c $Accumulator
-            foreach ($block in $c.Blocks) {
-                Fold-Block -Block $block -OnBlock $OnBlock -OnTest $OnTest -Accumulator $Accumulator
-            }
-        }
-    }
-}
 function yOrN ($bool) { if ($bool) { 'Y' } else { 'N' }}
 
 
@@ -104,7 +64,7 @@ function yOrN ($bool) { if ($bool) { 'Y' } else { 'N' }}
 $containers = @($fileContainers) + $scriptBlockContainer
 
 $filter = (New-FilterObject -Tag sb3)
-$found = Pester.Runtime\Find-Test $containers -Filter $filter
+$found = Pester.Runtime\Find-Test -SessionState $ExecutionContext.SessionState $containers -Filter $filter
 
 # Fold-Container -Container $found `
 #     -OnContainer {
@@ -116,7 +76,7 @@ $found = Pester.Runtime\Find-Test $containers -Filter $filter
 #     -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> $(yOrN $test.ShouldRun) $($test.Name)" }
 
 
-$runResult = Pester.Runtime\Invoke-Test -BlockContainer $containers #  -Filter $filter
+$runResult = Pester.Runtime\Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer $containers #  -Filter $filter
 $runResult | Fold-Container -OnTest { param($test) Write-Host $test.standardoutput  }
 
 
@@ -134,7 +94,7 @@ $runResult | Fold-Container `
     -OnContainer {
         param($container, $acc)
         $path = if ($container.Type -eq 'ScriptBlock') { $container.Content.File } else { $container.content.FullName }
-        Write-Host -ForegroundColor Magenta $container.type - Executed: $(yOrN $container.Executed) Passed: $(yOrN $container.Passed) AggregatedPassed: (yOrN $block.AggregatedPassed) $path "$($container.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($container.FrameworkDuration.TotalMilliseconds)" ms
+        Write-Host -ForegroundColor Magenta $container.type - Executed: $(yOrN $container.Executed) Passed: $(yOrN $container.Passed) AggregatedPassed: (yOrN $container.AggregatedPassed) $path "$($container.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($container.FrameworkDuration.TotalMilliseconds)" ms
     } `
     -OnBlock { param($block, $acc) Write-Host -ForegroundColor Cyan ('-' * $acc * 2) ShouldRun: $(yOrN $block.ShouldRun) Executed: $(yOrN $block.Executed) Passed: $(yOrN $block.Passed) AggregatedPassed: (yOrN $block.AggregatedPassed) $block.Name "$($block.AggregatedDuration.TotalMilliseconds)" ms with overhead "$($block.FrameworkDuration.TotalMilliseconds)" ms; (Write-Errs $block.ErrorRecord); $acc + 1 } `
-    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> ShouldRun: $(yOrN $test.ShouldRun) Executed: $(yOrN $test.Executed) Passed: $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" with overhead "$($test.FrameworkDuration.TotalMilliseconds)" ms (Write-Errs $block.ErrorRecord); $acc}
+    -OnTest { param ($test, $acc) Write-Host -ForegroundColor Yellow "$(' ' * ($acc*2))-> ShouldRun: $(yOrN $test.ShouldRun) Executed: $(yOrN $test.Executed) Passed: $(yOrN $test.Passed) $($test.Name) $($test.Duration.TotalMilliseconds) ms" with overhead "$($test.FrameworkDuration.TotalMilliseconds)" ms (Write-Errs $test.ErrorRecord); $acc}

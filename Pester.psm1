@@ -1117,6 +1117,8 @@ New-PesterOption
             return
         }
         $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState
+        $legacyResult = Get-LegacyResult $r
+        Write-PesterReport $legacyResult
 
         if ($PassThru) {
             $r
@@ -1610,6 +1612,43 @@ function Add-Dependency {
 
     Pester.Runtime\Add-Dependency -Dependency $Dependency -SessionState $PSCmdlet.SessionState
     
+}
+
+
+function Get-LegacyResult {
+    param($RunResult)
+    
+    $o = @{  
+        Time = [timespan]::Zero
+        FrameworkTime = [timespan]::Zero
+        PassedCount = 0
+        FailedCount = 0
+        SkippedCount = 0
+        PendingCount = 0
+        InconclusiveCount = 0
+    }
+
+    $RunResult | Fold-Container -OnTest { 
+        param($test) 
+        if ($test.Passed) {
+            $o.PassedCount++
+        }
+        else {
+            $o.FailedCount++
+        }
+
+        $o.FrameworkTime += $test.FrameworkDuration
+    } -OnBlock {
+        param ($block) 
+        $o.FrameworkTime += $block.FrameworkDuration
+    } -OnContainer {
+        param ($container) 
+        $o.FrameworkTime += $container.FrameworkDuration
+    } 
+    $t = (sum $RunResult AggregatedDuration ([timespan]::Zero))
+    $o.Time = $t  + $o.FrameworkTime
+    
+    $o
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState

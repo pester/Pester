@@ -171,7 +171,7 @@ function Write-PesterReport {
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
         $PesterState
     )
-    if(-not ($PesterState.Show | Has-Flag Summary)) { return }
+    # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
     & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime $PesterState.Time.TotalSeconds)) -Foreground $ReportTheme.Foreground
 

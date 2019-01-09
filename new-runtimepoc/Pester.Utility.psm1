@@ -102,3 +102,45 @@ function sum ($InputObject, $PropertyName, $Zero) {
 
     $acc
 }
+
+function Fold-Block {
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Block, 
+        $OnBlock = {}, 
+        $OnTest = {}, 
+        $Accumulator
+    )
+    process {
+        foreach ($b in $Block) {
+            $Accumulator = & $OnBlock $Block $Accumulator
+            foreach ($test in $Block.Tests) {
+                $Accumulator = &$OnTest $test $Accumulator
+            }
+
+            foreach ($b in $Block.Blocks) {
+               Fold-Block -Block $b -OnTest $OnTest -OnBlock $OnBlock -Accumulator $Accumulator
+            }
+        }
+    }
+}
+
+function Fold-Container {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Container,
+        $OnContainer = {},
+        $OnBlock = {},
+        $OnTest = {},
+        $Accumulator
+    )
+
+    process {
+        foreach ($c in $Container) { 
+            $Accumulator = & $OnContainer $c $Accumulator
+            foreach ($block in $c.Blocks) {
+                Fold-Block -Block $block -OnBlock $OnBlock -OnTest $OnTest -Accumulator $Accumulator
+            }
+        }
+    }
+}
