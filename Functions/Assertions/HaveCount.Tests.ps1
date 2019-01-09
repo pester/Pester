@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -HaveCount" {
         It "passes if collection has the expected amount of items" {
-            @(1,'a',3) | Should -HaveCount 3
+            @(1, 'a', 3) | Should -HaveCount 3
         }
 
         It "passes given scalar value and expecting collection of count 1" {
@@ -11,11 +11,11 @@ InModuleScope Pester {
         }
 
         It "fails if collection has less values" {
-            { @('a',3) | Should -HaveCount 3  } | Verify-AssertionFailed
+            { @('a', 3) | Should -HaveCount 3  } | Verify-AssertionFailed
         }
 
         It "fails if collection has more values" {
-            { @(1,'a',3, 4) | Should -HaveCount 3  } | Verify-AssertionFailed
+            { @(1, 'a', 3, 4) | Should -HaveCount 3  } | Verify-AssertionFailed
         }
 
         It "fails if given scalar value" {
@@ -23,7 +23,7 @@ InModuleScope Pester {
         }
 
         It "returns the correct assertion message when collection is not empty" {
-            $err = { @(1,'a',3,4) | Should -HaveCount 3 -Because 'reason' } | Verify-AssertionFailed
+            $err = { @(1, 'a', 3, 4) | Should -HaveCount 3 -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected a collection with size 3, because reason, but got collection with size 4 @(1, 'a', 3, 4)."
         }
 
@@ -45,15 +45,15 @@ InModuleScope Pester {
 
     Describe "Should -Not -HaveCount" {
         It "passes if collection does not have the expected count of items" {
-            @(1,'a',3, 4) | Should -Not -HaveCount 3
+            @(1, 'a', 3, 4) | Should -Not -HaveCount 3
         }
 
         It "fails if collection HaveCounts the value" {
-            { @(1,'a',3) | Should -Not -HaveCount 3 } | Verify-AssertionFailed
+            { @(1, 'a', 3) | Should -Not -HaveCount 3 } | Verify-AssertionFailed
         }
 
         It "returns the correct assertion message" {
-            $err = { @(1, 'a',3) | Should -Not -HaveCount 3 -Because 'reason' } | Verify-AssertionFailed
+            $err = { @(1, 'a', 3) | Should -Not -HaveCount 3 -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected a collection with size different from 3, because reason, but got collection with that size @(1, 'a', 3)."
         }
 

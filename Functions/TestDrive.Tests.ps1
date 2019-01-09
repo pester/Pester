@@ -1,11 +1,9 @@
 Set-StrictMode -Version Latest
 
-if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows)
-{
+if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
     $tempPath = $env:TEMP
 }
-else
-{
+else {
     $tempPath = '/tmp'
 }
 

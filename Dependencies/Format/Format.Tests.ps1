@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 $here = $MyInvocation.MyCommand.Path | Split-Path
-Get-Module Axiom,Format | Remove-Module
+Get-Module Axiom, Format | Remove-Module
 Import-Module $here\..\Axiom\Axiom.psm1 -ErrorAction 'stop' -DisableNameChecking
 Import-Module $here\Format.psm1 -ErrorAction 'stop' -DisableNameChecking
 

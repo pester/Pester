@@ -1,5 +1,5 @@
 function Set-TestInconclusive {
-<#
+    <#
 
     .SYNOPSIS
     Deprecated. Use `Set-ItResult -Inconclusive` instead

@@ -1,28 +1,28 @@
 $Script:ReportStrings = DATA {
     @{
-        StartMessage   = "Executing all tests in '{0}'"
-        FilterMessage  = ' matching test name {0}'
-        TagMessage     = ' with Tags {0}'
-        MessageOfs     = "', '"
+        StartMessage      = "Executing all tests in '{0}'"
+        FilterMessage     = ' matching test name {0}'
+        TagMessage        = ' with Tags {0}'
+        MessageOfs        = "', '"
 
-        CoverageTitle   = 'Code coverage report:'
-        CoverageMessage = 'Covered {2:P2} of {3:N0} analyzed {0} in {4:N0} {1}.'
-        MissedSingular  = 'Missed command:'
-        MissedPlural    = 'Missed commands:'
-        CommandSingular = 'Command'
-        CommandPlural   = 'Commands'
-        FileSingular    = 'File'
-        FilePlural      = 'Files'
+        CoverageTitle     = 'Code coverage report:'
+        CoverageMessage   = 'Covered {2:P2} of {3:N0} analyzed {0} in {4:N0} {1}.'
+        MissedSingular    = 'Missed command:'
+        MissedPlural      = 'Missed commands:'
+        CommandSingular   = 'Command'
+        CommandPlural     = 'Commands'
+        FileSingular      = 'File'
+        FilePlural        = 'Files'
 
-        Describe = 'Describing {0}'
-        Script   = 'Executing script {0}'
-        Context  = 'Context {0}'
-        Margin   = '  '
-        Timing   = 'Tests completed in {0}'
+        Describe          = 'Describing {0}'
+        Script            = 'Executing script {0}'
+        Context           = 'Context {0}'
+        Margin            = '  '
+        Timing            = 'Tests completed in {0}'
 
         # If this is set to an empty string, the count won't be printed
-        ContextsPassed = ''
-        ContextsFailed = ''
+        ContextsPassed    = ''
+        ContextsFailed    = ''
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
@@ -34,26 +34,26 @@ $Script:ReportStrings = DATA {
 
 $Script:ReportTheme = DATA {
     @{
-        Describe            = 'Green'
-        DescribeDetail      = 'DarkYellow'
-        Context             = 'Cyan'
-        ContextDetail       = 'DarkCyan'
-        Pass                = 'DarkGreen'
-        PassTime            = 'DarkGray'
-        Fail                = 'Red'
-        FailTime            = 'DarkGray'
-        Skipped             = 'Yellow'
-        SkippedTime         = 'DarkGray'
-        Pending             = 'Gray'
-        PendingTime         = 'DarkGray'
-        Inconclusive        = 'Gray'
-        InconclusiveTime    = 'DarkGray'
-        Incomplete          = 'Yellow'
-        IncompleteTime      = 'DarkGray'
-        Foreground          = 'White'
-        Information         = 'DarkGray'
-        Coverage            = 'White'
-        CoverageWarn        = 'DarkRed'
+        Describe         = 'Green'
+        DescribeDetail   = 'DarkYellow'
+        Context          = 'Cyan'
+        ContextDetail    = 'DarkCyan'
+        Pass             = 'DarkGreen'
+        PassTime         = 'DarkGray'
+        Fail             = 'Red'
+        FailTime         = 'DarkGray'
+        Skipped          = 'Yellow'
+        SkippedTime      = 'DarkGray'
+        Pending          = 'Gray'
+        PendingTime      = 'DarkGray'
+        Inconclusive     = 'Gray'
+        InconclusiveTime = 'DarkGray'
+        Incomplete       = 'Yellow'
+        IncompleteTime   = 'DarkGray'
+        Foreground       = 'White'
+        Information      = 'DarkGray'
+        Coverage         = 'White'
+        CoverageWarn     = 'DarkRed'
     }
 }
 
@@ -61,47 +61,44 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
     # -is check is not enough for the arrays, the incoming value will likely be object[]
     # so we have to check if we can upcast to our required type
 
-    if ($null -eq $Path)
-    {
+    if ($null -eq $Path) {
         $null
     }
-    elseif ($Path -is [String])
-    {
+    elseif ($Path -is [String]) {
         $Path
     }
-    elseif ($Path -is [hashtable])
-    {
+    elseif ($Path -is [hashtable]) {
         # a well formed pester hashtable contains Path
         $Path.Path
     }
-    elseif ($null -ne ($path -as [hashtable[]]))
-    {
+    elseif ($null -ne ($path -as [hashtable[]])) {
         ($path | ForEach-Object { $_.Path }) -join $Delimiter
     }
     # needs to stay at the bottom because almost everything can be upcast to array of string
-    elseif ($Path -as [String[]])
-    {
+    elseif ($Path -as [String[]]) {
         $Path -join $Delimiter
     }
 }
 
 function Write-PesterStart {
     param(
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        [Parameter(mandatory = $true, valueFromPipeline = $true)]
         $PesterState,
         $Path = '.'
     )
     process {
-        if(-not ( $pester.Show | Has-Flag 'All, Fails, Header')) { return }
+        if (-not ( $pester.Show | Has-Flag 'All, Fails, Header')) {
+            return
+        }
 
         $OFS = $ReportStrings.MessageOfs
 
         $message = $ReportStrings.StartMessage -f (Format-PesterPath $Path -Delimiter $OFS)
         if ($PesterState.TestNameFilter) {
-           $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
+            $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }
         if ($PesterState.TagFilter) {
-           $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
+            $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         }
 
         & $SafeCommands['Write-Host'] $message -Foreground $ReportTheme.Foreground
@@ -110,26 +107,29 @@ function Write-PesterStart {
 
 function Write-Describe {
     param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        [Parameter(mandatory = $true, valueFromPipeline = $true)]
         $Describe,
 
         [string] $CommandUsed = 'Describe'
     )
     process {
-        if(-not ( $pester.Show | Has-Flag Describe)) { return }
+        if (-not ( $pester.Show | Has-Flag Describe)) {
+            return
+        }
 
         $margin = $ReportStrings.Margin * $pester.IndentLevel
 
-        $Text = if($Describe.PSObject.Properties['Name'] -and $Describe.Name) {
+        $Text = if ($Describe.PSObject.Properties['Name'] -and $Describe.Name) {
             $ReportStrings.$CommandUsed -f $Describe.Name
-        } else {
+        }
+        else {
             $ReportStrings.$CommandUsed -f $Describe
         }
 
         & $SafeCommands['Write-Host']
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
         # If the feature has a longer description, write that too
-        if($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
+        if ($Describe.PSObject.Properties['Description'] -and $Describe.Description) {
             $Describe.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
                 & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
@@ -139,21 +139,24 @@ function Write-Describe {
 
 function Write-Context {
     param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        [Parameter(mandatory = $true, valueFromPipeline = $true)]
         $Context
     )
     process {
-        if(-not ( $pester.Show | Has-Flag Context)) { return }
-        $Text = if($Context.PSObject.Properties['Name'] -and $Context.Name) {
-                $ReportStrings.Context -f $Context.Name
-            } else {
-                $ReportStrings.Context -f $Context
-            }
+        if (-not ( $pester.Show | Has-Flag Context)) {
+            return
+        }
+        $Text = if ($Context.PSObject.Properties['Name'] -and $Context.Name) {
+            $ReportStrings.Context -f $Context.Name
+        }
+        else {
+            $ReportStrings.Context -f $Context
+        }
 
         & $SafeCommands['Write-Host']
         & $SafeCommands['Write-Host'] ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
         # If the scenario has a longer description, write that too
-        if($Context.PSObject.Properties['Description'] -and $Context.Description) {
+        if ($Context.PSObject.Properties['Description'] -and $Context.Description) {
             $Context.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
                 & $SafeCommands['Write-Host'] (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
             }
@@ -169,17 +172,16 @@ function ConvertTo-PesterResult {
     )
 
     $testResult = @{
-        Name = $Name
-        Time = $time
+        Name           = $Name
+        Time           = $time
         FailureMessage = ""
-        StackTrace = ""
-        ErrorRecord = $null
-        Success = $false
-        Result = "Failed"
+        StackTrace     = ""
+        ErrorRecord    = $null
+        Success        = $false
+        Result         = "Failed"
     }
 
-    if(-not $ErrorRecord)
-    {
+    if (-not $ErrorRecord) {
         $testResult.Result = "Passed"
         $testResult.Success = $true
         return $testResult
@@ -194,12 +196,19 @@ function ConvertTo-PesterResult {
         $line = $details.Line
         $Text = $details.LineText
 
-        switch($ErrorRecord.FullyQualifiedErrorID) {
-            PesterTestInconclusive { $testResult.Result = "Inconclusive"; break; }
-            PesterTestPending { $testResult.Result = "Pending"; break; }
-            PesterTestSkipped { $testResult.Result = "Skipped"; break; }
+        switch ($ErrorRecord.FullyQualifiedErrorID) {
+            PesterTestInconclusive {
+                $testResult.Result = "Inconclusive"; break;
+            }
+            PesterTestPending {
+                $testResult.Result = "Pending"; break;
+            }
+            PesterTestSkipped {
+                $testResult.Result = "Skipped"; break;
+            }
         }
-    } else {
+    }
+    else {
         $failureMessage = $ErrorRecord.ToString()
         $file = $ErrorRecord.InvocationInfo.ScriptName
         $line = $ErrorRecord.InvocationInfo.ScriptLineNumber
@@ -213,14 +222,13 @@ function ConvertTo-PesterResult {
     return $testResult
 }
 
-function Remove-Comments ($Text)
-{
+function Remove-Comments ($Text) {
     $text -replace "(?s)(<#.*#>)" -replace "\#.*"
 }
 
 function Write-PesterResult {
     param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        [Parameter(mandatory = $true, valueFromPipeline = $true)]
         $TestResult
     )
 
@@ -230,8 +238,7 @@ function Write-PesterResult {
         $writeToScreen = $pester.Show | Has-Flag $OutputType
         $skipOutput = $quiet -or (-not $writeToScreen)
 
-        if ($skipOutput)
-        {
+        if ($skipOutput) {
             return
         }
 
@@ -240,10 +247,8 @@ function Write-PesterResult {
         $output = $TestResult.Name
         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
 
-        if (-not ($OutputType | Has-Flag 'Default, Summary'))
-        {
-            switch ($TestResult.Result)
-            {
+        if (-not ($OutputType | Has-Flag 'Default, Summary')) {
+            switch ($TestResult.Result) {
                 Passed {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
@@ -254,21 +259,26 @@ function Write-PesterResult {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                    if($pester.IncludeVSCodeMarker) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.StackTrace -replace '(?m)^',$error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.FailureMessage -replace '(?m)^',$error_margin)
+                    if ($pester.IncludeVSCodeMarker) {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.StackTrace -replace '(?m)^', $error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.FailureMessage -replace '(?m)^', $error_margin)
                     }
                     else {
                         $TestResult.ErrorRecord |
-                        ConvertTo-FailureLines |
-                        ForEach-Object {$_.Message + $_.Trace} |
-                        ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^',$error_margin) }
+                            ConvertTo-FailureLines |
+                            ForEach-Object {$_.Message + $_.Trace} |
+                            ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^', $error_margin) }
                     }
                     break
                 }
 
                 Skipped {
-                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+                        ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
+                    }
+                    else {
+                        $null
+                    }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
@@ -276,7 +286,12 @@ function Write-PesterResult {
                 }
 
                 Pending {
-                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+                        ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
+                    }
+                    else {
+                        $null
+                    }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
@@ -284,7 +299,12 @@ function Write-PesterResult {
                 }
 
                 Inconclusive {
-                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) { ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"} else { $null }
+                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+                        ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
+                    }
+                    else {
+                        $null
+                    }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
@@ -294,7 +314,7 @@ function Write-PesterResult {
 
                 default {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
-                    if($null -eq $TestResult.Time) {
+                    if ($null -eq $TestResult.Time) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                     }
@@ -306,21 +326,39 @@ function Write-PesterResult {
 
 function Write-PesterReport {
     param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        [Parameter(mandatory = $true, valueFromPipeline = $true)]
         $PesterState
     )
-    if(-not ($PesterState.Show | Has-Flag Summary)) { return }
+    if (-not ($PesterState.Show | Has-Flag Summary)) {
+        return
+    }
 
     & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime $PesterState.Time.TotalSeconds)) -Foreground $ReportTheme.Foreground
 
-    $Success, $Failure = if($PesterState.FailedCount -gt 0) {
-                            $ReportTheme.Foreground, $ReportTheme.Fail
-                         } else {
-                            $ReportTheme.Pass, $ReportTheme.Information
-                         }
-    $Skipped = if($PesterState.SkippedCount -gt 0) { $ReportTheme.Skipped } else { $ReportTheme.Information }
-    $Pending = if($PesterState.PendingCount -gt 0) { $ReportTheme.Pending } else { $ReportTheme.Information }
-    $Inconclusive = if($PesterState.InconclusiveCount -gt 0) { $ReportTheme.Inconclusive } else { $ReportTheme.Information }
+    $Success, $Failure = if ($PesterState.FailedCount -gt 0) {
+        $ReportTheme.Foreground, $ReportTheme.Fail
+    }
+    else {
+        $ReportTheme.Pass, $ReportTheme.Information
+    }
+    $Skipped = if ($PesterState.SkippedCount -gt 0) {
+        $ReportTheme.Skipped
+    }
+    else {
+        $ReportTheme.Information
+    }
+    $Pending = if ($PesterState.PendingCount -gt 0) {
+        $ReportTheme.Pending
+    }
+    else {
+        $ReportTheme.Information
+    }
+    $Inconclusive = if ($PesterState.InconclusiveCount -gt 0) {
+        $ReportTheme.Inconclusive
+    }
+    else {
+        $ReportTheme.Information
+    }
 
     Try {
         $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
@@ -336,11 +374,11 @@ function Write-PesterReport {
         $PesterStateFailedScenariosCount = 0
     }
 
-    if($ReportStrings.ContextsPassed) {
+    if ($ReportStrings.ContextsPassed) {
         & $SafeCommands['Write-Host'] ($ReportStrings.ContextsPassed -f $PesterStatePassedScenariosCount) -Foreground $Success -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
     }
-    if($ReportStrings.TestsPassed) {
+    if ($ReportStrings.TestsPassed) {
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $PesterState.PassedCount) -Foreground $Success -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $PesterState.FailedCount) -Foreground $Failure -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $PesterState.SkippedCount) -Foreground $Skipped -NoNewLine
@@ -352,8 +390,7 @@ function Write-PesterReport {
 function Write-CoverageReport {
     param ([object] $CoverageReport)
 
-    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
-    {
+    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
     }
 
@@ -361,8 +398,18 @@ function Write-CoverageReport {
     $fileCount = $CoverageReport.NumberOfFilesAnalyzed
     $executedPercent = ($CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed).ToString("P2")
 
-    $command = if ($totalCommandCount -gt 1) { $ReportStrings.CommandPlural } else { $ReportStrings.CommandSingular }
-    $file = if ($fileCount -gt 1) { $ReportStrings.FilePlural } else { $ReportStrings.FileSingular }
+    $command = if ($totalCommandCount -gt 1) {
+        $ReportStrings.CommandPlural
+    }
+    else {
+        $ReportStrings.CommandSingular
+    }
+    $file = if ($fileCount -gt 1) {
+        $ReportStrings.FilePlural
+    }
+    else {
+        $ReportStrings.FileSingular
+    }
 
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
     $report = $CoverageReport.MissedCommands | & $SafeCommands['Select-Object'] -Property @(
@@ -376,43 +423,40 @@ function Write-CoverageReport {
     & $SafeCommands['Write-Host']
     & $SafeCommands['Write-Host'] $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
 
-    if ($CoverageReport.MissedCommands.Count -gt 0)
-    {
+    if ($CoverageReport.MissedCommands.Count -gt 0) {
         & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
-        if ($CoverageReport.MissedCommands.Count -eq 1)
-        {
+        if ($CoverageReport.MissedCommands.Count -eq 1) {
             & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
-        } else {
+        }
+        else {
             & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
         }
         $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-Host']
-    } else {
+    }
+    else {
         & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
     }
 }
 
-function ConvertTo-FailureLines
-{
+function ConvertTo-FailureLines {
     param (
-        [Parameter(mandatory=$true, valueFromPipeline=$true)]
+        [Parameter(mandatory = $true, valueFromPipeline = $true)]
         $ErrorRecord
     )
     process {
         $lines = & $script:SafeCommands['New-Object'] psobject -Property @{
             Message = @()
-            Trace = @()
+            Trace   = @()
         }
 
         ## convert the exception messages
         $exception = $ErrorRecord.Exception
         $exceptionLines = @()
 
-        while ($exception)
-        {
+        while ($exception) {
             $exceptionName = $exception.GetType().Name
-            $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine),"\n","`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
-            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed')
-            {
+            $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
+            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed') {
                 $thisLines[0] = "$exceptionName`: $($thisLines[0])"
             }
             [array]::Reverse($thisLines)
@@ -421,19 +465,15 @@ function ConvertTo-FailureLines
         }
         [array]::Reverse($exceptionLines)
         $lines.Message += $exceptionLines
-        if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
-        {
-            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([string[]]($([System.Environment]::NewLine),"\n","`n"),  [System.StringSplitOptions]::RemoveEmptyEntries)
+        if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
+            $lines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText)".Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
-        if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) )
-        {
-            if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed')
-            {
+        if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) ) {
+            if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed') {
                 $lines.Trace += "at line: $($ErrorRecord.TargetObject.Line) in $($ErrorRecord.TargetObject.File)"
             }
-            else
-            {
+            else {
                 $lines.Trace += "at line: $($ErrorRecord.InvocationInfo.ScriptLineNumber) in $($ErrorRecord.InvocationInfo.ScriptName)"
             }
             return $lines
@@ -466,10 +506,8 @@ function ConvertTo-FailureLines
             [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
         }
 
-        foreach ( $line in $traceLines )
-        {
-            if ( $line -match $pattern1 )
-            {
+        foreach ( $line in $traceLines ) {
+            if ( $line -match $pattern1 ) {
                 break
             }
             $count ++
@@ -477,11 +515,11 @@ function ConvertTo-FailureLines
         $lines.Trace += $traceLines |
             & $SafeCommands['Select-Object'] -First $count |
             & $SafeCommands['Where-Object'] {
-                $_ -notmatch $pattern2 -and
-                $_ -notmatch $pattern3 -and
-                $_ -notmatch $pattern4 -and
-                $_ -notmatch $pattern5
-            }
+            $_ -notmatch $pattern2 -and
+            $_ -notmatch $pattern3 -and
+            $_ -notmatch $pattern4 -and
+            $_ -notmatch $pattern5
+        }
 
         return $lines
     }

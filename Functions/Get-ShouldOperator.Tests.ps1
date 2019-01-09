@@ -19,12 +19,12 @@ InModuleScope Pester {
                 $get1[0].PSObject.Properties |
                     Select-Object -ExpandProperty Name |
                     Sort-Object |
-                    Should -Be 'Alias','Name'
+                    Should -Be 'Alias', 'Name'
             }
         }
 
         Context 'Name parameter' {
-            $BGT  = Get-ShouldOperator -Name BeGreaterThan
+            $BGT = Get-ShouldOperator -Name BeGreaterThan
 
             It 'Should return a help examples object' {
                 # BeOfType doesn't work here. PowerShell's help system is weird

@@ -1,6 +1,6 @@
 function Verify-Null {
     param (
-        [Parameter(ValueFromPipeline=$true)]
+        [Parameter(ValueFromPipeline = $true)]
         $Actual
     )
 

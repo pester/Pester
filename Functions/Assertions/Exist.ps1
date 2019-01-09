@@ -1,5 +1,5 @@
 function Should-Exist($ActualValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider.
 The object must have valid path syntax. It essentially must pass a Test-Path call.
@@ -14,18 +14,17 @@ returns $false because the file was removed, and fails the test.
 #>
     [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
     $failureMessage = ''
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             $failureMessage = "Expected path $(Format-Nicely $ActualValue) to not exist,$(Format-Because $Because) but it did exist."
         }
-        else
-        {
+        else {
             $failureMessage = "Expected path $(Format-Nicely $ActualValue) to exist,$(Format-Because $Because) but it did not exist."
         }
     }
@@ -37,9 +36,11 @@ returns $false because the file was removed, and fails the test.
 }
 
 Add-AssertionOperator -Name         Exist `
-                      -InternalName Should-Exist `
-                      -Test         ${function:Should-Exist}
+    -InternalName Should-Exist `
+    -Test         ${function:Should-Exist}
 
 
-function ShouldExistFailureMessage() { }
-function NotShouldExistFailureMessage() { }
+function ShouldExistFailureMessage() {
+}
+function NotShouldExistFailureMessage() {
+}

@@ -1,8 +1,7 @@
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
-try
-{
+try {
     $baseDir = $PSScriptRoot
     $buildDir = "$baseDir\build\nuget"
     $nugetExe = "$baseDir\vendor\tools\nuget.exe"
@@ -19,8 +18,7 @@ try
     Write-Verbose "Building package"
     &$nugetExe pack "$baseDir\Pester.nuspec" -OutputDirectory $buildDir -NoPackageAnalysis -version $version -Properties targetBase=$targetBase
 }
-catch
-{
+catch {
     Write-Error -ErrorRecord $_
     exit 1
 }

@@ -59,14 +59,14 @@
         </xs:sequence>
         <xs:attribute name="name" type="xs:string" use="required" />
         <xs:attribute name="total" type="xs:decimal" use="required" />
-    <xs:attribute name="errors" type="xs:decimal" use="required" />
-    <xs:attribute name="failures" type="xs:decimal" use="required" />
-    <xs:attribute name="inconclusive" type="xs:decimal" use="required" />
-    <xs:attribute name="not-run" type="xs:decimal" use="required" />
-    <xs:attribute name="ignored" type="xs:decimal" use="required" />
-    <xs:attribute name="skipped" type="xs:decimal" use="required" />
-    <xs:attribute name="invalid" type="xs:decimal" use="required" />
-    <xs:attribute name="date" type="xs:string" use="required" />
+        <xs:attribute name="errors" type="xs:decimal" use="required" />
+        <xs:attribute name="failures" type="xs:decimal" use="required" />
+        <xs:attribute name="inconclusive" type="xs:decimal" use="required" />
+        <xs:attribute name="not-run" type="xs:decimal" use="required" />
+        <xs:attribute name="ignored" type="xs:decimal" use="required" />
+        <xs:attribute name="skipped" type="xs:decimal" use="required" />
+        <xs:attribute name="invalid" type="xs:decimal" use="required" />
+        <xs:attribute name="date" type="xs:string" use="required" />
         <xs:attribute name="time" type="xs:string" use="required" />
     </xs:complexType>
     <xs:complexType name="test-caseType">
@@ -84,8 +84,8 @@
         <xs:attribute name="time" type="xs:string" use="optional" />
         <xs:attribute name="executed" type="xs:string" use="required" />
         <xs:attribute name="asserts" type="xs:string" use="optional" />
-    <xs:attribute name="result" type="xs:string" use="required" />
-  </xs:complexType>
+        <xs:attribute name="result" type="xs:string" use="required" />
+    </xs:complexType>
     <xs:complexType name="test-suiteType">
         <xs:sequence>
             <xs:element name="categories" type="categoriesType" minOccurs="0" maxOccurs="1" />
@@ -96,13 +96,13 @@
             </xs:choice>
             <xs:element name="results" type="resultsType" />
         </xs:sequence>
-    <xs:attribute name="type" type="xs:string" use="required" />
+        <xs:attribute name="type" type="xs:string" use="required" />
         <xs:attribute name="name" type="xs:string" use="required" />
         <xs:attribute name="description" type="xs:string" use="optional" />
         <xs:attribute name="success" type="xs:string" use="optional" />
-    <xs:attribute name="time" type="xs:string" use="optional" />
+        <xs:attribute name="time" type="xs:string" use="optional" />
         <xs:attribute name="executed" type="xs:string" use="required" />
         <xs:attribute name="asserts" type="xs:string" use="optional" />
-    <xs:attribute name="result" type="xs:string" use="required" />
-  </xs:complexType>
+        <xs:attribute name="result" type="xs:string" use="required" />
+    </xs:complexType>
 </xs:schema>
