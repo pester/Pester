@@ -653,7 +653,7 @@ function Discover-Test {
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
         
         # TODO: move the output to callback
-        $flat = View-Flat -Block $root
+        $flat = @(View-Flat -Block $root)
         Write-Host -ForegroundColor Magenta "Found $($flat.Count) tests"
         ####
         
