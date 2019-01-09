@@ -54,7 +54,7 @@ b "tryGetProperty" {
     t "given null it returns null" {
         $null | tryGetProperty Name | Verify-Null
     }
-
+    
     t "given an object that has the property it return the correct value" {
         (Get-Process -Id $Pid) | tryGetProperty Name | Verify-Equal 'pwsh'
     }
@@ -876,6 +876,56 @@ b "test data" {
         )
 
         $actual.Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
+    }
+}
+b "New-ParametrizedTest" {
+     t "New-ParameterizedTest takes data and generates as many tests as there are hashtables" {
+        $data = @(
+            @{ Value = 1 }
+            @{ Value = 2 }
+        )
+
+        $actual = Invoke-Test -BlockContainer (
+            New-BlockContainerObject -ScriptBlock {
+                New-Block -Name "block1" {
+                    New-ParametrizedTest "test" {
+                        
+                    } -Data $data
+                }
+            }
+        )
+
+        $actual.Blocks[0].Tests.Length | Verify-Equal 2 
+    }
+
+    dt "Each generated test has unique id and they both successfully execute and have the correct data" {
+        $data = @(
+            @{ Value = 1 }
+            @{ Value = 2 }
+        )
+
+        $actual = Invoke-Test -BlockContainer (
+            New-BlockContainerObject -ScriptBlock {
+                New-Block -Name "block1" {
+                    New-ParametrizedTest "test" {
+                        
+                    } -Data $data
+                }
+            }
+        )
+
+        $actual.Blocks[0].Tests[0].Id | Verify-Equal 0
+        $actual.Blocks[0].Tests[1].Id | Verify-Equal 1
+
+        $actual.Blocks[0].Tests[0].Executed | Verify-True
+        $actual.Blocks[0].Tests[1].Executed | Verify-True
+
+        $actual.Blocks[0].Tests[0].Passed | Verify-True
+        $actual.Blocks[0].Tests[1].Passed | Verify-True
+
+        $actual.Blocks[0].Tests[0].Data.Value | Verify-Equal 1
+        $actual.Blocks[0].Tests[1].Data.Value | Verify-Equal 2
+
     }
 }
 

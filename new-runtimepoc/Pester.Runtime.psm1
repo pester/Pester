@@ -297,7 +297,8 @@ function New-Test {
         [Parameter(Mandatory=$true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable] $Data = @{}
+        [HashTable] $Data = @{},
+        [String] $Id
     )
     Switch-Timer -Scope Framework
     $testStartTime = $state.TestStopWatch.Elapsed
@@ -311,11 +312,11 @@ function New-Test {
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
-            Add-Test -Test (New-TestObject -Name $Name -Path $path -Tag $Tag -Data $Data)
+            Add-Test -Test (New-TestObject -Name $Name -Path $path -Tag $Tag -Data $Data -Id $Id)
             v "Added test '$Name'"
         }
         else {
-            $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock
+            $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id
 
             if (-not $test.ShouldRun) {
                 v "Test is excluded from run, returning"
@@ -539,7 +540,8 @@ function New-TestObject {
         [String] $Name,
         [String[]] $Path,
         [String[]] $Tag,
-        [HashTable] $Data
+        [HashTable] $Data,
+        [String] $Id
     )
 
     New_PSObject -Type DiscoveredTest @{
@@ -556,6 +558,7 @@ function New-TestObject {
         ShouldRun = $false
         Duration = [timespan]::Zero
         FrameworkDuration = [timespan]::Zero
+        Id = $Id
     }
 }
 
@@ -658,6 +661,7 @@ function Run-Test {
     )
 
     $state.Discovery = $false
+    # TODO: add where $true -eq $_.ShouldRun to execute only containers that have something to run
     foreach ($rootBlock in $Block) {
         Reset-PerContainerState -RootBlock $rootBlock
         Switch-Timer -Scope Framework
@@ -930,20 +934,22 @@ function Find-CurrentTest {
         [Parameter(Mandatory=$true)]
         [String] $Name,
         [Parameter(Mandatory=$true)]
-        [ScriptBlock] $ScriptBlock
+        [ScriptBlock] $ScriptBlock,
+        [String] $Id 
     )
 
     $block = Get-CurrentBlock
     # todo: optimize this if too slow
-    $testCanditates = @($block.Tests | where { $_.Name -eq $Name })
+    $testCanditates = @($block.Tests | where { $_.Name -eq $Name -and $_.Id -eq $Id })
     if ($testCanditates.Length -eq 1) {
         $testCanditates[0]
+        
     }
     elseif ($testCanditates.Length -gt 1) {
-        #todo find it by script block
+        throw "Found more than one test with '$($Name)' and Id '$Id', how is this possible?"
     }
     else {
-        throw "Did not find the test '$($Name)', how is this possible?"
+        throw "Did not find the test '$($Name)' with Id '$Id', how is this possible?"
     }
 }
 
@@ -1393,6 +1399,24 @@ function Add-FreeFloatingCode {
     }
 }
 
+function New-ParametrizedTest () { 
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position = 0)]
+        [String] $Name,
+        [Parameter(Mandatory=$true, Position = 1)]
+        [ScriptBlock] $ScriptBlock,
+        [String[]] $Tag = @(),
+        [HashTable[]] $Data = @{}
+    ) 
+
+    Switch-Timer -Scope Framework
+    $counter = 0
+    foreach ($d in $Data) {
+        New-Test -Id ($counter++) -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d
+    }
+}
+
 
 function or {
     [CmdletBinding()]
@@ -1508,6 +1532,7 @@ Export-ModuleMember -Function @(
     'Reset-TestSuiteState'
     'New-Block'
     'New-Test'
+    'New-ParametrizedTest'
     'New-EachTestSetup'
     'New-EachTestTeardown'
     'New-OneTimeTestSetup'
