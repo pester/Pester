@@ -63,8 +63,10 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         $buts += "the parameter exists"
     }
     else {
+        $attributes = $ActualValue.Parameters[$ParameterName].Attributes
+
         if ($IsMandatory) {
-            $testMandatory = ([Bool]$ActualValue.Parameters[$ParameterName].Attributes.Mandatory)
+            $testMandatory = $attributes | Where-Object { $_.Mandatory }
             $filters += "which is$(if ($Negate) {" not"}) mandatory"
 
             if (-not $Negate -and -not $testMandatory) {
@@ -103,7 +105,7 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         }
 
         if ($HasArgumentCompleter) {
-            $testArgumentCompleter = $ActualValue.Parameters[$ParameterName].Attributes | Where-Object {$_ -is [ArgumentCompleter]}
+            $testArgumentCompleter = $attributes | Where-Object {$_ -is [ArgumentCompleter]}
             $filters += "has ArgumentCompletion"
 
             if (-not $Negate -and -not $testArgumentCompleter) {
