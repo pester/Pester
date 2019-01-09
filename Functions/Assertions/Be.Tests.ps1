@@ -20,7 +20,7 @@ InModuleScope Pester {
         }
 
         It 'Compares Arrays properly' {
-            $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
+            $array = @(1, 2, 3, 4, 'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
             $array | Should Be $array
             $array | Should -Be $array
             $array | Should -EQ $array
@@ -28,8 +28,8 @@ InModuleScope Pester {
 
         It 'Compares arrays with correct case-insensitive behavior' {
             $string = 'I am a string'
-            $array = @(1,2,3,4,$string)
-            $arrayWithCaps = @(1,2,3,4,$string.ToUpper())
+            $array = @(1, 2, 3, 4, $string)
+            $arrayWithCaps = @(1, 2, 3, 4, $string.ToUpper())
 
             $array | Should Be $arrayWithCaps
             $array | Should -Be $arrayWithCaps
@@ -50,13 +50,13 @@ InModuleScope Pester {
 
         It 'Handles arrays with nested arrays' {
             $array1 = @(
-                @(1,2,3,4,5),
-                @(6,7,8,9,0)
+                @(1, 2, 3, 4, 5),
+                @(6, 7, 8, 9, 0)
             )
 
             $array2 = @(
-                @(1,2,3,4,5),
-                @(6,7,8,9,0)
+                @(1, 2, 3, 4, 5),
+                @(6, 7, 8, 9, 0)
             )
 
             $array1 | Should Be $array2
@@ -64,8 +64,8 @@ InModuleScope Pester {
             $array1 | Should -EQ $array2
 
             $array3 = @(
-                @(1,2,3,4,5),
-                @(6,7,8,9,0, 'Oops!')
+                @(1, 2, 3, 4, 5),
+                @(6, 7, 8, 9, 0, 'Oops!')
             )
 
             $array1 | Should Not Be $array3
@@ -94,8 +94,8 @@ InModuleScope Pester {
         # The test excluded on macOS due to issue https://github.com/PowerShell/PowerShell/issues/4268
         If ((GetPesterOS) -ne 'macOS') {
             It 'throws exception when self-imposed recursion limit is reached' {
-                $a1 = @(0,1)
-                $a2 = @($a1,2)
+                $a1 = @(0, 1)
+                $a2 = @($a1, 2)
                 $a1[0] = $a2
 
                 { $a1 | Should -be $a2 } | Should -throw 'recursion depth limit'
@@ -172,15 +172,15 @@ InModuleScope Pester {
         }
 
         It 'Compares Arrays properly' {
-            $array = @(1,2,3,4,'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
+            $array = @(1, 2, 3, 4, 'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
             $array | Should BeExactly $array
             $array | Should -BeExactly $array
         }
 
         It 'Compares arrays with correct case-sensitive behavior' {
             $string = 'I am a string'
-            $array = @(1,2,3,4,$string)
-            $arrayWithCaps = @(1,2,3,4,$string.ToUpper())
+            $array = @(1, 2, 3, 4, $string)
+            $arrayWithCaps = @(1, 2, 3, 4, $string.ToUpper())
 
             $array | Should Not BeExactly $arrayWithCaps
             $array | Should -Not -BeExactly $arrayWithCaps

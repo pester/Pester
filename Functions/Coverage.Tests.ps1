@@ -8,7 +8,7 @@ InModuleScope Pester {
     function Clear-WhiteSpace ($Text) {
         # clear whitespace in formatted xml so we can keep the XML in the test file
         # formatted and easily see changes in source control
-    "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," " -replace "\s*<","<" -replace ">\s*", ">")".Trim()
+        "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," " -replace "\s*<","<" -replace ">\s*", ">")".Trim()
     }
 
     Describe 'Code Coverage Analysis' {
@@ -177,18 +177,11 @@ InModuleScope Pester {
 
             It 'JaCoCo report must be correct' {
                 [String]$jaCoCoReportXml = Get-JaCoCoReportXml -PesterState $testState -CoverageReport $coverageReport
-<<<<<<< HEAD
-                $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*','Pester (date'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"','start=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"','dump=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)",''
-                $jaCoCoReportXml = $jaCoCoReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
-=======
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*', 'Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"', 'start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"', 'dump=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)", ''
->>>>>>> master
+                $jaCoCoReportXml = $jaCoCoReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
                 $jaCoCoReportXml = $jaCoCoReportXml.Replace($root.Replace('\', '/'), '')
                 (Clear-WhiteSpace $jaCoCoReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -763,24 +756,6 @@ InModuleScope Pester {
                 $coverageReport.MissedCommands.Count | Should -Be $expected
             }
 
-            MyTestConfig -OutputPath $root
-
-            $coverageReport = Get-CoverageReport -PesterState $testState
-            It 'Reports the proper number of missed commands after running the configuration' {
-                if ($runsInPowerShell4) {
-                    $expected = 2
-                }
-                else {
-                    $expected = 3
-                }
-
-                $coverageReport.MissedCommands.Count | Should -Be $expected
-            }
-
-            Exit-CoverageAnalysis -PesterState $testState
-        }
-    }
-}
             MyTestConfig -OutputPath $root
 
             $coverageReport = Get-CoverageReport -PesterState $testState

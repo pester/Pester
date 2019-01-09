@@ -1,5 +1,5 @@
 function Describe {
-<#
+    <#
 .SYNOPSIS
 Creates a logical group of tests.
 
@@ -66,15 +66,14 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        [string[]] $Tag=@(),
+        [string[]] $Tag = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
-    {
+    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference)) {
         # User has executed a test script directly instead of calling Invoke-Pester
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
@@ -91,7 +90,7 @@ function DescribeImpl {
         [string] $Name,
 
         [Alias('Tags')]
-        $Tag=@(),
+        $Tag = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -113,18 +112,14 @@ function DescribeImpl {
     Assert-DescribeInProgress -CommandName $CommandUsed
 
     if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
-        (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
-    {
-        if ($Pester.TestNameFilter -and $Name)
-        {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name))
-            {
+        (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1)) {
+        if ($Pester.TestNameFilter -and $Name) {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
                 return
             }
         }
         if ($Pester.TagFilter) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
-            {
+            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
                 return
             }
         }
@@ -135,49 +130,38 @@ function DescribeImpl {
             }
         }
     }
-    else
-    {
-        if ($PSBoundParameters.ContainsKey('Tag'))
-        {
+    else {
+        if ($PSBoundParameters.ContainsKey('Tag')) {
             Write-Warning "${CommandUsed} '$Name': Tags are only effective on the outermost test group, for now."
         }
     }
 
     $Pester.EnterTestGroup($Name, $CommandUsed)
 
-    if ($null -ne $DescribeOutputBlock)
-    {
+    if ($null -ne $DescribeOutputBlock) {
         & $DescribeOutputBlock $Name $CommandUsed
     }
 
     $testDriveAdded = $false
     $testRegistryAdded = $false
-    try
-    {
-        try
-        {
-            if (-not $NoTestDrive)
-            {
-                if (-not (Test-Path TestDrive:\))
-                {
+    try {
+        try {
+            if (-not $NoTestDrive) {
+                if (-not (Test-Path TestDrive:\)) {
                     New-TestDrive
                     $testDriveAdded = $true
                 }
-                else
-                {
+                else {
                     $TestDriveContent = Get-TestDriveChildItem
                 }
             }
 
-            if (-not $NoTestRegistry)
-            {
-                if (-not (Test-Path TestRegistry:\))
-                {
+            if (-not $NoTestRegistry) {
+                if (-not (Test-Path TestRegistry:\)) {
                     New-TestRegistry
                     $testRegistryAdded = $true
                 }
-                else
-                {
+                else {
                     $TestRegistryContent = Get-TestRegistryChildItem
                 }
             }
@@ -185,47 +169,37 @@ function DescribeImpl {
             Add-SetupAndTeardown -ScriptBlock $Fixture
             Invoke-TestGroupSetupBlocks
 
-            do
-            {
+            do {
                 Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
                 $null = & $Fixture
             } until ($true)
         }
-        finally
-        {
+        finally {
             Invoke-TestGroupTeardownBlocks
 
-            if (-not $NoTestDrive)
-            {
-                if ($testDriveAdded)
-                {
+            if (-not $NoTestDrive) {
+                if ($testDriveAdded) {
                     Remove-TestDrive
                 }
-                else
-                {
+                else {
                     Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
                 }
             }
 
-            if (-not $NoTestRegistry)
-            {
-                if ($testRegistryAdded)
-                {
+            if (-not $NoTestRegistry) {
+                if ($testRegistryAdded) {
                     Remove-TestRegistry
                 }
-                else
-                {
+                else {
                     Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
                 }
             }
         }
     }
-    catch
-    {
+    catch {
         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split "$([System.Environment]::NewLine)" | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult("Error occurred in $CommandUsed block", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-        if ($null -ne $TestOutputBlock)
-        {
+        if ($null -ne $TestOutputBlock) {
             & $TestOutputBlock $Pester.TestResult[-1]
         }
     }
@@ -236,11 +210,9 @@ function DescribeImpl {
 }
 
 # Name is now misleading; rename later.  (Many files touched to change this.)
-function Assert-DescribeInProgress
-{
+function Assert-DescribeInProgress {
     param ($CommandName)
-    if ($null -eq $Pester)
-    {
+    if ($null -eq $Pester) {
         throw "The $CommandName command may only be used from a Pester test script."
     }
 }

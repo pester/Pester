@@ -1,5 +1,5 @@
 function Should-BeTrue($ActualValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that the value is true, or truthy.
 
@@ -29,12 +29,12 @@ This test passes as a "truthy" result.
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that the value is false, or falsy.
 
@@ -64,23 +64,27 @@ This test passes as a "falsy" result.
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 
 Add-AssertionOperator -Name         BeTrue `
-                      -InternalName Should-BeTrue `
-                      -Test         ${function:Should-BeTrue}
+    -InternalName Should-BeTrue `
+    -Test         ${function:Should-BeTrue}
 
 Add-AssertionOperator -Name         BeFalse `
-                      -InternalName Should-BeFalse `
-                      -Test         ${function:Should-BeFalse}
+    -InternalName Should-BeFalse `
+    -Test         ${function:Should-BeFalse}
 
 
 
 # to keep tests happy
-function ShouldBeTrueFailureMessage($ActualValue) { }
-function NotShouldBeTrueFailureMessage($ActualValue) { }
-function ShouldBeFalseFailureMessage($ActualValue) { }
-function NotShouldBeFalseFailureMessage($ActualValue) { }
+function ShouldBeTrueFailureMessage($ActualValue) {
+}
+function NotShouldBeTrueFailureMessage($ActualValue) {
+}
+function ShouldBeFalseFailureMessage($ActualValue) {
+}
+function NotShouldBeFalseFailureMessage($ActualValue) {
+}

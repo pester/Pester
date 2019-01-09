@@ -71,7 +71,7 @@ Describe "New-Fixture" {
         }
         It "Creates fixture if Path is set to '(pwd)' and Name contains the 'ps1' extension:" {
             $name = "Relative4-Fixture.ps1"
-            $nameWithoutExtension = $name.Substring(0,$($name.Length)-4)
+            $nameWithoutExtension = $name.Substring(0, $($name.Length) - 4)
             $path = "TestDrive:\"
 
             Push-Location -Path $path

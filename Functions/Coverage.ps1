@@ -5,7 +5,9 @@ if ($PSVersionTable.PSVersion.Major -le 2) {
     function Enter-CoverageAnalysis {
         param ( $CodeCoverage )
 
-        if ($CodeCoverage) { & $SafeCommands['Write-Error'] 'Code coverage analysis requires PowerShell 3.0 or later.' }
+        if ($CodeCoverage) {
+            & $SafeCommands['Write-Error'] 'Code coverage analysis requires PowerShell 3.0 or later.'
+        }
     }
 
     return
@@ -252,7 +254,9 @@ function Test-CoverageOverlapsCommandByLineNumber {
 
     # An EndLine value of 0 means to cover the entire rest of the file from StartLine
     # (which may also be 0)
-    if ($coverEnd -le 0) { $coverEnd = [int]::MaxValue }
+    if ($coverEnd -le 0) {
+        $coverEnd = [int]::MaxValue
+    }
 
     return (Test-RangeContainsValue -Value $commandStart -Min $coverStart -Max $coverEnd) -or
     (Test-RangeContainsValue -Value $commandEnd -Min $coverStart -Max $coverEnd)
@@ -266,7 +270,9 @@ function Test-RangeContainsValue {
 function New-CoverageBreakpoint {
     param ([System.Management.Automation.Language.Ast] $Command)
 
-    if (IsIgnoredCommand -Command $Command) { return }
+    if (IsIgnoredCommand -Command $Command) {
+        return
+    }
 
     $params = @{
         Script = $Command.Extent.File
@@ -434,7 +440,9 @@ function Get-ParentNonPipelineAst {
     param ([System.Management.Automation.Language.Ast] $Ast)
 
     $parent = $null
-    if ($null -ne $Ast) { $parent = $Ast.Parent }
+    if ($null -ne $Ast) {
+        $parent = $Ast.Parent
+    }
 
     while ($parent -is [System.Management.Automation.Language.PipelineAst]) {
         $parent = $parent.Parent

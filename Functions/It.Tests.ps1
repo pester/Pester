@@ -94,15 +94,13 @@ InModuleScope Pester {
             }
 
             It 'Creates test result records with the ParameterizedSuiteName property set' {
-                for ($i = -1; $i -ge -3; $i--)
-                {
+                for ($i = -1; $i -ge -3; $i--) {
                     $testState.TestResult[$i].ParameterizedSuiteName | Should -Be $suiteName
                 }
             }
 
             It 'Expands parameters in parameterized test suite names' {
-                for ($i = -1; $i -ge -3; $i--)
-                {
+                for ($i = -1; $i -ge -3; $i--) {
                     $expectedName = "Adds $($cases[$i]['a']) and $($cases[$i]['b']) to get $($cases[$i]['expectedResult']).  <Bogus> is not a parameter."
                     $testState.TestResult[$i].Name | Should -Be $expectedName
                 }
@@ -118,11 +116,11 @@ InModuleScope Pester {
         }
 
         $hashtable = @{
-            '1' = 'One'
-            '0' = 'Zero'
-            z = 'Z'
-            a = 'A'
-            c = 'C'
+            '1'                       = 'One'
+            '0'                       = 'Zero'
+            z                         = 'Z'
+            a                         = 'A'
+            c                         = 'C'
             'Something.Really/Weird ' = 'Weird'
         }
 
@@ -130,10 +128,10 @@ InModuleScope Pester {
 
         It 'Reports keys and values in the same order as the param block' {
             ($dictionary.Keys -join ',') |
-            Should -Be '1,c,0,z,a,Something.Really/Weird '
+                Should -Be '1,c,0,z,a,Something.Really/Weird '
 
             ($dictionary.Values -join ',') |
-            Should -Be 'One,C,Zero,Z,A,Weird'
+                Should -Be 'One,C,Zero,Z,A,Weird'
         }
     }
 

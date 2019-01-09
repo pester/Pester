@@ -30,10 +30,10 @@ InModuleScope Pester {
         It 'Should return false for non-empty strings or arrays' {
             'String' | Should Not BeNullOrEmpty
             1..5 | Should Not BeNullOrEmpty
-            ($null,$null) | Should Not BeNullOrEmpty
+            ($null, $null) | Should Not BeNullOrEmpty
             'String' | Should -Not -BeNullOrEmpty
             1..5 | Should -Not -BeNullOrEmpty
-            ($null,$null) | Should -Not -BeNullOrEmpty
+            ($null, $null) | Should -Not -BeNullOrEmpty
         }
 
         It "returns the correct assertion message" {
