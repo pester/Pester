@@ -82,10 +82,13 @@ function Find-Test {
     param (
         [Parameter(Mandatory=$true)]
         [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
-        [PSTypeName("Filter")] $Filter
+        [PSTypeName("Filter")] $Filter,
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState
     )
 
-    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter
+    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
+
     foreach ($f in $found) {
         ConvertTo-DiscoveredBlockContainer -Block $f
     }
@@ -188,7 +191,7 @@ function New-Block {
 
     if (Is-Discovery) {
         v "Adding block $Name to discovered blocks"
-        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -AttachedData $AttachedData
+        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -AttachedData $AttachedData
         # we attach the current block to the parent
         Add-Block -Block $block
     }
@@ -197,6 +200,8 @@ function New-Block {
     if ($null -eq $block) {
         $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
     }
+
+
 
     Set-CurrentBlock -Block $block
 
@@ -571,6 +576,7 @@ function New-BlockObject {
         [String] $Name,
         [string[]] $Path,
         [string[]] $Tag,
+        [ScriptBlock] $ScriptBlock,
         [HashTable] $AttachedData = @{}
     )
 
@@ -603,6 +609,7 @@ function New-BlockObject {
         AggregatedDuration = [timespan]::Zero
         AggregatedPassed = $false
         AttachedData = $AttachedData
+        ScriptBlock = $ScriptBlock
     }
 }
 
@@ -628,7 +635,9 @@ function Discover-Test {
     param (
         [Parameter(Mandatory=$true)]
         [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
-        [PSTypeName("Filter")] $Filter
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState,
+        $Filter
     )
     Write-Host -ForegroundColor Magenta "Starting test discovery in $(@($BlockContainer).Length) test containers."
 
@@ -641,7 +650,7 @@ function Discover-Test {
         $root = New-BlockObject -Name "Root"
         Reset-PerContainerState -RootBlock $root
 
-        $null = Invoke-BlockContainer -BlockContainer $container
+        $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
         
         # TODO: move the output to callback
         $flat = View-Flat -Block $root
@@ -659,7 +668,9 @@ function Run-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block
+        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState
     )
 
     $state.Discovery = $false
@@ -675,7 +686,7 @@ function Run-Test {
         $blockStartTime = $state.BlockStopWatch.Elapsed
         $overheadStartTime = $state.FrameworkStopWatch.Elapsed
 
-        $null = Invoke-BlockContainer $rootBlock.BlockContainer
+        $null = Invoke-BlockContainer -BlockContainer $rootBlock.BlockContainer -SessionState $SessionState
 
         $rootBlock.Duration = $state.BlockStopWatch.Elapsed - $blockStartTime
         $rootBlock.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
@@ -953,7 +964,7 @@ function Find-CurrentTest {
         
     }
     elseif ($testCanditates.Length -gt 1) {
-        throw "Found more than one test with '$($Name)' and Id '$Id', how is this possible?"
+        throw "Found more than one test with '$($Name)' and Id '$Id'. Are there multiple tests with the same name in this block?"
     }
     else {
         throw "Did not find the test '$($Name)' with Id '$Id', how is this possible?"
@@ -1033,15 +1044,17 @@ function Invoke-Test {
     param (
         [Parameter(Mandatory=$true)]
         [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState,
         $Filter,
         $Plugin
     )
 
         $state.Plugin = $Plugin
 
-        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter
+        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
-        Run-Test -Block $found
+        Run-Test -Block $found -SessionState $SessionState
 }
 
 function PostProcess-DiscoveredBlock
@@ -1193,7 +1206,16 @@ function Find-CurrentBlock {
         $blockCandidates[0]
     }
     elseif ($blockCandidates.Length -gt 1) {
-        #todo find it by script block
+        $found = @($blockCandidates | where { "$ScriptBlock" -eq "$($_.ScriptBlock)" })
+        
+        if ($found.Length -eq 1){
+            $found
+        }
+        elseif ($found.Length -eq 0) {
+            throw "Could not find block '$Name'"
+        } else {
+            throw "Found multiple blocks with name '$Name' and the same ScriptBlock."
+        }
     }
     else {
         throw "Did not find the block '$($Name)', how is this possible?"
@@ -1249,12 +1271,14 @@ function Invoke-BlockContainer {
         # relaxing the type here, I need it to have two forms and
         # PowerShell cannot do that probably
         # [PSTypeName("BlockContainer"] | [PSTypeName("DiscoveredBlockContainer")]
-        $BlockContainer
+        $BlockContainer,
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState
     )
 
     switch ($BlockContainer.Type) {
         "ScriptBlock" { & $BlockContainer.Content }
-        "File" { & $BlockContainer.Content.PSPath }
+        "File" { Invoke-File -Path $BlockContainer.Content.PSPath -SessionState $SessionState }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 }
@@ -1304,10 +1328,40 @@ function New-DiscoveredBlockContainerObject {
     }
 }
 
+function Invoke-File {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Path, 
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    $sb = { 
+        param ($p)
+        . $($p; Remove-Variable -Scope Local -Name p)
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+
+    # attach the original session state to the wrapper scriptblock
+    # making it invoke in the caller session state
+    $sb.GetType().GetProperty('SessionStateInternal', $flags).SetValue($sb, $SessionStateInternal, $null)
+    
+    # dot source the caller bound scriptblock which imports it into user scope
+    & $sb $Path
+}
+
 function Import-Dependency {
     [CmdletBinding()]
-    param($Dependency, 
-    $SessionState)
+    param(
+        [Parameter(Mandatory=$true)]   
+        $Dependency, 
+        # [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState
+    )
 
     if ($Dependency -is [ScriptBlock]) {
         . $Dependency
@@ -1347,51 +1401,37 @@ function Add-FrameworkDependency {
         $Dependency
     )
 
-    # used this before, but it is not very practical because
-    # user must provide the type of dependency, or we have to choose
-    # a default parameter set
-    # [CmdletBinding()] 
-    # param(
-    #     [Parameter(Mandatory, ParameterSetName="ScriptBlock")]
-    #     [ScriptBlock] $ScriptBlock,
-    #     [Parameter(Mandatory, ParameterSetName="Path")]
-    #     [String] $Path
-    # )
-
-    # $Dependency = if ("ScriptBlock" -eq $PSCmdlet.ParameterSetName) { 
-    #     $ScriptBlock
-    # } 
-    # else {
-    #     $Path
-    # }
-    ###
-
     # adds dependency that is dotsourced during discovery & execution
     # this should be rarely needed, but is useful when you wrap Pester pieces 
     # into your own functions, and want to have them available during both 
     # discovery and execution
-    Write-Host Adding framework dependency
-    Import-Dependency $Dependency -SessionState $PSCmdlet.SessionState
+    Write-Host "Adding framework dependency '$Denedency'" -ForegroundColor Yellow
+    Import-Dependency -Dependency $Dependency -SessionState $SessionState
 }
 
 function Add-Dependency { 
-    [CmdletBinding()] 
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        $Dependency
+        [Parameter(Mandatory=$true)]   
+        $Dependency, 
+        [Parameter(Mandatory=$true)]
+        [Management.Automation.SessionState] $SessionState
     )
 
 
     # adds dependency that is dotsourced after discovery and before execution
     if (-not $state.Discovery) { 
-        Write-Host Adding user dependency
-        Import-Dependency $Dependency -SessionState $PSCmdlet.SessionState
+        Write-Host "Adding dependency '$Denedency'" -ForegroundColor Yellow
+        Import-Dependency -Dependency $Dependency -SessionState $SessionState
     }
 }
 
 function Add-FreeFloatingCode { 
     [CmdletBinding()] 
-    param([ScriptBlock] $ScriptBlock)
+    param(
+        [Parameter(Mandatory=$true)]   
+        [ScriptBlock] $ScriptBlock
+    )
 
     # runs piece of code during execution, useful for backwards compatibility
     # when you have stuff laying around inbetween describes and want to run it 
@@ -1400,7 +1440,7 @@ function Add-FreeFloatingCode {
     # write a warning to make you use Before* blocks instead
     if (-not $state.Discovery) { 
         Write-Host Invoking free floating piece of code -ForegroundColor Yellow
-        Import-Dependency $Dependency -SessionState $PSCmdlet.SessionState
+        Import-Dependency $Dependency
     }
 }
 
@@ -1421,7 +1461,6 @@ function New-ParametrizedTest () {
         New-Test -Id ($counter++) -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d
     }
 }
-
 
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking

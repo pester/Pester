@@ -1116,7 +1116,7 @@ New-PesterOption
             Write-Host -ForegroundColor Magenta "No test files were found."
             return
         }
-        $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins
+        $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState
 
         if ($PassThru) {
             $r
@@ -1601,6 +1601,17 @@ Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's'
 
 }
 
+function Add-Dependency { 
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]   
+        $Dependency        
+    )
+
+    Pester.Runtime\Add-Dependency -Dependency $Dependency -SessionState $PSCmdlet.SessionState
+    
+}
+
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 # in the future rename the function to Add-ShouldOperator
 Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
@@ -1609,6 +1620,6 @@ Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
+& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption, Add-Dependency
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator
