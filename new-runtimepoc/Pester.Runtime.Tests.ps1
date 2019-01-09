@@ -57,7 +57,8 @@ b "tryGetProperty" {
     }
     
     t "given an object that has the property it return the correct value" {
-        (Get-Process -Id $Pid) | tryGetProperty Name | Verify-Equal 'pwsh'
+        $p = (Get-Process -Id $Pid)
+        $p | tryGetProperty Name | Verify-Equal $p.Name
     }
 }
 
@@ -83,7 +84,33 @@ b "combineNonNull" {
         $r[4] | Verify-Equal 3
         $r[5] | Verify-Equal 10
     }
+}
 
+b "any" {
+
+    t "given a non-null value it returns true" {
+       any "b" | Verify-True
+    }
+
+    t "given null it returns false" {
+        any $null | Verify-False
+    }
+
+    t "given empty array it returns false" {
+        any @() | Verify-False
+    }
+
+    t "given null in array it returns false" {
+        any @($null) | Verify-False
+    }
+
+    t "given array with value it returns true" {
+        any @("b") | Verify-True
+    }
+
+    t "given array with multiple values it returns true" {
+        any @("b", "c") | Verify-True
+    }
 }
 
 b "Basic" {

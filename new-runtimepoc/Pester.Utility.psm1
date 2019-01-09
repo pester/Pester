@@ -79,11 +79,11 @@ filter hasValue {
 }
 
 function any ($InputObject) {
-    if ($null -eq $InputObject) {
+    if (-not $InputObject) {
         return $false
     }
 
-    0 -lt $InputObject.Length
+    @($InputObject).Length -gt 0
 }
 
 function none ($InputObject) {

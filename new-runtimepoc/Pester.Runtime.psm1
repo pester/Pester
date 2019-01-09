@@ -1031,7 +1031,7 @@ function Test-ShouldRun {
             $hasMatchingPath = $true
         }
         else {
-            v "($fullTestPath) Test is excluded, because is full path does not match the path filter."
+            v "($fullTestPath) Test is excluded, because its full path does not match the path filter."
         }
     }
 
