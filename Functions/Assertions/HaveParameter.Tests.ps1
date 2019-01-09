@@ -4,7 +4,7 @@ InModuleScope Pester {
 
     function Invoke-DummyFunction {
         param(
-            [Parameter(Mandatory)]
+            [Parameter(Mandatory = $true)]
             $MandatoryParam,
 
             [DateTime]$SecondParam = (Get-Date),
