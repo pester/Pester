@@ -1110,8 +1110,13 @@ New-PesterOption
 
         $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin))
 
-        $testScripts  = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
-        $r = Pester.Runtime\Invoke-Test -BlockContainer $testScripts  -Plugin $plugins
+        Write-Host -ForegroundColor Magenta "Running all tests in $Script"
+        $containers  = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+        if (none $containers) {
+            Write-Host -ForegroundColor Magenta "No test files were found."
+            return
+        }
+        $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins
 
         if ($PassThru) {
             $r
