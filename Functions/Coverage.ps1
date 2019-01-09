@@ -3,8 +3,7 @@ if ($PSVersionTable.PSVersion.Major -le 2)
     function Exit-CoverageAnalysis { }
     function Get-CoverageReport { }
     function Write-CoverageReport { }
-    function Enter-CoverageAnalysis
-    {
+    function Enter-CoverageAnalysis {
         param ( $CodeCoverage )
 
         if ($CodeCoverage) { & $SafeCommands['Write-Error'] 'Code coverage analysis requires PowerShell 3.0 or later.' }
@@ -78,9 +77,9 @@ function New-CoverageInfo
     param ([string] $Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false)
 
     return [pscustomobject]@{
-        Path      = $Path
-        Class     = $Class
-        Function  = $Function
+        Path = $Path
+        Class = $Class
+        Function = $Function
         StartLine = $StartLine
         EndLine = $EndLine
         IncludeTests = $IncludeTests
@@ -148,7 +147,7 @@ function Resolve-CoverageInfo
     foreach ($resolvedPath in $resolvedPaths)
     {
         $item = & $SafeCommands['Get-Item'] -LiteralPath $resolvedPath
-        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension)
+        if ($item -is [System.IO.FileInfo] -and ('.ps1','.psm1') -contains $item.Extension)
         {
             $item.FullName
         }
@@ -160,9 +159,9 @@ function Resolve-CoverageInfo
 
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
-        EndLine   = $UnresolvedCoverageInfo.EndLine
-        Class     = $UnresolvedCoverageInfo.Class
-        Function  = $UnresolvedCoverageInfo.Function
+        EndLine = $UnresolvedCoverageInfo.EndLine
+        Class = $UnresolvedCoverageInfo.Class
+        Function = $UnresolvedCoverageInfo.Function
     }
 
     foreach ($filePath in $filePaths)
@@ -651,12 +650,11 @@ function Normalize-Path
     }
 }
 
-function Get-JaCoCoReportXml
-{
+function Get-JaCoCoReportXml {
     param (
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory=$true)]
         $PesterState,
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory=$true)]
         [object] $CoverageReport
     )
 
@@ -664,13 +662,14 @@ function Get-JaCoCoReportXml
     {
         return
     }
+
     $now = & $SafeCommands['Get-Date']
     $nineteenSeventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
     [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
     [long] $startTime = [math]::Floor($endTime - $PesterState.Time.TotalMilliseconds)
 
-    $folderGroups = $PesterState.CommandCoverage | Group-Object -Property {
-        Split-Path $_.File -Parent
+    $folderGroups = $PesterState.CommandCoverage | & $SafeCommands["Group-Object"] -Property {
+        & $SafeCommands["Split-Path"] $_.File -Parent
     }
 
     $packageList = & $SafeCommands['New-Object'] System.Collections.Generic.List[psobject]
@@ -680,11 +679,11 @@ function Get-JaCoCoReportXml
 
         $package = @{
             Name        = $folderGroup.Name
-            Classes     = [ordered] @{ }
+            Classes = [ordered] @{ }
             Instruction = @{ Missed = 0; Covered = 0 }
-            Line        = @{ Missed = 0; Covered = 0 }
-            Method      = @{ Missed = 0; Covered = 0 }
-            Class       = @{ Missed = 0; Covered = 0 }
+            Line = @{ Missed = 0; Covered = 0 }
+            Method = @{ Missed = 0; Covered = 0 }
+            Class = @{ Missed = 0; Covered = 0 }
         }
 
         foreach ($command in $folderGroup.Group)
@@ -702,12 +701,12 @@ function Get-JaCoCoReportXml
                 $package.Class.Missed += $missed
                 $package.Class.Covered += $covered
                 $package.Classes.$file = @{
-                    Methods     = [ordered] @{ }
-                    Lines       = [ordered] @{ }
+                    Methods = [ordered] @{ }
+                    Lines = [ordered] @{ }
                     Instruction = @{ Missed = 0; Covered = 0 }
-                    Line        = @{ Missed = 0; Covered = 0 }
-                    Method      = @{ Missed = 0; Covered = 0 }
-                    Class       = @{ Missed = $missed; Covered = $covered }
+                    Line = @{ Missed = 0; Covered = 0 }
+                    Method = @{ Missed = 0; Covered = 0 }
+                    Class = @{ Missed = $missed; Covered = $covered }
                 }
             }
 
@@ -718,10 +717,10 @@ function Get-JaCoCoReportXml
                 $package.Classes.$file.Method.Missed += $missed
                 $package.Classes.$file.Method.Covered += $covered
                 $package.Classes.$file.Methods.$function = @{
-                    FirstLine   = $line
+                    FirstLine = $line
                     Instruction = @{ Missed = 0; Covered = 0 }
-                    Line        = @{ Missed = 0; Covered = 0 }
-                    Method      = @{ Missed = $missed; Covered = $covered }
+                    Line = @{ Missed = 0; Covered = 0 }
+                    Method = @{ Missed = $missed; Covered = $covered }
                 }
             }
 
@@ -752,10 +751,10 @@ function Get-JaCoCoReportXml
     }
 
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
-    $commonParentLeaf = Split-Path $commonParent -Leaf
+    $commonParentLeaf = & $SafeCommands["Split-Path"] $commonParent -Leaf
 
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
-    $jaCoCoReport = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
+    $jaCoCoReport  = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
     $jaCoCoReport += '<report name="">'
     $jaCoCoReport += '<sessioninfo id="this" start="" dump="" />'
     $jaCoCoReport += '</report>'
@@ -786,12 +785,12 @@ function Get-JaCoCoReportXml
         foreach ($file in $package.Classes.Keys)
         {
             $class = $package.Classes.$file
-            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\","/")
             $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
-            $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
+            $classElementName = $classElementName.Substring(0,$($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = (Split-Path -Path $classElementRelativePath -Leaf)
+                    sourcefilename = (& $SafeCommands["Split-Path"] -Path $classElementRelativePath -Leaf)
                 })
 
             foreach ($function in $class.Methods.Keys)
@@ -817,7 +816,7 @@ function Get-JaCoCoReportXml
         {
             $class = $package.Classes.$file
             $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                    name = (Split-Path -Path $file -Leaf)
+                    name = (& $SafeCommands["Split-Path"] -Path $file -Leaf)
                 })
 
             foreach ($line in $class.Lines.Keys)
@@ -854,8 +853,8 @@ function Get-JaCoCoReportXml
 function Add-XmlElement
 {
     param (
-        [parameter(Mandatory = $true)] [System.Xml.XmlNode] $Parent,
-        [parameter(Mandatory = $true)] [string] $Name,
+        [parameter(Mandatory=$true)] [System.Xml.XmlNode] $Parent,
+        [parameter(Mandatory=$true)] [string] $Name,
         [System.Collections.IDictionary] $Attributes
     )
     $element = $Parent.AppendChild($Parent.OwnerDocument.CreateElement($Name))
@@ -873,9 +872,9 @@ function Add-XmlElement
 function Add-JaCoCoCounter
 {
     param (
-        [parameter(Mandatory = $true)] [ValidateSet('Instruction', 'Line', 'Method', 'Class')] [string] $Type,
-        [parameter(Mandatory = $true)] [System.Collections.IDictionary] $Data,
-        [parameter(Mandatory = $true)] [System.Xml.XmlNode] $Parent
+        [parameter(Mandatory=$true)] [ValidateSet('Instruction', 'Line', 'Method', 'Class')] [string] $Type,
+        [parameter(Mandatory=$true)] [System.Collections.IDictionary] $Data,
+        [parameter(Mandatory=$true)] [System.Xml.XmlNode] $Parent
     )
     if ($Data.$Type.Missed -isnot [int] -or $Data.$Type.Covered -isnot [int])
     {
