@@ -1,5 +1,5 @@
 function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that collection contains a specific value.
 Uses PowerShell's -contains operator to confirm.
@@ -9,17 +9,18 @@ Uses PowerShell's -contains operator to confirm.
 This test passes, as 1 exists in the provided collection.
 #>
     [bool] $succeeded = $ActualValue -contains $ExpectedValue
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             return New-Object psobject -Property @{
                 Succeeded      = $false
                 FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to not be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
             }
-        } else {
+        }
+        else {
             return New-Object psobject -Property @{
                 Succeeded      = $false
                 FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
@@ -28,14 +29,16 @@ This test passes, as 1 exists in the provided collection.
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 Add-AssertionOperator -Name         Contain `
-                      -InternalName Should-Contain `
-                      -Test         ${function:Should-Contain} `
-                      -SupportsArrayInput
+    -InternalName Should-Contain `
+    -Test         ${function:Should-Contain} `
+    -SupportsArrayInput
 
-function ShouldContainFailureMessage() { }
-function NotShouldContainFailureMessage() {}
+function ShouldContainFailureMessage() {
+}
+function NotShouldContainFailureMessage() {
+}

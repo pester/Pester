@@ -8,8 +8,7 @@ function Is-Collection ($Value) {
     # because otherwise it does not work for decimal
     # so let's skip all values we definitely know
     # are not collections
-    if ($Value -is [ValueType] -or $Value -is [string])
-    {
+    if ($Value -is [ValueType] -or $Value -is [string]) {
         return $false
     }
 

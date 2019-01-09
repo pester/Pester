@@ -86,7 +86,9 @@ Describe 'Testing Gherkin Hook' -Tag Gherkin {
             Import-Module $scriptRoot\Pester.psd1 -Force
 
             $Global:GherkinOrderTests = Join-Path $scriptRoot Examples\Validator\OrderTrace.txt
-            if (Test-Path $Global:GherkinOrderTests) { Remove-Item $Global:GherkinOrderTests }
+            if (Test-Path $Global:GherkinOrderTests) {
+                Remove-Item $Global:GherkinOrderTests
+            }
             Invoke-Gherkin (Join-Path $scriptRoot Examples\Validator\Validator.feature) -Show None
             Get-Content $Global:GherkinOrderTests
             Remove-item $Global:GherkinOrderTests

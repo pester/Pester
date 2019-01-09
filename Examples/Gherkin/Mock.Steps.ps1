@@ -18,7 +18,8 @@ Then "we can verify the mock" {
 Then "we cannot verify the mock" {
     try {
         Assert-MockCalled Write-Error
-    } catch {
+    }
+    catch {
         return
     }
     throw "Write-Error not called"

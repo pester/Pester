@@ -1,31 +1,30 @@
 function Parse-ShouldArgs([object[]] $shouldArgs) {
-    if ($null -eq $shouldArgs) { $shouldArgs = @() }
+    if ($null -eq $shouldArgs) {
+        $shouldArgs = @()
+    }
 
     $parsedArgs = @{
         PositiveAssertion = $true
-        ExpectedValue = $null
+        ExpectedValue     = $null
     }
 
     $assertionMethodIndex = 0
-    $expectedValueIndex   = 1
+    $expectedValueIndex = 1
 
     if ($shouldArgs.Count -gt 0 -and $shouldArgs[0] -eq "not") {
         $parsedArgs.PositiveAssertion = $false
         $assertionMethodIndex += 1
-        $expectedValueIndex   += 1
+        $expectedValueIndex += 1
     }
 
-    if ($assertionMethodIndex -lt $shouldArgs.Count)
-    {
+    if ($assertionMethodIndex -lt $shouldArgs.Count) {
         $parsedArgs.AssertionMethod = "$($shouldArgs[$assertionMethodIndex])"
     }
-    else
-    {
+    else {
         throw 'You cannot call Should without specifying an assertion method.'
     }
 
-    if ($expectedValueIndex -lt $shouldArgs.Count)
-    {
+    if ($expectedValueIndex -lt $shouldArgs.Count) {
         $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
     }
 
@@ -33,12 +32,10 @@ function Parse-ShouldArgs([object[]] $shouldArgs) {
 }
 
 function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
-    if ($negate)
-    {
+    if ($negate) {
         $failureMessageFunction = $assertionEntry.GetNegativeFailureMessage
     }
-    else
-    {
+    else {
         $failureMessageFunction = $assertionEntry.GetPositiveFailureMessage
     }
 
@@ -56,7 +53,7 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
 }
 
 function Should {
-<#
+    <#
     .SYNOPSIS
     Should is a keyword what is used to define an assertion inside It block.
 
@@ -89,60 +86,47 @@ function Should {
         [object] $ActualValue
     )
 
-    dynamicparam
-    {
+    dynamicparam {
         Get-AssertionDynamicParams
     }
 
-    begin
-    {
+    begin {
         $inputArray = New-Object System.Collections.Generic.List[PSObject]
 
-        if ($PSCmdlet.ParameterSetName -eq 'Legacy')
-        {
+        if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
             $parsedArgs = Parse-ShouldArgs ($__LegacyArg1, $__LegacyArg2, $__LegacyArg3)
             $entry = Get-AssertionOperatorEntry -Name $parsedArgs.AssertionMethod
-            if ($null -eq $entry)
-            {
+            if ($null -eq $entry) {
                 throw "'$($parsedArgs.AssertionMethod)' is not a valid Should operator."
             }
         }
     }
 
-    process
-    {
+    process {
         $inputArray.Add($ActualValue)
     }
 
-    end
-    {
+    end {
         $lineNumber = $MyInvocation.ScriptLineNumber
-        $lineText   = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
-        $file       = $MyInvocation.ScriptName
+        $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
+        $file = $MyInvocation.ScriptName
 
-        if ($PSCmdlet.ParameterSetName -eq 'Legacy')
-        {
-            if ($inputArray.Count -eq 0)
-            {
+        if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
+            if ($inputArray.Count -eq 0) {
                 Invoke-LegacyAssertion $entry $parsedArgs $null $file $lineNumber $lineText
             }
-            elseif ($entry.SupportsArrayInput)
-            {
+            elseif ($entry.SupportsArrayInput) {
                 Invoke-LegacyAssertion $entry $parsedArgs $inputArray.ToArray() $file $lineNumber $lineText
             }
-            else
-            {
-                foreach ($object in $inputArray)
-                {
+            else {
+                foreach ($object in $inputArray) {
                     Invoke-LegacyAssertion $entry $parsedArgs $object $file $lineNumber $lineText
                 }
             }
         }
-        else
-        {
+        else {
             $negate = $false
-            if ($PSBoundParameters.ContainsKey('Not'))
-            {
+            if ($PSBoundParameters.ContainsKey('Not')) {
                 $negate = [bool]$PSBoundParameters['Not']
             }
 
@@ -152,18 +136,14 @@ function Should {
 
             $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
 
-            if ($inputArray.Count -eq 0)
-            {
+            if ($inputArray.Count -eq 0) {
                 Invoke-Assertion $entry $PSBoundParameters $null $file $lineNumber $lineText -Negate:$negate
             }
-            elseif ($entry.SupportsArrayInput)
-            {
+            elseif ($entry.SupportsArrayInput) {
                 Invoke-Assertion $entry $PSBoundParameters $inputArray.ToArray() $file $lineNumber $lineText -Negate:$negate
             }
-            else
-            {
-                foreach ($object in $inputArray)
-                {
+            else {
+                foreach ($object in $inputArray) {
                     Invoke-Assertion $entry $PSBoundParameters $object $file $lineNumber $lineText -Negate:$negate
                 }
             }
@@ -171,8 +151,7 @@ function Should {
     }
 }
 
-function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText)
-{
+function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText) {
     # $expectedValueSplat = @(
     #     if ($null -ne $shouldArgs.ExpectedValue)
     #     {
@@ -183,14 +162,12 @@ function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $fil
     $negate = -not $shouldArgs.PositiveAssertion
 
     $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
-    if (-not $testResult.Succeeded)
-    {
+    if (-not $testResult.Succeeded) {
         throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
     }
 }
 
-function Invoke-Assertion
-{
+function Invoke-Assertion {
     param (
         [object] $AssertionEntry,
         [System.Collections.IDictionary] $BoundParameters,
@@ -204,7 +181,8 @@ function Invoke-Assertion
     $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate @BoundParameters
     if (-not $testResult.Succeeded) {
         throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
-    } else {
+    }
+    else {
         #extract data to return if there are any on the object
         $data = $testResult.psObject.Properties.Item('Data')
         if ($data) {
@@ -219,8 +197,7 @@ function Format-Because ([string] $Because) {
     }
 
     $bcs = $Because.Trim()
-    if ([string]::IsNullOrEmpty($bcs))
-    {
+    if ([string]::IsNullOrEmpty($bcs)) {
         return
     }
 

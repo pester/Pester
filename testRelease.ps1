@@ -18,8 +18,7 @@ if ($LocalBuild) {
     Remove-Item $xml
 }
 
-if ($result.TotalCount -lt 1)
-{
+if ($result.TotalCount -lt 1) {
     $m = "No tests were run."
 
     if ($LocalBuild) {
@@ -31,15 +30,13 @@ if ($result.TotalCount -lt 1)
     }
 }
 
-if ($result.FailedCount -gt 0)
-{
+if ($result.FailedCount -gt 0) {
     $m = "$($result.FailedCount) tests did not pass."
     if ($LocalBuild) {
         $m
         exit $result.FailedCount
     }
-    else
-    {
+    else {
         throw $m
     }
 }

@@ -1,5 +1,5 @@
 function GherkinStep {
-<#
+    <#
 .SYNOPSIS
 A step in a test, also known as a Given, When, or Then
 
@@ -73,11 +73,11 @@ https://sites.google.com/site/unclebobconsultingllc/the-truth-about-bdd
 #>
     param(
 
-        [Parameter(Mandatory=$True, Position=0)]
+        [Parameter(Mandatory = $True, Position = 0)]
         [String]$Name,
 
 
-        [Parameter(Mandatory=$True, Position=1)]
+        [Parameter(Mandatory = $True, Position = 1)]
         [ScriptBlock]$Test
     )
     # We need to be able to look up where this step is defined
