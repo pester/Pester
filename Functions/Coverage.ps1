@@ -1,10 +1,7 @@
 if ($PSVersionTable.PSVersion.Major -le 2) {
-    function Exit-CoverageAnalysis {
-    }
-    function Get-CoverageReport {
-    }
-    function Write-CoverageReport {
-    }
+    function Exit-CoverageAnalysis { }
+    function Get-CoverageReport { }
+    function Write-CoverageReport { }
     function Enter-CoverageAnalysis {
         param ( $CodeCoverage )
 
@@ -589,90 +586,90 @@ function Get-JaCoCoReportXml {
     [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
     [long] $startTime = [math]::Floor($endTime - $PesterState.Time.TotalMilliseconds)
 
-    $package = @{
-        Classes     = [ordered] @{ }
-        Instruction = @{ Missed = 0; Covered = 0 }
-        Line        = @{ Missed = 0; Covered = 0 }
-        Method      = @{ Missed = 0; Covered = 0 }
-        Class       = @{ Missed = 0; Covered = 0 }
+    $folderGroups = $PesterState.CommandCoverage | & $SafeCommands["Group-Object"] -Property {
+        & $SafeCommands["Split-Path"] $_.File -Parent
     }
 
-    foreach ($command in $PesterState.CommandCoverage) {
-        $file = $command.File
-        $function = $command.Function
-        if (!$function) {
-            $function = '<script>'
-        }
-        $line = $command.StartLine.ToString()
+    $packageList = & $SafeCommands['New-Object'] System.Collections.Generic.List[psobject]
 
-        $missed = if ($command.Breakpoint.HitCount) {
-            0
-        }
-        else {
-            1
-        }
-        $covered = if ($command.Breakpoint.HitCount) {
-            1
-        }
-        else {
-            0
+    foreach ($folderGroup in $folderGroups) {
+
+        $package = @{
+            Name        = $folderGroup.Name
+            Classes     = [ordered] @{ }
+            Instruction = @{ Missed = 0; Covered = 0 }
+            Line        = @{ Missed = 0; Covered = 0 }
+            Method      = @{ Missed = 0; Covered = 0 }
+            Class       = @{ Missed = 0; Covered = 0 }
         }
 
-        if (!$package.Classes.Contains($file)) {
-            $package.Class.Missed += $missed
-            $package.Class.Covered += $covered
-            $package.Classes.$file = @{
-                Methods     = [ordered] @{ }
-                Lines       = [ordered] @{ }
-                Instruction = @{ Missed = 0; Covered = 0 }
-                Line        = @{ Missed = 0; Covered = 0 }
-                Method      = @{ Missed = 0; Covered = 0 }
-                Class       = @{ Missed = $missed; Covered = $covered }
+        foreach ($command in $folderGroup.Group) {
+            $file = $command.File
+            $function = $command.Function
+            if (!$function) { $function = '<script>' }
+            $line = $command.StartLine.ToString()
+
+            $missed = if ($command.Breakpoint.HitCount) { 0 } else { 1 }
+            $covered = if ($command.Breakpoint.HitCount) { 1 } else { 0 }
+
+            if (!$package.Classes.Contains($file)) {
+                $package.Class.Missed += $missed
+                $package.Class.Covered += $covered
+                $package.Classes.$file = @{
+                    Methods     = [ordered] @{ }
+                    Lines       = [ordered] @{ }
+                    Instruction = @{ Missed = 0; Covered = 0 }
+                    Line        = @{ Missed = 0; Covered = 0 }
+                    Method      = @{ Missed = 0; Covered = 0 }
+                    Class       = @{ Missed = $missed; Covered = $covered }
+                }
             }
-        }
 
-        if (!$package.Classes.$file.Methods.Contains($function)) {
-            $package.Method.Missed += $missed
-            $package.Method.Covered += $covered
-            $package.Classes.$file.Method.Missed += $missed
-            $package.Classes.$file.Method.Covered += $covered
-            $package.Classes.$file.Methods.$function = @{
-                FirstLine   = $line
-                Instruction = @{ Missed = 0; Covered = 0 }
-                Line        = @{ Missed = 0; Covered = 0 }
-                Method      = @{ Missed = $missed; Covered = $covered }
+            if (!$package.Classes.$file.Methods.Contains($function)) {
+                $package.Method.Missed += $missed
+                $package.Method.Covered += $covered
+                $package.Classes.$file.Method.Missed += $missed
+                $package.Classes.$file.Method.Covered += $covered
+                $package.Classes.$file.Methods.$function = @{
+                    FirstLine   = $line
+                    Instruction = @{ Missed = 0; Covered = 0 }
+                    Line        = @{ Missed = 0; Covered = 0 }
+                    Method      = @{ Missed = $missed; Covered = $covered }
+                }
             }
-        }
 
-        if (!$package.Classes.$file.Lines.Contains($line)) {
-            $package.Line.Missed += $missed
-            $package.Line.Covered += $covered
-            $package.Classes.$file.Line.Missed += $missed
-            $package.Classes.$file.Line.Covered += $covered
-            $package.Classes.$file.Methods.$function.Line.Missed += $missed
-            $package.Classes.$file.Methods.$function.Line.Covered += $covered
-            $package.Classes.$file.Lines.$line = @{
-                Instruction = @{ Missed = 0; Covered = 0 }
+            if (!$package.Classes.$file.Lines.Contains($line)) {
+                $package.Line.Missed += $missed
+                $package.Line.Covered += $covered
+                $package.Classes.$file.Line.Missed += $missed
+                $package.Classes.$file.Line.Covered += $covered
+                $package.Classes.$file.Methods.$function.Line.Missed += $missed
+                $package.Classes.$file.Methods.$function.Line.Covered += $covered
+                $package.Classes.$file.Lines.$line = @{
+                    Instruction = @{ Missed = 0; Covered = 0 }
+                }
             }
+
+            $package.Instruction.Missed += $missed
+            $package.Instruction.Covered += $covered
+            $package.Classes.$file.Instruction.Missed += $missed
+            $package.Classes.$file.Instruction.Covered += $covered
+            $package.Classes.$file.Methods.$function.Instruction.Missed += $missed
+            $package.Classes.$file.Methods.$function.Instruction.Covered += $covered
+            $package.Classes.$file.Lines.$line.Instruction.Missed += $missed
+            $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
         }
 
-        $package.Instruction.Missed += $missed
-        $package.Instruction.Covered += $covered
-        $package.Classes.$file.Instruction.Missed += $missed
-        $package.Classes.$file.Instruction.Covered += $covered
-        $package.Classes.$file.Methods.$function.Instruction.Missed += $missed
-        $package.Classes.$file.Methods.$function.Instruction.Covered += $covered
-        $package.Classes.$file.Lines.$line.Instruction.Missed += $missed
-        $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
+        $packageList.Add($package)
     }
 
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+    $commonParentLeaf = & $SafeCommands["Split-Path"] $commonParent -Leaf
 
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
     $jaCoCoReport = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
     $jaCoCoReport += '<report name="">'
     $jaCoCoReport += '<sessioninfo id="this" start="" dump="" />'
-    $jaCoCoReport += '<package name="PowerShell" />'
     $jaCoCoReport += '</report>'
 
     [xml] $jaCoCoReportXml = $jaCoCoReport
@@ -680,57 +677,74 @@ function Get-JaCoCoReportXml {
     $reportElement.name = "Pester ($now)"
     $reportElement.sessioninfo.start = $startTime.ToString()
     $reportElement.sessioninfo.dump = $endTime.ToString()
-    $packageElement = $reportElement.package
 
-    foreach ($file in $package.Classes.Keys) {
-        $class = $package.Classes.$file
-        $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
-                name           = (Get-RelativePath -Path $file -RelativeTo $commonParent).replace('\', '/')
-                sourcefilename = $file.replace('\', '/')
-            })
+    foreach ($package in $packageList) {
+        $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
 
-        foreach ($function in $class.Methods.Keys) {
-            $method = $class.Methods.$function
-            $methodElement = Add-XmlElement $classElement 'method' -Attributes ([ordered] @{
-                    name = $function
-                    desc = '()'
-                    line = $method.FirstLine
-                })
-            Add-JaCoCoCounter Instruction $method $methodElement
-            Add-JaCoCoCounter Line $method $methodElement
-            Add-JaCoCoCounter Method $method $methodElement
+        if ($null -eq $packageRelativePath) {
+            $packageName = $commonParentLeaf
+        }
+        else {
+            $packageName = "{0}/{1}" -f $commonParentLeaf, $($packageRelativePath.Replace("\", "/"))
         }
 
-        Add-JaCoCoCounter Instruction $class $classElement
-        Add-JaCoCoCounter Line $class $classElement
-        Add-JaCoCoCounter Method $class $classElement
-        Add-JaCoCoCounter Class $class $classElement
-    }
-
-    foreach ($file in $package.Classes.Keys) {
-        $class = $package.Classes.$file
-        $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                name = $file.replace('\', '/')
-            })
-
-        foreach ($line in $class.Lines.Keys) {
-            $null = Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
-                    nr = $line
-                    mi = $class.Lines.$line.Instruction.Missed
-                    ci = $class.Lines.$line.Instruction.Covered
-                })
+        $packageElement = Add-XmlElement $reportElement "package" @{
+            name = ($packageName -replace "/$", "")
         }
 
-        Add-JaCoCoCounter Instruction $class $sourceFileElement
-        Add-JaCoCoCounter Line $class $sourceFileElement
-        Add-JaCoCoCounter Method $class $sourceFileElement
-        Add-JaCoCoCounter Class $class $sourceFileElement
-    }
+        foreach ($file in $package.Classes.Keys) {
+            $class = $package.Classes.$file
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
+            $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
+            $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
+            $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
+                    name           = $classElementName
+                    sourcefilename = (& $SafeCommands["Split-Path"] -Path $classElementRelativePath -Leaf)
+                })
 
-    Add-JaCoCoCounter Instruction $package $packageElement
-    Add-JaCoCoCounter Line $package $packageElement
-    Add-JaCoCoCounter Method $package $packageElement
-    Add-JaCoCoCounter Class $package $packageElement
+            foreach ($function in $class.Methods.Keys) {
+                $method = $class.Methods.$function
+                $methodElement = Add-XmlElement $classElement 'method' -Attributes ([ordered] @{
+                        name = $function
+                        desc = '()'
+                        line = $method.FirstLine
+                    })
+                Add-JaCoCoCounter Instruction $method $methodElement
+                Add-JaCoCoCounter Line $method $methodElement
+                Add-JaCoCoCounter Method $method $methodElement
+            }
+
+            Add-JaCoCoCounter Instruction $class $classElement
+            Add-JaCoCoCounter Line $class $classElement
+            Add-JaCoCoCounter Method $class $classElement
+            Add-JaCoCoCounter Class $class $classElement
+        }
+
+        foreach ($file in $package.Classes.Keys) {
+            $class = $package.Classes.$file
+            $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
+                    name = (& $SafeCommands["Split-Path"] -Path $file -Leaf)
+                })
+
+            foreach ($line in $class.Lines.Keys) {
+                $null = Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
+                        nr = $line
+                        mi = $class.Lines.$line.Instruction.Missed
+                        ci = $class.Lines.$line.Instruction.Covered
+                    })
+            }
+
+            Add-JaCoCoCounter Instruction $class $sourceFileElement
+            Add-JaCoCoCounter Line $class $sourceFileElement
+            Add-JaCoCoCounter Method $class $sourceFileElement
+            Add-JaCoCoCounter Class $class $sourceFileElement
+        }
+
+        Add-JaCoCoCounter Instruction $package $packageElement
+        Add-JaCoCoCounter Line $package $packageElement
+        Add-JaCoCoCounter Method $package $packageElement
+        Add-JaCoCoCounter Class $package $packageElement
+    }
 
     Add-JaCoCoCounter Instruction $package $reportElement
     Add-JaCoCoCounter Line $package $reportElement
