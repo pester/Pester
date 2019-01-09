@@ -1,4 +1,5 @@
-﻿Get-Module Pester.Runtime, Pester.RSpec | Remove-module
+﻿Get-Module Pester.Utility, Pester.Runtime, Pester.RSpec | Remove-Module
+Import-Module $PSScriptRoot\new-runtimepoc\Pester.Utility.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.RSpec.psm1 -DisableNameChecking
 

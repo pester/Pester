@@ -118,10 +118,13 @@ about_should
         [Switch] $Skip
     )
 
-    if (-not $InvokedByInvokePester) {
+    
+    if (any $TestCases) {
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases 
+    }
+    else {
         Pester.Runtime\New-Test -Name $Name -ScriptBlock $Test
     }
-    # ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
 }
 
 function ItImpl

@@ -1,3 +1,5 @@
+Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
+
 $state = [PSCustomObject] @{
     # indicate whether or not we are currently
     # running in discovery mode se we can change
@@ -663,6 +665,11 @@ function Run-Test {
     $state.Discovery = $false
     # TODO: add where $true -eq $_.ShouldRun to execute only containers that have something to run
     foreach ($rootBlock in $Block) {
+        if (-not $rootBlock.ShouldRun) {
+            ConvertTo-ExecutedBlockContainer -Block $rootBlock
+            continue
+        }
+
         Reset-PerContainerState -RootBlock $rootBlock
         Switch-Timer -Scope Framework
         $blockStartTime = $state.BlockStopWatch.Elapsed
@@ -1318,8 +1325,6 @@ function Import-Dependency {
         $sb = { 
             param ($p)
 
-            Write-host $user
-            $huh = "aaa"
             . $($p; Remove-Variable -Scope Local -Name p)
         }
 
@@ -1378,7 +1383,7 @@ function Add-Dependency {
 
 
     # adds dependency that is dotsourced after discovery and before execution
-    if (-not $script:state.Discovery) { 
+    if (-not $state.Discovery) { 
         Write-Host Adding user dependency
         Import-Dependency $Dependency -SessionState $PSCmdlet.SessionState
     }
@@ -1393,7 +1398,7 @@ function Add-FreeFloatingCode {
     # only during execution and not twice. works the same as Add-Dependency, but I name
     # it differently because this is a bad-practice mitigation tool and should probably
     # write a warning to make you use Before* blocks instead
-    if (-not $script:state.Discovery) { 
+    if (-not $state.Discovery) { 
         Write-Host Invoking free floating piece of code -ForegroundColor Yellow
         Import-Dependency $Dependency -SessionState $PSCmdlet.SessionState
     }
@@ -1415,111 +1420,6 @@ function New-ParametrizedTest () {
     foreach ($d in $Data) {
         New-Test -Id ($counter++) -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d
     }
-}
-
-
-function or {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true, Position = 0)]
-        $DefaultValue,
-        [Parameter(ValueFromPipeline = $true)]
-        $InputObject
-    )
-
-    if ($InputObject) {
-        $InputObject
-    }
-    else {
-        $DefaultValue
-    }
-}
-
-# looks for a property on object that might be null
-function tryGetProperty {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true, Position = 0)]
-        $PropertyName,
-        [Parameter(ValueFromPipeline = $true)]
-        $InputObject
-    )
-    if ($null -eq $InputObject) {
-        return
-    }
-
-    $InputObject.$PropertyName
-
-    # this would be useful if we looked for property that might not exist
-    # but that is not the case so-far. Originally I implemented this incorrectly
-    # so I will keep this here for reference in case I was wrong the second time as well
-    # $property = $InputObject.PSObject.Properties.Item($PropertyName)
-    # if ($null -ne $property) {
-    #     $property.Value
-    # }
-}
-
-function trySetProperty {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true, Position = 0)]
-        $PropertyName,
-        [Parameter(Mandatory=$true, Position = 1)]
-        $Value,
-        [Parameter(ValueFromPipeline = $true)]
-        $InputObject
-    )
-
-    if ($null -eq $InputObject) {
-        return
-    }
-
-    $InputObject.$PropertyName = $Value
-}
-
-
-# combines collections that are not null or empty, but does not remove null values
-# from collections so e.g. combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
-# returns 1, $null, 1, 2, 3, 10
-function combineNonNull ($Array) {
-    foreach ($i in $Array) {
-
-        $arr = @($i)
-        if ($null -ne $i -and $arr.Length -gt 0) {
-            foreach ($a in $arr) {
-                $a
-            }
-        }
-    }
-}
-
-filter hasValue {
-    $_ | where { $_ }
-}
-
-function any ($InputObject) {
-    if ($null -eq $InputObject) {
-        return $false
-    }
-
-    0 -lt $InputObject.Length
-}
-
-function none ($InputObject) {
-    -not (any $InputObject)
-}
-
-function sum ($InputObject, $PropertyName, $Zero) {
-    if (none $InputObject.Length) {
-        return $Zero
-    }
-
-    $acc = $Zero
-    foreach ($i in $InputObject) {
-        $acc += $i.$PropertyName
-    }
-
-    $acc
 }
 
 

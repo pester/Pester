@@ -3,10 +3,11 @@
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 
-Get-Module Pester.Runtime, P, Pester, Axiom, Stack | Remove-Module
+Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 # Import-Module Pester -MinimumVersion 4.4.3
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\Pester.Runtime.psm1 -DisableNameChecking
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
@@ -282,6 +283,32 @@ b "Executing tests" {
         $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
         $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
         $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
+    }
+
+    t "Executes container only if it contains anything that should run" {
+        $d = @{
+            Call = 0
+        }
+        Reset-TestSuiteState
+        $actual = Invoke-Test -BlockContainer @(
+           (New-BlockContainerObject -ScriptBlock {
+                $d.Call++
+                New-Block "block1" {
+                    New-Test "test1" { "a" } -Tag "a"
+                }
+            }),
+            (New-BlockContainerObject -ScriptBlock {
+                New-Block "block1" {
+                    New-Test "test1" { "a" } -Tag "b"
+                }
+            })
+        ) -Filter (New-FilterObject -Tag "b")
+
+        # should add once during discovery
+        $d.Call | Verify-Equal 1
+
+        $actual[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        $actual[1].Blocks[0].Tests[0].Executed | Verify-True
     }
 }
 
@@ -898,7 +925,7 @@ b "New-ParametrizedTest" {
         $actual.Blocks[0].Tests.Length | Verify-Equal 2 
     }
 
-    dt "Each generated test has unique id and they both successfully execute and have the correct data" {
+    t "Each generated test has unique id and they both successfully execute and have the correct data" {
         $data = @(
             @{ Value = 1 }
             @{ Value = 2 }
