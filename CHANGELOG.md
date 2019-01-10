@@ -1,3 +1,11 @@
+## 4.5.0 (January 10, 2018)
+
+ - Add support for code coverage in VSCode [GH-1199]
+ - Remote Tests from CodeCoverage by default [GH-1196]
+ - Add short-circuting to Ghrerkin scenario [GH-1198]
+ - Fix error in parallel TestRegistry [GH-1197]
+ - The rest listed in betas below
+
 ## 4.5.0-beta2 (January 5, 2018)
 
 - Add more info to code coverage passthru [GH-1190]
