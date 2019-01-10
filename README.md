@@ -120,3 +120,11 @@ The other stuff that does *not* work yet is most notably:
 - Passing our own tests
 - Gherkin
 
+## How can I try it on my own project? 
+
+Download the source code and use Pester.psm1 (yes PSM not PSD), to import it. And good luck!
+
+## Questions?
+
+Ping me on [twitter](https://twitter.com/nohwnd) or [#testing](https://powershell.slack.com/messages/C03QKTUCS/)
+
