@@ -383,7 +383,8 @@ function New-Test {
                     -Context $context `
                     -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Test } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
+                    -NoNewScope
 
                 $test.Executed = $true
                 $test.Passed = $result.Success
@@ -787,6 +788,14 @@ function Invoke-ScriptBlock {
 
             & {
                 try {
+                    # this is needed for nonewscope so we can do two different 
+                    # teardowns while running this code in the middle again (which rewrites the teardown
+                    # value in the object), this way we save the first teardown and ressurect it right before
+                    # needing it
+                    if (-not (Test-Path 'Variable:$_________teardown2')) { 
+                        $_________teardown2 = $______parameters.Teardown
+                    }
+
                     if (-not $______parameters.ContextInOuterScope) {
                         $______innerSplat = $______parameters.Context
                         &$______parameters.WriteDebug "Setting context variables"
@@ -824,11 +833,16 @@ function Invoke-ScriptBlock {
                     &$______parameters.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {
-                    # if ((Test-Path 'Variable:$_________teardown2')) { 
-                    #     # soo we are running the block setup in the same scope as
-                    #     # the test setup 
-                    #     $______parameters.Teardown = $_________teardown2
-                    # }
+                    # this is needed for nonewscope so we can do two different 
+                    # teardowns while running this code in the middle again (which rewrites the teardown
+                    # value in the object)
+                    if ((Test-Path 'variable:_________teardown2')) { 
+                        # soo we are running the one time test teadown in the same scope as
+                        # each block teardown and it overwrites it
+                        $______parameters.Teardown = $_________teardown2
+                        Remove-Variable _________teardown2
+                    }
+
                     if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
                         &$______parameters.WriteDebug "Running inner teardowns"
                         foreach ($______current in $______parameters.Teardown) {
@@ -844,13 +858,6 @@ function Invoke-ScriptBlock {
                             }
                         }
                         $______current = $null
-
-                        # this would also be needed for no new scope so we can do two different 
-                        # teardowns while this code in the middle again (which rewrites the teardown
-                        # value in the object)
-                        # if (-not (Test-Path 'Variable:$_________teardown2')) { 
-                        #     $_________teardown2 = $Teardown
-                        # }
 
                         # nulling this variable is important when we run without new scope
                         # then $______parameters.Teardown remains set and EachBlockTeardown
@@ -913,7 +920,7 @@ function Invoke-ScriptBlock {
             ErrorRecord = @()
             Context = $Context
             ContextInOuterScope = -not $ReduceContextToInnerScope
-            WriteDebug =  {} #{ param( $Message )  Write-Host -ForegroundColor Blue $Message }
+            WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Blue $Message }
         }
 
         # here we are moving into the user scope if the provided

@@ -811,7 +811,8 @@ b "Block teardown and setup" {
             }
 
             New-Block 'no running tests' {
-                New-Test "do not run test" -Tag "DoNotRun" {}
+                New-Test "do not run test" -Tag "DoNotRun" {
+                }
             }
 
             New-EachBlockTeardown {
