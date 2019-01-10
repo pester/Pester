@@ -6,7 +6,7 @@
 
 ### Test discovery
 
-Pester `Describe` and `It` are, and always were just plain PowerShell functions that all connect to one shared internal state. This is a great thing for extensibility, because it allows you to wrap them into `foreach`es, `if`s and your own `function`s to customize how they work. BUT at the same time it prevents Pester from knowing which `Describe`s and `It`s there are before execution. This makes test filtering options very limited and inefficient. 
+Pester `Describe` and `It` are, and always were, just plain PowerShell functions that all connect to one shared internal state. This is a great thing for extensibility, because it allows you to wrap them into `foreach`es, `if`s and your own `function`s to customize how they work. BUT at the same time it prevents Pester from knowing which `Describe`s and `It`s there are before execution. This makes test filtering options very limited and inefficient. 
 
 To give you an example of how bad it is imagine having 100 test files, each of them does some setup at the start to make sure the tests can run. In 1 of those 100 files is a `Describe` block with tag "RunThis". Invoking Pester with tag filter "RunThis", means that all 100 files will run, do their setup, and then end because their `Describe` does not have tag "RunThis". So if every setup took just 100ms, we would run for 10s instead of <1s.
 
@@ -47,7 +47,11 @@ Describe "Get pikachu by Get-Pokemon from the real api" {
 }
 ```
 
-This integration test dot-sources (imports) the SUT on the top, and then in the body of the `Describe` it makes a call to external web API. Both the dot-sourcing and the call are not controlled by Pester, and would be invoked twice, once on `Discovery` and once on `Run`. To fix this we use a new Pester function `Add-Dependency` to import the SUT only during `Run`, and then put the external call to `BeforeAll` block to run it only when any test in the containing `Describe` will run.
+This integration test dot-sources (imports) the SUT on the top, and then in the body of the `Describe` it makes a call to external web API. Both the dot-sourcing and the call are not controlled by Pester, and would be invoked twice, once on `Discovery` and once on `Run`. 
+
+![](https://github.com/nohwnd/Pester/blob/new-runtime/demo/img/bad_tests.PNG)
+
+To fix this we use a new Pester function `Add-Dependency` to import the SUT only during `Run`, and then put the external call to `BeforeAll` block to run it only when any test in the containing `Describe` will run. Nothing more is needed.
 
 ```powershell
 Add-Dependency $PSScriptRoot\Get-Pokemon.ps1
@@ -76,7 +80,9 @@ Describe "Get pikachu by Get-Pokemon from the real api" {
 }
 ```
 
-This makes everything controlled by Pester and we can happily run `Discovery` on this file without invoking anything extra. [Try it out for yourself](https://github.com/nohwnd/Pester/tree/new-runtime/demo). 
+This makes everything controlled by Pester and we can happily run `Discovery` on this file without invoking anything extra. 
+
+![](https://github.com/nohwnd/Pester/blob/new-runtime/demo/img/good_tests.PNG)
 
 ### What does this mean for the future? 
 
@@ -86,6 +92,31 @@ This opens up a whole slew of new possibilities:
 - re-running failed tests
 - forcing just a single test in whole suite to run by putting a parameter like `-DebuggingThis` on it
 - detecting changes in files and only running what changed
-- ...
+- a proper graphical test runner integration?
 
-###
+[Try it out for yourself](https://github.com/nohwnd/Pester/tree/new-runtime/demo). 
+
+## What else? 
+
+- The internals changed quite a bit, the result object contains captured errors and standard output, and the whole result is hieararchical. It is also split per file so it's extremely easy to combine runs from multiple suits, you simply put two arrays together. 
+- Scoping is changed to put the `BeforeEach` `Test` and `AfterEach` blocks into the same scope so variables can be shared amond them easily. 
+- There is work in progress on per block setups and teardowns.
+... 
+
+All in all I am trying to address or review all the issues in this [milestone](https://github.com/pester/Pester/issues?q=is%3Aopen+is%3Aissue+milestone%3A%22New+runtime%22)
+
+
+## Release date? 
+
+At the moment a lot of stuff is missing, so much stuff that it's easier to say what _partially_ works:
+- Output to screen
+- TestDrive
+- Filtering based on tags
+- PassThru (but has new format)
+
+The other stuff that does *not* work yet is most notably:
+- Mocking
+- Code coverage
+- Passing our own tests
+- Gherkin
+
