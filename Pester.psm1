@@ -1109,6 +1109,7 @@ New-PesterOption
         $pester = @{ SessionState = $PSCmdlet.SessionState }
 
         $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin))
+        $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
 
         Write-Host -ForegroundColor Magenta "Running all tests in $Script"
         $containers  = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
@@ -1116,7 +1117,7 @@ New-PesterOption
             Write-Host -ForegroundColor Magenta "No test files were found."
             return
         }
-        $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState
+        $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState -Filter $filter
         $legacyResult = Get-LegacyResult $r
         Write-PesterReport $legacyResult
 
@@ -1633,8 +1634,11 @@ function Get-LegacyResult {
         if ($test.Passed) {
             $o.PassedCount++
         }
-        else {
+        elseif ($test.ShouldRun -and (-not $test.Executed -or -not $test.Passed)) {
             $o.FailedCount++
+        }
+        else {
+            $o.SkippedCount++
         }
 
         $o.FrameworkTime += $test.FrameworkDuration

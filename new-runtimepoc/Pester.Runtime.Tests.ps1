@@ -553,6 +553,7 @@ b "executing each setup & teardown on test" {
                 }
 
                 New-EachTestTeardown {
+                    Write-Host "each test teardown"
                     if ($g -ne 'test') {throw "`$g ($g) is not set to 'test' did the test body run? does the body run in the same scope as the setup and teardown?" }
                     $g = 'each teardown'
                 }
@@ -740,7 +741,10 @@ b "Block teardown and setup" {
             }
 
             New-Block 'block1' {
-                New-Test "test1" {}
+                New-Test "test1" {
+                    if ($g -ne 'each setup') {throw "`$g ($g) is not set to 'each setup' did the each setup run? does the body run in the same scope as the setup and teardown?" }
+                }
+                $g = "Block"
             }
 
             New-EachBlockTeardown {
@@ -757,6 +761,32 @@ b "Block teardown and setup" {
         $actual.Blocks[0].StandardOutput | Verify-Equal 'one time setup'
     }
 
+    t "setups&teardowns run only once" {
+        $container = [PSCustomObject] @{
+            OneTimeTestSetup = 0
+            EachTestSetup = 0
+            EachTestTeardown = 0
+            OneTimeTestTeardown = 0
+        }
+
+        $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+            New-Block 'block1' {
+                New-OneTimeTestSetup { $container.OneTimeTestSetup++ }
+                New-EachTestSetup { $container.EachTestSetup++ }
+                New-Test "test1" {}
+                New-EachTestTeardown { 
+                    $container.EachTestTeardown++ }
+                New-OneTimeTestTeardown { $container.OneTimeTestTeardown++ }
+            }
+        })
+
+        $container.OneTimeTestSetup | Verify-Equal 1
+        $container.EachTestSetup | Verify-Equal 1
+
+        $container.EachTestTeardown | Verify-Equal 1
+        $container.OneTimeTestTeardown | Verify-Equal 1
+    }
+
     t "block setups&teardowns run only when there are some tests to run in the block" {
         $container = [PSCustomObject]@{
             OneTimeBlockSetup1 = 0
@@ -767,7 +797,8 @@ b "Block teardown and setup" {
         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
 
             New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
-            New-EachBlockSetup { $container.EachBlockSetup1++ }
+            New-EachBlockSetup { 
+                $container.EachBlockSetup1++ }
 
             New-Block 'block1' {
                 New-Test "test1" {
@@ -925,6 +956,32 @@ b "test data" {
                     New-Test "test1" {
                         
                     } -Data @{ Value1 = 1 }
+                }
+            }
+        )
+
+        $actual.Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
+    }
+
+    t "tests do not share data" {
+
+        $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+            New-BlockContainerObject -ScriptBlock {
+                New-Block -Name "block1" {
+                    New-Test "test1" {
+                        
+                    } -Data @{ Value1 = 1 }
+
+                    New-Test "test1" {
+                        if (Test-Path "variable:Value1") {
+                            throw 'variable $Value1 should not be defined in this test, 
+                            because it leaks from the previous test'
+                        }
+                    } -Data @{ Value2 = 2 }
+                    if (Test-Path "variable:Value1") {
+                    throw 'variable $Value1 should not be defined in this block, 
+                            because it leaks from the previous test'
+                    }
                 }
             }
         )

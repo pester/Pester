@@ -239,22 +239,22 @@ function New-Block {
             if ($frameworkSetupResult.Success) {
                 $result = Invoke-ScriptBlock `
                     -ScriptBlock $ScriptBlock `
-                    -OuterSetup ( combineNonNull @(
+                    -OuterSetup $( if (-not (Is-Discovery) -and $block.First) { combineNonNull @(
                             $previousBlock.OneTimeBlockSetup
-                    ) ) `
-                    -Setup ( combineNonNull @(
+                    ) }) `
+                    -Setup $( if (-not (Is-Discovery)) { combineNonNull @(
                         $previousBlock.EachBlockSetup
-                    ) ) `
-                    -Teardown ( combineNonNull @(
+                    ) } ) `
+                    -Teardown $( if (-not (Is-Discovery)) { combineNonNull @(
                         $previousBlock.EachBlockTeardown
-                    ) ) `
-                    -OuterTeardown (
-                        combineNonNull @(
+                    ) } ) `
+                    -OuterTeardown $( if (-not (Is-Discovery) -and $block.Last) { combineNonNull @(
                             $previousBlock.OneTimeBlockTeardown
-                    ) ) `
+                    ) } ) `
                     -Context @{
                         Context = $block | Select -Property Name
                     } `
+                    -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Block } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
@@ -381,6 +381,7 @@ function New-Test {
                         if ($test.Last) { $block.OneTimeTestTeardown | hasValue }
                     ) `
                     -Context $context `
+                    -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Test } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
@@ -435,8 +436,10 @@ function New-EachTestSetup {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).EachTestSetup = $ScriptBlock
+    
+    if (Is-Discovery) {
+        (Get-CurrentBlock).EachTestSetup = $ScriptBlock
+    }
 }
 
 # endpoint for adding a teardown for each test in the block
@@ -445,8 +448,10 @@ function New-EachTestTeardown {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).EachTestTeardown = $ScriptBlock
+    
+    if (Is-Discovery) {
+        (Get-CurrentBlock).EachTestTeardown = $ScriptBlock
+    }
 }
 
 # endpoint for adding a setup for all tests in the block
@@ -456,8 +461,10 @@ function New-OneTimeTestSetup {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).OneTimeTestSetup = $ScriptBlock
+    
+    if (Is-Discovery) {
+        (Get-CurrentBlock).OneTimeTestSetup = $ScriptBlock
+    }
 }
 
 # endpoint for adding a teardown for all tests in the block
@@ -467,8 +474,9 @@ function New-OneTimeTestTeardown {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).OneTimeTestTeardown = $ScriptBlock
+    if (Is-Discovery) {
+        (Get-CurrentBlock).OneTimeTestTeardown = $ScriptBlock
+    }
 }
 
 # endpoint for adding a setup for each block in the current block
@@ -477,8 +485,9 @@ function New-EachBlockSetup {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).EachBlockSetup = $ScriptBlock
+    if (Is-Discovery) {
+        (Get-CurrentBlock).EachBlockSetup = $ScriptBlock
+    }
 }
 
 # endpoint for adding a teardown for each block in the current block
@@ -487,8 +496,9 @@ function New-EachBlockTeardown {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).EachBlockTeardown = $ScriptBlock
+    if (Is-Discovery) {
+        (Get-CurrentBlock).EachBlockTeardown = $ScriptBlock
+    }
 }
 
 # endpoint for adding a setup for all blocks in the current block
@@ -498,8 +508,9 @@ function New-OneTimeBlockSetup {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).OneTimeBlockSetup = $ScriptBlock
+    if (Is-Discovery) { 
+        (Get-CurrentBlock).OneTimeBlockSetup = $ScriptBlock
+    }
 }
 
 # endpoint for adding a teardown for all clocks in the current block
@@ -509,8 +520,9 @@ function New-OneTimeBlockTeardown {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $ScriptBlock
     )
-
-    (Get-CurrentBlock).OneTimeBlockTeardown = $ScriptBlock
+    if (Is-Discovery) {
+        (Get-CurrentBlock).OneTimeBlockTeardown = $ScriptBlock
+    }
 }
 
 function Get-CurrentBlock {
@@ -706,6 +718,10 @@ function Invoke-ScriptBlock {
         [ScriptBlock[]] $Teardown,
         [ScriptBlock[]] $OuterTeardown,
         $Context = @{},
+        # define data to be shared in only in the inner scope where e.g eachTestSetup + test run but not 
+        # in the scope where OneTimeTestSetup runs, on the other hand, plugins want context
+        # in all scopes
+        [Switch] $ReduceContextToInnerScope,
         # # setup, body and teardown will all run (be-dotsourced into)
         # # the same scope
         # [Switch] $SameScope,
@@ -737,25 +753,32 @@ function Invoke-ScriptBlock {
     # is not correct,
 
     $wrapperScriptBlock = {
-        # THIS CAN RUN IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
+        # THIS RUNS (MOST OF THE TIME) IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______parameters)
-        $______splat = $______parameters.Context
-        # TODO: is this the correct place to put this, it will make the variables accessible to the 
-        # one time setup, is that what I want?
-        &$______parameters.WriteDebug "Setting context variables"
-        foreach ($p in $______splat.GetEnumerator()) {
-            &$______parameters.WriteDebug "Setting context variable '$($p.Key)' with value '$($p.Value)'"
-            New-Variable -Scope Local -Name $p.Key -Value $p.Value
-        }
 
         try {
+            if ($______parameters.ContextInOuterScope) {
+                $______outerSplat = $______parameters.Context
+                &$______parameters.WriteDebug "Setting context variables"
+                foreach ($______current in $______outerSplat.GetEnumerator()) {
+                    &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'"
+                    New-Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
+                }
+                $______current = $null
+            }
+            else {
+                $______outerSplat = @{}
+            }
+
             if ($null -ne $______parameters.OuterSetup -and $______parameters.OuterSetup.Length -gt 0) {
                 &$______parameters.WriteDebug "Running outer setups"
                 foreach ($______current in $______parameters.OuterSetup) {
                     &$______parameters.WriteDebug "Running outer setup { $______current }"
                     $______parameters.CurrentlyExecutingScriptBlock = $______current
-                    . $______current @______splat
+                    . $______current @______outerSplat
                 }
+                $______current = $null
+                $______parameters.OuterSetup = $null
                 &$______parameters.WriteDebug "Done running outer setups"
             }
             else {
@@ -764,14 +787,28 @@ function Invoke-ScriptBlock {
 
             & {
                 try {
+                    if (-not $______parameters.ContextInOuterScope) {
+                        $______innerSplat = $______parameters.Context
+                        &$______parameters.WriteDebug "Setting context variables"
+                        foreach ($______current in $______innerSplat.GetEnumerator()) {
+                            &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'"
+                            New-Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
+                        }
+                        $______current = $null
+                    }
+                    else {
+                        $______innerSplat = $______outerSplat
+                    }
 
                     if ($null -ne $______parameters.Setup -and $______parameters.Setup.Length -gt 0) {
                         &$______parameters.WriteDebug "Running inner setups"
                         foreach ($______current in $______parameters.Setup) {
                             &$______parameters.WriteDebug "Running inner setup { $______current }"
                             $______parameters.CurrentlyExecutingScriptBlock = $______current
-                            . $______current @______splat
+                            . $______current @______innerSplat
                         }
+                        $______current = $null
+                        $______parameters.Setup = $null
                         &$______parameters.WriteDebug "Done running inner setups"
                     }
                     else {
@@ -779,7 +816,7 @@ function Invoke-ScriptBlock {
                     }
 
                     &$______parameters.WriteDebug "Running scriptblock"
-                    . $______parameters.ScriptBlock @______splat
+                    . $______parameters.ScriptBlock @______innerSplat
                     &$______parameters.WriteDebug "Done running scriptblock"
                 }
                 catch {
@@ -787,13 +824,18 @@ function Invoke-ScriptBlock {
                     &$______parameters.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {
+                    # if ((Test-Path 'Variable:$_________teardown2')) { 
+                    #     # soo we are running the block setup in the same scope as
+                    #     # the test setup 
+                    #     $______parameters.Teardown = $_________teardown2
+                    # }
                     if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
                         &$______parameters.WriteDebug "Running inner teardowns"
                         foreach ($______current in $______parameters.Teardown) {
                             try {
                                 &$______parameters.WriteDebug "Running inner teardown { $______current }"
                                 $______parameters.CurrentlyExecutingScriptBlock = $______current
-                                . $______current @______splat
+                                . $______current @______innerSplat
                                 &$______parameters.WriteDebug "Done running inner teardown"
                             }
                             catch {
@@ -801,6 +843,19 @@ function Invoke-ScriptBlock {
                                 &$______parameters.WriteDebug "Fail running inner teardown"
                             }
                         }
+                        $______current = $null
+
+                        # this would also be needed for no new scope so we can do two different 
+                        # teardowns while this code in the middle again (which rewrites the teardown
+                        # value in the object)
+                        # if (-not (Test-Path 'Variable:$_________teardown2')) { 
+                        #     $_________teardown2 = $Teardown
+                        # }
+
+                        # nulling this variable is important when we run without new scope
+                        # then $______parameters.Teardown remains set and EachBlockTeardown
+                        # runs twice
+                        $______parameters.Teardown = $null
                         &$______parameters.WriteDebug "Done running inner teardowns"
                     }
                     else {
@@ -817,7 +872,7 @@ function Invoke-ScriptBlock {
                     try {
                         &$______parameters.WriteDebug "Running outer teardown { $______current }"
                         $______parameters.CurrentlyExecutingScriptBlock = $______current
-                        . $______current @______splat
+                        . $______current @______outerSplat
                         &$______parameters.WriteDebug "Done running outer teardown"
                     }
                     catch {
@@ -825,6 +880,8 @@ function Invoke-ScriptBlock {
                         $______parameters.ErrorRecord += $_
                     }
                 }
+                $______parameters.OuterTeardown = $null
+                $______current = $null
                 &$______parameters.WriteDebug "Done running outer teardowns"
             }
             else {
@@ -855,7 +912,8 @@ function Invoke-ScriptBlock {
             CurrentlyExecutingScriptBlock = $null
             ErrorRecord = @()
             Context = $Context
-            WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Blue $Message }
+            ContextInOuterScope = -not $ReduceContextToInnerScope
+            WriteDebug =  {} #{ param( $Message )  Write-Host -ForegroundColor Blue $Message }
         }
 
         # here we are moving into the user scope if the provided
@@ -1405,7 +1463,7 @@ function Add-FrameworkDependency {
     # this should be rarely needed, but is useful when you wrap Pester pieces 
     # into your own functions, and want to have them available during both 
     # discovery and execution
-    Write-Host "Adding framework dependency '$Denedency'" -ForegroundColor Yellow
+    Write-Host "Adding framework dependency '$Dependency'" -ForegroundColor Yellow
     Import-Dependency -Dependency $Dependency -SessionState $SessionState
 }
 
@@ -1420,8 +1478,8 @@ function Add-Dependency {
 
 
     # adds dependency that is dotsourced after discovery and before execution
-    if (-not $state.Discovery) { 
-        Write-Host "Adding dependency '$Denedency'" -ForegroundColor Yellow
+    if (-not (Is-Discovery)) { 
+        Write-Host "Adding run-time dependency '$Depenedency'" -ForegroundColor Yellow
         Import-Dependency -Dependency $Dependency -SessionState $SessionState
     }
 }
@@ -1438,7 +1496,7 @@ function Add-FreeFloatingCode {
     # only during execution and not twice. works the same as Add-Dependency, but I name
     # it differently because this is a bad-practice mitigation tool and should probably
     # write a warning to make you use Before* blocks instead
-    if (-not $state.Discovery) { 
+    if (-not (Is-Discovery)) { 
         Write-Host Invoking free floating piece of code -ForegroundColor Yellow
         Import-Dependency $Dependency
     }
