@@ -1,170 +1,91 @@
-# Pester
+# Pester v5 - alpha1
 
-> 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10. 
+> 🐛 This is branch for pre-release, use at your own risk.
 
->👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) aimed at issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed before. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.      
-> There is also [contributor's guide](https://github.com/pester/Pester/wiki/Contributing-to-Pester) that will hopefully help you. 
+## What is new?
 
-Pester is the ubiquitous test and mock framework for PowerShell.
+### Test discovery
+
+Pester `Describe` and `It` are, and always were just plain PowerShell functions that all connect to one shared internal state. This is a great thing for extensibility, because it allows you to wrap them into `foreach`es, `if`s and your own `function`s to customize how they work. BUT at the same time it prevents Pester from knowing which `Describe`s and `It`s there are before execution. This makes test filtering options very limited and inefficient. 
+
+To give you an example of how bad it is imagine having 100 test files, each of them does some setup at the start to make sure the tests can run. In 1 of those 100 files is a `Describe` block with tag "RunThis". Invoking Pester with tag filter "RunThis", means that all 100 files will run, do their setup, and then end because their `Describe` does not have tag "RunThis". So if every setup took just 100ms, we would run for 10s instead of <1s.
+
+And this only get's worse if we start talking about filtering on `It` level. Having 1000 tests, and running only 1 of them, still means running setups and teardowns of all 1000 tests, just to be able to run 1 of them. (And I am talking only about time, but of course there is also a lot of wasted computation involved.)
+
+Obviously a better solution is needed, so to make this more efficient, Pester now runs every file TWICE. 😃
+
+On the first pass, let's call it `Discovery` phase, all `Describe`s are executed, and all `It`s, `Before*`s and `After*`s are saved. This gives back a hierarchical model of all the tests there are without actually executing anything (more on that later). This object is then inspected and filter is evaluated on every `It`, to see if it `ShouldRun`. This `ShouldRun` is then propagated upwards, to the `Describe`, it's parent `Describe` and finally to the file level. 
+
+Then the second pass, let's call this one `Run` phase, filters down to only files that have any tests to run, then further checks on every `Describe` block and `It` if it should run. Effectively running `Before*` and `After*` only where there is an `It` that will run. 
+
+Given the same example as above we would do a first quick pass, and then run just 1 setup out of 100 (or 1000), cutting the execution time down significantly to the time of how long it takes to discover the tests + 1 setup execution.
+
+Now you are probably thinking: But the files still run at least once, and even worse some of them run twice so how it can be faster? So here is the catch: You need to put all your stuff in Pester controlled blocks. Here is an example:
 
 ```powershell
-# your function
-function Get-Planet ([string]$Name='*')
-{
-  $planets = @(
-    @{ Name = 'Mercury' }
-    @{ Name = 'Venus'   }
-    @{ Name = 'Earth'   }
-    @{ Name = 'Mars'    }
-    @{ Name = 'Jupiter' }
-    @{ Name = 'Saturn'  }
-    @{ Name = 'Uranus'  }
-    @{ Name = 'Neptune' }
-  ) | foreach { [PSCustomObject]$_ }
+. $PSScriptRoot\Get-Pokemon.ps1
 
-  $planets | where { $_.Name -like $Name }
-}
+Describe "Get pikachu by Get-Pokemon from the real api" {
 
-# Pester tests
-Describe 'Get-Planet' {
-  It "Given no parameters, it lists all 8 planets" {
-    $allPlanets = Get-Planet
-    $allPlanets.Count | Should -Be 8
-  }
+    $pikachu = Get-Pokemon -Name pikachu
 
-  Context "Filtering by Name" {
-    It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
-      @{ Filter = 'Earth'; Expected = 'Earth' }
-      @{ Filter = 'ne*'  ; Expected = 'Neptune' }
-      @{ Filter = 'ur*'  ; Expected = 'Uranus' }
-      @{ Filter = 'm*'   ; Expected = 'Mercury', 'Mars' }
-    ) {
-      param ($Filter, $Expected)
-
-      $planets = Get-Planet -Name $Filter
-      $planets.Name | Should -Be $Expected
+    It "has correct Name" -Tag IntegrationTest {
+        $pikachu.Name | Should -Be "pikachu"
     }
 
-    It "Given invalid parameter -Name 'Alpha Centauri', it returns `$null" {
-      $planets = Get-Planet -Name 'Alpha Centauri'
-      $planets | Should -Be $null
+    It "has correct Type" -Tag IntegrationTest {
+        $pikachu.Type | Should -Be "electric"
     }
-  }
-}
-```
 
-This code example lies a tiny bit, [find it annotated and production ready here](Examples/Planets).
+    It "has correct Weight" -Tag IntegrationTest {
+        $pikachu.Weight | Should -Be 60
+    }
 
-Learn more about the [usage and syntax](https://github.com/Pester/Pester/wiki) on our wiki.
-
-## Installation
-
-Pester is compatible with Windows PowerShell 2.x - 5.x on Windows 10, 8, 7, Vista and even 2003.
-Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Windows, Linux, macOS but with some [limitations](https://github.com/pester/Pester/wiki/Pester-on-PSCore-limitations).
-
-Pester comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
-
-```powershell
-Install-Module -Name Pester -Force
-```
-
-Not running Windows 10 or facing problems? See the [full installation and update guide](https://github.com/pester/Pester/wiki/Installation-and-Update).
-
-## Features
-
-### Test runner
-
-Pester runs your tests and prints a nicely formatted output to the screen.
-
-![test run output](doc/readme/output.PNG)
-
-Command line output is not the only output option, Pester also integrates with Visual Studio Code, Visual Studio, and any tool that can consume nUnit XML output.
-
-### Assertions
-
-Pester comes with a suite of assertions that cover a lot of common use cases. Pester assertions range from very versatile, like `Should -Be`, to specialized like `Should -Exists`. Here is how you ensure that a file exists:
-
-```powershell
-Describe 'Notepad' {
-    It 'Exists in Windows folder' {
-        'C:\Windows\notepad.exe' | Should -Exist
+    It "has correct Height" -Tag IntegrationTest {
+        $pikachu.Height | Should -Be 4
     }
 }
 ```
 
-Learn more about assertion on [our wiki](https://github.com/pester/Pester/wiki/Should).
-
-### Mocking
-
-Pester has mocking built-in. Using mocks you can easily replace functions with empty implementation to avoid changing the real environment.
+This integration test dot-sources (imports) the SUT on the top, and then in the body of the `Describe` it makes a call to external web API. Both the dot-sourcing and the call are not controlled by Pester, and would be invoked twice, once on `Discovery` and once on `Run`. To fix this we use a new Pester function `Add-Dependency` to import the SUT only during `Run`, and then put the external call to `BeforeAll` block to run it only when any test in the containing `Describe` will run.
 
 ```powershell
-function Remove-Cache {
-    Remove-Item "$env:TEMP\cache.txt"
-}
+Add-Dependency $PSScriptRoot\Get-Pokemon.ps1
 
-Describe 'Remove-Cache' {
-    It 'Removes cached results from temp\cache.text' {
-        Mock -CommandName Remove-Item -MockWith {}
+Describe "Get pikachu by Get-Pokemon from the real api" {
 
-        Remove-Cache
+    BeforeAll {
+        $pikachu = Get-Pokemon -Name pikachu
+    }
 
-        Assert-MockCalled -CommandName Remove-Item -Times 1 -Exactly
+    It "has correct Name" -Tag IntegrationTest {
+        $pikachu.Name | Should -Be "pikachu"
+    }
+
+    It "has correct Type" -Tag IntegrationTest {
+        $pikachu.Type | Should -Be "electric"
+    }
+
+    It "has correct Weight" -Tag IntegrationTest {
+        $pikachu.Weight | Should -Be 60
+    }
+
+    It "has correct Height" -Tag IntegrationTest {
+        $pikachu.Height | Should -Be 4
     }
 }
 ```
 
-Learn more [about Mocking here](https://github.com/pester/Pester/wiki/Mock).
+This makes everything controlled by Pester and we can happily run `Discovery` on this file without invoking anything extra. [Try it out for yourself](https://github.com/nohwnd/Pester/tree/new-runtime/demo). 
 
-### Code coverage
+### What does this mean for the future? 
 
-Pester can measure how much of your code is covered by tests and export it to JaCoCo format that is easily understood by build servers.
+This opens up a whole slew of new possibilities:
 
-![JaCoCo code coverage report](doc/readme/jacoco.PNG)
+- filtering on test level
+- re-running failed tests
+- forcing just a single test in whole suite to run by putting a parameter like `-DebuggingThis` on it
+- detecting changes in files and only running what changed
+- ...
 
-Learn more about [code coverage here](https://github.com/pester/Pester/wiki/Code-Coverage).
-
-### Build server integration
-
-Pester integrates nicely with TFS, AppVeyor, TeamCity, Jenkins and other CI servers.
-
-Testing your scripts, and all pull requests on AppVeyor is extremely simple. Just commit this `appveyor.yml` file to your repository, and select your repository on the AppVeyor website:
-
-```yml
-version: 1.0.{build}
-image:
-- Visual Studio 2017
-- Ubuntu
-install:
-- ps: Install-Module Pester -Force -Scope CurrentUser
-build: off
-test_script:
-- ps: Invoke-Pester -EnableExit
-```
-
-See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
-If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
-
-Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
-
-[![PowerShell 2 & 3](https://nohwnd.visualstudio.com/Pester/_apis/build/status/PowerShell%202%20&%203?branchName=master)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6?branchName=master)
-[![PowerShell 4, 5 & Core on Windows build](https://ci.appveyor.com/api/projects/status/dr0w3hwb2wncfov3?svg=true)](https://ci.appveyor.com/project/nohwnd/pester)
-
- [![Linux & MacOS build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
-[![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester)
-[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
-
-
-## Further reading
-
-Do you like what you see? Learn how to use Pester with our [wiki guide](https://github.com/Pester/Pester/wiki), and continue with some of the other [resources](https://github.com/pester/Pester/wiki/Articles-and-other-resources).
-
-## Got questions?
-
-Got questions or you just want to get in touch? Use our issues page or one of these channels:
-
-[![Pester Twitter](doc/readme/twitter-64.PNG)](https://twitter.com/PSPester)
-[![Pester on StackOverflow](doc/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
-[![Testing channel on Powershell Slack](doc/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
-[![Pester Gitter](doc/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Pester on PowerShell.org](doc/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
+###
