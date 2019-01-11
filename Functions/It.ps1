@@ -110,6 +110,8 @@ about_should
 
         [System.Collections.IDictionary[]] $TestCases,
 
+        [String[]] $Tag,
+
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
 
@@ -118,7 +120,13 @@ about_should
         [Switch] $Skip
     )
 
-    ItImpl -Pester $pester -OutputScriptBlock ${function:Write-PesterResult} @PSBoundParameters
+    
+    if (any $TestCases) {
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag
+    }
+    else {
+        Pester.Runtime\New-Test -Name $Name -ScriptBlock $Test -Tag $Tag
+    }
 }
 
 function ItImpl {

@@ -73,146 +73,186 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference)) {
-        # User has executed a test script directly instead of calling Invoke-Pester
-        Remove-MockFunctionsAndAliases
-        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
-        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
-        $script:mockTable = @{}
-    }
+    $AttachedData =
+    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData @{ CommandUsed = "Describe" }
 
-    DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
+    ### TODO: let's not focus on the interactive mode right now
+    # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    # {
+
+    #     # User has executed a test script directly instead of calling Invoke-Pester
+    #     Remove-MockFunctionsAndAliases
+    #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
+
+
+    #     Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -AttachedData $AttachedData })
+    # }
+    # else {
+    #     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData $AttachedData
+    # }
+    ### todo end
+
+    # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
+    # {
+    #     # User has executed a test script directly instead of calling Invoke-Pester
+    #     Remove-MockFunctionsAndAliases
+    #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
+    #     $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
+    #     $script:mockTable = @{}
+    # }
+
+    # if ($Pester.FindCodeCoverage)
+    # {
+    #     foreach($cc in $CodeCoverage)
+    #     {
+    #         $Pester.CodeCoverage += $cc
+    #     }
+    # }
+    # else
+    # {
+    #     DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
+    # }
 }
 
-function DescribeImpl {
-    param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string] $Name,
+# function DescribeImpl {
+#     param(
+#         [Parameter(Mandatory = $true, Position = 0)]
+#         [string] $Name,
 
-        [Alias('Tags')]
-        $Tag = @(),
+#         [Alias('Tags')]
+#         $Tag=@(),
 
-        [Parameter(Position = 1)]
-        [ValidateNotNull()]
-        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+#         [object[]] $CodeCoverage = @(),
 
-        [string] $CommandUsed = 'Describe',
+#         [Parameter(Position = 1)]
+#         [ValidateNotNull()]
+#         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
 
-        $Pester,
+#         [string] $CommandUsed = 'Describe',
 
-        [scriptblock] $DescribeOutputBlock,
+#         $Pester,
 
-        [scriptblock] $TestOutputBlock,
+#         [scriptblock] $DescribeOutputBlock,
 
-        [switch] $NoTestDrive,
+#         [scriptblock] $TestOutputBlock,
 
-        [switch] $NoTestRegistry
-    )
+#         [switch] $NoTestDrive,
 
-    Assert-DescribeInProgress -CommandName $CommandUsed
+#         [switch] $NoTestRegistry
+#     )
 
-    if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
-        (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1)) {
-        if ($Pester.TestNameFilter -and $Name) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name)) {
-                return
-            }
-        }
-        if ($Pester.TagFilter) {
-            if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
-                return
-            }
-        }
+#     Assert-DescribeInProgress -CommandName $CommandUsed
 
-        if ($Pester.ExcludeTagFilter) {
-            if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
-                return
-            }
-        }
-    }
-    else {
-        if ($PSBoundParameters.ContainsKey('Tag')) {
-            Write-Warning "${CommandUsed} '$Name': Tags are only effective on the outermost test group, for now."
-        }
-    }
+#     if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
+#         (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
+#     {
+#         if ($Pester.TestNameFilter -and $Name)
+#         {
+#             if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name))
+#             {
+#                 return
+#             }
+#         }
+#         if ($Pester.TagFilter) {
+#             if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
+#             {
+#                 return
+#             }
+#         }
 
-    $Pester.EnterTestGroup($Name, $CommandUsed)
+#         if ($Pester.ExcludeTagFilter) {
+#             if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
+#                 return
+#             }
+#         }
+#     }
+#     else
+#     {
+#         if ($PSBoundParameters.ContainsKey('Tag'))
+#         {
+#             Write-Warning "${CommandUsed} '$Name': Tags are only effective on the outermost test group, for now."
+#         }
+#     }
 
-    if ($null -ne $DescribeOutputBlock) {
-        & $DescribeOutputBlock $Name $CommandUsed
-    }
+#     $Pester.EnterTestGroup($Name, $CommandUsed)
 
-    $testDriveAdded = $false
-    $testRegistryAdded = $false
-    try {
-        try {
-            if (-not $NoTestDrive) {
-                if (-not (Test-Path TestDrive:\)) {
-                    New-TestDrive
-                    $testDriveAdded = $true
-                }
-                else {
-                    $TestDriveContent = Get-TestDriveChildItem
-                }
-            }
+#     if ($null -ne $DescribeOutputBlock)
+#     {
+#         & $DescribeOutputBlock $Name $CommandUsed
+#     }
 
-            if (-not $NoTestRegistry) {
-                if (-not (Test-Path TestRegistry:\)) {
-                    New-TestRegistry
-                    $testRegistryAdded = $true
-                }
-                else {
-                    $TestRegistryContent = Get-TestRegistryChildItem
-                }
-            }
+#     $testRegistryAdded = $false
+#     try
+#     {
+#         try
+#         {
+#
+#             if (-not $NoTestRegistry)
+#             {
+#                 if (-not (Test-Path TestRegistry:\))
+#                 {
+#                     New-TestRegistry
+#                     $testRegistryAdded = $true
+#                 }
+#                 else
+#                 {
+#                     $TestRegistryContent = Get-TestRegistryChildItem
+#                 }
+#             }
 
-            Add-SetupAndTeardown -ScriptBlock $Fixture
-            Invoke-TestGroupSetupBlocks
+#             Add-SetupAndTeardown -ScriptBlock $Fixture
+#             Invoke-TestGroupSetupBlocks
 
-            do {
-                Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
-                $null = & $Fixture
-            } until ($true)
-        }
-        finally {
-            Invoke-TestGroupTeardownBlocks
+#             do
+#             {
+#                 Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
+#                 $null = & $Fixture
+#             } until ($true)
+#         }
+#         finally
+#         {
+#             Invoke-TestGroupTeardownBlocks
 
-            if (-not $NoTestDrive) {
-                if ($testDriveAdded) {
-                    Remove-TestDrive
-                }
-                else {
-                    Clear-TestDrive -Exclude ($TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
-                }
-            }
+#
 
-            if (-not $NoTestRegistry) {
-                if ($testRegistryAdded) {
-                    Remove-TestRegistry
-                }
-                else {
-                    Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
-                }
-            }
-        }
-    }
-    catch {
-        $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split "$([System.Environment]::NewLine)" | & $SafeCommands['Select-Object'] -First 1
-        $Pester.AddTestResult("Error occurred in $CommandUsed block", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-        if ($null -ne $TestOutputBlock) {
-            & $TestOutputBlock $Pester.TestResult[-1]
-        }
-    }
+#             if (-not $NoTestRegistry)
+#             {
+#                 if ($testRegistryAdded)
+#                 {
+#                     Remove-TestRegistry
+#                 }
+#                 else
+#                 {
+#                     Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
+#                 }
+#             }
+#         }
+#     }
+#     catch
+#     {
+#         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split "$([System.Environment]::NewLine)" | & $SafeCommands['Select-Object'] -First 1
+#         $Pester.AddTestResult("Error occurred in $CommandUsed block", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+#         if ($null -ne $TestOutputBlock)
+#         {
+#             & $TestOutputBlock $Pester.TestResult[-1]
+#         }
+#     }
 
-    Exit-MockScope
+#     Exit-MockScope
 
-    $Pester.LeaveTestGroup($Name, $CommandUsed)
-}
+#     $Pester.LeaveTestGroup($Name, $CommandUsed)
+# }
 
-# Name is now misleading; rename later.  (Many files touched to change this.)
+
 function Assert-DescribeInProgress {
-    param ($CommandName)
-    if ($null -eq $Pester) {
-        throw "The $CommandName command may only be used from a Pester test script."
-    }
+    # TODO: Enforce block structure in the Runtime.Pester if needed, in the meantime this is just a placeholder
 }
+# # Name is now misleading; rename later.  (Many files touched to change this.)
+# function Assert-DescribeInProgress
+# {
+#     param ($CommandName)
+#     if ($null -eq $Pester)
+#     {
+#         throw "The $CommandName command may only be used from a Pester test script."
+#     }
+# }
