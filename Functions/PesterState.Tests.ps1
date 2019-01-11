@@ -96,7 +96,7 @@ InModuleScope Pester {
                 <#
                      Invoking the add test result with the typical value of $null for ticks which should mean that
                         the time of the test is automatically recorded as the time between the start of the test
-                        and the finish of the test which should also match the time we recorded using the 
+                        and the finish of the test which should also match the time we recorded using the
                         Measure-Command
                 #>
                 $p.AddTestResult("result","Passed",$null)
@@ -110,7 +110,7 @@ InModuleScope Pester {
                 $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
             }
 
-            it "times test groups accurately within 10 milliseconds" {
+            it "times test groups accurately within 15 milliseconds" {
 
                 # Simulating and collecting the time a single 'Describe' test group and single test
                 $Time = Measure-Command -Expression {
@@ -133,7 +133,7 @@ InModuleScope Pester {
                     <#
                      Invoking the add test result with the typical value of $null for ticks which should mean that
                         the time of the test is automatically recorded as the time between the start of the test
-                        and the finish of the test which should also match the time we recorded using the 
+                        and the finish of the test which should also match the time we recorded using the
                         Measure-Command
                     #>
                     $p.AddTestResult("result","Passed",$null)
@@ -148,10 +148,10 @@ InModuleScope Pester {
                 # Getting the last test group result
                 $result = $p.TestGroupStack.peek().Actions[-1]
 
-                # The time recorded as taken during the test should be within + or - 10 milliseconds of the time we
+                # The time recorded as taken during the test should be within + or - 15 milliseconds of the time we
                 #   recorded using Measure-Command
-                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
-                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
+                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-15)
+                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+15)
             }
 
             it "accurately increments total testsuite time within 10 milliseconds" {
@@ -182,7 +182,7 @@ InModuleScope Pester {
                     <#
                      Invoking the add test result with the typical value of $null for ticks which should mean that
                         the time of the test is automatically recorded as the time between the start of the test
-                        and the finish of the test which should also match the time we recorded using the 
+                        and the finish of the test which should also match the time we recorded using the
                         Measure-Command
                     #>
                     $p.AddTestResult("result","Passed",$null)
