@@ -2,8 +2,7 @@ $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 $baseDir = $PSScriptRoot
 
-try
-{
+try {
     $buildDir = "$baseDir\build\psgallery\Pester"
     $null = New-Item -Path $buildDir -ItemType Directory -Verbose
 
@@ -21,8 +20,7 @@ try
     Write-Verbose 'Copy complete. Contents:'
     Get-ChildItem $buildDir -Recurse | Out-Host
 }
-catch
-{
+catch {
     Write-Error -ErrorRecord $_
     exit 1
 }

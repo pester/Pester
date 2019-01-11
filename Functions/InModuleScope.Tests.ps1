@@ -20,8 +20,12 @@ Describe "Module scope separation" {
 
 Describe "Executing test code inside a module" {
     New-Module -Name TestModule {
-        function InternalFunction { 'I am the internal function' }
-        function PublicFunction   { InternalFunction }
+        function InternalFunction {
+            'I am the internal function'
+        }
+        function PublicFunction {
+            InternalFunction
+        }
         Export-ModuleMember -Function PublicFunction
     } | Import-Module -Force
 
@@ -61,8 +65,8 @@ Describe "Get-ScriptModule behavior" {
         It "should throw an exception" {
             {
                 Mock -CommandName "Invoke-MyMethod" `
-                     -ModuleName  "MyNonExistentModule" `
-                     -MockWith    { write-host "my mock called!" }
+                    -ModuleName  "MyNonExistentModule" `
+                    -MockWith { write-host "my mock called!" }
             } | Should Throw "No module named 'MyNonExistentModule' is currently loaded."
         }
 

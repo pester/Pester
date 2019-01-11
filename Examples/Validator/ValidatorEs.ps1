@@ -4,7 +4,7 @@ function MiValidator($thing_to_validate) {
 
 function Invoke-SomethingThatUsesMiValidator {
     param(
-        [ValidateScript({MiValidator $_})]
+        [ValidateScript( {MiValidator $_})]
         $some_param
     )
 }

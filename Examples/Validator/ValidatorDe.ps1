@@ -4,7 +4,7 @@ function MeinValidator($thing_to_validate) {
 
 function Invoke-SomethingThatUsesMeinValidator {
     param(
-        [ValidateScript({MeinValidator $_})]
+        [ValidateScript( {MeinValidator $_})]
         $some_param
     )
 }

@@ -21,7 +21,9 @@ Describe 'Testing Describe' {
 InModuleScope Pester {
     Describe 'Describe - Implementation' {
         # Function / mock used for call history tracking and assertion purposes only.
-        function MockMe { param ($Name) }
+        function MockMe {
+            param ($Name)
+        }
         Mock MockMe
 
         BeforeEach {
@@ -96,8 +98,8 @@ InModuleScope Pester {
 
             $cases = @(
                 @{ Name = 'TestOneTest'; Description = 'matches a wildcard' }
-                @{ Name = 'Test Two';    Description = 'matches exactly' }
-                @{ Name = 'test two';    Description = 'matches ignoring case' }
+                @{ Name = 'Test Two'; Description = 'matches exactly' }
+                @{ Name = 'test two'; Description = 'matches ignoring case' }
             )
 
             It -TestCases $cases 'Calls the test block when the test name <Description>' {
@@ -140,7 +142,7 @@ InModuleScope Pester {
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it does not run the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
+                @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 
@@ -175,7 +177,7 @@ InModuleScope Pester {
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it runs the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
+                @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 

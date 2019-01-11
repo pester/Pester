@@ -4,15 +4,20 @@ $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 
 $multiLanguageTestData = @{
     'en' = @{ namedScenario = 'When something uses MyValidator'; additionalSteps = 4; additionalScenarios = 2 }
-    'es' = @{ namedScenario = 'Algo usa MiValidator';            additionalSteps = 0; additionalScenarios = 0 }
-    'de' = @{ namedScenario = 'Etwas verwendet MeinValidator';   additionalSteps = 0; additionalScenarios = 0 }
+    'es' = @{ namedScenario = 'Algo usa MiValidator'; additionalSteps = 0; additionalScenarios = 0 }
+    'de' = @{ namedScenario = 'Etwas verwendet MeinValidator'; additionalSteps = 0; additionalScenarios = 0 }
 }
 
 foreach ($data in $multiLanguageTestData.GetEnumerator()) {
 
     $language = $data.Key
     $featureTestData = $data.Value
-    $fileExtra = if ($language -ne 'en') { ".$language" } else { '' }
+    $fileExtra = if ($language -ne 'en') {
+        ".$language"
+    }
+    else {
+        ''
+    }
     $fileName = "Validator$fileExtra.feature"
 
     Describe "Invoke-Gherkin $fileName ($language)" -Tag Gherkin {
@@ -104,7 +109,7 @@ Describe "Gherkin Before Feature" -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results       = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-Background.feature) -PassThru -Show None
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-Background.feature) -PassThru -Show None
         }
     }
 
@@ -201,11 +206,9 @@ Scenario: The test data should be converted properly
                 );
                 $actualTable = $NamedArguments.Table;
                 $actualTable.Length | Should -Be $expectedTable.Length;
-                for( $i = 0; $i -lt $expectedTable.Length; $i++ )
-                {
+                for ( $i = 0; $i -lt $expectedTable.Length; $i++ ) {
                     $expectedTable[$i].Keys.Count | Should -Be $actualTable[$i].Keys.Count;
-                    foreach( $key in $expectedTable[$i].Keys )
-                    {
+                    foreach ( $key in $expectedTable[$i].Keys ) {
                         $key | Should -BeIn $actualTable[$i].Keys;
                         $actualTable[$i][$key] | Should -Be $expectedTable[$i][$key];
                     }
@@ -252,11 +255,9 @@ Scenario: The test data should be converted properly
                 );
                 $actualTable = $NamedArguments.Table;
                 $actualTable.Length | Should -Be $expectedTable.Length;
-                for( $i = 0; $i -lt $expectedTable.Length; $i++ )
-                {
+                for ( $i = 0; $i -lt $expectedTable.Length; $i++ ) {
                     $expectedTable[$i].Keys.Count | Should -Be $actualTable[$i].Keys.Count;
-                    foreach( $key in $expectedTable[$i].Keys )
-                    {
+                    foreach ( $key in $expectedTable[$i].Keys ) {
                         $key | Should -BeIn $actualTable[$i].Keys;
                         $actualTable[$i][$key] | Should -Be $expectedTable[$i][$key];
                     }
@@ -412,7 +413,8 @@ Describe "A generated NUnit report" -Tag Gherkin {
     [xml] $nUnitReportXml = $null
     try {
         $nUnitReportXml = Get-Content -Path $reportFile
-    } catch {
+    }
+    catch {
         # Will be evaluated below
     }
 

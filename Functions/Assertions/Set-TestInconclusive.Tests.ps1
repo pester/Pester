@@ -9,8 +9,11 @@ Describe "Ensuring Set-TestInconclusive is deprecated" {
             if (-not($PSVersionTable.PSVersion.Major -eq 2)) {
                 It "Set-TestInconclusive calls Set-ItResult internally" {
                     Mock Set-ItResult { }
-                    try { Set-TestInconclusive }
-                    catch {}
+                    try {
+                        Set-TestInconclusive
+                    }
+                    catch {
+                    }
                     Assert-MockCalled Set-ItResult -ParameterFilter { $Inconclusive -eq $true }
                 }
             }
