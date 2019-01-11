@@ -8,8 +8,7 @@ $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 $baseDir = $PSScriptRoot
 
-try
-{
+try {
     $buildDir = "$baseDir\build\psgallery\Pester"
     Write-Verbose 'Importing PowerShellGet module'
     $psGet = Import-Module PowerShellGet -PassThru -Verbose:$false
@@ -18,8 +17,7 @@ try
     Write-Host 'Publishing module to PowerShellGet'
     $null = Publish-Module -Path $buildDir -NuGetApiKey $ApiKey -Confirm:$false
 }
-catch
-{
+catch {
     Write-Error -ErrorRecord $_
     exit 1
 }

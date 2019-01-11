@@ -1,6 +1,5 @@
-function InModuleScope
-{
-<#
+function InModuleScope {
+    <#
 .SYNOPSIS
    Allows you to execute parts of a test script within the
    scope of a PowerShell script module.
@@ -61,8 +60,7 @@ function InModuleScope
         $ScriptBlock
     )
 
-    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
-    {
+    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference)) {
         # User has executed a test script directly instead of calling Invoke-Pester
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in InModuleScope" -SessionState $PSCmdlet.SessionState
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $sessionState
@@ -74,60 +72,51 @@ function InModuleScope
     $originalState = $Pester.SessionState
     $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
 
-    try
-    {
+    try {
         $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
         $Pester.SessionState = $sessionState
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
 
-        do
-        {
+        do {
             Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
             & $ScriptBlock
         } until ($true)
     }
-    finally
-    {
+    finally {
         $Pester.SessionState = $originalState
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope
     }
 }
 
-function Get-ScriptModule
-{
+function Get-ScriptModule {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
         [string] $ModuleName
     )
 
-    try
-    {
+    try {
         $modules = @(& $SafeCommands['Get-Module'] -Name $ModuleName -All -ErrorAction Stop)
     }
-    catch
-    {
+    catch {
         throw "No module named '$ModuleName' is currently loaded."
     }
 
     $scriptModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -eq 'Script' })
 
-    if ($modules.Count -eq 0)
-    {
+    if ($modules.Count -eq 0) {
         throw "No module named '$ModuleName' is currently loaded."
     }
 
-    if ($scriptModules.Count -gt 1)
-    {
+    if ($scriptModules.Count -gt 1) {
         throw "Multiple Script modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
     }
 
-    if ($scriptModules.Count -eq 0)
-    {
+    if ($scriptModules.Count -eq 0) {
         $actualTypes = @(
             $modules |
-            & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
-            & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
+                & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
+                & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
         )
 
         $actualTypes = $actualTypes -join ', '
