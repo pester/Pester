@@ -70,7 +70,7 @@ InModuleScope Pester {
             $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
             $testResults.LeaveTestGroup('Mocked Describe', 'Describe')
 
-            $TestGroup = $testResults.TestGroupStack.peek().Actions[-1]
+            $TestGroup = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
 
             Set-PesterStatistics -Node $TestResults.TestActions
 
@@ -97,14 +97,14 @@ InModuleScope Pester {
             $TestResults.LeaveTest()
             $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
             $TestResults.LeaveTestGroup('Describe #1', 'Describe')
-            $Describe1 = $testResults.TestGroupStack.peek().Actions[-1]
+            $Describe1 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
             $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.EnterTest()
             Start-Sleep -Milliseconds 200
             $TestResults.LeaveTest()
             $TestResults.AddTestResult("Failed testcase", 'Failed', $null)
             $TestResults.LeaveTestGroup('Describe #2', 'Describe')
-            $Describe2 = $testResults.TestGroupStack.peek().Actions[-1]
+            $Describe2 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
 
             Set-PesterStatistics -Node $TestResults.TestActions
 

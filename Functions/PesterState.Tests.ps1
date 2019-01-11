@@ -99,15 +99,15 @@ InModuleScope Pester {
                         and the finish of the test which should also match the time we recorded using the
                         Measure-Command
                 #>
-                $p.AddTestResult("result","Passed",$null)
+                $p.AddTestResult("result", "Passed", $null)
 
                 # Getting the last test result which was added by the AddTestResult method
                 $result = $p.TestResult[-1]
 
                 # The time recorded as taken during the test should be within + or - 10 milliseconds of the time we
                 #   recorded using Measure-Command
-                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
-                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
+                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds - 10)
+                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds + 10)
             }
 
             it "times test groups accurately within 15 milliseconds" {
@@ -136,7 +136,7 @@ InModuleScope Pester {
                         and the finish of the test which should also match the time we recorded using the
                         Measure-Command
                     #>
-                    $p.AddTestResult("result","Passed",$null)
+                    $p.AddTestResult("result", "Passed", $null)
 
                     # Sleeping to simulate teardown time
                     Start-Sleep -Milliseconds 100
@@ -146,12 +146,12 @@ InModuleScope Pester {
                 }
 
                 # Getting the last test group result
-                $result = $p.TestGroupStack.peek().Actions[-1]
+                $result = $p.TestGroupStack.peek().Actions.ToArray()[-1]
 
                 # The time recorded as taken during the test should be within + or - 15 milliseconds of the time we
                 #   recorded using Measure-Command
-                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-15)
-                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds+15)
+                $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds - 15)
+                $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds + 15)
             }
 
             it "accurately increments total testsuite time within 10 milliseconds" {
@@ -185,7 +185,7 @@ InModuleScope Pester {
                         and the finish of the test which should also match the time we recorded using the
                         Measure-Command
                     #>
-                    $p.AddTestResult("result","Passed",$null)
+                    $p.AddTestResult("result", "Passed", $null)
 
                     # Sleeping to simulate teardown time
                     Start-Sleep -Milliseconds 100
@@ -203,8 +203,8 @@ InModuleScope Pester {
 
                 # The time recorded as taken during the test group should be within + or - 10 milliseconds of the time we
                 #   recorded using Measure-Command
-                $TimeRecorded.Milliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds-10)
-                $TimeRecorded.Milliseconds | Should -BeLessOrEqual ($Time.Milliseconds+10)
+                $TimeRecorded.Milliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds - 10)
+                $TimeRecorded.Milliseconds | Should -BeLessOrEqual ($Time.Milliseconds + 10)
             }
 
             #endregion TIMING TESTS
