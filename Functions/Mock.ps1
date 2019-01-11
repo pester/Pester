@@ -163,11 +163,26 @@ about_Mocking
         [string]$ModuleName
     )
 
-    Assert-DescribeInProgress -CommandName Mock
+    $PSBoundParameters.Add('SessionState', (Get-OriginSessionState))
     Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
     Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
+    New-Mock @PSBoundParameters
+}
+function New-Mock {
+    [CmdletBinding()]
+    param(
+        [string]$CommandName,
+        [ScriptBlock]$MockWith = {},
+        [switch]$Verifiable,
+        [ScriptBlock]$ParameterFilter = {$True},
+        [string]$ModuleName,
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState] $SessionState,
+        $MockTable = @{},
+        $CurrentTestGroup
+    )
 
-    $contextInfo = Validate-Command $CommandName $ModuleName
+    $contextInfo = Validate-Command $CommandName $ModuleName -SessionState $SessionState -MockTable $MockTable
     $CommandName = $contextInfo.Command.Name
 
     if ($contextInfo.Session.Module -and $contextInfo.Session.Module.Name) {
@@ -193,10 +208,10 @@ about_Mocking
         Mock       = $mockWithCopy
         Filter     = $ParameterFilter
         Verifiable = $Verifiable
-        Scope      = $pester.CurrentTestGroup
+        Scope      = $CurrentTestGroup
     }
 
-    $mock = $mockTable["$ModuleName||$CommandName"]
+    $mock = $MockTable["$ModuleName||$CommandName"]
 
     if (-not $mock) {
         $metadata = $null
@@ -219,7 +234,7 @@ about_Mocking
             # Some versions of PowerShell may include dynamic parameters here
             # We will filter them out and add them at the end to be
             # compatible with both earlier and later versions
-            $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
+            $dynamicParams = $metadata | & $SafeCommands['Select-Object'] -ExpandProperty Parameters | & $SafeCommands['Select-Object'] -ExpandProperty Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
             if ($null -ne $dynamicParams) {
                 $dynamicparams | & $SafeCommands['ForEach-Object'] { $null = $metadata.Parameters.Remove($_.name) }
             }
@@ -325,7 +340,8 @@ about_Mocking
             Blocks                  = @()
             CommandName             = $CommandName
             SessionState            = $contextInfo.Session
-            Scope                   = $pester.CurrentTestGroup
+            Scope                   = $CurrentTestGroup
+            # TODO: get rid of this binding to state
             PesterState             = $pester
             Metadata                = $metadata
             CallHistory             = @()
@@ -829,7 +845,7 @@ function ShouldRemoveMock($Mock, $ActivePesterState) {
     return $false
 }
 
-function Validate-Command([string]$CommandName, [string]$ModuleName) {
+function Validate-Command([string]$CommandName, [string]$ModuleName, $SessionState, $MockTable) {
     $module = $null
     $command = $null
 
@@ -847,7 +863,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         $command = & $module $scriptBlock $CommandName
     }
 
-    $session = $pester.SessionState
+    $session = $SessionState
 
     if (-not $command) {
         Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $session
@@ -865,7 +881,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
     $hash = @{Command = $command; Session = $session}
 
     if ($command.CommandType -eq 'Function') {
-        foreach ($mock in $mockTable.Values) {
+        foreach ($mock in $MockTable.Values) {
             if ($command.Name -eq $mock.BootstrapFunctionName) {
                 return @{
                     Command = $mock.OriginalCommand
@@ -1542,5 +1558,19 @@ function Remove-MockFunctionsAndAliases {
 
     foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*")) {
         & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
+    }
+}
+
+function Get-MockPlugin () {
+
+    Pester.Runtime\New-PluginObject -Name "Mock" -EachBlockSetup {
+        param($Context)
+        if (-not ($Context.PluginState.ContainsKey('Mock'))) {
+            $Context.PluginState.Add('Mock', @{ })
+        }
+    } -EachTestTeardown {
+        Exit-MockScope -ExitTestCaseOnly
+    } -EachBlockTearDown {
+        Exit-MockScope
     }
 }
