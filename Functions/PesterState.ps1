@@ -147,7 +147,7 @@ function New-PesterState {
             }
 
             if ($null -eq $Time) {
-                if ( $script:TestStartTime -and $script:TestStopTime ) {
+                if ( (test-path variable:Script:testStartTime) -and (test-path variable:Script:testStopTime) ) {
                     $Time = $script:TestStopTime - $script:TestStartTime
                     $script:TestStartTime = $null
                     $script:TestStopTime = [timespan]0
