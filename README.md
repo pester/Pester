@@ -49,7 +49,7 @@ Describe "Get pikachu by Get-Pokemon from the real api" {
 
 This integration test dot-sources (imports) the SUT on the top, and then in the body of the `Describe` it makes a call to external web API. Both the dot-sourcing and the call are not controlled by Pester, and would be invoked twice, once on `Discovery` and once on `Run`.
 
-![](https://github.com/nohwnd/Pester/blob/new-runtime/demo/img/bad_tests.PNG)
+![](https://github.com/Pester/Pester/blob/v5.0/demo/img/bad_tests.PNG)
 
 To fix this we use a new Pester function `Add-Dependency` to import the SUT only during `Run`, and then put the external call to `BeforeAll` block to run it only when any test in the containing `Describe` will run. Nothing more is needed.
 
@@ -82,7 +82,7 @@ Describe "Get pikachu by Get-Pokemon from the real api" {
 
 This makes everything controlled by Pester and we can happily run `Discovery` on this file without invoking anything extra.
 
-![](https://github.com/nohwnd/Pester/blob/new-runtime/demo/img/good_tests.PNG)
+![](https://github.com/Pester/Pester/blob/v5.0/demo/img/good_tests.PNG)
 
 ### What does this mean for the future?
 
@@ -94,7 +94,7 @@ This opens up a whole slew of new possibilities:
 - detecting changes in files and only running what changed
 - a proper graphical test runner integration?
 
-[Try it out for yourself](https://github.com/nohwnd/Pester/tree/new-runtime/demo).
+[Try it out for yourself](https://github.com/pester/Pester/tree/v5.0/demo).
 
 ## What else?
 
