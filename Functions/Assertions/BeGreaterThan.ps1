@@ -1,5 +1,5 @@
 function Should-BeGreaterThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that a number (or other comparable value) is greater than an expected value.
 Uses PowerShell's -gt operator to compare the two values.
@@ -20,13 +20,13 @@ This test passes, as PowerShell evaluates `2 -gt 0` as true.
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 
 function Should-BeLessOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that a number (or other comparable value) is lower than, or equal to an expected value.
 Uses PowerShell's -le operator to compare the two values.
@@ -39,7 +39,7 @@ This test passes, as PowerShell evaluates `1 -le 10` as true.
 10 | Should -BeLessOrEqual 10
 This test also passes, as PowerShell evaluates `10 -le 10` as true.
 #>
-if ($Negate) {
+    if ($Negate) {
         return Should-BeGreaterThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
@@ -51,23 +51,27 @@ if ($Negate) {
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 Add-AssertionOperator -Name         BeGreaterThan `
-                      -InternalName Should-BeGreaterThan `
-                      -Test         ${function:Should-BeGreaterThan} `
-                      -Alias        'GT'
+    -InternalName Should-BeGreaterThan `
+    -Test         ${function:Should-BeGreaterThan} `
+    -Alias        'GT'
 
 Add-AssertionOperator -Name         BeLessOrEqual `
-                      -InternalName Should-BeLessOrEqual `
-                      -Test         ${function:Should-BeLessOrEqual} `
-                      -Alias        'LE'
+    -InternalName Should-BeLessOrEqual `
+    -Test         ${function:Should-BeLessOrEqual} `
+    -Alias        'LE'
 
 #keeping tests happy
-function ShouldBeGreaterThanFailureMessage() {  }
-function NotShouldBeGreaterThanFailureMessage() { }
+function ShouldBeGreaterThanFailureMessage() {
+}
+function NotShouldBeGreaterThanFailureMessage() {
+}
 
-function ShouldBeLessOrEqualFailureMessage() {  }
-function NotShouldBeLessOrEqualFailureMessage() { }
+function ShouldBeLessOrEqualFailureMessage() {
+}
+function NotShouldBeLessOrEqualFailureMessage() {
+}

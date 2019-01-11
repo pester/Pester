@@ -1,5 +1,5 @@
 function Describe {
-<#
+    <#
 .SYNOPSIS
 Creates a logical group of tests.
 
@@ -66,22 +66,22 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        [string[]] $Tag=@(),
+        [string[]] $Tag = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    $AttachedData = 
+    $AttachedData =
     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData @{ CommandUsed = "Describe" }
 
     ### TODO: let's not focus on the interactive mode right now
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     # {
-        
+
     #     # User has executed a test script directly instead of calling Invoke-Pester
-    #     Remove-MockFunctionsAndAliases 
+    #     Remove-MockFunctionsAndAliases
     #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
 
 
@@ -186,7 +186,7 @@ about_TestDrive
 #     {
 #         try
 #         {
-#             
+#
 #             if (-not $NoTestRegistry)
 #             {
 #                 if (-not (Test-Path TestRegistry:\))
@@ -213,7 +213,7 @@ about_TestDrive
 #         {
 #             Invoke-TestGroupTeardownBlocks
 
-#             
+#
 
 #             if (-not $NoTestRegistry)
 #             {

@@ -1,5 +1,5 @@
 function In {
-<#
+    <#
 .SYNOPSIS
 A convenience function that executes a script from a specified path.
 
@@ -29,7 +29,8 @@ The script to be executed in the path provided.
     try {
         Write-ScriptBlockInvocationHint -Hint "In" -ScriptBlock $execute
         & $execute
-    } finally {
+    }
+    finally {
         & $SafeCommands['Pop-Location']
         $pwd = $old_pwd
     }

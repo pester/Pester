@@ -1,6 +1,6 @@
 function Verify-False {
     param (
-        [Parameter(ValueFromPipeline=$true)]
+        [Parameter(ValueFromPipeline = $true)]
         $Actual
     )
 

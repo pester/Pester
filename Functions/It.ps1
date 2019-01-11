@@ -1,5 +1,5 @@
 function It {
-<#
+    <#
 .SYNOPSIS
 Validates the results of a test inside of a Describe block.
 
@@ -129,11 +129,10 @@ about_should
     }
 }
 
-function ItImpl
-{
+function ItImpl {
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(
-        [Parameter(Mandatory = $true, Position=0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [string]$Name,
         [Parameter(Position = 1)]
         [ScriptBlock] $Test,
@@ -152,96 +151,88 @@ function ItImpl
     Assert-DescribeInProgress -CommandName It
 
     # Jumping through hoops to make strict mode happy.
-    if ($PSCmdlet.ParameterSetName -ne 'Skip') { $Skip = $false }
-    if ($PSCmdlet.ParameterSetName -ne 'Pending') { $Pending = $false }
+    if ($PSCmdlet.ParameterSetName -ne 'Skip') {
+        $Skip = $false
+    }
+    if ($PSCmdlet.ParameterSetName -ne 'Pending') {
+        $Pending = $false
+    }
 
     #unless Skip or Pending is specified you must specify a ScriptBlock to the Test parameter
-    if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending))
-    {
+    if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending)) {
         throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
     }
 
     #the function is called with Pending or Skipped set the script block if needed
-    if ($null -eq $Test) { $Test = {} }
+    if ($null -eq $Test) {
+        $Test = {}
+    }
 
     #mark empty Its as Pending
     if ($PSVersionTable.PSVersion.Major -le 2 -and
         $PSCmdlet.ParameterSetName -eq 'Normal' -and
-        [String]::IsNullOrEmpty((Remove-Comments $Test.ToString()) -replace "\s"))
-    {
+        [String]::IsNullOrEmpty((Remove-Comments $Test.ToString()) -replace "\s")) {
         $Pending = $true
     }
-    elseIf ($PSVersionTable.PSVersion.Major -gt 2)
-    {
+    elseIf ($PSVersionTable.PSVersion.Major -gt 2) {
         #[String]::IsNullOrWhitespace is not available in .NET version used with PowerShell 2
         # AST is not available also
         $testIsEmpty =
-            [String]::IsNullOrEmpty($Test.Ast.BeginBlock.Statements) -and
-            [String]::IsNullOrEmpty($Test.Ast.ProcessBlock.Statements) -and
-            [String]::IsNullOrEmpty($Test.Ast.EndBlock.Statements)
+        [String]::IsNullOrEmpty($Test.Ast.BeginBlock.Statements) -and
+        [String]::IsNullOrEmpty($Test.Ast.ProcessBlock.Statements) -and
+        [String]::IsNullOrEmpty($Test.Ast.EndBlock.Statements)
 
-        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty)
-        {
+        if ($PSCmdlet.ParameterSetName -eq 'Normal' -and $testIsEmpty) {
             $Pending = $true
         }
     }
 
     $pendingSkip = @{}
 
-    if ($PSCmdlet.ParameterSetName -eq 'Skip')
-    {
+    if ($PSCmdlet.ParameterSetName -eq 'Skip') {
         $pendingSkip['Skip'] = $Skip
     }
-    else
-    {
+    else {
         $pendingSkip['Pending'] = $Pending
     }
 
-    if ($null -ne $TestCases -and $TestCases.Count -gt 0)
-    {
-        foreach ($testCase in $TestCases)
-        {
+    if ($null -ne $TestCases -and $TestCases.Count -gt 0) {
+        foreach ($testCase in $TestCases) {
             $expandedName = [regex]::Replace($Name, '<([^>]+)>', {
-                $capture = $args[0].Groups[1].Value
-                if ($testCase.Contains($capture))
-                {
-                    $value = $testCase[$capture]
-                    # skip adding quotes to non-empty strings to avoid adding junk to the
-                    # test name in case you want to expand captures like 'because' or test name
-                    if ($value -isnot [string] -or [string]::IsNullOrEmpty($value))
-                    {
-                        Format-Nicely $value
+                    $capture = $args[0].Groups[1].Value
+                    if ($testCase.Contains($capture)) {
+                        $value = $testCase[$capture]
+                        # skip adding quotes to non-empty strings to avoid adding junk to the
+                        # test name in case you want to expand captures like 'because' or test name
+                        if ($value -isnot [string] -or [string]::IsNullOrEmpty($value)) {
+                            Format-Nicely $value
+                        }
+                        else {
+                            $value
+                        }
                     }
-                    else
-                    {
-                        $value
+                    else {
+                        "<$capture>"
                     }
-                }
-                else
-                {
-                    "<$capture>"
-                }
-            })
+                })
 
             $splat = @{
-                Name = $expandedName
-                Scriptblock = $Test
-                Parameters = $testCase
+                Name                   = $expandedName
+                Scriptblock            = $Test
+                Parameters             = $testCase
                 ParameterizedSuiteName = $Name
-                OutputScriptBlock = $OutputScriptBlock
+                OutputScriptBlock      = $OutputScriptBlock
             }
 
             Invoke-Test @splat @pendingSkip
         }
     }
-    else
-    {
+    else {
         Invoke-Test -Name $Name -ScriptBlock $Test @pendingSkip -OutputScriptBlock $OutputScriptBlock
     }
 }
 
-function Invoke-Test
-{
+function Invoke-Test {
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param (
         [Parameter(Mandatory = $true)]
@@ -263,51 +254,42 @@ function Invoke-Test
         [Switch] $Skip
     )
 
-    if ($null -eq $Parameters) { $Parameters = @{} }
+    if ($null -eq $Parameters) {
+        $Parameters = @{}
+    }
 
-    try
-    {
-        if ($Skip)
-        {
+    try {
+        if ($Skip) {
             $Pester.AddTestResult($Name, "Skipped", $null)
         }
-        elseif ($Pending)
-        {
+        elseif ($Pending) {
             $Pester.AddTestResult($Name, "Pending", $null)
         }
-        else
-        {
+        else {
             #todo: disabling the progress for now, it adds a lot of overhead and breaks output on linux, we don't have a good way to disable it by default, or to show it after delay see: https://github.com/pester/Pester/issues/846
             # & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Status Processing
 
             $errorRecord = $null
-            try
-            {
+            try {
                 $pester.EnterTest()
                 Invoke-TestCaseSetupBlocks
 
-                do
-                {
+                do {
                     Write-ScriptBlockInvocationHint -Hint "It" -ScriptBlock $ScriptBlock
                     $null = & $ScriptBlock @Parameters
                 } until ($true)
             }
-            catch
-            {
+            catch {
                 $errorRecord = $_
             }
-            finally
-            {
+            finally {
                 #guarantee that the teardown action will run and prevent it from failing the whole suite
-                try
-                {
-                    if (-not ($Skip -or $Pending))
-                    {
+                try {
+                    if (-not ($Skip -or $Pending)) {
                         Invoke-TestCaseTeardownBlocks
                     }
                 }
-                catch
-                {
+                catch {
                     $errorRecord = $_
                 }
 
@@ -320,19 +302,16 @@ function Invoke-Test
             #todo: disabling progress reporting see above & $SafeCommands['Write-Progress'] -Activity "Running test '$Name'" -Completed -Status Processing
         }
     }
-    finally
-    {
+    finally {
         Exit-MockScope -ExitTestCaseOnly
     }
 
-    if ($null -ne $OutputScriptBlock)
-    {
+    if ($null -ne $OutputScriptBlock) {
         $Pester.testresult[-1] | & $OutputScriptBlock
     }
 }
 
-function Get-OrderedParameterDictionary
-{
+function Get-OrderedParameterDictionary {
     [OutputType([System.Collections.IDictionary])]
     param (
         [scriptblock] $ScriptBlock,
@@ -343,11 +322,9 @@ function Get-OrderedParameterDictionary
 
     $orderedDictionary = & $SafeCommands['New-Object'] System.Collections.Specialized.OrderedDictionary
 
-    foreach ($parameterName in $parameters.Keys)
-    {
+    foreach ($parameterName in $parameters.Keys) {
         $value = $null
-        if ($Dictionary.ContainsKey($parameterName))
-        {
+        if ($Dictionary.ContainsKey($parameterName)) {
             $value = $Dictionary[$parameterName]
         }
 
@@ -357,23 +334,22 @@ function Get-OrderedParameterDictionary
     return $orderedDictionary
 }
 
-function Get-ParameterDictionary
-{
+function Get-ParameterDictionary {
     param (
         [scriptblock] $ScriptBlock
     )
 
     $guid = [Guid]::NewGuid().Guid
 
-    try
-    {
+    try {
         & $SafeCommands['Set-Content'] function:\$guid $ScriptBlock
         $metadata = [System.Management.Automation.CommandMetadata](& $SafeCommands['Get-Command'] -Name $guid -CommandType Function)
 
         return $metadata.Parameters
     }
-    finally
-    {
-        if (& $SafeCommands['Test-Path'] function:\$guid) { & $SafeCommands['Remove-Item'] function:\$guid }
+    finally {
+        if (& $SafeCommands['Test-Path'] function:\$guid) {
+            & $SafeCommands['Remove-Item'] function:\$guid
+        }
     }
 }

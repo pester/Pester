@@ -1,6 +1,5 @@
-function BeforeEach
-{
-<#
+function BeforeEach {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the beginning of every It block within
     the current Context or Describe block.
@@ -20,7 +19,7 @@ function BeforeEach
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
@@ -29,9 +28,8 @@ function BeforeEach
     Pester.Runtime\New-EachTestSetup -ScriptBlock $Scriptblock
 }
 
-function AfterEach
-{
-<#
+function AfterEach {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the end of every It block within
     the current Context or Describe block.
@@ -51,7 +49,7 @@ function AfterEach
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
@@ -60,9 +58,8 @@ function AfterEach
     Pester.Runtime\New-EachTestTeardown -ScriptBlock $Scriptblock
 }
 
-function BeforeAll
-{
-<#
+function BeforeAll {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the beginning of the current Context
     or Describe block.
@@ -80,7 +77,7 @@ function BeforeAll
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
@@ -89,9 +86,8 @@ function BeforeAll
     Pester.Runtime\New-OneTimeTestSetup -ScriptBlock $Scriptblock
 }
 
-function AfterAll
-{
-<#
+function AfterAll {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the end of the current Context
     or Describe block.
@@ -109,7 +105,7 @@ function AfterAll
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )

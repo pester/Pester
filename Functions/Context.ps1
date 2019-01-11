@@ -1,5 +1,5 @@
 function Context {
-<#
+    <#
 .SYNOPSIS
 Provides logical grouping of It blocks within a single Describe block.
 
@@ -55,13 +55,13 @@ about_TestDrive
         [string] $Name,
 
         [Alias('Tags')]
-        [string[]] $Tag=@(),
+        [string[]] $Tag = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
-        
+
     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -AttachedData @{ CommandUsed = "Context" }
 
     # TODO: the interactive mode is not supported so far

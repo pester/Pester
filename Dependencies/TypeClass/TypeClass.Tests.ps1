@@ -33,7 +33,7 @@ Describe "Is-Value" {
 
     It "Given reference type (not string) '<value>' it returns `$false" -TestCases @(
         @{ Value = @() },
-        @{ Value = @(1,2) },
+        @{ Value = @(1, 2) },
         @{ Value = @{} },
         @{ Value = [type] },
         @{ Value = (New-Object -TypeName Diagnostics.Process) }
@@ -87,7 +87,7 @@ Describe "Is-ScriptBlock" {
 Describe "Is-Hashtable" {
     It "Given hashtable '<value>' it returns `$true" -TestCases @(
         @{Value = @{} }
-        @{Value = @{Name="Jakub"} }
+        @{Value = @{Name = "Jakub"} }
     ) {
         param($Value)
 
@@ -107,7 +107,7 @@ Describe "Is-Hashtable" {
 Describe "Is-Dictionary" {
     It "Given dictionary '<value>' it returns `$true" -TestCases @(
         @{ Value = New-Object "Collections.Generic.Dictionary[string,object]" }
-        @{ Value= New-Dictionary @{Name="Jakub"} }
+        @{ Value = New-Dictionary @{Name = "Jakub"} }
     ) {
         param($Value)
 
@@ -129,11 +129,11 @@ Describe "Is-Dictionary" {
 Describe "Is-Collection" {
     It "Given a collection '<value>' of type '<type>' it returns `$true" -TestCases @(
         @{ Value = @() }
-        @{ Value = 1,2,3 }
+        @{ Value = 1, 2, 3 }
         # the extra casts are for powershell v2 compatibility
         @{ Value = [System.Collections.Generic.List[int]]([int[]] 1) }
         @{ Value = [System.Collections.Generic.List[decimal]]([decimal[]] 2D) }
-        @{ Value = [Collections.Generic.List[Int]]([int[]](1,2,3)) }
+        @{ Value = [Collections.Generic.List[Int]]([int[]](1, 2, 3)) }
         @{ Value = (Get-Process) }
     ) {
         param($Value)

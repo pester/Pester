@@ -1,5 +1,5 @@
 function Should-BeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that a number (or other comparable value) is lower than an expected value.
 Uses PowerShell's -lt operator to compare the two values.
@@ -20,13 +20,13 @@ This test passes, as PowerShell evaluates `1 -lt 10` as true.
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 
 function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Asserts that a number (or other comparable value) is greater than or equal to an expected value.
 Uses PowerShell's -ge operator to compare the two values.
@@ -51,23 +51,27 @@ This test also passes, as PowerShell evaluates `2 -ge 2` as true.
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 Add-AssertionOperator -Name         BeLessThan `
-                      -InternalName Should-BeLessThan `
-                      -Test         ${function:Should-BeLessThan} `
-                      -Alias        'LT'
+    -InternalName Should-BeLessThan `
+    -Test         ${function:Should-BeLessThan} `
+    -Alias        'LT'
 
 Add-AssertionOperator -Name         BeGreaterOrEqual `
-                      -InternalName Should-BeGreaterOrEqual `
-                      -Test         ${function:Should-BeGreaterOrEqual} `
-                      -Alias        'GE'
+    -InternalName Should-BeGreaterOrEqual `
+    -Test         ${function:Should-BeGreaterOrEqual} `
+    -Alias        'GE'
 
 #keeping tests happy
-function ShouldBeLessThanFailureMessage() {  }
-function NotShouldBeLessThanFailureMessage() { }
+function ShouldBeLessThanFailureMessage() {
+}
+function NotShouldBeLessThanFailureMessage() {
+}
 
-function ShouldBeGreaterOrEqualFailureMessage() {  }
-function NotShouldBeGreaterOrEqualFailureMessage() { }
+function ShouldBeGreaterOrEqualFailureMessage() {
+}
+function NotShouldBeGreaterOrEqualFailureMessage() {
+}

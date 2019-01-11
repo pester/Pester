@@ -119,9 +119,9 @@ Describe 'Multiple Test Case teardown blocks' {
 }
 
 $script:DescribeBeforeAllCounter = 0
-$script:DescribeAfterAllCounter  = 0
-$script:ContextBeforeAllCounter  = 0
-$script:ContextAfterAllCounter   = 0
+$script:DescribeAfterAllCounter = 0
+$script:ContextBeforeAllCounter = 0
+$script:ContextAfterAllCounter = 0
 
 Describe 'Test Group Setup and Teardown' {
     It 'Executed the Describe BeforeAll regardless of definition order' {
@@ -177,8 +177,7 @@ Describe 'Finishing TestGroup Setup and Teardown tests' {
 }
 
 
-if ($PSVersionTable.PSVersion.Major -ge 3)
-{
+if ($PSVersionTable.PSVersion.Major -ge 3) {
     $thisTestScriptFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSCommandPath)
 
     Describe 'Script Blocks and file association (testing automatic variables)' {
