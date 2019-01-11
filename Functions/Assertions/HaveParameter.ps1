@@ -1,12 +1,12 @@
 function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [String]$Default, [Switch]$IsMandatory, [Switch]$HasArgumentCompleter, [Switch]$Negate, [String]$Because ) {
     <#
     .SYNOPSIS
-        Asserts that a collection has the expected amount of items.
+        Asserts that a command has the expected parameter.
 
     .EXAMPLE
-        1,2,3 | Should -HaveCount 3
-        This test passes, because it expected three objects, and received three.
-        This is like running `@(1,2,3).Count` in PowerShell.
+        Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -IsMandatory
+        This test passes, because it expected the parameter URI to exist and to
+        be mandatory.
     #>
 
     if ($null -eq $ActualValue -or $ActualValue -isnot [Management.Automation.CommandInfo]) {
@@ -17,23 +17,94 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         throw "The ParameterName can't be empty"
     }
 
-    function Join-And ($Items, $Threshold=2) {
+    #region HelperFunctions
+    function Join-And ($Items, $Threshold = 2) {
 
-        if ($null -eq $items -or $items.count -lt $Threshold)
-        {
+        if ($null -eq $items -or $items.count -lt $Threshold) {
             $items -join ', '
         }
-        else
-        {
+        else {
             $c = $items.count
-            ($items[0..($c-2)] -join ', ') + ' and ' + $items[-1]
+            ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
         }
     }
 
     function Add-SpaceToNonEmptyString ([string]$Value) {
-        if ($Value)
-        {
+        if ($Value) {
             " $Value"
+        }
+    }
+
+    function Get-ParameterInfo {
+        param(
+            [Parameter( Mandatory = $true )]
+            [Management.Automation.CommandInfo]$Command
+        )
+        <#
+        .SYNOPSIS
+            Use Tokenize to get information about the parameter block of a command
+        .DESCRIPTION
+            In order to get information about the parameter block of a command,
+            several tools can be used (Get-Command, AST, etc).
+            In order to get the default value of a parameter, AST is the easiest
+            way to go; but AST was only introduced with PSv3.
+            This function creates an object with information about parameters
+            using the Tokenize
+        .NOTES
+            Author: Chris Dent
+        #>
+
+        function Get-TokenGroup {
+            param(
+                [Parameter( Mandatory = $true )]
+                [System.Management.Automation.PSToken[]]$tokens
+            )
+            $i = $j = 0
+            do {
+                $token = $tokens[$i]
+                if ($token.Type -eq 'GroupStart') { $j++ }
+                if ($token.Type -eq 'GroupEnd') { $j-- }
+                if ($null -eq $token.Depth) {
+                    $token | Add-Member Depth -MemberType NoteProperty -Value $j
+                }
+                $token
+
+                $i++
+            } until ($j -eq 0 -or $i -ge $tokens.Count)
+        }
+
+        $errors = $null
+        $tokens = [System.Management.Automation.PSParser]::Tokenize($Command.Definition, [Ref]$errors)
+
+        # Find param block
+        $start = $tokens.IndexOf(($tokens | Where-Object { $_.Content -eq 'param' })[0]) + 1
+        $paramBlock = Get-TokenGroup $tokens[$start..($tokens.Count - 1)]
+
+        for ($i = 0; $i -lt $paramBlock.Count; $i++) {
+            $token = $paramBlock[$i]
+
+            if ($token.Depth -eq 1 -and $token.Type -eq 'Variable') {
+                $paramInfo = New-Object PSObject -Property @{
+                    Name = $token.Content
+                } | Select-Object Name, Type, DefaultValue, DefaultValueType
+
+                if ($paramBlock[$i + 1].Content -ne ',') {
+                    $value = $paramBlock[$i + 2]
+                    if ($value.Type -eq 'GroupStart') {
+                        $tokenGroup = Get-TokenGroup $paramBlock[($i + 2)..($paramBlock.Count - 1)]
+                        $paramInfo.DefaultValue = [String]::Join('', ($tokenGroup | ForEach-Object { $_.Content }))
+                        $paramInfo.DefaultValueType = 'Expression'
+                    }
+                    else {
+                        $paramInfo.DefaultValue = $value.Content
+                        $paramInfo.DefaultValueType = $value.Type
+                    }
+                }
+                if ($paramBlock[$i - 1].Type -eq 'Type') {
+                    $paramInfo.Type = $paramBlock[$i - 1].Content
+                }
+                $paramInfo
+            }
         }
     }
 
@@ -46,6 +117,7 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
 
         $OfType = $parsedType
     }
+    #endregion HelperFunctions
 
     $buts = @()
     $filters = @()
@@ -91,9 +163,9 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         }
 
         if ($Default) {
-            $parameterMetadata = $ActualValue.ScriptBlock.Ast.Body.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq $ParameterName }
-            $actualDefault = $parameterMetadata.DefaultValue.Extent -replace "^`"(.*)`"$", "`$1"
-            $testDefault = ($actualDefault.ToString() -eq $Default)
+            $parameterMetadata = Get-ParameterInfo $ActualValue | Where-Object { $_.Name -eq $ParameterName }
+            $actualDefault = $parameterMetadata.DefaultValue
+            $testDefault = ($actualDefault -eq $Default)
             $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $Default)"
 
             if (-not $Negate -and -not $testDefault) {
@@ -133,5 +205,5 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
 }
 
 Add-AssertionOperator -Name         HaveParameter `
-                      -InternalName Should-HaveParameter `
-                      -Test         ${function:Should-HaveParameter}
+    -InternalName Should-HaveParameter `
+    -Test         ${function:Should-HaveParameter}
