@@ -4,17 +4,17 @@ $state = [PSCustomObject] @{
     # indicate whether or not we are currently
     # running in discovery mode se we can change
     # behavior of the commands appropriately
-    Discovery = $false
+    Discovery          = $false
 
     # the current block we are in
-    CurrentBlock = $null
+    CurrentBlock       = $null
 
-    Plugin = $null
-    PluginState = @{}
+    Plugin             = $null
+    PluginState        = @{}
 
-    TotalStopWatch = $null
-    TestStopWatch = $null
-    BlockStopWatch = $null
+    TotalStopWatch     = $null
+    TestStopWatch      = $null
+    BlockStopWatch     = $null
     FrameworkStopWatch = $null
 }
 
@@ -34,7 +34,7 @@ function Reset-TestSuiteState {
 
 function Reset-PerContainerState {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")] $RootBlock
     )
     $state.CurrentBlock = $RootBlock
@@ -52,13 +52,12 @@ function Test-NullOrWhiteSpace ($Value) {
 function New_PSObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [HashTable] $Property,
         [String] $Type
     )
 
-    if (-not (Test-NullOrWhiteSpace $Type) -and -not $Property.ContainsKey($Type))
-    {
+    if (-not (Test-NullOrWhiteSpace $Type) -and -not $Property.ContainsKey($Type)) {
         $Property.Add("PSTypeName", $Type)
     }
 
@@ -70,7 +69,7 @@ function New_PSObject {
 function v {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Message
     )
 
@@ -80,10 +79,10 @@ function v {
 function Find-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
         [PSTypeName("Filter")] $Filter,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
 
@@ -97,7 +96,7 @@ function Find-Test {
 function ConvertTo-DiscoveredBlockContainer {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")] $Block
     )
 
@@ -110,24 +109,24 @@ function ConvertTo-DiscoveredBlockContainer {
 
     # TODO: Add other properties that are relevant to found tests
     $b = $Block | Select -ExcludeProperty @(
-            "Parent"
-            "Name"
-            "Tag"
-            "First"
-            "Last"
-            "StandardOutput"
-            "Passed"
-            "Executed"
-            "Path",
-            "StartedAt",
-            "Duration",
-            "Aggregated*"
-        ) -Property @(
-            @{n="Content"; e={$content}}
-            @{n="Type"; e={$type}},
-            @{n="PSTypename"; e={"DiscoveredBlockContainer"}}
-            '*'
-        )
+        "Parent"
+        "Name"
+        "Tag"
+        "First"
+        "Last"
+        "StandardOutput"
+        "Passed"
+        "Executed"
+        "Path",
+        "StartedAt",
+        "Duration",
+        "Aggregated*"
+    ) -Property @(
+        @{n = "Content"; e = {$content}}
+        @{n = "Type"; e = {$type}},
+        @{n = "PSTypename"; e = {"DiscoveredBlockContainer"}}
+        '*'
+    )
 
     $b
 }
@@ -135,7 +134,7 @@ function ConvertTo-DiscoveredBlockContainer {
 function ConvertTo-ExecutedBlockContainer {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")] $Block
     )
 
@@ -147,19 +146,19 @@ function ConvertTo-ExecutedBlockContainer {
     $type = $container | tryGetProperty Type
 
     $b = $Block | Select -ExcludeProperty @(
-            "Parent"
-            "Name"
-            "Tag"
-            "First"
-            "Last"
-            "StandardOutput"
-            "Path"
-        ) -Property @(
-            @{n="Content"; e={$content}}
-            @{n="Type"; e={$type}},
-            @{n="PSTypename"; e={"ExecutedBlockContainer"}}
-            '*'
-        )
+        "Parent"
+        "Name"
+        "Tag"
+        "First"
+        "Last"
+        "StandardOutput"
+        "Path"
+    ) -Property @(
+        @{n = "Content"; e = {$content}}
+        @{n = "Type"; e = {$type}},
+        @{n = "PSTypename"; e = {"ExecutedBlockContainer"}}
+        '*'
+    )
 
     $b
 }
@@ -170,9 +169,9 @@ function ConvertTo-ExecutedBlockContainer {
 function New-Block {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Name,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         # TODO rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
@@ -201,8 +200,6 @@ function New-Block {
         $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
     }
 
-
-
     Set-CurrentBlock -Block $block
 
     try {
@@ -225,35 +222,43 @@ function New-Block {
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                    if ($block.First) { $state.Plugin.OneTimeBlockSetup | hasValue }
-                ) `
+                if ($block.First) { $state.Plugin.OneTimeBlockSetup | hasValue }
+            ) `
                 -Setup @( $state.Plugin.EachBlockSetup | hasValue ) `
                 -ScriptBlock {} `
                 -Context @{
-                    Context = @{
-                        Block = $block
-                        PluginState = $state.PluginState
-                    }
+                Context = @{
+                    Block       = $block
+                    PluginState = $state.PluginState
                 }
+            }
 
             if ($frameworkSetupResult.Success) {
                 $result = Invoke-ScriptBlock `
                     -ScriptBlock $ScriptBlock `
-                    -OuterSetup $( if (-not (Is-Discovery) -and $block.First) { combineNonNull @(
+                    -OuterSetup $( if (-not (Is-Discovery) -and $block.First) {
+                        combineNonNull @(
                             $previousBlock.OneTimeBlockSetup
-                    ) }) `
-                    -Setup $( if (-not (Is-Discovery)) { combineNonNull @(
-                        $previousBlock.EachBlockSetup
-                    ) } ) `
-                    -Teardown $( if (-not (Is-Discovery)) { combineNonNull @(
-                        $previousBlock.EachBlockTeardown
-                    ) } ) `
-                    -OuterTeardown $( if (-not (Is-Discovery) -and $block.Last) { combineNonNull @(
+                        )
+                    }) `
+                    -Setup $( if (-not (Is-Discovery)) {
+                        combineNonNull @(
+                            $previousBlock.EachBlockSetup
+                        )
+                    } ) `
+                    -Teardown $( if (-not (Is-Discovery)) {
+                        combineNonNull @(
+                            $previousBlock.EachBlockTeardown
+                        )
+                    } ) `
+                    -OuterTeardown $( if (-not (Is-Discovery) -and $block.Last) {
+                        combineNonNull @(
                             $previousBlock.OneTimeBlockTeardown
-                    ) } ) `
+                        )
+                    } ) `
                     -Context @{
-                        Context = $block | Select -Property Name
-                    } `
+                    Context = $block | Select -Property Name
+                } `
                     -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Block } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
@@ -270,14 +275,14 @@ function New-Block {
                 -ScriptBlock {} `
                 -Teardown @( $state.Plugin.EachBlockTeardown | hasValue ) `
                 -OuterTeardown @(
-                    if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | hasValue }
-                ) `
+                if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | hasValue }
+            ) `
                 -Context @{
-                    Context = @{
-                        Block = $block
-                        PluginState = $state.PluginState
-                    }
+                Context = @{
+                    Block       = $block
+                    PluginState = $state.PluginState
                 }
+            }
 
 
             if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
@@ -299,9 +304,9 @@ function New-Block {
 function New-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [String] $Name,
-        [Parameter(Mandatory=$true, Position = 1)]
+        [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         [HashTable] $Data = @{},
@@ -319,7 +324,7 @@ function New-Test {
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
-            Add-Test -Test (New-TestObject -Name $Name -Path $path -Tag $Tag -Data $Data -Id $Id)
+            Add-Test -Test (New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path)
             v "Added test '$Name'"
         }
         else {
@@ -330,13 +335,13 @@ function New-Test {
                 return
             }
 
-            # TODO: overwrite the data captured during discovery with the data, 
+            # TODO: overwrite the data captured during discovery with the data,
             # captured during execution, to make time sensitive data closer to the execution
             # this should be a good choice because even though the data should not generally change
-            # when we for example do @{ Time = (Get-Date) } or load some counter, we should get the 
+            # when we for example do @{ Time = (Get-Date) } or load some counter, we should get the
             # data from the moment of execution, not from the moment of test discovery, which can
             # potentially be few seconds earlier. This also means that we should never identify tests
-            # based on their names + data because the data can change. And also that we should not show 
+            # based on their names + data because the data can change. And also that we should not show
             # the data from the discovery when execution will follow (so it's not just a call to Find-Test)
             # This choice might need to be revisited
             $test.Data = $Data
@@ -351,16 +356,16 @@ function New-Test {
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                    if ($test.First) { $state.Plugin.OneTimeTestSetup | hasValue }
-                ) `
+                if ($test.First) { $state.Plugin.OneTimeTestSetup | hasValue }
+            ) `
                 -Setup @( $state.Plugin.EachTestSetup | hasValue ) `
                 -ScriptBlock {} `
                 -Context @{
-                        Context = @{
-                            Test = $test
-                            PluginState = $state.PluginState
-                        }
-                    }
+                Context = @{
+                    Test        = $test
+                    PluginState = $state.PluginState
+                }
+            }
 
             if ($frameworkSetupResult.Success) {
                 # invokes the body of the test
@@ -372,14 +377,14 @@ function New-Test {
 
                 $result = Invoke-ScriptBlock `
                     -OuterSetup @(
-                        if ($test.First) { $block.OneTimeTestSetup | hasValue }
-                    ) `
+                    if ($test.First) { $block.OneTimeTestSetup | hasValue }
+                ) `
                     -Setup @( $block.EachTestSetup | hasValue ) `
                     -ScriptBlock $ScriptBlock `
                     -Teardown @( $block.EachTestTeardown | hasValue ) `
                     -OuterTeardown @(
-                        if ($test.Last) { $block.OneTimeTestTeardown | hasValue }
-                    ) `
+                    if ($test.Last) { $block.OneTimeTestTeardown | hasValue }
+                ) `
                     -Context $context `
                     -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Test } `
@@ -399,14 +404,14 @@ function New-Test {
                 -ScriptBlock {} `
                 -Teardown @( $state.Plugin.EachTestTeardown | hasValue ) `
                 -OuterTeardown @(
-                    if ($test.Last) { $state.Plugin.OneTimeTestTeardown | hasValue }
-                ) `
+                if ($test.Last) { $state.Plugin.OneTimeTestTeardown | hasValue }
+            ) `
                 -Context @{
-                    Context = @{
-                        Test = $test
-                        PluginState = $state.PluginState
-                    }
+                Context = @{
+                    Test        = $test
+                    PluginState = $state.PluginState
                 }
+            }
 
             if (-not $frameworkTeardownResult.Success -or -not $frameworkTeardownResult.Success) {
                 throw $frameworkTeardownResult.ErrorRecord[-1]
@@ -434,10 +439,10 @@ function Merge-Hashtable ($Source, $Destination) {
 # endpoint for adding a setup for each test in the block
 function New-EachTestSetup {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
-    
+
     if (Is-Discovery) {
         (Get-CurrentBlock).EachTestSetup = $ScriptBlock
     }
@@ -446,10 +451,10 @@ function New-EachTestSetup {
 # endpoint for adding a teardown for each test in the block
 function New-EachTestTeardown {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
-    
+
     if (Is-Discovery) {
         (Get-CurrentBlock).EachTestTeardown = $ScriptBlock
     }
@@ -459,10 +464,10 @@ function New-EachTestTeardown {
 function New-OneTimeTestSetup {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
-    
+
     if (Is-Discovery) {
         (Get-CurrentBlock).OneTimeTestSetup = $ScriptBlock
     }
@@ -472,7 +477,7 @@ function New-OneTimeTestSetup {
 function New-OneTimeTestTeardown {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
@@ -483,7 +488,7 @@ function New-OneTimeTestTeardown {
 # endpoint for adding a setup for each block in the current block
 function New-EachBlockSetup {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
@@ -494,7 +499,7 @@ function New-EachBlockSetup {
 # endpoint for adding a teardown for each block in the current block
 function New-EachBlockTeardown {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
@@ -506,10 +511,10 @@ function New-EachBlockTeardown {
 function New-OneTimeBlockSetup {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
-    if (Is-Discovery) { 
+    if (Is-Discovery) {
         (Get-CurrentBlock).OneTimeBlockSetup = $ScriptBlock
     }
 }
@@ -518,7 +523,7 @@ function New-OneTimeBlockSetup {
 function New-OneTimeBlockTeardown {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
@@ -535,7 +540,7 @@ function Get-CurrentBlock {
 function Set-CurrentBlock {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         $Block
     )
 
@@ -545,7 +550,7 @@ function Set-CurrentBlock {
 function Add-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredTest")]
         $Test
     )
@@ -556,36 +561,38 @@ function Add-Test {
 function New-TestObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Name,
         [String[]] $Path,
         [String[]] $Tag,
         [HashTable] $Data,
-        [String] $Id
+        [String] $Id,
+        [ScriptBlock] $ScriptBlock
     )
 
     New_PSObject -Type DiscoveredTest @{
-        Name = $Name
-        Path = $Path
-        Tag = $Tag
-        Data = $Data
-        Executed = $false
-        Passed = $false
-        StandardOutput = $null
-        ErrorRecord = @()
-        First = $false
-        Last = $false
-        ShouldRun = $false
-        Duration = [timespan]::Zero
+        Name              = $Name
+        Path              = $Path
+        Tag               = $Tag
+        Data              = $Data
+        Executed          = $false
+        Passed            = $false
+        StandardOutput    = $null
+        ErrorRecord       = @()
+        First             = $false
+        Last              = $false
+        ShouldRun         = $false
+        Duration          = [timespan]::Zero
         FrameworkDuration = [timespan]::Zero
-        Id = $Id
+        Id                = $Id
+        ScriptBlock       = $ScriptBlock
     }
 }
 
 function New-BlockObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Name,
         [string[]] $Path,
         [string[]] $Tag,
@@ -594,42 +601,42 @@ function New-BlockObject {
     )
 
     New_PSObject -Type DiscoveredBlock @{
-        Name = $Name
-        Path = $Path
-        Tag = $Tag
-        Tests = @()
-        BlockContainer = $null
-        Parent = $null
-        EachTestSetup = $null
-        OneTimeTestSetup = $null
-        EachTestTeardown = $null
-        OneTimeTestTeardown = $null
-        EachBlockSetup = $null
-        OneTimeBlockSetup = $null
-        EachBlockTeardown = $null
+        Name                 = $Name
+        Path                 = $Path
+        Tag                  = $Tag
+        Tests                = @()
+        BlockContainer       = $null
+        Parent               = $null
+        EachTestSetup        = $null
+        OneTimeTestSetup     = $null
+        EachTestTeardown     = $null
+        OneTimeTestTeardown  = $null
+        EachBlockSetup       = $null
+        OneTimeBlockSetup    = $null
+        EachBlockTeardown    = $null
         OneTimeBlockTeardown = $null
-        Blocks = @()
-        Executed = $false
-        Passed = $false
-        First = $false
-        Last = $false
-        StandardOutput = $null
-        ErrorRecord = @()
-        ShouldRun = $false
-        ExecutedAt = $null
-        Duration = [timespan]::Zero
-        FrameworkDuration = [timespan]::Zero
-        AggregatedDuration = [timespan]::Zero
-        AggregatedPassed = $false
-        AttachedData = $AttachedData
-        ScriptBlock = $ScriptBlock
+        Blocks               = @()
+        Executed             = $false
+        Passed               = $false
+        First                = $false
+        Last                 = $false
+        StandardOutput       = $null
+        ErrorRecord          = @()
+        ShouldRun            = $false
+        ExecutedAt           = $null
+        Duration             = [timespan]::Zero
+        FrameworkDuration    = [timespan]::Zero
+        AggregatedDuration   = [timespan]::Zero
+        AggregatedPassed     = $false
+        AttachedData         = $AttachedData
+        ScriptBlock          = $ScriptBlock
     }
 }
 
 function Add-Block {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")]
         $Block
     )
@@ -646,9 +653,9 @@ function Is-Discovery {
 function Discover-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
         $Filter
     )
@@ -664,12 +671,12 @@ function Discover-Test {
         Reset-PerContainerState -RootBlock $root
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
-        
+
         # TODO: move the output to callback
         $flat = @(View-Flat -Block $root)
         Write-Host -ForegroundColor Magenta "Found $($flat.Count) tests"
         ####
-        
+
         PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $container
         $root
     }
@@ -680,9 +687,9 @@ function Discover-Test {
 function Run-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
 
@@ -719,7 +726,7 @@ function Invoke-ScriptBlock {
         [ScriptBlock[]] $Teardown,
         [ScriptBlock[]] $OuterTeardown,
         $Context = @{},
-        # define data to be shared in only in the inner scope where e.g eachTestSetup + test run but not 
+        # define data to be shared in only in the inner scope where e.g eachTestSetup + test run but not
         # in the scope where OneTimeTestSetup runs, on the other hand, plugins want context
         # in all scopes
         [Switch] $ReduceContextToInnerScope,
@@ -788,11 +795,11 @@ function Invoke-ScriptBlock {
 
             & {
                 try {
-                    # this is needed for nonewscope so we can do two different 
+                    # this is needed for nonewscope so we can do two different
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object), this way we save the first teardown and ressurect it right before
                     # needing it
-                    if (-not (Test-Path 'Variable:$_________teardown2')) { 
+                    if (-not (Test-Path 'Variable:$_________teardown2')) {
                         $_________teardown2 = $______parameters.Teardown
                     }
 
@@ -833,10 +840,10 @@ function Invoke-ScriptBlock {
                     &$______parameters.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {
-                    # this is needed for nonewscope so we can do two different 
+                    # this is needed for nonewscope so we can do two different
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object)
-                    if ((Test-Path 'variable:_________teardown2')) { 
+                    if ((Test-Path 'variable:_________teardown2')) {
                         # soo we are running the one time test teadown in the same scope as
                         # each block teardown and it overwrites it
                         $______parameters.Teardown = $_________teardown2
@@ -909,18 +916,18 @@ function Invoke-ScriptBlock {
     $break = $true
     $err = $null
     try {
-        $parameters =  @{
-            ScriptBlock = $ScriptBlock
-            OuterSetup = $OuterSetup
-            Setup = $Setup
-            Teardown = $Teardown
-            OuterTeardown = $OuterTeardown
+        $parameters = @{
+            ScriptBlock                   = $ScriptBlock
+            OuterSetup                    = $OuterSetup
+            Setup                         = $Setup
+            Teardown                      = $Teardown
+            OuterTeardown                 = $OuterTeardown
             # SameScope = $SameScope
             CurrentlyExecutingScriptBlock = $null
-            ErrorRecord = @()
-            Context = $Context
-            ContextInOuterScope = -not $ReduceContextToInnerScope
-            WriteDebug = {} # { param( $Message )  Write-Host -ForegroundColor Blue $Message }
+            ErrorRecord                   = @()
+            Context                       = $Context
+            ContextInOuterScope           = -not $ReduceContextToInnerScope
+            WriteDebug                    = {} # { param( $Message )  Write-Host -ForegroundColor Blue $Message }
         }
 
         # here we are moving into the user scope if the provided
@@ -933,11 +940,11 @@ function Invoke-ScriptBlock {
         & $OnUserScopeTransition
         do {
             $standardOutput = if ($NoNewScope) {
-                    . $wrapperScriptBlock $parameters
-                }
-                else {
-                    & $wrapperScriptBlock $parameters
-                }
+                . $wrapperScriptBlock $parameters
+            }
+            else {
+                & $wrapperScriptBlock $parameters
+            }
             # if the code reaches here we did not break
             $break = $false
         } while ($false)
@@ -951,10 +958,10 @@ function Invoke-ScriptBlock {
     $errors = @( ($parameters.ErrorRecord + $err) | hasValue )
 
     return New_PSObject -Type ScriptBlockInvocationResult @{
-        Success = 0 -eq $errors.Length
-        ErrorRecord = $errors
+        Success        = 0 -eq $errors.Length
+        ErrorRecord    = $errors
         StandardOutput = $standardOutput
-        Break = $break
+        Break          = $break
     }
 }
 
@@ -1014,32 +1021,31 @@ function Switch-Timer {
 function Find-CurrentTest {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Name,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
-        [String] $Id 
+        [String] $Id
     )
 
     $block = Get-CurrentBlock
     # todo: optimize this if too slow
-    $testCanditates = @($block.Tests | where { $_.Name -eq $Name -and $_.Id -eq $Id })
+    $testCanditates = @($block.Tests | where { $_.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $_.Id -eq $Id })
     if ($testCanditates.Length -eq 1) {
         $testCanditates[0]
-        
     }
     elseif ($testCanditates.Length -gt 1) {
-        throw "Found more than one test with '$($Name)' and Id '$Id'. Are there multiple tests with the same name in this block?"
+        throw "Found more than one test that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
     }
     else {
-        throw "Did not find the test '$($Name)' with Id '$Id', how is this possible?"
+        throw "Did not find the test '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
     }
 }
 
 function Test-ShouldRun {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         $Test,
         $Filter
     )
@@ -1107,26 +1113,25 @@ function Test-ShouldRun {
 function Invoke-Test {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
         $Filter,
         $Plugin
     )
 
-        $state.Plugin = $Plugin
+    $state.Plugin = $Plugin
 
-        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
+    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
-        Run-Test -Block $found -SessionState $SessionState
+    Run-Test -Block $found -SessionState $SessionState
 }
 
-function PostProcess-DiscoveredBlock
-{
+function PostProcess-DiscoveredBlock {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
         [PSTypeName("Filter")] $Filter,
         [PSTypeName("BlockContainer")] $BlockContainer
@@ -1159,7 +1164,7 @@ function PostProcess-DiscoveredBlock
             $childBlocks = $b.Blocks
             $anyChildBlockShouldRun = $false
             if (any $childBlocks) {
-                foreach($cb in $childBlocks) {
+                foreach ($cb in $childBlocks) {
                     $cb.Parent = $b
                     $cb.BlockContainer = $BlockContainer
                     PostProcess-DiscoveredBlock -Block $cb -Filter $Filter -BlockContainer $BlockContainer
@@ -1178,11 +1183,10 @@ function PostProcess-DiscoveredBlock
     }
 }
 
-function PostProcess-ExecutedBlock
-{
+function PostProcess-ExecutedBlock {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [PSTypeName("DiscoveredBlock")][PSObject[]] $Block
     )
 
@@ -1203,7 +1207,7 @@ function PostProcess-ExecutedBlock
             $anyChildBlockFailed = $false
             $aggregatedChildDuration = [TimeSpan]::Zero
             if (any $childBlocks) {
-                foreach($cb in $childBlocks) {
+                foreach ($cb in $childBlocks) {
                     PostProcess-ExecutedBlock -Block $cb
                 }
                 $aggregatedChildDuration = sum $childBlocks 'AggregatedDuration' ([TimeSpan]::Zero)
@@ -1220,7 +1224,7 @@ function PostProcess-ExecutedBlock
 function Where-Failed {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Block
     )
 
@@ -1230,7 +1234,7 @@ function Where-Failed {
 function View-Flat {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Block
     )
 
@@ -1238,7 +1242,7 @@ function View-Flat {
     $blocks = flattenBlock -Block $Block -Accumulator @()
     foreach ($block in $blocks) {
         foreach ($test in $block.Tests) {
-            $test | select *, @{n="Block"; e={$block}}
+            $test | select *, @{n = "Block"; e = {$block}}
         }
     }
 }
@@ -1258,9 +1262,9 @@ function flattenBlock ($Block, $Accumulator) {
 function Find-CurrentBlock {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Name,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
 
@@ -1271,15 +1275,16 @@ function Find-CurrentBlock {
         $blockCandidates[0]
     }
     elseif ($blockCandidates.Length -gt 1) {
-        $found = @($blockCandidates | where { "$ScriptBlock" -eq "$($_.ScriptBlock)" })
-        
-        if ($found.Length -eq 1){
+        $found = @($blockCandidates | where { $ScriptBlock.StartPosition.StartLine -eq $_.ScriptBlock.StartPosition.StartLine })
+
+        if ($found.Length -eq 1) {
             $found
         }
         elseif ($found.Length -eq 0) {
-            throw "Could not find block '$Name'"
-        } else {
-            throw "Found multiple blocks with name '$Name' and the same ScriptBlock."
+            throw "Could not find block '$Name' that starts on line $($ScriptBlock.StartPosition.StartLine)"
+        }
+        else {
+            throw "Found multiple blocks that start on the same line $($ScriptBlock.StartPosition.StartLine) how is that possible?"
         }
     }
     else {
@@ -1296,8 +1301,8 @@ function New-FilterObject {
     )
 
     New_PSObject -Type "Filter" -Property @{
-        Path = $Path
-        Tag = $Tag
+        Path       = $Path
+        Tag        = $Tag
         ExcludeTag = $ExcludeTag
     }
 }
@@ -1305,7 +1310,7 @@ function New-FilterObject {
 function New-PluginObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $Name,
         [ScriptBlock] $OneTimeBlockSetup,
         [ScriptBlock] $EachBlockSetup,
@@ -1318,13 +1323,13 @@ function New-PluginObject {
     )
 
     New_PSObject -Type "Plugin" @{
-        OneTimeBlockSetup = $OneTimeBlockSetup
-        EachBlockSetup = $EachBlockSetup
-        OneTimeTestSetup = $OneTimeTestSetup
-        EachTestSetup = $EachTestSetup
-        EachTestTeardown = $EachTestTeardown
-        OneTimeTestTeardown = $OneTimeTestTeardown
-        EachBlockTeardown = $EachBlockTeardown
+        OneTimeBlockSetup    = $OneTimeBlockSetup
+        EachBlockSetup       = $EachBlockSetup
+        OneTimeTestSetup     = $OneTimeTestSetup
+        EachTestSetup        = $EachTestSetup
+        EachTestTeardown     = $EachTestTeardown
+        OneTimeTestTeardown  = $OneTimeTestTeardown
+        EachBlockTeardown    = $EachBlockTeardown
         OneTimeBlockTeardown = $OneTimeBlockTeardown
     }
 }
@@ -1337,7 +1342,7 @@ function Invoke-BlockContainer {
         # PowerShell cannot do that probably
         # [PSTypeName("BlockContainer"] | [PSTypeName("DiscoveredBlockContainer")]
         $BlockContainer,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
 
@@ -1351,7 +1356,7 @@ function Invoke-BlockContainer {
 function New-BlockContainerObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")] 
+        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
         [ScriptBlock] $ScriptBlock,
         [Parameter(Mandatory, ParameterSetName = "Path")]
         [String] $Path,
@@ -1367,7 +1372,7 @@ function New-BlockContainerObject {
     }
 
     New_PSObject -Type "BlockContainer" @{
-        Type = $type
+        Type    = $type
         Content = $content
     }
 }
@@ -1382,28 +1387,28 @@ function New-DiscoveredBlockContainerObject {
     )
 
     New_PSObject -Type "DiscoveredBlockContainer" @{
-        Type = $BlockContainer.Type
+        Type    = $BlockContainer.Type
         Content = $BlockContainer.Content
         # I create a Root block to keep the discovery unaware of containers,
         # but I don't want to publish that root block because it contains properties
         # that do not make sense on container level like Name and Parent,
         # so here we don't want to take the root block but the blocks inside of it
         # and copy the rest of the meaningful properties
-        Blocks = $Block.Blocks
+        Blocks  = $Block.Blocks
     }
 }
 
 function Invoke-File {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String]
-        $Path, 
-        [Parameter(Mandatory=$true)]
+        $Path,
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
 
-    $sb = { 
+    $sb = {
         param ($p)
         . $($p; Remove-Variable -Scope Local -Name p)
     }
@@ -1414,7 +1419,7 @@ function Invoke-File {
     # attach the original session state to the wrapper scriptblock
     # making it invoke in the caller session state
     $sb.GetType().GetProperty('SessionStateInternal', $flags).SetValue($sb, $SessionStateInternal, $null)
-    
+
     # dot source the caller bound scriptblock which imports it into user scope
     & $sb $Path
 }
@@ -1422,8 +1427,8 @@ function Invoke-File {
 function Import-Dependency {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]   
-        $Dependency, 
+        [Parameter(Mandatory = $true)]
+        $Dependency,
         # [Parameter(Mandatory=$true)]
         [Management.Automation.SessionState] $SessionState
     )
@@ -1433,15 +1438,15 @@ function Import-Dependency {
     }
     else {
 
-        # when importing a file we need to 
+        # when importing a file we need to
         # dot source it into the user scope, the path has
         # no bound session state, so simply dot sourcing it would
         # import it into module scope
         # instead we wrap it into a scriptblock that we attach to user
         # scope, and dot source the file, that will import the functions into
-        # that script block, and then we dot source it again to import it 
+        # that script block, and then we dot source it again to import it
         # into the caller scope, effectively defining the functions there
-        $sb = { 
+        $sb = {
             param ($p)
 
             . $($p; Remove-Variable -Scope Local -Name p)
@@ -1449,76 +1454,76 @@ function Import-Dependency {
 
         $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
         $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
-    
+
         # attach the original session state to the wrapper scriptblock
         # making it invoke in the caller session state
         $sb.GetType().GetProperty('SessionStateInternal', $flags).SetValue($sb, $SessionStateInternal, $null)
-        
+
         # dot source the caller bound scriptblock which imports it into user scope
         . $sb $Dependency
     }
 }
 
 function Add-FrameworkDependency {
-    [CmdletBinding()] 
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         $Dependency
     )
 
     # adds dependency that is dotsourced during discovery & execution
-    # this should be rarely needed, but is useful when you wrap Pester pieces 
-    # into your own functions, and want to have them available during both 
+    # this should be rarely needed, but is useful when you wrap Pester pieces
+    # into your own functions, and want to have them available during both
     # discovery and execution
     Write-Host "Adding framework dependency '$Dependency'" -ForegroundColor Yellow
     Import-Dependency -Dependency $Dependency -SessionState $SessionState
 }
 
-function Add-Dependency { 
+function Add-Dependency {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]   
-        $Dependency, 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
+        $Dependency,
+        [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
 
 
     # adds dependency that is dotsourced after discovery and before execution
-    if (-not (Is-Discovery)) { 
+    if (-not (Is-Discovery)) {
         Write-Host "Adding run-time dependency '$Depenedency'" -ForegroundColor Yellow
         Import-Dependency -Dependency $Dependency -SessionState $SessionState
     }
 }
 
-function Add-FreeFloatingCode { 
-    [CmdletBinding()] 
+function Add-FreeFloatingCode {
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]   
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
 
     # runs piece of code during execution, useful for backwards compatibility
-    # when you have stuff laying around inbetween describes and want to run it 
+    # when you have stuff laying around inbetween describes and want to run it
     # only during execution and not twice. works the same as Add-Dependency, but I name
     # it differently because this is a bad-practice mitigation tool and should probably
     # write a warning to make you use Before* blocks instead
-    if (-not (Is-Discovery)) { 
+    if (-not (Is-Discovery)) {
         Write-Host Invoking free floating piece of code -ForegroundColor Yellow
         Import-Dependency $Dependency
     }
 }
 
-function New-ParametrizedTest () { 
+function New-ParametrizedTest () {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [String] $Name,
-        [Parameter(Mandatory=$true, Position = 1)]
+        [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         [HashTable[]] $Data = @{}
-    ) 
+    )
 
     Switch-Timer -Scope Framework
     $counter = 0
