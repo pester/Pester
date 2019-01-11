@@ -11,10 +11,10 @@ InModuleScope Pester {
 
         }
         Context "TagFilter parameter is set" {
-            $p = new-pesterstate -TagFilter "tag","tag2"
+            $p = new-pesterstate -TagFilter "tag", "tag2"
 
             it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag","tag2")
+                $p.TagFilter | should -be ("tag", "tag2")
             }
         }
 
@@ -27,10 +27,10 @@ InModuleScope Pester {
         }
 
         Context "TagFilter and ExcludeTagFilter parameter are set" {
-            $p = new-pesterstate -TagFilter "tag","tag2" -ExcludeTagFilter "tag3"
+            $p = new-pesterstate -TagFilter "tag", "tag2" -ExcludeTagFilter "tag3"
 
             it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag","tag2")
+                $p.TagFilter | should -be ("tag", "tag2")
             }
 
             it "sets the ExcludeTagFilter property" {
@@ -38,14 +38,14 @@ InModuleScope Pester {
             }
         }
         Context "TestNameFilter and TagFilter parameter is set" {
-            $p = new-pesterstate -TagFilter "tag","tag2" -testnamefilter "filter"
+            $p = new-pesterstate -TagFilter "tag", "tag2" -testnamefilter "filter"
 
             it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag","tag2")
+                $p.TagFilter | should -be ("tag", "tag2")
             }
 
             it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag","tag2")
+                $p.TagFilter | should -be ("tag", "tag2")
             }
 
         }
@@ -210,7 +210,7 @@ InModuleScope Pester {
             #endregion TIMING TESTS
 
             it "adds passed test" {
-                $p.AddTestResult("result","Passed", 100)
+                $p.AddTestResult("result", "Passed", 100)
                 $result = $p.TestResult[-1]
                 $result.Name | should -be "result"
                 $result.passed | should -be $true
@@ -218,8 +218,13 @@ InModuleScope Pester {
                 $result.time.ticks | should -be 100
             }
             it "adds failed test" {
-                try { throw 'message' } catch { $e = $_ }
-                $p.AddTestResult("result","Failed", 100, "fail", "stack","suite name",@{param='eters'},$e)
+                try {
+                    throw 'message'
+                }
+                catch {
+                    $e = $_
+                }
+                $p.AddTestResult("result", "Failed", 100, "fail", "stack", "suite name", @{param = 'eters'}, $e)
                 $result = $p.TestResult[-1]
                 $result.Name | should -be "result"
                 $result.passed | should -be $false
@@ -233,7 +238,7 @@ InModuleScope Pester {
             }
 
             it "adds skipped test" {
-                $p.AddTestResult("result","Skipped", 100)
+                $p.AddTestResult("result", "Skipped", 100)
                 $result = $p.TestResult[-1]
                 $result.Name | should -be "result"
                 $result.passed | should -be $true
@@ -242,7 +247,7 @@ InModuleScope Pester {
             }
 
             it "adds Pending test" {
-                $p.AddTestResult("result","Pending", 100)
+                $p.AddTestResult("result", "Pending", 100)
                 $result = $p.TestResult[-1]
                 $result.Name | should -be "result"
                 $result.passed | should -be $true
@@ -257,7 +262,7 @@ InModuleScope Pester {
             $strict = New-PesterState -Strict
 
             It "Keeps Passed state" {
-                $strict.AddTestResult("test","Passed")
+                $strict.AddTestResult("test", "Passed")
                 $result = $strict.TestResult[-1]
 
                 $result.passed | should -be $true
@@ -265,7 +270,7 @@ InModuleScope Pester {
             }
 
             It "Keeps Failed state" {
-                $strict.AddTestResult("test","Failed")
+                $strict.AddTestResult("test", "Failed")
                 $result = $strict.TestResult[-1]
 
                 $result.passed | should -be $false
@@ -273,7 +278,7 @@ InModuleScope Pester {
             }
 
             It "Changes Pending state to Failed" {
-                $strict.AddTestResult("test","Pending")
+                $strict.AddTestResult("test", "Pending")
                 $result = $strict.TestResult[-1]
 
                 $result.passed | should -be $false
@@ -281,7 +286,7 @@ InModuleScope Pester {
             }
 
             It "Changes Skipped state to Failed" {
-                $strict.AddTestResult("test","Skipped")
+                $strict.AddTestResult("test", "Skipped")
                 $result = $strict.TestResult[-1]
 
                 $result.passed | should -be $false

@@ -119,7 +119,7 @@ InModuleScope -ModuleName Pester {
 
     if ('Windows' -eq (GetPesterOs)) {
         Describe 'Get-TempRegistry' {
-            Mock 'GetPesterOs'{
+            Mock 'GetPesterOs' {
                 return 'Windows'
             }
 
@@ -130,7 +130,7 @@ InModuleScope -ModuleName Pester {
                 $tempPath | Should -Be $expected
             }
 
-            It 'should throw an error if TempRegistry fails'{
+            It 'should throw an error if TempRegistry fails' {
                 Mock New-TempRegistry {
                     throw [Exception] 'Error'
                 }

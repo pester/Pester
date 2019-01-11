@@ -1,10 +1,9 @@
 ﻿Set-StrictMode -Version Latest
 
-function FunctionUnderTest
-{
+function FunctionUnderTest {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]
         $param1
     )
@@ -16,7 +15,9 @@ function FunctionUnderTestWithoutParams([string]$param1) {
     return "I am a real world test with no params"
 }
 
-filter FilterUnderTest { $_ }
+filter FilterUnderTest {
+    $_
+}
 
 function CommonParamFunction (
     [string] ${Uncommon},
@@ -35,41 +36,40 @@ function CommonParamFunction (
     [System.String]
     ${OutVariable},
     [System.Int32]
-    ${OutBuffer} ){
+    ${OutBuffer} ) {
     return "Please strip me of my common parameters. They are far too common."
 }
 
 function PipelineInputFunction {
     param(
-        [Parameter(ValueFromPipeline=$True)]
+        [Parameter(ValueFromPipeline = $True)]
         [int]$PipeInt1,
-        [Parameter(ValueFromPipeline=$True)]
+        [Parameter(ValueFromPipeline = $True)]
         [int[]]$PipeInt2,
-        [Parameter(ValueFromPipeline=$True)]
+        [Parameter(ValueFromPipeline = $True)]
         [string]$PipeStr,
-        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [Parameter(ValueFromPipelineByPropertyName = $True)]
         [int]$PipeIntProp,
-        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [Parameter(ValueFromPipelineByPropertyName = $True)]
         [int[]]$PipeArrayProp,
-        [Parameter(ValueFromPipelineByPropertyName=$True)]
+        [Parameter(ValueFromPipelineByPropertyName = $True)]
         [string]$PipeStringProp
     )
-    begin{
+    begin {
         $p = 0
     }
     process {
-        foreach($i in $input)
-        {
+        foreach ($i in $input) {
             $p += 1
             write-output @{
-                index=$p;
-                val=$i;
-                PipeInt1=$PipeInt1;
-                PipeInt2=$PipeInt2;
-                PipeStr=$PipeStr;
-                PipeIntProp=$PipeIntProp;
-                PipeArrayProp=$PipeArrayProp;
-                PipeStringProp=$PipeStringProp;
+                index          = $p;
+                val            = $i;
+                PipeInt1       = $PipeInt1;
+                PipeInt2       = $PipeInt2;
+                PipeStr        = $PipeStr;
+                PipeIntProp    = $PipeIntProp;
+                PipeArrayProp  = $PipeArrayProp;
+                PipeStringProp = $PipeStringProp;
             }
         }
     }
@@ -93,7 +93,7 @@ Describe "When the caller mocks a command Pester uses internally" {
 Describe "When calling Mock on existing cmdlet" {
     Mock Get-Process {return "I am not Get-Process"}
 
-    $result=Get-Process
+    $result = Get-Process
 
     It "Should Invoke the mocked script" {
         $result | Should -Be "I am not Get-Process"
@@ -110,16 +110,13 @@ Describe 'When calling Mock on an alias' {
 
     $originalPath = $env:path
 
-    try
-    {
+    try {
         # Our TeamCity server has a dir.exe on the system path, and PowerShell v2 apparently finds that instead of the PowerShell alias first.
         # This annoying bit of code makes sure our test works as intended even when this is the case.
 
         $dirExe = Get-Command dir -CommandType Application -ErrorAction SilentlyContinue
-        if ($null -ne $dirExe)
-        {
-            foreach ($app in $dirExe)
-            {
+        if ($null -ne $dirExe) {
+            foreach ($app in $dirExe) {
                 $parent = (Split-Path $app.Path -Parent).TrimEnd('\')
                 $pattern = "^$([regex]::Escape($parent))\\?"
 
@@ -135,8 +132,7 @@ Describe 'When calling Mock on an alias' {
             $result | Should -Be 'I am not dir'
         }
     }
-    finally
-    {
+    finally {
         $env:path = $originalPath
     }
 }
@@ -144,7 +140,9 @@ Describe 'When calling Mock on an alias' {
 Describe 'When calling Mock on an alias that refers to a function Pester can''t see' {
     It 'Mocks the aliased command successfully' {
         # This function is defined in a non-global scope; code inside the Pester module can't see it directly.
-        function orig {'orig'}
+        function orig {
+            'orig'
+        }
         New-Alias 'ali' orig
 
         ali | Should -Be 'orig'
@@ -192,8 +190,7 @@ Describe 'When calling Mock on an external script' {
 
     Push-Location TestDrive:\
 
-    try
-    {
+    try {
         $result = tempExternalScript.ps1
         It 'Should Invoke the mocked script using just the script name' {
             $result | Should -Be 'I am not tempExternalScript.ps1'
@@ -222,8 +219,7 @@ Describe 'When calling Mock on an external script' {
         #>
 
     }
-    finally
-    {
+    finally {
         Pop-Location
     }
 
@@ -246,12 +242,12 @@ InModuleScope -ModuleName Pester {
         }
         else {
 
-             Mock schtasks.exe {return 'I am not schtasks.exe'}
+            Mock schtasks.exe {return 'I am not schtasks.exe'}
 
-             $result = schtasks.exe
+            $result = schtasks.exe
 
             It 'Should Invoke the mocked script' {
-                 $result | Should -Be 'I am not schtasks.exe'
+                $result | Should -Be 'I am not schtasks.exe'
             }
         }
     }
@@ -268,10 +264,10 @@ Describe "When calling Mock in the Describe block" {
 
 Describe "When calling Mock on existing cmdlet to handle pipelined input" {
     Mock Get-ChildItem {
-        if($_ -eq 'a'){
+        if ($_ -eq 'a') {
             return "AA"
         }
-        if($_ -eq 'b'){
+        if ($_ -eq 'b') {
             return "BB"
         }
     }
@@ -287,7 +283,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
 Describe "When calling Mock on existing cmdlet with Common params" {
     Mock CommonParamFunction
 
-    $result=[string](Get-Alias CommonParamFunction).ResolvedCommand.ScriptBlock
+    $result = [string](Get-Alias CommonParamFunction).ResolvedCommand.ScriptBlock
 
     It "Should strip verbose" {
         $result.contains("`${Verbose}") | Should -Be $false
@@ -319,10 +315,11 @@ Describe "When calling Mock on existing cmdlet with Common params" {
 }
 
 Describe "When calling Mock on non-existing function" {
-    try{
+    try {
         Mock NotFunctionUnderTest {return}
-    } Catch {
-        $result=$_
+    }
+    Catch {
+        $result = $_
     }
 
     It "Should throw correct error" {
@@ -335,7 +332,7 @@ Describe "When calling Mock on non existent module" {
     It "Should throw correct error" {
         $params = @{
             CommandName = 'Invoke-MyMethod'
-            ModuleName = 'MyNonExistentModule'
+            ModuleName  = 'MyNonExistentModule'
         }
 
         { Mock @params -MockWith { write-host "my mock called!" } } | Should -Throw "No module named 'MyNonExistentModule' is currently loaded."
@@ -349,12 +346,10 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     $result = $null
     $testValue = 'test'
 
-    try
-    {
+    try {
         Mock FunctionUnderTest { 'I am the mock' } -ParameterFilter { $param1 -eq $testValue }
     }
-    catch
-    {
+    catch {
         $result = $_
     }
 
@@ -374,7 +369,7 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
 Describe "When calling Mock on existing function without matching bound params" {
     Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "test"}
 
-    $result=FunctionUnderTest "badTest"
+    $result = FunctionUnderTest "badTest"
 
     It "Should redirect to real function" {
         $result | Should -Be "I am a real world test"
@@ -384,7 +379,7 @@ Describe "When calling Mock on existing function without matching bound params" 
 Describe "When calling Mock on existing function with matching bound params" {
     Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "badTest"}
 
-    $result=FunctionUnderTest "badTest"
+    $result = FunctionUnderTest "badTest"
 
     It "Should return mocked result" {
         $result | Should -Be "fake results"
@@ -394,7 +389,7 @@ Describe "When calling Mock on existing function with matching bound params" {
 Describe "When calling Mock on existing function without matching unbound arguments" {
     Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "test" -and $args[0] -eq 'notArg0'}
 
-    $result=FunctionUnderTestWithoutParams -param1 "test" "arg0"
+    $result = FunctionUnderTestWithoutParams -param1 "test" "arg0"
 
     It "Should redirect to real function" {
         $result | Should -Be "I am a real world test with no params"
@@ -404,7 +399,7 @@ Describe "When calling Mock on existing function without matching unbound argume
 Describe "When calling Mock on existing function with matching unbound arguments" {
     Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "badTest" -and $args[0] -eq 'arg0'}
 
-    $result=FunctionUnderTestWithoutParams "badTest" "arg0"
+    $result = FunctionUnderTestWithoutParams "badTest" "arg0"
 
     It "Should return mocked result" {
         $result | Should -Be "fake results"
@@ -412,7 +407,8 @@ Describe "When calling Mock on existing function with matching unbound arguments
 }
 
 Describe 'When calling Mock on a function that has no parameters' {
-    function Test-Function { }
+    function Test-Function {
+    }
     Mock Test-Function { return $args.Count }
 
     It 'Sends the $args variable properly with 2+ elements' {
@@ -456,9 +452,15 @@ Describe "When calling Mock on More than one command" {
 
 Describe 'When calling Mock on a module-internal function.' {
     New-Module -Name TestModule {
-        function InternalFunction { 'I am the internal function' }
-        function PublicFunction   { InternalFunction }
-        function PublicFunctionThatCallsExternalCommand { Start-Sleep 0 }
+        function InternalFunction {
+            'I am the internal function'
+        }
+        function PublicFunction {
+            InternalFunction
+        }
+        function PublicFunctionThatCallsExternalCommand {
+            Start-Sleep 0
+        }
 
         function FuncThatOverwritesExecutionContext {
             param ($ExecutionContext)
@@ -470,10 +472,18 @@ Describe 'When calling Mock on a module-internal function.' {
     } | Import-Module -Force
 
     New-Module -Name TestModule2 {
-        function InternalFunction { 'I am the second module internal function' }
-        function InternalFunction2 { 'I am the second module, second function' }
-        function PublicFunction   { InternalFunction }
-        function PublicFunction2 { InternalFunction2 }
+        function InternalFunction {
+            'I am the second module internal function'
+        }
+        function InternalFunction2 {
+            'I am the second module, second function'
+        }
+        function PublicFunction {
+            InternalFunction
+        }
+        function PublicFunction2 {
+            InternalFunction2
+        }
 
         function FuncThatOverwritesExecutionContext {
             param ($ExecutionContext)
@@ -564,7 +574,7 @@ Describe "When Applying multiple Mocks on a single command" {
     Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
 
     $result = FunctionUnderTest "one"
-    $result2= FunctionUnderTest "two"
+    $result2 = FunctionUnderTest "two"
 
     It "Should Invoke the mocked script for the first Mock" {
         $result | Should -Be "I am the first mock test"
@@ -591,7 +601,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
     Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
 
     $result = FunctionUnderTest "one"
-    $result2= FunctionUnderTest "three"
+    $result2 = FunctionUnderTest "three"
 
     It "The parameterless mock is evaluated last" {
         $result | Should -Be "I am the first mock test"
@@ -609,8 +619,9 @@ Describe "When Creating a Verifiable Mock that is not called" {
 
         try {
             Assert-VerifiableMock
-        } Catch {
-            $result=$_
+        }
+        Catch {
+            $result = $_
         }
 
         It "Should throw" {
@@ -620,7 +631,9 @@ Describe "When Creating a Verifiable Mock that is not called" {
 
     Context "In a module's scope" {
         New-Module -Name TestModule -ScriptBlock {
-            function ModuleFunctionUnderTest { return 'I am the function under test in a module' }
+            function ModuleFunctionUnderTest {
+                return 'I am the function under test in a module'
+            }
         } | Import-Module -Force
 
         Mock -ModuleName TestModule ModuleFunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
@@ -628,8 +641,9 @@ Describe "When Creating a Verifiable Mock that is not called" {
 
         try {
             Assert-VerifiableMock
-        } Catch {
-            $result=$_
+        }
+        Catch {
+            $result = $_
         }
 
         It "Should throw" {
@@ -656,8 +670,9 @@ Describe "When Calling Assert-MockCalled 0 without exactly" {
 
     try {
         Assert-MockCalled FunctionUnderTest 0
-    } Catch {
-        $result=$_
+    }
+    Catch {
+        $result = $_
     }
 
     It "Should throw if mock was called" {
@@ -676,8 +691,9 @@ Describe "When Calling Assert-MockCalled with exactly" {
 
     try {
         Assert-MockCalled FunctionUnderTest -exactly 3
-    } Catch {
-        $result=$_
+    }
+    Catch {
+        $result = $_
     }
 
     It "Should throw if mock was not called the number of times specified" {
@@ -783,7 +799,8 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
 }
 
 Describe 'Testing mock history behavior from each scope' {
-    function MockHistoryChecker { }
+    function MockHistoryChecker {
+    }
     Mock MockHistoryChecker { 'I am the describe mock.' }
 
     Context 'Without overriding the mock in lower scopes' {
@@ -855,7 +872,7 @@ Describe 'Testing mock history behavior from each scope' {
 Describe "Using a single no param Describe" {
     Mock FunctionUnderTest {return "I am the describe mock test"}
 
-    Context "With a context mocking the same function with no params"{
+    Context "With a context mocking the same function with no params" {
         Mock FunctionUnderTest {return "I am the context mock test"}
         It "Should use the context mock" {
             FunctionUnderTest | should -be "I am the context mock test"
@@ -867,7 +884,9 @@ Describe 'Dot Source Test' {
     # This test is only meaningful if this test file is dot-sourced in the global scope.  If it's executed without
     # dot-sourcing or run by Invoke-Pester, there's no problem.
 
-    function TestFunction { Test-Path -Path 'Test' }
+    function TestFunction {
+        Test-Path -Path 'Test'
+    }
     Mock Test-Path { }
 
     $null = TestFunction
@@ -889,7 +908,9 @@ InModuleScope -ModuleName Pester {
     Describe 'Mocking Cmdlets with dynamic parameters' {
 
         if ((GetPesterOs) -ne 'Windows') {
-            $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
+            $mockWith = { if (-not $Hidden) {
+                    throw 'Hidden variable not found, or set to false!'
+                } }
             Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
 
             It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
@@ -898,7 +919,9 @@ InModuleScope -ModuleName Pester {
             }
         }
         else {
-            $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
+            $mockWith = { if (-not $CodeSigningCert) {
+                    throw 'CodeSigningCert variable not found, or set to false!'
+                } }
             Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
 
             It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
@@ -937,9 +960,8 @@ Describe 'Mocking functions with dynamic parameters' {
                 }
             }
 
-            end
-            {
-                if($PSBoundParameters.Capitalize) {
+            end {
+                if ($PSBoundParameters.Capitalize) {
                     $Name = [regex]::Replace(
                         $Name,
                         '\b\w',
@@ -951,7 +973,9 @@ Describe 'Mocking functions with dynamic parameters' {
             }
         }
 
-        $mockWith = { if (-not $Capitalize) { throw 'Capitalize variable not found, or set to false!' } }
+        $mockWith = { if (-not $Capitalize) {
+                throw 'Capitalize variable not found, or set to false!'
+            } }
         Mock Get-Greeting -MockWith $mockWith -ParameterFilter { [bool]$Capitalize }
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
@@ -969,7 +993,9 @@ Describe 'Mocking functions with dynamic parameters' {
 
     Context 'When the mocked command is in a module' {
         New-Module -Name TestModule {
-            function PublicFunction { Get-Greeting -Name lowercase -Capitalize }
+            function PublicFunction {
+                Get-Greeting -Name lowercase -Capitalize
+            }
 
             $script:DoDynamicParam = $true
 
@@ -985,7 +1011,9 @@ Describe 'Mocking functions with dynamic parameters' {
                 DynamicParam {
                     # This check is here to make sure the mocked version can still work if the
                     # original function's dynamicparam block relied on script-scope variables.
-                    if (-not $script:DoDynamicParam) { return }
+                    if (-not $script:DoDynamicParam) {
+                        return
+                    }
 
                     if ($Name -cmatch '\b[a-z]') {
                         $Attributes = New-Object Management.Automation.ParameterAttribute
@@ -1003,9 +1031,8 @@ Describe 'Mocking functions with dynamic parameters' {
                     }
                 }
 
-                end
-                {
-                    if($PSBoundParameters.Capitalize) {
+                end {
+                    if ($PSBoundParameters.Capitalize) {
                         $Name = [regex]::Replace(
                             $Name,
                             '\b\w',
@@ -1018,7 +1045,9 @@ Describe 'Mocking functions with dynamic parameters' {
             }
         } | Import-Module -Force
 
-        $mockWith = { if (-not $Capitalize) { throw 'Capitalize variable not found, or set to false!' } }
+        $mockWith = { if (-not $Capitalize) {
+                throw 'Capitalize variable not found, or set to false!'
+            } }
         Mock Get-Greeting -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Capitalize }
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
@@ -1061,9 +1090,8 @@ Describe 'Mocking functions with dynamic parameters' {
                 }
             }
 
-            end
-            {
-                if($PSBoundParameters.Capitalize) {
+            end {
+                if ($PSBoundParameters.Capitalize) {
                     $Name = [regex]::Replace(
                         $Name,
                         '\b\w',
@@ -1118,9 +1146,8 @@ Describe 'Mocking functions with dynamic parameters' {
                 }
             }
 
-            end
-            {
-                if($PSBoundParameters.Capitalize) {
+            end {
+                if ($PSBoundParameters.Capitalize) {
                     $Name = [regex]::Replace(
                         $Name,
                         '\b\w',
@@ -1169,9 +1196,8 @@ Describe 'Mocking functions with dynamic parameters' {
                 }
             }
 
-            end
-            {
-                if($PSBoundParameters.Capitalize) {
+            end {
+                if ($PSBoundParameters.Capitalize) {
                     $Name = [regex]::Replace(
                         $Name,
                         '\b\w',
@@ -1223,9 +1249,8 @@ Describe 'Mocking functions with dynamic parameters' {
                 }
             }
 
-            end
-            {
-                if($PSBoundParameters.Capitalize) {
+            end {
+                if ($PSBoundParameters.Capitalize) {
                     $Name = [regex]::Replace(
                         $Name,
                         '\b\w',
@@ -1253,18 +1278,26 @@ InModuleScope -ModuleName Pester {
     Describe 'Mocking Cmdlets with dynamic parameters in a module' {
         if ((GetPesterOs) -ne 'Windows') {
             New-Module -Name TestModule {
-                function PublicFunction   { Get-ChildItem -Path \ -Hidden }
+                function PublicFunction {
+                    Get-ChildItem -Path \ -Hidden
+                }
             } | Import-Module -Force
 
-            $mockWith = { if (-not $Hidden) { throw 'Hidden variable not found, or set to false!' } }
+            $mockWith = { if (-not $Hidden) {
+                    throw 'Hidden variable not found, or set to false!'
+                } }
             Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Hidden }
         }
         else {
             New-Module -Name TestModule {
-                function PublicFunction   { Get-ChildItem -Path Cert:\ -CodeSigningCert }
+                function PublicFunction {
+                    Get-ChildItem -Path Cert:\ -CodeSigningCert
+                }
             } | Import-Module -Force
 
-            $mockWith = { if (-not $CodeSigningCert) { throw 'CodeSigningCert variable not found, or set to false!' } }
+            $mockWith = { if (-not $CodeSigningCert) {
+                    throw 'CodeSigningCert variable not found, or set to false!'
+                } }
             Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$CodeSigningCert }
         }
 
@@ -1290,8 +1323,7 @@ InModuleScope -ModuleName Pester {
                     param ( )
 
                     DynamicParam {
-                        if ($script:DoDynamicParam)
-                        {
+                        if ($script:DoDynamicParam) {
 
                             $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
@@ -1301,30 +1333,30 @@ InModuleScope -ModuleName Pester {
                         }
                     }
 
-                    end
-                    {
+                    end {
                         'I am the original function'
                     }
                 }
             } | Import-Module -Force
 
             New-Module -Name TestModule2 {
-                function CallingFunction
-                {
+                function CallingFunction {
                     DynamicParamFunction -Hidden
                 }
 
                 function CallingFunction2 {
                     [CmdletBinding()]
                     param (
-                        [ValidateScript({ [bool](DynamicParamFunction -Hidden) })]
+                        [ValidateScript( { [bool](DynamicParamFunction -Hidden) })]
                         [string]
                         $Whatever
                     )
                 }
             } | Import-Module -Force
 
-            Mock DynamicParamFunction { if ($Hidden) { 'I am the mocked function' } } -ModuleName TestModule2
+            Mock DynamicParamFunction { if ($Hidden) {
+                    'I am the mocked function'
+                } } -ModuleName TestModule2
 
         }
         Else {
@@ -1337,10 +1369,8 @@ InModuleScope -ModuleName Pester {
                     param ( )
 
                     DynamicParam {
-                        if ($script:DoDynamicParam)
-                        {
-                            if ($PSVersionTable.PSVersion.Major -ge 3)
-                            {
+                        if ($script:DoDynamicParam) {
+                            if ($PSVersionTable.PSVersion.Major -ge 3) {
                                 # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
                                 # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
                                 # to make a new one.
@@ -1348,8 +1378,7 @@ InModuleScope -ModuleName Pester {
                                 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
                                 $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
                             }
-                            else
-                            {
+                            else {
                                 $params = @{}
                             }
 
@@ -1358,30 +1387,30 @@ InModuleScope -ModuleName Pester {
                         }
                     }
 
-                    end
-                    {
+                    end {
                         'I am the original function'
                     }
                 }
             } | Import-Module -Force
 
             New-Module -Name TestModule2 {
-                function CallingFunction
-                {
+                function CallingFunction {
                     DynamicParamFunction -CodeSigningCert
                 }
 
                 function CallingFunction2 {
                     [CmdletBinding()]
                     param (
-                        [ValidateScript({ [bool](DynamicParamFunction -CodeSigningCert) })]
+                        [ValidateScript( { [bool](DynamicParamFunction -CodeSigningCert) })]
                         [string]
                         $Whatever
                     )
                 }
             } | Import-Module -Force
 
-            Mock DynamicParamFunction { if ($CodeSigningCert) { 'I am the mocked function' } } -ModuleName TestModule2
+            Mock DynamicParamFunction { if ($CodeSigningCert) {
+                    'I am the mocked function'
+                } } -ModuleName TestModule2
 
         }
 
@@ -1402,7 +1431,9 @@ InModuleScope -ModuleName Pester {
 }
 
 Describe 'Parameter Filters and Common Parameters' {
-    function Test-Function { [CmdletBinding()] param ( ) }
+    function Test-Function {
+        [CmdletBinding()] param ( )
+    }
 
     Mock Test-Function { } -ParameterFilter { $VerbosePreference -eq 'Continue' }
 
@@ -1421,8 +1452,7 @@ Describe "Mocking Get-ItemProperty" {
 }
 
 Describe 'When mocking a command with parameters that match internal variable names' {
-    function Test-Function
-    {
+    function Test-Function {
         [CmdletBinding()]
         param (
             [string] $ArgumentList,
@@ -1440,23 +1470,21 @@ Describe 'When mocking a command with parameters that match internal variable na
 }
 
 Describe 'Mocking commands with potentially ambiguous parameter sets' {
-    function SomeFunction
-    {
+    function SomeFunction {
         [CmdletBinding()]
         param
         (
-            [parameter(ParameterSetName                = 'ps1',
-                       ValueFromPipelineByPropertyName = $true)]
+            [parameter(ParameterSetName = 'ps1',
+                ValueFromPipelineByPropertyName = $true)]
             [string]
             $p1,
 
-            [parameter(ParameterSetName                = 'ps2',
-                       ValueFromPipelineByPropertyName = $true)]
+            [parameter(ParameterSetName = 'ps2',
+                ValueFromPipelineByPropertyName = $true)]
             [string]
             $p2
         )
-        process
-        {
+        process {
             return $true
         }
     }
@@ -1498,9 +1526,9 @@ Describe 'Mocking New-Object' {
 }
 
 Describe 'Mocking a function taking input from pipeline' {
-    $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp'='1';'PipeArrayProp'=1;'PipeStringProp'=1}
-    $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp'=@(1)}
-    $noMockArrayResult = @(1,2) | PipelineInputFunction
+    $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp' = '1'; 'PipeArrayProp' = 1; 'PipeStringProp' = 1}
+    $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp' = @(1)}
+    $noMockArrayResult = @(1, 2) | PipelineInputFunction
     $noMockIntResult = 1 | PipelineInputFunction
     $noMockStringResult = '1' | PipelineInputFunction
     $noMockResultByProperty = $psobj | PipelineInputFunction -PipeStr 'val'
@@ -1509,7 +1537,7 @@ Describe 'Mocking a function taking input from pipeline' {
     Mock PipelineInputFunction { write-output 'mocked' } -ParameterFilter { $PipeStr -eq 'blah' }
 
     context 'when calling original function with an array' {
-        $result = @(1,2) | PipelineInputFunction
+        $result = @(1, 2) | PipelineInputFunction
         it 'Returns actual implementation' {
             $result[0].keys | ForEach {
                 $result[0][$_] | Should -Be $noMockArrayResult[0][$_]
@@ -1547,7 +1575,7 @@ Describe 'Mocking a function taking input from pipeline' {
 
     context 'when calling original function and forcing a parameter binding exception' {
         Mock PipelineInputFunction {
-            if($MyInvocation.ExpectingInput) {
+            if ($MyInvocation.ExpectingInput) {
                 throw New-Object -TypeName System.Management.Automation.ParameterBindingException
             }
             write-output $MyInvocation.ExpectingInput
@@ -1608,11 +1636,14 @@ Describe 'After a mock goes out of scope' {
 
 Describe 'Assert-MockCalled with Aliases' {
     AfterEach {
-        if (Test-Path alias:PesterTF) { Remove-Item Alias:PesterTF }
+        if (Test-Path alias:PesterTF) {
+            Remove-Item Alias:PesterTF
+        }
     }
 
     It 'Allows calls to Assert-MockCalled to use both aliases and the original command name' {
-        function TestFunction { }
+        function TestFunction {
+        }
         Set-Alias -Name PesterTF -Value TestFunction
         Mock PesterTF
         $null = PesterTF
@@ -1637,7 +1668,9 @@ Describe 'Mocks with closures' {
     $closure = $scriptBlock.GetNewClosure()
     $closureVariable = 'from script'
 
-    function TestClosure([switch] $Closure) { 'Not mocked' }
+    function TestClosure([switch] $Closure) {
+        'Not mocked'
+    }
 
     Mock TestClosure $closure -ParameterFilter { $Closure }
     Mock TestClosure $scriptBlock
@@ -1702,13 +1735,17 @@ Describe '$args handling' {
 Describe 'Single quote in command/module name' {
     BeforeAll {
         $module = New-Module "Module '‘’‚‛" {
-            Function NormalCommandName { 'orig' }
+            Function NormalCommandName {
+                'orig'
+            }
             New-Item "Function::Command '‘’‚‛" -Value { 'orig' }
         } | Import-Module -PassThru
     }
 
     AfterAll {
-        if ($module) { Remove-Module $module; $module = $null }
+        if ($module) {
+            Remove-Module $module; $module = $null
+        }
     }
 
     It 'Command with single quote in module name should be mockable' {
@@ -1778,7 +1815,7 @@ if ($global:PSVersionTable.PSVersion.Major -ge 3) {
 }
 
 Describe 'Nested Mock calls' {
-    $testDate = New-Object DateTime(2012,6,13)
+    $testDate = New-Object DateTime(2012, 6, 13)
 
     Mock Get-Date -ParameterFilter { $null -eq $Date } {
         Get-Date -Date $testDate -Format o
@@ -1793,10 +1830,18 @@ Describe 'Nested Mock calls' {
 
 Describe 'Globbing characters in command name' {
 
-    function f[f]f { 'orig1' }
-    function f?f { 'orig2' }
-    function f*f { 'orig3' }
-    function fff { 'orig4' }
+    function f[f]f {
+        'orig1'
+    }
+    function f?f {
+        'orig2'
+    }
+    function f*f {
+        'orig3'
+    }
+    function fff {
+        'orig4'
+    }
 
     It 'Command with globbing characters in name should be mockable' {
         Mock f[f]f { 'mock1' }
@@ -1812,8 +1857,12 @@ Describe 'Globbing characters in command name' {
 
 Describe 'Naming conflicts in mocked functions' {
     Context 'parameter named Metadata' {
-        function Sample { param( [string] ${Metadata} ) }
-        function Wrapper { Sample -Metadata 'test' }
+        function Sample {
+            param( [string] ${Metadata} )
+        }
+        function Wrapper {
+            Sample -Metadata 'test'
+        }
 
         Mock Sample { 'mocked' }
         It 'Works with commands with parameter named Metadata' {
@@ -1821,8 +1870,12 @@ Describe 'Naming conflicts in mocked functions' {
         }
     }
     Context 'parameter named Keys' {
-        function g { [CmdletBinding()] param($Keys,$H) }
-        function Wrapper { g -Keys 'value' }
+        function g {
+            [CmdletBinding()] param($Keys, $H)
+        }
+        function Wrapper {
+            g -Keys 'value'
+        }
 
         Mock g { $Keys }
         It 'Works with command with parameter named Keys' {
@@ -1834,7 +1887,9 @@ Describe 'Naming conflicts in mocked functions' {
 
 Describe 'Passing unbound script blocks as mocks' {
     It 'Does not produce an error' {
-        function TestMe { 'Original' }
+        function TestMe {
+            'Original'
+        }
         $scriptBlock = [scriptblock]::Create('"Mocked"')
 
         { Mock TestMe $scriptBlock } | Should -Not -Throw
@@ -1843,7 +1898,9 @@ Describe 'Passing unbound script blocks as mocks' {
 }
 
 Describe 'Assert-MockCalled when mock called outside of It block' {
-    function TestMe { 'Original ' }
+    function TestMe {
+        'Original '
+    }
     mock TestMe { 'Mocked' }
 
     $null = TestMe
@@ -1868,7 +1925,8 @@ Describe 'Assert-MockCalled when mock called outside of It block' {
 }
 
 Describe "Restoring original commands when mock scopes exit" {
-    function a (){}
+    function a () {
+    }
     Context "first context" {
         Mock a { "mock" }
 
@@ -1940,11 +1998,11 @@ Describe "Mocking Set-Variable" {
 
     It "sets variable correctly when mocking Set-Variable with -Scope 3 parameter" {
         & {
-        # scope 3
+            # scope 3
             & {
-            # scope 2
+                # scope 2
                 & {
-                # scope 1
+                    # scope 1
                     & {
                         Set-Variable -Name v1 -Value 2 -Scope 3
                     }
@@ -1956,11 +2014,11 @@ Describe "Mocking Set-Variable" {
 
 
         & {
-        # scope 3
+            # scope 3
             & {
-            # scope 2
+                # scope 2
                 & {
-                # scope 1
+                    # scope 1
                     & {
                         Mock Set-Variable -ParameterFilter { $false }
                         Set-Variable -Name v2 -Value 11 -Scope 3

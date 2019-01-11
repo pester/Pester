@@ -1,5 +1,5 @@
 function Should-FileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate, $Because) {
-<#
+    <#
 .SYNOPSIS
 Checks to see if a file contains the specified text.
 This search is not case sensitive and uses regular expressions.
@@ -32,18 +32,17 @@ This test fails, because "I am a file." != "I.am.a.file"
 #>
     $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -match $ExpectedContent).Count -gt 0
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
     $failureMessage = ''
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             $failureMessage = NotShouldFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
-        else
-        {
+        else {
             $failureMessage = ShouldFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
     }
@@ -63,5 +62,5 @@ function NotShouldFileContentMatchFailureMessage($ActualValue, $ExpectedContent,
 }
 
 Add-AssertionOperator -Name         FileContentMatch `
-                      -InternalName Should-FileContentMatch `
-                      -Test         ${function:Should-FileContentMatch}
+    -InternalName Should-FileContentMatch `
+    -Test         ${function:Should-FileContentMatch}
