@@ -50,10 +50,7 @@ function New-PesterState
 
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-        $script:TestGroupStartTime = $null
-        $script:TestGroupStopTime = [timespan]0
         $script:TestStartTime = $null
-        $script:TestStopTime = [timespan]0
         $script:CommandCoverage = @()
         $script:Strict = $Strict
         $script:Show = $Show
@@ -95,6 +92,7 @@ function New-PesterState
                 BeforeAll         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
                 AfterAll          = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
                 TotalCount        = 0
+                StartTime         = $Null
                 Time              = [timespan]0
                 PassedCount       = 0
                 FailedCount       = 0
@@ -111,27 +109,25 @@ function New-PesterState
         function EnterTestGroup([string] $Name, [string] $Hint)
         {
             $newGroup = New-TestGroup @PSBoundParameters
+            $newGroup.StartTime = $script:Stopwatch.Elapsed
             $null = $script:TestGroupStack.Peek().Actions.Add($newGroup)
-
-            if( $Hint -eq 'Script' ) {
-                $script:TestGroupStartTime = $script:Stopwatch.Elapsed
-            }
             
             $script:TestGroupStack.Push($newGroup)
         }
 
         function LeaveTestGroup([string] $Name, [string] $Hint)
         {
+            $StopTime = $script:Stopwatch.Elapsed
             $currentGroup = $script:TestGroupStack.Pop()
             
             if( $Hint -eq 'Script' ) {
-                $script:TestGroupStopTime = $script:Stopwatch.Elapsed
-                if ( $script:TestGroupStartTime ) {
-                    $script:Time += $script:TestGroupStopTime - $script:TestGroupStartTime
-                    $script:TestGroupStartTime = $null
-                    $script:TestGroupStopTime = [timespan]0
-                }
+                $script:Time += $StopTime - $currentGroup.StartTime
             }
+
+            $currentGroup.Time = $StopTime - $currentGroup.StartTime
+
+            # Removing start time property from output to prevent clutter
+            $currentGroup.PSObject.properties.remove('StartTime')
 
             if ($currentGroup.Name -ne $Name -or $currentGroup.Hint -ne $Hint)
             {

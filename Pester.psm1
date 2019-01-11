@@ -1508,7 +1508,6 @@ function Set-PesterStatistics($Node)
             Set-PesterStatistics -Node $action
 
             $Node.TotalCount        += $action.TotalCount
-            $Node.Time              += $action.Time
             $Node.PassedCount       += $action.PassedCount
             $Node.FailedCount       += $action.FailedCount
             $Node.SkippedCount      += $action.SkippedCount
@@ -1527,8 +1526,6 @@ function Set-PesterStatistics($Node)
                 Pending      { $Node.PendingCount++;      break; }
                 Inconclusive { $Node.InconclusiveCount++; break; }
             }
-
-            $Node.Time += $action.Time
         }
     }
 }
