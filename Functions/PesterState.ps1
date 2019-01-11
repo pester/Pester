@@ -46,6 +46,7 @@ function New-PesterState {
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:TestStartTime = $null
+        $script:TestStopTime = $null
         $script:CommandCoverage = @()
         $script:Strict = $Strict
         $script:Show = $Show
@@ -147,7 +148,7 @@ function New-PesterState {
             }
 
             if ($null -eq $Time) {
-                if ( (test-path variable:Script:testStartTime) -and (test-path variable:Script:testStopTime) ) {
+                if ( $script:TestStartTime -and $script:TestStopTime ) {
                     $Time = $script:TestStopTime - $script:TestStartTime
                     $script:TestStartTime = $null
                     $script:TestStopTime = [timespan]0
