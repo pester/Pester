@@ -117,6 +117,7 @@ At the moment a lot of stuff is missing, so much stuff that it's easier to say w
 The other stuff that does *not* work yet is most notably:
 - Mocking
 - Code coverage
+- Interactive mode
 - Passing our own tests
 - Gherkin
 

@@ -1,7 +1,14 @@
 Feature: A string validator function called MyValidator
 
+    Just a description of the feature
+    The second line
+
     @Mockery
     Scenario: When something uses MyValidator
+
+        Just a description of the scenario
+        The second line
+
         Given MyValidator is mocked to return True
         When Someone calls something that uses MyValidator
         Then MyValidator gets called once

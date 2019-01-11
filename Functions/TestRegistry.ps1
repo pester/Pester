@@ -17,7 +17,17 @@ function New-TestRegistry
     {
         if (-not (& $SafeCommands['Test-Path'] -Path $Path))
         {
-            $null = & $SafeCommands['New-Item'] -Path $Path -Force
+            # the pester registry root path HKCU:\Pester is created once
+            # and then stays in place, in TestDrive we use system Temp folder,
+            # but no such folder exists for registry so we create our own. 
+            # removing the folder after test run would be possible but we potentially
+            # running into conflict with other instance of Pester that is running
+            # so keeping it in place is a small price to pay for being able to run
+            # parallel pester sessions easily. 
+            # Also don't use -Force parameter here
+            # because that deletes the folder and creates a race condition see
+            # https://github.com/pester/Pester/issues/1181
+            $null = & $SafeCommands['New-Item'] -Path $Path
         }
 
         $directory = & $SafeCommands['Get-Item'] $Path

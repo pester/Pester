@@ -119,7 +119,7 @@ PrivateData = @{
         Tags = @('powershell','unit_testing','bdd','tdd','mocking','PSEdition_Core','PSEdition_Desktop')
 
         # The web address of an icon which can be used in galleries to represent this module
-        IconUri = 'https://raw.githubusercontent.com/pester/Pester/master/doc/pester.PNG'
+        IconUri = 'https://raw.githubusercontent.com/pester/Pester/master/images/pester.PNG'
 
         # The web address of this module's project or support homepage.
         ProjectUri = "https://github.com/Pester/Pester"
@@ -128,10 +128,10 @@ PrivateData = @{
         LicenseUri = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
         # Release notes for this particular version of the module
-        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.5.0-beta1'
+        ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/4.5.0-beta2'
 
         # Prerelease string of this module
-        Prerelease = 'beta1'
+        Prerelease = 'beta2'
     }
 }
 

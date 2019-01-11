@@ -35,6 +35,11 @@ function Exit-CoverageAnalysis
 
     & $SafeCommands['Set-StrictMode'] -Off
 
+    # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne. 
+    # BUT that is correct in this case. We are filtering the list of breakpoints
+    # to only get those that are not $null
+    # (like if we did $breakpoints | where {$_ -ne $null})
+    # so DON'T change this.
     $breakpoints = @($PesterState.CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0)
     {
@@ -64,10 +69,11 @@ function Get-CoverageInfoFromUserInput
 
 function New-CoverageInfo
 {
-    param ([string] $Path, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0)
+    param ([string] $Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0)
 
     return [pscustomobject]@{
         Path = $Path
+        Class = $Class
         Function = $Function
         StartLine = $StartLine
         EndLine = $EndLine
@@ -86,12 +92,13 @@ function Get-CoverageInfoFromDictionary
 
     $startLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'StartLine', 'Start', 's'
     $endLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'EndLine', 'End', 'e'
+    [string] $class = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Class', 'c'
     [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
 
-    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Function $function
+    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function
 }
 
 function Convert-UnknownValueToInt
@@ -141,6 +148,7 @@ function Resolve-CoverageInfo
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
         EndLine = $UnresolvedCoverageInfo.EndLine
+        Class = $UnresolvedCoverageInfo.Class
         Function = $UnresolvedCoverageInfo.Function
     }
 
@@ -216,9 +224,9 @@ function Test-CoverageOverlapsCommand
 {
     param ([object] $CoverageInfo, [System.Management.Automation.Language.Ast] $Command)
 
-    if ($CoverageInfo.Function)
+    if ($CoverageInfo.Class -or $CoverageInfo.Function)
     {
-        Test-CommandInsideFunction -Command $Command -Function $CoverageInfo.Function
+        Test-CommandInScope -Command $Command -Class $CoverageInfo.Class -Function $CoverageInfo.Function
     }
     else
     {
@@ -227,14 +235,32 @@ function Test-CoverageOverlapsCommand
 
 }
 
-function Test-CommandInsideFunction
+function Test-CommandInScope
 {
-    param ([System.Management.Automation.Language.Ast] $Command, [string] $Function)
+    param ([System.Management.Automation.Language.Ast] $Command, [string] $Class, [string] $Function)
 
+    $classResult = !$Class
+    $functionResult = !$Function
     for ($ast = $Command; $null -ne $ast; $ast = $ast.Parent)
     {
-        $functionAst = $ast -as [System.Management.Automation.Language.FunctionDefinitionAst]
-        if ($null -ne $functionAst -and $functionAst.Name -like $Function)
+        if (!$classResult -and $PSVersionTable.PSVersion.Major -ge 5)
+        {
+            # Classes have been introduced in PowerShell 5.0
+            $classAst = $ast -as [System.Management.Automation.Language.TypeDefinitionAst]
+            if ($null -ne $classAst -and $classAst.Name -like $Class)
+            {
+                $classResult = $true
+            }
+        }
+        if (!$functionResult)
+        {
+            $functionAst = $ast -as [System.Management.Automation.Language.FunctionDefinitionAst]
+            if ($null -ne $functionAst -and $functionAst.Name -like $Function)
+            {
+                $functionResult = $true
+            }
+        }
+        if ($classResult -and $functionResult)
         {
             return $true
         }
@@ -282,11 +308,15 @@ function New-CoverageBreakpoint
     $breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
 
     [pscustomobject] @{
-        File       = $Command.Extent.File
-        Function   = Get-ParentFunctionName -Ast $Command
-        Line       = $Command.Extent.StartLineNumber
-        Command    = Get-CoverageCommandText -Ast $Command
-        Breakpoint = $breakpoint
+        File        = $Command.Extent.File
+        Class       = Get-ParentClassName -Ast $Command
+        Function    = Get-ParentFunctionName -Ast $Command
+        StartLine   = $Command.Extent.StartLineNumber
+        EndLine     = $Command.Extent.EndLineNumber
+        StartColumn = $Command.Extent.StartColumnNumber
+        EndColumn   = $Command.Extent.EndColumnNumber
+        Command     = Get-CoverageCommandText -Ast $Command
+        Breakpoint  = $breakpoint
     }
 }
 
@@ -381,6 +411,32 @@ function IsClosingLoopCondition
     }
 
     return $false
+}
+
+function Get-ParentClassName
+{
+    param ([System.Management.Automation.Language.Ast] $Ast)
+
+    if ($PSVersionTable.PSVersion.Major -ge 5)
+    {
+        # Classes have been introduced in PowerShell 5.0
+
+        $parent = $Ast.Parent
+
+        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.TypeDefinitionAst])
+        {
+            $parent = $parent.Parent
+        }
+    }
+
+    if ($null -eq $parent)
+    {
+        return ''
+    }
+    else
+    {
+        return $parent.Name
+    }
 }
 
 function Get-ParentFunctionName
@@ -484,24 +540,29 @@ function Get-CoverageReport
 {
     param ([object] $PesterState)
 
-    $totalCommandCount = $PesterState.CommandCoverage.Count
-
-    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
-    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command)
-    $allCommands = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] File, Line, Function, Command, Breakpoint)
+    $properties = @(
+        'File'
+        @{ Name = 'Line'; Expression = { $_.StartLine } }
+        'StartLine'
+        'EndLine'
+        'StartColumn'
+        'EndColumn'
+        'Class'
+        'Function'
+        'Command'
+        @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
+    )
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] $properties)
+    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] $properties)
     $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
-    $fileCount = $analyzedFiles.Count
-
-    $executedCommandCount = $totalCommandCount - $missedCommands.Count
 
     [pscustomobject] @{
-        NumberOfCommandsAnalyzed = $totalCommandCount
-        NumberOfFilesAnalyzed    = $fileCount
-        NumberOfCommandsExecuted = $executedCommandCount
+        NumberOfCommandsAnalyzed = $PesterState.CommandCoverage.Count
+        NumberOfFilesAnalyzed    = $analyzedFiles.Count
+        NumberOfCommandsExecuted = $hitCommands.Count
         NumberOfCommandsMissed   = $missedCommands.Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
-        AllCommands              = $allCommands
         AnalyzedFiles            = $analyzedFiles
     }
 }
@@ -582,9 +643,7 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory=$true)]
         $PesterState,
         [parameter(Mandatory=$true)]
-        [object] $CoverageReport,
-
-        [Switch]$DetailedCodeCoverage
+        [object] $CoverageReport
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0)
@@ -610,7 +669,7 @@ function Get-JaCoCoReportXml {
         $file = $command.File
         $function = $command.Function
         if (!$function) { $function = '<script>' }
-        $line = $command.Line.ToString()
+        $line = $command.StartLine.ToString()
 
         $missed = if ($command.Breakpoint.HitCount) { 0 } else { 1 }
         $covered = if ($command.Breakpoint.HitCount) { 1 } else { 0 }

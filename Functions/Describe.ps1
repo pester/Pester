@@ -24,13 +24,6 @@ Optional parameter containing an array of strings.  When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Describe blocks
 containing the same Tag.
 
-.PARAMETER CodeCoverage
-Adds a code coverage report to the Pester tests. Takes strings or hash table values.
-
-A code coverage report lists the lines of code that did and did not run during
-a Pester test. This report does not tell whether code was tested; only whether
-the code ran during the test.
-
 .EXAMPLE
 function Add-Numbers($a, $b) {
     return $a + $b
@@ -74,8 +67,6 @@ about_TestDrive
 
         [Alias('Tags')]
         [string[]] $Tag=@(),
-
-        [object[]] $CodeCoverage = @(),
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]

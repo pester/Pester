@@ -17,9 +17,21 @@ Feature: PesterResult shows executed feature names
      Then the scenario name is displayed in the '<Status>' array of the PesterResults object
 
       Examples: A Passing Scenario
-        | Outcome | Status          |
-        | Passed  | PassedScenarios |
+        | Outcome         | Status               |
+        | Passed          | PassedScenarios      |
 
-      Examples: A Failing Scenario
-        | Outcome | Status          |
-        | Failed  | FailedScenarios |
+      Examples: Failing Scenario (later)
+        | Outcome         | Status               |
+        # The following example fails in the Then code block
+        | FailedLater     | FailedLaterScenarios |
+
+      Examples: Failing Scenario (early)
+        | Outcome         | Status               |
+        # The following example fails in the Given code block
+        | FailedEarly     | FailedEarlyScenarios |
+
+      Examples: Failing Scenario (inconclusive)
+        | Outcome         | Status               |
+        # In PesterResult.Steps.ps1 we do not implement anything for the following example
+        # to produce an inconclusive test result
+        | Does not matter | Does not matter      |

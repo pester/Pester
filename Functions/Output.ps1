@@ -76,7 +76,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
     }
     elseif ($null -ne ($path -as [hashtable[]]))
     {
-        ($path | foreach { $_.Path }) -join $Delimiter
+        ($path | ForEach-Object { $_.Path }) -join $Delimiter
     }
     # needs to stay at the bottom because almost everything can be upcast to array of string
     elseif ($Path -as [String[]])
@@ -84,6 +84,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
         $Path -join $Delimiter
     }
 }
+
 function Write-PesterStart {
     param(
         [Parameter(mandatory=$true, valueFromPipeline=$true)]
@@ -116,19 +117,19 @@ function ConvertTo-PesterResult {
     )
 
     $testResult = @{
-        name = $Name
-        time = $time
-        failureMessage = ""
-        stackTrace = ""
+        Name = $Name
+        Time = $time
+        FailureMessage = ""
+        StackTrace = ""
         ErrorRecord = $null
-        success = $false
-        result = "Failed"
+        Success = $false
+        Result = "Failed"
     }
 
     if(-not $ErrorRecord)
     {
         $testResult.Result = "Passed"
-        $testResult.success = $true
+        $testResult.Success = $true
         return $testResult
     }
 
@@ -153,8 +154,8 @@ function ConvertTo-PesterResult {
         $Text = $ErrorRecord.InvocationInfo.Line
     }
 
-    $testResult.failureMessage = $failureMessage
-    $testResult.stackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
+    $testResult.FailureMessage = $failureMessage
+    $testResult.StackTrace = "at <ScriptBlock>, ${file}: line ${line}$([System.Environment]::NewLine)${line}: ${Text}"
     $testResult.ErrorRecord = $ErrorRecord
 
     return $testResult
@@ -229,6 +230,7 @@ function Write-CoverageReport {
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
     $report = $CoverageReport.MissedCommands | & $SafeCommands['Select-Object'] -Property @(
         @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
+        'Class'
         'Function'
         'Line'
         'Command'

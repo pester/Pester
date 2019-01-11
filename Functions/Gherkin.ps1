@@ -1,7 +1,7 @@
 ﻿if (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
-    & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/core/Gherkin.dll"
+    & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/core/Gherkin.dll"
 } else {
-    & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/legacy/Gherkin.dll"
+    & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
 $GherkinSteps = @{}
@@ -392,11 +392,11 @@ function Import-GherkinFeature {
              $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
         }
 
-        switch -Regex ($Child.Keyword.Trim()) {
-            "Scenario(?: (?:Outline|Template))?" {
+        switch ($Child.Keyword.Trim()) {
+            { (Test-Keyword $_ 'scenario' $Feature.Language) -or (Test-Keyword $_ 'scenarioOutline' $Feature.Language) } {
                 $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
             }
-            "Background" {
+            { Test-Keyword $_ 'background' $Feature.Language } {
                 $Background = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
                 continue scenarios
             }
@@ -406,11 +406,17 @@ function Import-GherkinFeature {
         }
 
         if( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
+            # If there is no example set name, the following index will be included in the scenario name
+            $ScenarioIndex = 0
             foreach ($ExampleSet in $Scenario.Examples) {
                 ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
                 $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
-                $Steps = foreach ($Example in $ExampleSet.TableBody) {
-                    foreach ($Step in $Scenario.Steps) {
+                # If there is an example set name, the following index will be included in the scenario name
+                $ExampleSetIndex = 0
+                foreach ($Example in $ExampleSet.TableBody) {
+                    $ScenarioIndex++
+                    $ExampleSetIndex++
+                    $Steps = foreach ($Step in $Scenario.Steps) {
                         [string]$StepText = $Step.Text
                         if ($StepText -match $NamesPattern) {
                             for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
@@ -426,12 +432,16 @@ function Import-GherkinFeature {
                             $Step
                         }
                     }
+                    $ScenarioName = $Scenario.Name
+                    if ($ExampleSet.Name) {
+                        # Include example set name and index of example
+                        $ScenarioName = $ScenarioName + " [$($ExampleSet.Name.Trim()) $ExampleSetIndex]"
+                    } else {
+                        # Only include index of scenario
+                        $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
+                    }
+                    & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                 }
-                $ScenarioName = $Scenario.Name
-                if ($ExampleSet.Name) {
-                    $ScenarioName = $ScenarioName + "`n  Examples: " + $ExampleSet.Name.Trim()
-                }
-                & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
             }
         } else {
             $Scenario
@@ -456,7 +466,6 @@ function Invoke-GherkinFeature {
 
         [PSObject]$Pester
     )
-    $Pester.EnterTestGroup($FeatureFile.FullName, 'Script')
     # Make sure broken tests don't leave you in space:
     $CWD = [Environment]::CurrentDirectory
     $Location = & $SafeCommands["Get-Location"]
@@ -470,6 +479,9 @@ function Invoke-GherkinFeature {
         & $SafeCommands["Write-Error"] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands["Select-Object"] -Expand Message) -join "`n`n")"
         continue
     }
+
+    # To create a more user-friendly test report, we use the feature name for the test group
+    $Pester.EnterTestGroup($Feature.Name, 'Script')
 
     $null = $Pester.Features.Add($Feature)
     Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
@@ -493,12 +505,12 @@ function Invoke-GherkinFeature {
     }
 
     if ($Scenarios) {
-        Write-Describe $Feature
+        Write-Describe (New-Object PSObject -Property @{Name = "$($Feature.Keyword): $($Feature.Name)"; Description = $Feature.Description })
     }
 
     try {
         foreach ($Scenario in $Scenarios) {
-            Invoke-GherkinScenario $Pester $Scenario $Background
+            Invoke-GherkinScenario $Pester $Scenario $Background $Feature.Language
         }
     } catch {
         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands["Select-Object"] -First 1
@@ -517,7 +529,7 @@ function Invoke-GherkinFeature {
 
     Invoke-GherkinHook AfterEachFeature $Feature.Name $Feature.Tags
 
-    $Pester.LeaveTestGroup($FeatureFile.FullName, 'Script')
+    $Pester.LeaveTestGroup($Feature.Name, 'Script')
 
 }
 
@@ -528,11 +540,13 @@ function Invoke-GherkinScenario {
     #>
     [CmdletBinding()]
     param(
-        $Pester, $Scenario, $Background
+        $Pester, $Scenario, $Background, $Language
     )
     $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
     try {
-        Write-Context $Scenario
+        # We just display 'Scenario', also for 'Scenario Outline' or 'Scenario Template'
+        # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
+        Write-Context (New-Object PSObject -Property @{Name = "$(Get-Translation 'scenario' $Language): $($Scenario.Name)"; Description = $Scenario.Description })
 
         $script:mockTable = @{}
 
@@ -546,16 +560,18 @@ function Invoke-GherkinScenario {
         New-TestDrive
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
+        $testResultIndexStart = $Pester.TestResult.Count
+
         # If there's a background, run that before the test, but after hooks
         if ($Background) {
             foreach ($Step in $Background.Steps) {
                 # Run Background steps -Background so they don't output in each scenario
-                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible
+                Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
             }
         }
 
         foreach ($Step in $Scenario.Steps) {
-            Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible
+            Invoke-GherkinStep -Step $Step -Pester $Pester -Scenario $GherkinSessionState -Visible -TestResultIndexStart $testResultIndexStart
         }
 
         Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
@@ -659,6 +675,9 @@ function Invoke-GherkinStep {
 
         .PARAMETER ScenarioState
             Gherkin state object. For internal use only
+
+        .PARAMETER TestResultIndexStart
+            Used to hold the test result index of the first step of the current scenario. For internal use only
     #>
     [CmdletBinding()]
     param (
@@ -668,7 +687,9 @@ function Invoke-GherkinStep {
 
         $Pester,
 
-        $ScenarioState
+        $ScenarioState,
+
+        [int] $TestResultIndexStart
     )
     if ($Step -is [string]) {
         $KeyWord, $StepText = $Step -split "(?<=^(?:Given|When|Then|And|But))\s+"
@@ -681,7 +702,6 @@ function Invoke-GherkinStep {
     $DisplayText = "{0} {1}" -f $Step.Keyword.Trim(), $Step.Text
 
     $PesterErrorRecord = $null
-    $Source = $null
     $Elapsed = $null
     $NamedArguments = @{}
 
@@ -695,10 +715,23 @@ function Invoke-GherkinStep {
             }
         ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] -First 1
 
-        if (!$StepCommand) {
-            $PesterErrorRecord = New-InconclusiveErrorRecord -Message "Could not find implementation for step!" -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
+        $previousStepsNotSuccessful = $false
+        # Iterate over the test results of the previous steps
+        for ($i = $TestResultIndexStart; $i -lt ($Pester.TestResult.Count); $i++) {
+            $previousTestResult = $Pester.TestResult[$i].Result
+            if ($previousTestResult -eq "Failed" -or $previousTestResult -eq "Inconclusive") {
+                $previousStepsNotSuccessful = $true
+                break
+            }
+        }
+        if (!$StepCommand -or $previousStepsNotSuccessful) {
+            $skipMessage = if (!$StepCommand) {
+                "Could not find implementation for step!"
+            } else {
+                "Step skipped (previous step did not pass)"
+            }
+            $PesterErrorRecord = New-PesterErrorRecord -Result Inconclusive -Message $skipMessage -File $Step.Location.Path -Line $Step.Location.Line -LineText $DisplayText
         } else {
-
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
             $watch = & $SafeCommands["New-Object"] System.Diagnostics.Stopwatch
             $watch.Start()
@@ -722,7 +755,6 @@ function Invoke-GherkinStep {
             }
             $watch.Stop()
             $Elapsed = $watch.Elapsed
-            $Source = $Script:GherkinSteps[$StepCommand].Source
         }
     } catch {
         $PesterErrorRecord = $_
@@ -747,7 +779,7 @@ function Invoke-GherkinStep {
             # Unless we really are a StackTrace...
             ${Pester Result}.StackTrace += "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
-        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, $PesterErrorRecord.Exception.Message, ${Pester Result}.StackTrace, $Source, $NamedArguments, $PesterErrorRecord )
+        $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, ${Pester Result}.FailureMessage, ${Pester Result}.StackTrace, $null, $NamedArguments, $PesterErrorRecord)
         $Pester.TestResult[-1] | Write-PesterResult
     }
 }
@@ -803,7 +835,7 @@ function Convert-Tags {
     )
     process {
         # Adapt the Gherkin .Tags property to the way we prefer it...
-        [string[]]$Tags = foreach ($tag in $InputObject.Tags | Where-Object { $_ }) {
+        [string[]]$Tags = foreach ($tag in $InputObject.Tags | & $SafeCommands['Where-Object'] { $_ }) {
             $tag.Name.TrimStart("@")
         }
         & $SafeCommands["Add-Member"] -MemberType NoteProperty -InputObject $InputObject -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force
@@ -850,3 +882,101 @@ function ConvertTo-HashTableArray {
     }
 }
 
+function Get-Translations($TranslationKey, $Language) {
+    <#
+        .SYNOPSIS
+            Internal function to get all translations for a translation key and language
+
+        .PARAMETER TranslationKey
+            The key name inside the language in gherkin-languages.json, e.g. 'scenarioOutline'
+
+        .PARAMETER Language
+            The used language, e.g. 'en'
+
+        .OUTPUTS
+            System.String[] an array of all the translations
+    #>
+    if (-not (Test-Path variable:Script:GherkinLanguagesJson)) {
+        $Script:GherkinLanguagesJson = ConvertFrom-Json2 (Get-Content "${Script:PesterRoot}/lib/Gherkin/gherkin-languages.json" | Out-String)
+        # We override the fixed values for 'Describe' and 'Context' of Gherkin.psd1 or Output.ps1 since the language aware keywords
+        # (e.g. 'Feature'/'Funktionalität' or 'Scenario'/'Szenario') are provided by Gherkin.dll and we do not want to duplicate them.
+        $Script:ReportStrings.Describe = "{0}" # instead of 'Feature: {0}'  or 'Describing {0}'
+        $Script:ReportStrings.Context =  "{0}" # instead of 'Scenario: {0}' or 'Context {0}'
+    }
+    $foundTranslations = $Script:GherkinLanguagesJson."$Language"."$TranslationKey"
+    if (-not $foundTranslations) {
+        Write-Warning "Translation key '$TranslationKey' is invalid"
+    }
+    return ,$foundTranslations
+}
+
+function ConvertFrom-Json2([string] $jsonString) {
+    <#
+        .SYNOPSIS
+            Internal function to convert from JSON even for PowerShell 2
+
+        .PARAMETER jsonString
+            The JSON content as string
+
+        .OUTPUTS
+            the JSON content as array
+    #>
+    if ($PSVersionTable.PSVersion.Major -le 2) {
+        # On PowerShell <= 2 we use JavaScriptSerializer
+        Add-Type -Assembly System.Web.Extensions
+        return ,(New-Object System.Web.Script.Serialization.JavaScriptSerializer).DeserializeObject($jsonString)
+    } else {
+        # On PowerShell > 2 we use the built-in ConvertFrom-Json cmdlet
+        return ConvertFrom-Json $jsonString
+    }
+}
+
+function Get-Translation($TranslationKey, $Language, $Index = -1) {
+    <#
+        .SYNOPSIS
+            Internal function to get the first translation for a translation key and language
+
+        .PARAMETER TranslationKey
+            The key name inside the language in gherkin-languages.json, e.g. 'scenarioOutline'
+
+        .PARAMETER Language
+            The used language, e.g. 'en'
+
+        .PARAMETER Index
+            The index in the array of JSON values
+            If -1 is used for Index (the default value), this function will choose the most common translation of the JSON values
+
+        .OUTPUTS
+            System.String the chosen translation
+    #>
+    $translations = (Get-Translations $TranslationKey $Language)
+    if (-not $translations) {
+        return
+    }
+    if ($Index -lt 0 -or $Index -ge $translations.Length) {
+        # Fallback: if the index is not in range, we choose the most common translation
+        # Normally, the most common translation will be found at index one, but under some keys the index is zero.
+        $Index = if ($TranslationKey -eq "scenarioOutline" -or $TranslationKey -eq "feature" -or $TranslationKey -eq "examples") { 0 } else { 1 }
+    }
+    return $translations[$Index]
+}
+
+function Test-Keyword($Keyword, $TranslationKey, $Language) {
+    <#
+        .SYNOPSIS
+            Internal function to check if the given keyword matches one of the translations for a translation key and language
+
+        .PARAMETER Keyword
+            The keyword, e.g. 'Scenario Outline'
+
+        .PARAMETER TranslationKey
+            The key name inside the language in gherkin-languages.json, e.g. 'scenarioOutline'
+
+        .PARAMETER Language
+            The used language, e.g. 'en'
+
+        .OUTPUTS
+            System.Boolean true, if the keyword matches one of the translations, false otherwise
+    #>
+    return (Get-Translations $TranslationKey $Language) -contains $Keyword
+}

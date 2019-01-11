@@ -18,7 +18,7 @@ Please update Pester - before submitting a bug report - and retest your code und
 
 If you would like to submit a bug report, please provide the output of a code provided below.
 
-If you would like write about anything else - like a feature request - feel free to remove a provided template text.
+If you would like to write about anything else - like a feature request - feel free to remove a provided template text.
 
 Operating System, Pester version, and PowerShell version:
 
@@ -63,7 +63,7 @@ Please remember that you can limit Pester output behavior using the `-Show` para
 
 <!--
 
-Have a solution in mind? Bug fix pull requests are always welcome. 
+Have a solution in mind? Bug fix pull requests are always welcome.
 
 https://github.com/pester/Pester/wiki/Contributing-to-Pester has detailed instructions on how to contribute.
 
