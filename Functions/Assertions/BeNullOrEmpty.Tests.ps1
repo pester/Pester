@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
-    Describe "PesterBeNullOrEmpty" {
+    Describe "Should -BeNullOrEmpty" {
         It "should return true if null" {
             $null | Should BeNullOrEmpty
             $null | Should -BeNullOrEmpty
@@ -30,14 +30,12 @@ InModuleScope Pester {
         It 'Should return false for non-empty strings or arrays' {
             'String' | Should Not BeNullOrEmpty
             1..5 | Should Not BeNullOrEmpty
-            ($null,$null) | Should Not BeNullOrEmpty
+            ($null, $null) | Should Not BeNullOrEmpty
             'String' | Should -Not -BeNullOrEmpty
             1..5 | Should -Not -BeNullOrEmpty
-            ($null,$null) | Should -Not -BeNullOrEmpty
+            ($null, $null) | Should -Not -BeNullOrEmpty
         }
-    }
 
-    Describe "Should -BeNullOrEmpty" {
         It "returns the correct assertion message" {
             $err = { 1 | Should -BeNullOrEmpty -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal 'Expected $null or empty, because reason, but got 1.'

@@ -1,0 +1,25 @@
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      PSEdition: Core
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      PSEdition: Desktop
+    - APPVEYOR_BUILD_WORKER_IMAGE: WMF 4
+      PSEdition: Desktop
+
+skip_branch_with_pr: true
+build: off
+
+test_script:
+  - ps: |
+      if ( $env:PSEdition -eq 'Desktop' ) {
+      Set-StrictMode -Version Latest
+      Import-Module ./Pester.psd1
+      Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml
+      (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
+  - pwsh: |
+      if ( $env:PSEdition -eq 'Core' ) {
+      Set-StrictMode -Version Latest
+      Import-Module ./Pester.psd1
+      Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml
+      (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }

@@ -21,7 +21,9 @@ Describe 'Testing Describe' {
 InModuleScope Pester {
     Describe 'Describe - Implementation' {
         # Function / mock used for call history tracking and assertion purposes only.
-        function MockMe { param ($Name) }
+        function MockMe {
+            param ($Name)
+        }
         Mock MockMe
 
         BeforeEach {
@@ -45,7 +47,7 @@ InModuleScope Pester {
             }
 
             It 'Does not rethrow terminating exceptions from the Fixture block' {
-                { DescribeImpl -Pester $testState -Name 'A test' -Fixture $blockWithError -NoTestDrive } | Should -Not -Throw
+                { DescribeImpl -Pester $testState -Name 'A test' -Fixture $blockWithError -NoTestDrive -NoTestRegistry } | Should -Not -Throw
             }
 
             It 'Adds a failed test result when errors occur in the Describe block' {
@@ -73,7 +75,7 @@ InModuleScope Pester {
             It 'Calls the Describe output block once, and does not call the test output block when no errors occur' {
                 $block = { $null = $null }
 
-                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive
+                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive -NoTestRegistry
 
                 Assert-MockCalled MockMe -Exactly 0 -ParameterFilter { $Name -eq 'Test' } -Scope It
                 Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
@@ -82,7 +84,7 @@ InModuleScope Pester {
             It 'Calls the Describe output block once, and the test output block once if an error occurs.' {
                 $block = { throw 'up' }
 
-                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive
+                DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive -NoTestRegistry
 
                 Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Test' } -Scope It
                 Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
@@ -96,20 +98,20 @@ InModuleScope Pester {
 
             $cases = @(
                 @{ Name = 'TestOneTest'; Description = 'matches a wildcard' }
-                @{ Name = 'Test Two';    Description = 'matches exactly' }
-                @{ Name = 'test two';    Description = 'matches ignoring case' }
+                @{ Name = 'Test Two'; Description = 'matches exactly' }
+                @{ Name = 'test two'; Description = 'matches ignoring case' }
             )
 
             It -TestCases $cases 'Calls the test block when the test name <Description>' {
                 param ($Name)
-                DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
                 Assert-MockCalled MockMe -Scope It -Exactly 1
             }
 
             It 'Does not call the test block when the test name doesn''t match a filter' {
-                DescribeImpl -Name 'Test On' -Pester $testState -Fixture $testBlock -NoTestDrive
-                DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock -NoTestDrive
-                DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Test On' -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
+                DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
+                DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
                 Assert-MockCalled MockMe -Scope It -Exactly 0
             }
@@ -135,16 +137,16 @@ InModuleScope Pester {
                 # we throw tests on it to see if they would run. Then we assert that a mock in the
                 # test case was called, to see if the test was executed.
 
-                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
                 Assert-MockCalled MockMe -Scope It -Exactly 1
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it does not run the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
+                @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 
-                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
                 Assert-MockCalled MockMe -Scope It -Exactly 0
             }
@@ -170,16 +172,16 @@ InModuleScope Pester {
                 # we throw tests on it to see if they would run. Then we assert that a mock in the
                 # test case was called, to see if the test was executed.
 
-                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
                 Assert-MockCalled MockMe -Scope It -Exactly 0
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it runs the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
+                @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 
-                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive
+                DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
                 Assert-MockCalled MockMe -Scope It -Exactly 1
             }

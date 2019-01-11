@@ -1,7 +1,13 @@
 ﻿Set-StrictMode -Version Latest
 
-function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switch]$UseStrictPesterMode)
-{
+function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switch]$UseStrictPesterMode, [Switch]$Verbose) {
+    # running this with -Verbose dumps a lot of confusing
+    # junk into the console, because some of our tests are meant to
+    # fail in the separate job, so use this only for debugging to get
+    # better idea of what is happenin in the job
+    if ($Verbose) {
+        Write-Host "----------- This is running is a separate Pester scope (inside a PowerShell Job) -------------" -ForegroundColor Cyan
+    }
     $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 
     $job = Start-Job {
@@ -11,12 +17,11 @@ function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switc
 
         $params = @{
             PassThru = $true
-            Path = $TestDrive
-            Strict = $UseStrictPesterMode
+            Path     = $TestDrive
+            Strict   = $UseStrictPesterMode
         }
 
-        if ($GenerateNUnitReport)
-        {
+        if ($GenerateNUnitReport) {
             $params['OutputFile'] = "$TestDrive\Temp.Tests.xml"
             $params['OutputFormat'] = 'NUnitXml'
         }
@@ -24,7 +29,17 @@ function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switc
         Invoke-Pester @params
 
     } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport, $UseStrictPesterMode
-    $job | Wait-Job | Out-Null
+    if (-not $Verbose) {
+        $job | Wait-Job | Out-Null
+    }
+    else {
+        # receive the Write-Host output, but discard everything that would go to pipeline
+        $job | Wait-Job | Receive-Job | Out-Null
+    }
+
+    if ($Verbose) {
+        Write-Host "---------- End of separate Pester scope (inside a PowerShell Job) -------------" -ForegroundColor Cyan
+    }
 
     #not using Receive-Job to ignore any output to Host
     #TODO: how should this handle errors?
@@ -65,8 +80,8 @@ Describe "Tests running in clean runspace" {
         #tests to be run in different runspace using different Pester instance
         $TestSuite = {
             Describe 'It without ScriptBlock fails' {
-               It "Fails whole describe"
-               It "is not run" { "but it would pass if it was run" }
+                It "Fails whole describe"
+                It "is not run" { "but it would pass if it was run" }
 
             }
         }
@@ -82,10 +97,10 @@ Describe "Tests running in clean runspace" {
         #tests to be run in different runspace using different Pester instance
         $TestSuite = {
             Describe 'PassThru output' {
-               it "Passes" { "pass" }
-               it "fails" { throw }
-               it "Skipped" -Skip {}
-               it "Pending" -Pending {}
+                it "Passes" { "pass" }
+                it "fails" { throw }
+                it "Skipped" -Skip {}
+                it "Pending" -Pending {}
             }
         }
 
@@ -122,10 +137,10 @@ Describe "Tests running in clean runspace" {
         #tests to be run in different runspace using different Pester instance
         $TestSuite = {
             Describe 'Mark skipped and pending tests as failed' {
-               It "skip" -Skip { $true | Should -Be $true }
-               It "pending" -Pending { $true | Should -Be $true }
-               # bug: #885 it does not fail in strict mode
-               # It "inconclusive forced" { Set-TestInconclusive ; $true | Should -Be $true }
+                It "skip" -Skip { $true | Should -Be $true }
+                It "pending" -Pending { $true | Should -Be $true }
+                # bug: #885 it does not fail in strict mode
+                # It "inconclusive forced" { Set-TestInconclusive ; $true | Should -Be $true }
             }
         }
 
@@ -174,7 +189,7 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
                     $true
                 }
 
-                 AfterEach {
+                AfterEach {
                     throw [System.InvalidOperationException] 'test exception'
                 }
             }
@@ -187,8 +202,7 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
 
         $result = Invoke-PesterInJob -ScriptBlock $testSuite
 
-        if ($result.PendingCount -ne 1)
-        {
+        if ($result.PendingCount -ne 1) {
             throw "The test suite in separate runspace did not run to completion, it was likely terminated by an uncaught exception thrown in AfterEach."
         }
 
@@ -228,9 +242,9 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
 }
 
 Describe "Swallowing output" {
-    It "Swallows output" {
+    It "Invoke-Pester happy path returns only test results" {
         $tests = {
-            Describe 'Invoke-Pester happy path returns only test results'  {
+            Describe 'Invoke-Pester happy path returns only test results' {
 
                 Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
                     function Invoke-MyFunction
@@ -255,7 +269,7 @@ Describe "Swallowing output" {
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
                     #        when passed to Should
-                    @(,$results) | Should -BeOfType [PSCustomObject]
+                    @(, $results) | Should -BeOfType [PSCustomObject]
                     $results.TotalCount | Should -Be 1
 
                     # or, we could do this instead:
@@ -270,9 +284,17 @@ Describe "Swallowing output" {
                 }
 
             }
+        }
 
+        $result = Invoke-PesterInJob -ScriptBlock $tests
+        $result.PassedCount | Should Be 2
+        $result.FailedCount | Should Be 0
+        $result.TotalCount | Should Be 2
+    }
 
-            Describe 'Invoke-Pester swallows pipeline output from system-under-test'  {
+    It "Invoke-Pester swallows pipeline output from system-under-test" {
+        $tests = {
+            Describe 'Invoke-Pester swallows pipeline output from system-under-test' {
 
                 Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
                     Write-Output "my system-under-test output"
@@ -298,7 +320,7 @@ Describe "Swallowing output" {
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
                     #        when passed to Should
-                    @(,$results) | Should -BeOfType [PSCustomObject]
+                    @(, $results) | Should -BeOfType [PSCustomObject]
                     $results.TotalCount | Should -Be 1
 
                     # or, we could do this instead:
@@ -313,9 +335,18 @@ Describe "Swallowing output" {
                 }
 
             }
+        }
 
+        $result = Invoke-PesterInJob -ScriptBlock $tests
+        $result.PassedCount | Should Be 2
+        $result.FailedCount | Should Be 0
+        $result.TotalCount | Should Be 2
+    }
 
-            Describe 'Invoke-Pester swallows pipeline output from test script'  {
+    It "Invoke-Pester swallows pipeline output from test script" {
+        $tests = {
+
+            Describe 'Invoke-Pester swallows pipeline output from test script' {
 
                 Set-Content -Path "TestDrive:\Invoke-MyFunction.ps1" -Value @'
                     function Invoke-MyFunction
@@ -341,7 +372,7 @@ Describe "Swallowing output" {
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
                     #        when passed to Should
-                    @(,$results) | Should -BeOfType [PSCustomObject]
+                    @(, $results) | Should -BeOfType [PSCustomObject]
                     $results.TotalCount | Should -Be 1
 
                     # or, we could do this instead:
@@ -358,8 +389,8 @@ Describe "Swallowing output" {
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $tests
-        $result.PassedCount | Should Be 6
+        $result.PassedCount | Should Be 2
         $result.FailedCount | Should Be 0
-        $result.TotalCount | Should Be 6
+        $result.TotalCount | Should Be 2
     }
 }

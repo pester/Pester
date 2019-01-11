@@ -67,15 +67,15 @@ InModuleScope Pester {
             @("foo") | Should Not BeNullOrEmpty
             "foo"    | Should Not BeNullOrEmpty
             "   "    | Should Not BeNullOrEmpty
-            @(1,2,3) | Should Not BeNullOrEmpty
+            @(1, 2, 3) | Should Not BeNullOrEmpty
             12345    | Should Not BeNullOrEmpty
             @("foo") | Should -Not -BeNullOrEmpty
             "foo"    | Should -Not -BeNullOrEmpty
             "   "    | Should -Not -BeNullOrEmpty
-            @(1,2,3) | Should -Not -BeNullOrEmpty
+            @(1, 2, 3) | Should -Not -BeNullOrEmpty
             12345    | Should -Not -BeNullOrEmpty
-            $item1 = New-Object PSObject -Property @{Id=1; Name="foo"}
-            $item2 = New-Object PSObject -Property @{Id=2; Name="bar"}
+            $item1 = New-Object PSObject -Property @{Id = 1; Name = "foo"}
+            $item2 = New-Object PSObject -Property @{Id = 2; Name = "bar"}
             @($item1, $item2) | Should Not BeNullOrEmpty
             @($item1, $item2) | Should -Not -BeNullOrEmpty
         }
@@ -107,9 +107,9 @@ InModuleScope Pester {
         }
 
         It "ensures all assertion functions provide failure messages" {
-            $assertionFunctions = @("PesterBe", "PesterThrow", "PesterBeNullOrEmpty", "PesterExist",
-                "PesterMatch", "PesterFileContentMatch")
-            $assertionFunctions | ForEach {
+            $assertionFunctions = @("ShouldBe", "ShouldThrow", "ShouldBeNullOrEmpty", "ShouldExist",
+                "ShouldMatch", "ShouldFileContentMatch")
+            $assertionFunctions | ForEach-Object {
                 "function:$($_)FailureMessage" | Should Exist
                 "function:Not$($_)FailureMessage" | Should Exist
                 "function:$($_)FailureMessage" | Should -Exist
@@ -119,13 +119,15 @@ InModuleScope Pester {
 
         # TODO understand the purpose of this test, perhaps some better wording
         It "can process functions with empty output as input" {
-            function ReturnNothing {}
+            function ReturnNothing {
+            }
 
             # TODO figure out why this is the case
             if ($PSVersionTable.PSVersion -eq "2.0") {
                 { $(ReturnNothing) | Should Not BeNullOrEmpty } | Should Not Throw
                 { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Not -Throw
-            } else {
+            }
+            else {
                 { $(ReturnNothing) | Should Not BeNullOrEmpty } | Should Throw
                 { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Throw
             }

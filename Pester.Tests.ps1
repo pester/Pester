@@ -2,11 +2,10 @@
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$manifestPath  = (Join-Path $here 'Pester.psd1')
+$manifestPath = (Join-Path $here 'Pester.psd1')
 $changeLogPath = (Join-Path $here 'CHANGELOG.md')
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
-
 Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     $script:manifest = $null
     $script:tagVersion = $null
@@ -35,10 +34,9 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
         It "is tagged with a valid version" -skip:$skipVersionTest {
             $thisCommit = git log --decorate --oneline HEAD~1..HEAD
 
-            if ($thisCommit -match 'tag:\s*(.*?)[,)]')
-            {
+            if ($thisCommit -match 'tag:\s*(.*?)[,)]') {
                 $script:tagVersion = $matches[1]
-                $script:tagVersionShort, $script:tagPrerelease = $script:tagVersion -split "-",2
+                $script:tagVersionShort, $script:tagPrerelease = $script:tagVersion -split "-", 2
             }
 
             $script:tagVersion                  | Should -Not -BeNullOrEmpty
@@ -51,10 +49,8 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
 
         It "tag and changelog versions are the same" -skip:$skipVersionTest {
 
-            foreach ($line in (Get-Content $changeLogPath))
-            {
-                if ($line -match "^\s*##\s+(?<Version>.*?)\s")
-                {
+            foreach ($line in (Get-Content $changeLogPath)) {
+                if ($line -match "^\s*##\s+(?<Version>.*?)\s") {
                     $script:changelogVersion = $matches.Version
                     $script:changelogVersionShort = $script:changelogVersion -replace "-.*$", ''
                     break
@@ -82,8 +78,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     }
 }
 
-if ($PSVersionTable.PSVersion.Major -ge 3)
-{
+if ($PSVersionTable.PSVersion.Major -ge 3) {
     $error.Clear()
     Describe 'Clean treatment of the $error variable' {
         Context 'A Context' {
@@ -100,10 +95,9 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
     InModuleScope Pester {
         Describe 'SafeCommands table' {
             $path = $ExecutionContext.SessionState.Module.ModuleBase
-            $filesToCheck = Get-ChildItem -Path $path -Recurse -Include *.ps1,*.psm1 -Exclude *.Tests.ps1
+            $filesToCheck = Get-ChildItem -Path $path -Recurse -Include *.ps1, *.psm1 -Exclude *.Tests.ps1
             $callsToSafeCommands = @(
-                foreach ($file in $filesToCheck)
-                {
+                foreach ($file in $filesToCheck) {
                     $tokens = $parseErrors = $null
                     $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref] $tokens, [ref] $parseErrors)
                     $filter = {
@@ -125,7 +119,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3)
             # These commands are conditionally added to the safeCommands table due to Nano / Core versus PSv2 compatibility; one will always
             # be missing, and can be ignored.
             # Also add the two possible commands uname and id which would be found on non-Windows platforms
-            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance','uname','id') -notcontains $_ }
+            $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance', 'uname', 'id') -notcontains $_ }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
                 $missingSafeCommands | Should -Be $null
@@ -155,21 +149,19 @@ Describe 'Style rules' -Tag StyleRules {
     $pesterRoot = (Get-Module Pester).ModuleBase
 
     $files = @(
-        Get-ChildItem $pesterRoot\* -Include *.ps1,*.psm1, *.psd1
-        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1,*.psm1, *.psd1, *.txt -Recurse
-        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1,*.psm1, *.psd1 -Recurse
-        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.ps1,*.psm1, *.psd1 -Recurse
+        Get-ChildItem $pesterRoot\* -Include *.ps1, *.psm1, *.psd1
+        Get-ChildItem (Join-Path $pesterRoot 'en-US') -Include *.ps1, *.psm1, *.psd1, *.txt -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Functions') -Include *.ps1, *.psm1, *.psd1 -Recurse
+        Get-ChildItem (Join-Path $pesterRoot 'Dependencies') -Include *.ps1, *.psm1, *.psd1 -Recurse
     )
 
     It 'Pester source files contain no trailing whitespace' {
         $badLines = @(
-            foreach ($file in $files)
-            {
+            foreach ($file in $files) {
                 $lines = [System.IO.File]::ReadAllLines($file.FullName)
                 $lineCount = $lines.Count
 
-                for ($i = 0; $i -lt $lineCount; $i++)
-                {
+                for ($i = 0; $i -lt $lineCount; $i++) {
                     if ($lines[$i] -match '\s+$') {
                         'File: {0}, Line: {1}' -f $file.FullName, ($i + 1)
                     }
@@ -177,20 +169,17 @@ Describe 'Style rules' -Tag StyleRules {
             }
         )
 
-        if ($badLines.Count -gt 0)
-        {
+        if ($badLines.Count -gt 0) {
             throw "The following $($badLines.Count) lines contain trailing whitespace: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($badLines -join "$([System.Environment]::NewLine)")"
         }
     }
     It 'Spaces are used for indentation in all code files, not tabs' {
         $badLines = @(
-            foreach ($file in $files)
-            {
+            foreach ($file in $files) {
                 $lines = [System.IO.File]::ReadAllLines($file.FullName)
                 $lineCount = $lines.Count
 
-                for ($i = 0; $i -lt $lineCount; $i++)
-                {
+                for ($i = 0; $i -lt $lineCount; $i++) {
                     if ($lines[$i] -match '^[  ]*\t|^\t|^\t[  ]*') {
                         'File: {0}, Line: {1}' -f $file.FullName, ($i + 1)
                     }
@@ -198,8 +187,7 @@ Describe 'Style rules' -Tag StyleRules {
             }
         )
 
-        if ($badLines.Count -gt 0)
-        {
+        if ($badLines.Count -gt 0) {
             throw "The following $($badLines.Count) lines start with a tab character: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($badLines -join "$([System.Environment]::NewLine)")"
         }
     }
@@ -260,8 +248,8 @@ InModuleScope Pester {
             $result.Count | Should -Be 1
             $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
 
-            ,$result[0].Arguments | Should -Not -Be $null
-            ,$result[0].Parameters | Should -Not -Be $null
+            , $result[0].Arguments | Should -Not -Be $null
+            , $result[0].Parameters | Should -Not -Be $null
 
             $result[0].Arguments.GetType() | Should -Be ([object[]])
             $result[0].Arguments.Count | Should -Be 0
@@ -330,45 +318,74 @@ InModuleScope Pester {
                 $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
             }
 
+            It 'Allows to pass test script string' {
+                $result = @(ResolveTestScripts @{ Script = "Test script string" })
+
+                $result.Count | Should -Be 1
+                $result[0].Script | Should -Be "Test script string"
+
+                $result[0].Path | Should -BeNullOrEmpty
+                $result[0].Parameters | Should -BeNullOrEmpty
+                $result[0].Arguments |  Should -BeNullOrEmpty
+            }
+
             It 'Throws an error if no Path is specified' {
                 { ResolveTestScripts @{} } | Should -Throw
             }
 
             It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
-                { ResolveTestScripts @{ P='P'; Params = 'A string' } } | Should -Throw
+                { ResolveTestScripts @{ P = 'P'; Params = 'A string' } } | Should -Throw
             }
         }
     }
 }
 Describe 'Assertion operators' {
     It 'Allows an operator with an identical name and test to be re-registered' {
-        function SameNameAndScript {$true}
+        function SameNameAndScript {
+            $true
+        }
         Add-AssertionOperator -Name SameNameAndScript -Test $function:SameNameAndScript
 
-        { Add-AssertionOperator -Name SameNameAndScript -Test {$true} } | Should -Not -Throw
+        { Add-AssertionOperator -Name SameNameAndScript -Test {
+            $true
+        } } | Should -Not -Throw
     }
     It 'Allows an operator with an identical name, test, and alias to be re-registered' {
-        function SameNameAndScriptAndAlias {$true}
+        function SameNameAndScriptAndAlias {
+            $true
+        }
         Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
 
-        { Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test {$true} -Alias SameAlias } | Should -Not -Throw
+        { Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test {
+            $true
+        } -Alias SameAlias } | Should -Not -Throw
     }
     It 'Allows an operator to be registered with multiple aliases' {
-        function MultipleAlias {$true}
+        function MultipleAlias {
+            $true
+        }
         Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
 
         {Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing name' {
-        function DifferentScriptBlockA {$true}
-        function DifferentScriptBlockB {$false}
+        function DifferentScriptBlockA {
+            $true
+        }
+        function DifferentScriptBlockB {
+            $false
+        }
         Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockA
 
         { Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing alias' {
-        function DifferentAliasA { $true }
-        function DifferentAliasB { $true }
+        function DifferentAliasA {
+            $true
+        }
+        function DifferentAliasB {
+            $true
+        }
         Add-AssertionOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
 
         { Add-AssertionOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
@@ -388,24 +405,27 @@ Describe 'Set-StrictMode for all tests files' {
 
     It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
         $UnstrictTests = @(
-            foreach ($file in $files)
-            {
+            foreach ($file in $files) {
                 $lines = [System.IO.File]::ReadAllLines($file.FullName)
                 $lineCount = $lines.Count
-                if ($lineCount -lt 3){ $linesToRead = $lineCount} else { $linestoRead = 3 }
-                $n=0
-                for ($i = 0; $i -lt $linestoRead; $i++)
-                {
-                    if ($lines[$i] -match '\s+Set-StrictMode\ -Version\ Latest' -or $lines[$i] -match 'Set-StrictMode\ -Version\ Latest' ) { $n++  }
+                if ($lineCount -lt 3) {
+                    $linesToRead = $lineCount
                 }
-                if ( $n -eq 0 )
-                {
+                else {
+                    $linestoRead = 3
+                }
+                $n = 0
+                for ($i = 0; $i -lt $linestoRead; $i++) {
+                    if ($lines[$i] -match '\s+Set-StrictMode\ -Version\ Latest' -or $lines[$i] -match 'Set-StrictMode\ -Version\ Latest' ) {
+                        $n++
+                    }
+                }
+                if ( $n -eq 0 ) {
                     $file.FullName
                 }
             }
         )
-        if ($UnstrictTests.Count -gt 0)
-        {
+        if ($UnstrictTests.Count -gt 0) {
             throw "The following $($UnstrictTests.Count) tests files doesn't contain strict mode declaration in the first three lines: $([System.Environment]::NewLine)$([System.Environment]::NewLine)$($UnstrictTests -join "$([System.Environment]::NewLine)")"
         }
     }
@@ -427,14 +447,14 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
         [String[]]$AcceptMissedHelpSynopsis = @()
 
         [String[]]$AccepteMissedHelpDescription = @('AfterAll', 'AfterEach', 'BeforeAll', 'BeforeEach', 'Get-MockDynamicParameter', 'Invoke-Mock',
-                                                    'SafeGetCommand', 'Set-DynamicParameterVariable', 'Setup')
+            'SafeGetCommand', 'Set-DynamicParameterVariable', 'Setup')
 
-        [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock','Should', 'Set-DynamicParameterVariable', 'Setup')
+        [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock', 'Should', 'Set-DynamicParameterVariable', 'Setup')
 
         [String[]]$AcceptMissedHelpExamples = @('AfterAll', 'AfterEach', 'AfterEachFeature', 'AfterEachScenario', 'Assert-VerifiableMocks',
-                                                'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario',
-                                                'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
-                                                'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
+            'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario',
+            'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
+            'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
 
         [String[]]$FunctionsList = (Get-Command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' })
 
@@ -448,7 +468,7 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
             # Parse the function using AST
             $AST = [System.Management.Automation.Language.Parser]::ParseInput((Get-Content function:$Function), [ref]$null, [ref]$null)
 
-            Context "The function [$Function] - Help"{
+            Context "The function [$Function] - Help" {
 
                 If ($AcceptMissedHelpSynopsis -notcontains $Function) {
 
@@ -458,11 +478,11 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
 
                         $HelpSynopsisBegin = $HelpSynopsis.SubString(0, $HelpSynopsis.IndexOf('[') + 2)
 
-                        $HelpSynopsisEnd = $HelpSynopsis.SubString($HelpSynopsis.length-1,1 )
+                        $HelpSynopsisEnd = $HelpSynopsis.SubString($HelpSynopsis.length - 1, 1 )
 
                     }
 
-                    It "Synopsis for the function is filled up"{
+                    It "Synopsis for the function is filled up" {
 
                         $HelpSynopsis | Should not BeNullOrEmpty
 
@@ -478,7 +498,7 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
 
                 If ($AccepteMissedHelpDescription -notcontains $Function) {
 
-                    It "Description for the function is filled up"{
+                    It "Description for the function is filled up" {
 
                         $FunctionDescription = $FunctionHelp.Description
 
@@ -491,8 +511,12 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
                 # Get the parameters declared in the Comment Based Help
                 $RiskMitigationParameters = 'Whatif', 'Confirm'
 
-                Try { $ParametersCount =  $(Measure-Object -InputObject $FunctionHelp.parameters.parameter).Count }
-                Catch { $ParametersCount = 0 }
+                Try {
+                    $ParametersCount = $(Measure-Object -InputObject $FunctionHelp.parameters.parameter).Count
+                }
+                Catch {
+                    $ParametersCount = 0
+                }
 
                 if ( $ParametersCount -gt 0 ) {
 
@@ -502,14 +526,18 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
 
 
                 # Get the parameters declared in the AST PARAM() Block
-                Try { [String[]]$ASTParameters = $AST.ParamBlock.Parameters.Name.variablepath.userpath | Sort-Object }
-                Catch { $ASTParameters = $Null }
+                Try {
+                    [String[]]$ASTParameters = $AST.ParamBlock.Parameters.Name.variablepath.userpath | Sort-Object
+                }
+                Catch {
+                    $ASTParameters = $Null
+                }
 
                 If (-not [String]::IsNullOrEmpty($ASTParameters) -and $AcceptMissedHelpParameters -notcontains $Function ) {
 
                     $HelpParameters | ForEach-Object {
 
-                        It "The parameter [$($_.Name)] contains description"{
+                        It "The parameter [$($_.Name)] contains description" {
 
                             $ParameterDescription = $_.description
 
@@ -523,10 +551,14 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
                 # Examples
                 If ($AcceptMissedHelpExamples -notcontains $Function) {
 
-                    Try { $ExamplesCount =  $(Measure-Object -InputObject $FunctionHelp.examples.example).Count }
-                    Catch { $ExamplesCount = 0 }
+                    Try {
+                        $ExamplesCount = $(Measure-Object -InputObject $FunctionHelp.examples.example).Count
+                    }
+                    Catch {
+                        $ExamplesCount = 0
+                    }
 
-                    it "Example - At least one example exist"{
+                    it "Example - At least one example exist" {
 
                         #$ExamplesCount = $FunctionHelp.examples.example.code.count
 
@@ -541,7 +573,7 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
 
                             $StrippedExampleTitle = ($Example.Title).Replace('--------------------------', '')
 
-                            it "Example - remarks on [$StrippedExampleTitle] are filled up"{
+                            it "Example - remarks on [$StrippedExampleTitle] are filled up" {
 
                                 $Example.remarks | Should not BeNullOrEmpty
 

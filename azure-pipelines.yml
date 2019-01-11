@@ -1,0 +1,45 @@
+trigger:
+  - master
+pr:
+  - master
+
+resources:
+  - repo: self
+    clean: true
+    fetchDepth: 1
+
+jobs:
+  - job: ps2
+    displayName: PowerShell 2
+    continueOnError: false
+    pool:
+      name: Default
+      demands:
+        - ps2
+    workspace:
+      clean: all
+    timeoutInMinutes: 3
+    steps:
+      - script: |
+          rem build in 32-bit version of PowerShell 2 because the 64-bit version
+          rem was butchered and replaced with PowerShell 6 to be able to run the
+          rem Azure Pipelines agent on Server 2008 R2 with only PowerShell 2
+          C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -c "$errorActionPreference = 'stop'; try {$PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit} catch { Write-Error $_; exit 9999 }"
+          exit %errorlevel%
+
+  - job: ps3
+    displayName: PowerShell 3
+    continueOnError: false
+    pool:
+      name: Default
+      demands:
+        - ps3
+    workspace:
+      clean: all
+    timeoutInMinutes: 3
+    steps:
+      - powershell: |
+          $errorActionPreference = 'stop'
+          Set-StrictMode -Version Latest
+          Import-Module .\Pester.psd1
+          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit

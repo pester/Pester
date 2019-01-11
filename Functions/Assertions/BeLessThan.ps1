@@ -1,7 +1,15 @@
-function PesterBeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because)
-{
+function Should-BeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+    <#
+.SYNOPSIS
+Asserts that a number (or other comparable value) is lower than an expected value.
+Uses PowerShell's -lt operator to compare the two values.
+
+.EXAMPLE
+1 | Should -BeLessThan 10
+This test passes, as PowerShell evaluates `1 -lt 10` as true.
+#>
     if ($Negate) {
-        return PesterBeGreaterOrEqual -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
+        return Should-BeGreaterOrEqual -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
     if ($ActualValue -ge $ExpectedValue) {
@@ -12,15 +20,27 @@ function PesterBeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [strin
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
 
-function PesterBeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because)
-{
+function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+    <#
+.SYNOPSIS
+Asserts that a number (or other comparable value) is greater than or equal to an expected value.
+Uses PowerShell's -ge operator to compare the two values.
+
+.EXAMPLE
+2 | Should -BeGreaterOrEqual 0
+This test passes, as PowerShell evaluates `2 -ge 0` as true.
+
+.EXAMPLE
+2 | Should -BeGreaterOrEqual 2
+This test also passes, as PowerShell evaluates `2 -ge 2` as true.
+#>
     if ($Negate) {
-        return PesterBeLessThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
+        return Should-BeLessThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
     if ($ActualValue -lt $ExpectedValue) {
@@ -31,21 +51,27 @@ function PesterBeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, 
     }
 
     return New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
-Add-AssertionOperator -Name  BeLessThan `
-                      -Test  $function:PesterBeLessThan `
-                      -Alias 'LT'
+Add-AssertionOperator -Name         BeLessThan `
+    -InternalName Should-BeLessThan `
+    -Test         ${function:Should-BeLessThan} `
+    -Alias        'LT'
 
-Add-AssertionOperator -Name  BeGreaterOrEqual `
-                      -Test  $function:PesterBeGreaterOrEqual `
-                      -Alias 'GE'
+Add-AssertionOperator -Name         BeGreaterOrEqual `
+    -InternalName Should-BeGreaterOrEqual `
+    -Test         ${function:Should-BeGreaterOrEqual} `
+    -Alias        'GE'
 
 #keeping tests happy
-function PesterBeLessThanFailureMessage() {  }
-function NotPesterBeLessThanFailureMessage() { }
+function ShouldBeLessThanFailureMessage() {
+}
+function NotShouldBeLessThanFailureMessage() {
+}
 
-function PesterBeGreaterOrEqualFailureMessage() {  }
-function NotPesterBeGreaterOrEqualFailureMessage() { }
+function ShouldBeGreaterOrEqualFailureMessage() {
+}
+function NotShouldBeGreaterOrEqualFailureMessage() {
+}

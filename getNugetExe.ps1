@@ -1,8 +1,7 @@
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
-try
-{
+try {
     # had problems running nuget.exe on the build server
     # so I try to run it first and if that does not work
     # I download a version from the web and try that
@@ -38,8 +37,7 @@ try
     }
 
 }
-catch
-{
+catch {
     Write-Error -ErrorRecord $_
     exit 1
 }

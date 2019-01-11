@@ -1,6 +1,5 @@
-function BeforeEach
-{
-<#
+function BeforeEach {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the beginning of every It block within
     the current Context or Describe block.
@@ -20,16 +19,15 @@ function BeforeEach
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName BeforeEach
 }
 
-function AfterEach
-{
-<#
+function AfterEach {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the end of every It block within
     the current Context or Describe block.
@@ -49,16 +47,15 @@ function AfterEach
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName AfterEach
 }
 
-function BeforeAll
-{
-<#
+function BeforeAll {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the beginning of the current Context
     or Describe block.
@@ -76,16 +73,15 @@ function BeforeAll
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName BeforeAll
 }
 
-function AfterAll
-{
-<#
+function AfterAll {
+    <#
 .SYNOPSIS
     Defines a series of steps to perform at the end of the current Context
     or Describe block.
@@ -103,62 +99,54 @@ function AfterAll
     (
         # the scriptblock to execute
         [Parameter(Mandatory = $true,
-                   Position = 1)]
+            Position = 1)]
         [Scriptblock]
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName AfterAll
 }
 
-function Invoke-TestCaseSetupBlocks
-{
+function Invoke-TestCaseSetupBlocks {
     Invoke-Blocks -ScriptBlock $pester.GetTestCaseSetupBlocks()
 }
 
-function Invoke-TestCaseTeardownBlocks
-{
+function Invoke-TestCaseTeardownBlocks {
     Invoke-Blocks -ScriptBlock $pester.GetTestCaseTeardownBlocks()
 }
 
-function Invoke-TestGroupSetupBlocks
-{
+function Invoke-TestGroupSetupBlocks {
     Invoke-Blocks -ScriptBlock $pester.GetCurrentTestGroupSetupBlocks()
 }
 
-function Invoke-TestGroupTeardownBlocks
-{
+function Invoke-TestGroupTeardownBlocks {
     Invoke-Blocks -ScriptBlock $pester.GetCurrentTestGroupTeardownBlocks()
 }
 
-function Invoke-Blocks
-{
+function Invoke-Blocks {
     param ([scriptblock[]] $ScriptBlock)
 
-    foreach ($block in $ScriptBlock)
-    {
-        if ($null -eq $block) { continue }
+    foreach ($block in $ScriptBlock) {
+        if ($null -eq $block) {
+            continue
+        }
         $null = . $block
     }
 }
 
-function Add-SetupAndTeardown
-{
+function Add-SetupAndTeardown {
     param (
         [scriptblock] $ScriptBlock
     )
 
-    if ($PSVersionTable.PSVersion.Major -le 2)
-    {
+    if ($PSVersionTable.PSVersion.Major -le 2) {
         Add-SetupAndTeardownV2 -ScriptBlock $ScriptBlock
     }
-    else
-    {
+    else {
         Add-SetupAndTeardownV3 -ScriptBlock $ScriptBlock
     }
 }
 
-function Add-SetupAndTeardownV3
-{
+function Add-SetupAndTeardownV3 {
     param (
         [scriptblock] $ScriptBlock
     )
@@ -168,17 +156,15 @@ function Add-SetupAndTeardownV3
         param ([System.Management.Automation.Language.Ast] $Ast)
 
         $Ast -is [System.Management.Automation.Language.CommandAst] -and
-        $Ast.CommandElements.Count -eq 2 -and
         $Ast.CommandElements[0].ToString() -match $pattern -and
-        $Ast.CommandElements[1] -is [System.Management.Automation.Language.ScriptBlockExpressionAst]
+        $Ast.CommandElements[-1] -is [System.Management.Automation.Language.ScriptBlockExpressionAst]
     }
 
     $searchNestedBlocks = $false
 
     $calls = $ScriptBlock.Ast.FindAll($predicate, $searchNestedBlocks)
 
-    foreach ($call in $calls)
-    {
+    foreach ($call in $calls) {
         # For some reason, calling ScriptBlockAst.GetScriptBlock() sometimes blows up due to failing semantics
         # checks, even though the code is perfectly valid.  So we'll poke around with reflection again to skip
         # that part and just call the internal ScriptBlock constructor that we need
@@ -188,7 +174,7 @@ function Add-SetupAndTeardownV3
         $flags = [System.Reflection.BindingFlags]'Instance, NonPublic'
         $constructor = [scriptblock].GetConstructor($flags, $null, [Type[]]@($iPmdProviderType, [bool]), $null)
 
-        $block = $constructor.Invoke(@($call.CommandElements[1].ScriptBlock, $false))
+        $block = $constructor.Invoke(@($call.CommandElements[-1].ScriptBlock, $false))
 
         Set-ScriptBlockScope -ScriptBlock $block -SessionState $pester.SessionState
         $commandName = $call.CommandElements[0].ToString()
@@ -196,8 +182,7 @@ function Add-SetupAndTeardownV3
     }
 }
 
-function Add-SetupAndTeardownV2
-{
+function Add-SetupAndTeardownV2 {
     param (
         [scriptblock] $ScriptBlock
     )
@@ -205,13 +190,11 @@ function Add-SetupAndTeardownV2
     $codeText = $ScriptBlock.ToString()
     $tokens = @(ParseCodeIntoTokens -CodeText $codeText)
 
-    for ($i = 0; $i -lt $tokens.Count; $i++)
-    {
+    for ($i = 0; $i -lt $tokens.Count; $i++) {
         $token = $tokens[$i]
         $type = $token.Type
         if ($type -eq [System.Management.Automation.PSTokenType]::Command -and
-            (IsSetupOrTeardownCommand -CommandName $token.Content))
-        {
+            (IsSetupOrTeardownCommand -CommandName $token.Content)) {
             $openBraceIndex, $closeBraceIndex = Get-BraceIndicesForCommand -Tokens $tokens -CommandIndex $i
 
             $block = Get-ScriptBlockFromTokens -Tokens $Tokens -OpenBraceIndex $openBraceIndex -CloseBraceIndex $closeBraceIndex -CodeText $codeText
@@ -219,8 +202,7 @@ function Add-SetupAndTeardownV2
 
             $i = $closeBraceIndex
         }
-        elseif ($type -eq [System.Management.Automation.PSTokenType]::GroupStart)
-        {
+        elseif ($type -eq [System.Management.Automation.PSTokenType]::GroupStart) {
             # We don't want to parse Setup or Teardown commands in child scopes here, so anything
             # bounded by a GroupStart / GroupEnd token pair which is not immediately preceded by
             # a setup / teardown command name is ignored.
@@ -229,49 +211,44 @@ function Add-SetupAndTeardownV2
     }
 }
 
-function ParseCodeIntoTokens
-{
+function ParseCodeIntoTokens {
     param ([string] $CodeText)
 
     $parseErrors = $null
     $tokens = [System.Management.Automation.PSParser]::Tokenize($CodeText, [ref] $parseErrors)
 
-    if ($parseErrors.Count -gt 0)
-    {
+    if ($parseErrors.Count -gt 0) {
         $currentScope = $pester.CurrentTestGroup.Hint
-        if (-not $currentScope) { $currentScope = 'test group' }
+        if (-not $currentScope) {
+            $currentScope = 'test group'
+        }
         throw "The current $currentScope block contains syntax errors."
     }
 
     return $tokens
 }
 
-function IsSetupOrTeardownCommand
-{
+function IsSetupOrTeardownCommand {
     param ([string] $CommandName)
     return (IsSetupCommand -CommandName $CommandName) -or (IsTeardownCommand -CommandName $CommandName)
 }
 
-function IsSetupCommand
-{
+function IsSetupCommand {
     param ([string] $CommandName)
     return $CommandName -eq 'BeforeEach' -or $CommandName -eq 'BeforeAll'
 }
 
-function IsTeardownCommand
-{
+function IsTeardownCommand {
     param ([string] $CommandName)
     return $CommandName -eq 'AfterEach' -or $CommandName -eq 'AfterAll'
 }
 
-function IsTestGroupCommand
-{
+function IsTestGroupCommand {
     param ([string] $CommandName)
     return $CommandName -eq 'BeforeAll' -or $CommandName -eq 'AfterAll'
 }
 
-function Get-BraceIndicesForCommand
-{
+function Get-BraceIndicesForCommand {
     param (
         [System.Management.Automation.PSToken[]] $Tokens,
         [int] $CommandIndex
@@ -283,26 +260,29 @@ function Get-BraceIndicesForCommand
     return $openingGroupTokenIndex, $closingGroupTokenIndex
 }
 
-function Get-GroupStartTokenForCommand
-{
+function Get-GroupStartTokenForCommand {
     param (
         [System.Management.Automation.PSToken[]] $Tokens,
         [int] $CommandIndex
     )
 
-    # We may want to allow newlines, other parameters, etc at some point.  For now it's good enough to
-    # just verify that the next token after our BeforeEach or AfterEach command is an opening curly brace.
-
     $commandName = $Tokens[$CommandIndex].Content
 
-    if ($CommandIndex + 1 -ge $tokens.Count -or
-        $tokens[$CommandIndex + 1].Type -ne [System.Management.Automation.PSTokenType]::GroupStart -or
-        $tokens[$CommandIndex + 1].Content -ne '{')
-    {
-        throw "The $commandName command must be immediately followed by the opening brace of a script block."
+    # gets ScriptBlock from positional parameter e.g. BeforeEach { <code> }
+    if ($CommandIndex + 1 -lt $tokens.Count -and
+        ($tokens[$CommandIndex + 1].Type -eq [System.Management.Automation.PSTokenType]::GroupStart -or
+            $tokens[$CommandIndex + 1].Content -eq '{')) {
+        return $CommandIndex + 1
     }
 
-    return $CommandIndex + 1
+    # gets ScriptBlock from named parameter e.g. BeforeEach -ScriptBlock { <code> }
+    if ($CommandIndex + 2 -lt $tokens.Count -and
+        ($tokens[$CommandIndex + 2].Type -eq [System.Management.Automation.PSTokenType]::GroupStart -or
+            $tokens[$CommandIndex + 2].Content -eq '{')) {
+        return $CommandIndex + 2
+    }
+
+    throw "The $commandName command must be followed by the script block as the first argument or named parameter value."
 }
 
 & $SafeCommands['Add-Type'] -TypeDefinition @'
@@ -339,8 +319,7 @@ function Get-GroupStartTokenForCommand
     }
 '@
 
-function Get-GroupCloseTokenIndex
-{
+function Get-GroupCloseTokenIndex {
     param (
         [System.Management.Automation.PSToken[]] $Tokens,
         [int] $GroupStartTokenIndex
@@ -348,16 +327,14 @@ function Get-GroupCloseTokenIndex
 
     $closeIndex = [Pester.ClosingBraceFinder]::GetClosingBraceIndex($Tokens, $GroupStartTokenIndex)
 
-    if ($closeIndex -lt 0)
-    {
+    if ($closeIndex -lt 0) {
         throw 'No corresponding GroupEnd token was found.'
     }
 
     return $closeIndex
 }
 
-function Get-ScriptBlockFromTokens
-{
+function Get-ScriptBlockFromTokens {
     param (
         [System.Management.Automation.PSToken[]] $Tokens,
         [int] $OpenBraceIndex,
@@ -370,13 +347,13 @@ function Get-ScriptBlockFromTokens
     $setupOrTeardownCodeText = $codeText.Substring($blockStart, $blockLength)
 
     $scriptBlock = [scriptblock]::Create($setupOrTeardownCodeText)
+    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Get-ScriptBlockFromTokens" -ScriptBlock $scriptBlock
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $pester.SessionState
 
     return $scriptBlock
 }
 
-function Add-SetupOrTeardownScriptBlock
-{
+function Add-SetupOrTeardownScriptBlock {
     param (
         [string] $CommandName,
         [scriptblock] $ScriptBlock

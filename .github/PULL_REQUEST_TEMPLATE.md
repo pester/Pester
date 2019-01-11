@@ -1,10 +1,6 @@
 <!--
 
-Thank you for contributing to Pester!
-
-Before you continue, please review the article [Contributing to Pester](https://github.com/pester/Pester/wiki/Contributing-to-Pester) and [Development rules - technical](https://github.com/pester/Pester/wiki/Developement-rules---technical).
-
-Our continues integration system doesn't send any notifications about failed tests. Please return to the opened pull request (after ~60 minutes) to check if is everything OK.
+Thank you for contributing to Pester! Please provide a descriptive title of the pull request in the field 'Title'.
 
 -->
 
@@ -12,14 +8,16 @@ Our continues integration system doesn't send any notifications about failed tes
 
 <!--
 
-Please provide a descriptive title of the pull request in the field 'Title' too.
+Please describe what your pull request fixes, or how it improves Pester.
 
-Please provide us information on how your pull request improves Pester or what fixes.
+If your pull request resolves a reported issue, please mention it by using  `Fix #<issue_number>` on a new line, this will close the linked issue automatically when this PR is merged. For more info see: [Closing issues using keywords](https://help.github.com/articles/closing-issues-using-keywords/).
 
-If your pull request integrate Pester with another system (e.g. a continues integration product) please provide instruction how the updated code can be tested.
+If your pull request integrates Pester with another system, please tell us how the change can be tested.
 
-If your pull request resolves the issue reported previously, please mention it by using `#<issue_number>` syntax.
+Please remember to update [the Pester wiki](https://github.com/pester/Pester/wiki) if needed.
 
-Please remember about update [the Pester wiki](https://github.com/pester/Pester/wiki) too.
+Before you continue, please review [Contributing to Pester](https://github.com/pester/Pester/wiki/Contributing-to-Pester) and [Development rules - technical](https://github.com/pester/Pester/wiki/Developement-rules---technical).
+
+Our continuous integration system doesn't send any notifications about failed tests. Please return to the opened pull request (after ~60 minutes) to check if is everything OK.
 
 -->
