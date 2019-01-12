@@ -45,7 +45,8 @@ function New-PesterState {
 
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-        $script:MostRecentTimestamp = 0
+        $script:TestStartTime = $null
+        $script:TestStopTime = $null
         $script:CommandCoverage = @()
         $script:Strict = $Strict
         $script:Show = $Show
@@ -83,6 +84,7 @@ function New-PesterState {
                 BeforeAll         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
                 AfterAll          = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
                 TotalCount        = 0
+                StartTime         = $Null
                 Time              = [timespan]0
                 PassedCount       = 0
                 FailedCount       = 0
@@ -98,12 +100,24 @@ function New-PesterState {
 
         function EnterTestGroup([string] $Name, [string] $Hint) {
             $newGroup = New-TestGroup @PSBoundParameters
+            $newGroup.StartTime = $script:Stopwatch.Elapsed
             $null = $script:TestGroupStack.Peek().Actions.Add($newGroup)
+
             $script:TestGroupStack.Push($newGroup)
         }
 
         function LeaveTestGroup([string] $Name, [string] $Hint) {
+            $StopTime = $script:Stopwatch.Elapsed
             $currentGroup = $script:TestGroupStack.Pop()
+
+            if ( $Hint -eq 'Script' ) {
+                $script:Time += $StopTime - $currentGroup.StartTime
+            }
+
+            $currentGroup.Time = $StopTime - $currentGroup.StartTime
+
+            # Removing start time property from output to prevent clutter
+            $currentGroup.PSObject.properties.remove('StartTime')
 
             if ($currentGroup.Name -ne $Name -or $currentGroup.Hint -ne $Hint) {
                 throw "TestGroups stack corrupted:  Expected name/hint of '$Name','$Hint'.  Found '$($currentGroup.Name)', '$($currentGroup.Hint)'."
@@ -133,11 +147,15 @@ function New-PesterState {
                 return $errorRecord
             }
 
-            $previousTime = $script:MostRecentTimestamp
-            $script:MostRecentTimestamp = $script:Stopwatch.Elapsed
-
             if ($null -eq $Time) {
-                $Time = $script:MostRecentTimestamp - $previousTime
+                if ( $script:TestStartTime -and $script:TestStopTime ) {
+                    $Time = $script:TestStopTime - $script:TestStartTime
+                    $script:TestStartTime = $null
+                    $script:TestStopTime = [timespan]0
+                }
+                else {
+                    $Time = [timespan]0
+                }
             }
 
             if (-not $script:Strict) {
@@ -154,7 +172,6 @@ function New-PesterState {
             }
 
             $script:TotalCount++
-            $script:Time += $Time
 
             switch ($Result) {
                 Passed {
@@ -298,10 +315,12 @@ function New-PesterState {
                 throw 'You are already in a test case.'
             }
 
+            $script:TestStartTime = $script:Stopwatch.Elapsed
             $script:InTest = $true
         }
 
         function LeaveTest {
+            $script:TestStopTime = $script:Stopwatch.Elapsed
             $script:InTest = $false
         }
 

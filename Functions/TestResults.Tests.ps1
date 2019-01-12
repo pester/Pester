@@ -60,9 +60,17 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-            $TestResults.AddTestResult("Successful testcase", 'Passed', [timespan]10000000) #1.0 seconds
-            $TestResults.AddTestResult("Successful testcase", 'Passed', [timespan]11000000) #1.1 seconds
+            $TestResults.EnterTest()
+            Start-Sleep -Milliseconds 100
+            $TestResults.LeaveTest()
+            $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
+            $TestResults.EnterTest()
+            Start-Sleep -Milliseconds 100
+            $TestResults.LeaveTest()
+            $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
             $testResults.LeaveTestGroup('Mocked Describe', 'Describe')
+
+            $TestGroup = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
 
             Set-PesterStatistics -Node $TestResults.TestActions
 
@@ -77,18 +85,26 @@ InModuleScope Pester {
             $xmlTestResult.description     | Should -Be "Mocked Describe"
             $xmlTestResult.result          | Should -Be "Success"
             $xmlTestResult.success         | Should -Be "True"
-            $xmlTestResult.time            | Should -Be 2.1
+            $xmlTestResult.time            | Should -Be ([math]::Round($TestGroup.time.TotalSeconds,4))
         }
 
         it "should write two test-suite elements for two describes" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
-            $testResults.EnterTestGroup('Describe #1', 'Describe')
-            $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -Seconds 1))
+            $TestResults.EnterTestGroup('Describe #1', 'Describe')
+            $TestResults.EnterTest()
+            Start-Sleep -Milliseconds 200
+            $TestResults.LeaveTest()
+            $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
             $TestResults.LeaveTestGroup('Describe #1', 'Describe')
+            $Describe1 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
             $testResults.EnterTestGroup('Describe #2', 'Describe')
-            $TestResults.AddTestResult("Failed testcase", 'Failed', (New-TimeSpan -Seconds 2))
+            $TestResults.EnterTest()
+            Start-Sleep -Milliseconds 200
+            $TestResults.LeaveTest()
+            $TestResults.AddTestResult("Failed testcase", 'Failed', $null)
             $TestResults.LeaveTestGroup('Describe #2', 'Describe')
+            $Describe2 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
 
             Set-PesterStatistics -Node $TestResults.TestActions
 
@@ -102,14 +118,14 @@ InModuleScope Pester {
             $xmlTestSuite1.description | Should -Be "Describe #1"
             $xmlTestSuite1.result      | Should -Be "Success"
             $xmlTestSuite1.success     | Should -Be "True"
-            $xmlTestSuite1.time        | Should -Be 1.0
+            $xmlTestSuite1.time        | Should -Be ([math]::Round($Describe1.time.TotalSeconds,4))
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
             $xmlTestSuite2.name        | Should -Be "Describe #2"
             $xmlTestSuite2.description | Should -Be "Describe #2"
             $xmlTestSuite2.result      | Should -Be "Failure"
             $xmlTestSuite2.success     | Should -Be "False"
-            $xmlTestSuite2.time        | Should -Be 2.0
+            $xmlTestSuite2.time        | Should -Be ([math]::Round($Describe2.time.TotalSeconds,4))
         }
 
         it "should write the environment information" {
@@ -132,7 +148,7 @@ InModuleScope Pester {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
             $testResults.EnterTestGroup('Describe #1', 'Describe')
-            $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -Seconds 1))
+            $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -mi 1))
             $testResults.LeaveTestGroup('Describe #1', 'Describe')
             $testResults.EnterTestGroup('Describe #2', 'Describe')
             $TestResults.AddTestResult("Failed testcase", 'Failed', (New-TimeSpan -Seconds 2))

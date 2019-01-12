@@ -1429,12 +1429,11 @@ function Set-PesterStatistics($Node) {
         if ($action.Type -eq 'TestGroup') {
             Set-PesterStatistics -Node $action
 
-            $Node.TotalCount += $action.TotalCount
-            $Node.Time += $action.Time
-            $Node.PassedCount += $action.PassedCount
-            $Node.FailedCount += $action.FailedCount
-            $Node.SkippedCount += $action.SkippedCount
-            $Node.PendingCount += $action.PendingCount
+            $Node.TotalCount        += $action.TotalCount
+            $Node.PassedCount       += $action.PassedCount
+            $Node.FailedCount       += $action.FailedCount
+            $Node.SkippedCount      += $action.SkippedCount
+            $Node.PendingCount      += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
         elseif ($action.Type -eq 'TestCase') {
@@ -1457,8 +1456,6 @@ function Set-PesterStatistics($Node) {
                     $Node.InconclusiveCount++; break;
                 }
             }
-
-            $Node.Time += $action.Time
         }
     }
 }
