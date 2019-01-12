@@ -342,7 +342,7 @@ function New-Mock {
             SessionState            = $contextInfo.Session
             Scope                   = $CurrentTestGroup
             # TODO: get rid of this binding to state
-            PesterState             = $pester
+            PesterState             = $null #$pester
             Metadata                = $metadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
@@ -826,6 +826,10 @@ function Exit-MockScope {
 }
 
 function ShouldRemoveMock($Mock, $ActivePesterState) {
+    # I guess this is because we want to be able to run
+    # Pester in Pester? this is reference comparison so not
+    # and I don't see why there should be two pester states
+    # at the same time otherwise
     if ($ActivePesterState -ne $mock.PesterState) {
         return $false
     }
