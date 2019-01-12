@@ -85,7 +85,7 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         $tokens = [System.Management.Automation.PSParser]::Tokenize($Command.Definition, [Ref]$errors)
 
         # Find param block
-        $start = $tokens.IndexOf(($tokens | Where-Object { $_.Content -eq 'param' })[0]) + 1
+        $start = $tokens.IndexOf(($tokens | Where-Object { $_.Content -eq 'param' } | Select-Object -First 1)) + 1
         $paramBlock = Get-TokenGroup $tokens[$start..($tokens.Count - 1)]
 
         for ($i = 0; $i -lt $paramBlock.Count; $i++) {
