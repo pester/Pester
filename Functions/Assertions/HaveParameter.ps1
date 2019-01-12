@@ -7,6 +7,10 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -IsMandatory
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
+    .NOTES
+        The attribute [ArgumentCompleter] was added with PSv5. Previouse this
+        assertion will not be able to use the -HasArgumentCompleter parameter
+        if the attribute does not exist.
     #>
 
     if ($null -eq $ActualValue -or $ActualValue -isnot [Management.Automation.CommandInfo]) {
@@ -62,9 +66,13 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
             $i = $j = 0
             do {
                 $token = $tokens[$i]
-                if ($token.Type -eq 'GroupStart') { $j++ }
-                if ($token.Type -eq 'GroupEnd') { $j-- }
-                if ($null -eq $token.Depth) {
+                if ($token.Type -eq 'GroupStart') {
+                    $j++
+                }
+                if ($token.Type -eq 'GroupEnd') {
+                    $j--
+                }
+                if (-not $token.PSObject.Properties.Item('Depth')) {
                     $token | Add-Member Depth -MemberType NoteProperty -Value $j
                 }
                 $token
@@ -122,14 +130,15 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
     $buts = @()
     $filters = @()
 
-    $hasKey = $ActualValue.Parameters.ContainsKey($ParameterName)
+    $null = $ActualValue.Parameters # necessary for PSv2
+    $hasKey = $ActualValue.Parameters.PSBase.ContainsKey($ParameterName)
     $filters += "to$(if ($Negate) {" not"}) have a parameter $ParameterName"
 
     if (-not $Negate -and -not $hasKey) {
         $buts += "the parameter is missing"
     }
     elseif ($Negate -and -not $hasKey) {
-        return [PSCustomObject]@{ Succeeded = $true }
+        return New-Object PSObject -Property @{ Succeeded = $true }
     }
     elseif ($Negate -and $hasKey -and -not ($IsMandatory -or $OfType -or $Default -or $HasArgumentCompleter)) {
         $buts += "the parameter exists"
@@ -138,7 +147,7 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
 
         if ($IsMandatory) {
-            $testMandatory = $attributes | Where-Object { $_.Mandatory }
+            $testMandatory = $attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
             $filters += "which is$(if ($Negate) {" not"}) mandatory"
 
             if (-not $Negate -and -not $testMandatory) {
@@ -150,21 +159,24 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         }
 
         if ($OfType) {
-            $actualType = $ActualValue.Parameters[$ParameterName].ParameterType
-            $testOfType = ($OfType.FullName -match [Regex]::Escape($actualType)) -or ([Regex]::Escape($OfType.Name) -match [Regex]::Escape($actualType))
-            $filters += "$(if ($Negate) {"not "})of type $(Format-Nicely $OfType)"
+            # This block is not using `Format-Nicely`, as in PSv2 the output differs. Eg:
+            # PS2> [System.DateTime]
+            # PS5> [datetime]
+            [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
+            $testOfType = ($OfType -eq $actualType)
+            $filters += "$(if ($Negate) {"not "})of type [$($OfType.FullName)]"
 
             if (-not $Negate -and -not $testOfType) {
-                $buts += "it was of type $(Format-Nicely $actualType)"
+                $buts += "it was of type [$($actualType.FullName)]"
             }
             elseif ($Negate -and $testOfType) {
-                $buts += "it was of type $(Format-Nicely $OfType)"
+                $buts += "it was of type [$($OfType.FullName)]"
             }
         }
 
-        if ($Default) {
+        if ($PSBoundParameters.Keys -contains "Default") {
             $parameterMetadata = Get-ParameterInfo $ActualValue | Where-Object { $_.Name -eq $ParameterName }
-            $actualDefault = $parameterMetadata.DefaultValue
+            $actualDefault = if ($parameterMetadata.DefaultValue) { $parameterMetadata.DefaultValue } else { "" }
             $testDefault = ($actualDefault -eq $Default)
             $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $Default)"
 
@@ -194,13 +206,13 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         $but = Join-And $buts
         $failureMessage = "Expected command $($ActualValue.Name)$filter,$(Format-Because $Because) but $but."
 
-        return [PSCustomObject]@{
+        return New-Object PSObject -Property @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
     else {
-        return [PSCustomObject]@{ Succeeded = $true }
+        return New-Object PSObject -Property @{ Succeeded = $true }
     }
 }
 
