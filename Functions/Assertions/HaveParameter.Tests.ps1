@@ -8,10 +8,27 @@ InModuleScope Pester {
                 [Parameter(Mandatory = $true)]
                 $MandatoryParam,
 
+                [ValidateNotNullOrEmpty()]
                 [DateTime]$SecondParam = (Get-Date),
 
                 [Parameter()]
-                [ValidateNotNullOrEmpty()]
+                [ValidateScript(
+                    {
+                        if (-not (Test-Path $_)) {
+                            $errorItem = [System.Management.Automation.ErrorRecord]::new(
+                                ([System.ArgumentException]"Path not found"),
+                                'ParameterValue.FileNotFound',
+                                [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+                                $_
+                            )
+                            $errorItem.ErrorDetails = "Invalid path '$_'."
+                            $PSCmdlet.ThrowTerminatingError($errorItem)
+                        }
+                        else {
+                            return $true
+                        }
+                    }
+                )]
                 [String]$ThirdParam = ".",
 
                 [Parameter()]
@@ -34,10 +51,27 @@ InModuleScope Pester {
                 [Parameter(Mandatory = $true)]
                 $MandatoryParam,
 
+                [ValidateNotNullOrEmpty()]
                 [DateTime]$SecondParam = (Get-Date),
 
                 [Parameter()]
-                [ValidateNotNullOrEmpty()]
+                [ValidateScript(
+                    {
+                        if (-not (Test-Path $_)) {
+                            $errorItem = [System.Management.Automation.ErrorRecord]::new(
+                                ([System.ArgumentException]"Path not found"),
+                                'ParameterValue.FileNotFound',
+                                [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+                                $_
+                            )
+                            $errorItem.ErrorDetails = "Invalid path '$_'."
+                            $PSCmdlet.ThrowTerminatingError($errorItem)
+                        }
+                        else {
+                            return $true
+                        }
+                    }
+                )]
                 [String]$ThirdParam = "."
             )
         }
