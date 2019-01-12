@@ -2,29 +2,45 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
 
-    function Invoke-DummyFunction {
-        param(
-            [Parameter(Mandatory = $true)]
-            $MandatoryParam,
+    if ($PSVersionTable.PSVersion.Major -ge 5) {
+        function Invoke-DummyFunction {
+            param(
+                [Parameter(Mandatory = $true)]
+                $MandatoryParam,
 
-            [DateTime]$SecondParam = (Get-Date),
+                [DateTime]$SecondParam = (Get-Date),
 
-            [Parameter()]
-            [ValidateNotNullOrEmpty()]
-            [String]$ThirdParam = ".",
+                [Parameter()]
+                [ValidateNotNullOrEmpty()]
+                [String]$ThirdParam = ".",
 
-            [Parameter()]
-            [ValidateNotNullOrEmpty()]
-            [ArgumentCompleter(
-                {
-                    param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
-                    & Get-ChildItem |
-                        Where-Object { $_.Name -like "$wordToComplete*" } |
-                        ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
-                }
-            )]
-            [String]$ForthParam = "./.git"
-        )
+                [Parameter()]
+                [ValidateNotNullOrEmpty()]
+                [ArgumentCompleter(
+                    {
+                        param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
+                        & Get-ChildItem |
+                            Where-Object { $_.Name -like "$wordToComplete*" } |
+                            ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
+                    }
+                )]
+                [String]$ForthParam = "./.git"
+            )
+        }
+    }
+    else {
+        function Invoke-DummyFunction {
+            param(
+                [Parameter(Mandatory = $true)]
+                $MandatoryParam,
+
+                [DateTime]$SecondParam = (Get-Date),
+
+                [Parameter()]
+                [ValidateNotNullOrEmpty()]
+                [String]$ThirdParam = "."
+            )
+        }
     }
 
     function Invoke-EmptyFunction {
