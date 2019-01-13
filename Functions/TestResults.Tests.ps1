@@ -12,7 +12,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name     | Should -Be "Mocked Describe.Successful testcase"
@@ -29,7 +29,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name                   | Should -Be "Mocked Describe.Failed testcase"
@@ -47,7 +47,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestResult = $xmlResult.'test-results'
             $xmlTestResult.total    | Should -Be 1
@@ -76,7 +76,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
@@ -110,7 +110,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
@@ -131,7 +131,7 @@ InModuleScope Pester {
         it "should write the environment information" {
             $state = New-PesterState "."
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $state $testFile
+            Export-NunitReport (New-TestReport $state) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
@@ -155,7 +155,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xml = [xml] (Get-Content $testFile)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -172,7 +172,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xml = [xml] (Get-Content $testFile)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -212,7 +212,7 @@ InModuleScope Pester {
 
             #export and validate the file
             [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-            Export-NunitReport $testResults $testFile
+            Export-NunitReport (New-TestReport $testResults) $testFile
             $xmlResult = [xml] (Get-Content $testFile)
 
             It 'should write parameterized test results correctly' {
@@ -241,43 +241,110 @@ InModuleScope Pester {
                 { $xmlResult.Validate( {throw $args.Exception }) } | Should -Not -Throw
             }
         }
+
+        It "has correct names on all levels" {
+            #create state
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
+            $TestResults.AddTestResult("Any test case 1", 'Passed')
+            $testResults.EnterTestGroup('Sub1', 'Mocked Describe')
+            $TestResults.AddTestResult("Any test case 2", 'Passed')
+            $testResults.EnterTestGroup('Sub2', 'Sub1')
+            $TestResults.AddTestResult("Any test case 3", 'Passed')
+            $TestResults.AddTestResult('p any', 'Passed', 0, $null, $null, 'p <A>', @{Parameter = 'Any'} )
+            $parameters = New-Object System.Collections.Specialized.OrderedDictionary
+            $parameters.Add('StringParameter', 'a')
+            $parameters.Add('NullParameter', $null)
+            $parameters.Add('NumberParameter', 42)
+            $TestResults.AddTestResult('p <A>', 'Passed', 0, $null, $null, 'p <A>', $parameters )
+
+            #export and validate the file
+            [String] $testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
+            Export-NunitReport (New-TestReport $testResults) $testFile
+            $xmlResult = [xml] (Get-Content $testFile)
+
+            $xmlResults1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'
+            $xmlResults2 = $xmlResults1.'test-suite'.'results'
+            $xmlResults3 = $xmlResults2.'test-suite'.'results'
+            $xmlTestCase1 = $xmlResults1.'test-case'
+            $xmlTestCase2 = $xmlResults2.'test-case'
+            $xmlTestCase3 = $xmlResults3.'test-case'
+            $xmlResults4 = $xmlResults3.'test-suite'.'results'
+            $xmlTestCase4 = $xmlResults4.'test-case'[0]
+            $xmlTestCase5 = $xmlResults4.'test-case'[1]
+
+            $xmlTestCase1.name | Should -Be "Mocked Describe.Any test case 1"
+            $xmlTestCase2.name | Should -Be "Mocked Describe.Sub1.Any test case 2"
+            $xmlTestCase3.name | Should -Be "Mocked Describe.Sub1.Sub2.Any test case 3"
+            $xmlTestCase4.name | Should -Be "Mocked Describe.Sub1.Sub2.p Any"
+            $xmlTestCase5.name | Should -Be 'Mocked Describe.Sub1.Sub2.p <A>("a",null,42)'
+        }
     }
 
-    Describe "Get-TestTime" {
-        function Using-Culture {
-            param (
-                [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-                [ScriptBlock]$ScriptBlock,
-                [System.Globalization.CultureInfo]$Culture = 'en-US'
-            )
+    Describe "Export test results to all formats" {
 
-            $oldCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
-            try {
-                [System.Threading.Thread]::CurrentThread.CurrentCulture = $Culture
-                $ExecutionContext.InvokeCommand.InvokeScript($ScriptBlock)
-            }
-            finally {
-                [System.Threading.Thread]::CurrentThread.CurrentCulture = $oldCulture
-            }
+        $reportFile1 = "$TestDrive{0}Results{0}my_unit1.xml" -f [System.IO.Path]::DirectorySeparatorChar
+        $reportFile2 = "$TestDrive{0}Results{0}my_unit2.xml" -f [System.IO.Path]::DirectorySeparatorChar
+        $htmlFile1 = "$TestDrive{0}Results{0}my_unit1.html" -f [System.IO.Path]::DirectorySeparatorChar
+        $htmlFile2 = "$TestDrive{0}Results{0}my_unit2.html" -f [System.IO.Path]::DirectorySeparatorChar
+
+        Setup -Dir "Results"
+
+        function CreateDummyResults($testFile, $testGroup, $testCase) {
+            $testResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterTestGroup($testFile, 'Script')
+            $testResults.EnterTestGroup($testGroup, 'Describe')
+            $testResults.AddTestResult($testCase, 'Passed')
+            return $testResults
         }
 
-        It "output is culture agnostic" {
-            #on cs-CZ, de-DE and other systems where decimal separator is ",". value [double]3.5 is output as 3,5
-            #this makes some of the tests fail, it could also leak to the nUnit report if the time was output
-
-            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]35000000 } #3.5 seconds
-
-            #using the string formatter here to know how the string will be output to screen
-            $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
-            $Result | Should -Be "3.5"
+        It "should export test results to NUnit XML only" {
+            $TestResults = (CreateDummyResults "fakedTestFile1" "testGroup1" "testCase1")
+            Export-PesterResults $TestResults $reportFile1 "NUnitXml"
+            $reportFile1 | Should -Exist
+            $xmlResult = [xml] (Get-Content $reportFile1)
+            Get-XmlValue $xmlResult '//test-case/@name' | Should -Be "testGroup1.testCase1"
         }
-        It "Time is measured in seconds with 0,1 millisecond as lowest value" {
-            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
-            Get-TestTime -Tests $TestResult | Should -Be 0.0001
-            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
-            Get-TestTime -Tests $TestResult | Should -Be 0
-            $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
-            Get-TestTime -Tests $TestResult | Should -Be 0.1235
+
+        It "should export test results to HTML only" {
+            $TestResults = (CreateDummyResults "fakedTestFile2" "testGroup2" "testCase2")
+            Export-PesterResults $TestResults $htmlFile1 "html"
+            $htmlFile1 | Should -Exist
+            $htmlResult = [xml] (Get-Content $htmlFile1)
+            Get-XmlInnerText $htmlResult '//summary/strong' | Should -Be "testGroup2"
+            Get-XmlInnerText $htmlResult '//div[@class="success"]' | Should -Be "testCase2"
+            Get-XmlInnerText $htmlResult "//h1[1]" | Should -BeExactly "Pester Spec Run"
+            Get-XmlInnerText $htmlResult '//div[@id="results"]//table/tr[2]/th[1]' | Should -BeExactly "Files:"
+            Get-XmlInnerText $htmlResult '//div[@id="results"]//table/tr[3]/th[1]' | Should -BeExactly "Groups:"
+            Get-XmlInnerText $htmlResult '//div[@id="results"]//table/tr[4]/th[1]' | Should -BeExactly "Specs:"
+        }
+
+        It "should export test results to NUnit XML and HTML" {
+            $TestResults = (CreateDummyResults "fakedTestFile3" "testGroup3" "testCase3")
+            Export-PesterResults $TestResults @($reportFile2, $htmlFile2) @("NUnitXml", "html")
+
+            $reportFile2 | Should -Exist
+            $xmlResult = [xml] (Get-Content $reportFile2)
+            Get-XmlValue $xmlResult '//test-case/@name' | Should -Be "testGroup3.testCase3"
+
+            $htmlFile2 | Should -Exist
+            $htmlResult = [xml] (Get-Content $htmlFile2)
+            Get-XmlInnerText $htmlResult '//summary/strong' | Should -Be "testGroup3"
+            Get-XmlInnerText $htmlResult '//div[@class="success"]' | Should -Be "testCase3"
+        }
+
+        It "should export test results to NUnit XML and HTML with switched arguments" {
+            $TestResults = (CreateDummyResults "fakedTestFile3" "testGroup3" "testCase3")
+            Export-PesterResults $TestResults @($htmlFile2, $reportFile2) @("html", "NUnitXml")
+
+            $reportFile2 | Should -Exist
+            $xmlResult = [xml] (Get-Content $reportFile2)
+            Get-XmlValue $xmlResult '//test-case/@name' | Should -Be "testGroup3.testCase3"
+
+            $htmlFile2 | Should -Exist
+            $htmlResult = [xml] (Get-Content $htmlFile2)
+            Get-XmlInnerText $htmlResult '//summary/strong' | Should -Be "testGroup3"
+            Get-XmlInnerText $htmlResult '//div[@class="success"]' | Should -Be "testCase3"
         }
     }
 

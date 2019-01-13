@@ -616,7 +616,7 @@ function Get-AssertionDynamicParams {
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-"$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
+"$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1", "$PesterRoot\Functions\Export\*.ps1" |
     & $script:SafeCommands['Resolve-Path'] |
     & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
     & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
@@ -756,9 +756,14 @@ the xml extension.
 
 If this path is not provided, no log will be generated.
 
+Since OutputFile is a string array, multiple output files may be specified.
+The order of the OutputFile parameter must match with the order of the OutputFormat parameter.
+
 .PARAMETER OutputFormat
-The format of output. Two formats of output are supported: NUnitXML and
-LegacyNUnitXML.
+The format of output. Two formats of output are supported: NUnitXML and html.
+
+Since OutputFormat is a string array, multiple output formats may be specified.
+The order of the OutputFormat parameter must match with the order of the OutputFile parameter.
 
 .PARAMETER Tag
 Runs only tests in Describe blocks with the specified Tag parameter values.
@@ -1039,11 +1044,11 @@ New-PesterOption
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
-        [string] $OutputFile,
+        [string[]] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('NUnitXml')]
-        [string] $OutputFormat = 'NUnitXml',
+        [ValidateSet('NUnitXml', 'html')]
+        [string[]] $OutputFormat = @('NUnitXml', 'html'),
 
         [Switch]$Quiet,
 
