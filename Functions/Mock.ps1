@@ -179,6 +179,10 @@ function New-Mock {
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
         $MockTable = @{},
+        # current test group should probably be removed/renames, mock should not care
+        # about the current place where it is running, it should simple add the mock to the
+        # provided mock table (or return it??), the scoping concern should be maintained
+        # externally be giving Assert-MockCalled the appropriate mock table (or aggregation of them)
         $CurrentTestGroup
     )
 
@@ -358,7 +362,7 @@ function New-Mock {
         $mock.Aliases += $CommandName
 
         $scriptBlock = {
-            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+            $setAlias = & (SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
             & $setAlias -Name $args[0] -Value $args[1] -Scope Script
         }
 
@@ -369,7 +373,7 @@ function New-Mock {
             $mock.Aliases += $aliasName
 
             $scriptBlock = {
-                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                $setAlias = & (SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
                 & $setAlias -Name $args[0] -Value $args[1] -Scope Script
             }
 
@@ -622,6 +626,8 @@ to the original.
         [string] $Scope,
 
         [switch]$Exactly
+
+
     )
 
     if ($PSCmdlet.ParameterSetName -eq 'ParameterFilter') {
@@ -907,7 +913,7 @@ function MockPrototype {
     }
 
     #todo: remove pester\safegetcommand and use .net calls to get the variable instead?
-    ${get Variable Command} = & (Pester\SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
+    ${get Variable Command} = & (SafeGetCommand) -Name Get-Variable -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
 
     [object] ${a r g s} = $null
     if (${#CANCAPTUREARGS#}) {
@@ -929,7 +935,50 @@ function MockPrototype {
     Invoke-Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' -BoundParameters $PSBoundParameters -ArgumentList ${a r g s} -CallerSessionState ${session state} -FromBlock '#BLOCK#' -MockCallState ${mock call state} #INPUT#
 }
 
-function Invoke-Mock {
+# function Invoke-Mock {
+#     <#
+#         .SYNOPSIS
+#         This command is used by Pester's Mocking framework.  You do not need to call it directly.
+#     #>
+
+#     [CmdletBinding()]
+#     param (
+#         [Parameter(Mandatory = $true)]
+#         [string]
+#         $CommandName,
+
+#         [Parameter(Mandatory = $true)]
+#         [hashtable] $MockCallState,
+
+#         [string]
+#         $ModuleName,
+
+#         [hashtable]
+#         $BoundParameters = @{},
+
+#         [object[]]
+#         $ArgumentList = @(),
+
+#         [object] $CallerSessionState,
+
+#         [ValidateSet('Begin', 'Process', 'End')]
+#         [string] $FromBlock,
+
+#         [object] $InputObject
+#     )
+
+#     # this function should be moved to the above layer, it shold figure out
+#     # the mock table to currently use and pass it to the Internal function
+
+#     # this function is called by the mock bootstrap function, so every implementer
+#     # should implement this (but I keep it separate from the core function so I can)
+#     # test without dependency on scopes, this can probably just become a callback, but where
+#     # should it be registered?
+
+#     Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable
+# }
+
+function Invoke-MockInternal {
     <#
         .SYNOPSIS
         This command is used by Pester's Mocking framework.  You do not need to call it directly.
@@ -958,7 +1007,13 @@ function Invoke-Mock {
         [ValidateSet('Begin', 'Process', 'End')]
         [string] $FromBlock,
 
-        [object] $InputObject
+        [object] $InputObject,
+
+        $MockTable,
+
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState]
+        $SessionState
     )
 
     $detectedModule = $ModuleName
@@ -982,7 +1037,7 @@ function Invoke-Mock {
         Process {
             $block = $null
             if ($detectedModule -eq $ModuleName) {
-                $block = FindMatchingBlock -Mock $mock -BoundParameters $BoundParameters -ArgumentList $ArgumentList
+                $block = FindMatchingBlock -Mock $mock -BoundParameters $BoundParameters -ArgumentList $ArgumentList -SessionState $SessionState
             }
 
             if ($null -ne $block) {
@@ -1079,7 +1134,9 @@ function FindMatchingBlock {
     param (
         [object] $Mock,
         [hashtable] $BoundParameters = @{},
-        [object[]] $ArgumentList = @()
+        [object[]] $ArgumentList = @(),
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState] $SessionState
     )
 
     for ($idx = $mock.Blocks.Length; $idx -gt 0; $idx--) {
@@ -1090,6 +1147,7 @@ function FindMatchingBlock {
             BoundParameters = $BoundParameters
             ArgumentList    = $ArgumentList
             Metadata        = $mock.Metadata
+            SessionState = $SessionState
         }
 
         if (Test-ParameterFilter @params) {
@@ -1217,7 +1275,11 @@ function Test-ParameterFilter {
         $ArgumentList,
 
         [System.Management.Automation.CommandMetadata]
-        $Metadata
+        $Metadata,
+
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState]
+        $SessionState
     )
 
     if ($null -eq $BoundParameters) {
@@ -1238,7 +1300,7 @@ function Test-ParameterFilter {
     Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     $cmd = [scriptblock]::Create($scriptBlockString)
     Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
-    Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $pester.SessionState
+    Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $SessionState
 
     Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
     & $cmd @BoundParameters @ArgumentList
