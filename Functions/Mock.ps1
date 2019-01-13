@@ -625,9 +625,13 @@ to the original.
             })]
         [string] $Scope,
 
-        [switch]$Exactly
+        [switch]$Exactly,
 
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState] $SessionState,
 
+        [Parameter(Mandatory)]
+        [HashTable] $MockTable
     )
 
     if ($PSCmdlet.ParameterSetName -eq 'ParameterFilter') {
@@ -639,16 +643,16 @@ to the original.
         $filterIsExclusive = $true
     }
 
-    Assert-DescribeInProgress -CommandName Assert-MockCalled
+    # Assert-DescribeInProgress -CommandName Assert-MockCalled
 
-    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $pester.SessionState.Module) {
-        $ModuleName = $pester.SessionState.Module.Name
+    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+        $ModuleName = $SessionState.Module.Name
     }
 
-    $contextInfo = Validate-Command $CommandName $ModuleName
+    $contextInfo = Validate-Command $CommandName $ModuleName -SessionState $SessionState -MockTable $MockTable
     $CommandName = $contextInfo.Command.Name
 
-    $mock = $script:mockTable["$ModuleName||$CommandName"]
+    $mock = $MockTable["$ModuleName||$CommandName"]
 
     $moduleMessage = ''
     if ($ModuleName) {
@@ -676,6 +680,7 @@ to the original.
             BoundParameters = $historyEntry.BoundParams
             ArgumentList    = $historyEntry.Args
             Metadata        = $mock.Metadata
+            SessionState    = $SessionState
         }
 
 
@@ -855,7 +860,16 @@ function ShouldRemoveMock($Mock, $ActivePesterState) {
     return $false
 }
 
-function Validate-Command([string]$CommandName, [string]$ModuleName, $SessionState, $MockTable) {
+function Validate-Command {
+    param (
+        [string]$CommandName,
+        [string]$ModuleName,
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState] $SessionState,
+        [Parameter(Mandatory)]
+        [HashTable] $MockTable
+    )
+
     $module = $null
     $command = $null
 
@@ -1147,7 +1161,7 @@ function FindMatchingBlock {
             BoundParameters = $BoundParameters
             ArgumentList    = $ArgumentList
             Metadata        = $mock.Metadata
-            SessionState = $SessionState
+            SessionState    = $SessionState
         }
 
         if (Test-ParameterFilter @params) {
