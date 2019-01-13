@@ -83,8 +83,9 @@ i {
             function f () { "real" }
             New-Mock f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable
 
+            f
 
-            Assert-MockCalled f -Times 0 -SessionState $ExecutionContext.SessionState -MockTable $mockTable
+            { Assert-MockCalled f -Times 0 -SessionState $ExecutionContext.SessionState -MockTable $mockTable } | Verify-Throw
         }
     }
 }

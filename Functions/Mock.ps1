@@ -692,9 +692,11 @@ to the original.
         }
     }
 
+
     $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
     $line = $MyInvocation.ScriptLineNumber
 
+    # todo: return this as an object and throw externally? so Mock is sepearate from Should
     if ($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0))) {
         $failureMessage = "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($matchingCalls.Count) times"
         throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
