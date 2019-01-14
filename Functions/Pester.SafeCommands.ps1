@@ -69,6 +69,7 @@ $script:SafeCommands = @{
     'Remove-Variable'      = Get-Command -Name Remove-Variable      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Resolve-Path'         = Get-Command -Name Resolve-Path         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Select-Object'        = Get-Command -Name Select-Object        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Set-Alias'            = Get-Command -Name Set-Alias            -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Set-Content'          = Get-Command -Name Set-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Set-Location'         = Get-Command -Name Set-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Set-PSBreakpoint'     = Get-Command -Name Set-PSBreakpoint     -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
