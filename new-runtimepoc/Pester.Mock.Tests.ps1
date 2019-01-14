@@ -73,7 +73,7 @@ i {
 
             f
 
-            Assert-MockCalled f -Times 1 -SessionState $ExecutionContext.SessionState -MockTable $mockTable
+            Assert-MockCalledInternal f -Times 1 -SessionState $ExecutionContext.SessionState -MockTable $mockTable
         }
 
         t "0 function calls can be asserted without Pester global scope" {
@@ -85,7 +85,7 @@ i {
 
             f
 
-            { Assert-MockCalled f -Times 0 -SessionState $ExecutionContext.SessionState -MockTable $mockTable } | Verify-Throw
+            { Assert-MockCalledInternal f -Times 0 -SessionState $ExecutionContext.SessionState -MockTable $mockTable } | Verify-Throw
         }
     }
 }

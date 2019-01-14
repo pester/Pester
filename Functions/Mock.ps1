@@ -258,7 +258,38 @@ function Assert-VerifiableMockIntenal {
 }
 
 function Assert-MockCalledInternal {
+    [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$CommandName,
 
+        [Parameter(Position = 1)]
+        [int]$Times = 1,
+
+        [Parameter(ParameterSetName = 'ParameterFilter', Position = 2)]
+        [ScriptBlock]$ParameterFilter = {$True},
+
+        [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
+        [scriptblock] $ExclusiveFilter,
+
+        [Parameter(Position = 3)]
+        [string] $ModuleName,
+
+        [Parameter(Position = 4)]
+        [ValidateScript( {
+                if ([uint32]::TryParse($_, [ref] $null) -or
+                    $_ -eq 'Describe' -or
+                    $_ -eq 'Context' -or
+                    $_ -eq 'It' -or
+                    $_ -eq 'Feature' -or
+                    $_ -eq 'Scenario') {
+                    return $true
+                }
+
+                throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', 'It', 'Feature', or 'Scenario'."
+            })]
+        [string] $Scope,
+        [switch]$Exactly,
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
 
