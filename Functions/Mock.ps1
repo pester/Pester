@@ -254,7 +254,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
             & $___Mock___parameters.Set_Alias -Name $______current -Value $___Mock___parameters.BootstrapFunctionName
         }
 
-        # clean up the variable
+        # clean up the variables because we are injecting them to the current scope
         & $___Mock___parameters.Remove_Variable -Name ______current
         & $___Mock___parameters.Remove_Variable -Name ___Mock___parameters
     }
@@ -267,11 +267,6 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
 
         Set_Alias             = $SafeCommands["Set-Alias"]
         Remove_Variable       = $SafeCommands["Remove-Variable"]
-        #Add_Member            = $SafeCommands["Add-Member"]
-
-        # used as a temp variable
-        Function              = $null
-        #FunctionLocalData     = $functionLocalData
     }
 
     if ($mock.OriginalCommand.ModuleName) {
