@@ -19,16 +19,16 @@ Runs Pester tests
 ```
 Invoke-Pester [[-Script] <Object[]>] [[-TestName] <String[]>] [-EnableExit] [[-Tag] <String[]>]
  [-ExcludeTag <String[]>] [-PassThru] [-CodeCoverage <Object[]>] [-CodeCoverageOutputFile <String>]
- [-CodeCoverageOutputFileFormat <String>] [-DetailedCodeCoverage] [-Strict] [-Quiet] [-PesterOption <Object>]
- [-Show <OutputTypes>] [<CommonParameters>]
+ [-CodeCoverageOutputFileFormat <String>] [-Strict] [-Quiet] [-PesterOption <Object>] [-Show <OutputTypes>]
+ [<CommonParameters>]
 ```
 
 ### NewOutputSet
 ```
 Invoke-Pester [[-Script] <Object[]>] [[-TestName] <String[]>] [-EnableExit] [[-Tag] <String[]>]
  [-ExcludeTag <String[]>] [-PassThru] [-CodeCoverage <Object[]>] [-CodeCoverageOutputFile <String>]
- [-CodeCoverageOutputFileFormat <String>] [-DetailedCodeCoverage] [-Strict] -OutputFile <String>
- [-OutputFormat <String>] [-Quiet] [-PesterOption <Object>] [-Show <OutputTypes>] [<CommonParameters>]
+ [-CodeCoverageOutputFileFormat <String>] [-Strict] -OutputFile <String> [-OutputFormat <String>] [-Quiet]
+ [-PesterOption <Object>] [-Show <OutputTypes>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -63,7 +63,7 @@ This feature is ideal for build systems and other processes that require success
 on every test.
 
 To help with test design, Invoke-Pester includes a CodeCoverage parameter that
-lists commands, functions, and lines of code that did not run during test
+lists commands, classes, functions, and lines of code that did not run during test
 execution and returns the code that ran as a percentage of all tested code.
 
 Invoke-Pester, and the Pester module that exports it, are products of an
@@ -404,20 +404,33 @@ Enter the path to the files of code under test (not the test file).
 Wildcard characters are supported.
 If you omit the path, the default is local
 directory, not the directory specified by the Script parameter.
+Pester test files
+are by default excluded from code coverage when a directory is provided.
+When you
+provide a test file directly using string, code coverage will be measured.
+To include
+tests in code coverage of a directory, use the dictionary syntax and provide
+IncludeTests = $true option, as shown below.
 
-To run a code coverage test only on selected functions or lines in a script,
+To run a code coverage test only on selected classes, functions or lines in a script,
 enter a hash table value with the following keys:
 
--- Path (P)(mandatory) \<string\>.
-Enter one path to the files.
+-- Path (P)(mandatory) \<string\>: Enter one path to the files.
 Wildcard characters
    are supported, but only one string is permitted.
+-- IncludeTests \<bool\>: Includes code coverage for Pester test files (*.tests.ps1).
+   Default is false.
 
-One of the following: Function or StartLine/EndLine
+One of the following: Class/Function or StartLine/EndLine
 
+-- Class (C) \<string\>: Enter the class name.
+Wildcard characters are
+   supported, but only one string is permitted.
+Default is *.
 -- Function (F) \<string\>: Enter the function name.
 Wildcard characters are
    supported, but only one string is permitted.
+Default is *.
 
 -or-
 
@@ -475,21 +488,6 @@ Aliases:
 Required: False
 Position: Named
 Default value: JaCoCo
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DetailedCodeCoverage
-Add the sourcefile names and lines covered and missed to the codecoverage file.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
