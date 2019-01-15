@@ -4,16 +4,16 @@
 # the whole documentation :D )
 
 function Get-MockPlugin () {
-
-    Pester.Runtime\New-PluginObject -Name "Mock" -EachBlockSetup {
-        param($Context)
-        if (-not ($Context.PluginState.ContainsKey('Mock'))) {
-            $Context.PluginState.Add('Mock', @{ })
+    Pester.Runtime\New-PluginObject -Name "Mock" `
+        -EachBlockSetup {
+        (Get-CurrentBlock).PluginData.Mock = @{
+            DefinedMocks = @{}
         }
-    } -EachTestTeardown {
-        Exit-MockScope -ExitTestCaseOnly
-    } -EachBlockTearDown {
-        Exit-MockScope
+    } -EachTestSetup {
+        (Get-CurrentTest).PluginData.Mock = @{
+            DefinedMocks = @{}
+            CallHistory  = @{}
+        }
     }
 }
 
@@ -189,27 +189,123 @@ about_Mocking
     $null = Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
-    $mockTable = Get-MockTable
+    $mockTable = Get-WriteMockTable
 
     New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
 }
 
-function Get-MockTable {
+function Get-DefinedMocksTable {
     [CmdletBinding()]
     param(
-
+        [Parameter(Mandatory)]
+        [String] $CommandName
     )
 
-    $pluginData = (Get-CurrentTest).PluginData
+    # this is used for invoking mocks
+    # in there we care about all mocks attached to the current test
+    # or any of the mocks above it
+    # this does not list mocks in other tests
+    $currentTest = Get-CurrentTest
+    $currentBlock = Get-CurrentBlock
 
-    # init, not the best thing to to in
-    # in a query, move this to plugin later,
-    # if needed
-    if (-not $pluginData.Mock) {
-        $pluginData.Mock = @{}
+    $inTest = any $currentTest
+
+    $commandNameFilter = "*||$CommandName"
+
+    $mockTable = @{}
+
+    if ($inTest) {
+        foreach ($mock in $currentTest.PluginData.Mock.DefinedMocks.GetEnumerator()) {
+            # we are interested in any mock with the given name
+            # no matter which module it comes from, it will be filtered
+            # down later
+            if ($mock.Key -like $commandNameFilter) {
+                $mockTable.Add($mock.Key, $mock.Value)
+            }
+        }
     }
 
-    $pluginData.Mock
+    foreach ($mock in $currentBlock.PluginData.Mock.DefinedMocks.GetEnumerator()) {
+        # we are interested in any mock with the given name
+        # no matter which module it comes from, it will be filtered
+        # down later
+        if ($mock.Key -like $commandNameFilter) {
+            if (-not ($mockTable.ContainsKey($mock.Key))) {
+                $mockTable.Add($mock.Key, $mock.Value)
+            }
+            else {
+                $mockTable[$mock.Key].Blocks += $mock.Value.Blocks
+            }
+        }
+    }
+
+    $mockTable
+}
+
+
+function Get-AssertMockTable {
+    [CmdletBinding()]
+    param(
+        [Switch] $ForceIncludingBlockMock
+    )
+
+    # this is used for assertions,
+    # in there we care about all mocks attached to the current bloc
+    # the current test and all other tests in this block
+
+    $currentTest = Get-CurrentTest
+    $isTest = any $currentTest
+    # we are in the current test, and did not force assertion for whole block, and we are not running this from one time test teardown
+    # so we want to see just mock calls from the current test
+    if ($inTest -and -not $ForceIncludingBlockMock -and 'OneTimeTestTeardown' -ne $currentTest.FrameworkData.Runtime.ExecutionStep) {
+        return $currentTest.PluginData.Mock.DefinedMocks
+    }
+
+    $currentBlock = Get-CurrentBlock
+    $merged = @{}
+    Merge-HashTable -Source $currentBlock.PluginData.Mock.DefinedMocks -Destination $merged
+
+    foreach ($test in $currentBlock.Tests) {
+        if (any $test.PluginData.Mock.DefinedMocks) {
+            Merge-HashTable -Source $test.PluginData.Mock.DefinedMocks -Destination $merged
+        }
+    }
+
+    # merge them into a new one with per block taking precedence
+    # but can we even define mock in test when the same is in the block already?
+    $merged
+}
+
+function Get-WriteMockTable {
+    [CmdletBinding()]
+    param(
+    )
+
+    # this returns a mock table based on location, that we
+    # then use to add the mock into, keep in mind that what we
+    # pass must be a reference, so the data are persisted in the
+    # inner state
+
+    # if I forget how this works, then I aggregate the result in the
+    # location variable, so if I am not in a test or  I am currently
+    # in one time test setup I return the table from the block and not
+    # the table from the test, this way the mock gets defined for the
+    # whole block, as expected for one time setup, and the $location
+    # variable allows me to easily see if I am in neither test and block
+    # and still get away without keeping extra boolean variables that indicate
+    # what path I took in the code
+
+    $location = $currentTest = Get-CurrentTest
+
+    if ((none $currentTest) -or 'OneTimeTestSetup' -eq $currentTest.FrameworkData.Runtime.ExecutionStep) {
+        $location = $currentBlock = Get-CurrentBlock
+    }
+
+    if (none @($currentTest, $currentBlock)) {
+        throw "I am neither in a test or a block, where am I?"
+    }
+
+    $location.PluginData.Mock.DefinedMocks
 }
 
 function Assert-VerifiableMock {
@@ -249,7 +345,7 @@ This will not throw an exception because the mock was invoked.
     Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
     # TODO : figure out what mock table to use
-    Assert-VerifiableMockIntenal -MockTable $MockTable
+    Assert-VerifiableMockInternal -MockTable $MockTable
 }
 
 function Assert-MockCalled {
@@ -399,37 +495,24 @@ to the original.
         [Parameter(Position = 1)]
         [int]$Times = 1,
 
-        [Parameter(ParameterSetName = 'ParameterFilter', Position = 2)]
         [ScriptBlock]$ParameterFilter = {$True},
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
-        [Parameter(Position = 3)]
         [string] $ModuleName,
 
-        [Parameter(Position = 4)]
-        [ValidateScript( {
-                if ([uint32]::TryParse($_, [ref] $null) -or
-                    $_ -eq 'Describe' -or
-                    $_ -eq 'Context' -or
-                    $_ -eq 'It' -or
-                    $_ -eq 'Feature' -or
-                    $_ -eq 'Scenario') {
-                    return $true
-                }
-
-                throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', 'It', 'Feature', or 'Scenario'."
-            })]
-        [string] $Scope,
-        [switch]$Exactly
+        [ValidateSet('Describe', 'Context', 'It')]
+        [string] $Scope = "It",
+        [switch] $Exactly
     )
 
-    Assert-DescribeInProgress -CommandName Assert-VerifiableMock
+    #  Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
-    $mockTable = Get-MockTable
+    $force = "Describe", "Context" -contains $Scope
+    $mockTable = Get-AssertMockTable -ForceIncludingBlockMock:$force
 
-    Assert-MockCalled @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or should this be the caller state?
+    Assert-MockCalledInternal @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or should this be the caller state?
 }
 
 function Invoke-Mock {
@@ -470,7 +553,7 @@ function Invoke-Mock {
     # test without dependency on scopes, this can probably just become a callback, but where
     # should it be registered?
 
-    $mockTable = Get-MockTable
+    $mockTable = Get-DefinedMocksTable -CommandName $CommandName
 
     Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or caller state??
 }

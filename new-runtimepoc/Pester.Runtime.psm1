@@ -223,9 +223,9 @@ function New-Block {
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                if ($block.First) { $state.Plugin.OneTimeBlockSetup | hasValue }
+                if ($block.First) { $state.Plugin.OneTimeBlockSetup | selectNonNull }
             ) `
-                -Setup @( $state.Plugin.EachBlockSetup | hasValue ) `
+                -Setup @( $state.Plugin.EachBlockSetup | selectNonNull ) `
                 -ScriptBlock {} `
                 -Context @{
                 Context = @{
@@ -274,9 +274,9 @@ function New-Block {
 
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
-                -Teardown @( $state.Plugin.EachBlockTeardown | hasValue ) `
+                -Teardown @( $state.Plugin.EachBlockTeardown | selectNonNull ) `
                 -OuterTeardown @(
-                if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | hasValue }
+                if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | selectNonNull }
             ) `
                 -Context @{
                 Context = @{
@@ -325,11 +325,14 @@ function New-Test {
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
-            Add-Test -Test (New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path)
+            $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path
+            $test.FrameworkData.Runtime.Phase = 'Discovery'
+            Add-Test -Test $test
             v "Added test '$Name'"
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id
+            $test.FrameworkData.Runtime.Phase = 'Execution'
             Set-CurrentTest -Test $test
 
             if (-not $test.ShouldRun) {
@@ -358,9 +361,9 @@ function New-Test {
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                if ($test.First) { $state.Plugin.OneTimeTestSetup | hasValue }
+                if ($test.First) { $state.Plugin.OneTimeTestSetup | selectNonNull }
             ) `
-                -Setup @( $state.Plugin.EachTestSetup | hasValue ) `
+                -Setup @( $state.Plugin.EachTestSetup | selectNonNull ) `
                 -ScriptBlock {} `
                 -Context @{
                 Context = @{
@@ -379,13 +382,43 @@ function New-Test {
 
                 $result = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($test.First) { $block.OneTimeTestSetup | hasValue }
+                    if ($test.First -and (any $block.OneTimeTestSetup)) {
+                        @(
+                            { $test.FrameworkData.Runtime.ExecutionStep = 'OneTimeTestSetup' }
+                            $block.OneTimeTestSetup
+                        )
+                    }
                 ) `
-                    -Setup @( $block.EachTestSetup | hasValue ) `
+                    -Setup @(
+                    if (any $block.EachTestSetup) {
+                        @(
+                            { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }
+                            $block.EachTestSetup
+                        )
+
+                    }
+                    # setting the execution info here so I don't have to invoke change the
+                    # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
+                    # that is not needed, and would complicate figuring out in which session
+                    # state we should run.
+                    # this should run every time.
+                    { $test.FrameworkData.Runtime.ExecutionStep = 'Test' }
+                ) `
                     -ScriptBlock $ScriptBlock `
-                    -Teardown @( $block.EachTestTeardown | hasValue ) `
+                    -Teardown @(
+                    if (any $block.EachTestTeardown) {
+                        @(
+                            { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }
+                            $block.EachTestTeardown
+                        )
+                    } ) `
                     -OuterTeardown @(
-                    if ($test.Last) { $block.OneTimeTestTeardown | hasValue }
+                    if ($test.Last -and (any $block.OneTimeTestTeardown )) {
+                        @(
+                            { $test.FrameworkData.Runtime.ExecutionStep = 'OneTimeTestTeardown' }
+                            $block.OneTimeTestTeardown
+                        )
+                    }
                 ) `
                     -Context $context `
                     -ReduceContextToInnerScope `
@@ -393,6 +426,7 @@ function New-Test {
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                     -NoNewScope
 
+                $test.FrameworkData.Runtime.ExecutionStep = 'Finished'
                 $test.Executed = $true
                 $test.Passed = $result.Success
                 $test.StandardOutput = $result.StandardOutput
@@ -404,9 +438,9 @@ function New-Test {
 
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
-                -Teardown @( $state.Plugin.EachTestTeardown | hasValue ) `
+                -Teardown @( $state.Plugin.EachTestTeardown | selectNonNull ) `
                 -OuterTeardown @(
-                if ($test.Last) { $state.Plugin.OneTimeTestTeardown | hasValue }
+                if ($test.Last) { $state.Plugin.OneTimeTestTeardown | selectNonNull }
             ) `
                 -Context @{
                 Context = @{
@@ -425,17 +459,6 @@ function New-Test {
         $state.CurrentTest = $null
         $null = Pop-Scope
         v "Left test $Name"
-    }
-}
-
-function Merge-Hashtable ($Source, $Destination) {
-    foreach ($p in $Source.GetEnumerator()) {
-        # only add non existing keys so in case of conflict
-        # the framework name wins, as if we had explicit parameters
-        # on a scriptblock, then the parameter would also win
-        if (-not $Destination.ContainsKey($p.Key)) {
-            $Destination.Add($p.Key, $p.Value)
-        }
     }
 }
 
@@ -607,6 +630,12 @@ function New-TestObject {
         Id                = $Id
         ScriptBlock       = $ScriptBlock
         PluginData        = @{}
+        FrameworkData     = @{
+            Runtime = @{
+                Phase         = $null
+                ExecutionStep = $null
+            }
+        }
     }
 }
 
@@ -625,6 +654,8 @@ function New-BlockObject {
         Name                 = $Name
         Path                 = $Path
         Tag                  = $Tag
+        ScriptBlock          = $ScriptBlock
+        FrameworkData        = $FrameworkData
         Tests                = @()
         BlockContainer       = $null
         Parent               = $null
@@ -649,8 +680,7 @@ function New-BlockObject {
         FrameworkDuration    = [timespan]::Zero
         AggregatedDuration   = [timespan]::Zero
         AggregatedPassed     = $false
-        FrameworkData        = $FrameworkData
-        ScriptBlock          = $ScriptBlock
+        PluginData           = @{}
     }
 }
 
@@ -740,7 +770,7 @@ function Run-Test {
 function Invoke-ScriptBlock {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory)]
         [ScriptBlock] $ScriptBlock,
         [ScriptBlock[]] $OuterSetup,
         [ScriptBlock[]] $Setup,
@@ -852,9 +882,20 @@ function Invoke-ScriptBlock {
                         &$______parameters.WriteDebug "There are no inner setups"
                     }
 
-                    &$______parameters.WriteDebug "Running scriptblock"
-                    . $______parameters.ScriptBlock @______innerSplat
-                    &$______parameters.WriteDebug "Done running scriptblock"
+                    if ($null -ne $______parameters.ScriptBlock -and $______parameters.ScriptBlock.Length -gt 0) {
+                        &$______parameters.WriteDebug "Running scriptblocks"
+                        foreach ($______current in $______parameters.ScriptBlock) {
+                            &$______parameters.WriteDebug "Running scriptblock { $______current }"
+                            $______parameters.CurrentlyExecutingScriptBlock = $______current
+                            . $______current @______innerSplat
+                        }
+                        $______current = $null
+                        $______parameters.ScriptBlock = $null
+                        &$______parameters.WriteDebug "Done running scrtptblocks"
+                    }
+                    else {
+                        &$______parameters.WriteDebug "There are no scriptblocks"
+                    }
                 }
                 catch {
                     $______parameters.ErrorRecord += $_
@@ -976,7 +1017,7 @@ function Invoke-ScriptBlock {
     }
 
     & $OnFrameworkScopeTransition
-    $errors = @( ($parameters.ErrorRecord + $err) | hasValue )
+    $errors = @( ($parameters.ErrorRecord + $err) | selectNonNull )
 
     return New_PSObject -Type ScriptBlockInvocationResult @{
         Success        = 0 -eq $errors.Length
@@ -1561,6 +1602,7 @@ Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 Reset-TestSuiteState
 
 Export-ModuleMember -Function @(
+    # the core stuff I am mostly sure about
     'Reset-TestSuiteState'
     'New-Block'
     'New-Test'
@@ -1578,11 +1620,16 @@ Export-ModuleMember -Function @(
     'Invoke-Test',
     'Find-Test',
 
+    # here I have doubts if that is too much to expose
     'Get-CurrentTest'
+    'Get-CurrentBlock'
 
+    # those are quickly implemented to be useful for demo
     'Where-Failed'
     'View-Flat'
 
+    # those need to be refined and probably wrapped to something
+    # that is like an object builder
     'New-FilterObject'
     'New-PluginObject'
     'New-BlockContainerObject'

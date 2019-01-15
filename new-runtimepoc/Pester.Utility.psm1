@@ -1,7 +1,7 @@
 function or {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         $DefaultValue,
         [Parameter(ValueFromPipeline = $true)]
         $InputObject
@@ -19,7 +19,7 @@ function or {
 function tryGetProperty {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         $PropertyName,
         [Parameter(ValueFromPipeline = $true)]
         $InputObject
@@ -42,9 +42,9 @@ function tryGetProperty {
 function trySetProperty {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         $PropertyName,
-        [Parameter(Mandatory=$true, Position = 1)]
+        [Parameter(Mandatory = $true, Position = 1)]
         $Value,
         [Parameter(ValueFromPipeline = $true)]
         $InputObject
@@ -74,7 +74,7 @@ function combineNonNull ($Array) {
 }
 
 
-filter hasValue {
+filter selectNonNull {
     $_ | where { $_ }
 }
 
@@ -103,12 +103,25 @@ function sum ($InputObject, $PropertyName, $Zero) {
     $acc
 }
 
+
+function Merge-Hashtable ($Source, $Destination) {
+    foreach ($p in $Source.GetEnumerator()) {
+        # only add non existing keys so in case of conflict
+        # the framework name wins, as if we had explicit parameters
+        # on a scriptblock, then the parameter would also win
+        if (-not $Destination.ContainsKey($p.Key)) {
+            $Destination.Add($p.Key, $p.Value)
+        }
+    }
+}
+
+
 function Fold-Block {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
-        $Block, 
-        $OnBlock = {}, 
-        $OnTest = {}, 
+        $Block,
+        $OnBlock = {},
+        $OnTest = {},
         $Accumulator
     )
     process {
@@ -119,7 +132,7 @@ function Fold-Block {
             }
 
             foreach ($b in $Block.Blocks) {
-               Fold-Block -Block $b -OnTest $OnTest -OnBlock $OnBlock -Accumulator $Accumulator
+                Fold-Block -Block $b -OnTest $OnTest -OnBlock $OnBlock -Accumulator $Accumulator
             }
         }
     }
@@ -136,7 +149,7 @@ function Fold-Container {
     )
 
     process {
-        foreach ($c in $Container) { 
+        foreach ($c in $Container) {
             $Accumulator = & $OnContainer $c $Accumulator
             foreach ($block in $c.Blocks) {
                 Fold-Block -Block $block -OnBlock $OnBlock -OnTest $OnTest -Accumulator $Accumulator

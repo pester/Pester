@@ -10,11 +10,6 @@ function New-MockInternal {
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
         $MockTable = @{},
-        # current test group should probably be removed/renames, mock should not care
-        # about the current place where it is running, it should simple add the mock to the
-        # provided mock table (or return it??), the scoping concern should be maintained
-        # externally be giving Assert-MockCalled the appropriate mock table (or aggregation of them)
-        $CurrentTestGroup,
 
         # this is a bit complicated, the mock that is generated needs to call a function that provides
         # our Invoke-MockInternal with the correct mock table, but that is coming from the upper layer
@@ -26,7 +21,7 @@ function New-MockInternal {
         $InvokeMockCallback
     )
 
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState -MockTable $MockTable
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
 
     if (Test-IsClosure -ScriptBlock $MockWith) {
         # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
@@ -41,10 +36,9 @@ function New-MockInternal {
     }
 
     $block = @{
-        Mock       = $mockWithCopy
-        Filter     = $ParameterFilter
-        Verifiable = $Verifiable
-        Scope      = $CurrentTestGroup
+        ScriptBlock = $mockWithCopy
+        Filter      = $ParameterFilter
+        Verifiable  = $Verifiable
     }
 
     $moduleName = if ($null -ne $contextInfo.Module) { $contextInfo.Module.Name }
@@ -224,11 +218,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         Blocks                  = @()
         CommandName             = $commandName
         SessionState            = $contextInfo.SessionState
-        Scope                   = $CurrentTestGroup
-        # TODO: get rid of this binding to state
-        PesterState             = $null #$pester
         Metadata                = $metadata
-        CallHistory             = @()
         DynamicParamScriptBlock = $dynamicParamScriptBlock
         Aliases                 = @()
         BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
@@ -280,16 +270,20 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
     # and also to avoid any local variables, because everything is
     # accessed via $MyInvocation.MyCommand
     $functionLocalData = @{
-        Args          = $null
-        ErrorAction   = if ($PSVersionTable.PSVersion.Major -ge 3) { 'Ignore' } else { 'SilentlyContinue' }
-        SessionState  = $null
-        MockCallState = $null
+        Args                 = $null
+        ErrorAction          = if ($PSVersionTable.PSVersion.Major -ge 3) { 'Ignore' } else { 'SilentlyContinue' }
+        SessionState         = $null
+        MockCallState        = $null
 
-        Get_Variable  = $SafeCommands["Get-Variable"]
-        Invoke_Mock   = $InvokeMockCallBack
+        Get_Variable         = $SafeCommands["Get-Variable"]
+        Invoke_Mock          = $InvokeMockCallBack
 
         # used as temp variable
-        PSCmdlet      = $null
+        PSCmdlet             = $null
+
+        # data from the time we captured and created this mock
+        OriginalCommand      = $mock.OriginalCommand
+        OriginalSessionState = $mock.SessionState
     }
 
     & $SafeCommands["Add-Member"] -InputObject $definedFunction -MemberType NoteProperty -Name Mock -Value $functionLocalData
@@ -599,9 +593,7 @@ function Resolve-Command {
         [string] $CommandName,
         [string] $ModuleName,
         [Parameter(Mandatory)]
-        [Management.Automation.SessionState] $SessionState,
-        [Parameter(Mandatory)]
-        [HashTable] $MockTable
+        [Management.Automation.SessionState] $SessionState
     )
 
     $command = $null
@@ -638,22 +630,18 @@ function Resolve-Command {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
-    if ($command.CommandType -eq 'Function') {
-        # TODO: finds command in mock table, so does that mean that mocking a
-        # bootstrap function will bind to the same scope as the original mock?
-        # Why do we want that?
-        foreach ($mock in $MockTable.Values) {
-            if ($command.Name -eq $mock.BootstrapFunctionName) {
-                $module = $mock.SessionState.Module
-                return @{
-                    Command                 = $mock.OriginalCommand
-                    SessionState            = $mock.SessionState
-                    Module                  = $module
-                    IsFromModule            = $null -ne $module
-                    IsFromRequestedModule   = $null -ne $module -and $module -eq $ModuleName
-                    IsMockBootstrapFunction = $true
-                }
-            }
+    if ($command.Name -like 'PesterMock_*') {
+        # this is a mock bootstrap function, take the data from object attached to it when
+        # we created the mock
+
+        $module = $command.Mock.OriginalSessionState.Module
+        return @{
+            Command                 = $command.Mock.OriginalCommand
+            SessionState            = $command.Mock.OriginalSessionState
+            Module                  = $module
+            IsFromModule            = $null -ne $module
+            IsFromRequestedModule   = $null -ne $module -and $module -eq $ModuleName
+            IsMockBootstrapFunction = $true
         }
     }
 
@@ -667,6 +655,7 @@ function Resolve-Command {
         IsMockBootstrapFunction = $false
     }
 }
+
 function Invoke-MockInternal {
     <#
         .SYNOPSIS
@@ -711,6 +700,7 @@ function Invoke-MockInternal {
     $mock = FindMock -CommandName $CommandName -ModuleName ([ref]$detectedModule) -MockTable $MockTable
 
     if ($null -eq $mock) {
+        # TODO: Review how easy it is to get here with the new mock table implementation, probably more difficult than before because Invoke-Mock is now internal (as well as Invoke-MockInternal)
         # If this ever happens, it's a bug in Pester.  The scriptBlock that calls Invoke-Mock should be removed at the same time as the entry in the mock table.
         throw "Internal error detected:  Mock for '$CommandName' in module '$ModuleName' was called, but does not exist in the mock table."
     }
