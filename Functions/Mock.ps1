@@ -901,7 +901,7 @@ function ExecuteBlock {
         # by doing it inside this temporary script block, those variables don't stick around longer than they
         # should.
 
-        Set-DynamicParameterVariable -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & {Set Dynamic Parameter Variable} -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
         # Name property is not present on Application Command metadata in PowerShell 2
         & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName $(try {
                 ${Meta data}.Name
@@ -920,6 +920,7 @@ function ExecuteBlock {
         'Session State'         = $mock.SessionState
         'R e p o r t S c o p e' = { param ($CommandName, $ModuleName, $ScriptBlock)
             Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock }
+        'Set Dynamic Parameter Variable' = $ExecutionContext.SessionState.invokecommand.GetCommand("Set-DynamicParameterVariable", "function")
     }
 
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.Mock, and not $scriptBlock

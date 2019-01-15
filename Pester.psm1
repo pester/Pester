@@ -1106,30 +1106,6 @@ if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
-function Assert-VerifiableMocks {
-
-    <#
-.SYNOPSIS
-The function is for backward compatibility only. Please update your code and use 'Assert-VerifiableMock' instead.
-
-.DESCRIPTION
-The function was reintroduced in the version 4.0.8 of Pester to avoid loading older version of Pester when Assert-VerifiableMocks is called.
-
-The function will be removed finally in the next major version of Pester.
-
-.LINK
-https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
-https://github.com/pester/Pester/issues/880
-
-#>
-
-    [CmdletBinding()]
-    param()
-
-    Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
-
-}
-
 function Add-Dependency {
     [CmdletBinding()]
     param(
@@ -1140,7 +1116,6 @@ function Add-Dependency {
     Pester.Runtime\Add-Dependency -Dependency $Dependency -SessionState $PSCmdlet.SessionState
 
 }
-
 
 function Get-LegacyResult {
     param($RunResult)
@@ -1182,13 +1157,11 @@ function Get-LegacyResult {
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
-# in the future rename the function to Add-ShouldOperator
-Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
-& $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
+& $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-& $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption, Add-Dependency
+& $script:SafeCommands['Export-ModuleMember'] New-PesterOption, Add-Dependency
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
