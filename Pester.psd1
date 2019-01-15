@@ -1,7 +1,7 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule   = 'Pester.psm1'
+    RootModule        = 'Pester.psm1'
 
     # Version number of this module.
     ModuleVersion     = '5.0.0'
@@ -48,8 +48,9 @@
         'Set-ItResult'
         'New-PesterOption'
         'New-MockObject'
-        'Add-AssertionOperator'
+        'Add-ShouldOperator'
         'Get-ShouldOperator'
+        'Add-Dependency'
 
         # Gherkin Support:
         'Invoke-Gherkin'
@@ -66,21 +67,7 @@
     # CmdletsToExport = '*'
 
     # Variables to export from this module
-    VariablesToExport = @(
-        'Path'
-        'TagFilter'
-        'ExcludeTagFilter'
-        'TestNameFilter'
-        'TestResult'
-        'CurrentContext'
-        'CurrentDescribe'
-        'CurrentTest'
-        'SessionState'
-        'CommandCoverage'
-        'BeforeEach'
-        'AfterEach'
-        'Strict'
-    )
+    VariablesToExport = @()
 
     # # Aliases to export from this module
     AliasesToExport   = @(

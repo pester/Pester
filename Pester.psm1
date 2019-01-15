@@ -266,7 +266,7 @@ $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
     # sub-modules
     & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -DisableNameChecking }
 }
 
 Add-Type -TypeDefinition @"
@@ -653,18 +653,10 @@ New-PesterOption
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
         [Parameter(Position = 0, Mandatory = 0)]
-        [Alias('Path', 'relative_path')]
-        [object[]]$Script = '.',
+        [String[]]$Path = '.',
 
-        [Parameter(Position = 1, Mandatory = 0)]
-        [Alias("Name")]
-        [string[]]$TestName,
-
-        [Parameter(Position = 2, Mandatory = 0)]
         [switch]$EnableExit,
 
-        [Parameter(Position = 4, Mandatory = 0)]
-        [Alias('Tags')]
         [string[]]$Tag,
 
         [string[]]$ExcludeTag,
@@ -687,11 +679,11 @@ New-PesterOption
         [ValidateSet('NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
-        [Switch]$Quiet,
-
         [object]$PesterOption,
 
-        [Pester.OutputTypes]$Show = 'All'
+        [Pester.OutputTypes]$Show = 'All',
+
+        [ScriptBlock[]] $ScriptBlock
     )
     begin {
         # Ensure when running Pester that we're using RSpec strings
@@ -725,12 +717,25 @@ New-PesterOption
         $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin), (Get-MockPlugin))
         $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
 
-        Write-Host -ForegroundColor Magenta "Running all tests in $Script"
-        $containers = @(Pester.RSpec\Find-RSpecTestFile -Path $Script | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+        $containers = @()
+        if (any $ScriptBlock) {
+            Write-Host -ForegroundColor Magenta "Running tests in $($ScriptBlock.Count) scriptblocks."
+            $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
+        }
+
+        if (any $Path) {
+            if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
+                #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
+                Write-Host -ForegroundColor Magenta "Running all tests in $Path"
+                $containers += @(Pester.RSpec\Find-RSpecTestFile -Path $Path | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+            }
+        }
+
         if (none $containers) {
-            Write-Host -ForegroundColor Magenta "No test files were found."
+            Write-Host -ForegroundColor Magenta "No test files were found and no scriptblocks were provided."
             return
         }
+
         $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState -Filter $filter
         $legacyResult = Get-LegacyResult $r
         Write-PesterReport $legacyResult
@@ -1158,7 +1163,7 @@ function Get-LegacyResult {
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
+& $script:SafeCommands['Export-ModuleMember'] Invoke-Pester, Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable

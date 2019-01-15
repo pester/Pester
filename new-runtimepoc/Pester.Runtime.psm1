@@ -6,8 +6,8 @@ $state = [PSCustomObject] @{
     # behavior of the commands appropriately
     Discovery          = $false
 
-    # the current block we are in
     CurrentBlock       = $null
+    CurrentTest        = $null
 
     Plugin             = $null
     PluginState        = @{}
@@ -28,6 +28,7 @@ function Reset-TestSuiteState {
     $state.PluginState = @{}
 
     $state.CurrentBlock = $null
+    $state.CurrentTest = $null
     Reset-Scope
     Reset-TestSuiteTimer
 }
@@ -175,7 +176,7 @@ function New-Block {
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         # TODO rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
-        [HashTable] $AttachedData = @{}
+        [HashTable] $FrameworkData = @{}
     )
 
     Switch-Timer -Scope Framework
@@ -190,7 +191,7 @@ function New-Block {
 
     if (Is-Discovery) {
         v "Adding block $Name to discovered blocks"
-        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -AttachedData $AttachedData
+        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData
         # we attach the current block to the parent
         Add-Block -Block $block
     }
@@ -329,6 +330,7 @@ function New-Test {
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id
+            Set-CurrentTest -Test $test
 
             if (-not $test.ShouldRun) {
                 v "Test is excluded from run, returning"
@@ -420,6 +422,7 @@ function New-Test {
     }
     finally {
         v "Leaving path $($path -join '.')"
+        $state.CurrentTest = $null
         $null = Pop-Scope
         v "Left test $Name"
     }
@@ -537,6 +540,12 @@ function Get-CurrentBlock {
     $state.CurrentBlock
 }
 
+function Get-CurrentTest {
+    [CmdletBinding()]
+    param ( )
+    $state.CurrentTest
+}
+
 function Set-CurrentBlock {
     [CmdletBinding()]
     param (
@@ -545,6 +554,17 @@ function Set-CurrentBlock {
     )
 
     $state.CurrentBlock = $Block
+}
+
+
+function Set-CurrentTest {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Test
+    )
+
+    $state.CurrentTest = $Test
 }
 
 function Add-Test {
@@ -586,6 +606,7 @@ function New-TestObject {
         FrameworkDuration = [timespan]::Zero
         Id                = $Id
         ScriptBlock       = $ScriptBlock
+        PluginData        = @{}
     }
 }
 
@@ -597,7 +618,7 @@ function New-BlockObject {
         [string[]] $Path,
         [string[]] $Tag,
         [ScriptBlock] $ScriptBlock,
-        [HashTable] $AttachedData = @{}
+        [HashTable] $FrameworkData = @{}
     )
 
     New_PSObject -Type DiscoveredBlock @{
@@ -628,7 +649,7 @@ function New-BlockObject {
         FrameworkDuration    = [timespan]::Zero
         AggregatedDuration   = [timespan]::Zero
         AggregatedPassed     = $false
-        AttachedData         = $AttachedData
+        FrameworkData        = $FrameworkData
         ScriptBlock          = $ScriptBlock
     }
 }
@@ -1533,6 +1554,8 @@ function New-ParametrizedTest () {
 }
 
 
+
+
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 # initialize internal state
 Reset-TestSuiteState
@@ -1553,7 +1576,9 @@ Export-ModuleMember -Function @(
     'Add-Dependency'
     'Add-FrameworkDependency'
     'Invoke-Test',
-    'Find-Test'
+    'Find-Test',
+
+    'Get-CurrentTest'
 
     'Where-Failed'
     'View-Flat'

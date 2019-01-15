@@ -73,8 +73,7 @@ about_TestDrive
         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
-    $AttachedData =
-    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData @{ CommandUsed = "Describe" }
+    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -FrameworkData @{ CommandUsed = "Describe" }
 
     ### TODO: let's not focus on the interactive mode right now
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
@@ -85,10 +84,10 @@ about_TestDrive
     #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
 
 
-    #     Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -AttachedData $AttachedData })
+    #     Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -FrameworkData $FrameworkData })
     # }
     # else {
-    #     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -AttachedData $AttachedData
+    #     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -FrameworkData $FrameworkData
     # }
     ### todo end
 

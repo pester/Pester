@@ -59,7 +59,7 @@ i {
             $mockTable = @{}
 
             function f () { "real" }
-            New-Mock f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
+            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
             $actual = f
 
             $actual | Verify-Equal "mock"
@@ -71,7 +71,7 @@ i {
             $mockTable = @{}
 
             function f () { "real" }
-            New-Mock f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
+            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
 
             f
 
@@ -82,7 +82,7 @@ i {
 
             $mockTable = @{}
             function f () { "real" }
-            New-Mock f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
+            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
 
             f
 
@@ -93,6 +93,7 @@ i {
     b "mocks with scoping" {
 
         t "mocks are be setup per scope and not per-block, and self remove itself" {
+            $t = "val"
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
                     New-Block -Name "block1" {
@@ -103,10 +104,7 @@ i {
 
                         New-Test "test 1" {
                             $mockTable = @{}
-                            Get-Module -Name m | Remove-Module
-                            New-Module -Name m -ScriptBlock { . C:\projects\pester_main\Functions\Mock.ps1 } | Import-Module
-                            $invokeCallback = (Get-Command Invoke-Mock)
-                            New-Mock f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
+                            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
                             f
                         }
 
@@ -129,7 +127,7 @@ i {
                             function g () { "real" }
                             $mockTable = @{}
 
-                            New-Mock g { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
+                            New-MockInternal g { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
 
                         }
                         New-Test "test 1" {

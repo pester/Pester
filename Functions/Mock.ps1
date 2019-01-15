@@ -1,5 +1,5 @@
 ﻿
-function New-Mock {
+function New-MockInternal {
     [CmdletBinding()]
     param(
         [string]$CommandName,
@@ -649,7 +649,7 @@ function Resolve-Command {
                     Command                 = $mock.OriginalCommand
                     SessionState            = $mock.SessionState
                     Module                  = $module
-                    IsFromModule = $null -ne $module
+                    IsFromModule            = $null -ne $module
                     IsFromRequestedModule   = $null -ne $module -and $module -eq $ModuleName
                     IsMockBootstrapFunction = $true
                 }
@@ -891,7 +891,9 @@ function ExecuteBlock {
 
             ${R e p o r t S c o p e},
 
-            ${M o d u l e N a m e}
+            ${M o d u l e N a m e},
+
+            ${Set Dynamic Parameter Variable}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
@@ -901,7 +903,7 @@ function ExecuteBlock {
         # by doing it inside this temporary script block, those variables don't stick around longer than they
         # should.
 
-        & {Set Dynamic Parameter Variable} -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
+        & ${Set Dynamic Parameter Variable} -SessionState ${Session State} -Parameters $___BoundParameters___ -Metadata ${Meta data}
         # Name property is not present on Application Command metadata in PowerShell 2
         & ${R e p o r t S c o p e} -ModuleName ${M o d u l e N a m e} -CommandName $(try {
                 ${Meta data}.Name
@@ -913,12 +915,12 @@ function ExecuteBlock {
 
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
     $splat = @{
-        'Script Block'          = $block.Mock
-        '___ArgumentList___'    = $ArgumentList
-        '___BoundParameters___' = $BoundParameters
-        'Meta data'             = $mock.Metadata
-        'Session State'         = $mock.SessionState
-        'R e p o r t S c o p e' = { param ($CommandName, $ModuleName, $ScriptBlock)
+        'Script Block'                   = $block.Mock
+        '___ArgumentList___'             = $ArgumentList
+        '___BoundParameters___'          = $BoundParameters
+        'Meta data'                      = $mock.Metadata
+        'Session State'                  = $mock.SessionState
+        'R e p o r t S c o p e'          = { param ($CommandName, $ModuleName, $ScriptBlock)
             Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock }
         'Set Dynamic Parameter Variable' = $ExecutionContext.SessionState.invokecommand.GetCommand("Set-DynamicParameterVariable", "function")
     }

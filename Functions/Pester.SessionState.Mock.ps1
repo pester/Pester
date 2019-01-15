@@ -182,12 +182,34 @@ about_Mocking
         [string]$ModuleName
     )
 
-    Assert-DescribeInProgress -CommandName Assert-VerifiableMock
+    # Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
-    $PSBoundParameters.Add('SessionState', (Get-OriginSessionState))
-    Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
-    Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
-    New-Mock @PSBoundParameters
+    $SessionState = $PSCmdlet.SessionState
+    $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
+    $null = Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
+    $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
+
+    $mockTable = Get-MockTable
+
+    New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
+}
+
+function Get-MockTable {
+    [CmdletBinding()]
+    param(
+
+    )
+
+    $pluginData = (Get-CurrentTest).PluginData
+
+    # init, not the best thing to to in
+    # in a query, move this to plugin later,
+    # if needed
+    if (-not $pluginData.Mock) {
+        $pluginData.Mock = @{}
+    }
+
+    $pluginData.Mock
 }
 
 function Assert-VerifiableMock {
@@ -404,8 +426,10 @@ to the original.
     )
 
     Assert-DescribeInProgress -CommandName Assert-VerifiableMock
-    # TODO: figure out which mocktable to pass
-    Assert-MockCalled @PSBoundParameters -MockTable $MockTable -SessionState $pester.SessionState # or should this be the caller state?
+
+    $mockTable = Get-MockTable
+
+    Assert-MockCalled @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or should this be the caller state?
 }
 
 function Invoke-Mock {
@@ -445,6 +469,8 @@ function Invoke-Mock {
     # should implement this (but I keep it separate from the core function so I can)
     # test without dependency on scopes, this can probably just become a callback, but where
     # should it be registered?
+
+    $mockTable = Get-MockTable
 
     Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or caller state??
 }
