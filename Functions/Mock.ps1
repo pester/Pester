@@ -328,33 +328,18 @@ function Assert-MockCalledInternal {
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$CommandName,
 
-        [Parameter(Position = 1)]
         [int]$Times = 1,
 
-        [Parameter(ParameterSetName = 'ParameterFilter', Position = 2)]
+        [Parameter(ParameterSetName = 'ParameterFilter')]
         [ScriptBlock]$ParameterFilter = {$True},
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
-        [Parameter(Position = 3)]
         [string] $ModuleName,
 
-        [Parameter(Position = 4)]
-        [ValidateScript( {
-                if ([uint32]::TryParse($_, [ref] $null) -or
-                    $_ -eq 'Describe' -or
-                    $_ -eq 'Context' -or
-                    $_ -eq 'It' -or
-                    $_ -eq 'Feature' -or
-                    $_ -eq 'Scenario') {
-                    return $true
-                }
-
-                throw "Scope argument must either be an unsigned integer, or one of the words 'Describe', 'Context', 'It', 'Feature', or 'Scenario'."
-            })]
-        [string] $Scope,
         [switch]$Exactly,
+
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
 
@@ -378,14 +363,14 @@ function Assert-MockCalledInternal {
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     $CommandName = $contextInfo.Command.Name
 
-    $mock = $MockTable["$ModuleName||$CommandName"]
+    $callHistory = $MockTable["$ModuleName||$CommandName"]
 
     $moduleMessage = ''
     if ($ModuleName) {
         $moduleMessage = " in module $ModuleName"
     }
 
-    if (-not $mock) {
+    if (-not $callHistory) {
         throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     }
 
@@ -397,10 +382,7 @@ function Assert-MockCalledInternal {
     $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
     $nonMatchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
 
-    foreach ($historyEntry in $mock.CallHistory) {
-        if (-not (Test-MockCallScope -CallScope $historyEntry.Scope -DesiredScope $Scope)) {
-            continue
-        }
+    foreach ($historyEntry in $callHistory) {
 
         $params = @{
             ScriptBlock     = $filter

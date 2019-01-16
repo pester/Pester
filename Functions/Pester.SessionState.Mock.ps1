@@ -258,16 +258,18 @@ function Get-AssertMockTable {
     # we are in the current test, and did not force assertion for whole block, and we are not running this from one time test teardown
     # so we want to see just mock calls from the current test
     if ($inTest -and -not $ForceIncludingBlockMock -and 'OneTimeTestTeardown' -ne $currentTest.FrameworkData.Runtime.ExecutionStep) {
-        return $currentTest.PluginData.Mock.DefinedMocks
+        return $currentTest.PluginData.Mock.CallHistory
     }
 
     $currentBlock = Get-CurrentBlock
     $merged = @{}
-    Merge-HashTable -Source $currentBlock.PluginData.Mock.DefinedMocks -Destination $merged
+    if (any $currentBlock.PluginData.Mock.CallHistory) {
+        Merge-HashTable -Source $currentBlock.PluginData.Mock.CallHistory -Destination $merged
+    }
 
     foreach ($test in $currentBlock.Tests) {
-        if (any $test.PluginData.Mock.DefinedMocks) {
-            Merge-HashTable -Source $test.PluginData.Mock.DefinedMocks -Destination $merged
+        if (any $test.PluginData.Mock.CallHistory) {
+            Merge-HashTable -Source $test.PluginData.Mock.CallHistory -Destination $merged
         }
     }
 
