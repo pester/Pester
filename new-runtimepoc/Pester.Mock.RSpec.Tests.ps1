@@ -50,9 +50,8 @@ i {
                     }
 
                     It 'i1' {
-                        Mock f { "mooooooock" }
                         f
-                        Assert-MockCalled f -Times 1
+                        Assert-MockCalled f -Times 1 -Exactly
                     }
 
                     It 'i2' {

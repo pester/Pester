@@ -364,6 +364,8 @@ function ConvertTo-FailureLines {
             $_ -notmatch $pattern5
         }
 
+        # make error navigateable in VSCode
+        $lines.Trace = $lines.Trace -replace ':\s*line\s*(\d+)\s*$', ':$1'
         return $lines
     }
 }

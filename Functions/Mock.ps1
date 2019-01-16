@@ -375,7 +375,7 @@ function Assert-MockCalledInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState -MockTable $MockTable
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     $CommandName = $contextInfo.Command.Name
 
     $mock = $MockTable["$ModuleName||$CommandName"]
@@ -389,8 +389,9 @@ function Assert-MockCalledInternal {
         throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     }
 
+    # todo: no scoping in here
     if (-not $PSBoundParameters.ContainsKey('Scope')) {
-        $scope = 1
+        $scope = 0
     }
 
     $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
@@ -692,6 +693,10 @@ function Invoke-MockInternal {
         $MockTable,
 
         [Parameter(Mandatory)]
+        [HashTable]
+        $CallHistoryTable,
+
+        [Parameter(Mandatory)]
         [Management.Automation.SessionState]
         $SessionState
     )
@@ -727,7 +732,8 @@ function Invoke-MockInternal {
                     -ModuleName $ModuleName `
                     -BoundParameters $BoundParameters `
                     -ArgumentList $ArgumentList `
-                    -Mock $mock
+                    -Mock $mock `
+                    -CallHistoryTable $CallHistoryTable
 
                 return
             }
@@ -848,18 +854,28 @@ function ExecuteBlock {
         [string] $CommandName,
         [string] $ModuleName,
         [hashtable] $BoundParameters = @{},
-        [object[]] $ArgumentList = @()
+        [object[]] $ArgumentList = @(),
+        [Hashtable] $CallHistoryTable
     )
 
     $Block.Verifiable = $false
 
-    $scope = if ($pester.InTest) {
-        $null
+    # write into separate table
+    $mockHistoryEntry = @{
+        CommandName = "$ModuleName||$CommandName"
+        BoundParams = $BoundParameters
+        Args        = $ArgumentList
+        Scope       = $scope
+        Mock        = $Mock
+        Block       = $Block
+    }
+
+    if ($CallHistoryTable.ContainsKey("$ModuleName||$CommandName")) {
+        $CallHistoryTable["$ModuleName||$CommandName"] += $mockHistoryEntry
     }
     else {
-        $pester.CurrentTestGroup
+        $CallHistoryTable.Add("$ModuleName||$CommandName", @($mockHistoryEntry))
     }
-    $Mock.CallHistory += @{CommandName = "$ModuleName||$CommandName"; BoundParams = $BoundParameters; Args = $ArgumentList; Scope = $scope }
 
     $scriptBlock = {
         param (
@@ -905,7 +921,7 @@ function ExecuteBlock {
 
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
     $splat = @{
-        'Script Block'                   = $block.Mock
+        'Script Block'                   = $block.ScriptBlock
         '___ArgumentList___'             = $ArgumentList
         '___BoundParameters___'          = $BoundParameters
         'Meta data'                      = $mock.Metadata
@@ -915,9 +931,8 @@ function ExecuteBlock {
         'Set Dynamic Parameter Variable' = $ExecutionContext.SessionState.invokecommand.GetCommand("Set-DynamicParameterVariable", "function")
     }
 
-    # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.Mock, and not $scriptBlock
-
-    Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.Mock)
+    # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.ScriptBlock, and not $scriptBlock
+    Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.ScriptBlock)
     & $scriptBlock @splat
 }
 

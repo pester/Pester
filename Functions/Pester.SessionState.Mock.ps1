@@ -189,7 +189,7 @@ about_Mocking
     $null = Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
-    $mockTable = Get-WriteMockTable
+    $mockTable = (Get-MockDataForCurrentScope).DefinedMocks
 
     New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
 }
@@ -276,7 +276,7 @@ function Get-AssertMockTable {
     $merged
 }
 
-function Get-WriteMockTable {
+function Get-MockDataForCurrentScope {
     [CmdletBinding()]
     param(
     )
@@ -305,8 +305,9 @@ function Get-WriteMockTable {
         throw "I am neither in a test or a block, where am I?"
     }
 
-    $location.PluginData.Mock.DefinedMocks
+    $location.PluginData.Mock
 }
+
 
 function Assert-VerifiableMock {
     <#
@@ -554,8 +555,9 @@ function Invoke-Mock {
     # should it be registered?
 
     $mockTable = Get-DefinedMocksTable -CommandName $CommandName
+    $callHistoryTable = (Get-MockDataForCurrentScope).CallHistory
 
-    Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or caller state??
+    Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable -CallHistoryTable $callHistoryTable -SessionState $pester.SessionState # or caller state??
 }
 
 
