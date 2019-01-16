@@ -87,5 +87,55 @@ i {
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
         }
+
+        t "mock defined in before all can be counted from all tests with -Describe" {
+            $actual = Invoke-Pester -ScriptBlock {
+                Add-Dependency { function f { "real" } }
+                Describe 'd1' {
+                    BeforeAll {
+                        Mock f { "mock" }
+                    }
+
+                    It 'i1' {
+                        f
+                        Assert-MockCalled f -Times 1 -Exactly
+                    }
+
+                    It 'i2' {
+                        f
+                        Assert-MockCalled f -Times 2 -Exactly -Scope Describe
+                    }
+                }
+            } -PassThru
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[1].Passed | Verify-True
+        }
+
+        t "mock defined in before all can and counted from after all automatically counts all calls in the current block" {
+            $actual = Invoke-Pester -ScriptBlock {
+                Add-Dependency { function f { "real" } }
+                Describe 'd1' {
+                    BeforeAll {
+                        Mock f { "mock" }
+                    }
+
+                    It 'i1' {
+                        f
+                    }
+
+                    It 'i2' {
+                        f
+                    }
+
+                    AfterAll {
+                        Assert-MockCalled f -Times 2 -Exactly
+                    }
+                }
+            } -PassThru
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[1].Passed | Verify-True
+        }
     }
 }

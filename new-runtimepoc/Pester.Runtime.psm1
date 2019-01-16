@@ -1553,7 +1553,7 @@ function Add-Dependency {
 
     # adds dependency that is dotsourced after discovery and before execution
     if (-not (Is-Discovery)) {
-        Write-Host "Adding run-time dependency '$Depenedency'" -ForegroundColor Yellow
+        Write-Host "Adding run-time dependency '$Dependency'" -ForegroundColor Yellow
         Import-Dependency -Dependency $Dependency -SessionState $SessionState
     }
 }

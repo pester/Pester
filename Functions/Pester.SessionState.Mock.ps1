@@ -254,7 +254,7 @@ function Get-AssertMockTable {
     # the current test and all other tests in this block
 
     $currentTest = Get-CurrentTest
-    $isTest = any $currentTest
+    $inTest = any $currentTest
     # we are in the current test, and did not force assertion for whole block, and we are not running this from one time test teardown
     # so we want to see just mock calls from the current test
     if ($inTest -and -not $ForceIncludingBlockMock -and 'OneTimeTestTeardown' -ne $currentTest.FrameworkData.Runtime.ExecutionStep) {
@@ -269,7 +269,14 @@ function Get-AssertMockTable {
 
     foreach ($test in $currentBlock.Tests) {
         if (any $test.PluginData.Mock.CallHistory) {
-            Merge-HashTable -Source $test.PluginData.Mock.CallHistory -Destination $merged
+            foreach ($pair in $test.PluginData.Mock.CallHistory.GetEnumerator()) {
+                if ($merged.ContainsKey($pair.Key)) {
+                    $merged[$pair.Key] += $pair.Value
+                }
+                else {
+                    $merged.Add($pair.Key, $pair.Value)
+                }
+            }
         }
     }
 
@@ -514,6 +521,10 @@ to the original.
 
     $force = "Describe", "Context" -contains $Scope
     $mockTable = Get-AssertMockTable -ForceIncludingBlockMock:$force
+
+    if ($PSBoundParameters.ContainsKey("Scope")) {
+        $PSBoundParameters.Remove("Scope")
+    }
 
     Assert-MockCalledInternal @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or should this be the caller state?
 }
