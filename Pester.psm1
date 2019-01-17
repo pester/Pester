@@ -1212,6 +1212,9 @@ System.Management.Automation.PSObject
     The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
     will be named "Tests - Set A".
 .LINK
+https://github.com/pester/Pester/wiki/New-PesterOption
+
+.LINK
 Invoke-Pester
 #>
 
