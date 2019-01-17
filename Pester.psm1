@@ -1431,11 +1431,11 @@ function Set-PesterStatistics($Node) {
         if ($action.Type -eq 'TestGroup') {
             Set-PesterStatistics -Node $action
 
-            $Node.TotalCount        += $action.TotalCount
-            $Node.PassedCount       += $action.PassedCount
-            $Node.FailedCount       += $action.FailedCount
-            $Node.SkippedCount      += $action.SkippedCount
-            $Node.PendingCount      += $action.PendingCount
+            $Node.TotalCount += $action.TotalCount
+            $Node.PassedCount += $action.PassedCount
+            $Node.FailedCount += $action.FailedCount
+            $Node.SkippedCount += $action.SkippedCount
+            $Node.PendingCount += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
         elseif ($action.Type -eq 'TestCase') {
@@ -1494,6 +1494,8 @@ The function will be removed finally in the next major version of Pester.
 
 .LINK
 https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
+
+.LINK
 https://github.com/pester/Pester/issues/880
 
 #>
