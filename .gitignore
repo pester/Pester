@@ -1,3 +1,4 @@
 build/
 Test.xml
 vendor/packages/
+.DS_Store
