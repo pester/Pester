@@ -1,10 +1,10 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    ModuleToProcess   = 'Pester.psm1'
+    RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '4.5.0'
+    ModuleVersion     = '5.0.0'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -16,13 +16,13 @@
     CompanyName       = 'Pester'
 
     # Copyright statement for this module
-    Copyright         = 'Copyright (c) 2017 by Pester Team, licensed under Apache 2.0 License.'
+    Copyright         = 'Copyright (c) 2019 by Pester Team, licensed under Apache 2.0 License.'
 
     # Description of the functionality provided by this module
     Description       = 'Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of PowerShell code being tested. Pester tests can execute any command or script that is accessible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '2.0'
+    PowerShellVersion = '3.0'
 
     TypesToProcess    = @('.\Functions\Gherkin.types.ps1xml')
 
@@ -35,11 +35,8 @@
         'Mock'
         'Assert-MockCalled'
         'Assert-VerifiableMock'
-        'Assert-VerifiableMocks'
         'New-Fixture'
-        'Get-TestDriveItem'
         'Invoke-Pester'
-        'Setup'
         'In'
         'InModuleScope'
         'Invoke-Mock'
@@ -47,15 +44,13 @@
         'AfterEach'
         'BeforeAll'
         'AfterAll'
-        'Get-MockDynamicParameter'
-        'Set-DynamicParameterVariable'
         'Set-TestInconclusive'
         'Set-ItResult'
-        'SafeGetCommand'
         'New-PesterOption'
         'New-MockObject'
-        'Add-AssertionOperator'
+        'Add-ShouldOperator'
         'Get-ShouldOperator'
+        'Add-Dependency'
 
         # Gherkin Support:
         'Invoke-Gherkin'
@@ -72,21 +67,7 @@
     # CmdletsToExport = '*'
 
     # Variables to export from this module
-    VariablesToExport = @(
-        'Path'
-        'TagFilter'
-        'ExcludeTagFilter'
-        'TestNameFilter'
-        'TestResult'
-        'CurrentContext'
-        'CurrentDescribe'
-        'CurrentTest'
-        'SessionState'
-        'CommandCoverage'
-        'BeforeEach'
-        'AfterEach'
-        'Strict'
-    )
+    VariablesToExport = @()
 
     # # Aliases to export from this module
     AliasesToExport   = @(

@@ -133,14 +133,7 @@ Describe 'Public API' {
         $r = Get-Command -Module Pester |
             ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
             ? { -not $_.CmdletBinding } |
-            % { $_.Name } |
-            ? {
-            @(
-                'Get-TestDriveItem' # deprecated in 4.0
-                'SafeGetCommand' # Pester internal
-                'Setup' # deprecated
-            ) -notcontains $_
-        }
+            % { $_.Name }
         $r | Should -beNullOrEmpty
     }
 }
@@ -446,15 +439,12 @@ if ($PSVersionTable.PSVersion.Major -gt 2) {
 
         [String[]]$AcceptMissedHelpSynopsis = @()
 
-        [String[]]$AccepteMissedHelpDescription = @('AfterAll', 'AfterEach', 'BeforeAll', 'BeforeEach', 'Get-MockDynamicParameter', 'Invoke-Mock',
-            'SafeGetCommand', 'Set-DynamicParameterVariable', 'Setup')
+        [String[]]$AccepteMissedHelpDescription = @('AfterAll', 'AfterEach', 'BeforeAll', 'BeforeEach')
 
-        [String[]]$AcceptMissedHelpParameters = @('Get-MockDynamicParameter', 'Invoke-Mock', 'Should', 'Set-DynamicParameterVariable', 'Setup')
+        [String[]]$AcceptMissedHelpParameters = @('Should')
 
         [String[]]$AcceptMissedHelpExamples = @('AfterAll', 'AfterEach', 'AfterEachFeature', 'AfterEachScenario', 'Assert-VerifiableMocks',
-            'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario',
-            'Get-MockDynamicParameter', 'In', 'Invoke-Mock', 'SafeGetCommand',
-            'Set-DynamicParameterValue', 'Set-DynamicParameterVariable', 'Setup', 'Should')
+            'BeforeAll', 'BeforeEach', 'BeforeEachFeature', 'BeforeEachScenario', 'In', 'Should')
 
         [String[]]$FunctionsList = (Get-Command -Module Pester | Where-Object -FilterScript { $_.CommandType -eq 'Function' })
 

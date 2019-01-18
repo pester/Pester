@@ -364,6 +364,8 @@ function ConvertTo-FailureLines {
             $_ -notmatch $pattern5
         }
 
+        # make error navigateable in VSCode
+        $lines.Trace = $lines.Trace -replace ':\s*line\s*(\d+)\s*$', ':$1'
         return $lines
     }
 }
@@ -377,7 +379,7 @@ function Get-WriteScreenPlugin {
         # for the invocation context of this callback
 
 
-        $commandUsed = $Context.Block.AttachedData.CommandUsed
+        $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
         # TODO: add Show options, with something like
         # if ($commandused -eq 'Describe' -and -not $Context.PluginOption.ShowDescribe) {
