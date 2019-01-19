@@ -4,6 +4,8 @@
 
 > 👉 Pester v5 - alpha1 info is deep down there below this
 
+> 🙋‍ Have questions or want to discuss a point? [Go here](https://github.com/pester/Pester/issues/1218)
+
 ## 🍌 Scoping of Describe & It
 
 This change is not really that new, it works the same as in alpha1, but there I did not describe it 😅 And now it is useful to understand the difference from v4, which in turns make understanding the mocking described below easier. So here we go:
@@ -599,4 +601,4 @@ Download the source code and use Pester.psm1 (yes PSM not PSD), to import it. An
 
 ## Questions?
 
-Ping me on [twitter](https://twitter.com/nohwnd) or [#testing](https://powershell.slack.com/messages/C03QKTUCS/)
+Use [this issue thread](https://github.com/pester/Pester/issues/1218), ping me on [twitter](https://twitter.com/nohwnd) or [#testing](https://powershell.slack.com/messages/C03QKTUCS/)
