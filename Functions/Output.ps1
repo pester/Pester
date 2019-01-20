@@ -97,6 +97,10 @@ function Write-PesterStart {
         if ($PesterState.TestNameFilter) {
             $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }
+        if ($PesterState.PesterOption.ScriptBlockFilter) {
+            $m = $(foreach ($m in $PesterState.PesterOption.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
+            $message += $ReportStrings.FilterMessage -f $m
+        }
         if ($PesterState.TagFilter) {
             $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         }

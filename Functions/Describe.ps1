@@ -118,6 +118,24 @@ function DescribeImpl {
                 return
             }
         }
+
+        if ($Pester.ScriptBlockFilter) {
+            $match = $false
+            foreach ($filter in $Pester.ScriptBlockFilter) {
+                if ($match) {
+                    break
+                }
+
+                if ($Fixture.File -eq $filter.Path -and $Fixture.StartPosition.StartLine -eq $filter.Line) {
+                    $match = $true
+                }
+            }
+
+            if (-not $match) {
+                return
+            }
+        }
+
         if ($Pester.TagFilter) {
             if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
                 return
