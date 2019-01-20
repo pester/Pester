@@ -51,7 +51,8 @@ InModuleScope Pester {
 
         Context "ScritpBlockFilter is set" {
             it "sets the ScriptBlockFilter property" {
-                $p = new-pesterstate -ScriptBlockFilter @(@{Path = "C:\Tests"; Line = 293})
+                $o = New-PesterOption -ScriptBlockFilter @(@{Path = "C:\Tests"; Line = 293})
+                $p = New-PesterState -PesterOption $o
                 $p.ScriptBlockFilter | Should -Not -BeNullOrEmpty
                 $p.ScriptBlockFilter[0].Path | Should -Be "C:\Tests"
                 $p.ScriptBlockFilter[0].Line | Should -Be 293
