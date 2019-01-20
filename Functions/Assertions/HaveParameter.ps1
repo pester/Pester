@@ -1,10 +1,18 @@
-function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [String]$Default, [Switch]$IsMandatory, [Switch]$HasArgumentCompleter, [Switch]$Negate, [String]$Because ) {
+function Should-HaveParameter (
+    $ActualValue,
+    [String] $ParameterName,
+    $Type,
+    [String]$DefaultValue,
+    [Switch]$Mandatory,
+    [Switch]$HasArgumentCompleter,
+    [Switch]$Negate,
+    [String]$Because ) {
     <#
     .SYNOPSIS
         Asserts that a command has the expected parameter.
 
     .EXAMPLE
-        Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -IsMandatory
+        Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -Mandatory
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
     .NOTES
@@ -116,14 +124,14 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
         }
     }
 
-    if ($OfType -is [string]) {
+    if ($Type -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
-        $parsedType = ($OfType -replace '^\[(.*)\]$', '$1') -as [Type]
+        $parsedType = ($Type -replace '^\[(.*)\]$', '$1') -as [Type]
         if ($null -eq $parsedType) {
             throw [ArgumentException]"Could not find type [$ParsedType]. Make sure that the assembly that contains that type is loaded."
         }
 
-        $OfType = $parsedType
+        $Type = $parsedType
     }
     #endregion HelperFunctions
 
@@ -140,13 +148,13 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
     elseif ($Negate -and -not $hasKey) {
         return New-Object PSObject -Property @{ Succeeded = $true }
     }
-    elseif ($Negate -and $hasKey -and -not ($IsMandatory -or $OfType -or $Default -or $HasArgumentCompleter)) {
+    elseif ($Negate -and $hasKey -and -not ($Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
         $buts += "the parameter exists"
     }
     else {
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
 
-        if ($IsMandatory) {
+        if ($Mandatory) {
             $testMandatory = $attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
             $filters += "which is$(if ($Negate) {" not"}) mandatory"
 
@@ -158,33 +166,33 @@ function Should-HaveParameter($ActualValue, [String]$ParameterName, $OfType, [St
             }
         }
 
-        if ($OfType) {
+        if ($Type) {
             # This block is not using `Format-Nicely`, as in PSv2 the output differs. Eg:
             # PS2> [System.DateTime]
             # PS5> [datetime]
             [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
-            $testOfType = ($OfType -eq $actualType)
-            $filters += "$(if ($Negate) {"not "})of type [$($OfType.FullName)]"
+            $testType = ($Type -eq $actualType)
+            $filters += "$(if ($Negate) {"not "})of type [$($Type.FullName)]"
 
-            if (-not $Negate -and -not $testOfType) {
+            if (-not $Negate -and -not $testType) {
                 $buts += "it was of type [$($actualType.FullName)]"
             }
-            elseif ($Negate -and $testOfType) {
-                $buts += "it was of type [$($OfType.FullName)]"
+            elseif ($Negate -and $testType) {
+                $buts += "it was of type [$($Type.FullName)]"
             }
         }
 
-        if ($PSBoundParameters.Keys -contains "Default") {
+        if ($PSBoundParameters.Keys -contains "DefaultValue") {
             $parameterMetadata = Get-ParameterInfo $ActualValue | Where-Object { $_.Name -eq $ParameterName }
             $actualDefault = if ($parameterMetadata.DefaultValue) { $parameterMetadata.DefaultValue } else { "" }
-            $testDefault = ($actualDefault -eq $Default)
-            $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $Default)"
+            $testDefault = ($actualDefault -eq $DefaultValue)
+            $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValue)"
 
             if (-not $Negate -and -not $testDefault) {
                 $buts += "the default value was $(Format-Nicely $actualDefault)"
             }
             elseif ($Negate -and $testDefault) {
-                $buts += "the default value was $(Format-Nicely $Default)"
+                $buts += "the default value was $(Format-Nicely $DefaultValue)"
             }
         }
 

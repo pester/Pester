@@ -9,7 +9,7 @@ InModuleScope Pester {
                 $MandatoryParam,
 
                 [ValidateNotNullOrEmpty()]
-                [DateTime]$SecondParam = (Get-Date),
+                [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
                 [Parameter()]
                 [ValidateScript(
@@ -29,7 +29,7 @@ InModuleScope Pester {
                         }
                     }
                 )]
-                [String]$ThirdParam = ".",
+                [String]$ParamWithScriptValidation = ".",
 
                 [Parameter()]
                 [ValidateNotNullOrEmpty()]
@@ -41,7 +41,7 @@ InModuleScope Pester {
                             ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
                     }
                 )]
-                [String]$ForthParam = "./.git"
+                [String]$ParamWithArgumentCompleter = "./.git"
             )
         }
     }
@@ -52,8 +52,9 @@ InModuleScope Pester {
                 $MandatoryParam,
 
                 [ValidateNotNullOrEmpty()]
-                [DateTime]$SecondParam = (Get-Date),
+                [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
+                # argument completer is PowerShell v5+ only
                 [Parameter()]
                 [ValidateScript(
                     {
@@ -72,7 +73,7 @@ InModuleScope Pester {
                         }
                     }
                 )]
-                [String]$ThirdParam = "."
+                [String]$ParamWithScriptValidation = "."
             )
         }
     }
@@ -85,10 +86,10 @@ InModuleScope Pester {
 
         It "passes if the parameter <ParameterName> exists" -TestCases @(
             @{ParameterName = "MandatoryParam"}
-            @{ParameterName = "SecondParam"}
-            @{ParameterName = "ThirdParam"}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"}
+            @{ParameterName = "ParamWithScriptValidation"}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"}
+                @{ParameterName = "ParamWithArgumentCompleter"}
             }
         ) {
             param($ParameterName)
@@ -99,24 +100,24 @@ InModuleScope Pester {
             @{ParameterName = "MandatoryParam"}
         ) {
             param($ParameterName)
-            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -IsMandatory
+            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Mandatory
         }
 
         It "passes if the parameter <ParameterName> is of type <ExpectedType>" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = [System.Object]}
-            @{ParameterName = "SecondParam"; ExpectedType = [DateTime]}
-            @{ParameterName = "ThirdParam"; ExpectedType = "String"}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "String"}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = "String"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"}
             }
         ) {
             param($ParameterName, $ExpectedType)
-            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -OfType $ExpectedType
+            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "passes if the parameter <ParameterName> has an ArgumentCompleter" -TestCases @(
-                @{ParameterName = "ForthParam"}
+                @{ParameterName = "ParamWithArgumentCompleter"}
             ) {
                 param($ParameterName)
                 Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -HasArgumentCompleter
@@ -125,33 +126,33 @@ InModuleScope Pester {
 
         It "passes if the parameter <ParameterName> has a default value '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedValue = ""}
-            @{ParameterName = "SecondParam"; ExpectedValue = "(Get-Date)"}
-            @{ParameterName = "ThirdParam"; ExpectedValue = "."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedValue = "(Get-Date)"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedValue = "."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedValue = "./.git"}
             }
         ) {
             param($ParameterName, $ExpectedValue)
-            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Default $ExpectedValue
+            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue
         }
 
         It "passes if the parameter <ParameterName> exists, is of type <ExpectedType> and has a default value '<ExpectedValue>'" -TestCases @(
-            @{ParameterName = "SecondParam"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)"}
-            @{ParameterName = "ThirdParam"; ExpectedType = [String]; ExpectedValue = "."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = "String"; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "./.git"}
             }
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
-            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue
+            Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "passes if the parameter <ParameterName> exists, is of type <ExpectedType>, has a default value '<ExpectedValue>' and has an ArgumentCompleter" -TestCases @(
-                @{ParameterName = "ForthParam"; ExpectedType = [String]; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git"}
             ) {
                 param($ParameterName, $ExpectedType, $ExpectedValue)
-                Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue -HasArgumentCompleter
+                Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter
             }
         }
 
@@ -169,35 +170,35 @@ InModuleScope Pester {
         }
 
         It "fails if the parameter <ParameterName> is not mandatory or does not exist" -TestCases @(
-            @{ParameterName = "SecondParam"}
-            @{ParameterName = "ThirdParam"}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"}
+            @{ParameterName = "ParamWithScriptValidation"}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"}
+                @{ParameterName = "ParamWithArgumentCompleter"}
             }
             @{ParameterName = "InputObject"}
         ) {
             param($ParameterName)
-            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -IsMandatory } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Mandatory } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> is not of type <ExpectedType> or does not exist" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = [Int32]}
-            @{ParameterName = "SecondParam"; ExpectedType = [Int32]}
-            @{ParameterName = "ThirdParam"; ExpectedType = [DateTime]}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [Int32]}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [DateTime]}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = "DateTime"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "DateTime"}
             }
             @{ParameterName = "InputObject"; ExpectedType = [String]}
         ) {
             param($ParameterName, $ExpectedType)
-            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -OfType $ExpectedType } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType } | Verify-AssertionFailed
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "fails if the parameter <ParameterName> has not an ArgumentCompleter or does not exist" -TestCases @(
                 @{ParameterName = "MandatoryParam"}
-                @{ParameterName = "SecondParam"}
-                @{ParameterName = "ThirdParam"}
+                @{ParameterName = "ParamWithNotNullOrEmptyValidation"}
+                @{ParameterName = "ParamWithScriptValidation"}
                 @{ParameterName = "InputObject"}
             ) {
                 param($ParameterName)
@@ -207,40 +208,40 @@ InModuleScope Pester {
 
         It "fails if the parameter <ParameterName> has a default value other than '<ExpectedValue>' or does not exist" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedValue = "."}
-            @{ParameterName = "SecondParam"; ExpectedValue = "(Get-Item)"}
-            @{ParameterName = "ThirdParam"; ExpectedValue = ""}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedValue = "(Get-Item)"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedValue = ""}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedValue = "."}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedValue = "."}
             }
             @{ParameterName = "InputObject"; ExpectedValue = ""}
         ) {
             param($ParameterName, $ExpectedValue)
-            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Default $ExpectedValue } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> does not exist, is not of type <ExpectedType> or has a default value other than '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Item)"}
-            @{ParameterName = "SecondParam"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Item)"}
-            @{ParameterName = "ThirdParam"; ExpectedType = [DateTime]; ExpectedValue = "."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Item)"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [DateTime]; ExpectedValue = "."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = "String"; ExpectedValue = ""}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"; ExpectedValue = ""}
             }
             @{ParameterName = "InputObject"; ExpectedType = [String]; ExpectedValue = ""}
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
-            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "fails if the parameter <ParameterName> does not exist, is not of type <ExpectedType>, has a default value other than '<ExpectedValue>' or has not an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "MandatoryParam"; ExpectedType = [Object]; ExpectedValue = ""}
-                @{ParameterName = "SecondParam"; ExpectedType = [DateTime]; ExpectedValue = "."}
-                @{ParameterName = "ThirdParam"; ExpectedType = [String]; ExpectedValue = "."}
-                @{ParameterName = "ForthParam"; ExpectedType = [String]; ExpectedValue = "."}
+                @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "."}
+                @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "."}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "."}
                 @{ParameterName = "InputObject"; ExpectedType = [String]; ExpectedValue = "."}
             ) {
                 param($ParameterName, $ExpectedType, $ExpectedValue)
-                { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
+                { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
 
@@ -249,20 +250,20 @@ InModuleScope Pester {
             $err.Exception.Message | Verify-Equal "Expected command Invoke-EmptyFunction to have a parameter imaginary, but the parameter is missing."
         }
 
-        It "returns the correct assertion message when parameter SecondParam is not mandatory" {
-            $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter SecondParam -IsMandatory } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter SecondParam, which is mandatory, but it wasn't mandatory."
+        It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, but it wasn't mandatory."
         }
 
-        It "returns the correct assertion message when parameter SecondParam is not mandatory, of the wrong type and has a different default value than expected" {
-            $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter SecondParam -IsMandatory -OfType [TimeSpan] -Default "wrong value" -Because 'of reasons' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter SecondParam, which is mandatory, of type [System.TimeSpan] and the default value to be 'wrong value', because of reasons, but it wasn't mandatory, it was of type [System.DateTime] and the default value was '(Get-Date)'."
+        It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type and has a different default value than expected" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -Because 'of reasons' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan] and the default value to be 'wrong value', because of reasons, but it wasn't mandatory, it was of type [System.DateTime] and the default value was '(Get-Date)'."
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
-            It "returns the correct assertion message when parameter SecondParam is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
-                $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter SecondParam -IsMandatory -OfType [TimeSpan] -Default "wrong value" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter SecondParam, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and has ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and has no ArgumentCompletion."
+            It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
+                $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and has ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and has no ArgumentCompletion."
             }
         }
     }
@@ -278,47 +279,47 @@ InModuleScope Pester {
         }
 
         It "passes if the parameter <ParameterName> does not exist or is not mandatory" -TestCases @(
-            @{ParameterName = "SecondParam"}
-            @{ParameterName = "ThirdParam"}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"}
+            @{ParameterName = "ParamWithScriptValidation"}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"}
+                @{ParameterName = "ParamWithArgumentCompleter"}
             }
             @{ParameterName = "InputObject"}
         ) {
             param($ParameterName)
-            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -IsMandatory
+            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Mandatory
         }
 
         It "passes if the parameter <ParameterName> does not exist, is not mandatory or is not of type <ExpectedType>"-TestCases @(
-            @{ParameterName = "SecondParam"; ExpectedType = "[TimeSpan]"}
-            @{ParameterName = "ThirdParam"; ExpectedType = "[TimeSpan]"}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = "[TimeSpan]"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "[TimeSpan]"}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = [TimeSpan]}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [TimeSpan]}
             }
             @{ParameterName = "InputObject"; ExpectedType = "[Object]"}
         ) {
             param($ParameterName, $ExpectedType)
-            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -IsMandatory -OfType $ExpectedType
+            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Mandatory -Type $ExpectedType
         }
 
         It "passes if the parameter <ParameterName> does not exist, is not mandatory, is not of type <ExpectedType> or the default value is not <ExpectedValue>"-TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = "[TimeSpan]"; ExpectedValue = "wrong"}
-            @{ParameterName = "SecondParam"; ExpectedType = "[TimeSpan]"; ExpectedValue = ""}
-            @{ParameterName = "ThirdParam"; ExpectedType = "[Int32]"; ExpectedValue = ".."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = "[TimeSpan]"; ExpectedValue = ""}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "[Int32]"; ExpectedValue = ".."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = [TimeSpan]; ExpectedValue = "."}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [TimeSpan]; ExpectedValue = "."}
             }
             @{ParameterName = "InputObject"; ExpectedType = "[Object]"; ExpectedValue = ""}
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
-            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue
+            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "passes if the parameter <ParameterName> does not exist, has not an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "MandatoryParam"}
-                @{ParameterName = "SecondParam"}
-                @{ParameterName = "ThirdParam"}
+                @{ParameterName = "ParamWithNotNullOrEmptyValidation"}
+                @{ParameterName = "ParamWithScriptValidation"}
                 @{ParameterName = "InputObject"}
             ) {
                 param($ParameterName)
@@ -328,10 +329,10 @@ InModuleScope Pester {
 
         It "fails if the parameter <ParameterName> exists" -TestCases @(
             @{ParameterName = "MandatoryParam"}
-            @{ParameterName = "SecondParam"}
-            @{ParameterName = "ThirdParam"}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"}
+            @{ParameterName = "ParamWithScriptValidation"}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"}
+                @{ParameterName = "ParamWithArgumentCompleter"}
             }
         ) {
             param($ParameterName)
@@ -342,36 +343,36 @@ InModuleScope Pester {
             @{ParameterName = "MandatoryParam"}
         ) {
             param($ParameterName)
-            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -IsMandatory } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Mandatory } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> is of type <ExpectedType>" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = [Object]}
-            @{ParameterName = "SecondParam"; ExpectedType = [DateTime]}
-            @{ParameterName = "ThirdParam"; ExpectedType = [String]}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = "String"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"}
             }
         ) {
             param($ParameterName, $ExpectedType)
-            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -OfType $ExpectedType } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> is of type <ExpectedType> or the default value is <ExpectedValue>"-TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = "[Object]"; ExpectedValue = ""}
-            @{ParameterName = "SecondParam"; ExpectedType = "[DateTime]"; ExpectedValue = ""}
-            @{ParameterName = "ThirdParam"; ExpectedType = "[String]"; ExpectedValue = ".."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = "[DateTime]"; ExpectedValue = ""}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "[String]"; ExpectedValue = ".."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = [String]; ExpectedValue = "."}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "."}
             }
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
-            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "fails if the parameter <ParameterName> has an ArgumentCompleter" -TestCases @(
-                @{ParameterName = "ForthParam"}
+                @{ParameterName = "ParamWithArgumentCompleter"}
             ) {
                 param($ParameterName)
                 { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -HasArgumentCompleter } | Verify-AssertionFailed
@@ -380,54 +381,54 @@ InModuleScope Pester {
 
         It "fails if the parameter <ParameterName> has a default value of '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedValue = ""}
-            @{ParameterName = "SecondParam"; ExpectedValue = "(Get-Date)"}
-            @{ParameterName = "ThirdParam"; ExpectedValue = "."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedValue = "(Get-Date)"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedValue = "."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedValue = "./.git"}
             }
         ) {
             param($ParameterName, $ExpectedValue)
-            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Default $ExpectedValue } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> is of type <ExpectedType> or has a default value of '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = [Object]; ExpectedValue = ""}
-            @{ParameterName = "SecondParam"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)"}
-            @{ParameterName = "ThirdParam"; ExpectedType = [String]; ExpectedValue = "."}
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)"}
+            @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "."}
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                @{ParameterName = "ForthParam"; ExpectedType = "String"; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "./.git"}
             }
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
-            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue } | Verify-AssertionFailed
+            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "fails if the parameter <ParameterName> is of type <ExpectedType>, has a default value of '<ExpectedValue>' or has an ArgumentCompleter" -TestCases @(
-                @{ParameterName = "ForthParam"; ExpectedType = [String]; ExpectedValue = "./.git"}
-                @{ParameterName = "ForthParam"; ExpectedType = [DateTime]; ExpectedValue = "./.git"}
-                @{ParameterName = "ForthParam"; ExpectedType = [DateTime]; ExpectedValue = ""}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "./.git"}
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = ""}
 
             ) {
                 param($ParameterName, $ExpectedType, $ExpectedValue)
-                { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -OfType $ExpectedType -Default $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
+                { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
 
-        It "returns the correct assertion message when parameter SecondParam is not mandatory" {
-            $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter SecondParam -OfType [DateTime] } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter SecondParam, not of type [System.DateTime], but it was of type [System.DateTime]."
+        It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter ParamWithNotNullOrEmptyValidation -Type [DateTime] } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ParamWithNotNullOrEmptyValidation, not of type [System.DateTime], but it was of type [System.DateTime]."
         }
 
-        It "returns the correct assertion message when parameter SecondParam is not mandatory, of the wrong type and has a different default value than expected" {
-            $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter MandatoryParam -IsMandatory -OfType [Object] -Default "" -Because 'of reasons' } | Verify-AssertionFailed
+        It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type and has a different default value than expected" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter MandatoryParam -Mandatory -Type [Object] -DefaultValue "" -Because 'of reasons' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter MandatoryParam, which is not mandatory, not of type [System.Object] and the default value not to be <empty>, because of reasons, but it was mandatory, it was of type [System.Object] and the default value was <empty>."
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
-            It "returns the correct assertion message when parameter SecondParam is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
-                $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter ForthParam -OfType [String] -Default "./.git" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ForthParam, not of type [System.String], the default value not to be './.git' and has ArgumentCompletion, because of reasons, but it was of type [System.String], the default value was './.git' and has ArgumentCompletion."
+            It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
+                $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter ParamWithArgumentCompleter -Type [String] -DefaultValue "./.git" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ParamWithArgumentCompleter, not of type [System.String], the default value not to be './.git' and has ArgumentCompletion, because of reasons, but it was of type [System.String], the default value was './.git' and has ArgumentCompletion."
             }
         }
     }
