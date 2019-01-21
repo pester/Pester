@@ -1,4 +1,11 @@
-## 4.5.0 (January 10, 2018)
+## 4.6.0 (January 21, 2019)
+
+- Add Should -HaveParameter assertion [#1202](https://github.com/pester/Pester/pull/1202)
+- Add scriptblock filter for Describe [#1220](https://github.com/pester/Pester/pull/1220)
+- Fix timing in describe [#1185](https://github.com/pester/Pester/pull/1185)
+- Fix more issues with parallel TestRegistry [#1224](https://github.com/pester/Pester/pull/1224)
+
+## 4.5.0 (January 10, 2019)
 
 - Add support for code coverage in VSCode [#1199](https://github.com/pester/Pester/issues/1199)
 - Remote Tests from CodeCoverage by default [#1196](https://github.com/pester/Pester/issues/1196)
@@ -6,7 +13,7 @@
 - Fix error in parallel TestRegistry [#1197](https://github.com/pester/Pester/issues/1197)
 - The rest listed in betas below
 
-## 4.5.0-beta2 (January 5, 2018)
+## 4.5.0-beta2 (January 5, 2019)
 
 - Add more info to code coverage passthru [#1190](https://github.com/pester/Pester/issues/1190)
 - Add scenario for every example in Gherkin [#1168](https://github.com/pester/Pester/issues/1168)
