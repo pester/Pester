@@ -111,10 +111,6 @@ function Invoke-Gherkin {
         .PARAMETER OutputFormat
             The format for output (LegacyNUnitXml or NUnitXml), defaults to NUnitXml
 
-        .PARAMETER Quiet
-            Disables the output Pester writes to screen. No other output is generated unless you specify PassThru,
-            or one of the Output parameters.
-
         .PARAMETER PesterOption
             Sets advanced options for the test execution. Enter a PesterOption object,
             such as one that you create by using the New-PesterOption cmdlet, or a hash table
@@ -142,7 +138,7 @@ function Invoke-Gherkin {
             By default, Invoke-Gherkin writes to the host program, not to the output stream (stdout).
             If you try to save the result in a variable, the variable is empty unless you
             use the PassThru parameter.
-            To suppress the host output, use the Quiet parameter.
+            To suppress the host output, use the Show parameter.
 
         .EXAMPLE
             Invoke-Gherkin
@@ -215,8 +211,6 @@ function Invoke-Gherkin {
         [ValidateSet('NUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
-        [Switch]$Quiet,
-
         [object]$PesterOption,
 
         [Pester.OutputTypes]$Show = 'All',
@@ -247,15 +241,6 @@ function Invoke-Gherkin {
         }
     }
     end {
-        if ($PSBoundParameters.ContainsKey('Quiet')) {
-            & $SafeCommands["Write-Warning"] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
-            & $SafeCommands["Start-Sleep"] -Seconds 2
-
-            if (!$PSBoundParameters.ContainsKey('Show')) {
-                $Show = [Pester.OutputTypes]::None
-            }
-        }
-
         if ($PSCmdlet.ParameterSetName -eq "RetestFailed" -and $FailedLast) {
             $ScenarioName = $script:GherkinFailedLast
             if (!$ScenarioName) {

@@ -501,17 +501,6 @@ Currently supported formats are:
 Makes Pending and Skipped tests to Failed tests. Useful for continuous
 integration where you need to make sure all tests passed.
 
-.PARAMETER Quiet
-The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
-in the next major version of Pester. Please use the parameter Show
-with value 'None' instead.
-
-The parameter Quiet suppresses the output that Pester writes to the host program,
-including the result summary and CodeCoverage output.
-
-This parameter does not affect the PassThru custom object or the XML output that
-is written when you use the Output parameters.
-
 .PARAMETER Show
 Customizes the output Pester writes to the screen. Available options are None, Default,
 Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
@@ -698,15 +687,6 @@ New-PesterOption
     }
 
     end {
-        if ($PSBoundParameters.ContainsKey('Quiet')) {
-            & $script:SafeCommands['Write-Warning'] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
-            & $script:SafeCommands['Start-Sleep'] -Seconds 2
-
-            if (!$PSBoundParameters.ContainsKey('Show')) {
-                $Show = [Pester.OutputTypes]::None
-            }
-        }
-
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
         Remove-MockFunctionsAndAliases
