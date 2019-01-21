@@ -1,4 +1,3 @@
-#
 function New-TestRegistry {
     param(
         [Switch]
@@ -51,9 +50,6 @@ function New-TestRegistry {
             }
         }
     }
-    else {
-        write-host "registry drive exists"
-    }
 
     if ( $PassThru ) {
         & $SafeCommands['Get-PSDrive'] -Name $DriveName
@@ -61,7 +57,7 @@ function New-TestRegistry {
 }
 
 function Get-TestRegistryPath () {
-    "Microsoft.PowerShell.Core\Registry::" + (& $SafeCommands['Get-PSDrive'] -Name TestRegistry).Root
+    "Microsoft.PowerShell.Core\Registry::" + (& $SafeCommands['Get-PSDrive'] -Name TestRegistry -ErrorAction Stop).Root
 }
 
 function Clear-TestRegistry {
@@ -93,7 +89,7 @@ function New-RandomTempRegistry {
         $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
 
-    & $SafeCommands['New-Item'] -Path $Path -Force
+    & $SafeCommands['New-Item'] -Path $Path
 }
 
 function Remove-TestRegistry {

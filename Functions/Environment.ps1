@@ -32,18 +32,14 @@ function Get-TempDirectory {
 }
 
 function Get-TempRegistry {
-    $pesterTempRegistryRoot = 'HKCU:\Software\Pester'
-    if (Test-Path 'HKCU:\Software\Pester') {
+    $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
+    if (-not (Test-Path $pesterTempRegistryRoot)) {
         try {
-            $null = New-TempRegistry
+            $null = New-Item -Path $pesterTempRegistryRoot -ErrorAction Stop
         }
         catch [Exception] {
             throw (New-Object Exception -ArgumentList "Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))
         }
     }
     return $pesterTempRegistryRoot
-}
-
-function New-TempRegistry {
-    New-Item -Path 'HKCU:\Software\Pester' -Force
 }
