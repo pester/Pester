@@ -1164,7 +1164,7 @@ New-PesterOption
         if ($PassThru) {
             # Remove all runtime properties like current* and Scope
             $properties = @(
-                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
+                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "ScriptBlockFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
 
                 if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
@@ -1197,6 +1197,8 @@ When generating NUnit XML output, this controls the name assigned to the root "t
 Enables experimental features of Pester to be enabled.
 .PARAMETER ShowScopeHints
 EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
+.PARAMETER ScriptBlockFilter
+Adds a filter that acts as -TestName but instead of the name uses location of the Fixture scriptblock. It takes an array of hashtables @{ Path = <string>; Line = <int> } . This is for plugins like CodeLens that parse the scriptblock, but cannot filter by name because of variables in the Describe description.
 .INPUTS
 None
 You cannot pipe input to this command.
@@ -1222,7 +1224,9 @@ Invoke-Pester
 
         [switch] $Experimental,
 
-        [switch] $ShowScopeHints
+        [switch] $ShowScopeHints,
+
+        [hashtable[]] $ScriptBlockFilter
     )
 
     # in PowerShell 2 Add-Member can attach properties only to
@@ -1245,6 +1249,7 @@ Invoke-Pester
         TestSuiteName       = $TestSuiteName
         ShowScopeHints      = $ShowScopeHints
         Experimental        = $Experimental
+        ScriptBlockFilter   = $ScriptBlockFilter
     }
 }
 
@@ -1429,11 +1434,11 @@ function Set-PesterStatistics($Node) {
         if ($action.Type -eq 'TestGroup') {
             Set-PesterStatistics -Node $action
 
-            $Node.TotalCount        += $action.TotalCount
-            $Node.PassedCount       += $action.PassedCount
-            $Node.FailedCount       += $action.FailedCount
-            $Node.SkippedCount      += $action.SkippedCount
-            $Node.PendingCount      += $action.PendingCount
+            $Node.TotalCount += $action.TotalCount
+            $Node.PassedCount += $action.PassedCount
+            $Node.FailedCount += $action.FailedCount
+            $Node.SkippedCount += $action.SkippedCount
+            $Node.PendingCount += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
         elseif ($action.Type -eq 'TestCase') {

@@ -40,14 +40,23 @@ InModuleScope Pester {
         Context "TestNameFilter and TagFilter parameter is set" {
             $p = new-pesterstate -TagFilter "tag", "tag2" -testnamefilter "filter"
 
-            it "sets the TestNameFilter property" {
+            it "sets the TagFilter property" {
                 $p.TagFilter | should -be ("tag", "tag2")
             }
 
             it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag", "tag2")
+                $p.TestNameFilter | should -be "Filter"
             }
+        }
 
+        Context "ScritpBlockFilter is set" {
+            it "sets the ScriptBlockFilter property" {
+                $o = New-PesterOption -ScriptBlockFilter @(@{Path = "C:\Tests"; Line = 293})
+                $p = New-PesterState -PesterOption $o
+                $p.ScriptBlockFilter | Should -Not -BeNullOrEmpty
+                $p.ScriptBlockFilter[0].Path | Should -Be "C:\Tests"
+                $p.ScriptBlockFilter[0].Line | Should -Be 293
+            }
         }
     }
 

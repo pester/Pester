@@ -7,7 +7,8 @@ function New-PesterState {
         [Switch]$Strict,
         [Pester.OutputTypes]$Show = 'All',
         [object]$PesterOption,
-        [Switch]$RunningViaInvokePester
+        [Switch]$RunningViaInvokePester,
+        [Hashtable[]] $ScriptBlockFilter
     )
 
     if ($null -eq $SessionState) {
@@ -43,6 +44,7 @@ function New-PesterState {
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
 
+
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:TestStartTime = $null
@@ -64,6 +66,7 @@ function New-PesterState {
 
         $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
         $script:TestSuiteName = $PesterOption.TestSuiteName
+        $script:ScriptBlockFilter = $PesterOption.ScriptBlockFilter
         $script:RunningViaInvokePester = $RunningViaInvokePester
 
         $script:SafeCommands = @{}
@@ -327,6 +330,7 @@ function New-PesterState {
         $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
+        "ScriptBlockFilter",
         "TestResult",
         "SessionState",
         "CommandCoverage",
