@@ -200,7 +200,7 @@ function ConvertTo-PesterResult {
         $line = $details.Line
         $Text = $details.LineText
 
-        if (-not $script:Strict) {
+        if (-not $Pester.Strict) {
             switch ($ErrorRecord.FullyQualifiedErrorID) {
                 PesterTestInconclusive {
                     $testResult.Result = "Inconclusive"; break;
