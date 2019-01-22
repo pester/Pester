@@ -162,13 +162,13 @@ function New-PesterState {
             }
 
             if (-not $script:Strict) {
-                $Passed = "Passed", "Skipped", "Pending" -contains $Result
+                $Passed = "Passed", "Skipped", "Pending", "Inconclusive" -contains $Result
             }
             else {
                 $Passed = $Result -eq "Passed"
-                if (($Result -eq "Skipped") -or ($Result -eq "Pending")) {
+                if (@("Skipped", "Pending", "Inconclusive") -contains $Result) {
                     $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
-                    $ErrorRecord = New-ErrorRecord -ErrorId 'PesterTestInconclusive' -Message $FailureMessage
+                    $ErrorRecord = New-ErrorRecord -ErrorId "PesterTest$Result" -Message $FailureMessage
                     $Result = "Failed"
                 }
 
