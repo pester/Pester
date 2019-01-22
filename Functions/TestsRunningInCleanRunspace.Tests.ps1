@@ -139,16 +139,24 @@ Describe "Tests running in clean runspace" {
             Describe 'Mark skipped and pending tests as failed' {
                 It "skip" -Skip { $true | Should -Be $true }
                 It "pending" -Pending { $true | Should -Be $true }
-                # bug: #885 it does not fail in strict mode
-                # It "inconclusive forced" { Set-TestInconclusive ; $true | Should -Be $true }
+                It "inconclusive forced" { Set-TestInconclusive ; $true | Should -Be $true }
+                It 'skipped by Set-ItResult' {
+                    Set-ItResult -Skipped -Because "it is a test"
+                }
+                It 'pending by Set-ItResult' {
+                    Set-ItResult -Pending -Because "it is a test"
+                }
+                It 'inconclusive by Set-ItResult' {
+                    Set-ItResult -Inconclusive -Because "it is a test"
+                }
             }
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $TestSuite -UseStrictPesterMode
         $result.PassedCount | Should Be 0
-        $result.FailedCount | Should Be 2
+        $result.FailedCount | Should Be 6
 
-        $result.TotalCount | Should Be 2
+        $result.TotalCount | Should Be 6
     }
 }
 

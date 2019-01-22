@@ -200,15 +200,17 @@ function ConvertTo-PesterResult {
         $line = $details.Line
         $Text = $details.LineText
 
-        switch ($ErrorRecord.FullyQualifiedErrorID) {
-            PesterTestInconclusive {
-                $testResult.Result = "Inconclusive"; break;
-            }
-            PesterTestPending {
-                $testResult.Result = "Pending"; break;
-            }
-            PesterTestSkipped {
-                $testResult.Result = "Skipped"; break;
+        if (-not $Pester.Strict) {
+            switch ($ErrorRecord.FullyQualifiedErrorID) {
+                PesterTestInconclusive {
+                    $testResult.Result = "Inconclusive"; break;
+                }
+                PesterTestPending {
+                    $testResult.Result = "Pending"; break;
+                }
+                PesterTestSkipped {
+                    $testResult.Result = "Skipped"; break;
+                }
             }
         }
     }
