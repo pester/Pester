@@ -162,7 +162,7 @@ function New-PesterState {
             }
 
             if (-not $script:Strict) {
-                $Passed = "Passed", "Skipped", "Pending", "Inconclusive" -contains $Result
+                $Passed = "Passed", "Skipped", "Pending" -contains $Result
             }
             else {
                 $Passed = $Result -eq "Passed"
