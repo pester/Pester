@@ -21,7 +21,7 @@ $state = [PSCustomObject] @{
 
 function Reset-TestSuiteState {
     # resets the module state to the default
-    Write-PesterDebugMessage "Resetting internal state to default."
+    Write-PesterDebugMessage -Scope Runtime "Resetting internal state to default."
     $state.Discovery = $false
 
     $state.Plugin = $null
@@ -63,18 +63,6 @@ function New_PSObject {
     }
 
     New-Object -Type PSObject -Property $Property
-}
-
-###
-
-function Write-PesterDebugMessage {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Message
-    )
-
-    # Write-Host -ForegroundColor Blue $Message
 }
 
 function Find-Test {
@@ -185,12 +173,12 @@ function New-Block {
 
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = Get-ScopeHistory | % Name
-    Write-PesterDebugMessage "Entering path $($path -join '.')"
+    Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
 
     $block = $null
 
     if (Is-Discovery) {
-        Write-PesterDebugMessage "Adding block $Name to discovered blocks"
+        Write-PesterDebugMessage -Scope Runtime "Adding block $Name to discovered blocks"
         $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData
         # we attach the current block to the parent
         Add-Block -Block $block
@@ -205,16 +193,16 @@ function New-Block {
 
     try {
         if (Is-Discovery) {
-            Write-PesterDebugMessage "Discovering in body of block $Name"
+            Write-PesterDebugMessage -Scope Runtime "Discovering in body of block $Name"
             & $ScriptBlock
-            Write-PesterDebugMessage "Finished discovering in body of block $Name"
+            Write-PesterDebugMessage -Scope Runtime "Finished discovering in body of block $Name"
         }
         else {
             if (-not $block.ShouldRun) {
-                Write-PesterDebugMessage "Block is excluded from run, returning"
+                Write-PesterDebugMessage -Scope Runtime "Block is excluded from run, returning"
                 return
             }
-            Write-PesterDebugMessage "Executing body of block $Name"
+            Write-PesterDebugMessage -Scope Runtime "Executing body of block $Name"
 
             # TODO: no callbacks are provided because we are not transitioning between any states,
             # it might be nice to add a parameter to indicate that we run in the same scope
@@ -269,7 +257,7 @@ function New-Block {
                 $block.StandardOutput = $result.StandardOutput
 
                 $block.ErrorRecord = $result.ErrorRecord
-                Write-PesterDebugMessage "Finished executing body of block $Name"
+                Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
             }
 
             $frameworkTeardownResult = Invoke-ScriptBlock `
@@ -287,17 +275,31 @@ function New-Block {
 
 
             if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
-                throw "framework fail"
+                & { # report framework failure
+                    $ErrorActionPreference = 'Continue'
+                    if ($frameworkSetupResult.ErrorRecord) {
+                        foreach ($e in $frameworkSetupResult.ErrorRecord) {
+                            Write-Error -ErrorRecord $e
+                        }
+                    }
+                    if ($frameworkTeardownResult.ErrorRecord) {
+                        foreach ($e in $frameworkTeardownResult.ErrorRecord) {
+                            Write-Error -ErrorRecord $e
+                        }
+                    }
+
+                    throw "framework fail"
+                }
             }
         }
     }
     finally {
         $block.Duration = $state.BlockStopWatch.Elapsed - $blockStartTime
         $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        Write-PesterDebugMessage "Leaving path $($path -join '.')"
+        Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
         Set-CurrentBlock -Block $previousBlock
         $null = Pop-Scope
-        Write-PesterDebugMessage "Left block $Name"
+        Write-PesterDebugMessage -Scope Runtime "Left block $Name"
     }
 }
 
@@ -317,18 +319,18 @@ function New-Test {
     $testStartTime = $state.TestStopWatch.Elapsed
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
 
-    Write-PesterDebugMessage "Entering test $Name"
+    Write-PesterDebugMessage -Scope Runtime "Entering test $Name"
     Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
     try {
         $path = Get-ScopeHistory | % Name
-        Write-PesterDebugMessage "Entering path $($path -join '.')"
+        Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
             $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path
             $test.FrameworkData.Runtime.Phase = 'Discovery'
             Add-Test -Test $test
-            Write-PesterDebugMessage "Added test '$Name'"
+            Write-PesterDebugMessage -Scope Runtime "Added test '$Name'"
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id
@@ -336,7 +338,7 @@ function New-Test {
             Set-CurrentTest -Test $test
 
             if (-not $test.ShouldRun) {
-                Write-PesterDebugMessage "Test is excluded from run, returning"
+                Write-PesterDebugMessage -Scope Runtime "Test is excluded from run, returning"
                 return
             }
 
@@ -353,7 +355,7 @@ function New-Test {
 
             $block = Get-CurrentBlock
 
-            Write-PesterDebugMessage "Running test '$Name'."
+            Write-PesterDebugMessage -Scope Runtime "Running test '$Name'."
             # TODO: no callbacks are provided because we are not transitioning between any states,
             # it might be nice to add a parameter to indicate that we run in the same scope
             # so we can avoid getting and setting the scope on scriptblock that already has that
@@ -455,10 +457,10 @@ function New-Test {
         }
     }
     finally {
-        Write-PesterDebugMessage "Leaving path $($path -join '.')"
+        Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
         $state.CurrentTest = $null
         $null = Pop-Scope
-        Write-PesterDebugMessage "Left test $Name"
+        Write-PesterDebugMessage -Scope Runtime "Left test $Name"
     }
 }
 
@@ -882,20 +884,11 @@ function Invoke-ScriptBlock {
                         &$______parameters.WriteDebug "There are no inner setups"
                     }
 
-                    if ($null -ne $______parameters.ScriptBlock -and $______parameters.ScriptBlock.Length -gt 0) {
-                        &$______parameters.WriteDebug "Running scriptblocks"
-                        foreach ($______current in $______parameters.ScriptBlock) {
-                            &$______parameters.WriteDebug "Running scriptblock { $______current }"
-                            $______parameters.CurrentlyExecutingScriptBlock = $______current
-                            . $______current @______innerSplat
-                        }
-                        $______current = $null
-                        $______parameters.ScriptBlock = $null
-                        &$______parameters.WriteDebug "Done running scrtptblocks"
-                    }
-                    else {
-                        &$______parameters.WriteDebug "There are no scriptblocks"
-                    }
+                    &$______parameters.WriteDebug "Running scriptblock { $______current }"
+                    $______parameters.CurrentlyExecutingScriptBlock = $______current
+                    . $______parameters.ScriptBlock @______innerSplat
+
+                    &$______parameters.WriteDebug "Done running scrtptblock"
                 }
                 catch {
                     $______parameters.ErrorRecord += $_
@@ -989,7 +982,11 @@ function Invoke-ScriptBlock {
             ErrorRecord                   = @()
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
-            WriteDebug                    = {} # { param( $Message )  Write-Host -ForegroundColor Blue $Message }
+            WriteDebug                    = &{
+                param( $Writer, $Scope ) {
+                    param($Message) & $Writer -Scope $Scope $Message
+                }.GetNewClosure()
+            } -Writer (Get-Command Write-PesterDebugMessage) -Scope "CoreRuntime"
         }
 
         # here we are moving into the user scope if the provided
@@ -1113,7 +1110,7 @@ function Test-ShouldRun {
     )
     $fullTestPath = $Test.Path -join "."
     if ($null -eq $Filter) {
-        Write-PesterDebugMessage "($fullTestPath) Test is included, because there is no filter."
+        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is included, because there is no filter."
         return $true
     }
 
@@ -1123,7 +1120,7 @@ function Test-ShouldRun {
         foreach ($f in $tagFilter) {
             foreach ($t in $Test.Tag) {
                 if ($t -like $f) {
-                    Write-PesterDebugMessage "($fullTestPath) Test is excluded, because it's tag '$t' matches exclude tag filter '$f'."
+                    Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is excluded, because it's tag '$t' matches exclude tag filter '$f'."
                     return $false
                 }
             }
@@ -1138,13 +1135,13 @@ function Test-ShouldRun {
     if (any $tagFilter) {
         $hasTagFilter = $true
         if (none $test.Tag) {
-            Write-PesterDebugMessage "($fullTestPath) Test is excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
+            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
         }
         else {
             foreach ($f in $tagFilter) {
                 foreach ($t in $Test.Tag) {
                     if ($t -like $f) {
-                        Write-PesterDebugMessage "($fullTestPath) Test is included, because it's tag '$t' matches tag filter '$f'."
+                        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is included, because it's tag '$t' matches tag filter '$f'."
                         $hasMatchingTag = $true
                         break
                     }
@@ -1160,11 +1157,11 @@ function Test-ShouldRun {
         $hasPathFilter = $true
         $include = $allPaths -contains $fullTestPath
         if ($include) {
-            Write-PesterDebugMessage "($fullTestPath) Test is included, because it matches full path filter."
+            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is included, because it matches full path filter."
             $hasMatchingPath = $true
         }
         else {
-            Write-PesterDebugMessage "($fullTestPath) Test is excluded, because its full path does not match the path filter."
+            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is excluded, because its full path does not match the path filter."
         }
     }
 

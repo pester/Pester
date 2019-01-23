@@ -115,6 +115,28 @@ function Merge-Hashtable ($Source, $Destination) {
     }
 }
 
+function Write-PesterDebugMessage {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("CoreRuntime", "Runtime", "Mock", "Discovery")]
+        [String] $Scope,
+        [Parameter(Mandatory = $true)]
+        [String] $Message
+    )
+    $off = $true
+
+    if ($off) {return}
+
+    $color = switch ($Scope) {
+        "CoreRuntime" { "Cyan" }
+        "Runtime" { "DarkGray" }
+        "Mock" { "DarkYellow" }
+        "Discovery" { "DarkMagenta" }
+    }
+
+    Write-Host -ForegroundColor Black -BackgroundColor $color  " ${Scope}: `t $Message "
+}
 
 function Fold-Block {
     param(
