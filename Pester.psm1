@@ -1147,6 +1147,6 @@ Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-& $script:SafeCommands['Export-ModuleMember'] New-PesterOption, Add-Dependency
+& $script:SafeCommands['Export-ModuleMember'] New-PesterOption, Add-Dependency, Add-FreeFloatingCode
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator

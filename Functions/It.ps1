@@ -110,16 +110,21 @@ about_should
 
         [System.Collections.IDictionary[]] $TestCases,
 
-        [String[]] $Tag #,
+        [String[]] $Tag,
 
-        # [Parameter(ParameterSetName = 'Pending')]
-        # [Switch] $Pending,
+        [Parameter(ParameterSetName = 'Pending')]
+        [Switch] $Pending,
 
-        # [Parameter(ParameterSetName = 'Skip')]
-        # [Alias('Ignore')]
-        # [Switch] $Skip
+        [Parameter(ParameterSetName = 'Skip')]
+        [Alias('Ignore')]
+        [Switch] $Skip
     )
 
+    if ($Pending -or $Skip) {
+        # keep the api, just skip the test without reporting
+        # it until I add support for different test results
+        return
+    }
 
     if (any $TestCases) {
         New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag

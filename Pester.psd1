@@ -51,6 +51,7 @@
         'Add-ShouldOperator'
         'Get-ShouldOperator'
         'Add-Dependency'
+        'Add-FreeFloatingCode'
 
         # Gherkin Support:
         'Invoke-Gherkin'

@@ -1614,6 +1614,7 @@ Export-ModuleMember -Function @(
     'New-OneTimeBlockTeardown'
     'Add-Dependency'
     'Add-FrameworkDependency'
+    'Add-FreeFloatingCode'
     'Invoke-Test',
     'Find-Test',
 
