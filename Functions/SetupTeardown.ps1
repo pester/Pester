@@ -83,7 +83,7 @@ function BeforeAll {
     )
     Assert-DescribeInProgress -CommandName BeforeAll
 
-    Pester.Runtime\New-OneTimeBlockSetup -ScriptBlock $Scriptblock
+    Pester.Runtime\New-OneTimeTestSetup -ScriptBlock $Scriptblock
 }
 
 function AfterAll {
@@ -111,5 +111,5 @@ function AfterAll {
     )
     Assert-DescribeInProgress -CommandName AfterAll
 
-    Pester.Runtime\New-OneTimeBlockTeardown -ScriptBlock $Scriptblock
+    Pester.Runtime\New-OneTimeTestTeardown -ScriptBlock $Scriptblock
 }
