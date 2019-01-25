@@ -398,7 +398,7 @@ function New-Test {
                     if (any $eachTestSetups) {
                         # we collect the child first but want the parent to run first
                         [Array]::Reverse($eachTestSetups)
-                        @({ $test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
+                        @( { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
                     }
                     # setting the execution info here so I don't have to invoke change the
                     # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
@@ -410,7 +410,7 @@ function New-Test {
                     -ScriptBlock $ScriptBlock `
                     -Teardown @(
                     if (any $eachTestTeardowns) {
-                        @({ $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
+                        @( { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
                     } ) `
                     -OuterTeardown @(
                     if ($test.Last -and (any $block.OneTimeTestTeardown )) {
@@ -980,7 +980,7 @@ function Invoke-ScriptBlock {
             ErrorRecord                   = @()
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
-            WriteDebug                    = &{
+            WriteDebug                    = & {
                 param( $Writer, $Scope ) {
                     param($Message) & $Writer -Scope $Scope $Message
                 }.GetNewClosure()

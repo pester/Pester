@@ -641,7 +641,7 @@ i {
                 OneTimeTeardownRun = $false
             }
 
-            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+            $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-OneTimeTestSetup {
                         $container.OneTimeSetupRun = $true
                     }
@@ -1137,7 +1137,7 @@ i {
         }
     }
 
-    b "running parent setups" {
+    b "running parent each setups and teardowns" {
         t "adding each test setup runs it before each test in that block and in any child blocks" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
@@ -1247,10 +1247,98 @@ i {
             $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "child->parent"
             $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
         }
+    }
 
-        # test multiple setups and that they run in upper -> below order
-        # test teardowns
-        # test multiple teradowns and that they run in below -> upper order
+    b "failing one time block setups and teardowns" {
+        t "failing in onetime setup will fail the block and everything below" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-OneTimeBlockSetup {
+                        throw "error1"
+                    }
+                    New-Block -Name "block1" {
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test "test 3" { }
+                    }
+                }
+            )
+
+            # everything in that first block should have
+            # been running but all the inner things did not run
+            # and failed
+            $actual.Blocks[0].First | Verify-True
+            $actual.Blocks[0].Passed | Verify-False
+            $actual.Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Executed | Verify-True
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-False
+            $actual.Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Tests[0].Executed | Verify-False
+
+            $actual.Blocks[0].Blocks[0].Passed | Verify-False
+            $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Executed | Verify-False
+
+            $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
+            $actual.Blocks[0].Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-False
+
+            $actual.Blocks[1].Passed | Verify-True
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
+        }
+
+        t "failing in onetime block teardown will fail the block" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-OneTimeBlockTeardown {
+                        throw "error1"
+                    }
+                    New-Block -Name "block1" {
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test "test 3" { }
+                    }
+                }
+            )
+
+            #everyting passed but...
+            $actual.Blocks[0].Passed | Verify-True
+            $actual.Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Executed | Verify-True
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+
+            $actual.Blocks[0].Blocks[0].Passed | Verify-True
+            $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Executed | Verify-True
+
+            $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
+
+            # ...but the last block
+            $actual.Blocks[1].Last | Verify-True
+            $actual.Blocks[1].Passed | Verify-False
+        }
     }
 }
 
