@@ -64,7 +64,7 @@ i {
         }
 
 
-        t "mock defined in beforeall is counted independently" {
+        dt "mock defined in beforeall is counted independently" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function f { "real" } }
                 Describe 'd1' {

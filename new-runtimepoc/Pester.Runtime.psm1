@@ -225,24 +225,16 @@ function New-Block {
             if ($frameworkSetupResult.Success) {
                 $result = Invoke-ScriptBlock `
                     -ScriptBlock $ScriptBlock `
-                    -OuterSetup $( if (-not (Is-Discovery) -and $block.First) {
-                        combineNonNull @(
-                            $previousBlock.OneTimeBlockSetup
-                        )
-                    }) `
-                    -Setup $( if (-not (Is-Discovery)) {
+                    -OuterSetup $( if (-not (Is-Discovery)) {
                         combineNonNull @(
                             $previousBlock.EachBlockSetup
+                            $block.OneTimeTestSetup
                         )
-                    } ) `
-                    -Teardown $( if (-not (Is-Discovery)) {
+                    }) `
+                    -OuterTeardown $( if (-not (Is-Discovery)) {
                         combineNonNull @(
+                            $block.OneTimeTestTeardown
                             $previousBlock.EachBlockTeardown
-                        )
-                    } ) `
-                    -OuterTeardown $( if (-not (Is-Discovery) -and $block.Last) {
-                        combineNonNull @(
-                            $previousBlock.OneTimeBlockTeardown
                         )
                     } ) `
                     -Context @{
@@ -386,14 +378,6 @@ function New-Test {
                 $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
 
                 $result = Invoke-ScriptBlock `
-                    -OuterSetup @(
-                    if ($test.First -and (any $block.OneTimeTestSetup)) {
-                        @(
-                            { $test.FrameworkData.Runtime.ExecutionStep = 'OneTimeTestSetup' }
-                            $block.OneTimeTestSetup
-                        )
-                    }
-                ) `
                     -Setup @(
                     if (any $eachTestSetups) {
                         # we collect the child first but want the parent to run first
@@ -412,14 +396,6 @@ function New-Test {
                     if (any $eachTestTeardowns) {
                         @( { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
                     } ) `
-                    -OuterTeardown @(
-                    if ($test.Last -and (any $block.OneTimeTestTeardown )) {
-                        @(
-                            { $test.FrameworkData.Runtime.ExecutionStep = 'OneTimeTestTeardown' }
-                            $block.OneTimeTestTeardown
-                        )
-                    }
-                ) `
                     -Context $context `
                     -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Test } `
