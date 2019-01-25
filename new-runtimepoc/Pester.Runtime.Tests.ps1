@@ -659,14 +659,11 @@ i {
                     }
 
                     New-Block "block1" {
-                        New-Test "test1" {}
+                        New-Block "block2" {
+
+                        }
                     }
                 })
-
-            # the test should execute but non of the above setups should run
-            # those setups are running only for the tests in the current block
-
-            $result.Blocks[0].Tests[0].Executed | Verify-True
 
             $container.OneTimeSetupRun | Verify-False
             $container.EachSetupRun | Verify-False
@@ -1138,6 +1135,122 @@ i {
             $container.Iteration | Verify-Equal 2
             $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
+    }
+
+    b "running parent setups" {
+        t "adding each test setup runs it before each test in that block and in any child blocks" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name "block1" {
+                        New-EachTestSetup {
+                            "me"
+                        }
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test "test 3" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
+        }
+
+        t "adding multiple each test setups runs them in parent first, child last order " {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name "block1" {
+                        New-EachTestSetup {
+                            "parent"
+                        }
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-EachTestSetup {
+                                "child"
+                            }
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test "test 3" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent->child"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
+        }
+
+        t "adding each test teardown runs it after each test in that block and in any child blocks" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name "block1" {
+                        New-EachTestTeardown {
+                            "me"
+                        }
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test "test 3" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
+        }
+
+        t "adding multiple each test teardowns runs them in child first, parent last order " {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name "block1" {
+                        New-EachTestTeardown {
+                            "parent"
+                        }
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-EachTestTeardown {
+                                "child"
+                            }
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test "test 3" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "child->parent"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
+        }
+
+        # test multiple setups and that they run in upper -> below order
+        # test teardowns
+        # test multiple teradowns and that they run in below -> upper order
     }
 }
 

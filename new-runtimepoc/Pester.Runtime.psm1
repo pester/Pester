@@ -382,6 +382,9 @@ function New-Test {
                 $context = @{ Context = $testInfo }
                 Merge-Hashtable -Source $test.Data -Destination $context
 
+                $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
+                $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
+
                 $result = Invoke-ScriptBlock `
                     -OuterSetup @(
                     if ($test.First -and (any $block.OneTimeTestSetup)) {
@@ -392,12 +395,10 @@ function New-Test {
                     }
                 ) `
                     -Setup @(
-                    if (any $block.EachTestSetup) {
-                        @(
-                            { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }
-                            $block.EachTestSetup
-                        )
-
+                    if (any $eachTestSetups) {
+                        # we collect the child first but want the parent to run first
+                        [Array]::Reverse($eachTestSetups)
+                        @({ $test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
                     }
                     # setting the execution info here so I don't have to invoke change the
                     # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
@@ -408,11 +409,8 @@ function New-Test {
                 ) `
                     -ScriptBlock $ScriptBlock `
                     -Teardown @(
-                    if (any $block.EachTestTeardown) {
-                        @(
-                            { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }
-                            $block.EachTestTeardown
-                        )
+                    if (any $eachTestTeardowns) {
+                        @({ $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
                     } ) `
                     -OuterTeardown @(
                     if ($test.Last -and (any $block.OneTimeTestTeardown )) {
@@ -1591,7 +1589,22 @@ function New-ParametrizedTest () {
     }
 }
 
+function Recurse-Up {
+    param(
+        [Parameter(Mandatory)]
+        $InputObject,
+        [ScriptBlock] $Action
+    )
 
+    $i = $InputObject
+    $level = 0
+    while ($null -ne $i) {
+        &$Action $i
+
+        $level--
+        $i = $i.Parent
+    }
+}
 
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
