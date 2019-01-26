@@ -64,7 +64,7 @@ i {
         }
 
 
-        dt "mock defined in beforeall is counted independently" {
+        t "mock defined in beforeall is counted independently" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function f { "real" } }
                 Describe 'd1' {
@@ -136,6 +136,33 @@ i {
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
+        }
+    }
+
+    b "taking mocks from all scopes" {
+        dt "mocks defined in the parent scope can still be used" {
+            $actual = Invoke-Pester -ScriptBlock {
+                Add-Dependency { function f { "real" } }
+                Describe 'd1' {
+                    BeforeAll {
+                        Mock f { "mock" }
+                    }
+
+                    Describe 'd2' {
+                        Describe 'd3' {
+                            It 'i1' {
+                                f
+                            }
+                        }
+                    }
+
+                    AfterAll {
+                        Assert-MockCalled f -Times 1 -Exactly
+                    }
+                }
+            } -PassThru
+
+            $actual.Blocks[0].Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal 'mock'
         }
     }
 }

@@ -206,7 +206,15 @@ function Get-DefinedMocksTable {
     # or any of the mocks above it
     # this does not list mocks in other tests
     $currentTest = Get-CurrentTest
-    $currentBlock = Get-CurrentBlock
+
+    $blockMockTables = Recurse-Up (Get-CurrentBlock) {
+        param($t)
+        if ($t.PluginData) {
+            if ($t.PluginData.Mock) {
+                $t.PluginData.Mock.DefinedMocks
+            }
+        }
+    }
 
     $inTest = any $currentTest
 
@@ -225,16 +233,18 @@ function Get-DefinedMocksTable {
         }
     }
 
-    foreach ($mock in $currentBlock.PluginData.Mock.DefinedMocks.GetEnumerator()) {
-        # we are interested in any mock with the given name
-        # no matter which module it comes from, it will be filtered
-        # down later
-        if ($mock.Key -like $commandNameFilter) {
-            if (-not ($mockTable.ContainsKey($mock.Key))) {
-                $mockTable.Add($mock.Key, $mock.Value)
-            }
-            else {
-                $mockTable[$mock.Key].Blocks += $mock.Value.Blocks
+    foreach ($blockMockTable in $blockMockTables) {
+        foreach ($mock in $blockMockTable.GetEnumerator()) {
+            # we are interested in any mock with the given name
+            # no matter which module it comes from, it will be filtered
+            # down later
+            if ($mock.Key -like $commandNameFilter) {
+                if (-not ($mockTable.ContainsKey($mock.Key))) {
+                    $mockTable.Add($mock.Key, $mock.Value)
+                }
+                else {
+                    $mockTable[$mock.Key].Blocks += $mock.Value.Blocks
+                }
             }
         }
     }
@@ -257,12 +267,21 @@ function Get-AssertMockTable {
     $inTest = any $currentTest
     # we are in the current test, and did not force assertion for whole block, and we are not running this from one time test teardown
     # so we want to see just mock calls from the current test
-    if ($inTest -and -not $ForceIncludingBlockMock -and 'OneTimeTestTeardown' -ne $currentTest.FrameworkData.Runtime.ExecutionStep) {
+    if ($inTest -and -not $ForceIncludingBlockMock) {
         return $currentTest.PluginData.Mock.CallHistory
     }
 
     $currentBlock = Get-CurrentBlock
     $merged = @{}
+
+    CollectMocks $merged $currentBlock
+
+    # merge them into a new one with per block taking precedence
+    # but can we even define mock in test when the same is in the block already?
+    $merged
+}
+
+function CollectMocks ($merged, $currentBlock) {
     if (any $currentBlock.PluginData.Mock.CallHistory) {
         Merge-HashTable -Source $currentBlock.PluginData.Mock.CallHistory -Destination $merged
     }
@@ -280,9 +299,9 @@ function Get-AssertMockTable {
         }
     }
 
-    # merge them into a new one with per block taking precedence
-    # but can we even define mock in test when the same is in the block already?
-    $merged
+    foreach ($b in $currentBlock.Blocks) {
+        CollectMocks $merged $b
+    }
 }
 
 function Get-MockDataForCurrentScope {

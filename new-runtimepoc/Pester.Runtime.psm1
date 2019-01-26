@@ -1610,6 +1610,7 @@ Export-ModuleMember -Function @(
     # here I have doubts if that is too much to expose
     'Get-CurrentTest'
     'Get-CurrentBlock'
+    'Recurse-Up'
 
     # those are quickly implemented to be useful for demo
     'Where-Failed'
