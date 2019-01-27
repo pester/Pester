@@ -95,6 +95,6 @@ Describe "New-Fixture" {
         }
 
     }
-    #TODO add tests that validate the contents of default files
+    #TODO: add tests that validate the contents of default files
 }
 

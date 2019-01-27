@@ -1,33 +1,34 @@
-function Get-TestDrivePlugin () {
+function Get-TestDrivePlugin {
 
     Pester.Runtime\New-PluginObject -Name "TestDrive" -EachBlockSetup {
         param($Context)
-        if (-not ($Context.PluginState.ContainsKey('TestDrive'))) {
-            $Context.PluginState.Add('TestDrive', @{
+        if (-not ($Context.Block.PluginData.ContainsKey('TestDrive'))) {
+            $Context.Block.PluginData.Add('TestDrive', @{
                     TestDriveAdded   = $false
                     TestDriveContent = $null
                 })
         }
+
         # TODO: Add option, but probably in a more generic way
         # if (-not $NoTestDrive)
         # {
         if (-not (Test-Path TestDrive:\)) {
             New-TestDrive
-            $Context.PluginState.TestDrive.TestDriveAdded = $true
+            $Context.Block.PluginData.TestDrive.TestDriveAdded = $true
         }
         else {
-            $Context.PluginState.TestDrive.TestDriveContent = Get-TestDriveChildItem
+            $Context.Block.PluginData.TestDrive.TestDriveContent = Get-TestDriveChildItem
         }
         # }
 
     } -EachBlockTearDown {
         # if (-not $NoTestDrive)
         # {
-        if ($Context.PluginState.TestDrive.TestDriveAdded) {
+        if ($Context.Block.PluginData.TestDrive.TestDriveAdded) {
             Remove-TestDrive
         }
         else {
-            Clear-TestDrive -Exclude ( $Context.PluginState.TestDrive.TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+            Clear-TestDrive -Exclude ( $Context.PluginData.TestDrive.TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
         }
         # }
     }
@@ -121,7 +122,7 @@ function Remove-TestDrive {
 
     if ($pwd -like "$DriveName*" ) {
         #will staying in the test drive cause issues?
-        #TODO review this
+        #TODO: review this
         & $SafeCommands['Write-Warning'] -Message "Your current path is set to ${pwd}:. You should leave ${DriveName}:\ before leaving Describe."
     }
 

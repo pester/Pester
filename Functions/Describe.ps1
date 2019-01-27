@@ -89,7 +89,7 @@ about_TestDrive
     # else {
     #     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -FrameworkData $FrameworkData
     # }
-    ### todo end
+    ### TODO: end
 
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
     # {

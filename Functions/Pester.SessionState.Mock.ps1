@@ -373,7 +373,7 @@ This will not throw an exception because the mock was invoked.
 
     Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
-    # TODO : figure out what mock table to use
+    # TODO: : figure out what mock table to use
     Assert-VerifiableMockInternal -MockTable $MockTable
 }
 

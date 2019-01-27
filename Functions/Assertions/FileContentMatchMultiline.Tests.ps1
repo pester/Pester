@@ -3,7 +3,10 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -FileContentMatchMultiline" {
         Context "when testing file contents" {
-            Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)this is line 2$([System.Environment]::NewLine)Pester is awesome"
+            BeforeAll {
+                Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)this is line 2$([System.Environment]::NewLine)Pester is awesome"
+            }
+
             It "returns true if the file matches the specified content on one line" {
                 "$TestDrive\test.txt" | Should FileContentMatchMultiline  "Pester"
             }

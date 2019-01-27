@@ -692,6 +692,7 @@ New-PesterOption
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
 
+        # TODO: remove all references to $pester
         $pester = @{ SessionState = $PSCmdlet.SessionState }
 
         $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin), (Get-MockPlugin))

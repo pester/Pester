@@ -10,7 +10,6 @@ $state = [PSCustomObject] @{
     CurrentTest        = $null
 
     Plugin             = $null
-    PluginState        = @{}
 
     TotalStopWatch     = $null
     TestStopWatch      = $null
@@ -25,7 +24,6 @@ function Reset-TestSuiteState {
     $state.Discovery = $false
 
     $state.Plugin = $null
-    $state.PluginState = @{}
 
     $state.CurrentBlock = $null
     $state.CurrentTest = $null
@@ -39,7 +37,6 @@ function Reset-PerContainerState {
         [PSTypeName("DiscoveredBlock")] $RootBlock
     )
     $state.CurrentBlock = $RootBlock
-    $state.PluginState = @{}
     Reset-Scope
 }
 
@@ -163,7 +160,7 @@ function New-Block {
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        # TODO rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
+        # TODO: rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
         [HashTable] $FrameworkData = @{}
     )
 
@@ -217,8 +214,9 @@ function New-Block {
                 -ScriptBlock {} `
                 -Context @{
                 Context = @{
+                    # context that is visible to plugins
                     Block       = $block
-                    PluginState = $state.PluginState
+                    Test = $null
                 }
             }
 
@@ -238,6 +236,7 @@ function New-Block {
                         )
                     } ) `
                     -Context @{
+                        # context that is visible in user code
                     Context = $block | Select -Property Name
                 } `
                     -ReduceContextToInnerScope `
@@ -260,8 +259,9 @@ function New-Block {
             ) `
                 -Context @{
                 Context = @{
+                    # context that is visible to plugins
                     Block       = $block
-                    PluginState = $state.PluginState
+                    Test = $null
                 }
             }
 
@@ -361,8 +361,9 @@ function New-Test {
                 -ScriptBlock {} `
                 -Context @{
                 Context = @{
+                    # context visible to Plugins
+                    Block = $block
                     Test        = $test
-                    PluginState = $state.PluginState
                 }
             }
 
@@ -371,7 +372,9 @@ function New-Test {
                 $testInfo = $Test | Select -Property Name, Path
                 # user provided data are merged with Pester provided context
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
-                $context = @{ Context = $testInfo }
+                $context = @{
+                    # context visible in test
+                    Context = $testInfo }
                 Merge-Hashtable -Source $test.Data -Destination $context
 
                 $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
@@ -420,8 +423,9 @@ function New-Test {
             ) `
                 -Context @{
                 Context = @{
+                    # context visible to Plugins
                     Test        = $test
-                    PluginState = $state.PluginState
+                    Block = $block
                 }
             }
 
@@ -634,6 +638,8 @@ function New-BlockObject {
         FrameworkData        = $FrameworkData
         Tests                = @()
         BlockContainer       = $null
+        Root              = $null
+        IsRoot = $null
         Parent               = $null
         EachTestSetup        = $null
         OneTimeTestSetup     = $null
@@ -1156,8 +1162,44 @@ function Invoke-Test {
 
     $state.Plugin = $Plugin
 
+    # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
+
+    # finding if there were any non-terminating errors during the run, user can clear the array, and the array has fixed size so we can't just try to detect if there is any difference by counts before and after. So I capture the last known error in that state and try to find it in the array after the run
+    $originalErrors = $SessionState.PSVariable.Get("Error").Value
+    $originalLastError = $originalErrors[0]
+    $originalErrorCount = $originalErrors.Count
+
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
+    $errs = $SessionState.PSVariable.Get("Error").Value
+    $errsCount = $errs.Count
+    if ($errsCount -lt $originalErrorCount) {
+        # it would be possible to detect that there are 0 errors, in the array and continue,
+        # but this still indicates the user code is running where it should not, so let's throw anyway
+        throw "Test discovery failed. The error count ($errsCount) after running discovery is lower than the error count before discovery ($originalErrorCount). Is some of your code running outside Pester controlled blocks and it clears the `$error array by calling `$error.Clear()?"
+
+    }
+
+
+    if ($originalErrorCount -lt $errsCount) {
+        # probably the most usual case,  there are more errors then there were before,
+        # so some were written to the screen, this also runs when the user cleared the
+        # array and wrote more errors than there originally were
+        $i = $errsCount - $originalErrorCount
+    }
+    else {
+        # there is equal amount of errors, the array was probabably full and so the original
+        # error shifted towards the end of the array, we try to find it and see how many new
+        # errors are there
+        for ($i = 0 ; $i -lt $errsLength; $i++) {
+            if ([object]::referenceEquals($errs[$i], $lastError)) {
+                break
+            }
+        }
+    }
+    if (0 -ne $i) {
+        throw "Test discovery failed. There were $i non-terminating errors during test discovery. This indicates that some of your code is invoked outside of Pester controlled blocks and fails. No tests will be run."
+    }
     Run-Test -Block $found -SessionState $SessionState
 }
 
@@ -1165,56 +1207,56 @@ function PostProcess-DiscoveredBlock {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
+        [PSTypeName("DiscoveredBlock")][PSObject] $Block,
         [PSTypeName("Filter")] $Filter,
-        [PSTypeName("BlockContainer")] $BlockContainer
+        [PSTypeName("BlockContainer")] $BlockContainer,
+        [PSTypeName("DiscoveredBlock")][PSObject] $RootBlock
     )
 
     # traverses the block structure after a block was found and
     # link childs to their parents, filter blocks and tests to
     # determine which should run, and mark blocks and tests
     # as first or last to know when one time setups & teardowns should run
+    if ($Block -eq $RootBlock) {
+        $Block.IsRoot = $true
+    }
+    $Block.Root = $RootBlock
+    $Block.BlockContainer = $BlockContainer
 
-    process {
-        foreach ($b in $Block) {
-            $b.BlockContainer = $BlockContainer
+    $tests = $Block.Tests
+    $blockShouldRun = $false
+    if (any $tests) {
+        foreach ($t in $tests) {
+            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $Filter
+        }
 
-            $tests = $b.Tests
-            $blockShouldRun = $false
-            if (any $tests) {
-                foreach ($t in $tests) {
-                    $t.ShouldRun = Test-ShouldRun -Test $t -Filter $Filter
-                }
-
-                $testsToRun = $tests | where { $_.ShouldRun }
-                if (any $testsToRun) {
-                    $testsToRun[0].First = $true
-                    $testsToRun[-1].Last = $true
-                    $blockShouldRun = $true
-                }
-            }
-
-            $childBlocks = $b.Blocks
-            $anyChildBlockShouldRun = $false
-            if (any $childBlocks) {
-                foreach ($cb in $childBlocks) {
-                    $cb.Parent = $b
-                    $cb.BlockContainer = $BlockContainer
-                    PostProcess-DiscoveredBlock -Block $cb -Filter $Filter -BlockContainer $BlockContainer
-                }
-
-                $childBlocksToRun = $childBlocks | where { $_.ShouldRun }
-                $anyChildBlockShouldRun = any $childBlocksToRun
-                if ($anyChildBlockShouldRun) {
-                    $childBlocksToRun[0].First = $true
-                    $childBlocksToRun[-1].Last = $true
-                }
-            }
-
-            $b.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
+        $testsToRun = $tests | where { $_.ShouldRun }
+        if (any $testsToRun) {
+            $testsToRun[0].First = $true
+            $testsToRun[-1].Last = $true
+            $blockShouldRun = $true
         }
     }
+
+    $childBlocks = $Block.Blocks
+    $anyChildBlockShouldRun = $false
+    if (any $childBlocks) {
+        foreach ($cb in $childBlocks) {
+            $cb.Parent = $Block
+            PostProcess-DiscoveredBlock -Block $cb -Filter $Filter -BlockContainer $BlockContainer -RootBlock $RootBlock
+        }
+
+        $childBlocksToRun = $childBlocks | where { $_.ShouldRun }
+        $anyChildBlockShouldRun = any $childBlocksToRun
+        if ($anyChildBlockShouldRun) {
+            $childBlocksToRun[0].First = $true
+            $childBlocksToRun[-1].Last = $true
+        }
+    }
+
+    $Block.ShouldRun = $blockShouldRun -or $anyChildBlockShouldRun
 }
+
 
 function PostProcess-ExecutedBlock {
     [CmdletBinding()]

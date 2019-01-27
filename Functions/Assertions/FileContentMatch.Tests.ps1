@@ -3,7 +3,9 @@
 InModuleScope Pester {
     Describe "Should -FileContentMatch" {
         Context "when testing file contents" {
-            Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)rush is awesome$([System.Environment]::NewLine)And this is Unicode: ☺"
+            BeforeAll {
+                Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)rush is awesome$([System.Environment]::NewLine)And this is Unicode: ☺"
+            }
 
             It "returns true if the file contains the specified content" {
                 "$TestDrive\test.txt" | Should FileContentMatch rush

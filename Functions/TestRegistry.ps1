@@ -110,7 +110,7 @@ function Remove-TestRegistry {
 
     if ($pwd -like "$DriveName*" ) {
         #will staying in the test drive cause issues?
-        #TODO review this
+        #TODO: review this
         & $SafeCommands['Write-Warning'] -Message "Your current path is set to ${pwd}:. You should leave ${DriveName}:\ before leaving Describe."
     }
 

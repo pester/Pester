@@ -140,7 +140,7 @@ i {
     }
 
     b "taking mocks from all scopes" {
-        dt "mocks defined in the parent scope can still be used" {
+        t "mocks defined in the parent scope can still be used" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function f { "real" } }
                 Describe 'd1' {

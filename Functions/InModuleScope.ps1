@@ -57,35 +57,35 @@ function InModuleScope {
 
         [Parameter(Mandatory = $true)]
         [scriptblock]
-        $ScriptBlock
-    )
+        $ScriptBlock,
 
-    if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference)) {
-        # User has executed a test script directly instead of calling Invoke-Pester
-        $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in InModuleScope" -SessionState $PSCmdlet.SessionState
-        $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $sessionState
-        $script:mockTable = @{}
-    }
+        [HashTable]
+        $Parameters,
+
+        $ArgumentList
+    )
 
     $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
 
-    $originalState = $Pester.SessionState
-    $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+    # TODO: could this simply be $PSCmdlet.SessionState? Because the original scope we are moving from
+    # is the scope in which this command is running, right?
+    # $originalState = $Pester.SessionState
+    # $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
 
-    try {
-        $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
-        $Pester.SessionState = $sessionState
-        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
+    # try {
+    # $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
+    # $Pester.SessionState = $sessionState
+    # Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
 
-        do {
-            Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
-            & $ScriptBlock
-        } until ($true)
-    }
-    finally {
-        $Pester.SessionState = $originalState
-        Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope
-    }
+    # do {
+    # Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
+    & $module $ScriptBlock @Parameters @ArgumentList
+    # } until ($true)
+    # }
+    # finally {
+    # $Pester.SessionState = $originalState
+    # Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope
+    # }
 }
 
 function Get-ScriptModule {
