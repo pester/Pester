@@ -283,7 +283,7 @@ function Write-CoverageReport {
 
 function ConvertTo-FailureLines {
     param (
-        [Parameter(mandatory = $true, valueFromPipeline = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $ErrorRecord
     )
     process {
@@ -332,7 +332,7 @@ function ConvertTo-FailureLines {
 
         # omit the lines internal to Pester
 
-        If ((GetPesterOS) -ne 'Windows') {
+        if ((GetPesterOS) -ne 'Windows') {
 
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*/Functions/.*.ps1: line [0-9]*$'
             [String]$pattern2 = '^at Should<End>, .*/Functions/Assertions/Should.ps1: line [0-9]*$'
@@ -340,7 +340,7 @@ function ConvertTo-FailureLines {
             [String]$pattern4 = '^at Invoke-Assertion, .*/Functions/.*.ps1: line [0-9]*$'
             [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
         }
-        Else {
+        else {
 
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$'
             [String]$pattern2 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
@@ -355,13 +355,20 @@ function ConvertTo-FailureLines {
             }
             $count ++
         }
-        $lines.Trace += $traceLines |
-            & $SafeCommands['Select-Object'] -First $count |
-            & $SafeCommands['Where-Object'] {
-            $_ -notmatch $pattern2 -and
-            $_ -notmatch $pattern3 -and
-            $_ -notmatch $pattern4 -and
-            $_ -notmatch $pattern5
+
+        if ($null -ne $PesterDebugPreference -and $PesterDebugPreference.ShowFullErrors) {
+            $lines.Trace += $traceLines
+        }
+        else {
+            $PesterDebugPreference
+            $lines.Trace += $traceLines |
+                & $SafeCommands['Select-Object'] -First $count |
+                & $SafeCommands['Where-Object'] {
+                $_ -notmatch $pattern2 -and
+                $_ -notmatch $pattern3 -and
+                $_ -notmatch $pattern4 -and
+                $_ -notmatch $pattern5
+            }
         }
 
         # make error navigateable in VSCode
@@ -437,10 +444,7 @@ function Get-WriteScreenPlugin {
                 #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.failureMessage -replace '(?m)^',$error_margin)
                 # }
                 # else {
-                $_test.ErrorRecord |
-                    ConvertTo-FailureLines |
-                    foreach {$_.Message + $_.Trace} |
-                    foreach { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^', $error_margin) }
+                Write-ErrorToScreen $_test.ErrorRecord
                 # }
                 break
             }
@@ -484,5 +488,23 @@ function Get-WriteScreenPlugin {
         if (-not $Context.Block.Passed) {
             Write-Host -ForegroundColor Red "Block $($Context.Block.Path -join ".") failed" ($Context.Block.ErrorRecord | out-String)
         }
+    }
+}
+
+function Write-ErrorToScreen {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        $Err
+    )
+
+    foreach ($e in $Err) {
+        $lineObjects = ConvertTo-FailureLines $e
+        foreach ($lineObject in $lineObjects) {
+            foreach ($line in ($lineObject.Message + $lineObject.Trace)) {
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($line -replace '(?m)^', $error_margin)
+            }
+        }
+
     }
 }

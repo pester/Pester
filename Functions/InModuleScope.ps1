@@ -96,20 +96,20 @@ function Get-ScriptModule {
     )
 
     try {
+        Write-PesterDebugMessage -Scope Runtime "Searching for a module $ModuleName."
         $modules = @(& $SafeCommands['Get-Module'] -Name $ModuleName -All -ErrorAction Stop)
     }
     catch {
-        throw "No module named '$ModuleName' is currently loaded."
+        throw "No modules named '$ModuleName' are currently loaded."
+    }
+
+    if ($modules.Count -eq 0) {
+        throw "No modules named '$ModuleName' are currently loaded."
     }
 
     $scriptModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -eq 'Script' })
-
-    if ($modules.Count -eq 0) {
-        throw "No module named '$ModuleName' is currently loaded."
-    }
-
     if ($scriptModules.Count -gt 1) {
-        throw "Multiple Script modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
+        throw "Multiple script modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
     }
 
     if ($scriptModules.Count -eq 0) {
@@ -124,5 +124,6 @@ function Get-ScriptModule {
         throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'"
     }
 
+    Write-PesterDebugMessage -Scope Runtime "Found module $ModuleName version $($scriptModules[0].Version)."
     return $scriptModules[0]
 }

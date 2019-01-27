@@ -19,10 +19,10 @@ function or {
 function tryGetProperty {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true, Position = 0)]
-        $PropertyName,
-        [Parameter(ValueFromPipeline = $true)]
-        $InputObject
+        [Parameter(Position = 0)]
+        $InputObject,
+        [Parameter(Mandatory = $true, Position = 1)]
+        $PropertyName
     )
     if ($null -eq $InputObject) {
         return
@@ -42,12 +42,12 @@ function tryGetProperty {
 function trySetProperty {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true, Position = 0)]
-        $PropertyName,
+        [Parameter(Position = 0)]
+        $InputObject,
         [Parameter(Mandatory = $true, Position = 1)]
-        $Value,
-        [Parameter(ValueFromPipeline = $true)]
-        $InputObject
+        $PropertyName,
+        [Parameter(Mandatory = $true, Position = 2)]
+        $Value
     )
 
     if ($null -eq $InputObject) {
@@ -90,6 +90,33 @@ function none ($InputObject) {
     -not (any $InputObject)
 }
 
+function defined {
+    param(
+        [Parameter(Mandatory)]
+        [String] $Name
+    )
+    # gets a variable via the provider and returns it's value, the name is slightly misleading
+    # because it indicates that the variable is not defined when it is null, but that is fine
+    # the call to the provider is slightly more expensive (at least it seems) so this should be
+    # used only when we want a value that we will further inspect, and we don't want to add the overhead of
+    # first checking that the variable exists and then getting it's value like here:
+    # defined v & hasValue v & $v.Name -eq "abc"
+    $ExecutionContext.SessionState.PSVariable.GetValue($Name)
+}
+
+function notDefined {
+    param(
+        [Parameter(Mandatory)]
+        [String] $Name
+    )
+    # gets a variable via the provider and returns it's value, the name is slightly misleading
+    # because it indicates that the variable is not defined when it is null, but that is fine
+    # the call to the provider is slightly more expensive (at least it seems) so this should be
+    # used only when we want a value that we will further inspect
+    $null -eq ($ExecutionContext.SessionState.PSVariable.GetValue($Name))
+}
+
+
 function sum ($InputObject, $PropertyName, $Zero) {
     if (none $InputObject.Length) {
         return $Zero
@@ -116,23 +143,40 @@ function Merge-Hashtable ($Source, $Destination) {
 }
 
 function Write-PesterDebugMessage {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [ValidateSet("CoreRuntime", "Runtime", "Mock", "Discovery")]
         [String] $Scope,
-        [Parameter(Mandatory = $true)]
-        [String] $Message
+        [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
+        [String] $Message,
+        [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Lazy")]
+        [ScriptBlock] $LazyMessage
     )
-    $off = $true
 
-    if ($off) {return}
+    if ((notDefined PesterDebugPreference) -or -not (tryGetProperty $PesterDebugPreference WriteDebugMessages)) {
+        return
+    }
+
+    $messagePreference = tryGetProperty $PesterDebugPreference WriteDebugMessagesFrom
+    if ($messagePreference -notcontains $Scope) {
+        return
+    }
 
     $color = switch ($Scope) {
         "CoreRuntime" { "Cyan" }
         "Runtime" { "DarkGray" }
         "Mock" { "DarkYellow" }
         "Discovery" { "DarkMagenta" }
+    }
+
+    # this evaluates a message that is expensive to produce so we only evaluate it
+    # when we know that we will write it. All messages could be provided as scriptblocks
+    # but making a script block is slightly more expensive than making a string, so lazy approach
+    # is used only when the message is obviously expensive, like folding the whole tree to get
+    # count of found tests
+    if ($null -ne $LazyMessage) {
+        $Message = (&$LazyMessage) -join "`n"
     }
 
     Write-Host -ForegroundColor Black -BackgroundColor $color  " ${Scope}: `t $Message "

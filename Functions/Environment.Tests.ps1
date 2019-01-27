@@ -119,8 +119,11 @@ InModuleScope -ModuleName Pester {
 
     if ('Windows' -eq (GetPesterOs)) {
         Describe 'Get-TempRegistry' {
-            Mock 'GetPesterOs' {
-                return 'Windows'
+
+            BeforeAll {
+                Mock 'GetPesterOs' {
+                    return 'Windows'
+                }
             }
 
             It 'return the corret temp registry for Windows' {

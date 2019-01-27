@@ -109,7 +109,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
-            $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
         }
         else {
             $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
@@ -127,7 +127,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
                 else {
                     ''
                 }
-                $dynamicParamBlock = "dynamicparam { `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -ModuleName '$moduleName' -FunctionName '$commandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
+                $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -ModuleName '$moduleName' -FunctionName '$commandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
 
                 $code = @"
                     $cmdletBinding
@@ -277,6 +277,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
 
         Get_Variable         = $SafeCommands["Get-Variable"]
         Invoke_Mock          = $InvokeMockCallBack
+        Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
 
         # used as temp variable
         PSCmdlet             = $null
@@ -597,26 +598,40 @@ function Resolve-Command {
         return $command
     }
 
+    Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName."
     if ($ModuleName) {
+        Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+        Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
         $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( $module.SessionState )
         $command = & $module $findAndResolveCommand -Name $CommandName
+        if ($command) {
+            Write-PesterDebugMessage -Scope Mock "Found the command $($command.Name) in module $($module.Name) version $($module.Version)$(if ($CommandName -ne $command.Name) {"and it resolved to $($command.Name)"})."
+        }
+        else {
+            Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in module $($module.Name) version $($module.Version)."
+        }
     }
     else {
         # TODO: breaking change here, this used to resolve the command in the caller scope if the command was not found in the module scope, but that does not make sense does it? When the user specifies that he want's to use Module it should use just Module.
-
+        Write-PesterDebugMessage -Scope Mock "Searching for command $ComandName in the caller scope."
         Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $SessionState
         $command = & $findAndResolveCommand -Name $CommandName
+        if ($command) {
+            Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {"and it resolved to $($command.Name)"})."
+        }
+        else {
+            Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in the caller scope."
+        }
     }
 
     if (-not $command) {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
-    if ($command.Name -like 'PesterMock_*') {
-        # this is a mock bootstrap function, take the data from object attached to it when
-        # we created the mock
 
+    if ($command.Name -like 'PesterMock_*') {
+        Write-PesterDebugMessage -Scope Mock "The resolved command is a mock bootstrap function, re-using the original mock definition."
         $module = $command.Mock.OriginalSessionState.Module
         return @{
             Command                 = $command.Mock.OriginalCommand

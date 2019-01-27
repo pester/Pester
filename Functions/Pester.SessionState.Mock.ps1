@@ -182,14 +182,17 @@ about_Mocking
         [string]$ModuleName
     )
 
-    # Assert-DescribeInProgress -CommandName Assert-VerifiableMock
+    Assert-RunInProgress -CommandName Mock
 
+    Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {"$ModuleName -"}) $CommandName."
     $SessionState = $PSCmdlet.SessionState
     $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
     $null = Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
-    $mockTable = (Get-MockDataForCurrentScope).DefinedMocks
+    # don't try to filter here, the passed table is written into, and so it must me a live reference
+    $mockTable = (Get-MockDataForCurrentScope -CommandName $CommandName).DefinedMocks
+
 
     New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
 }
@@ -201,21 +204,12 @@ function Get-DefinedMocksTable {
         [String] $CommandName
     )
 
+    Write-PesterDebugMessage -Scope Mock "Getting all defined mocks in this and parent scopes for command $CommandName."
     # this is used for invoking mocks
     # in there we care about all mocks attached to the current test
     # or any of the mocks above it
     # this does not list mocks in other tests
     $currentTest = Get-CurrentTest
-
-    $blockMockTables = Recurse-Up (Get-CurrentBlock) {
-        param($t)
-        if ($t.PluginData) {
-            if ($t.PluginData.Mock) {
-                $t.PluginData.Mock.DefinedMocks
-            }
-        }
-    }
-
     $inTest = any $currentTest
 
     $commandNameFilter = "*||$CommandName"
@@ -223,28 +217,68 @@ function Get-DefinedMocksTable {
     $mockTable = @{}
 
     if ($inTest) {
+        Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all mocks in this test."
         foreach ($mock in $currentTest.PluginData.Mock.DefinedMocks.GetEnumerator()) {
             # we are interested in any mock with the given name
             # no matter which module it comes from, it will be filtered
             # down later
             if ($mock.Key -like $commandNameFilter) {
+                Write-PesterDebugMessage -Scope Mock "Found mock data for $($mock.Key) in the test."
                 $mockTable.Add($mock.Key, $mock.Value)
+            }
+            else {
+                Write-PesterDebugMessage -Scope Mock "Found no mocks for $CommandName in this test."
             }
         }
     }
 
+    Write-PesterDebugMessage -Scope Mock "Finding all mocks in this block."
+    $blockMockTables = Recurse-Up (Get-CurrentBlock) {
+        param($b)
+
+        if ($b.PluginData -and $b.PluginData.Mock) {
+            $mocks = $b.PluginData.Mock.DefinedMocks
+            foreach ($m in $mocks.GetEnumerator()) {
+                # we are interested in any mock with the given name
+                # no matter which module it comes from, it will be filtered
+                # down later
+                if ($m.Key -like $commandNameFilter) {
+                    Write-PesterDebugMessage -Scope Mock "Found mock $($m.Key) in $($b.Name)."
+                    $m
+                }
+            }
+        }
+    }
+
+    if (none $blockMockTables) {
+        Write-PesterDebugMessage -Scope Mock "No mocks for $CommandName were found in this or any parent blocks."
+    }
+
+    Write-PesterDebugMessage -Scope Mock "Merging mock definitions from blocks and tests into resulting mock table."
     foreach ($blockMockTable in $blockMockTables) {
         foreach ($mock in $blockMockTable.GetEnumerator()) {
-            # we are interested in any mock with the given name
-            # no matter which module it comes from, it will be filtered
-            # down later
-            if ($mock.Key -like $commandNameFilter) {
-                if (-not ($mockTable.ContainsKey($mock.Key))) {
-                    $mockTable.Add($mock.Key, $mock.Value)
-                }
-                else {
-                    $mockTable[$mock.Key].Blocks += $mock.Value.Blocks
-                }
+            if (-not ($mockTable.ContainsKey($mock.Key))) {
+                $mockTable.Add($mock.Key, $mock.Value)
+            }
+            else {
+                $mockTable[$mock.Key].Blocks += $mock.Value.Blocks
+            }
+        }
+    }
+
+    Write-PesterDebugMessage -Scope Mock -LazyMessage {
+        "Found mocks: "
+        foreach ($table in $mockTable.GetEnumerator()) {
+            "$($table.Key):"
+            "Command name: $($table.Value.CommandName)"
+            "Aliases: $($table.Value.Aliases -join ",")"
+            "Bootstrap function: $($table.Value.BootstrapFunctionName)"
+            "mocked with $($table.Value.Blocks.Count) mocks:"
+
+            foreach ($block in $table.Value.Blocks) {
+                "`tBody: { $($block.ScriptBlock.ToString().Trim()) }"
+                "`tFilter: { $($block.Filter.ToString().Trim()) }"
+                "`tVerifiable: $($block.Verifiable)"
             }
         }
     }
@@ -307,33 +341,38 @@ function CollectMocks ($merged, $currentBlock) {
 function Get-MockDataForCurrentScope {
     [CmdletBinding()]
     param(
+        [Parameter(Mandatory)]
+        [String]$CommandName
     )
 
     # this returns a mock table based on location, that we
     # then use to add the mock into, keep in mind that what we
-    # pass must be a reference, so the data are persisted in the
-    # inner state
+    # pass must be a reference, so the data can be written in this
+    # table
 
-    # if I forget how this works, then I aggregate the result in the
-    # location variable, so if I am not in a test or  I am currently
-    # in one time test setup I return the table from the block and not
-    # the table from the test, this way the mock gets defined for the
-    # whole block, as expected for one time setup, and the $location
-    # variable allows me to easily see if I am in neither test and block
-    # and still get away without keeping extra boolean variables that indicate
-    # what path I took in the code
+    $currentTest = Get-CurrentTest
+    $inTest = any $currentTest
 
-    $location = $currentTest = Get-CurrentTest
-
-    if ((none $currentTest) -or 'OneTimeTestSetup' -eq $currentTest.FrameworkData.Runtime.ExecutionStep) {
-        $location = $currentBlock = Get-CurrentBlock
+    if (-not $inTest) {
+        $currentBlock = Get-CurrentBlock
     }
 
     if (none @($currentTest, $currentBlock)) {
         throw "I am neither in a test or a block, where am I?"
     }
 
-    $location.PluginData.Mock
+    if ($inTest -and -not $currentTest.PluginData.Mock -or $currentBlock.PluginData.Mock) {
+        throw "Mock data are not setup for this scope, what happened?"
+    }
+
+    if ($inTest) {
+        Write-PesterDebugMessage -Scope Mock "We are in a test. Returning mock table from test scope."
+        $currentTest.PluginData.Mock
+    }
+    else {
+        Write-PesterDebugMessage -Scope Mock "We are in a block, one time setup or similar. Returning mock table from test block."
+        $currentBlock.PluginData.Mock
+    }
 }
 
 
@@ -587,9 +626,22 @@ function Invoke-Mock {
     # should it be registered?
 
     $mockTable = Get-DefinedMocksTable -CommandName $CommandName
-    $callHistoryTable = (Get-MockDataForCurrentScope).CallHistory
+    $callHistoryTable = (Get-MockDataForCurrentScope -CommandName $CommandName).CallHistory
 
     Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable -CallHistoryTable $callHistoryTable -SessionState $pester.SessionState # or caller state??
 }
+
+function Assert-RunInProgress {
+    param(
+        [Parameter(Mandatory)]
+        [String] $CommandName
+    )
+
+    if (Is-Discovery) {
+        throw "$CommandName can run only during Run, but not during Discovery."
+    }
+}
+
+
 
 

@@ -20,7 +20,7 @@ $state = [PSCustomObject] @{
 
 function Reset-TestSuiteState {
     # resets the module state to the default
-    Write-PesterDebugMessage -Scope Runtime "Resetting internal state to default."
+    Write-PesterDebugMessage -Scope Runtime "Resetting all state to default."
     $state.Discovery = $false
 
     $state.Plugin = $null
@@ -36,6 +36,7 @@ function Reset-PerContainerState {
         [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")] $RootBlock
     )
+    Write-PesterDebugMessage -Scope Runtime "Resetting per container state."
     $state.CurrentBlock = $RootBlock
     Reset-Scope
 }
@@ -71,7 +72,7 @@ function Find-Test {
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
-
+    Write-PesterDebugMessage -Scope Discovery "Running just discovery."
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
     foreach ($f in $found) {
@@ -90,8 +91,8 @@ function ConvertTo-DiscoveredBlockContainer {
     # that we can publish from Find-Test, because keeping everything a block makes the internal
     # code simpler
     $container = $Block.BlockContainer
-    $content = $container | tryGetProperty Content
-    $type = $container | tryGetProperty Type
+    $content = tryGetProperty $container Content
+    $type = tryGetProperty $container Type
 
     # TODO: Add other properties that are relevant to found tests
     $b = $Block | Select -ExcludeProperty @(
@@ -128,8 +129,8 @@ function ConvertTo-ExecutedBlockContainer {
     # that we can publish from Invoke-Test, because keeping everything a block makes the internal
     # code simpler
     $container = $Block.BlockContainer
-    $content = $container | tryGetProperty Content
-    $type = $container | tryGetProperty Type
+    $content = tryGetProperty $container Content
+    $type = tryGetProperty $container Type
 
     $b = $Block | Select -ExcludeProperty @(
         "Parent"
@@ -215,8 +216,8 @@ function New-Block {
                 -Context @{
                 Context = @{
                     # context that is visible to plugins
-                    Block       = $block
-                    Test = $null
+                    Block = $block
+                    Test  = $null
                 }
             }
 
@@ -236,7 +237,7 @@ function New-Block {
                         )
                     } ) `
                     -Context @{
-                        # context that is visible in user code
+                    # context that is visible in user code
                     Context = $block | Select -Property Name
                 } `
                     -ReduceContextToInnerScope `
@@ -260,8 +261,8 @@ function New-Block {
                 -Context @{
                 Context = @{
                     # context that is visible to plugins
-                    Block       = $block
-                    Test = $null
+                    Block = $block
+                    Test  = $null
                 }
             }
 
@@ -363,7 +364,7 @@ function New-Test {
                 Context = @{
                     # context visible to Plugins
                     Block = $block
-                    Test        = $test
+                    Test  = $test
                 }
             }
 
@@ -374,7 +375,8 @@ function New-Test {
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
                     # context visible in test
-                    Context = $testInfo }
+                    Context = $testInfo
+                }
                 Merge-Hashtable -Source $test.Data -Destination $context
 
                 $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
@@ -424,7 +426,7 @@ function New-Test {
                 -Context @{
                 Context = @{
                     # context visible to Plugins
-                    Test        = $test
+                    Test  = $test
                     Block = $block
                 }
             }
@@ -638,8 +640,8 @@ function New-BlockObject {
         FrameworkData        = $FrameworkData
         Tests                = @()
         BlockContainer       = $null
-        Root              = $null
-        IsRoot = $null
+        Root                 = $null
+        IsRoot               = $null
         Parent               = $null
         EachTestSetup        = $null
         OneTimeTestSetup     = $null
@@ -692,11 +694,11 @@ function Discover-Test {
         [Management.Automation.SessionState] $SessionState,
         $Filter
     )
-    Write-Host -ForegroundColor Magenta "Starting test discovery in $(@($BlockContainer).Length) test containers."
+    Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
 
     $state.Discovery = $true
     foreach ($container in $BlockContainer) {
-        Write-Host -ForegroundColor Magenta "Discovering tests in $($container.Content)"
+        Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
         # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
@@ -705,16 +707,14 @@ function Discover-Test {
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
-        # TODO: move the output to callback
-        $flat = @(View-Flat -Block $root)
-        Write-Host -ForegroundColor Magenta "Found $($flat.Count) tests"
-        ####
-
+        Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
+        Write-PesterDebugMessage -Scope Discovery "Processing discovery result object, to set root, parents, filters etc."
         PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $container
         $root
+        Write-PesterDebugMessage -Scope Discovery "Discovery done in this container."
     }
 
-    Write-Host -ForegroundColor Magenta "Test discovery finished."
+    Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
 }
 
 function Run-Test {
@@ -962,11 +962,7 @@ function Invoke-ScriptBlock {
             ErrorRecord                   = @()
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
-            WriteDebug                    = & {
-                param( $Writer, $Scope ) {
-                    param($Message) & $Writer -Scope $Scope $Message
-                }.GetNewClosure()
-            } -Writer (Get-Command Write-PesterDebugMessage) -Scope "CoreRuntime"
+            WriteDebug                    = { param($Message) Write-PesterDebugMessage -Scope "CoreRuntime" $Message }
         }
 
         # here we are moving into the user scope if the provided
@@ -1111,7 +1107,7 @@ function Test-ShouldRun {
     $hasTagFilter = $false
     $hasMatchingTag = $false
     # test is included when it has tags and the any of the tags match
-    $tagFilter = $Filter | tryGetProperty Tag
+    $tagFilter = tryGetProperty $Filter Tag
     if (any $tagFilter) {
         $hasTagFilter = $true
         if (none $test.Tag) {
@@ -1132,7 +1128,7 @@ function Test-ShouldRun {
 
     $hasMatchingPath = $false
     $hasPathFilter = $false
-    $allPaths = $Filter | tryGetProperty Path | % { $_ -join '.' }
+    $allPaths =  tryGetProperty $Filter Path | % { $_ -join '.' }
     if (any $allPaths) {
         $hasPathFilter = $true
         $include = $allPaths -contains $fullTestPath
@@ -1652,7 +1648,8 @@ Export-ModuleMember -Function @(
     # here I have doubts if that is too much to expose
     'Get-CurrentTest'
     'Get-CurrentBlock'
-    'Recurse-Up'
+    'Recurse-Up',
+    'Is-Discovery'
 
     # those are quickly implemented to be useful for demo
     'Where-Failed'

@@ -53,12 +53,12 @@ i {
 
         b "tryGetProperty" {
             t "given null it returns null" {
-                $null | tryGetProperty Name | Verify-Null
+                tryGetProperty $null Name | Verify-Null
             }
 
             t "given an object that has the property it return the correct value" {
                 $p = (Get-Process -Id $Pid)
-                $p | tryGetProperty Name | Verify-Equal $p.Name
+                tryGetProperty $p Name | Verify-Equal $p.Name
             }
         }
 

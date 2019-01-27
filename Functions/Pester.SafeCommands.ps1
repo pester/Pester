@@ -116,12 +116,3 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator()) {
     }
 }
 
-function SafeGetCommand {
-    <#
-        .SYNOPSIS
-        This command is used by Pester's Mocking framework.  You do not need to call it directly.
-    #>
-
-    return $script:SafeCommands['Get-Command']
-}
-

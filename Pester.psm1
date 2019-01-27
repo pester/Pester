@@ -679,50 +679,53 @@ New-PesterOption
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
         # Fallback to en-US culture strings
-        If ([String]::IsNullOrEmpty($ReportStrings)) {
-
+        if ([String]::IsNullOrEmpty($ReportStrings)) {
             & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
-
         }
     }
 
     end {
-        $script:mockTable = @{}
-        # todo: move mock cleanup to BeforeAllBlockContainer when there is any
-        Remove-MockFunctionsAndAliases
-        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+        try {
+            $script:mockTable = @{}
+            # todo: move mock cleanup to BeforeAllBlockContainer when there is any
+            Remove-MockFunctionsAndAliases
+            $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
 
-        # TODO: remove all references to $pester
-        $pester = @{ SessionState = $PSCmdlet.SessionState }
+            # TODO: remove all references to $pester
+            $pester = @{ SessionState = $PSCmdlet.SessionState }
 
-        $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin), (Get-MockPlugin))
-        $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
+            $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin), (Get-MockPlugin))
+            $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
 
-        $containers = @()
-        if (any $ScriptBlock) {
-            Write-Host -ForegroundColor Magenta "Running tests in $($ScriptBlock.Count) scriptblocks."
-            $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
-        }
+            $containers = @()
+            if (any $ScriptBlock) {
+                Write-Host -ForegroundColor Magenta "Running tests in $($ScriptBlock.Count) scriptblocks."
+                $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
+            }
 
-        if (any $Path) {
-            if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
-                #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
-                Write-Host -ForegroundColor Magenta "Running all tests in $Path"
-                $containers += @(Pester.RSpec\Find-RSpecTestFile -Path $Path | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+            if (any $Path) {
+                if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
+                    #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
+                    Write-Host -ForegroundColor Magenta "Running all tests in $Path"
+                    $containers += @(Pester.RSpec\Find-RSpecTestFile -Path $Path | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+                }
+            }
+
+            if (none $containers) {
+                Write-Host -ForegroundColor Magenta "No test files were found and no scriptblocks were provided."
+                return
+            }
+
+            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState -Filter $filter
+            $legacyResult = Get-LegacyResult $r
+            Write-PesterReport $legacyResult
+
+            if ($PassThru) {
+                $r
             }
         }
-
-        if (none $containers) {
-            Write-Host -ForegroundColor Magenta "No test files were found and no scriptblocks were provided."
-            return
-        }
-
-        $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState -Filter $filter
-        $legacyResult = Get-LegacyResult $r
-        Write-PesterReport $legacyResult
-
-        if ($PassThru) {
-            $r
+        catch {
+            Write-ErrorToScreen $_
         }
     }
     # try
@@ -1143,6 +1146,9 @@ function Get-LegacyResult {
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
+# this function will be shared with the mock bootstrap function, so let's capture it just once instead of everytime we define a mock
+$script:SafeCommands['Get-MockDynamicParameter'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Get-MockDynamicParameter', 'function')
+
 
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Pester, Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope

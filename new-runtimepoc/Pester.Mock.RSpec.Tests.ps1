@@ -6,6 +6,13 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 
 Import-Module $PSScriptRoot\..\Pester.psd1
 
+$global:PesterDebugPreference = @{
+    ShowFullErrors         = $true
+    WriteDebugMessages     = $true
+    WriteDebugMessagesFrom = "Mock"
+}
+
+
 i {
     b "basic mocking in RSpec Pester" {
         t "running a single mock in one It" {
@@ -163,6 +170,33 @@ i {
             } -PassThru
 
             $actual.Blocks[0].Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal 'mock'
+        }
+    }
+
+    b "mock filters" {
+        dt "" {
+            $actual = Invoke-Pester -ScriptBlock {
+                Add-Dependency { function f { "real" } }
+                Describe 'd1' {
+                    BeforeAll {
+                        function Get-PSVersionTable2 {
+                            Get-Variable -Name PSVersionTable -ValueOnly
+                        }
+                    }
+                    It 'Returns value of $PSVersionTable.PsVersion.Major' {
+                        Mock Get-Variable -ParameterFilter {
+                            $Name -eq 'PSVersionTable' -and $ValueOnly
+                        } -MockWith {
+                            @{ PSVersion = [Version]'1.0.0' }
+                        }
+
+
+                        (Get-PSVersionTable2).PSVersion | Should -Be 1.0.0
+                    }
+                }
+            } -PassThru
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
     }
 }
