@@ -232,12 +232,26 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         SessionState            = $contextInfo.SessionState
         Metadata                = $metadata
         DynamicParamScriptBlock = $dynamicParamScriptBlock
-        Aliases                 = @()
+        Aliases                 = @($commandName)
         BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
     }
 
     $mockTable["$ModuleName||$CommandName"] = $mock
 
+    if ($mock.OriginalCommand.ModuleName) {
+        $mock.Aliases += "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+    }
+
+    $parameters = @{
+        BootstrapFunctionName = $mock.BootstrapFunctionName
+        Definition            = $mockScript
+        Aliases               = $mock.Aliases
+
+        Set_Alias             = $SafeCommands["Set-Alias"]
+        Remove_Variable       = $SafeCommands["Remove-Variable"]
+    }
+
+    
     $defineFunctionAndAliases = {
         param($___Mock___parameters)
         # Make sure the you don't use _______parameters variable here, otherwise you overwrite
@@ -266,20 +280,6 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         # clean up the variables because we are injecting them to the current scope
         & $___Mock___parameters.Remove_Variable -Name ______current
         & $___Mock___parameters.Remove_Variable -Name ___Mock___parameters
-    }
-
-
-    $parameters = @{
-        BootstrapFunctionName = $mock.BootstrapFunctionName
-        Definition            = $mockScript
-        Aliases               = @($CommandName)
-
-        Set_Alias             = $SafeCommands["Set-Alias"]
-        Remove_Variable       = $SafeCommands["Remove-Variable"]
-    }
-
-    if ($mock.OriginalCommand.ModuleName) {
-        $parameters.Aliases += "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
     }
 
     $definedFunction = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $defineFunctionAndAliases -Arguments @($parameters) -NoNewScope
@@ -546,11 +546,14 @@ function Resolve-Command {
 
         # this scriptblock gets bound to multiple session states so we can find
         # commands in module or in caller scope
-
         $command = $ExecutionContext.InvokeCommand.GetCommand($Name, 'All')
         # resolve command from alias recursively
         while ($null -ne $command -and $command.CommandType -eq [System.Management.Automation.CommandTypes]::Alias) {
-            $command = $command.ResolvedCommand
+            $resolved = $command.ResolvedCommand
+            if ($null -eq $resolved) {
+                throw "Alias $($command.Name) points to a command $($command.Definition) that but the actual commands no longer exists!"
+            }
+            $command = $resolved
         }
 
         return $command

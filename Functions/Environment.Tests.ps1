@@ -1,4 +1,4 @@
-# GetPesterPsVersion & GetPesterOs are used in critical paths in Pester
+# TODO: GetPesterPsVersion & GetPesterOs are used in critical paths in Pester
 # I debugged quite a few test here, and will test this later via P, but here
 # it is impractical to test the functions via mocking because the mocks then
 # break the framework itself / another option would be to determine the version

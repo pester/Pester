@@ -176,7 +176,7 @@ function New-Block {
     $block = $null
 
     if (Is-Discovery) {
-        Write-PesterDebugMessage -Scope Runtime "Adding block $Name to discovered blocks"
+        Write-PesterDebugMessage -Scope Discovery "Adding block $Name to discovered blocks"
         $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData
         # we attach the current block to the parent
         Add-Block -Block $block
@@ -191,9 +191,9 @@ function New-Block {
 
     try {
         if (Is-Discovery) {
-            Write-PesterDebugMessage -Scope Runtime "Discovering in body of block $Name"
+            Write-PesterDebugMessage -Scope Discovery "Discovering in body of block $Name"
             & $ScriptBlock
-            Write-PesterDebugMessage -Scope Runtime "Finished discovering in body of block $Name"
+            Write-PesterDebugMessage -Scope Discovery "Finished discovering in body of block $Name"
         }
         else {
             if (-not $block.ShouldRun) {
@@ -253,7 +253,7 @@ function New-Block {
             }
 
             $frameworkEachBlockTeardowns = @( $state.Plugin.EachBlockTeardown | selectNonNull )
-            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | selectNonNull } ) 
+            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | selectNonNull } )
             # reverse the teardowns so they run in opposite order to setups
             [Array]::Reverse($frameworkEachBlockTeardowns)
             [Array]::Reverse($frameworkOneTimeBlockTeardowns)
@@ -276,14 +276,14 @@ function New-Block {
                     $ErrorActionPreference = 'Continue'
                     if ($frameworkSetupResult.ErrorRecord) {
                         foreach ($e in $frameworkSetupResult.ErrorRecord) {
-                            Write-Host -ForegroundColor Red ($e |out-string)
-                             Write-Host -ForegroundColor Red ($e.ScriptStackTrace |out-string)
+                            Write-Host -ForegroundColor Red ($e | out-string)
+                            Write-Host -ForegroundColor Red ($e.ScriptStackTrace | out-string)
                         }
                     }
                     if ($frameworkTeardownResult.ErrorRecord) {
                         foreach ($e in $frameworkTeardownResult.ErrorRecord) {
-                            Write-Host -ForegroundColor Red ($e |out-string)
-                             Write-Host -ForegroundColor Red ($e.ScriptStackTrace |out-string)
+                            Write-Host -ForegroundColor Red ($e | out-string)
+                             Write-Host -ForegroundColor Red ($e.ScriptStackTrace | out-string)
                         }
                     }
 
@@ -329,7 +329,7 @@ function New-Test {
             $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path
             $test.FrameworkData.Runtime.Phase = 'Discovery'
             Add-Test -Test $test
-            Write-PesterDebugMessage -Scope Runtime "Added test '$Name'"
+            Write-PesterDebugMessage -Scope Discovery "Added test '$Name'"
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id

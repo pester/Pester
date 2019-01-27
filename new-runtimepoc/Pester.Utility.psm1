@@ -1,3 +1,6 @@
+
+$_write_host = Get-Command -CommandType Cmdlet -Name Write-Host
+
 function or {
     [CmdletBinding()]
     param (
@@ -159,7 +162,7 @@ function Write-PesterDebugMessage {
     }
 
     $messagePreference = tryGetProperty $PesterDebugPreference WriteDebugMessagesFrom
-    if ($messagePreference -notcontains $Scope) {
+    if ('*' -ne $messagePreference -and $messagePreference -notcontains $Scope) {
         return
     }
 
@@ -180,7 +183,7 @@ function Write-PesterDebugMessage {
         $Message = (&$LazyMessage) -join "`n"
     }
 
-    Write-Host -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
+    & $_Write_Host -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
 }
 
 function Fold-Block {

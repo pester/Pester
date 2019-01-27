@@ -3,12 +3,15 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe 'Get-ShouldOperator' {
         Context 'Overview' {
-            # $AssertionOperators is a private Pester variable. Requires InModuleScope
-            $OpCount = $AssertionOperators.Count
 
-            $get1 = Get-ShouldOperator
-            Add-AssertionOperator -Name 'test' -Test {'test'}
-            $get2 = Get-ShouldOperator
+            BeforeAll {
+                # $AssertionOperators is a private Pester variable. Requires InModuleScope
+                $OpCount = $AssertionOperators.Count
+
+                $get1 = Get-ShouldOperator
+                Add-AssertionOperator -Name 'test' -Test {'test'}
+                $get2 = Get-ShouldOperator
+            }
 
             It 'Returns all registered operators' {
                 $get1.Count | Should -Be $OpCount
@@ -20,6 +23,10 @@ InModuleScope Pester {
                     Select-Object -ExpandProperty Name |
                     Sort-Object |
                     Should -Be 'Alias', 'Name'
+            }
+
+            AfterAll {
+                $null = $AssertionOperators.Remove("test")
             }
         }
 

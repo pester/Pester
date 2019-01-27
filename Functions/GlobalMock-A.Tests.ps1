@@ -19,8 +19,10 @@ function script:Testing {
 }
 
 Describe 'Mocking Global Functions - Part One' {
-    Mock $functionName {
-        return 'Mocked'
+    BeforeAll {
+        Mock $functionName {
+            return 'Mocked'
+        }
     }
 
     It 'Mocks the global function' {

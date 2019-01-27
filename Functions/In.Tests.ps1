@@ -2,8 +2,9 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
     Describe "the In statement" {
-        Setup -Dir "test_path"
-
+        BeforeAll {
+            Setup -Dir "test_path"
+        }
         It "executes a command in that directory" {
             In "$TestDrive" -Execute { "" | Out-File "test_file" }
             "$TestDrive\test_file" | Should -Exist
