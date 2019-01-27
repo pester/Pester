@@ -146,7 +146,7 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("CoreRuntime", "Runtime", "Mock", "Discovery")]
+        [ValidateSet("CoreRuntime", "Runtime", "Mock", "Discovery", "SessionState")]
         [String] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
@@ -168,6 +168,7 @@ function Write-PesterDebugMessage {
         "Runtime" { "DarkGray" }
         "Mock" { "DarkYellow" }
         "Discovery" { "DarkMagenta" }
+        "SessionState" { "Gray" }
     }
 
     # this evaluates a message that is expensive to produce so we only evaluate it
@@ -179,7 +180,7 @@ function Write-PesterDebugMessage {
         $Message = (&$LazyMessage) -join "`n"
     }
 
-    Write-Host -ForegroundColor Black -BackgroundColor $color  " ${Scope}: `t $Message "
+    Write-Host -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
 }
 
 function Fold-Block {

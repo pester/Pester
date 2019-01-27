@@ -48,25 +48,20 @@ function Write-ScriptBlockInvocationHint {
         $Hint
     )
 
-    if ($script:DisableScopeHints) {
+    if ($global:DisableScopeHints) {
         return
     }
 
-    $scope = Get-ScriptBlockHint $ScriptBlock
-    $count = Count-Scopes -ScriptBlock $ScriptBlock
 
-    Write-Hint "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:
-    {
-        $ScriptBlock
-    }`n`n"
-}
 
-function Write-Hint ($Hint) {
-    if ($script:DisableScopeHints) {
-        return
+    Write-PesterDebugMessage -Scope SessionState -LazyMessage {
+        $scope = Get-ScriptBlockHint $ScriptBlock
+        $count = Count-Scopes -ScriptBlock $ScriptBlock
+        "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:"
+        "{"
+        $ScriptBlock.ToString().Trim()
+        "}"
     }
-
-    Write-Host -ForegroundColor Cyan $Hint
 }
 
 function Test-Hint {

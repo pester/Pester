@@ -256,7 +256,7 @@ function Get-DefinedMocksTable {
 
     Write-PesterDebugMessage -Scope Mock "Merging mock definitions from blocks and tests into resulting mock table."
     foreach ($blockMockTable in $blockMockTables) {
-        foreach ($mock in $blockMockTable.GetEnumerator()) {
+        foreach ($mock in $blockMockTable) {
             if (-not ($mockTable.ContainsKey($mock.Key))) {
                 $mockTable.Add($mock.Key, $mock.Value)
             }
@@ -350,29 +350,29 @@ function Get-MockDataForCurrentScope {
     # pass must be a reference, so the data can be written in this
     # table
 
-    $currentTest = Get-CurrentTest
+    $location = $currentTest = Get-CurrentTest
     $inTest = any $currentTest
 
     if (-not $inTest) {
-        $currentBlock = Get-CurrentBlock
+        $location = $currentBlock = Get-CurrentBlock
     }
 
     if (none @($currentTest, $currentBlock)) {
         throw "I am neither in a test or a block, where am I?"
     }
 
-    if ($inTest -and -not $currentTest.PluginData.Mock -or $currentBlock.PluginData.Mock) {
+    if (-not $location.PluginData.Mock) {
         throw "Mock data are not setup for this scope, what happened?"
     }
 
     if ($inTest) {
         Write-PesterDebugMessage -Scope Mock "We are in a test. Returning mock table from test scope."
-        $currentTest.PluginData.Mock
     }
     else {
         Write-PesterDebugMessage -Scope Mock "We are in a block, one time setup or similar. Returning mock table from test block."
-        $currentBlock.PluginData.Mock
     }
+
+    $location.PluginData.Mock
 }
 
 

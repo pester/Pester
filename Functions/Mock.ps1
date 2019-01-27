@@ -24,12 +24,13 @@ function New-MockInternal {
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
 
     if (Test-IsClosure -ScriptBlock $MockWith) {
+        Write-PesterDebugMessage -Scope Mock -Message "The provided mock body is a closure, not touching it so the captured variables are preserved".
         # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
         # dynamic module's scope.
         $mockWithCopy = $MockWith
     }
     else {
-        Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
+        Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
         Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
         Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $contextInfo.SessionState
@@ -45,20 +46,31 @@ function New-MockInternal {
     $mock = $MockTable["$moduleName||$($contextInfo.Command.Name)"]
 
     if (-not $mock) {
+        Write-PesterDebugMessage -Scope Mock -Message "Creating new mock for $($contextInfo.Command.Name)$(if($moduleName) { "from module $moduleName" })."
         $mock = Create-Mock -ContextInfo $contextInfo -InvokeMockCallback ($InvokeMockCallback)
     }
+    else {
+        Write-PesterDebugMessage -Scope Mock -Message "Mock definition for  $($contextInfo.Command.Name)$(if($moduleName) { "from module $moduleName" }) already exists. Re-using it."
+    }
 
-    $mock.Blocks = @(
-        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -eq '$True' }
-        if ($block.Filter.ToString() -eq '$True') {
-            $block
-        }
+    if ($mock.Blocks.Count -eq 0) {
+        $mock.Blocks = @($block)
+    }
+    else {
+        Write-PesterDebugMessage -Scope Mock -Message "This command already has $($mock.Blocks.Count) blocks defined. Adding another one and ordering them to make default blocks come after filtered blocks."
 
-        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -ne '$True' }
-        if ($block.Filter.ToString() -ne '$True') {
-            $block
-        }
-    )
+        $mock.Blocks = @(
+            $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -eq '$True' }
+            if ($block.Filter.ToString() -eq '$True') {
+                $block
+            }
+
+            $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -ne '$True' }
+            if ($block.Filter.ToString() -ne '$True') {
+                $block
+            }
+        )
+    }
 }
 
 function EscapeSingleQuotedStringContent ($Content) {
@@ -264,27 +276,28 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
     }
 
     $definedFunction = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $defineFunctionAndAliases -Arguments @($parameters) -NoNewScope
+    Write-PesterDebugMessage -Scope Mock -Message "Defined new bootstrap function $($parameters.BootstrapFunctionName)$(if ($parameters.Aliases.Count -gt 0) {" and aliases $($parameters.Aliases -join ", ")"})."
 
     # attaching this object on the newly created function
     # so it has access to our internal and safe functions directly
     # and also to avoid any local variables, because everything is
     # accessed via $MyInvocation.MyCommand
     $functionLocalData = @{
-        Args                 = $null
-        ErrorAction          = if ($PSVersionTable.PSVersion.Major -ge 3) { 'Ignore' } else { 'SilentlyContinue' }
-        SessionState         = $null
-        MockCallState        = $null
+        Args                     = $null
+        ErrorAction              = if ($PSVersionTable.PSVersion.Major -ge 3) { 'Ignore' } else { 'SilentlyContinue' }
+        SessionState             = $null
+        MockCallState            = $null
 
-        Get_Variable         = $SafeCommands["Get-Variable"]
-        Invoke_Mock          = $InvokeMockCallBack
+        Get_Variable             = $SafeCommands["Get-Variable"]
+        Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
 
         # used as temp variable
-        PSCmdlet             = $null
+        PSCmdlet                 = $null
 
         # data from the time we captured and created this mock
-        OriginalCommand      = $mock.OriginalCommand
-        OriginalSessionState = $mock.SessionState
+        OriginalCommand          = $mock.OriginalCommand
+        OriginalSessionState     = $mock.SessionState
     }
 
     & $SafeCommands["Add-Member"] -InputObject $definedFunction -MemberType NoteProperty -Name Mock -Value $functionLocalData
@@ -292,7 +305,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
     $mock
 }
 
-function Assert-VerifiableMockIntenal {
+function Assert-VerifiableMockInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -375,11 +388,6 @@ function Assert-MockCalledInternal {
         throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     }
 
-    # todo: no scoping in here
-    if (-not $PSBoundParameters.ContainsKey('Scope')) {
-        $scope = 0
-    }
-
     $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
     $nonMatchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
 
@@ -394,7 +402,7 @@ function Assert-MockCalledInternal {
         }
 
 
-        if (Test-ParameterFilter @params) {
+        if (Test-ParameterFilter @params) {            
             $null = $matchingCalls.Add($historyEntry)
         }
         else {
@@ -631,7 +639,7 @@ function Resolve-Command {
 
 
     if ($command.Name -like 'PesterMock_*') {
-        Write-PesterDebugMessage -Scope Mock "The resolved command is a mock bootstrap function, re-using the original mock definition."
+        Write-PesterDebugMessage -Scope Mock "The resolved command is a mock bootstrap function, pointing the mock to the same command info an session state as the original mock."
         $module = $command.Mock.OriginalSessionState.Module
         return @{
             Command                 = $command.Mock.OriginalCommand
@@ -698,6 +706,7 @@ function Invoke-MockInternal {
         $SessionState
     )
 
+    Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock."
     $detectedModule = $ModuleName
     $mock = FindMock -CommandName $CommandName -ModuleName ([ref]$detectedModule) -MockTable $MockTable
 
@@ -746,6 +755,7 @@ function Invoke-MockInternal {
 
         End {
             if ($MockCallState['ShouldExecuteOriginalCommand']) {
+                Write-PesterDebugMessage -Scope Mock "Invoking the original command."
                 if ($MockCallState['InputObjects'].Count -gt 0) {
                     $scriptBlock = {
                         param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
@@ -804,11 +814,17 @@ function FindMock {
         [HashTable] $MockTable
     )
 
+    Write-PesterDebugMessage -Scope Mock "Looking for mock $($ModuleName.Value)||$CommandName."
     $mock = $MockTable["$($ModuleName.Value)||$CommandName"]
 
-    if ($null -eq $mock) {
+    if ($null -ne $mock) {
+        Write-PesterDebugMessage -Scope Mock "Found mock $(if (-not [string]::IsNullOrEmpty($ModuleName.Value)) {"with module name $($ModuleName.Value)"})||$CommandName."
+    }
+    else {
+        Write-PesterDebugMessage -Scope Mock "No mock found, re-trying without module name ||$CommandName."
         $mock = $MockTable["||$CommandName"]
         if ($null -ne $mock) {
+            Write-PesterDebugMessage -Scope Mock "Found mock without module name, setting the target module to empty."
             $ModuleName.Value = ''
         }
     }
@@ -837,10 +853,12 @@ function FindMatchingBlock {
         }
 
         if (Test-ParameterFilter @params) {
+            Write-PesterDebugMessage -Scope Mock "{ $block } passed parameter filter and will be used for the mock."
             return $block
         }
     }
 
+    Write-PesterDebugMessage -Scope Mock "No block passed parameter filter."
     return $null
 }
 
@@ -854,6 +872,8 @@ function ExecuteBlock {
         [object[]] $ArgumentList = @(),
         [Hashtable] $CallHistoryTable
     )
+
+    Write-PesterDebugMessage -Scope Mock "Executing block for mock $ModuleName||$CommandName."
 
     $Block.Verifiable = $false
 
@@ -931,6 +951,7 @@ function ExecuteBlock {
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.ScriptBlock, and not $scriptBlock
     Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($block.ScriptBlock)
     & $scriptBlock @splat
+    Write-PesterDebugMessage -Scope Mock "Block for $ModuleName||$CommandName was executed."
 }
 
 function Invoke-InMockScope {
@@ -997,13 +1018,21 @@ function Test-ParameterFilter {
         Set-StrictMode -Off
         $ScriptBlock
     "
-    Write-Hint "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
+    Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlockString }."
+    Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     $cmd = [scriptblock]::Create($scriptBlockString)
     Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $SessionState
 
     Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
-    & $cmd @BoundParameters @ArgumentList
+    $result = & $cmd @BoundParameters @ArgumentList
+    if ($result) {
+         Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
+    }
+    else {
+        Write-PesterDebugMessage -Scope Mock -Message "Mock filter did not pass."
+    }
+    $result 
 }
 
 function Get-ParamBlockFromBoundParameters {

@@ -174,29 +174,30 @@ i {
     }
 
     b "mock filters" {
-        dt "" {
+        dt "calling filtered and default mock chooses the correct mock to call" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
-                        function Get-PSVersionTable2 {
-                            Get-Variable -Name PSVersionTable -ValueOnly
-                        }
-                    }
-                    It 'Returns value of $PSVersionTable.PsVersion.Major' {
-                        Mock Get-Variable -ParameterFilter {
+                        Mock Get-Variable { "filtered" } -ParameterFilter {
                             $Name -eq 'PSVersionTable' -and $ValueOnly
-                        } -MockWith {
-                            @{ PSVersion = [Version]'1.0.0' }
                         }
 
+                        Mock Get-Variable { "default" }
+                    }
 
-                        (Get-PSVersionTable2).PSVersion | Should -Be 1.0.0
+                    It 'makes a call to the filtered mock' {
+                        Get-Variable -Name PSVersionTable -ValueOnly | Should -Be "filtered"
+                    }
+
+                    It 'makes a call to the default mock' {
+                        Get-Variable -Name PSVersionTable | Should -Be "default"
                     }
                 }
             } -PassThru
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[1].Passed | Verify-True
         }
     }
 }
