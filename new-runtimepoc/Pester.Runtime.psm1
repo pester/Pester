@@ -252,12 +252,16 @@ function New-Block {
                 Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
             }
 
+            $frameworkEachBlockTeardowns = @( $state.Plugin.EachBlockTeardown | selectNonNull )
+            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | selectNonNull } ) 
+            # reverse the teardowns so they run in opposite order to setups
+            [Array]::Reverse($frameworkEachBlockTeardowns)
+            [Array]::Reverse($frameworkOneTimeBlockTeardowns)
+
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
-                -Teardown @( $state.Plugin.EachBlockTeardown | selectNonNull ) `
-                -OuterTeardown @(
-                if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | selectNonNull }
-            ) `
+                -Teardown $frameworkEachBlockTeardowns `
+                -OuterTeardown $frameworkOneTimeBlockTeardowns `
                 -Context @{
                 Context = @{
                     # context that is visible to plugins
@@ -272,12 +276,14 @@ function New-Block {
                     $ErrorActionPreference = 'Continue'
                     if ($frameworkSetupResult.ErrorRecord) {
                         foreach ($e in $frameworkSetupResult.ErrorRecord) {
-                            Write-Error -ErrorRecord $e
+                            Write-Host -ForegroundColor Red ($e |out-string)
+                             Write-Host -ForegroundColor Red ($e.ScriptStackTrace |out-string)
                         }
                     }
                     if ($frameworkTeardownResult.ErrorRecord) {
                         foreach ($e in $frameworkTeardownResult.ErrorRecord) {
-                            Write-Error -ErrorRecord $e
+                            Write-Host -ForegroundColor Red ($e |out-string)
+                             Write-Host -ForegroundColor Red ($e.ScriptStackTrace |out-string)
                         }
                     }
 

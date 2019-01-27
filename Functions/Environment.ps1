@@ -1,6 +1,6 @@
 function GetPesterPsVersion {
     # accessing the value indirectly so it can be mocked
-    (Get-Variable 'PSVersionTable' -ValueOnly).PSVersion.Major
+    (& $SafeCommands['Get-Variable'] 'PSVersionTable' -ValueOnly).PSVersion.Major
 }
 
 function GetPesterOs {
@@ -8,13 +8,13 @@ function GetPesterOs {
     if ((GetPesterPsVersion) -lt 6) {
         'Windows'
     }
-    elseif (Get-Variable -Name 'IsWindows' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsWindows' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
         'Windows'
     }
-    elseif (Get-Variable -Name 'IsMacOS' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsMacOS' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
         'macOS'
     }
-    elseif (Get-Variable -Name 'IsLinux' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsLinux' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
         'Linux'
     }
     else {

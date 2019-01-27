@@ -1,10 +1,14 @@
 get-module pester |  remove-module
-import-module .\Pester.psd1
+import-module $PSSCriptRoot\..\Pester.psd1
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
     WriteDebugMessages     = $true
     WriteDebugMessagesFrom = "Mock"
 }
 
-invoke-pester $PSScriptRoot\..\Functions\Environment.Tests.ps1
+
+
+# invoke-pester C:\Users\nohwnd\Desktop\pippi.Tests.ps1
+
+ invoke-pester $PSScriptRoot\..\Functions\Environment.Tests.ps1
 

@@ -248,12 +248,19 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
 
         ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND COSUME
 
+
+        # it is possible to remove the script: (and -Scope Script) from here and from the alias, which makes the Mock scope just like a function.
+        # but that breaks mocking inside of Pester itself, because the mock is defined in this function and dies with it
+        # this is a cool concept to play with, but scoping mocks more granularly than per It is not something people asked for, and cleaning up
+        # mocks is trivial now they are wrote in distinct tables based on where they are defined, so let's just do it as before, script scoped
+        # function and alias, and cleaning it up in teardown
+
         # define the function and returns an array so we need to take the function out
-        @($ExecutionContext.InvokeProvider.Item.Set("Function:\$($___Mock___parameters.BootstrapFunctionName)", $___Mock___parameters.Definition, $true, $true))[0]
+        @($ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($___Mock___parameters.BootstrapFunctionName)", $___Mock___parameters.Definition, $true, $true))[0]
 
         # define all aliases
         foreach ($______current in $___Mock___parameters.Aliases) {
-            & $___Mock___parameters.Set_Alias -Name $______current -Value $___Mock___parameters.BootstrapFunctionName
+            & $___Mock___parameters.Set_Alias -Name $______current -Value $___Mock___parameters.BootstrapFunctionName -Scope Script
         }
 
         # clean up the variables because we are injecting them to the current scope
@@ -402,7 +409,7 @@ function Assert-MockCalledInternal {
         }
 
 
-        if (Test-ParameterFilter @params) {            
+        if (Test-ParameterFilter @params) {
             $null = $matchingCalls.Add($historyEntry)
         }
         else {
@@ -494,15 +501,11 @@ function Test-MockCallScope {
 
 function Exit-MockScope {
     param (
-        [switch] $ExitTestCaseOnly
+        [Parameter(Mandatory)]
+        $MockTable
     )
 
-    if ($null -eq $mockTable) {
-        return
-    }
-
-    $removeMockStub =
-    {
+    $removeMockStub = {
         param (
             [string] $CommandName,
             [string[]] $Aliases
@@ -519,65 +522,12 @@ function Exit-MockScope {
 
     $mockKeys = [string[]]$mockTable.Keys
 
-    foreach ($mockKey in $mockKeys) {
+    foreach ($mockKey in $mockTable.Keys) {
         $mock = $mockTable[$mockKey]
+        Write-PesterDebugMessage -Scope Mock -Message "Removing function $($mock.BootstrapFunctionName)$(if($mock.Aliases) { "and aliases $($mock.Aliases -join ", ")" }) for $mockKey."
 
-        $shouldRemoveMock = (-not $ExitTestCaseOnly) -and (ShouldRemoveMock -Mock $mock -ActivePesterState $pester)
-        if ($shouldRemoveMock) {
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -ArgumentList $mock.BootstrapFunctionName, $mock.Aliases
-            $mockTable.Remove($mockKey)
-        }
-        elseif ($mock.PesterState -eq $pester) {
-            if (-not $ExitTestCaseOnly) {
-                $mock.Blocks = @($mock.Blocks | & $SafeCommands['Where-Object'] { $_.Scope -ne $pester.CurrentTestGroup })
-            }
-
-            $testGroups = @($pester.TestGroups)
-
-            $parentTestGroup = $null
-
-            if ($testGroups.Count -gt 1) {
-                $parentTestGroup = $testGroups[-2]
-            }
-
-            foreach ($historyEntry in $mock.CallHistory) {
-                if ($ExitTestCaseOnly) {
-                    if ($null -eq $historyEntry.Scope) {
-                        $historyEntry.Scope = $pester.CurrentTestGroup
-                    }
-                }
-                elseif ($parentTestGroup) {
-                    if ($historyEntry.Scope -eq $pester.CurrentTestGroup) {
-                        $historyEntry.Scope = $parentTestGroup
-                    }
-                }
-            }
-        }
+        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -Arguments $mock.BootstrapFunctionName, $mock.Aliases
     }
-}
-
-function ShouldRemoveMock($Mock, $ActivePesterState) {
-    # I guess this is because we want to be able to run
-    # Pester in Pester? this is reference comparison so not
-    # and I don't see why there should be two pester states
-    # at the same time otherwise
-    if ($ActivePesterState -ne $mock.PesterState) {
-        return $false
-    }
-    if ($mock.Scope -eq $ActivePesterState.CurrentTestGroup) {
-        return $true
-    }
-
-    # These two should conditions should _probably_ never happen, because the above condition should
-    # catch it, but just in case:
-    if ($ActivePesterState.TestGroups.Count -eq 1) {
-        return $true
-    }
-    if ($ActivePesterState.TestGroups[-2].Hint -eq 'Root') {
-        return $true
-    }
-
-    return $false
 }
 
 function Resolve-Command {
@@ -1027,12 +977,12 @@ function Test-ParameterFilter {
     Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
     $result = & $cmd @BoundParameters @ArgumentList
     if ($result) {
-         Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
+        Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
     }
     else {
         Write-PesterDebugMessage -Scope Mock -Message "Mock filter did not pass."
     }
-    $result 
+    $result
 }
 
 function Get-ParamBlockFromBoundParameters {

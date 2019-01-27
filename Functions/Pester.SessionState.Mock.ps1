@@ -5,14 +5,32 @@
 
 function Get-MockPlugin () {
     Pester.Runtime\New-PluginObject -Name "Mock" `
-        -EachBlockSetup {
-        (Get-CurrentBlock).PluginData.Mock = @{
-            DefinedMocks = @{}
-        }
-    } -EachTestSetup {
-        (Get-CurrentTest).PluginData.Mock = @{
+    -EachBlockSetup {
+        param($Context)
+        $Context.Block.PluginData.Mock = @{
             DefinedMocks = @{}
             CallHistory  = @{}
+        }
+    } -EachTestSetup {
+        param($Context)
+        $Context.Test.PluginData.Mock  = @{
+            DefinedMocks = @{}
+            CallHistory  = @{}
+        }
+    } -EachTestTeardown {
+        param($Context)
+        # we are defining that table in the setup but the teardowns
+        # need to be resilient, because they will run even if the setups
+        # did not run
+        $mockTable = $Context.Test.PluginData.Mock.DefinedMocks
+        if ($null -ne $mockTable) {
+            Exit-MockScope -MockTable $mockTable
+        }
+    } -EachBlockTeardown {
+        param($Context)
+        $mockTable = $Context.Block.PluginData.Mock.DefinedMocks
+        if ($null -ne $mockTable) {
+            Exit-MockScope -MockTable $mockTable
         }
     }
 }
@@ -191,7 +209,7 @@ about_Mocking
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     # don't try to filter here, the passed table is written into, and so it must me a live reference
-    $mockTable = (Get-MockDataForCurrentScope -CommandName $CommandName).DefinedMocks
+    $mockTable = (Get-MockDataForCurrentScope).DefinedMocks
 
 
     New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
@@ -341,8 +359,6 @@ function CollectMocks ($merged, $currentBlock) {
 function Get-MockDataForCurrentScope {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [String]$CommandName
     )
 
     # this returns a mock table based on location, that we
@@ -626,9 +642,9 @@ function Invoke-Mock {
     # should it be registered?
 
     $mockTable = Get-DefinedMocksTable -CommandName $CommandName
-    $callHistoryTable = (Get-MockDataForCurrentScope -CommandName $CommandName).CallHistory
+    $callHistoryTable = (Get-MockDataForCurrentScope).CallHistory
 
-    Invoke-MockInternal  @PSBoundParameters -MockTable $mockTable -CallHistoryTable $callHistoryTable -SessionState $pester.SessionState # or caller state??
+    Invoke-MockInternal @PSBoundParameters -MockTable $mockTable -CallHistoryTable $callHistoryTable -SessionState $PSCmdlet.SessionState
 }
 
 function Assert-RunInProgress {
