@@ -117,7 +117,9 @@ about_should
 
         [Parameter(ParameterSetName = 'Skip')]
         [Alias('Ignore')]
-        [Switch] $Skip
+        [Switch] $Skip,
+
+        [Switch]$Focus
     )
 
     if ($Pending -or $Skip) {
@@ -127,10 +129,10 @@ about_should
     }
 
     if (any $TestCases) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus
     }
     else {
-        Pester.Runtime\New-Test -Name $Name -ScriptBlock $Test -Tag $Tag
+        Pester.Runtime\New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus
     }
 }
 

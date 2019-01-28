@@ -3,10 +3,10 @@ import-module $PSSCriptRoot\..\Pester.psd1
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
     WriteDebugMessages     = $true
-    WriteDebugMessagesFrom = "*"
+    WriteDebugMessagesFrom = "Discovery"
 }
 
 
 
-Invoke-Pester $PSScriptRoot\..\Functions\Mock.Tests.ps1
+Invoke-Pester $PSScriptRoot\..\Functions\Assertions
 

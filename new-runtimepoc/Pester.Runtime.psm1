@@ -283,7 +283,7 @@ function New-Block {
                     if ($frameworkTeardownResult.ErrorRecord) {
                         foreach ($e in $frameworkTeardownResult.ErrorRecord) {
                             Write-Host -ForegroundColor Red ($e | out-string)
-                             Write-Host -ForegroundColor Red ($e.ScriptStackTrace | out-string)
+                            Write-Host -ForegroundColor Red ($e.ScriptStackTrace | out-string)
                         }
                     }
 
@@ -312,8 +312,10 @@ function New-Test {
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         [HashTable] $Data = @{},
-        [String] $Id
+        [String] $Id,
+        [Switch] $Focus
     )
+
     Switch-Timer -Scope Framework
     $testStartTime = $state.TestStopWatch.Elapsed
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
@@ -326,7 +328,7 @@ function New-Test {
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
-            $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path
+            $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
             $test.FrameworkData.Runtime.Phase = 'Discovery'
             Add-Test -Test $test
             Write-PesterDebugMessage -Scope Discovery "Added test '$Name'"
@@ -598,13 +600,15 @@ function New-TestObject {
         [String[]] $Tag,
         [HashTable] $Data,
         [String] $Id,
-        [ScriptBlock] $ScriptBlock
+        [ScriptBlock] $ScriptBlock,
+        [Switch] $Focus
     )
 
     New_PSObject -Type DiscoveredTest @{
         Name              = $Name
         Path              = $Path
         Tag               = $Tag
+        Focus         = [Bool]$Focus
         Data              = $Data
         Executed          = $false
         Passed            = $false
@@ -703,7 +707,7 @@ function Discover-Test {
     Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
 
     $state.Discovery = $true
-    foreach ($container in $BlockContainer) {
+    $found = foreach ($container in $BlockContainer) {
         Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
         # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
@@ -713,11 +717,31 @@ function Discover-Test {
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
+        [PSCustomObject]@{
+            Container = $container
+            Block = $root
+        }
         Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
-        Write-PesterDebugMessage -Scope Discovery "Processing discovery result object, to set root, parents, filters etc."
-        PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $container
-        $root
         Write-PesterDebugMessage -Scope Discovery "Discovery done in this container."
+    }
+
+    Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
+
+    # if any tests in the suite have -Focus parameter then all filters are disregarded
+    # and only those tests should run
+    $focused = [System.Collections.Generic.List[Object]]@()
+    foreach ($f in $found) {
+        Fold-Container -Container $f.Block -OnTest { param($t) if ($t.Focus) { $focused.Add($t.Path) } }
+    }
+
+    if (any $focused) {
+        Write-PesterDebugMessage -Scope Discovery "There are some ($($focused.Count)) focused tests '$($(foreach ($p in $focused) { $p -join "." }) -join ",")' running just them."
+        $Filter = New-FilterObject -Path $focused
+    }
+
+    foreach ($f in $found) {
+        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container
+        $f.Block
     }
 
     Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
@@ -1134,7 +1158,7 @@ function Test-ShouldRun {
 
     $hasMatchingPath = $false
     $hasPathFilter = $false
-    $allPaths =  tryGetProperty $Filter Path | % { $_ -join '.' }
+    $allPaths = tryGetProperty $Filter Path | % { $_ -join '.' }
     if (any $allPaths) {
         $hasPathFilter = $true
         $include = $allPaths -contains $fullTestPath
@@ -1164,23 +1188,23 @@ function Invoke-Test {
 
     $state.Plugin = $Plugin
 
-    # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
+    # # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 
-    # finding if there were any non-terminating errors during the run, user can clear the array, and the array has fixed size so we can't just try to detect if there is any difference by counts before and after. So I capture the last known error in that state and try to find it in the array after the run
-    $originalErrors = $SessionState.PSVariable.Get("Error").Value
-    $originalLastError = $originalErrors[0]
-    $originalErrorCount = $originalErrors.Count
+    # # finding if there were any non-terminating errors during the run, user can clear the array, and the array has fixed size so we can't just try to detect if there is any difference by counts before and after. So I capture the last known error in that state and try to find it in the array after the run
+    # $originalErrors = $SessionState.PSVariable.Get("Error").Value
+    # $originalLastError = $originalErrors[0]
+    # $originalErrorCount = $originalErrors.Count
 
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
-    $errs = $SessionState.PSVariable.Get("Error").Value
-    $errsCount = $errs.Count
-    if ($errsCount -lt $originalErrorCount) {
-        # it would be possible to detect that there are 0 errors, in the array and continue,
-        # but this still indicates the user code is running where it should not, so let's throw anyway
-        throw "Test discovery failed. The error count ($errsCount) after running discovery is lower than the error count before discovery ($originalErrorCount). Is some of your code running outside Pester controlled blocks and it clears the `$error array by calling `$error.Clear()?"
+    # $errs = $SessionState.PSVariable.Get("Error").Value
+    # $errsCount = $errs.Count
+    # if ($errsCount -lt $originalErrorCount) {
+    #     # it would be possible to detect that there are 0 errors, in the array and continue,
+    #     # but this still indicates the user code is running where it should not, so let's throw anyway
+    #     throw "Test discovery failed. The error count ($errsCount) after running discovery is lower than the error count before discovery ($originalErrorCount). Is some of your code running outside Pester controlled blocks and it clears the `$error array by calling `$error.Clear()?"
 
-    }
+    # }
 
 
     if ($originalErrorCount -lt $errsCount) {
@@ -1599,13 +1623,14 @@ function New-ParametrizedTest () {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable[]] $Data = @{}
+        [HashTable[]] $Data = @{},
+        [Switch] $Focus
     )
 
     Switch-Timer -Scope Framework
     $counter = 0
     foreach ($d in $Data) {
-        New-Test -Id ($counter++) -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d
+        New-Test -Id ($counter++) -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
     }
 }
 
