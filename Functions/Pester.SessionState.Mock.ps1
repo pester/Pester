@@ -202,7 +202,7 @@ about_Mocking
 
     Assert-RunInProgress -CommandName Mock
 
-    Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {"$ModuleName -"}) $CommandName."
+    Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     $SessionState = $PSCmdlet.SessionState
     $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
     $null = Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
@@ -230,7 +230,9 @@ function Get-DefinedMocksTable {
     $currentTest = Get-CurrentTest
     $inTest = any $currentTest
 
-    $commandNameFilter = "*||$CommandName"
+    # do not use like "*||$CommandName" here, it will not match functions with wildcard
+    # characters in them like function f[f]f
+    $commandNameFilter = "^.*?\|\|$([regex]::Escape($CommandName))$"
 
     $mockTable = @{}
 
@@ -240,7 +242,7 @@ function Get-DefinedMocksTable {
             # we are interested in any mock with the given name
             # no matter which module it comes from, it will be filtered
             # down later
-            if ($mock.Key -like $commandNameFilter) {
+            if ($mock.Key -match $commandNameFilter) {
                 Write-PesterDebugMessage -Scope Mock "Found mock data for $($mock.Key) in the test."
                 $mockTable.Add($mock.Key, $mock.Value)
             }
@@ -260,7 +262,7 @@ function Get-DefinedMocksTable {
                 # we are interested in any mock with the given name
                 # no matter which module it comes from, it will be filtered
                 # down later
-                if ($m.Key -like $commandNameFilter) {
+                if ($m.Key -match $commandNameFilter) {
                     Write-PesterDebugMessage -Scope Mock "Found mock $($m.Key) in $($b.Name)."
                     $m
                 }
@@ -600,7 +602,7 @@ to the original.
         $PSBoundParameters.Remove("Scope")
     }
 
-    Assert-MockCalledInternal @PSBoundParameters -MockTable $mockTable -SessionState $pester.SessionState # or should this be the caller state?
+    Assert-MockCalledInternal @PSBoundParameters -MockTable $mockTable -SessionState $PSCmdlet.SessionState
 }
 
 function Invoke-Mock {

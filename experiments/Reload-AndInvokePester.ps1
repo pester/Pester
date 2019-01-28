@@ -2,11 +2,11 @@ get-module pester |  remove-module
 import-module $PSSCriptRoot\..\Pester.psd1
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
-    WriteDebugMessages     = $true
-    WriteDebugMessagesFrom = "Discovery"
+    WriteDebugMessages     = $false
+    WriteDebugMessagesFrom = "mock"
 }
 
 
 
-Invoke-Pester $PSScriptRoot\..\Functions\Assertions
+$r = Invoke-Pester $PSScriptRoot\..\Functions\Mock.Tests.ps1 -PassThru
 

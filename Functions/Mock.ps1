@@ -46,11 +46,11 @@ function New-MockInternal {
     $mock = $MockTable["$moduleName||$($contextInfo.Command.Name)"]
 
     if (-not $mock) {
-        Write-PesterDebugMessage -Scope Mock -Message "Creating new mock for $($contextInfo.Command.Name)$(if($moduleName) { "from module $moduleName" })."
+        Write-PesterDebugMessage -Scope Mock -Message "Creating new mock for $($contextInfo.Command.Name)$(if($moduleName) { " from module $moduleName" })."
         $mock = Create-Mock -ContextInfo $contextInfo -InvokeMockCallback ($InvokeMockCallback)
     }
     else {
-        Write-PesterDebugMessage -Scope Mock -Message "Mock definition for  $($contextInfo.Command.Name)$(if($moduleName) { "from module $moduleName" }) already exists. Re-using it."
+        Write-PesterDebugMessage -Scope Mock -Message "Mock definition for $($contextInfo.Command.Name)$(if($moduleName) { " from module $moduleName" }) already exists. Re-using it."
     }
 
     if ($mock.Blocks.Count -eq 0) {
@@ -165,8 +165,10 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
     }
 
     $mockPrototype = @"
+    & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Mock bootstrap function #FUNCTIONNAME# called from block #BLOCK#."
     `$MyInvocation.MyCommand.Mock.Args = `$null
     if (#CANCAPTUREARGS#) {
+        & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Capturing arguments of the mocked command."
         `$MyInvocation.MyCommand.Mock.Args = & `$MyInvocation.MyCommand.Mock.Get_Variable ```
             -ErrorAction `$MyInvocation.MyCommand.Mock.ErrorAction ```
             -Name args -ValueOnly -Scope Local
@@ -182,11 +184,14 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
     }
 
     # MockCallState initialization is injected only into the begin block by the code that generates this prototype
+    # also it is not a good idea to share it via the function local data because then it will get overwritten by nested
+    # mock if there is any, instead it should be a varible that gets defined in describe and so it survives during the whole
+    # pipeline, but does not overwrite other variables, because we are running in different scopes. Mindblowing.
     & `$MyInvocation.MyCommand.Mock.Invoke_Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' ```
         -BoundParameters `$PSBoundParameters ```
         -ArgumentList `$MyInvocation.MyCommand.Mock.Args ```
         -CallerSessionState `$MyInvocation.MyCommand.Mock.SessionState ```
-        -MockCallState `$MyInvocation.MyCommand.Mock.MockCallState ```
+        -MockCallState `$_____MockCallState ```
         -FromBlock '#BLOCK#' #INPUT#
 "@
     $newContent = $mockPrototype
@@ -208,7 +213,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
     {
         # MockCallState is set only in begin block, to persist state between
         # begin, process, and end blocks
-        `$MyInvocation.MyCommand.Mock.MockCallState = @{}
+        `$_____MockCallState = @{}
         $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
     }
 
@@ -251,7 +256,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         Remove_Variable       = $SafeCommands["Remove-Variable"]
     }
 
-    
+
     $defineFunctionAndAliases = {
         param($___Mock___parameters)
         # Make sure the you don't use _______parameters variable here, otherwise you overwrite
@@ -293,11 +298,11 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         Args                     = $null
         ErrorAction              = if ($PSVersionTable.PSVersion.Major -ge 3) { 'Ignore' } else { 'SilentlyContinue' }
         SessionState             = $null
-        MockCallState            = $null
 
         Get_Variable             = $SafeCommands["Get-Variable"]
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
+        Write_PesterDebugMessage  = { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message }
 
         # used as temp variable
         PSCmdlet                 = $null
@@ -674,6 +679,9 @@ function Invoke-MockInternal {
             $MockCallState['InputObjects'] = & $SafeCommands['New-Object'] System.Collections.ArrayList
             $MockCallState['ShouldExecuteOriginalCommand'] = $false
             $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
+            # argument list must not be null, if the bootstrap functions has no parameters
+            # we get null and need to replace it with empty array to make the splatting work
+            # later on.
             $MockCallState['BeginArgumentList'] = $ArgumentList
 
             return
@@ -733,7 +741,7 @@ function Invoke-MockInternal {
 
                 # In order to mock Set-Variable correctly we need to write the variable
                 # two scopes above
-                if ( $mock.OriginalCommand -like "Set-Variable" ) {
+                if ( $mock.OriginalCommand -eq "Set-Variable" ) {
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
                         $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
                     }
@@ -749,9 +757,14 @@ function Invoke-MockInternal {
                     }
                 }
 
+                if ($null -eq ($MockCallState['BeginArgumentList'])) {
+                    $arguments = @() }
+                else {
+                    $arguments = $MockCallState['BeginArgumentList']
+                }
                 Write-ScriptBlockInvocationHint -Hint "Mock - Original Command" -ScriptBlock $scriptBlock
                 & $scriptBlock -Command $mock.OriginalCommand `
-                    -ArgumentList $MockCallState['BeginArgumentList'] `
+                    -ArgumentList $arguments `
                     -BoundParameters $MockCallState['BeginBoundParameters'] `
                     -InputObjects $MockCallState['InputObjects']
             }
@@ -806,7 +819,7 @@ function FindMatchingBlock {
         }
 
         if (Test-ParameterFilter @params) {
-            Write-PesterDebugMessage -Scope Mock "{ $block } passed parameter filter and will be used for the mock."
+            Write-PesterDebugMessage -Scope Mock "{ $($block.ScriptBlock) } passed parameter filter and will be used for the mock."
             return $block
         }
     }
