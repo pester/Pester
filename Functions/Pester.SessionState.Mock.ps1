@@ -5,7 +5,7 @@
 
 function Get-MockPlugin () {
     Pester.Runtime\New-PluginObject -Name "Mock" `
-    -EachBlockSetup {
+        -EachBlockSetup {
         param($Context)
         $Context.Block.PluginData.Mock = @{
             DefinedMocks = @{}
@@ -13,7 +13,7 @@ function Get-MockPlugin () {
         }
     } -EachTestSetup {
         param($Context)
-        $Context.Test.PluginData.Mock  = @{
+        $Context.Test.PluginData.Mock = @{
             DefinedMocks = @{}
             CallHistory  = @{}
         }
@@ -310,51 +310,120 @@ function Get-DefinedMocksTable {
 function Get-AssertMockTable {
     [CmdletBinding()]
     param(
-        [Switch] $ForceIncludingBlockMock
+        [Parameter(Mandatory)]
+        $Frame,
+        [Parameter(Mandatory)]
+        [String] $CommandName,
+        [String] $ModuleName
     )
+    # frame looks like this
+    # [PSCustomObject]@{
+    #     Scope = int
+    #     Frame = block | test
+    #     IsTest = bool
+    # }
 
-    # this is used for assertions,
-    # in there we care about all mocks attached to the current bloc
-    # the current test and all other tests in this block
+    $key = "$resolvedModule||$resolvedCommand"
+    $scope = $Frame.Scope
+    $inTest = $Frame.IsTest
+    # this is used for assertions, in here we need to collect
+    # all call histories for the given command in the scope.
+    # if the scope number is bigger than 0 then we need all
+    # in the whole scope including all its
 
-    $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
-    # we are in the current test, and did not force assertion for whole block, and we are not running this from one time test teardown
-    # so we want to see just mock calls from the current test
-    if ($inTest -and -not $ForceIncludingBlockMock) {
-        return $currentTest.PluginData.Mock.CallHistory
-    }
+    if ($inTest -and 0 -eq $scope) {
+        # we are in test and we care only about the test scope,
+        # this is easy, we just look for call history of the command
 
-    $currentBlock = Get-CurrentBlock
-    $merged = @{}
-
-    CollectMocks $merged $currentBlock
-
-    # merge them into a new one with per block taking precedence
-    # but can we even define mock in test when the same is in the block already?
-    $merged
-}
-
-function CollectMocks ($merged, $currentBlock) {
-    if (any $currentBlock.PluginData.Mock.CallHistory) {
-        Merge-HashTable -Source $currentBlock.PluginData.Mock.CallHistory -Destination $merged
-    }
-
-    foreach ($test in $currentBlock.Tests) {
-        if (any $test.PluginData.Mock.CallHistory) {
-            foreach ($pair in $test.PluginData.Mock.CallHistory.GetEnumerator()) {
-                if ($merged.ContainsKey($pair.Key)) {
-                    $merged[$pair.Key] += $pair.Value
+        $history = tryGetValue $Frame.Frame.PluginData.Mock.CallHistory $key
+        if ($history) {
+            $history
+        }
+        else {
+            $mockInTest = tryGetValue $test.PluginData.Mock.DefinedMocks $key
+            if ($mockInTest) {
+                # do nothing, the mock was defined but it was not called in this scope
+            }
+            else {
+                # try finding the mock definition in upper scopes, because it was not found in the current test
+                $mockInBlock = Recurse-Up $test.Block {
+                    param ($b)
+                    tryGetValue $b.PluginData.Mock.CallHistory $key
                 }
-                else {
-                    $merged.Add($pair.Key, $pair.Value)
+
+                if (none $mockInBlock) {
+                    throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
                 }
+            }
+
+            $history = Recurse-Up $test.Block {
+                param ($b)
+                tryGetValue $b.PluginData.Mock.CallHistory $key
+            }
+
+            if (none $history) {
+                throw "Could not find any mock definition for "
             }
         }
     }
 
-    foreach ($b in $currentBlock.Blocks) {
-        CollectMocks $merged $b
+    # this is harder, we have scope and we are in a block, we need to look
+    # in this block and any child for mock calls
+
+    $currentBlock = if ($inTest) { $Frame.Frame.Block } else { $Frame.Frame }
+    if ($inTest) {
+        # we are in test but we only inspect blocks, so getting current block automatically
+        # makes us in scope 1, so if we got 1 from the parameter we need to translate it to 0
+        $scope -= 1
+    }
+
+    if ($scope -eq 0) {
+        # in scope 0 the current block is the base block
+        $block = $currentBlock
+    }
+    if ($scope -eq 1) {
+        # in scope 1 it is the parent
+        $block = if (any $currentBlock.Parent) { $currentBlock.Parent } else { $currentBlock }
+    }
+    else {
+        # otherwise we just walk up as many scopes as needed until
+        # we reach the desired scope, or the root of the tree, the above ifs could
+        # be replaced by this, but they are easier to write and use for the most common
+        # cases
+        # TODO: another ad-hoc implementation of Recurse-Up
+        $i = $currentBlock
+        $level = $scope - 1
+        while ($level -gt 0 -and (any $i.Parent)) {
+            $level--
+            $i = $i.Parent
+        }
+        $block = $i
+    }
+
+
+    # we have our block so we need to collect all the history for the given mock
+
+    $history = [System.Collections.Generic.List[Object]]@()
+    $addToHistory = {
+        param($b)
+        $v = tryGetValue $b.PluginData.Mock.CallHistory $key
+        if (any $v) {
+            $history.Add($v)
+        }
+    }
+    Fold-Block -Block $Block -OnBlock $addToHistory -OnTest $addToHistory
+
+    if (0 -eq $history.Count) {
+        # we did not find any calls, is the mock even defined?
+        # TODO: should we look in the scope and the upper scopes for the mock or just assume 0 calls were done?
+        return @{
+            "$key" = @()
+        }
+    }
+
+
+    @{
+        "$key" = @($history)
     }
 }
 
@@ -588,21 +657,92 @@ to the original.
 
         [string] $ModuleName,
 
-        [ValidateSet('Describe', 'Context', 'It')]
-        [string] $Scope = "It",
+        [string] $Scope = 0,
         [switch] $Exactly
     )
 
-    #  Assert-DescribeInProgress -CommandName Assert-VerifiableMock
-
-    $force = "Describe", "Context" -contains $Scope
-    $mockTable = Get-AssertMockTable -ForceIncludingBlockMock:$force
-
-    if ($PSBoundParameters.ContainsKey("Scope")) {
-        $PSBoundParameters.Remove("Scope")
+    # Assert-DescribeInProgress -CommandName Assert-MockCalled
+    if ('Describe', 'Context', 'It' -notcontains $Scope -and $Scope -notmatch "^\d+$") {
+        throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
     }
 
-    Assert-MockCalledInternal @PSBoundParameters -MockTable $mockTable -SessionState $PSCmdlet.SessionState
+    $SessionState = $PSCmdlet.SessionState
+
+    $isNumericScope = $Scope -match "^\d+$"
+    if ($isNumericScope) {
+        $scopeNumber = $Scope
+    }
+    else {
+        $currentTest = Get-CurrentTest
+        $inTest = any $currentTest
+        $frame = if ($Scope -eq 'It') {
+            if ($inTest) {
+                [PSCustomObject]@{
+                    Scope  = 0
+                    Frame  = $currentTest
+                    IsTest = $true
+                }
+            }
+            else {
+                throw "Assertion is placed outside of an It block, but -Scope It is specified."
+            }
+        }
+        else {
+            # we are not looking for an It scope, so we are looking for a block scope
+            # blocks can be chained arbitrarily, so we need to walk up the tree looking
+            # for the first match
+            $currentBlock = Get-CurrentBlock
+
+            # TODO: this is ad-hoc implementation of folding the tree of parents
+            # make the normal fold work better, and replace this
+            $i = $currentBlock
+            $level = 0
+            while ($null -ne $i) {
+                if ($Scope -eq $i.FrameworkData.CommandUsed) {
+                    if ($inTest) {
+                        # we are in a test but we looked up the scope based on the block
+                        # so we need to add 1 to the scope, because the block is scope 1 for us
+                        $level++
+                    }
+
+                    [PSCustomObject]@{
+                        Scope  = $level
+                        Frame  = $currentBlock
+                        IsTest = $false
+                    }
+                    break
+                }
+                $level++
+                $i = $i.Parent
+            }
+
+
+        }
+    }
+
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
+    $resolvedModule = tryGetProperty $contextInfo.Module Name
+    $resolvedCommand = $contextInfo.Command.Name
+
+    $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule
+
+    tryRemoveKey $PSBoundParameters Scope
+    tryRemoveKey $PSBoundParameters ModuleName
+    tryRemoveKey $PSBoundParameters CommandName
+    Assert-MockCalledInternal @PSBoundParameters `
+        -ContextInfo $contextInfo `
+        -MockTable $mockTable `
+        -SessionState $SessionState
+}
+
+function Find-ClosestBlock {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [String] $CommandUsed
+    )
+
+
 }
 
 function Invoke-Mock {

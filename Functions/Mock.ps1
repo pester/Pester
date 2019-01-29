@@ -302,7 +302,7 @@ function Create-Mock ($contextInfo, $InvokeMockCallback) {
         Get_Variable             = $SafeCommands["Get-Variable"]
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
-        Write_PesterDebugMessage  = { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message }
+        Write_PesterDebugMessage = { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message }
 
         # used as temp variable
         PSCmdlet                 = $null
@@ -351,8 +351,8 @@ function Assert-VerifiableMockInternal {
 function Assert-MockCalledInternal {
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string]$CommandName,
+        [Parameter(Mandatory = $true)]
+        [hashtable] $ContextInfo,
 
         [int]$Times = 1,
 
@@ -386,8 +386,8 @@ function Assert-MockCalledInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
-    $CommandName = $contextInfo.Command.Name
+    $ModuleName = tryGetProperty $ContextInfo.Module Name
+    $CommandName = $ContextInfo.Command.Name
 
     $callHistory = $MockTable["$ModuleName||$CommandName"]
 
@@ -529,7 +529,7 @@ function Exit-MockScope {
 
     foreach ($mockKey in $mockTable.Keys) {
         $mock = $mockTable[$mockKey]
-        Write-PesterDebugMessage -Scope Mock -Message "Removing function $($mock.BootstrapFunctionName)$(if($mock.Aliases) { "and aliases $($mock.Aliases -join ", ")" }) for $mockKey."
+        Write-PesterDebugMessage -Scope Mock -Message "Removing function $($mock.BootstrapFunctionName)$(if($mock.Aliases) { " and aliases $($mock.Aliases -join ", ")" }) for $mockKey."
 
         $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $removeMockStub -Arguments $mock.BootstrapFunctionName, $mock.Aliases
     }
@@ -758,7 +758,8 @@ function Invoke-MockInternal {
                 }
 
                 if ($null -eq ($MockCallState['BeginArgumentList'])) {
-                    $arguments = @() }
+                    $arguments = @()
+                }
                 else {
                     $arguments = $MockCallState['BeginArgumentList']
                 }

@@ -608,7 +608,7 @@ function New-TestObject {
         Name              = $Name
         Path              = $Path
         Tag               = $Tag
-        Focus         = [Bool]$Focus
+        Focus             = [Bool]$Focus
         Data              = $Data
         Executed          = $false
         Passed            = $false
@@ -719,7 +719,7 @@ function Discover-Test {
 
         [PSCustomObject]@{
             Container = $container
-            Block = $root
+            Block     = $root
         }
         Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
         Write-PesterDebugMessage -Scope Discovery "Discovery done in this container."

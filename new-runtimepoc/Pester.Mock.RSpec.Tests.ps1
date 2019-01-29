@@ -8,7 +8,7 @@ Import-Module $PSScriptRoot\..\Pester.psd1
 
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
-    WriteDebugMessages     = $true
+    WriteDebugMessages     = $false
     WriteDebugMessagesFrom = "Mock"
 }
 
@@ -174,7 +174,7 @@ i {
     }
 
     b "mock filters" {
-        dt "calling filtered and default mock chooses the correct mock to call" {
+        t "calling filtered and default mock chooses the correct mock to call" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function f { "real" } }
                 Describe 'd1' {
@@ -198,6 +198,38 @@ i {
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
+        }
+    }
+
+    b "named mock scopes" {
+        dt "asserting in scope describe finds all mocks in the nearest describe" {
+            $actual = Invoke-Pester -ScriptBlock {
+                Add-Dependency { function a { } }
+                Describe 'd1' {
+                    # scope 2
+                    BeforeAll {
+                        Mock a {}
+                    }
+
+                    It 'i1' {
+                        a
+                    }
+
+                    Context "c1" {
+                        # scope 1
+                        It 'i2' {
+                            a
+                        }
+
+                        It 'i1' {
+                            # scope 0
+                            Assert-MockCalled a -Exactly 2 -Scope describe
+                        }
+
+
+                    }
+                }
+            } -PassThru
         }
     }
 }

@@ -133,6 +133,18 @@ function sum ($InputObject, $PropertyName, $Zero) {
     $acc
 }
 
+function tryGetValue ($Hashtable, $Key) {
+    if ($Hashtable.ContainsKey($Key)) {
+        $Hashtable.$Key
+    }
+}
+
+function tryRemoveKey ($Hashtable, $Key) {
+    if ($Hashtable.ContainsKey($Key)) {
+        $Hashtable.Remove($Key)
+    }
+}
+
 
 function Merge-Hashtable ($Source, $Destination) {
     foreach ($p in $Source.GetEnumerator()) {

@@ -708,7 +708,7 @@ Describe "When Calling Assert-MockCalled with exactly" {
         try {
             Assert-MockCalled FunctionUnderTest -exactly 3
         }
-        Catch {
+        catch {
             $result = $_
         }
     }
