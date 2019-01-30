@@ -396,9 +396,9 @@ function Assert-MockCalledInternal {
         $moduleMessage = " in module $ModuleName"
     }
 
-    if (-not $callHistory) {
-        throw "You did not declare a mock of the $commandName Command${moduleMessage}."
-    }
+    # if (-not $callHistory) {
+    #     throw "You did not declare a mock of the $commandName Command${moduleMessage}."
+    # }
 
     $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
     $nonMatchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList

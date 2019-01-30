@@ -610,6 +610,7 @@ function New-TestObject {
         Tag               = $Tag
         Focus             = [Bool]$Focus
         Data              = $Data
+        Block = $null
         Executed          = $false
         Passed            = $false
         StandardOutput    = $null
@@ -1253,6 +1254,7 @@ function PostProcess-DiscoveredBlock {
     $blockShouldRun = $false
     if (any $tests) {
         foreach ($t in $tests) {
+            $t.Block = $Block
             $t.ShouldRun = Test-ShouldRun -Test $t -Filter $Filter
         }
 
@@ -1343,7 +1345,7 @@ function View-Flat {
     $blocks = flattenBlock -Block $Block -Accumulator @()
     foreach ($block in $blocks) {
         foreach ($test in $block.Tests) {
-            $test | select *, @{n = "Block"; e = {$block}}
+            $test
         }
     }
 }

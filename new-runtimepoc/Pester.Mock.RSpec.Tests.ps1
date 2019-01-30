@@ -205,31 +205,46 @@ i {
         dt "asserting in scope describe finds all mocks in the nearest describe" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function a { } }
-                Describe 'd1' {
-                    # scope 2
-                    BeforeAll {
-                        Mock a {}
-                    }
+                Describe 'd-2' {
+                    # scope 4
+                    Describe "d-1" {
+                        # scope 3
+                        Describe 'd1' {
+                            # scope 2
+                            BeforeAll {
+                                Mock a {}
+                            }
 
-                    It 'i1' {
-                        a
-                    }
+                            It 'i1' {
+                                a # call 1
+                            }
 
-                    Context "c1" {
-                        # scope 1
-                        It 'i2' {
-                            a
+                            Context "c1" {
+                                # scope 1
+                                It 'i2' {
+                                    a # call 2
+                                }
+
+                                It 'i1' {
+                                    # scope 0
+                                    Assert-MockCalled a -Exactly 0 -Scope 0
+                                    Assert-MockCalled a -Exactly 0 -Scope It
+                                    Assert-MockCalled a -Exactly 1 -Scope 1
+                                    Assert-MockCalled a -Exactly 1 -Scope Context
+                                    Assert-MockCalled a -Exactly 2 -Scope 2
+                                    Assert-MockCalled a -Exactly 2 -Scope Describe
+                                    Assert-MockCalled a -Exactly 2 -Scope 3
+                                    Assert-MockCalled a -Exactly 2 -Scope 4
+                                }
+                            }
                         }
-
-                        It 'i1' {
-                            # scope 0
-                            Assert-MockCalled a -Exactly 2 -Scope describe
-                        }
-
-
                     }
                 }
             } -PassThru
+
+            $actual.Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
         }
+
+
     }
 }

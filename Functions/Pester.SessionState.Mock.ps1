@@ -337,35 +337,41 @@ function Get-AssertMockTable {
 
         $history = tryGetValue $Frame.Frame.PluginData.Mock.CallHistory $key
         if ($history) {
-            $history
+            return @{
+                "$key" = @($history)
+            }
         }
         else {
+            $test = $Frame.Frame
             $mockInTest = tryGetValue $test.PluginData.Mock.DefinedMocks $key
             if ($mockInTest) {
-                # do nothing, the mock was defined but it was not called in this scope
+                # the mock was defined in it but it was not called in this scope
+                return @{
+                    "$key" = @()
+                }
             }
             else {
                 # try finding the mock definition in upper scopes, because it was not found in the current test
                 $mockInBlock = Recurse-Up $test.Block {
                     param ($b)
-                    tryGetValue $b.PluginData.Mock.CallHistory $key
+                    if ((tryGetProperty $b.PluginData Mock) -and (tryGetProperty $b.PluginData.Mock DefinedMocks)) {
+                        tryGetValue $b.PluginData.Mock.DefinedMocks $key
+                    }
                 }
 
                 if (none $mockInBlock) {
                     throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
                 }
-            }
-
-            $history = Recurse-Up $test.Block {
-                param ($b)
-                tryGetValue $b.PluginData.Mock.CallHistory $key
-            }
-
-            if (none $history) {
-                throw "Could not find any mock definition for "
+                else {
+                     # the mock was defined in some upper scope but it was not called in this it
+                    return @{
+                        "$key" = @()
+                    }
+                }
             }
         }
     }
+
 
     # this is harder, we have scope and we are in a block, we need to look
     # in this block and any child for mock calls
@@ -422,7 +428,7 @@ function Get-AssertMockTable {
     }
 
 
-    @{
+    return @{
         "$key" = @($history)
     }
 }
@@ -669,13 +675,19 @@ to the original.
     $SessionState = $PSCmdlet.SessionState
 
     $isNumericScope = $Scope -match "^\d+$"
-    if ($isNumericScope) {
-        $scopeNumber = $Scope
+    $currentTest = Get-CurrentTest
+    $inTest = any $currentTest
+    $currentBlock = Get-CurrentBlock
+
+    $frame = if ($isNumericScope) {
+        [PSCustomObject]@{
+            Scope  = $Scope
+            Frame  = if ($inTest) { $currentTest } else { $currentBlock }
+            IsTest = $inTest
+        }
     }
     else {
-        $currentTest = Get-CurrentTest
-        $inTest = any $currentTest
-        $frame = if ($Scope -eq 'It') {
+        if ($Scope -eq 'It') {
             if ($inTest) {
                 [PSCustomObject]@{
                     Scope  = 0
@@ -691,7 +703,6 @@ to the original.
             # we are not looking for an It scope, so we are looking for a block scope
             # blocks can be chained arbitrarily, so we need to walk up the tree looking
             # for the first match
-            $currentBlock = Get-CurrentBlock
 
             # TODO: this is ad-hoc implementation of folding the tree of parents
             # make the normal fold work better, and replace this
@@ -707,16 +718,14 @@ to the original.
 
                     [PSCustomObject]@{
                         Scope  = $level
-                        Frame  = $currentBlock
-                        IsTest = $false
+                        Frame  = if ($inTest) { $currentTest } else { $currentBlock }
+                        IsTest = $inTest
                     }
                     break
                 }
                 $level++
                 $i = $i.Parent
             }
-
-
         }
     }
 
