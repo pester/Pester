@@ -174,22 +174,24 @@ InModuleScope Pester {
 InModuleScope Pester {
 
     Describe "Clear-TestDrive" {
-        # not all environments need admin privileges to create symlinks
-        if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
+
+        # Determine whether we should skip these tests
+        # run only on PSVersion -ge 5 (since that's when Symlinks were available)
+        # if on Windows, determine whether we are administrator
+        # run the tests on non-Windows platforms, since symlinks don't require elevation there.
+        $SkipTest = $true
+        if  ( (GetPesterOs) -eq "Windows" -and (GetPesterPSVersion) -ge 5 ) {
             $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
             $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
             $IsAdmin = $windowsPrincipal.IsInRole("Administrators") -eq 1
+            # skip tests when not admin
             $SkipTest = ! $IsAdmin
         }
-        elseif ( ! $IsWindows -and $PSVersionTable.PSVersion -ge "6.0" ) {
+        elseif ( (GetPesterOs) -ne "Windows" ) {
             $SkipTest = $false
         }
-        else {
-            $SkipTest = $true
-        }
 
-
-        It "deletes symbolic links in TestDrive" -skip:$SkipTest {
+        It "Deletes symbolic links in TestDrive" -skip:$SkipTest {
 
             # using non-powershell paths here because we need to interop with cmd below
             $root    = (Get-PsDrive 'TestDrive').Root
@@ -215,6 +217,9 @@ InModuleScope Pester {
         }
 
         It "Clear-TestDrive should not throw" -skip:$SkipTest {
+            # This set of symbolic links causes issues for Clear-TestDrive.
+            # we've already validated Clear-TestDrive, this set of symlinks is problematic when removed
+            # via a script and doesn't repro when typed interactively
             $null = New-Item -Type Directory TestDrive:/d1
             $null = New-Item -Type Directory TestDrive:/test
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link1 -Target TestDrive:/d1

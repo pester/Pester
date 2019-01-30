@@ -109,19 +109,17 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path -Attributes "ReparsePoint" |
     #    % { $_.Delete() }
 
+    # issue 621 was fixed before PowerShell 6.1
+    # now there is an issue with calling the Delete method in recent (6.1) builds of PowerShell
+    if ( $PSVersionTable.PSVersion -ge "6.1" ) {
+        return
+    }
+
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
         where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-        foreach-object { 
-            $item = $_
-            try { 
-                $item.Delete() 
-            }
-            catch {
-                Remove-Item $item -ErrorAction Stop
-            }
-        }
+        foreach-object { $_.Delete() }
 }
 
 function Remove-TestDrive {
