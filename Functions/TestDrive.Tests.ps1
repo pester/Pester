@@ -214,7 +214,7 @@ InModuleScope Pester {
             @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
         }
 
-        It "Clear-TestDrive should not throw" {
+        It "Clear-TestDrive should not throw" -skip:$SkipTest {
             $null = New-Item -Type Directory TestDrive:/d1
             $null = New-Item -Type Directory TestDrive:/test
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link1 -Target TestDrive:/d1
