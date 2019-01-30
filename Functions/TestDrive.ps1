@@ -113,8 +113,15 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
         where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-        % { $_.Delete() }
-
+        foreach-object { 
+            $item = $_
+            try { 
+                $item.Delete() 
+            }
+            catch {
+                Remove-Item $item -ErrorAction Stop
+            }
+        }
 }
 
 function Remove-TestDrive {

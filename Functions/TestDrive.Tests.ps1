@@ -171,32 +171,56 @@ InModuleScope Pester {
 # # this works correctly but needs administrator privileges to create the symlinks
 # # so I comment it out till I decide what to do with it, running always as admin just
 # # to test this is imho not a good idea. Tested on powershell 2 and 5 -- nohwnd
-# InModuleScope Pester {
-#     Describe "Clear-TestDrive" {
+InModuleScope Pester {
 
-#         It "deletes symbolic links in TestDrive" {
+    Describe "Clear-TestDrive" {
+        # not all environments need admin privileges to create symlinks
+        if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
+            $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+            $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
+            $IsAdmin = $windowsPrincipal.IsInRole("Administrators") -eq 1
+            $SkipTest = ! $IsAdmin
+        }
+        elseif ( ! $IsWindows -and $PSVersionTable.PSVersion -ge "6.0" ) {
+            $SkipTest = $false
+        }
+        else {
+            $SkipTest = $true
+        }
 
-#             # using non-powershell paths here because we need to interop with cmd below
-#             $root    = (Get-PsDrive 'TestDrive').Root
-#             $source  = "$root\source"
-#             $symlink = "$root\symlink"
 
-#             $null = New-Item -Type Directory -Path $source
+        It "deletes symbolic links in TestDrive" -skip:$SkipTest {
 
-#             if ($PSVersionTable.PSVersion.Major -ge 5) {
-#                 # native support for symlinks was added in PowerShell 5
-#                 $null = New-Item -Type SymbolicLink -Path $symlink -Value $source
-#                 write-host (ls TestDrive:\ -force | out-string)
-#             }
-#             else {
-#                 $null = cmd /c mklink /D $symlink $source
-#             }
+            # using non-powershell paths here because we need to interop with cmd below
+            $root    = (Get-PsDrive 'TestDrive').Root
+            $source  = "$root\source"
+            $symlink = "$root\symlink"
 
-#             @(Get-ChildItem -Path $root).Length | Should -Be 2 -Because "a pre-requisite is that directory and symlink to it is in place"
+            $null = New-Item -Type Directory -Path $source
 
-#             Clear-TestDrive
+            if ($PSVersionTable.PSVersion.Major -ge 5) {
+                # native support for symlinks was added in PowerShell 5
+                $null = New-Item -Type SymbolicLink -Path $symlink -Value $source
+                # write-host (ls TestDrive:\ -force | out-string)
+            }
+            else {
+                $null = cmd /c mklink /D $symlink $source
+            }
 
-#             @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
-#         }
-#     }
-# }
+            @(Get-ChildItem -Path $root).Length | Should -Be 2 -Because "a pre-requisite is that directory and symlink to it is in place"
+
+            Clear-TestDrive
+
+            @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
+        }
+
+        It "Clear-TestDrive should not throw" {
+            $null = New-Item -Type Directory TestDrive:/d1
+            $null = New-Item -Type Directory TestDrive:/test
+            $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link1 -Target TestDrive:/d1
+            $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2 -Target TestDrive:/d1
+            $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2a -Target TestDrive:/test/link2
+            { Clear-TestDrive } | Should -Not -Throw
+        }
+    }
+}
