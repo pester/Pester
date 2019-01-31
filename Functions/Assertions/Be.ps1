@@ -35,7 +35,7 @@ This test will fail, as the two strings are not identical.
         }
     }
 
-    return & $SafeCommands['New-Object'] psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }
@@ -105,7 +105,7 @@ This test will fail, as the two strings do not match case sensitivity.
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

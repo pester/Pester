@@ -39,9 +39,9 @@ function Get-ShouldOperator {
     DynamicParam {
         $ParameterName = 'Name'
 
-        $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+        $RuntimeParameterDictionary = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
+        $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
+        $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
 
         $AttributeCollection.Add($ParameterAttribute)
 
@@ -49,11 +49,11 @@ function Get-ShouldOperator {
             Select-Object -Property Name, Alias |
             ForEach-Object { $_.Name; $_.Alias }
 
-        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+        $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($arrSet)
 
         $AttributeCollection.Add($ValidateSetAttribute)
 
-        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+        $RuntimeParameter = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
         $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
         return $RuntimeParameterDictionary
     }
@@ -80,7 +80,7 @@ function Get-ShouldOperator {
                 $aliases = (Get-AssertionOperatorEntry $_).Alias
 
                 # Return name and alias(es) for all registered Should operators
-                New-Object -TypeName PSObject -Property @{
+                [PSCustomObject] @{
                     Name  = $_
                     Alias = $aliases -join ', '
                 }

@@ -13,13 +13,13 @@ This test passes, as PowerShell evaluates `2 -gt 0` as true.
     }
 
     if ($ActualValue -le $ExpectedValue) {
-        return New-Object psobject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be greater than $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded = $true
     }
 }
@@ -44,13 +44,13 @@ This test also passes, as PowerShell evaluates `10 -le 10` as true.
     }
 
     if ($ActualValue -gt $ExpectedValue) {
-        return New-Object psobject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be less than or equal to $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded = $true
     }
 }

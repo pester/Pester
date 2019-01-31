@@ -41,7 +41,7 @@ not the end of any single line within the file. This test fails.
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

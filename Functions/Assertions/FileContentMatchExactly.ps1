@@ -33,7 +33,7 @@ Because the RegEx pattern fails to match, this test fails.
         }
     }
 
-    return & $SafeCommands['New-Object'] psobject -Property @{
+    return[PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

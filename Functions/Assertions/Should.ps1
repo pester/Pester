@@ -43,7 +43,7 @@ function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
 }
 
 function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
-    $exception = & $SafeCommands['New-Object'] Exception $Message
+    $exception = [Exception] $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
@@ -91,7 +91,7 @@ function Should {
     }
 
     begin {
-        $inputArray = New-Object System.Collections.Generic.List[PSObject]
+        $inputArray = [System.Collections.Generic.List[PSObject]]@()
 
         if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
             $parsedArgs = Parse-ShouldArgs ($__LegacyArg1, $__LegacyArg2, $__LegacyArg3)

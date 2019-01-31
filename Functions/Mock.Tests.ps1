@@ -718,7 +718,7 @@ Describe "When Calling Assert-MockCalled with exactly" {
     }
 
     It "Should not throw if mock was called the number of times specified" {
-        Assert-MockCalled FunctionUnderTest -Exactly 2 -ParameterFilter { $param1 -eq "one" }
+        Assert-MockCalled FunctionUnderTest -Exactly 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
     }
 }
 
@@ -731,20 +731,20 @@ Describe "When Calling Assert-MockCalled without exactly" {
     }
 
     It "Should throw if mock was not called at least the number of times specified" {
-        $scriptBlock = { Assert-MockCalled FunctionUnderTest 4 }
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest 4 -Scope Describe }
         $scriptBlock | Should -Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
-        Assert-MockCalled FunctionUnderTest
+        Assert-MockCalled FunctionUnderTest -Scope Describe
     }
 
     It "Should not throw if mock was called at exactly the number of times specified" {
-        Assert-MockCalled FunctionUnderTest 2 -ParameterFilter { $param1 -eq "one" }
+        Assert-MockCalled FunctionUnderTest 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
     }
 
     It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
-        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } }
+        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
         $scriptBlock | Should -Throw '1 non-matching calls were made'
     }
 }
@@ -800,7 +800,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
         }
     }
 
-    Context "When context no longer hides a describe mock" {
+    Context  "When context no longer hides a describe mock" {
         It "should use the describe mock" {
             FunctionUnderTest | should -be "I am the paramless mock test"
         }
@@ -819,8 +819,8 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
             Mock FunctionUnderTest { return 'I am the It mock' }
         }
 
-        It 'Leaves the mock active in the parent scope' {
-            FunctionUnderTest | Should -Be 'I am the It mock'
+        It 'Des not leave the mock active in the parent scope' {
+            FunctionUnderTest | Should -Be 'I am the context mock'
         }
     }
 }
@@ -845,7 +845,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It "Reports one Context-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 1
+            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
         }
 
         It "Reports one Describe-scoped call" {
@@ -873,7 +873,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports one context-scoped call' {
-            Assert-MockCalled MockHistoryChecker -Exactly 1
+            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
         }
 
         It 'Reports two describe-scoped calls, even when one is an override mock in a lower scope' {
@@ -886,7 +886,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports 2 context-scoped calls' {
-            Assert-MockCalled MockHistoryChecker -Exactly 2
+            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Context
         }
 
         It 'Reports 3 describe-scoped calls' {
@@ -895,7 +895,7 @@ Describe 'Testing mock history behavior from each scope' {
     }
 
     It 'Reports 3 describe-scoped calls using the default scope in a Describe block' {
-        Assert-MockCalled MockHistoryChecker -Exactly 3
+        Assert-MockCalled MockHistoryChecker -Exactly 3  -Scope Describe
     }
 }
 
@@ -915,585 +915,587 @@ Describe "Using a single no param Describe" {
     }
 }
 
-Describe 'Dot Source Test' {
-    # This test is only meaningful if this test file is dot-sourced in the global scope.  If it's executed without
-    # dot-sourcing or run by Invoke-Pester, there's no problem.
+# TODO: this is looking into pester internals that are no longer the same, does this test have any value for the new runtime?
+# Describe 'Dot Source Test' {
+#     # This test is only meaningful if this test file is dot-sourced in the global scope.  If it's executed without
+#     # dot-sourcing or run by Invoke-Pester, there's no problem.
 
-    BeforeAll {
-        function TestFunction {
-            Test-Path -Path 'Test'
-        }
-        Mock Test-Path { }
+#     BeforeAll {
+#         function TestFunction {
+#             Test-Path -Path 'Test'
+#         }
+#         Mock Test-Path { }
 
-        $null = TestFunction
-    }
+#         $null = TestFunction
+#     }
 
-    It "Calls the mock with parameter 'Test'" {
-        Assert-MockCalled Test-Path -Exactly 1 -ParameterFilter { $Path -eq 'Test' }
-    }
+#     It "Calls the mock with parameter 'Test'" {
+#         Assert-MockCalled Test-Path -Exactly 1 -ParameterFilter { $Path -eq 'Test' }
+#     }
 
-    It "Doesn't call the mock with any other parameters" {
-        InModuleScope Pester {
-            $global:calls = $mockTable['||Test-Path'].CallHistory
-        }
-        Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
-    }
-}
+#     It "Doesn't call the mock with any other parameters" {
+#         InModuleScope Pester {
+#             $global:calls = $mockTable['||Test-Path'].CallHistory
+#         }
+#         Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' }
+#     }
+# }
 
-InModuleScope -ModuleName Pester {
 
-    Describe 'Mocking Cmdlets with dynamic parameters' {
+Describe 'Mocking Cmdlets with dynamic parameters' {
 
-        if ((GetPesterOs) -ne 'Windows') {
-            BeforeAll {
-                $mockWith = { if (-not $Hidden) {
-                        throw 'Hidden variable not found, or set to false!'
-                    } }
-                Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
-            }
-
-            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-                { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
-                Assert-MockCalled Get-ChildItem
-            }
-        }
-        else {
-            BeforeAll {
-                $mockWith = { if (-not $CodeSigningCert) {
-                        throw 'CodeSigningCert variable not found, or set to false!'
-                    } }
-                Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
-            }
-
-            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-                { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should -Not -Throw
-                Assert-MockCalled Get-ChildItem
-            }
-        }
-    }
-}
-
-Describe 'Mocking functions with dynamic parameters' {
-    Context 'Dynamicparam block that uses the variables of static parameters in its logic' {
-        # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
-        # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
-
+    if ((InModuleScope Pester { GetPesterOs }) -ne 'Windows') {
         BeforeAll {
-            function Get-Greeting {
-                [CmdletBinding()]
-                param (
-                    [string] $Name
-                )
-
-                DynamicParam {
-                    if ($Name -cmatch '\b[a-z]') {
-                        $Attributes = New-Object Management.Automation.ParameterAttribute
-                        $Attributes.ParameterSetName = "__AllParameterSets"
-                        $Attributes.Mandatory = $false
-
-                        $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-                        $AttributeCollection.Add($Attributes)
-
-                        $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
-
-                        $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-                        $ParamDictionary.Add("Capitalize", $Dynamic)
-                        $ParamDictionary
-                    }
-                }
-
-                end {
-                    if ($PSBoundParameters.Capitalize) {
-                        $Name = [regex]::Replace(
-                            $Name,
-                            '\b\w',
-                            { $args[0].Value.ToUpper() }
-                        )
-                    }
-
-                    "Welcome $Name!"
-                }
-            }
-
-            $mockWith = { if (-not $Capitalize) {
-                    throw 'Capitalize variable not found, or set to false!'
+            $mockWith = { if (-not $Hidden) {
+                    throw 'Hidden variable not found, or set to false!'
                 } }
-            Mock Get-Greeting -MockWith $mockWith -ParameterFilter { [bool]$Capitalize }
+            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
         }
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { Get-Greeting -Name lowercase -Capitalize } | Should -Not -Throw
-            Assert-MockCalled Get-Greeting
-        }
-
-        It 'Sets the dynamic parameter variable properly' {
-            $Capitalize = $false
-            { Get-Greeting -Name lowercase -Capitalize } | Should -Not -Throw
-            Assert-MockCalled Get-Greeting -Scope It
+            { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
+            Assert-MockCalled Get-ChildItem
         }
     }
-
-    Context 'When the mocked command is in a module' {
+    else {
         BeforeAll {
-            New-Module -Name TestModule {
-                function PublicFunction {
-                    Get-Greeting -Name lowercase -Capitalize
-                }
-
-                $script:DoDynamicParam = $true
-
-                # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
-                # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
-
-                function script:Get-Greeting {
-                    [CmdletBinding()]
-                    param (
-                        [string] $Name
-                    )
-
-                    DynamicParam {
-                        # This check is here to make sure the mocked version can still work if the
-                        # original function's dynamicparam block relied on script-scope variables.
-                        if (-not $script:DoDynamicParam) {
-                            return
-                        }
-
-                        if ($Name -cmatch '\b[a-z]') {
-                            $Attributes = New-Object Management.Automation.ParameterAttribute
-                            $Attributes.ParameterSetName = "__AllParameterSets"
-                            $Attributes.Mandatory = $false
-
-                            $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-                            $AttributeCollection.Add($Attributes)
-
-                            $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
-
-                            $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-                            $ParamDictionary.Add("Capitalize", $Dynamic)
-                            $ParamDictionary
-                        }
-                    }
-
-                    end {
-                        if ($PSBoundParameters.Capitalize) {
-                            $Name = [regex]::Replace(
-                                $Name,
-                                '\b\w',
-                                { $args[0].Value.ToUpper() }
-                            )
-                        }
-
-                        "Welcome $Name!"
-                    }
-                }
-            } | Import-Module -Force
-
-            $mockWith = { if (-not $Capitalize) {
-                    throw 'Capitalize variable not found, or set to false!'
+            $mockWith = { if (-not $CodeSigningCert) {
+                    throw 'CodeSigningCert variable not found, or set to false!'
                 } }
-            Mock Get-Greeting -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Capitalize }
+            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
         }
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { TestModule\PublicFunction } | Should -Not -Throw
-            Assert-MockCalled Get-Greeting -ModuleName TestModule
-        }
-
-        AfterAll {
-            Remove-Module TestModule -Force
-        }
-    }
-
-    Context 'When the mocked command has mandatory parameters that are passed in via the pipeline' {
-        BeforeAll {
-            # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
-            # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
-
-            function Get-Greeting2 {
-                [CmdletBinding()]
-                param (
-                    [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-                    [string] $MandatoryParam,
-
-                    [string] $Name
-                )
-
-                DynamicParam {
-                    if ($Name -cmatch '\b[a-z]') {
-                        $Attributes = New-Object Management.Automation.ParameterAttribute
-                        $Attributes.ParameterSetName = "__AllParameterSets"
-                        $Attributes.Mandatory = $false
-
-                        $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-                        $AttributeCollection.Add($Attributes)
-
-                        $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
-
-                        $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-                        $ParamDictionary.Add("Capitalize", $Dynamic)
-                        $ParamDictionary
-                    }
-                }
-
-                end {
-                    if ($PSBoundParameters.Capitalize) {
-                        $Name = [regex]::Replace(
-                            $Name,
-                            '\b\w',
-                            { $args[0].Value.ToUpper() }
-                        )
-                    }
-
-                    "Welcome $Name!"
-                }
-            }
-
-            Mock Get-Greeting2 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
-            $hash = @{ Result = $null }
-            $scriptBlock = { $hash.Result = 'Mandatory' | Get-Greeting2 -Name test -Capitalize }
-        }
-
-        It 'Should successfully call the mock and generate the dynamic parameters' {
-            $scriptBlock | Should -Not -Throw
-            $hash.Result | Should -Be 'Mocked'
-        }
-    }
-
-    Context 'When the mocked command has parameter sets that are ambiguous at the time the dynamic param block is executed' {
-        BeforeAll {
-            # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
-            # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
-
-            function Get-Greeting3 {
-                [CmdletBinding()]
-                param (
-                    [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ParameterSetName = 'One')]
-                    [string] $One,
-
-                    [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ParameterSetName = 'Two')]
-                    [string] $Two,
-
-                    [string] $Name
-                )
-
-                DynamicParam {
-                    if ($Name -cmatch '\b[a-z]') {
-                        $Attributes = New-Object Management.Automation.ParameterAttribute
-                        $Attributes.ParameterSetName = "__AllParameterSets"
-                        $Attributes.Mandatory = $false
-
-                        $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-                        $AttributeCollection.Add($Attributes)
-
-                        $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
-
-                        $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-                        $ParamDictionary.Add("Capitalize", $Dynamic)
-                        $ParamDictionary
-                    }
-                }
-
-                end {
-                    if ($PSBoundParameters.Capitalize) {
-                        $Name = [regex]::Replace(
-                            $Name,
-                            '\b\w',
-                            { $args[0].Value.ToUpper() }
-                        )
-                    }
-
-                    "Welcome $Name!"
-                }
-            }
-
-            Mock Get-Greeting3 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
-            $hash = @{ Result = $null }
-            $scriptBlock = { $hash.Result = New-Object psobject -Property @{ One = 'One' } | Get-Greeting3 -Name test -Capitalize }
-        }
-
-        It 'Should successfully call the mock and generate the dynamic parameters' {
-            $scriptBlock | Should -Not -Throw
-            $hash.Result | Should -Be 'Mocked'
-        }
-    }
-
-    Context 'When the mocked command''s dynamicparam block depends on the contents of $PSBoundParameters' {
-        BeforeAll {
-            # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
-            # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
-
-            function Get-Greeting4 {
-                [CmdletBinding()]
-                param (
-                    [string] $Name
-                )
-
-                DynamicParam {
-                    if ($PSBoundParameters['Name'] -cmatch '\b[a-z]') {
-                        $Attributes = New-Object Management.Automation.ParameterAttribute
-                        $Attributes.ParameterSetName = "__AllParameterSets"
-                        $Attributes.Mandatory = $false
-
-                        $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-                        $AttributeCollection.Add($Attributes)
-
-                        $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
-
-                        $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-                        $ParamDictionary.Add("Capitalize", $Dynamic)
-                        $ParamDictionary
-                    }
-                }
-
-                end {
-                    if ($PSBoundParameters.Capitalize) {
-                        $Name = [regex]::Replace(
-                            $Name,
-                            '\b\w',
-                            { $args[0].Value.ToUpper() }
-                        )
-                    }
-
-                    "Welcome $Name!"
-                }
-            }
-
-            Mock Get-Greeting4 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
-            $hash = @{ Result = $null }
-            $scriptBlock = { $hash.Result = Get-Greeting4 -Name test -Capitalize }
-        }
-
-        It 'Should successfully call the mock and generate the dynamic parameters' {
-            $scriptBlock | Should -Not -Throw
-            $hash.Result | Should -Be 'Mocked'
-        }
-    }
-
-    Context 'When the mocked command''s dynamicparam block depends on the contents of $PSCmdlet.ParameterSetName' {
-        BeforeAll {
-            # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
-            # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
-
-            function Get-Greeting5 {
-                [CmdletBinding(DefaultParameterSetName = 'One')]
-                param (
-                    [string] $Name,
-
-                    [Parameter(ParameterSetName = 'Two')]
-                    [string] $Two
-                )
-
-                DynamicParam {
-                    if ($PSCmdlet.ParameterSetName -eq 'Two' -and $Name -cmatch '\b[a-z]') {
-                        $Attributes = New-Object Management.Automation.ParameterAttribute
-                        $Attributes.ParameterSetName = "__AllParameterSets"
-                        $Attributes.Mandatory = $false
-
-                        $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-                        $AttributeCollection.Add($Attributes)
-
-                        $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
-
-                        $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-                        $ParamDictionary.Add("Capitalize", $Dynamic)
-                        $ParamDictionary
-                    }
-                }
-
-                end {
-                    if ($PSBoundParameters.Capitalize) {
-                        $Name = [regex]::Replace(
-                            $Name,
-                            '\b\w',
-                            { $args[0].Value.ToUpper() }
-                        )
-                    }
-
-                    "Welcome $Name!"
-                }
-            }
-
-            Mock Get-Greeting5 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
-            $hash = @{ Result = $null }
-            $scriptBlock = { $hash.Result = Get-Greeting5 -Two 'Two' -Name test -Capitalize }
-        }
-
-        It 'Should successfully call the mock and generate the dynamic parameters' {
-            $scriptBlock | Should -Not -Throw
-            $hash.Result | Should -Be 'Mocked'
+            Get-ChildItem -Path Cert:\ -CodeSigningCert
+            Assert-MockCalled Get-ChildItem
         }
     }
 }
 
-InModuleScope -ModuleName Pester {
+# TODO: dynamic parameters
+# Describe 'Mocking functions with dynamic parameters' {
+#     Context 'Dynamicparam block that uses the variables of static parameters in its logic' {
+#         # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+#         # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
 
-    Describe 'Mocking Cmdlets with dynamic parameters in a module' {
-        BeforeAll {
-            if ((GetPesterOs) -ne 'Windows') {
-                New-Module -Name TestModule {
-                    function PublicFunction {
-                        Get-ChildItem -Path \ -Hidden
-                    }
-                } | Import-Module -Force
+#         BeforeAll {
+#             function Get-Greeting {
+#                 [CmdletBinding()]
+#                 param (
+#                     [string] $Name
+#                 )
 
-                $mockWith = { if (-not $Hidden) {
-                        throw 'Hidden variable not found, or set to false!'
-                    } }
-                Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Hidden }
-            }
-            else {
-                New-Module -Name TestModule {
-                    function PublicFunction {
-                        Get-ChildItem -Path Cert:\ -CodeSigningCert
-                    }
-                } | Import-Module -Force
+#                 DynamicParam {
+#                     if ($Name -cmatch '\b[a-z]') {
+#                         $Attributes = New-Object Management.Automation.ParameterAttribute
+#                         $Attributes.ParameterSetName = "__AllParameterSets"
+#                         $Attributes.Mandatory = $false
 
-                $mockWith = { if (-not $CodeSigningCert) {
-                        throw 'CodeSigningCert variable not found, or set to false!'
-                    } }
-                Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$CodeSigningCert }
-            }
-        }
+#                         $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+#                         $AttributeCollection.Add($Attributes)
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { TestModule\PublicFunction } | Should -Not -Throw
-            Assert-MockCalled Get-ChildItem -ModuleName TestModule
-        }
+#                         $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
 
-        AfterAll {
-            Remove-Module TestModule -Force
-        }
-    }
+#                         $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+#                         $ParamDictionary.Add("Capitalize", $Dynamic)
+#                         $ParamDictionary
+#                     }
+#                 }
 
-    Describe 'DynamicParam blocks in other scopes' {
-        BeforeAll {
-            if ((GetPesterOs) -ne 'Windows') {
-                New-Module -Name TestModule1 {
-                    $script:DoDynamicParam = $true
+#                 end {
+#                     if ($PSBoundParameters.Capitalize) {
+#                         $Name = [regex]::Replace(
+#                             $Name,
+#                             '\b\w',
+#                             { $args[0].Value.ToUpper() }
+#                         )
+#                     }
 
-                    function DynamicParamFunction {
-                        [CmdletBinding()]
-                        param ( )
+#                     "Welcome $Name!"
+#                 }
+#             }
 
-                        DynamicParam {
-                            if ($script:DoDynamicParam) {
+#             $mockWith = { if (-not $Capitalize) {
+#                     throw 'Capitalize variable not found, or set to false!'
+#                 } }
+#             Mock Get-Greeting -MockWith $mockWith -ParameterFilter { [bool]$Capitalize }
+#         }
 
-                                $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-                                $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+#         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+#             { Get-Greeting -Name lowercase -Capitalize } | Should -Not -Throw
+#             Assert-MockCalled Get-Greeting
+#         }
 
-                                $params['Path'] = [string[]]'/'
-                                Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
-                            }
-                        }
+#         It 'Sets the dynamic parameter variable properly' {
+#             $Capitalize = $false
+#             { Get-Greeting -Name lowercase -Capitalize } | Should -Not -Throw
+#             Assert-MockCalled Get-Greeting -Scope It
+#         }
+#     }
 
-                        end {
-                            'I am the original function'
-                        }
-                    }
-                } | Import-Module -Force
+#     Context 'When the mocked command is in a module' {
+#         BeforeAll {
+#             New-Module -Name TestModule {
+#                 function PublicFunction {
+#                     Get-Greeting -Name lowercase -Capitalize
+#                 }
 
-                New-Module -Name TestModule2 {
-                    function CallingFunction {
-                        DynamicParamFunction -Hidden
-                    }
+#                 $script:DoDynamicParam = $true
 
-                    function CallingFunction2 {
-                        [CmdletBinding()]
-                        param (
-                            [ValidateScript( { [bool](DynamicParamFunction -Hidden) })]
-                            [string]
-                            $Whatever
-                        )
-                    }
-                } | Import-Module -Force
+#                 # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+#                 # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
 
-                Mock DynamicParamFunction { if ($Hidden) {
-                        'I am the mocked function'
-                    } } -ModuleName TestModule2
-            }
-            else {
-                New-Module -Name TestModule1 {
-                    $script:DoDynamicParam = $true
+#                 function script:Get-Greeting {
+#                     [CmdletBinding()]
+#                     param (
+#                         [string] $Name
+#                     )
 
-                    function DynamicParamFunction {
-                        [CmdletBinding()]
-                        param ( )
+#                     DynamicParam {
+#                         # This check is here to make sure the mocked version can still work if the
+#                         # original function's dynamicparam block relied on script-scope variables.
+#                         if (-not $script:DoDynamicParam) {
+#                             return
+#                         }
 
-                        DynamicParam {
-                            if ($script:DoDynamicParam) {
-                                if ($PSVersionTable.PSVersion.Major -ge 3) {
-                                    # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
-                                    # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
-                                    # to make a new one.
+#                         if ($Name -cmatch '\b[a-z]') {
+#                             $Attributes = New-Object Management.Automation.ParameterAttribute
+#                             $Attributes.ParameterSetName = "__AllParameterSets"
+#                             $Attributes.Mandatory = $false
 
-                                    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-                                    $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
-                                }
-                                else {
-                                    $params = @{}
-                                }
+#                             $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+#                             $AttributeCollection.Add($Attributes)
 
-                                $params['Path'] = [string[]]'Cert:\'
-                                Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
-                            }
-                        }
+#                             $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
 
-                        end {
-                            'I am the original function'
-                        }
-                    }
-                } | Import-Module -Force
+#                             $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+#                             $ParamDictionary.Add("Capitalize", $Dynamic)
+#                             $ParamDictionary
+#                         }
+#                     }
 
-                New-Module -Name TestModule2 {
-                    function CallingFunction {
-                        DynamicParamFunction -CodeSigningCert
-                    }
+#                     end {
+#                         if ($PSBoundParameters.Capitalize) {
+#                             $Name = [regex]::Replace(
+#                                 $Name,
+#                                 '\b\w',
+#                                 { $args[0].Value.ToUpper() }
+#                             )
+#                         }
 
-                    function CallingFunction2 {
-                        [CmdletBinding()]
-                        param (
-                            [ValidateScript( { [bool](DynamicParamFunction -CodeSigningCert) })]
-                            [string]
-                            $Whatever
-                        )
-                    }
-                } | Import-Module -Force
+#                         "Welcome $Name!"
+#                     }
+#                 }
+#             } | Import-Module -Force
 
-                Mock DynamicParamFunction { if ($CodeSigningCert) {
-                        'I am the mocked function'
-                    } } -ModuleName TestModule2
-            }
-        }
+#             $mockWith = { if (-not $Capitalize) {
+#                     throw 'Capitalize variable not found, or set to false!'
+#                 } }
+#             Mock Get-Greeting -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Capitalize }
+#         }
 
-        It 'Properly evaluates dynamic parameters when called from another scope' {
-            CallingFunction | Should -Be 'I am the mocked function'
-        }
+#         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+#             { TestModule\PublicFunction } | Should -Not -Throw
+#             Assert-MockCalled Get-Greeting -ModuleName TestModule
+#         }
 
-        It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
-            CallingFunction2 -Whatever 'Whatever'
-        }
+#         AfterAll {
+#             Remove-Module TestModule -Force
+#         }
+#     }
 
-        AfterAll {
-            Remove-Module TestModule1 -Force
-            Remove-Module TestModule2 -Force
-        }
-    }
+#     Context 'When the mocked command has mandatory parameters that are passed in via the pipeline' {
+#         BeforeAll {
+#             # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+#             # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
 
-}
+#             function Get-Greeting2 {
+#                 [CmdletBinding()]
+#                 param (
+#                     [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+#                     [string] $MandatoryParam,
+
+#                     [string] $Name
+#                 )
+
+#                 DynamicParam {
+#                     if ($Name -cmatch '\b[a-z]') {
+#                         $Attributes = New-Object Management.Automation.ParameterAttribute
+#                         $Attributes.ParameterSetName = "__AllParameterSets"
+#                         $Attributes.Mandatory = $false
+
+#                         $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+#                         $AttributeCollection.Add($Attributes)
+
+#                         $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+#                         $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+#                         $ParamDictionary.Add("Capitalize", $Dynamic)
+#                         $ParamDictionary
+#                     }
+#                 }
+
+#                 end {
+#                     if ($PSBoundParameters.Capitalize) {
+#                         $Name = [regex]::Replace(
+#                             $Name,
+#                             '\b\w',
+#                             { $args[0].Value.ToUpper() }
+#                         )
+#                     }
+
+#                     "Welcome $Name!"
+#                 }
+#             }
+
+#             Mock Get-Greeting2 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
+#             $hash = @{ Result = $null }
+#             $scriptBlock = { $hash.Result = 'Mandatory' | Get-Greeting2 -Name test -Capitalize }
+#         }
+
+#         It 'Should successfully call the mock and generate the dynamic parameters' {
+#             $scriptBlock | Should -Not -Throw
+#             $hash.Result | Should -Be 'Mocked'
+#         }
+#     }
+
+#     Context 'When the mocked command has parameter sets that are ambiguous at the time the dynamic param block is executed' {
+#         BeforeAll {
+#             # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+#             # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
+
+#             function Get-Greeting3 {
+#                 [CmdletBinding()]
+#                 param (
+#                     [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ParameterSetName = 'One')]
+#                     [string] $One,
+
+#                     [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ParameterSetName = 'Two')]
+#                     [string] $Two,
+
+#                     [string] $Name
+#                 )
+
+#                 DynamicParam {
+#                     if ($Name -cmatch '\b[a-z]') {
+#                         $Attributes = New-Object Management.Automation.ParameterAttribute
+#                         $Attributes.ParameterSetName = "__AllParameterSets"
+#                         $Attributes.Mandatory = $false
+
+#                         $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+#                         $AttributeCollection.Add($Attributes)
+
+#                         $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+#                         $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+#                         $ParamDictionary.Add("Capitalize", $Dynamic)
+#                         $ParamDictionary
+#                     }
+#                 }
+
+#                 end {
+#                     if ($PSBoundParameters.Capitalize) {
+#                         $Name = [regex]::Replace(
+#                             $Name,
+#                             '\b\w',
+#                             { $args[0].Value.ToUpper() }
+#                         )
+#                     }
+
+#                     "Welcome $Name!"
+#                 }
+#             }
+
+#             Mock Get-Greeting3 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
+#             $hash = @{ Result = $null }
+#             $scriptBlock = { $hash.Result = New-Object psobject -Property @{ One = 'One' } | Get-Greeting3 -Name test -Capitalize }
+#         }
+
+#         It 'Should successfully call the mock and generate the dynamic parameters' {
+#             $scriptBlock | Should -Not -Throw
+#             $hash.Result | Should -Be 'Mocked'
+#         }
+#     }
+
+#     Context 'When the mocked command''s dynamicparam block depends on the contents of $PSBoundParameters' {
+#         BeforeAll {
+#             # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+#             # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
+
+#             function Get-Greeting4 {
+#                 [CmdletBinding()]
+#                 param (
+#                     [string] $Name
+#                 )
+
+#                 DynamicParam {
+#                     if ($PSBoundParameters['Name'] -cmatch '\b[a-z]') {
+#                         $Attributes = New-Object Management.Automation.ParameterAttribute
+#                         $Attributes.ParameterSetName = "__AllParameterSets"
+#                         $Attributes.Mandatory = $false
+
+#                         $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+#                         $AttributeCollection.Add($Attributes)
+
+#                         $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+#                         $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+#                         $ParamDictionary.Add("Capitalize", $Dynamic)
+#                         $ParamDictionary
+#                     }
+#                 }
+
+#                 end {
+#                     if ($PSBoundParameters.Capitalize) {
+#                         $Name = [regex]::Replace(
+#                             $Name,
+#                             '\b\w',
+#                             { $args[0].Value.ToUpper() }
+#                         )
+#                     }
+
+#                     "Welcome $Name!"
+#                 }
+#             }
+
+#             Mock Get-Greeting4 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
+#             $hash = @{ Result = $null }
+#             $scriptBlock = { $hash.Result = Get-Greeting4 -Name test -Capitalize }
+#         }
+
+#         It 'Should successfully call the mock and generate the dynamic parameters' {
+#             $scriptBlock | Should -Not -Throw
+#             $hash.Result | Should -Be 'Mocked'
+#         }
+#     }
+
+#     Context 'When the mocked command''s dynamicparam block depends on the contents of $PSCmdlet.ParameterSetName' {
+#         BeforeAll {
+#             # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
+#             # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
+
+#             function Get-Greeting5 {
+#                 [CmdletBinding(DefaultParameterSetName = 'One')]
+#                 param (
+#                     [string] $Name,
+
+#                     [Parameter(ParameterSetName = 'Two')]
+#                     [string] $Two
+#                 )
+
+#                 DynamicParam {
+#                     if ($PSCmdlet.ParameterSetName -eq 'Two' -and $Name -cmatch '\b[a-z]') {
+#                         $Attributes = New-Object Management.Automation.ParameterAttribute
+#                         $Attributes.ParameterSetName = "__AllParameterSets"
+#                         $Attributes.Mandatory = $false
+
+#                         $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+#                         $AttributeCollection.Add($Attributes)
+
+#                         $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Capitalize', [switch], $AttributeCollection)
+
+#                         $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+#                         $ParamDictionary.Add("Capitalize", $Dynamic)
+#                         $ParamDictionary
+#                     }
+#                 }
+
+#                 end {
+#                     if ($PSBoundParameters.Capitalize) {
+#                         $Name = [regex]::Replace(
+#                             $Name,
+#                             '\b\w',
+#                             { $args[0].Value.ToUpper() }
+#                         )
+#                     }
+
+#                     "Welcome $Name!"
+#                 }
+#             }
+
+#             Mock Get-Greeting5 { 'Mocked' } -ParameterFilter { [bool]$Capitalize }
+#             $hash = @{ Result = $null }
+#             $scriptBlock = { $hash.Result = Get-Greeting5 -Two 'Two' -Name test -Capitalize }
+#         }
+
+#         It 'Should successfully call the mock and generate the dynamic parameters' {
+#             $scriptBlock | Should -Not -Throw
+#             $hash.Result | Should -Be 'Mocked'
+#         }
+#     }
+# }
+
+
+# Describe 'Mocking Cmdlets with dynamic parameters in a module' {
+#     BeforeAll {
+#         if ((InModuleScope Pester {GetPesterOs}) -ne 'Windows') {
+#             New-Module -Name TestModule {
+#                 function PublicFunction {
+#                     Get-ChildItem -Path \ -Hidden
+#                 }
+#             } | Import-Module -Force
+
+#             $mockWith = { if (-not $Hidden) {
+#                     throw 'Hidden variable not found, or set to false!'
+#                 } }
+#             Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$Hidden }
+#         }
+#         else {
+#             New-Module -Name TestModule {
+#                 function PublicFunction {
+#                     Get-ChildItem -Path Cert:\ -CodeSigningCert
+#                 }
+#             } | Import-Module -Force
+
+#             $mockWith = { if (-not $CodeSigningCert) {
+#                     throw 'CodeSigningCert variable not found, or set to false!'
+#                 } }
+#             Mock Get-ChildItem -MockWith $mockWith -ModuleName TestModule -ParameterFilter { [bool]$CodeSigningCert }
+#         }
+#     }
+
+#     It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+#         { TestModule\PublicFunction } | Should -Not -Throw
+#         Assert-MockCalled Get-ChildItem -ModuleName TestModule
+#     }
+
+#     AfterAll {
+#         Remove-Module TestModule -Force
+#     }
+# }
+
+# Describe 'DynamicParam blocks in other scopes' {
+#     BeforeAll {
+#         if ((InModuleScope Pester {GetPesterOs})-ne 'Windows') {
+#             New-Module -Name TestModule1 {
+#                 $script:DoDynamicParam = $true
+
+#                 function DynamicParamFunction {
+#                     [CmdletBinding()]
+#                     param ( )
+
+#                     DynamicParam {
+#                         if ($script:DoDynamicParam) {
+
+#                             $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+#                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+
+#                             $params['Path'] = [string[]]'/'
+#                             Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
+#                         }
+#                     }
+
+#                     end {
+#                         'I am the original function'
+#                     }
+#                 }
+#             } | Import-Module -Force
+
+#             New-Module -Name TestModule2 {
+#                 function CallingFunction {
+#                     DynamicParamFunction -Hidden
+#                 }
+
+#                 function CallingFunction2 {
+#                     [CmdletBinding()]
+#                     param (
+#                         [ValidateScript( { [bool](DynamicParamFunction -Hidden) })]
+#                         [string]
+#                         $Whatever
+#                     )
+#                 }
+#             } | Import-Module -Force
+
+#             Mock DynamicParamFunction { if ($Hidden) {
+#                     'I am the mocked function'
+#                 } } -ModuleName TestModule2
+#         }
+#         else {
+#             New-Module -Name TestModule1 {
+#                 $script:DoDynamicParam = $true
+
+#                 function DynamicParamFunction {
+#                     [CmdletBinding()]
+#                     param ( )
+
+#                     DynamicParam {
+#                         if ($script:DoDynamicParam) {
+#                             if ($PSVersionTable.PSVersion.Major -ge 3) {
+#                                 # -Parameters needs to be a PSBoundParametersDictionary object to work properly, due to internal
+#                                 # details of the PS engine in v5.  Naturally, this is an internal type and we need to use reflection
+#                                 # to make a new one.
+
+#                                 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+#                                 $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
+#                             }
+#                             else {
+#                                 $params = @{}
+#                             }
+
+#                             $params['Path'] = [string[]]'Cert:\'
+#                             Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
+#                         }
+#                     }
+
+#                     end {
+#                         'I am the original function'
+#                     }
+#                 }
+#             } | Import-Module -Force
+
+#             New-Module -Name TestModule2 {
+#                 function CallingFunction {
+#                     DynamicParamFunction -CodeSigningCert
+#                 }
+
+#                 function CallingFunction2 {
+#                     [CmdletBinding()]
+#                     param (
+#                         [ValidateScript( { [bool](DynamicParamFunction -CodeSigningCert) })]
+#                         [string]
+#                         $Whatever
+#                     )
+#                 }
+#             } | Import-Module -Force
+
+#             Mock DynamicParamFunction { if ($CodeSigningCert) {
+#                     'I am the mocked function'
+#                 } } -ModuleName TestModule2
+#         }
+#     }
+
+#     It 'Properly evaluates dynamic parameters when called from another scope' {
+#         CallingFunction | Should -Be 'I am the mocked function'
+#     }
+
+#     It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
+#         CallingFunction2 -Whatever 'Whatever'
+#     }
+
+#     AfterAll {
+#         Remove-Module TestModule1 -Force
+#         Remove-Module TestModule2 -Force
+#     }
+# }
 
 Describe 'Parameter Filters and Common Parameters' {
-    BeforeAll {
-        function Test-Function {
-            [CmdletBinding()] param ( )
+    &{
+        # set this setting in this scope in case the preference
+        # around is different
+        $VerbosePreference = 'Continue'
+        BeforeAll {
+            function Test-Function {
+                [CmdletBinding()] param ( )
+            }
+
+            Mock Test-Function { } -ParameterFilter { $VerbosePreference -eq 'Continue' }
         }
 
-        Mock Test-Function { } -ParameterFilter { $VerbosePreference -eq 'Continue' }
-    }
-
-    It 'Applies common parameters correctly when testing the parameter filter' {
-        { Test-Function -Verbose } | Should -Not -Throw
-        Assert-MockCalled Test-Function
-        Assert-MockCalled Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
+        It 'Applies common parameters correctly when testing the parameter filter' {
+            { Test-Function -Verbose } | Should -Not -Throw
+            Assert-MockCalled Test-Function
+            Assert-MockCalled Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
+        }
     }
 }
 
@@ -1849,62 +1851,61 @@ Describe 'Single quote in command/module name' {
 
 }
 
-if ($global:PSVersionTable.PSVersion.Major -ge 3) {
-    Describe 'Mocking cmdlet without positional parameters' {
-        BeforeAll {
 
-            Add-Type -TypeDefinition '
-                using System.Management.Automation;
-                [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithoutPositionalParameters")]
-                public class InvokeCmdletWithoutPositionalParameters : Cmdlet {
-                    public InvokeCmdletWithoutPositionalParameters() { }
-                    [Parameter]
-                    public object Parameter {
-                        set { }
+Describe 'Mocking cmdlet without positional parameters' {
+    BeforeAll {
+
+        Add-Type -TypeDefinition '
+            using System.Management.Automation;
+            [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithoutPositionalParameters")]
+            public class InvokeCmdletWithoutPositionalParameters : Cmdlet {
+                public InvokeCmdletWithoutPositionalParameters() { }
+                [Parameter]
+                public object Parameter {
+                    set { }
+                }
+            }
+            [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithValueFromRemainingArguments")]
+            public class InvokeCmdletWithValueFromRemainingArguments : Cmdlet {
+                private string parameter;
+                private string[] remainings;
+                public InvokeCmdletWithValueFromRemainingArguments() { }
+                [Parameter]
+                public string Parameter {
+                    set {
+                        parameter=value;
                     }
                 }
-                [Cmdlet(VerbsLifecycle.Invoke, "CmdletWithValueFromRemainingArguments")]
-                public class InvokeCmdletWithValueFromRemainingArguments : Cmdlet {
-                    private string parameter;
-                    private string[] remainings;
-                    public InvokeCmdletWithValueFromRemainingArguments() { }
-                    [Parameter]
-                    public string Parameter {
-                        set {
-                            parameter=value;
-                        }
-                    }
-                    [Parameter(ValueFromRemainingArguments=true)]
-                    public string[] Remainings {
-                        set {
-                            remainings=value;
-                        }
-                    }
-                    protected override void EndProcessing() {
-                        WriteObject(string.Concat(parameter, "; ", string.Join(", ", remainings)));
+                [Parameter(ValueFromRemainingArguments=true)]
+                public string[] Remainings {
+                    set {
+                        remainings=value;
                     }
                 }
-            ' -PassThru | Select-Object -First 1 -ExpandProperty Assembly | Import-Module
-        }
-
-        It 'Original cmdlet does not have positional parameters' {
-            { Invoke-CmdletWithoutPositionalParameters garbage } | Should -Throw
-        }
-
-        It 'Mock of cmdlet should not make parameters to be positional' {
-            Mock Invoke-CmdletWithoutPositionalParameters
-            { Invoke-CmdletWithoutPositionalParameters garbage } | Should -Throw
-        }
-
-        It 'Original cmdlet bind all to Remainings' {
-            Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should -Be '; asd, fgh, jkl'
-        }
-        It 'Mock of cmdlet should bind all to Remainings' {
-            Mock Invoke-CmdletWithValueFromRemainingArguments { -join ($Parameter, '; ', ($Remainings -join ', ')) }
-            Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should -Be '; asd, fgh, jkl'
-        }
-
+                protected override void EndProcessing() {
+                    WriteObject(string.Concat(parameter, "; ", string.Join(", ", remainings)));
+                }
+            }
+        ' -PassThru | Select-Object -First 1 -ExpandProperty Assembly | Import-Module
     }
+
+    It 'Original cmdlet does not have positional parameters' {
+        { Invoke-CmdletWithoutPositionalParameters garbage } | Should -Throw
+    }
+
+    It 'Mock of cmdlet should not make parameters to be positional' {
+        Mock Invoke-CmdletWithoutPositionalParameters
+        { Invoke-CmdletWithoutPositionalParameters garbage } | Should -Throw
+    }
+
+    It 'Original cmdlet bind all to Remainings' {
+        Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should -Be '; asd, fgh, jkl'
+    }
+    It 'Mock of cmdlet should bind all to Remainings' {
+        Mock Invoke-CmdletWithValueFromRemainingArguments { -join ($Parameter, '; ', ($Remainings -join ', ')) }
+        Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should -Be '; asd, fgh, jkl'
+    }
+
 }
 
 Describe 'Nested Mock calls' {

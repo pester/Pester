@@ -29,7 +29,7 @@ returns $false because the file was removed, and fails the test.
         }
     }
 
-    return & $SafeCommands['New-Object'] psobject -Property @{
+    return[PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

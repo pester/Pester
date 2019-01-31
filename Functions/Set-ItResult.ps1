@@ -83,7 +83,7 @@ function New-PesterErrorRecord {
         [hashtable]$Data
     )
 
-    $exception = New-Object Exception $Message
+    $exception = [Exception]$Message
     $errorID = "PesterTest$Result"
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
 
@@ -111,5 +111,10 @@ function New-PesterErrorRecord {
             }).TrimEnd($([System.Environment]::NewLine))
     }
 
-    New-Object Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject@{
+        exception     = $exception
+        errorId       = $errorID
+        errorCategory = $errorCategory
+        targetObject  = $targetObject
+    }
 }

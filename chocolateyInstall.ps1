@@ -123,7 +123,7 @@ begin {
         $stream = $null
 
         try {
-            $sha = New-Object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
+            $sha = [System.Security.Cryptography.SHA256CryptoServiceProvider]::Create()
             $stream = $item.OpenRead()
             $bytes = $sha.ComputeHash($stream)
             return [convert]::ToBase64String($bytes)

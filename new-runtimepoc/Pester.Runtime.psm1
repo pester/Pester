@@ -56,11 +56,11 @@ function New_PSObject {
         [String] $Type
     )
 
-    if (-not (Test-NullOrWhiteSpace $Type) -and -not $Property.ContainsKey($Type)) {
+    if (-not (Test-NullOrWhiteSpace $Type) ) { # -and -not $Property.ContainsKey("PSTypeName")) {
         $Property.Add("PSTypeName", $Type)
     }
 
-    New-Object -Type PSObject -Property $Property
+   [PSCustomObject]$Property
 }
 
 function Find-Test {
@@ -276,14 +276,14 @@ function New-Block {
                     $ErrorActionPreference = 'Continue'
                     if ($frameworkSetupResult.ErrorRecord) {
                         foreach ($e in $frameworkSetupResult.ErrorRecord) {
-                            Write-Host -ForegroundColor Red ($e | out-string)
-                            Write-Host -ForegroundColor Red ($e.ScriptStackTrace | out-string)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e | out-string)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e.ScriptStackTrace | out-string)
                         }
                     }
                     if ($frameworkTeardownResult.ErrorRecord) {
                         foreach ($e in $frameworkTeardownResult.ErrorRecord) {
-                            Write-Host -ForegroundColor Red ($e | out-string)
-                            Write-Host -ForegroundColor Red ($e.ScriptStackTrace | out-string)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e | out-string)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e.ScriptStackTrace | out-string)
                         }
                     }
 
@@ -1034,19 +1034,19 @@ function Invoke-ScriptBlock {
 
 function Reset-TestSuiteTimer {
     if ($null -eq $state.TotalStopWatch) {
-        $state.TotalStopWatch = New-Object Diagnostics.Stopwatch
+        $state.TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
     }
 
     if ($null -eq $state.TestStopWatch) {
-        $state.TestStopWatch = New-Object Diagnostics.Stopwatch
+        $state.TestStopWatch = [Diagnostics.Stopwatch]::StartNew()
     }
 
     if ($null -eq $state.BlockStopWatch) {
-        $state.BlockStopWatch = New-Object Diagnostics.Stopwatch
+        $state.BlockStopWatch = [Diagnostics.Stopwatch]::StartNew()
     }
 
     if ($null -eq $state.FrameworkStopWatch) {
-        $state.FrameworkStopWatch = New-Object Diagnostics.Stopwatch
+        $state.FrameworkStopWatch = [Diagnostics.Stopwatch]::StartNew()
     }
 
     $state.TotalStopWatch.Restart()
@@ -1578,7 +1578,7 @@ function Add-FrameworkDependency {
     # this should be rarely needed, but is useful when you wrap Pester pieces
     # into your own functions, and want to have them available during both
     # discovery and execution
-    Write-Host "Adding framework dependency '$Dependency'" -ForegroundColor Yellow
+    & $SafeCommands["Write-Host"] "Adding framework dependency '$Dependency'" -ForegroundColor Yellow
     Import-Dependency -Dependency $Dependency -SessionState $SessionState
 }
 
@@ -1594,7 +1594,7 @@ function Add-Dependency {
 
     # adds dependency that is dotsourced after discovery and before execution
     if (-not (Is-Discovery)) {
-        Write-Host "Adding run-time dependency '$Dependency'" -ForegroundColor Yellow
+        & $SafeCommands["Write-Host"] "Adding run-time dependency '$Dependency'" -ForegroundColor Yellow
         Import-Dependency -Dependency $Dependency -SessionState $SessionState
     }
 }
@@ -1612,7 +1612,7 @@ function Add-FreeFloatingCode {
     # it differently because this is a bad-practice mitigation tool and should probably
     # write a warning to make you use Before* blocks instead
     if (-not (Is-Discovery)) {
-        Write-Host Invoking free floating piece of code -ForegroundColor Yellow
+        & $SafeCommands["Write-Host"] Invoking free floating piece of code -ForegroundColor Yellow
         Import-Dependency $Dependency
     }
 }

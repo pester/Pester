@@ -47,7 +47,7 @@ This test fails, because "I am a file." != "I.am.a.file"
         }
     }
 
-    return & $SafeCommands['New-Object'] psobject -Property @{
+    return[PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

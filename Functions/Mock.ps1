@@ -21,6 +21,11 @@ function New-MockInternal {
         $InvokeMockCallback
     )
 
+    $result = @{
+        CreatedMock = $false
+        Key = $null
+    }
+
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
 
     if (Test-IsClosure -ScriptBlock $MockWith) {
@@ -43,11 +48,14 @@ function New-MockInternal {
     }
 
     $moduleName = if ($null -ne $contextInfo.Module) { $contextInfo.Module.Name }
-    $mock = $MockTable["$moduleName||$($contextInfo.Command.Name)"]
+    $key = "$moduleName||$($contextInfo.Command.Name)"
+    $mock = $MockTable[$key]
+    $result.Key = $Key
 
     if (-not $mock) {
         Write-PesterDebugMessage -Scope Mock -Message "Creating new mock for $($contextInfo.Command.Name)$(if($moduleName) { " from module $moduleName" })."
         $mock = Create-Mock -ContextInfo $contextInfo -InvokeMockCallback ($InvokeMockCallback)
+        $result.CreatedMock = $true
     }
     else {
         Write-PesterDebugMessage -Scope Mock -Message "Mock definition for $($contextInfo.Command.Name)$(if($moduleName) { " from module $moduleName" }) already exists. Re-using it."
@@ -71,6 +79,8 @@ function New-MockInternal {
             }
         )
     }
+
+    $result
 }
 
 function EscapeSingleQuotedStringContent ($Content) {
@@ -400,8 +410,8 @@ function Assert-MockCalledInternal {
     #     throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     # }
 
-    $matchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
-    $nonMatchingCalls = & $SafeCommands['New-Object'] System.Collections.ArrayList
+    $matchingCalls = [System.Collections.ArrayList]@()
+    $nonMatchingCalls = [System.Collections.ArrayList]@()
 
     foreach ($historyEntry in $callHistory) {
 
@@ -578,8 +588,12 @@ function Resolve-Command {
             Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in module $($module.Name) version $($module.Version)."
         }
     }
-    else {
-        # TODO: breaking change here, this used to resolve the command in the caller scope if the command was not found in the module scope, but that does not make sense does it? When the user specifies that he want's to use Module it should use just Module.
+
+    if (-not $command) {
+
+
+        # TODO: this resolves the command in the caller scope if the command was not found in the module scope, but that does not make sense does it? When the user specifies that he want's to use Module it should use just Module. Disabling the fall through makes tests fail.
+
         Write-PesterDebugMessage -Scope Mock "Searching for command $ComandName in the caller scope."
         Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $SessionState
         $command = & $findAndResolveCommand -Name $CommandName
@@ -676,7 +690,7 @@ function Invoke-MockInternal {
 
     switch ($FromBlock) {
         Begin {
-            $MockCallState['InputObjects'] = & $SafeCommands['New-Object'] System.Collections.ArrayList
+            $MockCallState['InputObjects'] = [System.Collections.ArrayList]@()
             $MockCallState['ShouldExecuteOriginalCommand'] = $false
             $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
             # argument list must not be null, if the bootstrap functions has no parameters

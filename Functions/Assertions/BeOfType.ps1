@@ -56,7 +56,7 @@ This test will fail, as FileInfo is not a base class of DirectoryInfo.
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded      = $succeded
         FailureMessage = $failureMessage
     }

@@ -82,7 +82,7 @@
 
 #         function New-TestGroup([string] $Name, [string] $Hint)
 #         {
-#             & $SafeCommands['New-Object'] psobject -Property @{
+#            [PSCustomObject] @{
 #                 Name              = $Name
 #                 Type              = 'TestGroup'
 #                 Hint              = $Hint
@@ -221,7 +221,7 @@
 
 #             $context = $contexts -join '\'
 
-#             $script:TestResult += & $SafeCommands['New-Object'] psobject -Property @{
+#             $script:TestResult +=[PSCustomObject] @{
 #                 Describe               = $describe
 #                 Context                = $context
 #                 Name                   = $Name

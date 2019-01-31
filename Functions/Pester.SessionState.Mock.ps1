@@ -10,27 +10,43 @@ function Get-MockPlugin () {
         $Context.Block.PluginData.Mock = @{
             DefinedMocks = @{}
             CallHistory  = @{}
+            CreatedMocks = @{}
         }
     } -EachTestSetup {
         param($Context)
         $Context.Test.PluginData.Mock = @{
             DefinedMocks = @{}
             CallHistory  = @{}
+            CreatedMocks = @{}
         }
     } -EachTestTeardown {
         param($Context)
         # we are defining that table in the setup but the teardowns
         # need to be resilient, because they will run even if the setups
         # did not run
-        $mockTable = $Context.Test.PluginData.Mock.DefinedMocks
+        $data = $Context.Test.PluginData.Mock
+        $mockTable = $data.DefinedMocks
+        $createdMocks = $data.CreatedMocks
         if ($null -ne $mockTable) {
-            Exit-MockScope -MockTable $mockTable
+            $t = @{}
+            foreach ($k in $createdMocks.Keys) {
+                $t.Add($k, $mockTable[$k])
+            }
+
+            Exit-MockScope -MockTable $t
         }
     } -EachBlockTeardown {
         param($Context)
-        $mockTable = $Context.Block.PluginData.Mock.DefinedMocks
+        $data = $Context.Block.PluginData.Mock
+        $mockTable = $data.DefinedMocks
+        $createdMocks = $data.CreatedMocks
         if ($null -ne $mockTable) {
-            Exit-MockScope -MockTable $mockTable
+            $t = @{}
+            foreach ($k in $createdMocks.Keys) {
+                $t.Add($k, $mockTable[$k])
+            }
+
+            Exit-MockScope -MockTable $t
         }
     }
 }
@@ -209,10 +225,16 @@ about_Mocking
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     # don't try to filter here, the passed table is written into, and so it must me a live reference
-    $mockTable = (Get-MockDataForCurrentScope).DefinedMocks
+    $mockData = Get-MockDataForCurrentScope
+    $mockTable = ($mockData).DefinedMocks
 
 
-    New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
+    $result = New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
+    if ($result.CreatedMock) {
+        Write-PesterDebugMessage -Scope Mock -Message "------>?>>>>>>>>>>>> MOCK WAS CREATED"
+        $mockData.CreatedMocks.Add($result.Key, $true)
+    }
+
 }
 
 function Get-DefinedMocksTable {
@@ -281,7 +303,9 @@ function Get-DefinedMocksTable {
                 $mockTable.Add($mock.Key, $mock.Value)
             }
             else {
-                $mockTable[$mock.Key].Blocks += $mock.Value.Blocks
+                # prepend the blocks so the blocks defined closer to calling code come first
+                # this is imho not very efficient
+                $mockTable[$mock.Key].Blocks = $mock.Value.Blocks + $mockTable[$mock.Key].Blocks
             }
         }
     }
@@ -363,7 +387,7 @@ function Get-AssertMockTable {
                     throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
                 }
                 else {
-                     # the mock was defined in some upper scope but it was not called in this it
+                    # the mock was defined in some upper scope but it was not called in this it
                     return @{
                         "$key" = @()
                     }
@@ -387,7 +411,7 @@ function Get-AssertMockTable {
         # in scope 0 the current block is the base block
         $block = $currentBlock
     }
-    if ($scope -eq 1) {
+    elseif ($scope -eq 1) {
         # in scope 1 it is the parent
         $block = if (any $currentBlock.Parent) { $currentBlock.Parent } else { $currentBlock }
     }
@@ -412,11 +436,19 @@ function Get-AssertMockTable {
     $history = [System.Collections.Generic.List[Object]]@()
     $addToHistory = {
         param($b)
-        $v = tryGetValue $b.PluginData.Mock.CallHistory $key
-        if (any $v) {
-            $history.Add($v)
+
+        $mockData = tryGetProperty $b.pluginData Mock
+        if ($mockData) {
+            $callHistory = tryGetProperty $mockData CallHistory
+            if ($callHistory) {
+                $v = tryGetValue $callHistory $key
+                if (any $v) {
+                    $history.AddRange(@($v))
+                }
+            }
         }
     }
+
     Fold-Block -Block $Block -OnBlock $addToHistory -OnTest $addToHistory
 
     if (0 -eq $history.Count) {

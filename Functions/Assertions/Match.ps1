@@ -36,7 +36,7 @@ This test fails, because the pattern does not match a period symbol.
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }

@@ -1,11 +1,11 @@
 [Collections.Stack] $script:scopeStack = New-Object 'Collections.Stack'
 
-function Reset-Scope { 
-    $script:scopeStack.Clear() 
+function Reset-Scope {
+    $script:scopeStack.Clear()
 }
 
-function New-Scope ([string]$Name, [string]$Hint, [string]$Id = [Guid]::NewGuid().ToString('N')) { 
-    New-Object -TypeName PsObject -Property @{
+function New-Scope ([string]$Name, [string]$Hint, [string]$Id = [Guid]::NewGuid().ToString('N')) {
+    [PSCustomObject] @{
         Id   = $Id
         Name = $Name
         Hint = $Hint
@@ -23,7 +23,7 @@ function Pop-Scope {
 function Get-Scope ($Scope = 0) {
     if ($Scope -eq 0) {
         $script:scopeStack.Peek()
-        
+
     }
 }
 

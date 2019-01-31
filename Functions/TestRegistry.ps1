@@ -51,9 +51,6 @@ function New-TestRegistry {
             }
         }
     }
-    else {
-        write-host "registry drive exists"
-    }
 
     if ( $PassThru ) {
         & $SafeCommands['Get-PSDrive'] -Name $DriveName

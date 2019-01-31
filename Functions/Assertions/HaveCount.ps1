@@ -39,7 +39,7 @@ This is like running `@(1,2,3).Count` in PowerShell.
             else {
                 "but got an empty collection."
             }
-            return New-Object psobject -Property @{
+            return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
             }
@@ -57,14 +57,14 @@ This is like running `@(1,2,3).Count` in PowerShell.
             else {
                 "but got an empty collection."
             }
-            return New-Object psobject -Property @{
+            return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
             }
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded = $true
     }
 }

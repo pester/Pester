@@ -590,7 +590,7 @@ function Get-JaCoCoReportXml {
         & $SafeCommands["Split-Path"] $_.File -Parent
     }
 
-    $packageList = & $SafeCommands['New-Object'] System.Collections.Generic.List[psobject]
+    $packageList = [System.Collections.Generic.List[psobject]]@()
 
     foreach ($folderGroup in $folderGroups) {
 

@@ -497,7 +497,7 @@ function Invoke-GherkinFeature {
     }
 
     if ($Scenarios) {
-        Write-Describe (New-Object PSObject -Property @{Name = "$($Feature.Keyword): $($Feature.Name)"; Description = $Feature.Description })
+        Write-Describe ([PSCustomObject] @{Name = "$($Feature.Keyword): $($Feature.Name)"; Description = $Feature.Description })
     }
 
     try {
@@ -540,7 +540,7 @@ function Invoke-GherkinScenario {
     try {
         # We just display 'Scenario', also for 'Scenario Outline' or 'Scenario Template'
         # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
-        Write-Context (New-Object PSObject -Property @{Name = "$(Get-Translation 'scenario' $Language): $($Scenario.Name)"; Description = $Scenario.Description })
+        Write-Context ([PSCustomObject] @{Name = "$(Get-Translation 'scenario' $Language): $($Scenario.Name)"; Description = $Scenario.Description })
 
         $script:mockTable = @{}
 

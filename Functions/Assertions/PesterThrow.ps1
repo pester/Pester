@@ -32,7 +32,7 @@ It does not throw an error, so the test passes.
     $actualExceptionLine = $null
 
     if ($null -eq $ActualValue) {
-        throw (New-Object -TypeName ArgumentNullException -ArgumentList "ActualValue", "Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
+        throw ([ArgumentNullException] "ActualValue", "Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
     }
 
     try {
@@ -58,13 +58,13 @@ It does not throw an error, so the test passes.
         $succeeded = -not $actualExceptionWasThrown
         if (-not $succeeded) {
             $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
-            return New-Object psobject -Property @{
+            return [PSCustomObject] @{
                 Succeeded      = $succeeded
                 FailureMessage = $failureMessage
             }
         }
         else {
-            return New-Object psobject -Property @{
+            return [PSCustomObject] @{
                 Succeeded = $true
             }
         }
@@ -127,13 +127,13 @@ It does not throw an error, so the test passes.
         $but = Join-And $buts
         $failureMessage = "Expected an exception,$filter to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
-        return New-Object psobject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
 
-    $result = New-Object psobject -Property @{
+    $result = [PSCustomObject] @{
         Succeeded = $true
     }
 

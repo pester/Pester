@@ -24,20 +24,20 @@ This test will fail, as the first string does not match the expected value.
 
     if (-not $succeeded) {
         if ($Negate) {
-            return New-Object psobject -Property @{
+            return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected like wildcard $(Format-Nicely $ExpectedValue) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
             }
         }
         else {
-            return New-Object psobject -Property @{
+            return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected like wildcard $(Format-Nicely $ExpectedValue) to match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
             }
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded = $true
     }
 }

@@ -58,7 +58,7 @@ function Export-NUnitReport {
 
     $Path = GetFullPath -Path $Path
 
-    $settings = & $SafeCommands['New-Object'] -TypeName Xml.XmlWriterSettings -Property @{
+    $settings =  [Xml.XmlWriterSettings] @{
         Indent              = $true
         NewLineOnAttributes = $false
     }
@@ -223,7 +223,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 }
 
 function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
-    $node = & $SafeCommands['New-Object'] psobject -Property @{
+    $node =[PSCustomObject] @{
         Name              = $TestSuiteGroup.Name
         TotalCount        = 0
         Time              = [timespan]0

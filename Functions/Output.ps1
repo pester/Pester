@@ -287,7 +287,7 @@ function ConvertTo-FailureLines {
         $ErrorRecord
     )
     process {
-        $lines = & $script:SafeCommands['New-Object'] psobject -Property @{
+        $lines = [PSCustomObject] @{
             Message = @()
             Trace   = @()
         }
@@ -486,7 +486,7 @@ function Get-WriteScreenPlugin {
     } -EachBlockTeardown {
         param ($Context)
         if (-not $Context.Block.Passed) {
-            Write-Host -ForegroundColor Red "Block $($Context.Block.Path -join ".") failed" ($Context.Block.ErrorRecord | out-String)
+            & $SafeCommands['Write-Host'] -ForegroundColor Red "Block $($Context.Block.Path -join ".") failed" ($Context.Block.ErrorRecord | out-String)
         }
     }
 }

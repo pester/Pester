@@ -38,7 +38,7 @@ function Get-TempRegistry {
             $null = New-TempRegistry
         }
         catch [Exception] {
-            throw (New-Object Exception -ArgumentList "Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))
+            throw ([Exception]"Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))
         }
     }
     return $pesterTempRegistryRoot

@@ -22,13 +22,13 @@ This test passes as a "truthy" result.
 
     if (-not $ActualValue) {
         $failureMessage = "Expected `$true,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
-        return New-Object psobject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded = $true
     }
 }
@@ -57,13 +57,13 @@ This test passes as a "falsy" result.
 
     if ($ActualValue) {
         $failureMessage = "Expected `$false,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
-        return New-Object psobject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
 
-    return New-Object psobject -Property @{
+    return [PSCustomObject] @{
         Succeeded = $true
     }
 }
