@@ -226,10 +226,12 @@ InModuleScope Pester {
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2 -Target TestDrive:/d1
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2a -Target TestDrive:/test/link2
 
-            { Clear-TestDrive } | Should -Not -Throw
-
             $root    = (Get-PsDrive 'TestDrive').Root
-            @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
+            @(Get-ChildItem -Recurse -Path $root).Length | Should -Be 5 -Because "a pre-requisite is that directores and symlinks are in place"
+
+            Clear-TestDrive
+
+            @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted"
         }
     }
 }
