@@ -111,7 +111,7 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
 
     # issue 621 was fixed before PowerShell 6.1
     # now there is an issue with calling the Delete method in recent (6.1) builds of PowerShell
-    if ( $PSVersionTable.PSVersion -ge "6.1" ) {
+    if ( (GetPesterPSVersion) -ge 6) {
         return
     }
 

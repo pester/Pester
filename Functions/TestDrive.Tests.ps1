@@ -183,9 +183,9 @@ InModuleScope Pester {
         if  ( (GetPesterOs) -eq "Windows" -and (GetPesterPSVersion) -ge 5 ) {
             $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
             $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
-            $IsAdmin = $windowsPrincipal.IsInRole("Administrators") -eq 1
+            $IsAdmin = $windowsPrincipal.IsInRole("Administrators") -eq $true
             # skip tests when not admin
-            $SkipTest = ! $IsAdmin
+            $SkipTest = -not $IsAdmin
         }
         elseif ( (GetPesterOs) -ne "Windows" ) {
             $SkipTest = $false
@@ -225,7 +225,11 @@ InModuleScope Pester {
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link1 -Target TestDrive:/d1
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2 -Target TestDrive:/d1
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2a -Target TestDrive:/test/link2
+
             { Clear-TestDrive } | Should -Not -Throw
+
+            $root    = (Get-PsDrive 'TestDrive').Root
+            @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
         }
     }
 }
