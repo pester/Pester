@@ -978,7 +978,6 @@ function Invoke-Mock {
             }
             else {
                 $MockCallState['ShouldExecuteOriginalCommand'] = $true
-                $MockCallState['BeginBoundParameters'] = Reset-ConflictingParameters -BoundParameters $BoundParameters
                 if ($null -ne $InputObject) {
                     $null = $MockCallState['InputObjects'].AddRange(@($InputObject))
                 }
@@ -989,6 +988,8 @@ function Invoke-Mock {
 
         End {
             if ($MockCallState['ShouldExecuteOriginalCommand']) {
+                $MockCallState['BeginBoundParameters'] = Reset-ConflictingParameters -BoundParameters $MockCallState['BeginBoundParameters']
+
                 if ($MockCallState['InputObjects'].Count -gt 0) {
                     $scriptBlock = {
                         param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
@@ -1547,11 +1548,6 @@ function Remove-MockFunctionsAndAliases {
     }
 }
 
-$script:ConflictingParameterNames = @(
-    "PSEdition"
-)
-
-$script:ParameterPrefix = ""
 
 function Repair-ConflictingParameters {
     [CmdletBinding()]
@@ -1562,7 +1558,6 @@ function Repair-ConflictingParameters {
         $Metadata
     )
 
-    $prefix = "_"
     $paramMetadatas = @()
     $paramMetadatas += $Metadata.Parameters.Values
 
@@ -1571,9 +1566,10 @@ function Repair-ConflictingParameters {
             continue
         }
 
-        if ($script:ConflictingParameterNames -contains $paramMetadata.Name) {
+        $conflictingParams = Get-ConflictingParameterNames
+        if ($conflictingParams -contains $paramMetadata.Name) {
             $paramName = $paramMetadata.Name
-            $newName = "$prefix$paramName"
+            $newName = "$(Get-ParameterPrefixForConflictingParameters)$paramName"
             $paramMetadata.Name = $newName
             $paramMetadata.Aliases.Add($paramName)
 
@@ -1595,14 +1591,31 @@ function Reset-ConflictingParameters {
     )
 
     $parameters = $BoundParameters.Clone()
-    $script:ConflictingParameterNames | Where-Object {
-        $parameters.ContainsKey("$($script:ParameterPrefix)$_")
-    } |
-        ForEach-Object {
-        $fixedName = "$($script:ParameterPrefix)$_"
-        $parameters[$_] = $parameters[$fixedName]
-        $parameters.Remove($fixedName)
-    }
+    $prefix = Get-ParameterPrefixForConflictingParameters
+
+    Get-ConflictingParameterNames |
+        Where-Object {
+            $parameters.ContainsKey("$prefix$_")
+        } |
+            ForEach-Object {
+            $fixedName = "$prefix$_"
+            $parameters[$_] = $parameters[$fixedName]
+            $parameters.Remove($fixedName)
+        }
 
     $parameters
+}
+
+$script:ConflictingParameterNames = @(
+    "PSEdition"
+)
+
+$script:ParameterPrefix = "_"
+
+function Get-ConflictingParameterNames {
+    $script:ConflictingParameterNames
+}
+
+function Get-ParameterPrefixForConflictingParameters {
+    $script:ParameterPrefix
 }
