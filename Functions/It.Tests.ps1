@@ -10,6 +10,16 @@ InModuleScope Pester {
             $scriptBlock | Should -Throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
         }
 
+
+        It 'Throws an error if your name looks like a test block' {
+            $scriptBlock = {
+                ItImpl -Pester $testState {
+                    "A test script block"
+                }
+            }
+            $scriptBlock | Should -Throw 'Name parameter has multiple lines and no script block is provided. (Have you provided a name for the test group?)'
+        }
+
         It 'Does not throw an error if It is passed a script block, and adds a successful test result.' {
             $scriptBlock = { ItImpl -Pester $testState 'Enters an It block inside a Describe' { } }
             $scriptBlock | Should -Not -Throw
