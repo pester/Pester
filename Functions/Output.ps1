@@ -518,13 +518,19 @@ function ConvertTo-FailureLines {
             }
             $count ++
         }
-        $lines.Trace += $traceLines |
-            & $SafeCommands['Select-Object'] -First $count |
-            & $SafeCommands['Where-Object'] {
-            $_ -notmatch $pattern2 -and
-            $_ -notmatch $pattern3 -and
-            $_ -notmatch $pattern4 -and
-            $_ -notmatch $pattern5
+
+        if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
+            $lines.Trace += $traceLines
+        }
+        else {
+            $lines.Trace += $traceLines |
+                & $SafeCommands['Select-Object'] -First $count |
+                & $SafeCommands['Where-Object'] {
+                $_ -notmatch $pattern2 -and
+                $_ -notmatch $pattern3 -and
+                $_ -notmatch $pattern4 -and
+                $_ -notmatch $pattern5
+            }
         }
 
         return $lines
