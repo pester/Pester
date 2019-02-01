@@ -232,7 +232,8 @@ about_Mocking
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
             }
 
-            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+            $repairedMetadata = Repair-ConflictingParameters -Metadata $metadata
+            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($repairedMetadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
                 $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
@@ -977,6 +978,7 @@ function Invoke-Mock {
             }
             else {
                 $MockCallState['ShouldExecuteOriginalCommand'] = $true
+                $MockCallState['BeginBoundParameters'] = Reset-ConflictingParameters -BoundParameters $BoundParameters
                 if ($null -ne $InputObject) {
                     $null = $MockCallState['InputObjects'].AddRange(@($InputObject))
                 }
@@ -1543,4 +1545,64 @@ function Remove-MockFunctionsAndAliases {
     foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*")) {
         & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
     }
+}
+
+$script:ConflictingParameterNames = @(
+    "PSEdition"
+)
+
+$script:ParameterPrefix = ""
+
+function Repair-ConflictingParameters {
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.CommandMetadata])]
+    param(
+        [Parameter(Mandatory)]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+
+    $prefix = "_"
+    $paramMetadatas = @()
+    $paramMetadatas += $Metadata.Parameters.Values
+
+    foreach ($paramMetadata in $paramMetadatas) {
+        if ($paramMetadata.IsDynamic) {
+            continue
+        }
+
+        if ($script:ConflictingParameterNames -contains $paramMetadata.Name) {
+            $paramName = $paramMetadata.Name
+            $newName = "$prefix$paramName"
+            $paramMetadata.Name = $newName
+            $paramMetadata.Aliases.Add($paramName)
+
+            $Metadata.Parameters.Remove($paramName) | Out-Null
+            $Metadata.Parameters.Add($newName, $paramMetadata)
+        }
+    }
+
+    $Metadata
+}
+
+function Reset-ConflictingParameters {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]
+        $BoundParameters
+    )
+
+    $parameters = $BoundParameters.Clone()
+    $script:ConflictingParameterNames | Where-Object {
+        $parameters.ContainsKey("$($script:ParameterPrefix)$_")
+    } |
+        ForEach-Object {
+        $fixedName = "$($script:ParameterPrefix)$_"
+        $parameters[$_] = $parameters[$fixedName]
+        $parameters.Remove($fixedName)
+    }
+
+    $parameters
 }

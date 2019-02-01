@@ -2030,3 +2030,44 @@ Describe "Mocking Set-Variable" {
     }
 
 }
+
+Describe "Mocking functions with conflicting parameters" {
+
+    Context "PSEdition" {
+
+        Context "Example function" {
+            BeforeAll {
+                function Get-ExampleTest {
+                    param(
+                        [Parameter(Mandatory)]
+                        [string]
+                        $PSEdition
+                    )
+
+                    $PSEdition
+                }
+
+                Mock Get-ExampleTest { "World" } -ParameterFilter { $_PSEdition -eq "Hello" }
+            }
+
+            It 'executes the mock' {
+                Get-ExampleTest -PSEdition "Hello" | Should -Be "World"
+            }
+
+            It 'defaults to the original function' {
+                Get-ExampleTest -PSEdition "Bye" | Should -Be "Bye"
+            }
+        }
+
+        Context "Get-Module" {
+            function f { Get-Module foo }
+            It 'mocks Get-Module properly' {
+                Mock Get-Module -Verifiable { 'mocked' }
+                f
+                Assert-MockCalled Get-Module
+            }
+        }
+
+
+    }
+}
