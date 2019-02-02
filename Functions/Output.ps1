@@ -279,7 +279,9 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+                    $targetObject = if ($null -ne $testresult.ErrorRecord -and
+                        ($o = $testresult.ErrorRecord.PSObject.Properties.Item("TargetObject"))) { $o.Value }
+                    $because = if ($targetObject -and $targetObject.Data.Because) {
                         ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
                     }
                     else {
