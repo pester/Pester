@@ -168,30 +168,33 @@ InModuleScope Pester {
 }
 
 
-# # this works correctly but needs administrator privileges to create the symlinks
-# # so I comment it out till I decide what to do with it, running always as admin just
-# # to test this is imho not a good idea. Tested on powershell 2 and 5 -- nohwnd
 InModuleScope Pester {
 
     Describe "Clear-TestDrive" {
 
-        # Determine whether we should skip these tests
-        # run only on PSVersion -ge 5 (since that's when Symlinks were available)
-        # if on Windows, determine whether we are administrator
-        # run the tests on non-Windows platforms, since symlinks don't require elevation there.
-        $SkipTest = $true
-        if  ( (GetPesterOs) -eq "Windows" -and (GetPesterPSVersion) -ge 5 ) {
-            $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-            $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
-            $IsAdmin = $windowsPrincipal.IsInRole("Administrators") -eq $true
-            # skip tests when not admin
-            $SkipTest = -not $IsAdmin
-        }
-        elseif ( (GetPesterOs) -ne "Windows" ) {
-            $SkipTest = $false
+
+        $skipTest = $false
+        $psVersion = (GetPesterPSVersion)
+
+        # Symlink cmdlets were introduced in PowerShell v5 and deleting them
+        # requires running as admin, so skip tests when those conditions are
+        # not met
+        if  ((GetPesterOs) -eq "Windows") {
+            if ($psVersion -lt 5) {
+                $skipTest = $true
+            }
+
+            if ($psVersion -ge 5) {
+
+                $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+                $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
+                $isNotAdmin = -not $windowsPrincipal.IsInRole("Administrators")
+
+                $skipTest = $isNotAdmin
+            }
         }
 
-        It "Deletes symbolic links in TestDrive" -skip:$SkipTest {
+        It "Deletes symbolic links in TestDrive" -skip:$skipTest {
 
             # using non-powershell paths here because we need to interop with cmd below
             $root    = (Get-PsDrive 'TestDrive').Root
@@ -201,9 +204,10 @@ InModuleScope Pester {
             $null = New-Item -Type Directory -Path $source
 
             if ($PSVersionTable.PSVersion.Major -ge 5) {
-                # native support for symlinks was added in PowerShell 5
+                # native support for symlinks was added in PowerShell 5, but right now
+                # we are skipping anything below v5, so either all tests need to be made
+                # compatible with cmd creating symlinks, or this should be removed
                 $null = New-Item -Type SymbolicLink -Path $symlink -Value $source
-                # write-host (ls TestDrive:\ -force | out-string)
             }
             else {
                 $null = cmd /c mklink /D $symlink $source
@@ -216,9 +220,8 @@ InModuleScope Pester {
             @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
         }
 
-        It "Clear-TestDrive should not throw" -skip:$SkipTest {
-            # This set of symbolic links causes issues for Clear-TestDrive.
-            # we've already validated Clear-TestDrive, this set of symlinks is problematic when removed
+        It "Clear-TestDrive removes problematic symlinks" -skip:$skipTest {
+            # this set of symlinks is problematic when removed
             # via a script and doesn't repro when typed interactively
             $null = New-Item -Type Directory TestDrive:/d1
             $null = New-Item -Type Directory TestDrive:/test
@@ -226,7 +229,7 @@ InModuleScope Pester {
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2 -Target TestDrive:/d1
             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2a -Target TestDrive:/test/link2
 
-            $root    = (Get-PsDrive 'TestDrive').Root
+            $root = (Get-PSDrive 'TestDrive').Root
             @(Get-ChildItem -Recurse -Path $root).Length | Should -Be 5 -Because "a pre-requisite is that directores and symlinks are in place"
 
             Clear-TestDrive
