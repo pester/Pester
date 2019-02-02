@@ -279,7 +279,9 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+                    $targetObject = if ($null -ne $testresult.ErrorRecord -and
+                        ($o = $testresult.ErrorRecord.PSObject.Properties.Item("TargetObject"))) { $o.Value }
+                    $because = if ($targetObject -and $targetObject.Data.Because) {
                         ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
                     }
                     else {
@@ -488,7 +490,11 @@ function ConvertTo-FailureLines {
         ## convert the stack trace if present (there might be none if we are raising the error ourselves)
         # todo: this is a workaround see https://github.com/pester/Pester/pull/886
         if ($null -ne $ErrorRecord.ScriptStackTrace) {
+            write-host "there is stack trace"
             $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
+        else {
+            write-Host "there is not stack trace"
         }
 
         $count = 0
@@ -519,19 +525,19 @@ function ConvertTo-FailureLines {
             $count ++
         }
 
-        if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
+        #if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
             $lines.Trace += $traceLines
-        }
-        else {
-            $lines.Trace += $traceLines |
-                & $SafeCommands['Select-Object'] -First $count |
-                & $SafeCommands['Where-Object'] {
-                $_ -notmatch $pattern2 -and
-                $_ -notmatch $pattern3 -and
-                $_ -notmatch $pattern4 -and
-                $_ -notmatch $pattern5
-            }
-        }
+        #}
+        # else {
+        #     $lines.Trace += $traceLines |
+        #         & $SafeCommands['Select-Object'] -First $count |
+        #         & $SafeCommands['Where-Object'] {
+        #         $_ -notmatch $pattern2 -and
+        #         $_ -notmatch $pattern3 -and
+        #         $_ -notmatch $pattern4 -and
+        #         $_ -notmatch $pattern5
+        #     }
+        # }
 
         return $lines
     }
