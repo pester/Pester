@@ -80,6 +80,29 @@ InModuleScope Pester {
             }
         }
 
+
+        Context "Matching error pattern" {
+            It "given scriptblock that throws exception with the expected pattern it passes" {
+                $expectedErrorMessage = "expected error message"
+                $expectedErrorPattern = "*error*"
+                { throw $expectedErrorMessage } | Should -Throw -like $expectedErrorPattern
+            }
+
+            It "given scriptblock that throws exception with the expected pattern in UPPERCASE it passes" {
+                $expectedErrorMessage = "expected error message"
+                $expectedErrorPattern = "*error*"
+                $errorMessage = $expectedErrorMessage.ToUpperInvariant()
+                { throw $errorMessage } | Should -Throw -like $expectedErrorPattern
+            }
+
+            It "given scriptblock that throws exception with a non-matching pattern it fails" {
+                $expectedErrorMessage = "expected error message"
+                $unexpectedErrorPattern = "*pass*"
+                $errorMessage = $expectedErrorMessage.ToUpperInvariant()
+                {  { throw $errorMessage } | Should -Throw  -like $unexpectedErrorPattern } | Verify-AssertionFailed
+            }
+        }
+
         Context "Matching ErrorId (FullyQualifiedErrorId)" {
             It "given scriptblock that throws exception with FullyQualifiedErrorId with the expected ErrorId it passes" {
                 $expectedErrorId = "expected error id"

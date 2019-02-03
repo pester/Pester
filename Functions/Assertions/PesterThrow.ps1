@@ -1,4 +1,4 @@
-function Should-Throw([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType, [switch] $Negate, [string] $Because, [switch] $PassThru) {
+function Should-Throw([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType, [switch] $Negate, [switch] $Like, [string] $Because, [switch] $PassThru) {
     <#
 .SYNOPSIS
 Checks if an exception was thrown. Enclose input in a script block.
@@ -105,8 +105,13 @@ It does not throw an error, so the test passes.
     $filterOnMessage = -not [string]::IsNullOrEmpty($ExpectedMessage -replace "\s")
     if ($filterOnMessage) {
         $filters += "with message $(Format-Nicely $ExpectedMessage)"
-        if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
-            $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
+        if ($actualExceptionWasThrown ) {
+            if (-not $like -and -not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage)) {
+                $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
+            }
+            if ($Like -and -not ($actualExceptionMessage -like $ExpectedMessage)) {
+                $buts += "the message did not match the expression $(Format-Nicely $actualExceptionMessage)"
+            }
         }
     }
 
@@ -116,9 +121,6 @@ It does not throw an error, so the test passes.
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ErrorId))) {
             $buts += "the FullyQualifiedErrorId was $(Format-Nicely $actualErrorId)"
         }
-    }
-
-    if (-not $actualExceptionWasThrown) {
         $buts += "no exception was thrown"
     }
 
@@ -166,6 +168,10 @@ function ShouldThrowFailureMessage {
 function NotShouldThrowFailureMessage {
     # to make the should tests happy, for now
 }
+
+Add-AssertionOperator -Name         Throw `
+    -InternalName Should-Throw `
+    -Test         ${function:Should-Throw}
 
 Add-AssertionOperator -Name         Throw `
     -InternalName Should-Throw `
