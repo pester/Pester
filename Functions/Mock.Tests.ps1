@@ -2030,3 +2030,58 @@ Describe "Mocking Set-Variable" {
     }
 
 }
+
+Describe "Mocking functions with conflicting parameters" {
+    InModuleScope Pester {
+        Context "Faked conflicting parameter" {
+            BeforeAll {
+                Mock Get-ConflictingParameterNames { @("ParamToAvoid") }
+
+                function Get-ExampleTest {
+                    param(
+                        [Parameter(Mandatory = $true)]
+                        [string]
+                        $ParamToAvoid
+                    )
+
+                    $ParamToAvoid
+                }
+
+                Mock Get-ExampleTest { "World" } -ParameterFilter { $_ParamToAvoid -eq "Hello" }
+            }
+
+            It 'executes the mock' {
+                Get-ExampleTest -ParamToAvoid "Hello" | Should -Be "World"
+            }
+
+            It 'defaults to the original function' {
+                Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "Bye"
+            }
+
+            Context "Assert-MockCalled" {
+
+                It 'simple Assert-Mockcalled' {
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -Exactly 1 -Scope It
+                }
+
+                It 'with parameterfilter' {
+                    Get-ExampleTest -ParamToAvoid "Another"
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -ParameterFilter { $_ParamToAvoid -eq "Hello" } -Exactly 1 -Scope It
+                }
+            }
+        }
+    }
+
+    Context "Get-Module" {
+        function f { Get-Module foo }
+        It 'mocks Get-Module properly' {
+            Mock Get-Module -Verifiable { 'mocked' }
+            f
+            Assert-MockCalled Get-Module
+        }
+    }
+}
