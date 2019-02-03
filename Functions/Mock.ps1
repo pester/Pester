@@ -1600,7 +1600,7 @@ function Reset-ConflictingParameters {
         }
 
         $parameters[$param] = $parameters[$fixedName]
-        $parameters.Remove($fixedName)
+        $null = $parameters.Remove($fixedName)
     }
 
     $parameters

@@ -2058,6 +2058,21 @@ Describe "Mocking functions with conflicting parameters" {
                 Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "Bye"
             }
 
+            Context "Assert-MockCalled" {
+
+                It 'simple Assert-Mockcalled' {
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -Exactly 1 -Scope It
+                }
+
+                It 'with parameterfilter' {
+                    Get-ExampleTest -ParamToAvoid "Another"
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -ParameterFilter { $_ParamToAvoid -eq "Hello" } -Exactly 1 -Scope It
+                }
+            }
         }
     }
 
