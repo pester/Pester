@@ -2039,7 +2039,7 @@ Describe "Mocking functions with conflicting parameters" {
 
                 function Get-ExampleTest {
                     param(
-                        [Parameter(Mandatory)]
+                        [Parameter(Mandatory = $true)]
                         [string]
                         $ParamToAvoid
                     )
