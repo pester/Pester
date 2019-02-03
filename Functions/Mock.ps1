@@ -1548,12 +1548,11 @@ function Remove-MockFunctionsAndAliases {
     }
 }
 
-
 function Repair-ConflictingParameters {
     [CmdletBinding()]
     [OutputType([System.Management.Automation.CommandMetadata])]
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [System.Management.Automation.CommandMetadata]
         $Metadata
     )
@@ -1569,11 +1568,11 @@ function Repair-ConflictingParameters {
         $conflictingParams = Get-ConflictingParameterNames
         if ($conflictingParams -contains $paramMetadata.Name) {
             $paramName = $paramMetadata.Name
-            $newName = "$(Get-ParameterPrefixForConflictingParameters)$paramName"
+            $newName = "_$paramName"
             $paramMetadata.Name = $newName
             $paramMetadata.Aliases.Add($paramName)
 
-            $Metadata.Parameters.Remove($paramName) | Out-Null
+            $null = $Metadata.Parameters.Remove($paramName)
             $Metadata.Parameters.Add($newName, $paramMetadata)
         }
     }
@@ -1585,23 +1584,24 @@ function Reset-ConflictingParameters {
     [CmdletBinding()]
     [OutputType([hashtable])]
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [hashtable]
         $BoundParameters
     )
 
     $parameters = $BoundParameters.Clone()
-    $prefix = Get-ParameterPrefixForConflictingParameters
+    $names = Get-ConflictingParameterNames
 
-    Get-ConflictingParameterNames |
-        Where-Object {
-            $parameters.ContainsKey("$prefix$_")
-        } |
-            ForEach-Object {
-            $fixedName = "$prefix$_"
-            $parameters[$_] = $parameters[$fixedName]
-            $parameters.Remove($fixedName)
+    foreach ($param in $names) {
+        $fixedName = "_$param"
+
+        if (-not $parameters.ContainsKey($fixedName)) {
+            continue
         }
+
+        $parameters[$param] = $parameters[$fixedName]
+        $parameters.Remove($fixedName)
+    }
 
     $parameters
 }
@@ -1610,12 +1610,6 @@ $script:ConflictingParameterNames = @(
     "PSEdition"
 )
 
-$script:ParameterPrefix = "_"
-
 function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
-}
-
-function Get-ParameterPrefixForConflictingParameters {
-    $script:ParameterPrefix
 }
