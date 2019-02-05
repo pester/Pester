@@ -72,6 +72,9 @@ function BeforeAll {
         statements in the Context or Describe.
 
     .LINK
+        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+
+    .LINK
         about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
@@ -97,7 +100,10 @@ function AfterAll {
     to the entire Context or Describe block, regardless of the order of the
     statements in the Context or Describe.
 
-.LINK
+    .LINK
+        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+
+    .LINK
     about_BeforeEach_AfterEach
 #>
     [CmdletBinding()]
