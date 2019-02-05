@@ -67,6 +67,9 @@ function Should {
     Test will be passed only when all assertion will be met (logical conjuction).
 
     .LINK
+    https://github.com/pester/Pester/wiki/Should
+
+    .LINK
     about_Should
     about_Pester
 #>
