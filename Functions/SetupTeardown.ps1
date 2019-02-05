@@ -1,19 +1,22 @@
 function BeforeEach {
     <#
-.SYNOPSIS
-    Defines a series of steps to perform at the beginning of every It block within
-    the current Context or Describe block.
+    .SYNOPSIS
+        Defines a series of steps to perform at the beginning of every It block within
+        the current Context or Describe block.
 
-.DESCRIPTION
-    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
-    to the entire Context or Describe block, regardless of the order of the
-    statements in the Context or Describe.  For a full description of this
-    behavior, as well as how multiple BeforeEach or AfterEach blocks interact
-    with each other, please refer to the about_BeforeEach_AfterEach help file.
+    .DESCRIPTION
+        BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+        to the entire Context or Describe block, regardless of the order of the
+        statements in the Context or Describe.  For a full description of this
+        behavior, as well as how multiple BeforeEach or AfterEach blocks interact
+        with each other, please refer to the about_BeforeEach_AfterEach help file.
 
-.LINK
-    about_BeforeEach_AfterEach
-#>
+    .LINK
+        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+
+    .LINK
+        about_BeforeEach_AfterEach
+    #>
     [CmdletBinding()]
     param
     (
@@ -28,20 +31,23 @@ function BeforeEach {
 
 function AfterEach {
     <#
-.SYNOPSIS
-    Defines a series of steps to perform at the end of every It block within
-    the current Context or Describe block.
+    .SYNOPSIS
+        Defines a series of steps to perform at the end of every It block within
+        the current Context or Describe block.
 
-.DESCRIPTION
-    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
-    to the entire Context or Describe block, regardless of the order of the
-    statements in the Context or Describe.  For a full description of this
-    behavior, as well as how multiple BeforeEach or AfterEach blocks interact
-    with each other, please refer to the about_BeforeEach_AfterEach help file.
+    .DESCRIPTION
+        BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+        to the entire Context or Describe block, regardless of the order of the
+        statements in the Context or Describe.  For a full description of this
+        behavior, as well as how multiple BeforeEach or AfterEach blocks interact
+        with each other, please refer to the about_BeforeEach_AfterEach help file.
 
-.LINK
-    about_BeforeEach_AfterEach
-#>
+    .LINK
+        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+
+    .LINK
+        about_BeforeEach_AfterEach
+    #>
     [CmdletBinding()]
     param
     (
@@ -56,18 +62,21 @@ function AfterEach {
 
 function BeforeAll {
     <#
-.SYNOPSIS
-    Defines a series of steps to perform at the beginning of the current Context
-    or Describe block.
+    .SYNOPSIS
+        Defines a series of steps to perform at the beginning of the current Context
+        or Describe block.
 
-.DESCRIPTION
-    BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
-    to the entire Context or Describe block, regardless of the order of the
-    statements in the Context or Describe.
+    .DESCRIPTION
+        BeforeEach, AfterEach, BeforeAll, and AfterAll are unique in that they apply
+        to the entire Context or Describe block, regardless of the order of the
+        statements in the Context or Describe.
 
-.LINK
-    about_BeforeEach_AfterEach
-#>
+    .LINK
+        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+
+    .LINK
+        about_BeforeEach_AfterEach
+    #>
     [CmdletBinding()]
     param
     (
@@ -91,7 +100,10 @@ function AfterAll {
     to the entire Context or Describe block, regardless of the order of the
     statements in the Context or Describe.
 
-.LINK
+    .LINK
+        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+
+    .LINK
     about_BeforeEach_AfterEach
 #>
     [CmdletBinding()]
