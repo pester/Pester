@@ -1166,7 +1166,7 @@ function Invoke-Pester {
         if ($PassThru) {
             # Remove all runtime properties like current* and Scope
             $properties = @(
-                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
+                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "ScriptBlockFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
 
                 if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
@@ -1227,7 +1227,9 @@ function New-PesterOption {
 
         [switch] $Experimental,
 
-        [switch] $ShowScopeHints
+        [switch] $ShowScopeHints,
+
+        [hashtable[]] $ScriptBlockFilter
     )
 
     # in PowerShell 2 Add-Member can attach properties only to
@@ -1250,6 +1252,7 @@ function New-PesterOption {
         TestSuiteName       = $TestSuiteName
         ShowScopeHints      = $ShowScopeHints
         Experimental        = $Experimental
+        ScriptBlockFilter   = $ScriptBlockFilter
     }
 }
 
@@ -1434,11 +1437,11 @@ function Set-PesterStatistics($Node) {
         if ($action.Type -eq 'TestGroup') {
             Set-PesterStatistics -Node $action
 
-            $Node.TotalCount        += $action.TotalCount
-            $Node.PassedCount       += $action.PassedCount
-            $Node.FailedCount       += $action.FailedCount
-            $Node.SkippedCount      += $action.SkippedCount
-            $Node.PendingCount      += $action.PendingCount
+            $Node.TotalCount += $action.TotalCount
+            $Node.PassedCount += $action.PassedCount
+            $Node.FailedCount += $action.FailedCount
+            $Node.SkippedCount += $action.SkippedCount
+            $Node.PendingCount += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
         elseif ($action.Type -eq 'TestCase') {

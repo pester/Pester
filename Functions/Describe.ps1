@@ -70,9 +70,16 @@ about_TestDrive
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
-        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+        [ScriptBlock] $Fixture
     )
-
+    if ($Fixture -eq $null) {
+        if ($Name.Contains("`n")) {
+            throw "Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)"
+        }
+        else {
+            throw 'No test fixture is provided. (Have you put the open curly brace on the next line?)'
+        }
+    }
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference)) {
         # User has executed a test script directly instead of calling Invoke-Pester
         Remove-MockFunctionsAndAliases
@@ -118,6 +125,24 @@ function DescribeImpl {
                 return
             }
         }
+
+        if ($Pester.ScriptBlockFilter) {
+            $match = $false
+            foreach ($filter in $Pester.ScriptBlockFilter) {
+                if ($match) {
+                    break
+                }
+
+                if ($Fixture.File -eq $filter.Path -and $Fixture.StartPosition.StartLine -eq $filter.Line) {
+                    $match = $true
+                }
+            }
+
+            if (-not $match) {
+                return
+            }
+        }
+
         if ($Pester.TagFilter) {
             if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag)) {
                 return

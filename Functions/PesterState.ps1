@@ -7,7 +7,8 @@ function New-PesterState {
         [Switch]$Strict,
         [Pester.OutputTypes]$Show = 'All',
         [object]$PesterOption,
-        [Switch]$RunningViaInvokePester
+        [Switch]$RunningViaInvokePester,
+        [Hashtable[]] $ScriptBlockFilter
     )
 
     if ($null -eq $SessionState) {
@@ -43,6 +44,7 @@ function New-PesterState {
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
 
+
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:TestStartTime = $null
@@ -64,6 +66,7 @@ function New-PesterState {
 
         $script:IncludeVSCodeMarker = $PesterOption.IncludeVSCodeMarker
         $script:TestSuiteName = $PesterOption.TestSuiteName
+        $script:ScriptBlockFilter = $PesterOption.ScriptBlockFilter
         $script:RunningViaInvokePester = $RunningViaInvokePester
 
         $script:SafeCommands = @{}
@@ -163,9 +166,9 @@ function New-PesterState {
             }
             else {
                 $Passed = $Result -eq "Passed"
-                if (($Result -eq "Skipped") -or ($Result -eq "Pending")) {
+                if (@("Skipped", "Pending", "Inconclusive") -contains $Result) {
                     $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
-                    $ErrorRecord = New-ErrorRecord -ErrorId 'PesterTestInconclusive' -Message $FailureMessage
+                    $ErrorRecord = New-ErrorRecord -ErrorId "PesterTest$Result" -Message $FailureMessage
                     $Result = "Failed"
                 }
 
@@ -327,6 +330,7 @@ function New-PesterState {
         $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
+        "ScriptBlockFilter",
         "TestResult",
         "SessionState",
         "CommandCoverage",

@@ -129,8 +129,10 @@ function ItImpl {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Name,
+
         [Parameter(Position = 1)]
         [ScriptBlock] $Test,
+
         [System.Collections.IDictionary[]] $TestCases,
         [Parameter(ParameterSetName = 'Pending')]
         [Switch] $Pending,
@@ -155,7 +157,12 @@ function ItImpl {
 
     #unless Skip or Pending is specified you must specify a ScriptBlock to the Test parameter
     if (-not ($PSBoundParameters.ContainsKey('test') -or $Skip -or $Pending)) {
-        throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
+        If ($Name.Contains("`n")) {
+            throw "Name parameter has multiple lines and no script block is provided. (Have you provided a name for the test group?)"
+        }
+        else {
+            throw 'No test script block is provided. (Have you put the open curly brace on the next line?)'
+        }
     }
 
     #the function is called with Pending or Skipped set the script block if needed

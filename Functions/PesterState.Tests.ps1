@@ -40,14 +40,23 @@ InModuleScope Pester {
         Context "TestNameFilter and TagFilter parameter is set" {
             $p = new-pesterstate -TagFilter "tag", "tag2" -testnamefilter "filter"
 
-            it "sets the TestNameFilter property" {
+            it "sets the TagFilter property" {
                 $p.TagFilter | should -be ("tag", "tag2")
             }
 
             it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag", "tag2")
+                $p.TestNameFilter | should -be "Filter"
             }
+        }
 
+        Context "ScritpBlockFilter is set" {
+            it "sets the ScriptBlockFilter property" {
+                $o = New-PesterOption -ScriptBlockFilter @(@{Path = "C:\Tests"; Line = 293})
+                $p = New-PesterState -PesterOption $o
+                $p.ScriptBlockFilter | Should -Not -BeNullOrEmpty
+                $p.ScriptBlockFilter[0].Path | Should -Be "C:\Tests"
+                $p.ScriptBlockFilter[0].Line | Should -Be 293
+            }
         }
     }
 
@@ -291,6 +300,54 @@ InModuleScope Pester {
 
                 $result.passed | should -be $false
                 $result.Result | Should -be "Failed"
+            }
+
+            It "Changes Inconclusive state to Failed" {
+                $strict.AddTestResult("test", "Inconclusive")
+                $result = $strict.TestResult[-1]
+
+                $result.passed | should -be $false
+                $result.Result | Should -be "Failed"
+            }
+        }
+
+        Context 'Status counts in Strict mode' {
+            It "increases Passed count" {
+                $state = New-PesterState -Strict
+                $state.AddTestResult("test", "Passed")
+
+                $state.PassedCount | Should -Be 1
+            }
+
+            It "increases Failed count" {
+                $state = New-PesterState -Strict
+                $state.AddTestResult("test", "Failed")
+
+                $state.FailedCount | Should -Be 1
+            }
+
+            It "increases Failed count instead of Pending" {
+                $state = New-PesterState -Strict
+                $state.AddTestResult("test", "Pending")
+
+                $state.FailedCount | Should -Be 1
+                $state.PendingCount | Should -Be 0
+            }
+
+            It "increases Failed count instead of Skipped" {
+                $state = New-PesterState -Strict
+                $state.AddTestResult("test", "Skipped")
+
+                $state.FailedCount | Should -Be 1
+                $state.SkippedCount | Should -Be 0
+            }
+
+            It "increases Failed count instead of Inconclusive" {
+                $state = New-PesterState -Strict
+                $state.AddTestResult("test", "Inconclusive")
+
+                $state.FailedCount | Should -Be 1
+                $state.InconclusiveCount | Should -Be 0
             }
         }
     }

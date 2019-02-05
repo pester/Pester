@@ -97,6 +97,10 @@ function Write-PesterStart {
         if ($PesterState.TestNameFilter) {
             $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }
+        if ($PesterState.ScriptBlockFilter) {
+            $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
+            $message += $ReportStrings.FilterMessage -f $m
+        }
         if ($PesterState.TagFilter) {
             $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         }
@@ -196,15 +200,17 @@ function ConvertTo-PesterResult {
         $line = $details.Line
         $Text = $details.LineText
 
-        switch ($ErrorRecord.FullyQualifiedErrorID) {
-            PesterTestInconclusive {
-                $testResult.Result = "Inconclusive"; break;
-            }
-            PesterTestPending {
-                $testResult.Result = "Pending"; break;
-            }
-            PesterTestSkipped {
-                $testResult.Result = "Skipped"; break;
+        if (-not $Pester.Strict) {
+            switch ($ErrorRecord.FullyQualifiedErrorID) {
+                PesterTestInconclusive {
+                    $testResult.Result = "Inconclusive"; break;
+                }
+                PesterTestPending {
+                    $testResult.Result = "Pending"; break;
+                }
+                PesterTestSkipped {
+                    $testResult.Result = "Skipped"; break;
+                }
             }
         }
     }
@@ -273,7 +279,9 @@ function Write-PesterResult {
                 }
 
                 Skipped {
-                    $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+                    $targetObject = if ($null -ne $testresult.ErrorRecord -and
+                        ($o = $testresult.ErrorRecord.PSObject.Properties.Item("TargetObject"))) { $o.Value }
+                    $because = if ($targetObject -and $targetObject.Data.Because) {
                         ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
                     }
                     else {
@@ -512,13 +520,19 @@ function ConvertTo-FailureLines {
             }
             $count ++
         }
-        $lines.Trace += $traceLines |
-            & $SafeCommands['Select-Object'] -First $count |
-            & $SafeCommands['Where-Object'] {
-            $_ -notmatch $pattern2 -and
-            $_ -notmatch $pattern3 -and
-            $_ -notmatch $pattern4 -and
-            $_ -notmatch $pattern5
+
+        if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
+            $lines.Trace += $traceLines
+        }
+        else {
+            $lines.Trace += $traceLines |
+                & $SafeCommands['Select-Object'] -First $count |
+                & $SafeCommands['Where-Object'] {
+                $_ -notmatch $pattern2 -and
+                $_ -notmatch $pattern3 -and
+                $_ -notmatch $pattern4 -and
+                $_ -notmatch $pattern5
+            }
         }
 
         return $lines
