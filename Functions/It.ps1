@@ -95,6 +95,9 @@ Describe "Add-Numbers" {
 }
 
 .LINK
+https://github.com/pester/Pester/wiki/It
+
+.LINK
 Describe
 Context
 Set-TestInconclusive
