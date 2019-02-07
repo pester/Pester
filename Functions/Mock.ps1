@@ -232,8 +232,9 @@ about_Mocking
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
             }
 
-            $repairedMetadata = Repair-ConflictingParameters -Metadata $metadata
-            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($repairedMetadata)
+            # Will modify $metadata object in-place
+            Repair-ConflictingParameters -Metadata $metadata
+            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
                 $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
@@ -1612,4 +1613,50 @@ $script:ConflictingParameterNames = @(
 
 function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
+}
+
+
+function New-BlockWithoutParameterAliases {
+    [CmdletBinding()]
+    [OutputType([scriptblock])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata,
+        [Parameter(Mandatory = $true)]
+        [scriptblock]
+        $Block
+    )
+
+    try {
+        $params = $Metadata.Parameters.Values
+
+        $variables = $Block.Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
+
+        $blockText = $Block.Ast.Endblock.Extent.Text
+
+        $selectProps = @(
+            @{ n = 'Variable'; e = { $_.VariablePath.UserPath } }
+            @{ n = 'Start'; e = { $_.Extent.StartOffset - $block.Ast.Extent.StartOffset} }
+            @{ n = 'End'; e = { $_.Extent.EndOffset - $block.Ast.Extent.StartOffset} }
+        )
+
+        foreach ($var in $variables) {
+            $varName = $var.VariablePath.UserPath
+
+            foreach ($param in $params) {
+                if ($param.Aliases -contains $varName) {
+                    $startIndex = $var.Extent.StartOffset - $block.Ast.Extent.StartOffset
+                    $length = $var.Extent.Text.Length
+
+                    $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
+                }
+            }
+        }
+
+        [scriptblock]::Create($blockText)
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 }
