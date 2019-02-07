@@ -2085,3 +2085,39 @@ Describe "Mocking functions with conflicting parameters" {
         }
     }
 }
+
+Describe "Usage of Alias in Parameter Filters" {
+
+    Context 'Mock definition' {
+
+        It "Uses parameter aliases in Parameter-Filter" {
+            Mock Get-Content { "default-get-content" }
+            Mock Get-Content -ParameterFilter {$Last -eq 100} -MockWith { "aliased-parameter-name" }
+
+            Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+            Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
+         }
+
+         It 'works with read-only/constant automatic variables' {
+            function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
+            Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+
+            f
+
+            Assert-MockCalled Get-Module
+         }
+    }
+
+    Context 'Assert-MockCalled' {
+
+        It "Uses parameter aliases in Parameter-Filter" {
+            function f { Get-Content -Path 'temp.txt' -Tail 10 }
+            Mock Get-Content { }
+
+            f
+
+            Assert-MockCalled Get-Content -ParameterFilter { $Last -eq 10 } -Exactly 1 -Scope It
+        }
+    }
+
+}

@@ -363,6 +363,10 @@ about_Mocking
         }
     }
 
+    if ($null -ne $mock.Metadata -and $null -ne $block.Filter) {
+        $block.Filter = New-BlockWithoutParameterAliases -Metadata $mock.Metadata -Block $block.Filter
+    }
+
     $mock.Blocks = @(
         $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -eq '$True' }
         if ($block.Filter.ToString() -eq '$True') {
@@ -658,6 +662,9 @@ to the original.
             Metadata        = $mock.Metadata
         }
 
+        if ($null -ne $mock.Metadata -and $null -ne $params.ScriptBlock) {
+            $params.ScriptBlock = New-BlockWithoutParameterAliases -Metadata $mock.Metadata -Block $params.ScriptBlock
+        }
 
         if (Test-ParameterFilter @params) {
             $null = $matchingCalls.Add($historyEntry)
@@ -1621,9 +1628,11 @@ function New-BlockWithoutParameterAliases {
     [OutputType([scriptblock])]
     param(
         [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
         [System.Management.Automation.CommandMetadata]
         $Metadata,
         [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
         [scriptblock]
         $Block
     )
@@ -1634,12 +1643,6 @@ function New-BlockWithoutParameterAliases {
         $variables = $Block.Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
 
         $blockText = $Block.Ast.Endblock.Extent.Text
-
-        $selectProps = @(
-            @{ n = 'Variable'; e = { $_.VariablePath.UserPath } }
-            @{ n = 'Start'; e = { $_.Extent.StartOffset - $block.Ast.Extent.StartOffset} }
-            @{ n = 'End'; e = { $_.Extent.EndOffset - $block.Ast.Extent.StartOffset} }
-        )
 
         foreach ($var in $variables) {
             $varName = $var.VariablePath.UserPath
