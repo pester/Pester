@@ -1639,23 +1639,25 @@ function New-BlockWithoutParameterAliases {
 
     try {
         $params = $Metadata.Parameters.Values
-
-        $variables = $Block.Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
-
-        $blockText = $Block.Ast.Endblock.Extent.Text
+        $ast = $Block.Ast
+        $blockText = $ast.Extent.Text
+        $variables = $Ast.FindAll({ param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
 
         foreach ($var in $variables) {
             $varName = $var.VariablePath.UserPath
+            $length = $varName.Length
 
             foreach ($param in $params) {
                 if ($param.Aliases -contains $varName) {
-                    $startIndex = $var.Extent.StartOffset - $block.Ast.Extent.StartOffset
-                    $length = $var.Extent.Text.Length
+                    $startIndex = $var.Extent.StartOffset - $block.Ast.Extent.StartOffset + 1
 
                     $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
                 }
             }
         }
+
+        # Remove top-level brackets {}
+        $blockText = $blockText.Remove($blockText.Length - 1, 1).Remove(0, 1)
 
         [scriptblock]::Create($blockText)
     }

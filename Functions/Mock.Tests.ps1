@@ -2087,29 +2087,37 @@ Describe "Mocking functions with conflicting parameters" {
 }
 
 Describe "Usage of Alias in Parameter Filters" {
-
     Context 'Mock definition' {
 
-        It "Uses parameter aliases in Parameter-Filter" {
-            Mock Get-Content { "default-get-content" }
-            Mock Get-Content -ParameterFilter {$Last -eq 100} -MockWith { "aliased-parameter-name" }
+        Context 'Get-Content' {
+            BeforeAll {
+                Mock Get-Content { "default-get-content" }
+                Mock Get-Content -ParameterFilter {$Tail -eq 100} -MockWith { "aliased-parameter-name" }
+            }
 
-            Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
-            Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
-         }
+            It "returns mock that matches parameter filter block" {
+                Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+            }
 
-         It 'works with read-only/constant automatic variables' {
-            function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
-            Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+            It 'returns default mock' {
+                Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
+            }
 
-            f
+        }
 
-            Assert-MockCalled Get-Module
-         }
+        Context 'Get-Module' {
+            It 'works with read-only/constant automatic variables' {
+                function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
+                Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+
+                f
+
+                Assert-MockCalled Get-Module
+            }
+        }
     }
 
     Context 'Assert-MockCalled' {
-
         It "Uses parameter aliases in Parameter-Filter" {
             function f { Get-Content -Path 'temp.txt' -Tail 10 }
             Mock Get-Content { }
