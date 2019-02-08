@@ -2105,7 +2105,7 @@ Describe "Usage of Alias in Parameter Filters" {
 
         }
 
-        if ($PSVersionTable.PSVersion.Major -ge 5.1) {
+        if ($PSVersionTable.PSVersion -ge 5.1) {
             Context 'Get-Module' {
                 It 'works with read-only/constant automatic variables' {
                     function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
