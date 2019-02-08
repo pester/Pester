@@ -2105,14 +2105,16 @@ Describe "Usage of Alias in Parameter Filters" {
 
         }
 
-        Context 'Get-Module' {
-            It 'works with read-only/constant automatic variables' {
-                function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
-                Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+        if ($PSVersionTable.PSVersion.Major -ge 5.1) {
+            Context 'Get-Module' {
+                It 'works with read-only/constant automatic variables' {
+                    function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
+                    Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
 
-                f
+                    f
 
-                Assert-MockCalled Get-Module
+                    Assert-MockCalled Get-Module
+                }
             }
         }
     }
