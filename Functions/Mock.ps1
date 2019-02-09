@@ -1637,7 +1637,7 @@ function New-BlockWithoutParameterAliases {
         $Block
     )
     try {
-        if ((GetPesterPsVersion) -ge 3) {
+        if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
             $ast = $Block.Ast
             $blockText = $ast.Extent.Text
