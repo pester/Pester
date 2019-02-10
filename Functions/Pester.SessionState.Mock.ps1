@@ -292,6 +292,47 @@ function Get-AllMockBehaviors {
     $behaviors
 }
 
+function Get-VerifiableBehaviors {
+    [CmdletBinding()]
+    param(
+    )
+
+    Write-PesterDebugMessage -Scope Mock "Getting all verifiable mock behaviors in this scope."
+
+    $currentTest = Get-CurrentTest
+    $inTest = any $currentTest
+
+    $behaviors = [System.Collections.Generic.List[Object]]@()
+    if ($inTest) {
+        Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
+        $bs = $currentTest.PluginData.Mock.Behaviors.Values
+        if ($null -ne $bs -and $bs.Count -gt 0) {
+            foreach ($b in $bs) {
+                if ($b.Verifiable) {
+                    $behaviors.Add($b)
+                }
+            }
+        }
+    }
+    $block = Get-CurrentBlock
+    Recurse-Up $block {
+        param($b)
+
+        if (-not $b.IsRoot) {
+            $bs = $b.PluginData.Mock.Behaviors.Values
+            if ($null -ne $bs -or $bs.Count -ne 0) {
+                foreach ($bb in $bs) {
+                    if ($bb.Verifiable) {
+                        $behaviors.Add($bb)
+                    }
+                }
+            }
+        }
+    }
+
+    $behaviors
+}
+
 
 function Get-AssertMockTable {
     [CmdletBinding()]
@@ -505,8 +546,8 @@ This will not throw an exception because the mock was invoked.
 
     Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
-    # TODO: : figure out what mock table to use
-    Assert-VerifiableMockInternal -MockTable $MockTable
+    $behaviors = @(Get-VerifiableBehaviors)
+    Assert-VerifiableMockInternal -Behaviors $behaviors
 }
 
 function Assert-MockCalled {

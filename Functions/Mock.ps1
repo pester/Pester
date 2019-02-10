@@ -301,28 +301,23 @@ function Assert-VerifiableMockInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [HashTable] $MockTable
+        $Behaviors
     )
 
-    $unVerified = @{}
-    $mockTable.Keys | & $SafeCommands['ForEach-Object'] {
-        $m = $_;
-
-        $mockTable[$m].blocks |
-            & $SafeCommands['Where-Object'] { $_.Verifiable } |
-            & $SafeCommands['ForEach-Object'] { $unVerified[$m] = $_ }
+    $unverified = [System.Collections.Generic.List[Object]]@()
+    foreach ($b in $Behaviors) {
+        if ($b.Verifiable) {
+            $unverified.Add($b)
+        }
     }
-    if ($unVerified.Count -gt 0) {
-        foreach ($mock in $unVerified.Keys) {
-            $array = $mock -split '\|\|'
-            $function = $array[1]
-            $module = $array[0]
 
-            $message = "$([System.Environment]::NewLine) Expected $function "
-            if ($module) {
-                $message += "in module $module "
+    if ($unVerified.Count -gt 0) {
+        foreach ($b in $unVerified) {
+            $message = "$([System.Environment]::NewLine) Expected $($b.CommandName) "
+            if ($b.ModuleName) {
+                $message += "in module $($b.ModuleName) "
             }
-            $message += "to be called with $($unVerified[$mock].Filter)"
+            $message += "to be called with $($b.Filter)"
         }
         throw $message
     }

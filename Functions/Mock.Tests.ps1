@@ -619,63 +619,62 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
     }
 }
 
-# TODO: Vefifiable mocks
-# Describe "When Creating a Verifiable Mock that is not called" {
-#     Context "In the test script's scope" {
-#         It "Should throw" {
-#             Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
-#             FunctionUnderTest "three" | Out-Null
-#             $result = $null
-#             try {
-#                 Assert-VerifiableMock
-#             }
-#             Catch {
-#                 $result = $_
-#             }
+Describe "When Creating a Verifiable Mock that is not called" {
+    Context "In the test script's scope" {
+        It "Should throw" {
+            Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+            FunctionUnderTest "three" | Out-Null
+            $result = $null
+            try {
+                Assert-VerifiableMock
+            }
+            Catch {
+                $result = $_
+            }
 
-#             $result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
-#         }
-#     }
+            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+        }
+    }
 
-#     Context "In a module's scope" {
-#         BeforeAll {
-#             New-Module -Name TestModule -ScriptBlock {
-#                 function ModuleFunctionUnderTest {
-#                     return 'I am the function under test in a module'
-#                 }
-#             } | Import-Module -Force
+    Context "In a module's scope" {
+        BeforeAll {
+            New-Module -Name TestModule -ScriptBlock {
+                function ModuleFunctionUnderTest {
+                    return 'I am the function under test in a module'
+                }
+            } | Import-Module -Force
 
-#             Mock -ModuleName TestModule ModuleFunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
-#             TestModule\ModuleFunctionUnderTest "three" | Out-Null
+            Mock -ModuleName TestModule ModuleFunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+            TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
-#             try {
-#                 Assert-VerifiableMock
-#             }
-#             Catch {
-#                 $result = $_
-#             }
-#         }
+            try {
+                Assert-VerifiableMock
+            }
+            Catch {
+                $result = $_
+            }
+        }
 
-#         It "Should throw" {
-#             $result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
-#         }
+        It "Should throw" {
+            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+        }
 
-#         AfterAll {
-#             Remove-Module TestModule -Force
-#         }
-#     }
-# }
+        AfterAll {
+            Remove-Module TestModule -Force
+        }
+    }
+}
 
-# Describe "When Creating a Verifiable Mock that is called" {
-#     BeforeAll {
-#         Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
-#         FunctionUnderTest "one"
-#     }
+Describe "When Creating a Verifiable Mock that is called" {
+    BeforeAll {
+        Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
+        FunctionUnderTest "one"
+    }
 
-#     It "Assert-VerifiableMock Should not throw" {
-#         { Assert-VerifiableMock } | Should -Not -Throw
-#     }
-# }
+    It "Assert-VerifiableMock Should not throw" {
+        { Assert-VerifiableMock } | Should -Not -Throw
+    }
+}
 
 Describe "When Calling Assert-MockCalled 0 without exactly" {
     BeforeAll {
