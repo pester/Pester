@@ -75,7 +75,7 @@ function PipelineInputFunction {
     }
 }
 
-Describe "When the caller mocks a command Pester uses internally" {
+Describe  "When the caller mocks a command Pester uses internally" {
     Context "Context run when Write-Host is mocked" {
         BeforeAll {
             Mock Write-Host { }
@@ -175,7 +175,7 @@ Describe 'When calling Mock on an external script' {
 
         Mock 'TestDrive:\tempExternalScript.ps1' {return 'I am not tempExternalScript.ps1'}
 
-    <#
+        <#
         # Invoking the script using its absolute path is not supported
 
         $result = TestDrive:\tempExternalScript.ps1
@@ -749,7 +749,7 @@ Describe "When Calling Assert-MockCalled without exactly" {
     }
 }
 
-Describe -Focus "Using Pester Scopes (Describe,Context,It)" {
+Describe "Using Pester Scopes (Describe,Context,It)" {
     BeforeAll {
         Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
         Mock FunctionUnderTest {return "I am the paramless mock test"}
@@ -1479,7 +1479,7 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
 # }
 
 Describe 'Parameter Filters and Common Parameters' {
-    &{
+    & {
         # set this setting in this scope in case the preference
         # around is different
         $VerbosePreference = 'Continue'
@@ -1697,7 +1697,7 @@ Describe 'Mocking module-qualified calls' {
         $mockResult = 'Mocked'
 
         Mock Get-Content { return $mockResult } -ParameterFilter { $Path -eq $mockFile }
-        Setup -File TestFile -Content 'The actual file'
+        'The actual file' | Set-Content TestDrive:\TestFile
     }
 
     It 'Mock alias should not exist before the mock is defined' {

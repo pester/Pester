@@ -265,7 +265,8 @@ function Get-AllMockBehaviors {
         # that something bad happened
         if (-not $b.IsRoot) {
             $bs = tryGetValue $b.PluginData.Mock.Behaviors $CommandName
-            if (any $bs) {
+            # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
+            if ($null -ne $bs -or $bs.Count -ne 0) {
                 Write-PesterDebugMessage -Scope Mock "Found behaviors for $CommandName in $($b.Name)."
                 $behaviors.AddRange($bs)
             }
@@ -803,7 +804,7 @@ function Invoke-Mock {
     $detectedModule, $behaviors = if (any $moduleBehaviors) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 
-    Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory -SessionState $PSCmdlet.SessionState
+    Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory
 }
 
 function Assert-RunInProgress {

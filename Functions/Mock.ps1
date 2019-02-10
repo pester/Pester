@@ -32,7 +32,7 @@ function New-MockBehavior {
 
     $scriptBlockIsClosure = Test-IsClosure -ScriptBlock $MockWith
     if ($scriptBlockIsClosure) {
-        Write-PesterDebugMessage -Scope Mock -Message "The provided mock body is a closure, not touching it so the captured variables are preserved".
+        Write-PesterDebugMessage -Scope Mock -Message "The provided mock body is a closure, not touching it so the captured variables are preserved."
         # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
         # dynamic module's scope.
         $mockWithCopy = $MockWith
@@ -604,11 +604,6 @@ function Resolve-Command {
 }
 
 function Invoke-MockInternal {
-    <#
-        .SYNOPSIS
-        This command is used by Pester's Mocking framework.  You do not need to call it directly.
-    #>
-
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -672,7 +667,8 @@ function Invoke-MockInternal {
                     -Hook $Hook `
                     -BoundParameters $BoundParameters `
                     -ArgumentList $ArgumentList
-                $CallHistory += $call
+                $key = "$ModuleName||$CommandName"
+                $CallHistory[$key] += $call
                 return
             }
             else {
@@ -802,15 +798,14 @@ function FindMatchingBehavior {
     for ($i = $count; $i -gt 0; $i--) {
         $b = $Behaviors[$i - 1]
 
-        if (-not $foundDefaultBehavior) {
-            if (none $b.ParameterFilter) {
-                # store the most recently defined default behavior we find
-                # (the first we find in the collection because we iterate from the end)
-                $defaultBehavior = $b
-                $foundDefaultBehavior = $true
-            }
+        if ($b.IsDefault -and -not $foundDefaultBehavior) {
+            # store the most recently defined default behavior we find
+            # (the first we find in the collection because we iterate from the end)
+            $defaultBehavior = $b
+            $foundDefaultBehavior = $true
         }
-        else {
+
+        if (-not $b.IsDefault) {
             $params = @{
                 ScriptBlock     = $b.Filter
                 BoundParameters = $BoundParameters
@@ -914,7 +909,7 @@ function ExecuteBehavior {
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
-    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $mock.SessionState
+    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $Hook.SessionState
     $splat = @{
         'Script Block'                   = $Behavior.ScriptBlock
         '___ArgumentList___'             = $ArgumentList

@@ -133,9 +133,17 @@ function sum ($InputObject, $PropertyName, $Zero) {
     $acc
 }
 
-function tryGetValue ($Hashtable, $Key) {
+function tryGetValue {
+    [CmdletBinding()]
+    param(
+        $Hashtable,
+        $Key
+    )
+
     if ($Hashtable.ContainsKey($Key)) {
-        $Hashtable.$Key
+        # do not enumerate so we get the same thing back
+        # even if it is a collection
+        $PSCmdlet.WriteObject($Hashtable.$Key, $false)
     }
 }
 
@@ -153,7 +161,6 @@ function getOrUpdateValue {
         $PSCmdlet.WriteObject($Hashtable.$Key, $false)
     }
     else {
-        Write-Host ($null -eq $DefaultValue)
         $Hashtable.Add($Key, $DefaultValue)
         # do not enumerate so we get the same thing back
         # even if it is a collection

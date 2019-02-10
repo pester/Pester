@@ -486,7 +486,8 @@ function Get-WriteScreenPlugin {
     } -EachBlockTeardown {
         param ($Context)
         if (-not $Context.Block.Passed) {
-            & $SafeCommands['Write-Host'] -ForegroundColor Red "Block $($Context.Block.Path -join ".") failed" ($Context.Block.ErrorRecord | out-String)
+            & $SafeCommands['Write-Host'] -ForegroundColor Red "Block '$($Context.Block.Path -join ".")' failed"
+            Write-ErrorToScreen $Context.Block.ErrorRecord
         }
     }
 }
