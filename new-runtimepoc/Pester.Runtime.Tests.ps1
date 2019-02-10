@@ -1351,7 +1351,7 @@ i {
                 }
             )
 
-            $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
+            $testsToRun = @($actual | View-Flat | where { $_.ShouldRun })
             $testsToRun.Count | Verify-Equal 1
             $testsToRun[0].Name | Verify-Equal "test 3"
         }
