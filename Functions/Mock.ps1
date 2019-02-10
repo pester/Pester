@@ -122,7 +122,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
                 else {
                     ''
                 }
-                $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -ModuleName '$moduleName' -FunctionName '$commandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
+                $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -ModuleName '$moduleName' -FunctionName '$commandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet -DynamicParamScriptBlock `$MyInvocation.MyCommand.Mock.Hook.DynamicParamScriptBlock }"
 
                 $code = @"
                     $cmdletBinding
@@ -1133,11 +1133,6 @@ function Get-DynamicParamBlock {
 }
 
 function Get-MockDynamicParameter {
-    <#
-        .SYNOPSIS
-        This command is used by Pester's Mocking framework.  You do not need to call it directly.
-    #>
-
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ParameterSetName = 'Cmdlet')]
@@ -1151,7 +1146,10 @@ function Get-MockDynamicParameter {
 
         [System.Collections.IDictionary] $Parameters,
 
-        [object] $Cmdlet
+        [object] $Cmdlet,
+
+        [Parameter(ParameterSetName = "Function")]
+        $DynamicParamScriptBlock
     )
 
     switch ($PSCmdlet.ParameterSetName) {
@@ -1160,7 +1158,7 @@ function Get-MockDynamicParameter {
         }
 
         'Function' {
-            Get-DynamicParametersForMockedFunction -FunctionName $FunctionName -ModuleName $ModuleName -Parameters $Parameters -Cmdlet $Cmdlet
+            Get-DynamicParametersForMockedFunction -DynamicParamScriptBlock $DynamicParamScriptBlock -Parameters $Parameters -Cmdlet $Cmdlet
         }
     }
 }
@@ -1274,12 +1272,8 @@ function Get-DynamicParametersForCmdlet {
 function Get-DynamicParametersForMockedFunction {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
-        [string]
-        $FunctionName,
-
-        [string]
-        $ModuleName,
+        [Parameter(Mandatory)]
+        $DynamicParamScriptBlock,
 
         [System.Collections.IDictionary]
         $Parameters,
@@ -1288,15 +1282,9 @@ function Get-DynamicParametersForMockedFunction {
         $Cmdlet
     )
 
-    $mock = $mockTable["$ModuleName||$FunctionName"]
-
-    if (-not $mock) {
-        throw "Internal error detected:  Mock for '$FunctionName' in module '$ModuleName' was called, but does not exist in the mock table."
-    }
-
-    if ($mock.DynamicParamScriptBlock) {
+    if ($DynamicParamScriptBlock) {
         $splat = @{ 'P S Cmdlet' = $Cmdlet }
-        return & $mock.DynamicParamScriptBlock @Parameters @splat
+        return & $DynamicParamScriptBlock @Parameters @splat
     }
 }
 

@@ -1,4 +1,5 @@
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
+. $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
 
 $state = [PSCustomObject] @{
     # indicate whether or not we are currently
@@ -747,7 +748,6 @@ function Run-Test {
     )
 
     $state.Discovery = $false
-    # TODO: add where $true -eq $_.ShouldRun to execute only containers that have something to run
     foreach ($rootBlock in $Block) {
         if (-not $rootBlock.ShouldRun) {
             ConvertTo-ExecutedBlockContainer -Block $rootBlock
@@ -823,7 +823,7 @@ function Invoke-ScriptBlock {
                 &$______parameters.WriteDebug "Setting context variables"
                 foreach ($______current in $______outerSplat.GetEnumerator()) {
                     &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'"
-                    New-Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
+                    &$______parameters.New_Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
                 }
                 $______current = $null
             }
@@ -852,7 +852,7 @@ function Invoke-ScriptBlock {
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object), this way we save the first teardown and ressurect it right before
                     # needing it
-                    if (-not (Test-Path 'Variable:$_________teardown2')) {
+                    if (-not ( &$______parameters.Test_Path 'Variable:$_________teardown2')) {
                         $_________teardown2 = $______parameters.Teardown
                     }
 
@@ -861,7 +861,7 @@ function Invoke-ScriptBlock {
                         &$______parameters.WriteDebug "Setting context variables"
                         foreach ($______current in $______innerSplat.GetEnumerator()) {
                             &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'"
-                            New-Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
+                            &$______parameters.New_Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
                         }
                         $______current = $null
                     }
@@ -898,11 +898,11 @@ function Invoke-ScriptBlock {
                     # this is needed for nonewscope so we can do two different
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object)
-                    if ((Test-Path 'variable:_________teardown2')) {
+                    if ((&$______parameters.Test_Path 'variable:_________teardown2')) {
                         # soo we are running the one time test teadown in the same scope as
                         # each block teardown and it overwrites it
                         $______parameters.Teardown = $_________teardown2
-                        Remove-Variable _________teardown2
+                        &$______parameters.Remove_Variable _________teardown2
                     }
 
                     if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
@@ -967,7 +967,6 @@ function Invoke-ScriptBlock {
     # making it invoke in the same scope as $ScriptBlock
     $wrapperScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
 
-    $success = $true
     $break = $true
     $err = $null
     try {
@@ -983,6 +982,9 @@ function Invoke-ScriptBlock {
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
             WriteDebug                    = { param($Message) Write-PesterDebugMessage -Scope "CoreRuntime" $Message }
+            Test_Path = $SafeCommands['Test-Path']
+            New_Variable = $SafeCommands['New-Variable']
+            Remove_Variable = $SafeCommands['Remove-Variable']
         }
 
         # here we are moving into the user scope if the provided
@@ -1005,7 +1007,6 @@ function Invoke-ScriptBlock {
         } while ($false)
     }
     catch {
-        $success = $false
         $err = $_
     }
 
