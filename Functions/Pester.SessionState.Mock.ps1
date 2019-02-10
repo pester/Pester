@@ -730,7 +730,7 @@ to the original.
     }
 
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
-    $resolvedModule = tryGetProperty $contextInfo.Module Name
+    $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.ModuleName } else { $null }
     $resolvedCommand = $contextInfo.Command.Name
 
     $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule

@@ -46,7 +46,7 @@ function New-MockBehavior {
 
     New_PSObject -Type 'MockBehavior' @{
         CommandName          = $ContextInfo.Command.Name
-        ModuleName           = $(if ($ContextInfo.IsFromModule) { $ContextInfo.Module.Name } else { $null })
+        ModuleName           = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
         Filter               = $ParameterFilter
         IsDefault            = $null -eq $ParameterFilter
         Verifiable           = $Verifiable
@@ -67,7 +67,7 @@ function EscapeSingleQuotedStringContent ($Content) {
 
 function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $commandName = $contextInfo.Command.Name
-    $moduleName = if ($null -ne $contextInfo.Module) { $contextInfo.Module.Name } else { '' }
+    $moduleName = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { '' }
     $metadata = $null
     $cmdletBinding = ''
     $paramBlock = ''
@@ -366,7 +366,7 @@ function Assert-MockCalledInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $ModuleName = tryGetProperty $ContextInfo.Module Name
+    $ModuleName = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
     $CommandName = $ContextInfo.Command.Name
 
     $callHistory = $MockTable["$ModuleName||$CommandName"]
@@ -549,7 +549,12 @@ function Resolve-Command {
         $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( $module.SessionState )
         $command = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
-            Write-PesterDebugMessage -Scope Mock "Found the command $($CommandName) in module $($module.Name) version $($module.Version)$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
+            if ($command.Module -eq $module) {
+                Write-PesterDebugMessage -Scope Mock "Found the command $($CommandName) in module $($module.Name) version $($module.Version)$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
+            }
+            else {
+                Write-PesterDebugMessage -Scope Mock "Found the command $($CommandName) in a different module$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
+            }
         }
         else {
             Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in module $($module.Name) version $($module.Version)."
@@ -583,7 +588,7 @@ function Resolve-Command {
         return @{
             Command                 = $command.Mock.Hook.OriginalCommand
             SessionState            = $command.Mock.Hook.SessionState
-            Module                  = $module
+            Module                  = $command.Module
             IsFromModule            = $null -ne $module
             IsFromRequestedModule   = $null -ne $module -and $module -eq $ModuleName
             IsMockBootstrapFunction = $true
@@ -591,6 +596,7 @@ function Resolve-Command {
         }
     }
 
+    $module = $command.Module
     return @{
         Command                 = $command
         SessionState            = $SessionState
