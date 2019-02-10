@@ -819,7 +819,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
             Mock FunctionUnderTest { return 'I am the It mock' }
         }
 
-        It 'Des not leave the mock active in the parent scope' {
+        It 'Does not leave the mock active in the parent scope' {
             FunctionUnderTest | Should -Be 'I am the context mock'
         }
     }

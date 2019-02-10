@@ -162,7 +162,9 @@ function New-Block {
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         # TODO: rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
-        [HashTable] $FrameworkData = @{}
+        [HashTable] $FrameworkData = @{},
+        [Switch] $Focus
+
     )
 
     Switch-Timer -Scope Framework
@@ -177,7 +179,7 @@ function New-Block {
 
     if (Is-Discovery) {
         Write-PesterDebugMessage -Scope Discovery "Adding block $Name to discovered blocks"
-        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData
+        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus
         # we attach the current block to the parent
         Add-Block -Block $block
     }
@@ -640,7 +642,8 @@ function New-BlockObject {
         [string[]] $Path,
         [string[]] $Tag,
         [ScriptBlock] $ScriptBlock,
-        [HashTable] $FrameworkData = @{}
+        [HashTable] $FrameworkData = @{},
+        [Switch] $Focus
     )
 
     New_PSObject -Type DiscoveredBlock @{
@@ -649,6 +652,7 @@ function New-BlockObject {
         Tag                  = $Tag
         ScriptBlock          = $ScriptBlock
         FrameworkData        = $FrameworkData
+        Focus = $Focus
         Tests                = @()
         BlockContainer       = $null
         Root                 = $null
@@ -728,16 +732,23 @@ function Discover-Test {
 
     Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
 
-    # if any tests in the suite have -Focus parameter then all filters are disregarded
-    # and only those tests should run
-    $focused = [System.Collections.Generic.List[Object]]@()
+    # if any tests / block in the suite have -Focus parameter then all filters are disregarded
+    # and only those tests / blocks should run
+    $focusedTests = [System.Collections.Generic.List[Object]]@()
     foreach ($f in $found) {
-        Fold-Container -Container $f.Block -OnTest { param($t) if ($t.Focus) { $focused.Add($t.Path) } }
+        Fold-Container -Container $f.Block `
+            -OnTest {
+                # add all focused tests
+                param($t) if ($t.Focus) { $focusedTests.Add($t.Path) } } `
+            -OnBlock { param($b) if ($b.Focus) {
+                # add all tests in the current block, no matter if they are focused or not
+                Fold-Block -Block $b -OnTest { param ($t) $focusedTests.Add($t.Path) }
+            } }
     }
 
-    if (any $focused) {
-        Write-PesterDebugMessage -Scope Discovery "There are some ($($focused.Count)) focused tests '$($(foreach ($p in $focused) { $p -join "." }) -join ",")' running just them."
-        $Filter = New-FilterObject -Path $focused
+    if (any $focusedTests) {
+        Write-PesterDebugMessage -Scope Discovery "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        $Filter = New-FilterObject -Path $focusedTests
     }
 
     foreach ($f in $found) {
@@ -1341,12 +1352,18 @@ function View-Flat {
         $Block
     )
 
-    # invert to make tests all at the same level
-    $blocks = flattenBlock -Block $Block -Accumulator @()
-    foreach ($block in $blocks) {
-        foreach ($test in $block.Tests) {
-            $test
+    begin {
+        $tests = [System.Collections.Generic.List[Object]]@()
+    }
+    process {
+        # TODO: normally I would output to pipeline but in fold there is accumulator and so it does not output
+        foreach ($b in $Block) {
+            Fold-Container $b -OnTest { param($t) $tests.Add($t) }
         }
+    }
+
+    end {
+        $tests
     }
 }
 

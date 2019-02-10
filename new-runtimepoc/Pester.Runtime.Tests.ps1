@@ -13,6 +13,12 @@ Import-Module $PSScriptRoot\Pester.Runtime.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\experiments\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
+$global:PesterDebugPreference = @{
+    ShowFullErrors         = $true
+    WriteDebugMessages     = $true
+    WriteDebugMessagesFrom = "discovery"
+}
+
 function Verify-TestPassed {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -1312,6 +1318,57 @@ i {
             # ...but the last block
             $actual.Blocks[1].Last | Verify-True
             $actual.Blocks[1].Passed | Verify-True
+        }
+    }
+
+    b "focus" {
+        t "focusing one test in group will run only it" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-Block -Name "block1" {
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test -Focus "test 3" { }
+                    }
+                }
+            )
+
+            $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
+            $testsToRun.Count | Verify-Equal 1
+            $testsToRun[0].Name | Verify-Equal "test 3"
+        }
+
+        dt "focusing one block in group will run only tests in it" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-Block -Focus -Name "block1" {
+
+                        New-Test "test 1" { }
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        }
+                    }
+
+                    New-Block -Name "block3" {
+                        New-Test  "test 3" { }
+                    }
+                }
+            )
+
+            $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
+            $testsToRun.Count | Verify-Equal 2
+            $testsToRun[0].Name | Verify-Equal "test 1"
+            $testsToRun[1].Name | Verify-Equal "test 2"
         }
     }
 }

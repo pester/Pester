@@ -59,10 +59,12 @@ about_TestDrive
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
-        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
+        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+
+        [Switch] $Focus
     )
 
-    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Context" }
+    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus
 
     # TODO: the interactive mode is not supported so far
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
