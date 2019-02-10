@@ -39,7 +39,6 @@
         'Invoke-Pester'
         'In'
         'InModuleScope'
-        'Invoke-Mock'
         'BeforeEach'
         'AfterEach'
         'BeforeAll'

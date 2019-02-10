@@ -749,7 +749,7 @@ Describe "When Calling Assert-MockCalled without exactly" {
     }
 }
 
-Describe "Using Pester Scopes (Describe,Context,It)" {
+Describe -Focus "Using Pester Scopes (Describe,Context,It)" {
     BeforeAll {
         Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
         Mock FunctionUnderTest {return "I am the paramless mock test"}

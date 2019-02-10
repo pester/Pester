@@ -1146,10 +1146,10 @@ function Get-LegacyResult {
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
-# these functions will be shared with the mock bootstrap function, so let's capture it just once instead of everytime we define a mock
+# these functions will be shared with the mock bootstrap function, or used in mocked calls so let's capture them just once instead of everytime we use a mock
 $script:SafeCommands['Get-MockDynamicParameter'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Get-MockDynamicParameter', 'function')
 $SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Write-PesterDebugMessage', 'function')
-
+$SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Pester, Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope

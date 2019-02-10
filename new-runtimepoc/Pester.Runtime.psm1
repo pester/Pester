@@ -41,28 +41,6 @@ function Reset-PerContainerState {
     Reset-Scope
 }
 
-# compatibility
-function Test-NullOrWhiteSpace ($Value) {
-    # psv2 compatibility, on newer .net we would simply use
-    # [string]::isnullorwhitespace
-    $null -eq $Value -or $Value -match "^\s*$"
-}
-
-function New_PSObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [HashTable] $Property,
-        [String] $Type
-    )
-
-    if (-not (Test-NullOrWhiteSpace $Type) ) { # -and -not $Property.ContainsKey("PSTypeName")) {
-        $Property.Add("PSTypeName", $Type)
-    }
-
-   [PSCustomObject]$Property
-}
-
 function Find-Test {
     [CmdletBinding()]
     param (
@@ -752,7 +730,7 @@ function Discover-Test {
     }
 
     foreach ($f in $found) {
-        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container
+        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
         $f.Block
     }
 
@@ -913,7 +891,7 @@ function Invoke-ScriptBlock {
                     &$______parameters.WriteDebug "Done running scrtptblock"
                 }
                 catch {
-                    $______parameters.ErrorRecord += $_
+                    $_
                     &$______parameters.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {
@@ -1248,6 +1226,7 @@ function PostProcess-DiscoveredBlock {
         [PSTypeName("DiscoveredBlock")][PSObject] $Block,
         [PSTypeName("Filter")] $Filter,
         [PSTypeName("BlockContainer")] $BlockContainer,
+        [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")][PSObject] $RootBlock
     )
 

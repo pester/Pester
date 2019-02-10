@@ -139,6 +139,28 @@ function tryGetValue ($Hashtable, $Key) {
     }
 }
 
+function getOrUpdateValue {
+    [CmdletBinding()]
+    param(
+        $Hashtable,
+        $Key,
+        $DefaultValue
+    )
+
+    if ($Hashtable.ContainsKey($Key)) {
+        # do not enumerate so we get the same thing back
+        # even if it is a collection
+        $PSCmdlet.WriteObject($Hashtable.$Key, $false)
+    }
+    else {
+        Write-Host ($null -eq $DefaultValue)
+        $Hashtable.Add($Key, $DefaultValue)
+        # do not enumerate so we get the same thing back
+        # even if it is a collection
+        $PSCmdlet.WriteObject($DefaultValue, $false)
+    }
+}
+
 function tryRemoveKey ($Hashtable, $Key) {
     if ($Hashtable.ContainsKey($Key)) {
         $Hashtable.Remove($Key)
@@ -238,4 +260,26 @@ function Fold-Container {
             }
         }
     }
+}
+
+function Test-NullOrWhiteSpace ($Value) {
+    # psv2 compatibility, on newer .net we would simply use
+    # [string]::isnullorwhitespace
+    $null -eq $Value -or $Value -match "^\s*$"
+}
+
+function New_PSObject {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [HashTable] $Property,
+        [String] $Type
+    )
+
+    if (-not (Test-NullOrWhiteSpace $Type) ) {
+        # -and -not $Property.ContainsKey("PSTypeName")) {
+        $Property.Add("PSTypeName", $Type)
+    }
+
+    [PSCustomObject]$Property
 }

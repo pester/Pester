@@ -8,46 +8,30 @@ function Get-MockPlugin () {
         -EachBlockSetup {
         param($Context)
         $Context.Block.PluginData.Mock = @{
-            DefinedMocks = @{}
-            CallHistory  = @{}
-            CreatedMocks = @{}
+            Hooks       = @()
+            CallHistory = @{}
+            Behaviors   = @{}
         }
     } -EachTestSetup {
         param($Context)
         $Context.Test.PluginData.Mock = @{
-            DefinedMocks = @{}
-            CallHistory  = @{}
-            CreatedMocks = @{}
+            Hooks       = @()
+            CallHistory = @{}
+            Behaviors   = @{}
         }
     } -EachTestTeardown {
         param($Context)
         # we are defining that table in the setup but the teardowns
         # need to be resilient, because they will run even if the setups
         # did not run
-        $data = $Context.Test.PluginData.Mock
-        $mockTable = $data.DefinedMocks
-        $createdMocks = $data.CreatedMocks
-        if ($null -ne $mockTable) {
-            $t = @{}
-            foreach ($k in $createdMocks.Keys) {
-                $t.Add($k, $mockTable[$k])
-            }
-
-            Exit-MockScope -MockTable $t
-        }
+        # TODO: resolve this path safely
+        $hooks = $Context.Test.PluginData.Mock.Hooks
+        Remove-MockHook -Hooks $hooks
     } -EachBlockTeardown {
         param($Context)
-        $data = $Context.Block.PluginData.Mock
-        $mockTable = $data.DefinedMocks
-        $createdMocks = $data.CreatedMocks
-        if ($null -ne $mockTable) {
-            $t = @{}
-            foreach ($k in $createdMocks.Keys) {
-                $t.Add($k, $mockTable[$k])
-            }
-
-            Exit-MockScope -MockTable $t
-        }
+        # TODO: resolve this path safely
+        $hooks = $Context.Block.PluginData.Mock.Hooks
+        Remove-MockHook -Hooks $hooks
     }
 }
 
@@ -207,12 +191,13 @@ It
 about_Should
 about_Mocking
 #>
+    # Mock
     [CmdletBinding()]
     param(
         [string]$CommandName,
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
-        [ScriptBlock]$ParameterFilter = {$True},
+        [ScriptBlock]$ParameterFilter,
         [string]$ModuleName
     )
 
@@ -221,30 +206,37 @@ about_Mocking
     Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     $SessionState = $PSCmdlet.SessionState
     $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
-    $null = Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter
+    $null = if ($ParameterFilter) { Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter }
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
-    # don't try to filter here, the passed table is written into, and so it must me a live reference
     $mockData = Get-MockDataForCurrentScope
-    $mockTable = ($mockData).DefinedMocks
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
 
-
-    $result = New-MockInternal @PSBoundParameters -SessionState $SessionState -InvokeMockCallback $invokeMockCallBack -MockTable $mockTable
-    if ($result.CreatedMock) {
-        Write-PesterDebugMessage -Scope Mock -Message "------>?>>>>>>>>>>>> MOCK WAS CREATED"
-        $mockData.CreatedMocks.Add($result.Key, $true)
+    if ($contextInfo.IsMockBootstrapFunction) {
+        Write-PesterDebugMessage -Scope Mock -Message "Mock resolves to an existing hook, will only define mock behavior."
+        $hook = $contextInfo.Hook
+    }
+    else {
+        Write-PesterDebugMessage -Scope Mock -Message "Mock does not have a hook yet, creating a new one."
+        $hook = Create-MockHook -ContextInfo $contextInfo -InvokeMockCallback $invokeMockCallBack
+        $mockData.Hooks += $hook
     }
 
+    $behaviors = getOrUpdateValue $mockData.Behaviors $CommandName ([System.Collections.Generic.List[Object]]@())
+
+    $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
+    Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { " $($behavior.ModuleName) -"})$($behavior.CommandName)."
+    $behaviors.Add($behavior)
 }
 
-function Get-DefinedMocksTable {
+function Get-AllMockBehaviors {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [String] $CommandName
     )
 
-    Write-PesterDebugMessage -Scope Mock "Getting all defined mocks in this and parent scopes for command $CommandName."
+    Write-PesterDebugMessage -Scope Mock "Getting all defined mock behaviors in this and parent scopes for command $CommandName."
     # this is used for invoking mocks
     # in there we care about all mocks attached to the current test
     # or any of the mocks above it
@@ -252,82 +244,55 @@ function Get-DefinedMocksTable {
     $currentTest = Get-CurrentTest
     $inTest = any $currentTest
 
-    # do not use like "*||$CommandName" here, it will not match functions with wildcard
-    # characters in them like function f[f]f
-    $commandNameFilter = "^.*?\|\|$([regex]::Escape($CommandName))$"
-
-    $mockTable = @{}
-
+    $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
-        Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all mocks in this test."
-        foreach ($mock in $currentTest.PluginData.Mock.DefinedMocks.GetEnumerator()) {
-            # we are interested in any mock with the given name
-            # no matter which module it comes from, it will be filtered
-            # down later
-            if ($mock.Key -match $commandNameFilter) {
-                Write-PesterDebugMessage -Scope Mock "Found mock data for $($mock.Key) in the test."
-                $mockTable.Add($mock.Key, $mock.Value)
-            }
-            else {
-                Write-PesterDebugMessage -Scope Mock "Found no mocks for $CommandName in this test."
-            }
+        Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
+        $bs = tryGetValue $currentTest.PluginData.Mock.Behaviors $CommandName
+        if (any $bs) {
+            Write-PesterDebugMessage -Scope Mock "Found behaviors for $($CommandName) in the test."
+            $behaviors.AddRange($bs)
+        }
+        else {
+            Write-PesterDebugMessage -Scope Mock "Found no behaviors for $CommandName in this test."
         }
     }
-
-    Write-PesterDebugMessage -Scope Mock "Finding all mocks in this block."
-    $blockMockTables = Recurse-Up (Get-CurrentBlock) {
+    Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
+    Recurse-Up (Get-CurrentBlock) {
         param($b)
 
-        if ($b.PluginData -and $b.PluginData.Mock) {
-            $mocks = $b.PluginData.Mock.DefinedMocks
-            foreach ($m in $mocks.GetEnumerator()) {
-                # we are interested in any mock with the given name
-                # no matter which module it comes from, it will be filtered
-                # down later
-                if ($m.Key -match $commandNameFilter) {
-                    Write-PesterDebugMessage -Scope Mock "Found mock $($m.Key) in $($b.Name)."
-                    $m
-                }
+        # root block can't have mocks, and we also don't run the plugin setup for it so the Mock data are not setup there
+        # so not running this code there makes the code simpler, and more correct because when the setup is not there we know
+        # that something bad happened
+        if (-not $b.IsRoot) {
+            $bs = tryGetValue $b.PluginData.Mock.Behaviors $CommandName
+            if (any $bs) {
+                Write-PesterDebugMessage -Scope Mock "Found behaviors for $CommandName in $($b.Name)."
+                $behaviors.AddRange($bs)
             }
         }
     }
 
-    if (none $blockMockTables) {
-        Write-PesterDebugMessage -Scope Mock "No mocks for $CommandName were found in this or any parent blocks."
+    if (none $behaviors) {
+        Write-PesterDebugMessage -Scope Mock "No behaviors for $CommandName were found in this or any parent blocks."
     }
 
-    Write-PesterDebugMessage -Scope Mock "Merging mock definitions from blocks and tests into resulting mock table."
-    foreach ($blockMockTable in $blockMockTables) {
-        foreach ($mock in $blockMockTable) {
-            if (-not ($mockTable.ContainsKey($mock.Key))) {
-                $mockTable.Add($mock.Key, $mock.Value)
-            }
-            else {
-                # prepend the blocks so the blocks defined closer to calling code come first
-                # this is imho not very efficient
-                $mockTable[$mock.Key].Blocks = $mock.Value.Blocks + $mockTable[$mock.Key].Blocks
-            }
-        }
-    }
+    # Write-PesterDebugMessage -Scope Mock -LazyMessage {
+    #     "Found mocks: "
+    #     foreach ($b in $behaviors) {
+    #         "Command name: $($b.CommandName)"
+    #         "Aliases: $($b.Aliases -join ",")"
+    #         "Bootstrap function: $($b.BootstrapFunctionName)"
+    #         "mocked with $($b.Blocks.Count) mocks:"
 
-    Write-PesterDebugMessage -Scope Mock -LazyMessage {
-        "Found mocks: "
-        foreach ($table in $mockTable.GetEnumerator()) {
-            "$($table.Key):"
-            "Command name: $($table.Value.CommandName)"
-            "Aliases: $($table.Value.Aliases -join ",")"
-            "Bootstrap function: $($table.Value.BootstrapFunctionName)"
-            "mocked with $($table.Value.Blocks.Count) mocks:"
+    #         foreach ($block in $b.Blocks) {
+    #             "`tBody: { $($b.ScriptBlock.ToString().Trim()) }"
+    #             "`tFilter: { $($b.Filter.ToString().Trim()) }"
+    #             "`tVerifiable: $($b.Verifiable)"
+    #         }
+    #     }
+    # }
 
-            foreach ($block in $table.Value.Blocks) {
-                "`tBody: { $($block.ScriptBlock.ToString().Trim()) }"
-                "`tFilter: { $($block.Filter.ToString().Trim()) }"
-                "`tVerifiable: $($block.Verifiable)"
-            }
-        }
-    }
-
-    $mockTable
+    $behaviors
 }
 
 
@@ -776,22 +741,7 @@ to the original.
         -SessionState $SessionState
 }
 
-function Find-ClosestBlock {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [String] $CommandUsed
-    )
-
-
-}
-
 function Invoke-Mock {
-    <#
-        .SYNOPSIS
-        This command is used by Pester's Mocking framework.  You do not need to call it directly.
-    #>
-
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -815,19 +765,45 @@ function Invoke-Mock {
         [ValidateSet('Begin', 'Process', 'End')]
         [string] $FromBlock,
 
-        [object] $InputObject
+        [object] $InputObject,
+
+        $Hook
     )
 
 
+    Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock."
+
     # this function is called by the mock bootstrap function, so every implementer
-    # should implement this (but I keep it separate from the core function so I can)
-    # test without dependency on scopes, this can probably just become a callback, but where
-    # should it be registered?
+    # should implement this (but I keep it separate from the core function so I can
+    # test without dependency on scopes)
+    $allBehaviors = Get-AllMockBehaviors -CommandName $CommandName
+    if (Test-NullOrWhiteSpace $ModuleName) {
+        $ModuleName = $null
+    }
+    $fromModule = any $ModuleName
+    $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
+    $nonModuleBehaviors = [System.Collections.Generic.List[Object]]@()
+    foreach ($b in $allBehaviors) {
+        # sort behaviors into behaviors for the selected module
+        # other modules and no-modules
+        # the behaviors for other modules we don't care about so we
+        # don't collect them
+        if ($fromModule) {
+            if ($ModuleName -eq $b.ModuleName) {
+                $moduleBehaviors.Add($b)
+            }
+        }
 
-    $mockTable = Get-DefinedMocksTable -CommandName $CommandName
-    $callHistoryTable = (Get-MockDataForCurrentScope).CallHistory
+        if ($null -eq $b.ModuleName) {
+            $nonModuleBehaviors.Add($b)
+        }
+    }
 
-    Invoke-MockInternal @PSBoundParameters -MockTable $mockTable -CallHistoryTable $callHistoryTable -SessionState $PSCmdlet.SessionState
+    # if any behaviors exist for this module, use them. Otherwise use the non module behaviors
+    $detectedModule, $behaviors = if (any $moduleBehaviors) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
+    $callHistory = (Get-MockDataForCurrentScope).CallHistory
+
+    Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory -SessionState $PSCmdlet.SessionState
 }
 
 function Assert-RunInProgress {

@@ -59,7 +59,7 @@ i {
             $mockTable = @{}
 
             function f () { "real" }
-            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
+            New-MockBehavior f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
             $actual = f
 
             $actual | Verify-Equal "mock"
@@ -71,7 +71,7 @@ i {
             $mockTable = @{}
 
             function f () { "real" }
-            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
+            New-MockBehavior f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
 
             f
 
@@ -82,7 +82,7 @@ i {
 
             $mockTable = @{}
             function f () { "real" }
-            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
+            New-MockBehavior f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallback $invokeMock
 
             f
 
@@ -104,7 +104,7 @@ i {
 
                         New-Test "test 1" {
                             $mockTable = @{}
-                            New-MockInternal f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
+                            New-MockBehavior f { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
                             f
                         }
 
@@ -127,7 +127,7 @@ i {
                             function g () { "real" }
                             $mockTable = @{}
 
-                            New-MockInternal g { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
+                            New-MockBehavior g { "mock" } -SessionState $ExecutionContext.SessionState -MockTable $mockTable -InvokeMockCallBack $invokeMock
 
                         }
                         New-Test "test 1" {
