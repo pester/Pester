@@ -549,7 +549,7 @@ function Resolve-Command {
         $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( $module.SessionState )
         $command = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
-            Write-PesterDebugMessage -Scope Mock "Found the command $($command.Name) in module $($module.Name) version $($module.Version)$(if ($CommandName -ne $command.Name) {"and it resolved to $($command.Name)"})."
+            Write-PesterDebugMessage -Scope Mock "Found the command $($CommandName) in module $($module.Name) version $($module.Version)$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
         }
         else {
             Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in module $($module.Name) version $($module.Version)."
@@ -581,7 +581,7 @@ function Resolve-Command {
         Write-PesterDebugMessage -Scope Mock "The resolved command is a mock bootstrap function, pointing the mock to the same command info an session state as the original mock."
         $module = $command.Mock.OriginalSessionState.Module
         return @{
-            Command                 = $command.Mock.Hook.Command
+            Command                 = $command.Mock.Hook.OriginalCommand
             SessionState            = $command.Mock.Hook.SessionState
             Module                  = $module
             IsFromModule            = $null -ne $module
@@ -663,12 +663,25 @@ function Invoke-MockInternal {
             $behavior = FindMatchingBehavior -Behaviors $Behaviors -BoundParameters $BoundParameters -ArgumentList $ArgumentList -SessionState $SessionState -Hook $Hook
 
             if ($null -ne $behavior) {
-                $call = ExecuteBehavior -Behavior $behavior `
+                $call = @{
+                    BoundParams = $BoundParameters
+                    Args        = $ArgumentList
+                    Hook        = $Hook
+                    Behavior    = $behavior
+                }
+                $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
+                if (-not $CallHistory.ContainsKey($key)) {
+                    $CallHistory.Add($key, @($call))
+                }
+                else {
+                    $CallHistory[$key] += $call
+                }
+
+                ExecuteBehavior -Behavior $behavior `
                     -Hook $Hook `
                     -BoundParameters $BoundParameters `
                     -ArgumentList $ArgumentList
-                $key = "$ModuleName||$CommandName"
-                $CallHistory[$key] += $call
+
                 return
             }
             else {
@@ -708,7 +721,8 @@ function Invoke-MockInternal {
 
                 # In order to mock Set-Variable correctly we need to write the variable
                 # two scopes above
-                if ( $Hook.OriginalCommand -eq "Set-Variable" ) {
+                if ("Set-Variable" -eq $Hook.OriginalCommand.Name) {
+                    Write-PesterDebugMessage -Scope Mock "Original command is Set-Variable, patching the call."
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
                         $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
                     }
@@ -795,12 +809,10 @@ function FindMatchingBehavior {
 
     $foundDefaultBehavior = $false
     $defaultBehavior = $null
-    for ($i = $count; $i -gt 0; $i--) {
-        $b = $Behaviors[$i - 1]
+    foreach ($b in $Behaviors) {
 
         if ($b.IsDefault -and -not $foundDefaultBehavior) {
             # store the most recently defined default behavior we find
-            # (the first we find in the collection because we iterate from the end)
             $defaultBehavior = $b
             $foundDefaultBehavior = $true
         }
@@ -854,18 +866,11 @@ function ExecuteBehavior {
         [object[]] $ArgumentList = @()
     )
 
-    $ModuleName = if ($Hook.IsFromModule) { $Hook.Module.Name }
-    $CommandName = $Hook.Command.Name
+    $ModuleName = $Behavior.ModuleName
+    $CommandName = $Behavior.CommandName
     Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock $ModuleName - $CommandName."
 
     $Behavior.Verifiable = $false
-
-    $call = @{
-        BoundParams = $BoundParameters
-        Args        = $ArgumentList
-        Hook        = $Hook
-        Behavior    = $Behavior
-    }
 
     $scriptBlock = {
         param (

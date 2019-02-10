@@ -222,7 +222,7 @@ about_Mocking
         $mockData.Hooks += $hook
     }
 
-    $behaviors = getOrUpdateValue $mockData.Behaviors $CommandName ([System.Collections.Generic.List[Object]]@())
+    $behaviors = getOrUpdateValue $mockData.Behaviors $contextInfo.Command.Name ([System.Collections.Generic.List[Object]]@())
 
     $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
     Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { " $($behavior.ModuleName) -"})$($behavior.CommandName)."
@@ -248,16 +248,18 @@ function Get-AllMockBehaviors {
     if ($inTest) {
         Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         $bs = tryGetValue $currentTest.PluginData.Mock.Behaviors $CommandName
-        if (any $bs) {
-            Write-PesterDebugMessage -Scope Mock "Found behaviors for $($CommandName) in the test."
-            $behaviors.AddRange($bs)
+        if ($null -ne $bs -and $bs.Count -gt 0) {
+            Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in the test."
+            $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
+            $behaviors.AddRange($bss)
         }
         else {
-            Write-PesterDebugMessage -Scope Mock "Found no behaviors for $CommandName in this test."
+            Write-PesterDebugMessage -Scope Mock "Found no behaviors for '$CommandName' in this test."
         }
     }
     Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
-    Recurse-Up (Get-CurrentBlock) {
+    $block = Get-CurrentBlock
+    Recurse-Up $block {
         param($b)
 
         # root block can't have mocks, and we also don't run the plugin setup for it so the Mock data are not setup there
@@ -267,31 +269,25 @@ function Get-AllMockBehaviors {
             $bs = tryGetValue $b.PluginData.Mock.Behaviors $CommandName
             # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
             if ($null -ne $bs -or $bs.Count -ne 0) {
-                Write-PesterDebugMessage -Scope Mock "Found behaviors for $CommandName in $($b.Name)."
-                $behaviors.AddRange($bs)
+                Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($b.Name)'."
+                $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
+                $behaviors.AddRange($bss)
             }
         }
     }
 
     if (none $behaviors) {
-        Write-PesterDebugMessage -Scope Mock "No behaviors for $CommandName were found in this or any parent blocks."
+        Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
     }
 
-    # Write-PesterDebugMessage -Scope Mock -LazyMessage {
-    #     "Found mocks: "
-    #     foreach ($b in $behaviors) {
-    #         "Command name: $($b.CommandName)"
-    #         "Aliases: $($b.Aliases -join ",")"
-    #         "Bootstrap function: $($b.BootstrapFunctionName)"
-    #         "mocked with $($b.Blocks.Count) mocks:"
-
-    #         foreach ($block in $b.Blocks) {
-    #             "`tBody: { $($b.ScriptBlock.ToString().Trim()) }"
-    #             "`tFilter: { $($b.Filter.ToString().Trim()) }"
-    #             "`tVerifiable: $($b.Verifiable)"
-    #         }
-    #     }
-    # }
+    Write-PesterDebugMessage -Scope Mock -LazyMessage {
+        "Found behaviors ($($behaviors.Count)) for '$CommandName': "
+        foreach ($b in $behaviors) {
+            "Body: { $($b.ScriptBlock.ToString().Trim()) }"
+            "Filter: $(if ($b.Filter) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })"
+            "Verifiable: $($b.Verifiable)"
+        }
+    }
 
     $behaviors
 }
@@ -313,7 +309,7 @@ function Get-AssertMockTable {
     #     IsTest = bool
     # }
 
-    $key = "$resolvedModule||$resolvedCommand"
+    $key = "$ModuleName||$CommandName"
     $scope = $Frame.Scope
     $inTest = $Frame.IsTest
     # this is used for assertions, in here we need to collect
@@ -332,33 +328,39 @@ function Get-AssertMockTable {
             }
         }
         else {
-            $test = $Frame.Frame
-            $mockInTest = tryGetValue $test.PluginData.Mock.DefinedMocks $key
-            if ($mockInTest) {
-                # the mock was defined in it but it was not called in this scope
-                return @{
-                    "$key" = @()
-                }
+            return @{
+                "$key" = @()
             }
-            else {
-                # try finding the mock definition in upper scopes, because it was not found in the current test
-                $mockInBlock = Recurse-Up $test.Block {
-                    param ($b)
-                    if ((tryGetProperty $b.PluginData Mock) -and (tryGetProperty $b.PluginData.Mock DefinedMocks)) {
-                        tryGetValue $b.PluginData.Mock.DefinedMocks $key
-                    }
-                }
 
-                if (none $mockInBlock) {
-                    throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
-                }
-                else {
-                    # the mock was defined in some upper scope but it was not called in this it
-                    return @{
-                        "$key" = @()
-                    }
-                }
-            }
+            # TODO: This figures out if the mock was defined, when there  were 0 calls, it adds overhead
+            # and does not work with the current layout of hooks and history
+            # $test = $Frame.Frame
+            # $mockInTest = tryGetValue $test.PluginData.Mock.Hooks $key
+            # if ($mockInTest) {
+            #     # the mock was defined in it but it was not called in this scope
+            #     return @{
+            #         "$key" = @()
+            #     }
+            # }
+            # else {
+            #     # try finding the mock definition in upper scopes, because it was not found in the current test
+            #     $mockInBlock = Recurse-Up $test.Block {
+            #         param ($b)
+            #         if ((tryGetProperty $b.PluginData Mock) -and (tryGetProperty $b.PluginData.Mock Hooks)) {
+            #             tryGetValue $b.PluginData.Mock.Hooks $key
+            #         }
+            #     }
+
+            #     if (none $mockInBlock) {
+            #         throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
+            #     }
+            #     else {
+            #         # the mock was defined in some upper scope but it was not called in this it
+            #         return @{
+            #             "$key" = @()
+            #         }
+            #     }
+            #}
         }
     }
 
@@ -645,7 +647,7 @@ In other words, Assert-MockCalled can only be used to check for calls to the moc
 to the original.
 
 #>
-
+    # Assert-MockCalled
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]

@@ -8,5 +8,5 @@ $global:PesterDebugPreference = @{
 
 
 # $r = Invoke-Pester $PSScriptRoot\..\Functions\Mock.Tests.ps1 -PassThru
-Invoke-Pester C:\projects\pester_main\Functions\Mock.Tests.ps1
+$r = Invoke-Pester C:\projects\pester_main\Functions\Mock.Tests.ps1 -PassThru
 

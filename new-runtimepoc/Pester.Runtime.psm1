@@ -891,7 +891,7 @@ function Invoke-ScriptBlock {
                     &$______parameters.WriteDebug "Done running scrtptblock"
                 }
                 catch {
-                    $_
+                    $______parameters.ErrorRecord += $_
                     &$______parameters.WriteDebug "Fail running setups or scriptblock"
                 }
                 finally {

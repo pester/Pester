@@ -75,7 +75,7 @@ function PipelineInputFunction {
     }
 }
 
-Describe  "When the caller mocks a command Pester uses internally" {
+Describe "When the caller mocks a command Pester uses internally" {
     Context "Context run when Write-Host is mocked" {
         BeforeAll {
             Mock Write-Host { }
@@ -619,10 +619,10 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
     }
 }
 
-# TODO: Fix verifiable mocks
+# TODO: Vefifiable mocks
 # Describe "When Creating a Verifiable Mock that is not called" {
 #     Context "In the test script's scope" {
-#         It -focus "Should throw" {
+#         It "Should throw" {
 #             Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
 #             FunctionUnderTest "three" | Out-Null
 #             $result = $null
@@ -677,27 +677,27 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 #     }
 # }
 
-# Describe "When Calling Assert-MockCalled 0 without exactly" {
-#     BeforeAll {
-#         Mock FunctionUnderTest {}
-#         FunctionUnderTest "one"
+Describe "When Calling Assert-MockCalled 0 without exactly" {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
 
-#         try {
-#             Assert-MockCalled FunctionUnderTest 0
-#         }
-#         Catch {
-#             $result = $_
-#         }
-#     }
+        try {
+            Assert-MockCalled FunctionUnderTest 0
+        }
+        Catch {
+            $result = $_
+        }
+    }
 
-#     It "Should throw if mock was called" {
-#         $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 0 times exactly but was called 1 times"
-#     }
+    It "Should throw if mock was called" {
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 0 times exactly but was called 1 times"
+    }
 
-#     It "Should not throw if mock was not called" {
-#         Assert-MockCalled FunctionUnderTest 0 { $param1 -eq "stupid" }
-#     }
-# }
+    It "Should not throw if mock was not called" {
+        Assert-MockCalled FunctionUnderTest 0 -ParameterFilter { $param1 -eq "stupid" }
+    }
+}
 
 Describe "When Calling Assert-MockCalled with exactly" {
     BeforeAll {
@@ -942,38 +942,37 @@ Describe "Using a single no param Describe" {
 # }
 
 
-Describe 'Mocking Cmdlets with dynamic parameters' {
+# Describe -Focus 'Mocking Cmdlets with dynamic parameters' {
 
-    if ((InModuleScope Pester { GetPesterOs }) -ne 'Windows') {
-        BeforeAll {
-            $mockWith = { if (-not $Hidden) {
-                    throw 'Hidden variable not found, or set to false!'
-                } }
-            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
-        }
+#     if ((InModuleScope Pester { GetPesterOs }) -ne 'Windows') {
+#         BeforeAll {
+#             $mockWith = { if (-not $Hidden) {
+#                     throw 'Hidden variable not found, or set to false!'
+#                 } }
+#             Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
+#         }
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
-            Assert-MockCalled Get-ChildItem
-        }
-    }
-    else {
-        BeforeAll {
-            $mockWith = { if (-not $CodeSigningCert) {
-                    throw 'CodeSigningCert variable not found, or set to false!'
-                } }
-            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
-        }
+#         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+#             { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
+#             Assert-MockCalled Get-ChildItem
+#         }
+#     }
+#     else {
+#         BeforeAll {
+#             $mockWith = { if (-not $CodeSigningCert) {
+#                     throw 'CodeSigningCert variable not found, or set to false!'
+#                 } }
+#             Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
+#         }
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            Get-ChildItem -Path Cert:\ -CodeSigningCert
-            Assert-MockCalled Get-ChildItem
-        }
-    }
-}
+#         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+#             Get-ChildItem -Path Cert:\ -CodeSigningCert
+#             Assert-MockCalled Get-ChildItem
+#         }
+#     }
+# }
 
-# TODO: dynamic parameters
-# Describe 'Mocking functions with dynamic parameters' {
+# Describe -Focus 'Mocking functions with dynamic parameters' {
 #     Context 'Dynamicparam block that uses the variables of static parameters in its logic' {
 #         # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
 #         # blog at http://becomelotr.wordpress.com/2012/05/10/using-and-abusing-dynamic-parameters/
@@ -1326,7 +1325,7 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
 # }
 
 
-# Describe 'Mocking Cmdlets with dynamic parameters in a module' {
+# Describe -Focus 'Mocking Cmdlets with dynamic parameters in a module' {
 #     BeforeAll {
 #         if ((InModuleScope Pester {GetPesterOs}) -ne 'Windows') {
 #             New-Module -Name TestModule {
@@ -1364,7 +1363,7 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
 #     }
 # }
 
-# Describe 'DynamicParam blocks in other scopes' {
+# Describe -Focus 'DynamicParam blocks in other scopes' {
 #     BeforeAll {
 #         if ((InModuleScope Pester {GetPesterOs})-ne 'Windows') {
 #             New-Module -Name TestModule1 {
@@ -2019,16 +2018,14 @@ Describe 'Assert-MockCalled when mock called outside of It block' {
             TestMe | Should -Be Mocked
             Assert-MockCalled TestMe -Scope It -Exactly -Times 1
             Assert-MockCalled TestMe -Scope Context -Exactly -Times 2
-            # TODO: Describe and Context just mean a "block" rightnow
-            # Assert-MockCalled TestMe -Scope Describe -Exactly -Times 3
+            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 3
         }
 
         It 'Should log the correct number of calls (second test)' {
             TestMe | Should -Be Mocked
             Assert-MockCalled TestMe -Scope It -Exactly -Times 1
             Assert-MockCalled TestMe -Scope Context -Exactly -Times 3
-            # TODO: Describe and Context just mean a "block" rightnow
-            # Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4
+            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4
         }
     }
 }

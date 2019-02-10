@@ -15,7 +15,7 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
-    WriteDebugMessages     = $true
+    WriteDebugMessages     = $false
     WriteDebugMessagesFrom = "discovery"
 }
 
@@ -431,6 +431,16 @@ i {
             $actual.Tests[0].Passed | Verify-True
             $actual.Tests[0].Name | Verify-Equal "test1"
             $actual.Tests[0].StandardOutput | Verify-Equal "a"
+        }
+
+        t "discovers and executes one failing test" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Test "test1" { throw }
+                })
+
+            $actual.Tests[0].Executed | Verify-True
+            $actual.Tests[0].Passed | Verify-False
+            $actual.Tests[0].Name | Verify-Equal "test1"
         }
 
         t "re-runs failing tests" {
@@ -1346,7 +1356,7 @@ i {
             $testsToRun[0].Name | Verify-Equal "test 3"
         }
 
-        dt "focusing one block in group will run only tests in it" {
+        t "focusing one block in group will run only tests in it" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
 
