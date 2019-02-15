@@ -14,7 +14,7 @@ InModuleScope Pester {
     Describe 'Code Coverage Analysis' {
         $root = (Get-PSDrive TestDrive).Root
 
-        $rootSubFolder = Join-Path -Path $root -ChildPath SubFolder
+        $rootSubFolder = Join-Path -Path $root -ChildPath TestSubFolder
         $null = New-Item -Path $rootSubFolder -ItemType Directory -ErrorAction SilentlyContinue
 
         $testScriptPath = Join-Path -Path $root -ChildPath TestScript.ps1
@@ -287,8 +287,8 @@ InModuleScope Pester {
                         <counter type="METHOD" missed="2" covered="6" />
                         <counter type="CLASS" missed="0" covered="2" />
                     </package>
-                    <package name="CommonRoot/SubFolder">
-                        <class name="CommonRoot/SubFolder/TestScript3" sourcefilename="TestScript3.ps1">
+                    <package name="CommonRoot/TestSubFolder">
+                        <class name="CommonRoot/TestSubFolder/TestScript3" sourcefilename="TestScript3.ps1">
                             <method name="&lt;script&gt;" desc="()" line="1">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
