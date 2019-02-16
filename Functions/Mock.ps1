@@ -232,6 +232,8 @@ about_Mocking
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
             }
 
+            # Will modify $metadata object in-place
+            Repair-ConflictingParameters -Metadata $metadata
             $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
@@ -359,6 +361,10 @@ about_Mocking
 
             $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $mock.BootstrapFunctionName
         }
+    }
+
+    if ($null -ne $mock.Metadata -and $null -ne $block.Filter) {
+        $block.Filter = New-BlockWithoutParameterAliases -Metadata $mock.Metadata -Block $block.Filter
     }
 
     $mock.Blocks = @(
@@ -656,6 +662,9 @@ to the original.
             Metadata        = $mock.Metadata
         }
 
+        if ($null -ne $mock.Metadata -and $null -ne $params.ScriptBlock) {
+            $params.ScriptBlock = New-BlockWithoutParameterAliases -Metadata $mock.Metadata -Block $params.ScriptBlock
+        }
 
         if (Test-ParameterFilter @params) {
             $null = $matchingCalls.Add($historyEntry)
@@ -987,6 +996,8 @@ function Invoke-Mock {
 
         End {
             if ($MockCallState['ShouldExecuteOriginalCommand']) {
+                $MockCallState['BeginBoundParameters'] = Reset-ConflictingParameters -BoundParameters $MockCallState['BeginBoundParameters']
+
                 if ($MockCallState['InputObjects'].Count -gt 0) {
                     $scriptBlock = {
                         param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
@@ -1542,5 +1553,118 @@ function Remove-MockFunctionsAndAliases {
 
     foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*")) {
         & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
+    }
+}
+
+function Repair-ConflictingParameters {
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.CommandMetadata])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+
+    $paramMetadatas = @()
+    $paramMetadatas += $Metadata.Parameters.Values
+
+    foreach ($paramMetadata in $paramMetadatas) {
+        if ($paramMetadata.IsDynamic) {
+            continue
+        }
+
+        $conflictingParams = Get-ConflictingParameterNames
+        if ($conflictingParams -contains $paramMetadata.Name) {
+            $paramName = $paramMetadata.Name
+            $newName = "_$paramName"
+            $paramMetadata.Name = $newName
+            $paramMetadata.Aliases.Add($paramName)
+
+            $null = $Metadata.Parameters.Remove($paramName)
+            $Metadata.Parameters.Add($newName, $paramMetadata)
+        }
+    }
+
+    $Metadata
+}
+
+function Reset-ConflictingParameters {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]
+        $BoundParameters
+    )
+
+    $parameters = $BoundParameters.Clone()
+    $names = Get-ConflictingParameterNames
+
+    foreach ($param in $names) {
+        $fixedName = "_$param"
+
+        if (-not $parameters.ContainsKey($fixedName)) {
+            continue
+        }
+
+        $parameters[$param] = $parameters[$fixedName]
+        $null = $parameters.Remove($fixedName)
+    }
+
+    $parameters
+}
+
+$script:ConflictingParameterNames = @(
+    "PSEdition"
+)
+
+function Get-ConflictingParameterNames {
+    $script:ConflictingParameterNames
+}
+
+
+function New-BlockWithoutParameterAliases {
+    [CmdletBinding()]
+    [OutputType([scriptblock])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $Block
+    )
+    try {
+        if ($PSVersionTable.PSVersion.Major -ge 3) {
+            $params = $Metadata.Parameters.Values
+            $ast = $Block.Ast
+            $blockText = $ast.Extent.Text
+            $variables = $Ast.FindAll({ param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
+
+            foreach ($var in $variables) {
+                $varName = $var.VariablePath.UserPath
+                $length = $varName.Length
+
+                foreach ($param in $params) {
+                    if ($param.Aliases -contains $varName) {
+                        $startIndex = $var.Extent.StartOffset - $block.Ast.Extent.StartOffset + 1
+
+                        $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
+                    }
+                }
+            }
+
+            # Remove top-level brackets {}
+            $blockText = $blockText.Remove($blockText.Length - 1, 1).Remove(0, 1)
+
+            $Block = [scriptblock]::Create($blockText)
+        }
+
+        $Block
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 }

@@ -2030,3 +2030,106 @@ Describe "Mocking Set-Variable" {
     }
 
 }
+
+Describe "Mocking functions with conflicting parameters" {
+    InModuleScope Pester {
+        Context "Faked conflicting parameter" {
+            BeforeAll {
+                Mock Get-ConflictingParameterNames { @("ParamToAvoid") }
+
+                function Get-ExampleTest {
+                    param(
+                        [Parameter(Mandatory = $true)]
+                        [string]
+                        $ParamToAvoid
+                    )
+
+                    $ParamToAvoid
+                }
+
+                Mock Get-ExampleTest { "World" } -ParameterFilter { $_ParamToAvoid -eq "Hello" }
+            }
+
+            It 'executes the mock' {
+                Get-ExampleTest -ParamToAvoid "Hello" | Should -Be "World"
+            }
+
+            It 'defaults to the original function' {
+                Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "Bye"
+            }
+
+            Context "Assert-MockCalled" {
+
+                It 'simple Assert-Mockcalled' {
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -Exactly 1 -Scope It
+                }
+
+                It 'with parameterfilter' {
+                    Get-ExampleTest -ParamToAvoid "Another"
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -ParameterFilter { $_ParamToAvoid -eq "Hello" } -Exactly 1 -Scope It
+                }
+            }
+        }
+    }
+
+    Context "Get-Module" {
+        function f { Get-Module foo }
+        It 'mocks Get-Module properly' {
+            Mock Get-Module -Verifiable { 'mocked' }
+            f
+            Assert-MockCalled Get-Module
+        }
+    }
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 3) {
+    Describe "Usage of Alias in Parameter Filters" {
+        Context 'Mock definition' {
+
+            Context 'Get-Content' {
+                BeforeAll {
+                    Mock Get-Content { "default-get-content" }
+                    Mock Get-Content -ParameterFilter {$Tail -eq 100} -MockWith { "aliased-parameter-name" }
+                }
+
+                It "returns mock that matches parameter filter block" {
+                    Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+                }
+
+                It 'returns default mock' {
+                    Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
+                }
+
+            }
+
+            if ($PSVersionTable.PSVersion -ge 5.1) {
+                Context 'Get-Module' {
+                    It 'works with read-only/constant automatic variables' {
+                        function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
+                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+
+                        f
+
+                        Assert-MockCalled Get-Module
+                    }
+                }
+            }
+        }
+
+        Context 'Assert-MockCalled' {
+            It "Uses parameter aliases in Parameter-Filter" {
+                function f { Get-Content -Path 'temp.txt' -Tail 10 }
+                Mock Get-Content { }
+
+                f
+
+                Assert-MockCalled Get-Content -ParameterFilter { $Last -eq 10 } -Exactly 1 -Scope It
+            }
+        }
+
+    }
+}

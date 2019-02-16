@@ -8,6 +8,24 @@ $multiLanguageTestData = @{
     'de' = @{ namedScenario = 'Etwas verwendet MeinValidator'; additionalSteps = 0; additionalScenarios = 0 }
 }
 
+function Resolve-UTF8EncodingWithoutBOM
+{
+    [CmdletBinding()]
+    param()
+
+    try {
+        if ([Console]::InputEncoding -is [Text.UTF8Encoding] -and
+                [Console]::InputEncoding.GetPreamble().Length -ne 0) {
+            [Console]::InputEncoding = New-Object Text.UTF8Encoding $false
+        }
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+}
+
+Resolve-UTF8EncodingWithoutBOM
+
 foreach ($data in $multiLanguageTestData.GetEnumerator()) {
 
     $language = $data.Key
