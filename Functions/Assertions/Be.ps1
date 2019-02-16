@@ -182,6 +182,7 @@ function Get-CompareStringMessage {
         }
         $ellipsis = "..."
         $excerptSize = 5;
+        $longStringOffset = 0;
         "Expected: '{0}'" -f ( $ExpectedValue | Expand-SpecialCharacters | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis)
         "But was:  '{0}'" -f ( $actual | Expand-SpecialCharacters | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis)
 
