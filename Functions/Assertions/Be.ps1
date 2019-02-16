@@ -200,7 +200,7 @@ function Get-CompareStringMessage {
             $longStringOffset = $excerptOffset
         }
 
-        '-' * (  $specialCharacterOffset + 11 + $longStringOffset) + '^'
+        '-' * (  $differenceIndex + $specialCharacterOffset + 11 + $longStringOffset) + '^'
     }
 }
 function Format-AsExcerpt {
