@@ -180,9 +180,10 @@ function Get-CompareStringMessage {
             "String lengths are both $ExpectedValueLength."
             "Strings differ at index $differenceIndex."
         }
-
-        "Expected: '{0}'" -f ( $ExpectedValue | Expand-SpecialCharacters )
-        "But was:  '{0}'" -f ( $actual | Expand-SpecialCharacters )
+        $ExpectedDisplayValue = $ExpectedValue | Expand-SpecialCharacters | Format-AsExcerpt -substringIndex $differenceIndex
+        $actualDisplayValue = $actual | Expand-SpecialCharacters | Format-AsExcerpt -substringIndex $differenceIndex
+        "Expected: '{0}'" -f ($ExpectedDisplayValue)
+        "But was:  '{0}'" -f ($actualDisplayValue)
 
         $specialCharacterOffset = $null
         if ($differenceIndex -ne 0) {
@@ -192,10 +193,51 @@ function Get-CompareStringMessage {
                     & $SafeCommands['Measure-Object'] |
                     & $SafeCommands['Select-Object'] -ExpandProperty Count)
         }
+        if ($differenceIndex -ge 13) {
+            $longStringOffset = 13;
+        }
 
-        '-' * ($differenceIndex + $specialCharacterOffset + 11) + '^'
+        '-' * (  $specialCharacterOffset + 11 + $longStringOffset) + '^'
     }
 }
+function Format-AsExcerpt {
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
+        [string]$InputObject,
+
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [int]$substringIndex
+    )
+    $ellipsis = "..."
+    $endEllipsis = "" ;
+    $displayDifferenceIndex = $substringIndex - 10;
+    $maximumStringLength = 40;
+    $maximumSubstringLength = 20;
+    $substringLength = $InputObject.Length - $displayDifferenceIndex;
+    if ($substringLength -gt $maximumSubstringLength) {
+        $substringLength = $maximumSubstringLength;
+    }
+    if ($displayDifferenceIndex + $substringLength -lt $InputObject.Length) {
+        $endEllipsis = $ellipsis
+    }
+    if ($displayDifferenceIndex -lt 0) {
+        $displayDifferenceIndex = 0;
+    }
+    if ($InputObject.length -ge $maximumStringLength) {
+        if ($displayDifferenceIndex -ne 0) {
+
+
+            $InputObjectDisplay = $ellipsis
+        }
+        $InputObjectDisplay += $InputObject.Substring($displayDifferenceIndex, $substringLength) + $endEllipsis
+    }
+    else {
+        $InputObjectDisplay = $InputObject
+    }
+    $InputObjectDisplay
+}
+
 
 function Expand-SpecialCharacters {
     param (
