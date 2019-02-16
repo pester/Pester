@@ -2,7 +2,7 @@
     & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/core/Gherkin.dll"
 }
 else {
-    & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
+    & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
 $GherkinSteps = @{}
@@ -428,184 +428,185 @@ function Import-GherkinFeature {
                 }
             }
 
-        if ($Scenario -is [Gherkin.Ast.ScenarioOutline]) {
-            $ScenarioName = $Scenario.Name
-            $exampleTableName = ""
-            $formattedExampleTable = ""
+            if ($Scenario -is [Gherkin.Ast.ScenarioOutline]) {
+                $ScenarioName = $Scenario.Name
+                $exampleTableName = ""
+                $formattedExampleTable = ""
 
-            # If there is no example set name, the following index will be included in the scenario name
-            $ExampleTableIndex = 0
+                # If there is no example set name, the following index will be included in the scenario name
+                $ExampleTableIndex = 0
 
-            foreach ($ExampleTable in $Scenario.Examples) {
-                # TODO: Rename 'HideStepData' to something more appropriate, such as, 'PrintTablesAndDocStrings'
-                if (!$HideStepData) {
-                    #region Get formatted representation of examples table to be printed to the console
-                    # TODO: Pull some of this logic out into its own function. I duplicated a lot of this from below where I formatted step DataTable arguments
+                foreach ($ExampleTable in $Scenario.Examples) {
+                    # TODO: Rename 'HideStepData' to something more appropriate, such as, 'PrintTablesAndDocStrings'
+                    if (!$HideStepData) {
+                        #region Get formatted representation of examples table to be printed to the console
+                        # TODO: Pull some of this logic out into its own function. I duplicated a lot of this from below where I formatted step DataTable arguments
 
-                    $exampleTableRowValues = $ExampleTable.TableBody |
-                        & $SafeCommands['ForEach-Object'] { ,@($_ |
-                        & $SafeCommands['Select-Object'] -ExpandProperty Cells |
-                        & $SafeCommands['Select-Object'] -ExpandProperty Value) }
+                        $exampleTableRowValues = $ExampleTable.TableBody |
+                            & $SafeCommands['ForEach-Object'] { ,@($_ |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Cells |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Value) }
 
-                    if ($ExampleTable.TableBody[0].Cells.Length -gt 1) {
-                        $transposedExampleTableRowValues = for ($i = $exampleTableRowValues[0].Length - 1; $i -ge 0; $i--) {
-                            ,@(for ($j = 0; $j -lt $exampleTableRowValues.Count; $j++) {
-                                $exampleTableRowValues[$j][$i]
-                            })
+                        if ($ExampleTable.TableBody[0].Cells.Length -gt 1) {
+                            $transposedExampleTableRowValues = for ($i = $exampleTableRowValues[0].Length - 1; $i -ge 0; $i--) {
+                                ,@(for ($j = 0; $j -lt $exampleTableRowValues.Count; $j++) {
+                                    $exampleTableRowValues[$j][$i]
+                                })
+                            }
+
+                            [Array]::Reverse($transposedExampleTableRowValues)
+                            $cellWidths = $transposedExampleTableRowValues |
+                                & $SafeCommands['ForEach-Object'] { $_ |
+                                & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                                & $SafeCommands['Select-Object'] -ExpandProperty Maximum }
+                        } else {
+                            $cellWidths = @($exampleTableRowValues |
+                                & $SafeCommands['ForEach-Object'] { $_ } |
+                                & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                                & $SafeCommands['Select-Object'] -ExpandProperty Maximum)
                         }
 
-                        [Array]::Reverse($transposedExampleTableRowValues)
-                        $cellWidths = $transposedExampleTableRowValues |
-                            & $SafeCommands['ForEach-Object'] { $_ |
-                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
-                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum }
-                    } else {
-                        $cellWidths = @($exampleTableRowValues |
-                            & $SafeCommands['ForEach-Object'] { $_ } |
-                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
-                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum)
-                    }
+                        #$formattedExampleTable = "`n  {0}:{1}" -f $ExampleTable.Keyword," $($ExampleTable.Name)".Trim()
 
-                    #$formattedExampleTable = "`n  {0}:{1}" -f $ExampleTable.Keyword," $($ExampleTable.Name)".Trim()
+                        foreach ($row in $ExampleTable.TableBody) {
+                            $rowText = "  |"
+                            for ($j = 0; $j -lt $row.Cells.Count; $j++) {
+                                $rowText += " {0,$(-$cellWidths[$j])} |" -f $row.Cells[$j].Value
+                            }
 
-                    foreach ($row in $ExampleTable.TableBody) {
-                        $rowText = "  |"
-                        for ($j = 0; $j -lt $row.Cells.Count; $j++) {
-                            $rowText += " {0,$(-$cellWidths[$j])} |" -f $row.Cells[$j].Value
+                            $formattedExampleTable += "$([Environment]::NewLine)$rowText"
                         }
 
-                        $formattedExampleTable += "$([Environment]::NewLine)$rowText"
+                        #endregion
                     }
 
-                    #endregion
-                }
+                    ${Column Names} = @($ExampleTable.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
+                    $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
 
-                ${Column Names} = @($ExampleTable.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
-                $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
-
-                # If there is an example set name, the following index will be included in the scenario name
-                $ExampleIndex = 0
-                foreach ($Example in $ExampleTable.TableBody) {
-                    $ScenarioIndex++
-                    $ExampleIndex++
-                    $Steps = foreach ($Step in $Scenario.Steps) {
-                        [string]$StepText = $Step.Text
-                        if ($StepText -match $NamesPattern) {
-                            for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
-                                $Name = ${Column Names}[$n]
-                                if ($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
-                                    $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
+                    # If there is an example set name, the following index will be included in the scenario name
+                    $ExampleIndex = 0
+                    foreach ($Example in $ExampleTable.TableBody) {
+                        $ScenarioIndex++
+                        $ExampleIndex++
+                        $Steps = foreach ($Step in $Scenario.Steps) {
+                            [string]$StepText = $Step.Text
+                            if ($StepText -match $NamesPattern) {
+                                for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                                    $Name = ${Column Names}[$n]
+                                    if ($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                        $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
+                                    }
+                                }
+                                if ($StepText -ne $Step.Text) {
+                                    & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                }
+                                else {
+                                    $Step
                                 }
                             }
+
                             if ($StepText -ne $Step.Text) {
                                 & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
-                            }
-                            else {
+                            } else {
                                 $Step
                             }
+                            else {
+                                # Only include index of scenario
+                                $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
+                            }
+                            & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                         }
 
-                        if ($StepText -ne $Step.Text) {
-                            & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                        $exampleTablename = if ($null -ne $ExampleTable.Name) {
+                            "{0}: {1}" -f $ExampleTable.Keyword,$ExampleTable.Name.Trim()
                         } else {
-                            $Step
+                            "{0}: Table {1}" -f $ExampleTable.Keyword,$ExampleTableIndex
                         }
-                        else {
-                            # Only include index of scenario
-                            $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
-                        }
-                        & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
-                    }
 
-                    $exampleTablename = if ($null -ne $ExampleTable.Name) {
-                        "{0}: {1}" -f $ExampleTable.Keyword,$ExampleTable.Name.Trim()
+                        # If we're not showing DataTables or DocScrings in the console, and the DataTable
+                        # has a description (name), add the example DataTable name to the scenario name,
+                        # else, create a generic DataTable name to be added to the scenario name, and also
+                        # add a 1-based index of the associated example row to the scenario name (since
+                        # each row in the DataTable reperesents a scenario).
+                        # TODO: Don't change the scenario name. Instead, we should do this where we write the NUnitXml,
+                        # TODO: because this function is only responsible for parsing the feature file and creating
+                        # TODO: features, scenarios, and steps for execution.
+
+                        # TODO: Investigate NUnitXML and how TestCases are output -- because example table scenarios are really TestCases
+                        # TODO: So, having a separate scenario for each table row is going to cause problems with pretty-printing tables
+                        # Might need to introduce the concept of "scenario sets"--which could be facilitated just like Scenario Outlines
+                        # in gherkin. Essentially, a Scenario is a Scenario outline with a single example, the secnario itself.
+                        # The real problem here, is that we're trying to create "printable" data along with test execution data.
+                        # These separate concerns need to be, well, separated.
+                        # Since in Gherkin tests, the unit of "printability" is the feature and its "scenario outlines" (again, where
+                        # a single scenario is a scenario outline with a single example), this "printable" data should be stored
+                        # separate from the test execution data.
+                        if ($HideStepData) {
+                            $ScenarioName += ", $exampleTableName (Example $ExampleIndex)"
+                        }
+
+                        & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps |
+                            & $SafeCommands['Add-Member'] -MemberType "NoteProperty" -Name "ExampleTableName" -Value $exampleTableName -PassThru |
+                            & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "ExampleTable" -Value $formattedExampleTable -PassThru |
+                            & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "Result" -Value 'Inconclusive' -PassThru |
+                            Convert-Tags $Scenario.Tags
+                    }
+                }
+            } elseif ($HideStepData) {
+                $Scenario
+            } else {
+                $Steps = foreach ($Step in $Scenario.Steps) {
+                    [string]$StepText = $Step.Text
+                    if ($Step.Argument -is [Gherkin.Ast.DocString]) {
+                        $StepText += "$([Environment]::NewLine)  `"`"`"$([Environment]::NewLine) $(foreach ($str in ($Step.Argument.Content -split [Environment]::NewLine)) { " $str$([Environment]::NewLine)" })  `"`"`""
+                    }
+                    if ($Step.Argument -is [Gherkin.Ast.DataTable]) {
+                        $table = $Step.Argument.Rows |
+                            & $SafeCommands['ForEach-Object'] { ,@($_ |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Cells |
+                            & $SafeCommands['Select-Object'] -ExpandProperty Value) }
+
+                        if ($Step.Argument.Rows[0].Cells.Length -gt 1) {
+                            $transposedTable = for ($i = $table[0].Length - 1; $i -ge 0; $i--) {
+                                ,@(for ($j = 0; $j -lt $table.Length; $j++) {
+                                    $table[$j][$i]
+                                })
+                            }
+
+                            [Array]::Reverse($transposedTable)
+                            $cellWidths = $transposedTable |
+                                & $SafeCommands['ForEach-Object'] { $_ |
+                                & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                                & $SafeCommands['Select-Object'] -ExpandProperty Maximum }
+                        } else {
+                            $cellWidths = @($table |
+                                & $SafeCommands['ForEach-Object'] { $_ } |
+                                & $SafeCommands['Measure-Object'] -Property Length -Maximum |
+                                & $SafeCommands['Select-Object'] -ExpandProperty Maximum)
+                        }
+
+                        $tableText = ""
+                        foreach ($row in $Step.Argument.Rows) {
+                            $rowText = "  |"
+                            for ($j = 0; $j -lt $row.Cells.Length; $j++) {
+                                $rowText += " {0,$(-$cellWidths[$j])} |" -f $row.Cells[$j].Value
+                            }
+
+                            $tableText += "$([Environment]::NewLine)$rowText"
+                        }
+
+                        $StepText += "$($tableText.TrimEnd())"
+                    }
+                    if ($StepText -ne $Step.Text) {
+                        & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
                     } else {
-                        "{0}: Table {1}" -f $ExampleTable.Keyword,$ExampleTableIndex
+                        $Step
                     }
-
-                    # If we're not showing DataTables or DocScrings in the console, and the DataTable
-                    # has a description (name), add the example DataTable name to the scenario name,
-                    # else, create a generic DataTable name to be added to the scenario name, and also
-                    # add a 1-based index of the associated example row to the scenario name (since
-                    # each row in the DataTable reperesents a scenario).
-                    # TODO: Don't change the scenario name. Instead, we should do this where we write the NUnitXml,
-                    # TODO: because this function is only responsible for parsing the feature file and creating
-                    # TODO: features, scenarios, and steps for execution.
-
-                    # TODO: Investigate NUnitXML and how TestCases are output -- because example table scenarios are really TestCases
-                    # TODO: So, having a separate scenario for each table row is going to cause problems with pretty-printing tables
-                    # Might need to introduce the concept of "scenario sets"--which could be facilitated just like Scenario Outlines
-                    # in gherkin. Essentially, a Scenario is a Scenario outline with a single example, the secnario itself.
-                    # The real problem here, is that we're trying to create "printable" data along with test execution data.
-                    # These separate concerns need to be, well, separated.
-                    # Since in Gherkin tests, the unit of "printability" is the feature and its "scenario outlines" (again, where
-                    # a single scenario is a scenario outline with a single example), this "printable" data should be stored
-                    # separate from the test execution data.
-                    if ($HideStepData) {
-                        $ScenarioName += ", $exampleTableName (Example $ExampleIndex)"
-                    }
-
-                    & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps |
-                        & $SafeCommands['Add-Member'] -MemberType "NoteProperty" -Name "ExampleTableName" -Value $exampleTableName -PassThru |
-                        & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "ExampleTable" -Value $formattedExampleTable -PassThru |
-                        & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "Result" -Value 'Inconclusive' -PassThru |
-                        Convert-Tags $Scenario.Tags
                 }
+                & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $null, $Scenario.Location, $Scenario.Keyword.Trim(), $Scenario.Name, $Scenario.Description, $Steps |
+                    & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "Result" -Value 'Inconclusive' -PassThru |
+                    Convert-Tags $Scenario.Tags
             }
-        } elseif ($HideStepData) {
-            $Scenario
-        } else {
-            $Steps = foreach ($Step in $Scenario.Steps) {
-                [string]$StepText = $Step.Text
-                if ($Step.Argument -is [Gherkin.Ast.DocString]) {
-                    $StepText += "$([Environment]::NewLine)  `"`"`"$([Environment]::NewLine) $(foreach ($str in ($Step.Argument.Content -split [Environment]::NewLine)) { " $str$([Environment]::NewLine)" })  `"`"`""
-                }
-                if ($Step.Argument -is [Gherkin.Ast.DataTable]) {
-                    $table = $Step.Argument.Rows |
-                        & $SafeCommands['ForEach-Object'] { ,@($_ |
-                        & $SafeCommands['Select-Object'] -ExpandProperty Cells |
-                        & $SafeCommands['Select-Object'] -ExpandProperty Value) }
-
-                    if ($Step.Argument.Rows[0].Cells.Length -gt 1) {
-                        $transposedTable = for ($i = $table[0].Length - 1; $i -ge 0; $i--) {
-                            ,@(for ($j = 0; $j -lt $table.Length; $j++) {
-                                $table[$j][$i]
-                            })
-                        }
-
-                        [Array]::Reverse($transposedTable)
-                        $cellWidths = $transposedTable |
-                            & $SafeCommands['ForEach-Object'] { $_ |
-                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
-                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum }
-                    } else {
-                        $cellWidths = @($table |
-                            & $SafeCommands['ForEach-Object'] { $_ } |
-                            & $SafeCommands['Measure-Object'] -Property Length -Maximum |
-                            & $SafeCommands['Select-Object'] -ExpandProperty Maximum)
-                    }
-
-                    $tableText = ""
-                    foreach ($row in $Step.Argument.Rows) {
-                        $rowText = "  |"
-                        for ($j = 0; $j -lt $row.Cells.Length; $j++) {
-                            $rowText += " {0,$(-$cellWidths[$j])} |" -f $row.Cells[$j].Value
-                        }
-
-                        $tableText += "$([Environment]::NewLine)$rowText"
-                    }
-
-                    $StepText += "$($tableText.TrimEnd())"
-                }
-                if ($StepText -ne $Step.Text) {
-                    & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
-                } else {
-                    $Step
-                }
-            }
-            & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $null, $Scenario.Location, $Scenario.Keyword.Trim(), $Scenario.Name, $Scenario.Description, $Steps |
-                & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -Name "Result" -Value 'Inconclusive' -PassThru |
-                Convert-Tags $Scenario.Tags
         }
     )
 
