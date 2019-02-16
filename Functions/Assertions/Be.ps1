@@ -180,10 +180,10 @@ function Get-CompareStringMessage {
             "String lengths are both $ExpectedValueLength."
             "Strings differ at index $differenceIndex."
         }
-        $ExpectedDisplayValue = $ExpectedValue | Expand-SpecialCharacters | Format-AsExcerpt -substringIndex $differenceIndex
-        $actualDisplayValue = $actual | Expand-SpecialCharacters | Format-AsExcerpt -substringIndex $differenceIndex
-        "Expected: '{0}'" -f ($ExpectedDisplayValue)
-        "But was:  '{0}'" -f ($actualDisplayValue)
+        $ellipsis = "..."
+        $excerptSize = 5;
+        "Expected: '{0}'" -f ( $ExpectedValue | Expand-SpecialCharacters | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis)
+        "But was:  '{0}'" -f ( $actual | Expand-SpecialCharacters | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis)
 
         $specialCharacterOffset = $null
         if ($differenceIndex -ne 0) {
@@ -193,8 +193,11 @@ function Get-CompareStringMessage {
                     & $SafeCommands['Measure-Object'] |
                     & $SafeCommands['Select-Object'] -ExpandProperty Count)
         }
-        if ($differenceIndex -ge 13) {
-            $longStringOffset = 13;
+
+        # for excerpted strings, add in an additional length of arrow...
+        $excerptOffset = $ellipsis.Length + $excerptSize
+        if ($differenceIndex -ge $excerptOffset) {
+            $longStringOffset = $excerptOffset
         }
 
         '-' * (  $specialCharacterOffset + 11 + $longStringOffset) + '^'
@@ -205,32 +208,31 @@ function Format-AsExcerpt {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
         [AllowEmptyString()]
         [string]$InputObject,
-
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$substringIndex
+        [int]$startIndex,
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [int]$excerptSize,
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]$excerptMarker
     )
-    $ellipsis = "..."
-    $endEllipsis = "" ;
-    $displayDifferenceIndex = $substringIndex - 10;
-    $maximumStringLength = 40;
-    $maximumSubstringLength = 20;
-    $substringLength = $InputObject.Length - $displayDifferenceIndex;
+    $displayDifferenceIndex = $startIndex - $excerptSize
+    $maximumStringLength = 40
+    $maximumSubstringLength = $excerptSize * 2
+    $substringLength = $InputObject.Length - $displayDifferenceIndex
     if ($substringLength -gt $maximumSubstringLength) {
-        $substringLength = $maximumSubstringLength;
+        $substringLength = $maximumSubstringLength
     }
     if ($displayDifferenceIndex + $substringLength -lt $InputObject.Length) {
-        $endEllipsis = $ellipsis
+        $endExcerptMarker = $excerptMarker
     }
     if ($displayDifferenceIndex -lt 0) {
-        $displayDifferenceIndex = 0;
+        $displayDifferenceIndex = 0
     }
     if ($InputObject.length -ge $maximumStringLength) {
         if ($displayDifferenceIndex -ne 0) {
-
-
-            $InputObjectDisplay = $ellipsis
+            $InputObjectDisplay = $excerptMarker
         }
-        $InputObjectDisplay += $InputObject.Substring($displayDifferenceIndex, $substringLength) + $endEllipsis
+        $InputObjectDisplay += $InputObject.Substring($displayDifferenceIndex, $substringLength) + $endExcerptMarker
     }
     else {
         $InputObjectDisplay = $InputObject
