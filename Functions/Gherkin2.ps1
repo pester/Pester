@@ -235,7 +235,8 @@ filter Import-Script {
 
         # TODO: Need to determine how scoping will work
         [Parameter(Mandatory = $True)]
-        [PSCustomObject]$PesterState
+        [PSTypeName('Pester.GherkinState')]
+        [PSCustomObject]$GherkinState
     )
 
     process {
@@ -250,7 +251,7 @@ filter Import-Script {
                 & $Path
             }
 
-            Set-ScriptBlockScope -ScriptBlock $invokeScript -SessionState $PesterState.SessionState
+            Set-ScriptBlockScope -ScriptBlock $invokeScript -SessionState $GherkinState.SessionState
 
             & $invokeScript $_.FullName
 
@@ -259,11 +260,28 @@ filter Import-Script {
     }
 }
 
+function Find-EnvironmentScript {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSTypeName('Pester.GherkinState')]
+        [PSCustomObject]$GherkinState
+    )
+
+    if (Test-Path "$PWD/features/support/env.ps1") {
+        $GherkinState.EnvironmentScript = & $SafeCommands['Get-ChildItem'] -File "$PWD/features/support/env.ps1"
+        Write-Debug "Found environment script '$($GherkinState.EnvironmentScript.FullName)'."
+    } else {
+        Write-Debug "Environment script '$PWD/features/support/env.ps1' not found."
+    }
+}
+
 function Get-Environment {
     [CmdletBinding(SupportsShouldProcess = $True)]
     Param(
         [Parameter(Position = 0, Mandatory = $True)]
-        [PSCustomObject]$PesterState
+        [PSTypeName('Pester.GherkinState')]
+        [PSCustomObject]$GherkinState
     )
 
     # TODO: The point of this function is that it imports any
@@ -281,6 +299,17 @@ function Get-Environment {
     # TODO: hook), and each Step Definition would have it's own
     # TODO: local scope whose parent is the current scenario.
 
+    # NOTE: According to _The Cucumber Book_, the environment script
+    # NOTE: is loaded prior to _ANY_ feature executing. It's global,
+    # NOTE: and if anything mutates it during the test run, all other
+    # NOTE: features which run after could be impacted. It seems to me,
+    # NOTE: though, that this is intentional. Your tests should not be
+    # NOTE: making use of global shared/static state anyway. No, the
+    # NOTE: "world"--as it's called in cucumber--is meant to store
+    # NOTE: utility functions, test-doubles, mocks, etc.
+    # NOTE:
+    # NOTE: Also, this promotes good, isolated test design.
+
     $WriteVerbose = $SafeCommands['Write-Verbose']
 
     # In cucumber, when specifying --dry-run, equivalent to -WhatIf in PowerShell,
@@ -289,7 +318,8 @@ function Get-Environment {
     $EnvScript = & $SafeCommands['Get-ChildItem'] "$PWD/features/support/env.ps1" -File
     if ($PSCmdlet.ShouldProcess($EnvScript.FullName, "Loading test run environment script")) {
         if ($EnvScript) {
-            Import-Script $EnvScript -PesterState $PesterState
+            $GherkinState.EnvironmentScript = $EnvScript
+            #Import-Script $EnvScript -PesterState $PesterState
             & $WriteVerbose "Loaded environment file '$($EnvScript.FullName)'."
         } else {
             & $WriteVerbose "The environment file '$PWD/features/support/env.ps1' was not loaded. The file was not found."
@@ -405,7 +435,8 @@ function Import-StepDefinition {
         [IO.FileInfo[]]$StepDefinitionFiles,
 
         # TODO: Need to determine how scoping will work
-        [PSCustomObject]$PesterState
+        [PSTypeName('Pester.GherkinState')]
+        [PSCustomObject]$GherkinState
     )
 
     begin {
@@ -425,7 +456,7 @@ function Import-StepDefinition {
                 & $Path
             }
 
-            Set-ScriptBlockScope -ScriptBlock $invokeStepDefinitionsScript -SessionState $PesterState.SessionState
+            Set-ScriptBlockScope -ScriptBlock $invokeStepDefinitionsScript -SessionState $GherkinState.SessionState
 
             & $invokeStepDefinitionsScript $_.FullName
 
@@ -630,6 +661,16 @@ function Invoke-Gherkin2 {
             #$PesterState = New-PesterState -SessionState $sessionState -Show $Show -PesterOption $PesterOption
             $PesterState = @{ SessionState = $PSCmdlet.SessionState }
 
+            # TODO: This is very preliminary. It'll probably be replaced by whatever state management will be used by Pester v5.
+            $GherkinState = [PSCustomObject]@{
+                PSTypeName = 'Pester.GherkinState'
+                Features = [Gherkin.Ast.Feature[]]$null
+                World = $PSCmdlet.SessionState
+                EnvironmentScript = [IO.FileInfo]$null
+                SupportScripts = [IO.FileInfo[]]@()
+                StepDefinitions = [IO.FileInfo[]]@()
+            }
+
             # Load support files
             # TODO: Need some sort of "state" object that
             # TODO: 1. Holds the parsed feature file
@@ -641,13 +682,7 @@ function Invoke-Gherkin2 {
             # In cucumber, when specifying --dry-run, equivalent to -WhatIf in PowerShell,
             # the './features/support/env.rb' script is not executed. Similarly then,
             # './features/support/env.ps1' should not be imported/loaded either.
-            $EnvScript = Get-Item "$PWD/features/support/env.ps1"
-            if ($EnvScript -and $PSCmdlet.ShouldProcess($EnvScript.FullName, 'Import-SupportScript')) {
-                Import-Script $EnvScript -PesterState $PesterState
-                Write-Verbose "Loaded environment file '$($EnvScript.FullName)'."
-            } else {
-                Write-Verbose "The environment file '$(Join-Path $Path '/support/env.ps1')' was not loaded. The file was not found."
-            }
+            Find-EnvironmentScript $GherkinState
 
             #Import-SupportScripts $Path -Exclude $Exclude -Require $Require -PesterState $PesterState -WhatIf:$WhatIf
 
