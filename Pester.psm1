@@ -260,7 +260,8 @@ function Get-AssertionDynamicParams {
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 
 #. $PSScriptRoot\Functions\Gherkin.ps1
-. $PSScriptRoot\Functions\Gherkin2.ps1
+#. $PSScriptRoot\Functions\Gherkin2.ps1
+. $PSScriptRoot\Functions\Gherkin3.ps1
 
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
     & $script:SafeCommands['Resolve-Path'] |
@@ -1039,5 +1040,5 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] New-PesterOption, Add-Dependency, Add-FreeFloatingCode
-& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep, Invoke-Gherkin2 -Alias Given, When, Then, And, But
+& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep, Invoke-Gherkin2, Invoke-Gherkin3 -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator

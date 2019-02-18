@@ -82,6 +82,7 @@ $script:SafeCommands = @{
     'Where-Object'         = Get-Command -Name Where-Object         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Write-Error'          = Get-Command -Name Write-Error          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Host'           = Get-Command -Name Write-Host           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Write-Output'         = Get-Command -Name Write-Output         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Progress'       = Get-Command -Name Write-Progress       -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Verbose'        = Get-Command -Name Write-Verbose        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Warning'        = Get-Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters

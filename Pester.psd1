@@ -54,6 +54,7 @@
         # Gherkin Support:
         'Invoke-Gherkin'
         'Invoke-Gherkin2'
+        'Invoke-Gherkin3'
         'Invoke-GherkinStep'
         'Find-GherkinStep'
         'GherkinStep'
