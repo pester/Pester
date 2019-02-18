@@ -181,7 +181,7 @@ function New-GherkinState {
 
 function Get-FeatureFile {
     [CmdletBinding()]
-    [OutputType('Pester.GherkinFeature')]
+    [OutputType([IO.FileInfo])]
     Param (
         [Parameter(Position = 0, ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
         [SupportsWildcards()]
@@ -274,6 +274,25 @@ function Find-EnvironmentScript {
     } else {
         Write-Debug "Environment script '$PWD/features/support/env.ps1' not found."
     }
+}
+
+function Find-SupportScript {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [string]$Path,
+
+        [Parameter(Position = 1, Mandatory = $True)]
+        [PSTypeName('Pester.GherkinState')]
+        [PSCustomObject]$GherkinState
+    )
+
+    $GetItem = $SafeCommands['Get-Item']
+    $GetChildItem = $SafeCommands['Get-ChildItem']
+    $ForEachObject = $SafeCommands['ForEach-Object']
+    $Select = $SafeCommands['Select-Object']
+
+    $SupportFiles += @(& $GetChildItem (Join-Path $Path 'support') -Exclude $Exclude, $GherkinState.EnvironmentScript.FullName)
 }
 
 function Get-Environment {
@@ -659,12 +678,12 @@ function Invoke-Gherkin2 {
 
             #$sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Gherkin" -SessionState $PSCmdlet.SessionState
             #$PesterState = New-PesterState -SessionState $sessionState -Show $Show -PesterOption $PesterOption
-            $PesterState = @{ SessionState = $PSCmdlet.SessionState }
+            #$PesterState = @{ SessionState = $PSCmdlet.SessionState }
 
             # TODO: This is very preliminary. It'll probably be replaced by whatever state management will be used by Pester v5.
             $GherkinState = [PSCustomObject]@{
                 PSTypeName = 'Pester.GherkinState'
-                Features = [Gherkin.Ast.Feature[]]$null
+                Features = [PSTypeName('Pester.GherkinFeature')][PSCustomObject[]]$null
                 World = $PSCmdlet.SessionState
                 EnvironmentScript = [IO.FileInfo]$null
                 SupportScripts = [IO.FileInfo[]]@()
