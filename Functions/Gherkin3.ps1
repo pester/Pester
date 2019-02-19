@@ -74,12 +74,12 @@ function Invoke-Gherkin3 {
     [OutputType('Initialize', [int])]
     [OutputType('Standard', 'Pester.GherkinResults')]
     param(
+        [Parameter(Position = 0, ParameterSetName = 'Initialize')]
+        [switch]$Init,
+
         [Parameter(Position = 0, ParameterSetName = 'Standard')]
         [SupportsWildCards()]
         [string[]]$Path = $PWD,
-
-        [Parameter(Position = 0, ParameterSetName = 'Initialize')]
-        [switch]$Init,
 
         [Parameter(ParameterSetName = 'Standard')]
         [SupportsWildCards()]
