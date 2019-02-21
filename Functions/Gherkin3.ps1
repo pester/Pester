@@ -43,6 +43,31 @@ function Get-FeatureFile {
     }
 }
 
+function Get-SupportScript {
+    [CmdletBinding()]
+    [OutputType([IO.FileInfo[]])]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [SupportsWildCards()]
+        [string[]]$Path,
+
+        [Parameter(Position = 1)]
+        [SupportsWildCards()]
+        [string[]]$Exclude
+    )
+
+    # 1. ForEach ($p in $path) {
+    #      gci "$p/support" |
+    #      ? { $_.IsPSContainer } |
+    #      gci $_ -Filter *.ps1 -Exclude $Exclude
+    #    }
+    #    Of course, we'll have to do that whacky code to make
+    #    gci -Exclude work as we expect.
+    # 2. Load all sibling and descendent *.ps1 files, excluding
+    #    excluding those already loaded in #1 above, and any matching
+    #    Excludes
+}
+
 function Write-GherkinResults {
     param (
         [Parameter(Position = 0, Mandatory = $True)]
@@ -84,6 +109,11 @@ function Invoke-Gherkin3 {
         [Parameter(ParameterSetName = 'Standard')]
         [SupportsWildCards()]
         [string[]]$Exclude,
+
+        [Parameter(ParameterSetName = 'Standard')]
+        [SupportsWildCards()]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$Require,
 
         [switch]$EnableExit,
 
@@ -149,11 +179,21 @@ function Invoke-Gherkin3 {
 
         # NOTE: From this point on -- fake it 'till you make it...
 
-        $EnvironmentScript = if ((& $SafeCommands['Test-Path'] "$Path/features/support/env.ps1")) {
-            & $SafeCommands['Get-ChildItem'] "$Path/featuers/support/env.ps1"
-        } else {
-            [IO.FileInfo]$null
-        }
+        # If -Require is specified, don't perform automatic loading of any support
+        # scripts. According to Issue #567 on Cucumber's GH repo, when -Require
+        # is used, all loading of support and environment scripts becomes explicit:
+        # whatever is specified by -Require.
+        $SupportScripts = @(
+            if ($PSBoundParameters.ContainsKey('Require')) {
+                Get-SuuportScript -Path $Require -Exclude $Exclude
+            } else {
+                @(
+                    if ((Test-Path "$Path/features/support/env.ps1")) {
+                        Get-ChildItem "$Path/features/support/env.ps1"
+                    }
+                ) + @(Get-SupportScript "$Path/features" -Exclude "$Path/features/support/env.ps1", $Exclude)
+            }
+        )
 
         $FeatureFiles = Get-FeatureFile -Path "$Path/features" -Exclude $Exclude
 
