@@ -145,7 +145,7 @@ test_script:
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
 If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
-Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
+Pester itself is built on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
 [![PowerShell 2 & 3](https://nohwnd.visualstudio.com/Pester/_apis/build/status/PowerShell%202%20&%203?branchName=master)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6?branchName=master)
 
