@@ -338,29 +338,7 @@ about_Mocking
 
         $mockTable["$ModuleName||$CommandName"] = $mock
 
-        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
-        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $Mock.BootstrapFunctionName, $mockScript
-
-        $mock.Aliases += $CommandName
-
-        $scriptBlock = {
-            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
-            & $setAlias -Name $args[0] -Value $args[1] -Scope Script
-        }
-
-        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mock.BootstrapFunctionName
-
-        if ($mock.OriginalCommand.ModuleName) {
-            $aliasName = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
-            $mock.Aliases += $aliasName
-
-            $scriptBlock = {
-                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
-                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
-            }
-
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $mock.BootstrapFunctionName
-        }
+        Invoke-CommonSetupInMockScope -Mock $mock -MockScript $MockScript -CommandName $CommandName
     }
 
     if ($null -ne $mock.Metadata -and $null -ne $block.Filter) {
@@ -1641,7 +1619,7 @@ function New-BlockWithoutParameterAliases {
             $params = $Metadata.Parameters.Values
             $ast = $Block.Ast
             $blockText = $ast.Extent.Text
-            $variables = $Ast.FindAll({ param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
+            $variables = $Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
 
             foreach ($var in $variables) {
                 $varName = $var.VariablePath.UserPath
@@ -1663,6 +1641,65 @@ function New-BlockWithoutParameterAliases {
         }
 
         $Block
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+}
+
+function Invoke-CommonSetupInMockScope {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [hashtable]
+        $Mock,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $MockScript,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [string]
+        $CommandName
+    )
+    try {
+        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
+        $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $Mock.BootstrapFunctionName, $MockScript
+
+        $mock.Aliases += $CommandName
+
+        $scriptBlock = {
+            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+            & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+        }
+
+        $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $Mock.BootstrapFunctionName
+
+        if ($Mock.OriginalCommand.ModuleName) {
+            $aliasName = "$($Mock.OriginalCommand.ModuleName)\$($CommandName)"
+            $Mock.Aliases += $aliasName
+
+            $scriptBlock = {
+                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+            }
+
+            $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $Mock.BootstrapFunctionName
+        }
+
+        if ($Mock.OriginalCommand.CommandType -eq 'Application') {
+            $aliasWithoutExt = $CommandName -replace $Mock.OriginalCommand.Extension
+
+            $Mock.Aliases += $aliasWithoutExt
+
+            $scriptBlock = {
+                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+            }
+
+            $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasWithoutExt, $Mock.BootstrapFunctionName
+        }
     }
     catch {
         $PSCmdlet.ThrowTerminatingError($_)
