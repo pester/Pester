@@ -1,3 +1,11 @@
+## 4.7.0-beta1 (February 23, 2019)
+
+- Add alias for extension-less external commands on Windows [#1252](https://github.com/pester/Pester/pull/1252)
+- Add use alises in mock ParameterFilter [#1240](https://github.com/pester/Pester/pull/1240)
+- Fix creating mocks of Get-Module [#1233](https://github.com/pester/Pester/pull/1233)
+- Fix Set-ItResult not failing in Pester strict mode [#1225](https://github.com/pester/Pester/pull/1225)
+- Remove Invoke-GherkinStep from exported functions [#1229](https://github.com/pester/Pester/pull/1229)
+
 ## 4.6.0 (January 21, 2019)
 
 - Add Should -HaveParameter assertion [#1202](https://github.com/pester/Pester/pull/1202)

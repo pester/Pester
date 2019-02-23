@@ -1195,10 +1195,13 @@ function New-PesterOption {
     for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
     .PARAMETER TestSuiteName
     When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
+    .PARAMETER ScriptBlockFilter
+    Filters scriptblock based on the path and line number. This is intended for integration with external tools so we don't rely on names (strings) that can have expandable variables in them.
     .PARAMETER Experimental
     Enables experimental features of Pester to be enabled.
     .PARAMETER ShowScopeHints
     EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
+
     .INPUTS
     None
     You cannot pipe input to this command.
