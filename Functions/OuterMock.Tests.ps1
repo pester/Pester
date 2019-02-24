@@ -2,9 +2,10 @@ Set-StrictMode -Version Latest
 
 function f () {}
 
-mock f {}
+Mock f {}
 
 Describe 'Mock at script scope' {
     It 't' {
+        1 | Should -Be 1
     }
 }
