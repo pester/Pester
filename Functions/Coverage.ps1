@@ -592,6 +592,13 @@ function Get-JaCoCoReportXml {
 
     $packageList = & $SafeCommands['New-Object'] System.Collections.Generic.List[psobject]
 
+    $report = @{
+        Instruction = @{ Missed = 0; Covered = 0 }
+        Line        = @{ Missed = 0; Covered = 0 }
+        Method      = @{ Missed = 0; Covered = 0 }
+        Class       = @{ Missed = 0; Covered = 0 }
+    }
+
     foreach ($folderGroup in $folderGroups) {
 
         $package = @{
@@ -659,6 +666,15 @@ function Get-JaCoCoReportXml {
             $package.Classes.$file.Lines.$line.Instruction.Missed += $missed
             $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
         }
+
+        $report.Class.Missed += $package.Class.Missed
+        $report.Class.Covered += $package.Class.Covered
+        $report.Method.Missed += $package.Method.Missed
+        $report.Method.Covered += $package.Method.Covered
+        $report.Line.Missed += $package.Line.Missed
+        $report.Line.Covered += $package.Line.Covered
+        $report.Instruction.Missed += $package.Instruction.Missed
+        $report.Instruction.Covered += $package.Instruction.Covered
 
         $packageList.Add($package)
     }
@@ -746,10 +762,10 @@ function Get-JaCoCoReportXml {
         Add-JaCoCoCounter Class $package $packageElement
     }
 
-    Add-JaCoCoCounter Instruction $package $reportElement
-    Add-JaCoCoCounter Line $package $reportElement
-    Add-JaCoCoCounter Method $package $reportElement
-    Add-JaCoCoCounter Class $package $reportElement
+    Add-JaCoCoCounter Instruction $report $reportElement
+    Add-JaCoCoCounter Line $report $reportElement
+    Add-JaCoCoCounter Method $report $reportElement
+    Add-JaCoCoCounter Class $report $reportElement
 
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
     $jaCoCoReportDocType = '<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">'
