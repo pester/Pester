@@ -1,3 +1,7 @@
+## 4.7.0 (March 3, 2019)
+
+- Fix code coverage when there are multiple packages [#1244](https://github.com/pester/Pester/pull/1244)
+
 ## 4.7.0-beta1 (February 23, 2019)
 
 - Add alias for extension-less external commands on Windows [#1252](https://github.com/pester/Pester/pull/1252)
