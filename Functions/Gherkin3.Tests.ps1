@@ -2,32 +2,107 @@ Set-StrictMode -Version Latest
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-Describe 'Invoke-Gherkin' -Tag Gherkin2 {
-    Context 'No ./features directory is present' {
-        It 'Displays helpful output to get you started' {
-            Invoke-Gherkin3 | Should -Be 'No such file or directory - features. You can use `Invoke-Gherkin -Init` to get started.'
+InModuleScope Pester {
+    Describe 'New-GherkinProject' -Tag Gherkin2 {
+        Context 'A Gherkin project does not exist at the current working directory' {
+            BeforeAll { Mock New-Item -ModuleName Pester -MockWith { } }
+
+            BeforeEach {
+                $CWD = Get-Location -PSProvider FileSystem
+                Set-Location $TestDrive
+            }
+
+            AfterEach { Set-Location $CWD }
+
+            It 'Creates ''features'' directory' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'Directory' -and $Path -eq $PWD -and $Name -eq 'features'
+                } -Exactly 1
+
+                $Results[0] | Should -Be '  create   features'
+            }
+
+            It 'Creates ''features/step_definitions'' directory' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'Directory' -and $Path -eq (Join-Path $PWD 'features') -and $Name -eq 'step_definitions'
+                } -Exactly 1
+
+                $Results[1] | Should -Be "  create   $(Join-Path 'features' 'step_definitions')"
+            }
+
+            It 'Creates ''features/support'' directory' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'Directory' -and $Path -eq (Join-Path $PWD 'features') -and $Name -eq 'support'
+                } -Exactly 1
+
+                $Results[2] | Should -Be "  create   $(Join-Path 'features' 'support')"
+            }
+
+            It 'Creates ''features/support/Environment.ps1'' file' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'File' -and $Path -eq (Join-Path $PWD (Join-Path 'features' 'support')) -and $Name -eq 'Environment.ps1'
+                } -Exactly 1
+
+                $Results[3] | Should -Be "  create   $(Join-Path (Join-Path 'features' 'support') 'Environment.ps1')"
+            }
         }
 
-        It 'Using ''-Init'' sets up an initial test structure' {
-            Mock New-Item -MockWith { }
+        Context 'A Gherkin project exists at the current working directory' {
+            BeforeEach {
+                $CWD = Get-Location -PSProvider FileSystem
+                Set-Location $TestDrive
+                $null = New-GherkinProject
+            }
 
-            Invoke-Gherkin3 -Init
+            AfterEach { Set-Location $CWD }
 
-            Assert-MockCalled New-Item -ParameterFilter {
-                $ItemType -eq 'Directory' -and $Path -eq $PWD -and $Name -eq 'features'
-            } -Exactly 1
+            It 'Does not create ''features'' directory' {
+                $Results = New-GherkinProject
 
-            Assert-MockCalled New-Item -ParameterFilter {
-                $ItemType -eq 'Directory' -and $Path -eq "$PWD/features"  -and $Name -eq 'step_definitions'
-            } -Exactly 1
+                Assert-MockCalled New-Item       -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'Directory' -and $Path -eq $PWD -and $Name -eq 'features'
+                } -Exactly 0
 
-            Assert-MockCalled New-Item -ParameterFilter {
-                $ItemType -eq 'Directory' -and $Path -eq "$PWD/features" -and $Name -eq 'support'
-            } -Exactly 1
+                $Results[0] | Should -Be '   exist   features'
+            }
 
-            Assert-MockCalled New-Item -ParameterFilter {
-                $ItemType -eq 'File' -and $Path -eq "$PWD/features/support" -and $Name -eq 'env.ps1'
-            } -Exactly 1
+            It 'Does not create ''features/step_definitions'' directory' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'Directory' -and $Path -eq (Join-Path $PWD 'features') -and $Name -eq 'step_definitions'
+                } -Exactly 0
+
+                $Results[1] | Should -Be "   exist   $(Join-Path 'features' 'step_definitions')"
+            }
+
+            It 'Does not create ''features/support'' directory' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'Directory' -and $Path -eq (Join-Path $PWD 'features') -and $Name -eq 'support'
+                } -Exactly 0
+
+                $Results[2] | Should -Be "   exist   $(Join-Path 'features' 'support')"
+            }
+
+            It 'Does not create ''features/support/Environment.ps1'' file' {
+                $Results = New-GherkinProject
+
+                Assert-MockCalled New-Item -ModuleName Pester -ParameterFilter {
+                    $ItemType -eq 'File' -and $Path -eq (Join-Path $PWD (Join-Path 'features' 'support')) -and $Name -eq 'Environment.ps1'
+                } -Exactly 0
+
+                $Results[3] | Should -Be "   exist   $(Join-Path (Join-Path 'features' 'support') 'Environment.ps1')"
+            }
         }
     }
 

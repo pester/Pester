@@ -4,6 +4,22 @@ if (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -
     & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
+function New-GherkinProject {
+    @(
+        @{ ItemType = 'Directory'; Path = "$PWD"; Name = 'features' },
+        @{ ItemType = 'Directory'; Path = (Join-Path "$PWD" 'features'); Name = 'step_definitions' }
+        @{ ItemType = 'Directory'; Path = (Join-Path "$PWD" 'features'); Name = 'support' }
+        @{ ItemType = 'File'; Path = (Join-Path (Join-Path "$PWD" 'features') 'support'); Name = 'Environment.ps1' }
+    ) | ForEach-Object {
+        if (Test-Path (Join-Path $_.Path $_.Name)) {
+            Write-Output "   exist   $((Join-Path $_.Path $_.Name) -replace [regex]::Escape("$PWD\"))"
+        } else {
+            $null = New-Item @_
+            Write-Output "  create   $((Join-Path $_.Path $_.Name) -replace [regex]::Escape("$PWD\"))"
+        }
+    }
+}
+
 function Get-FeatureFile {
     [CmdletBinding()]
     [OutputType([IO.FileInfo])]
@@ -151,14 +167,7 @@ function Invoke-Gherkin3 {
 
     process {
         if ($PSCmdlet.ParameterSetName -eq 'Initialize') {
-            Write-Output '  create   features'
-            New-Item -ItemType Directory -Path $PWD -Name 'features' > $null
-            Write-Output '  create   features/step_definitions'
-            New-Item -ItemType Directory -Path "$PWD/features" -Name 'step_definitions' > $null
-            Write-Output '  create   features/support'
-            New-ITem -ItemType Directory -Path "$PWD/features" -Name 'support' > $null
-            Write-Output '  create   features/support/env.ps1'
-            New-Item -ItemType File -Path "$PWD/features/support" -Name 'env.ps1' > $null
+            New-GherkinProject
 
             if ($EnableExit) {
                 exit
