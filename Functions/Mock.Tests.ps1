@@ -2198,3 +2198,12 @@ InModuleScope Pester {
         }
     }
 }
+
+Describe "Mock definition output" {
+    It "Outputs nothing" {
+
+        function a () {}
+        $output = Mock a { }
+        $output | Should -Be $null
+    }
+}

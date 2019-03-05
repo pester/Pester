@@ -1,3 +1,7 @@
+## 4.7.1 (March 5, 2019)
+
+- Fix Mock outputting command metadata
+
 ## 4.7.0 (March 3, 2019)
 
 - Fix code coverage when there are multiple packages [#1244](https://github.com/pester/Pester/pull/1244)

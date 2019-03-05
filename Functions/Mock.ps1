@@ -1562,8 +1562,6 @@ function Repair-ConflictingParameters {
             $Metadata.Parameters.Add($newName, $paramMetadata)
         }
     }
-
-    $Metadata
 }
 
 function Reset-ConflictingParameters {
