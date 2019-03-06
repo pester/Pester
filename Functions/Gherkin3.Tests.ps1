@@ -178,6 +178,14 @@ InModuleScope Pester {
             }
         }
     }
+
+    Describe 'Get-FeatureFile' -Tag Gherkin2 {
+        Context 'selecting feature files' {
+            It 'preserves the order of the feature files' {
+
+            }
+        }
+    }
 }
 
 Describe 'Invoke-Gherkin' -Tag Gherkin2 {
@@ -300,7 +308,7 @@ InModuleScope 'Pester' {
                 }
 
                 It 'Does not return features matching Fea*3.feature' {
-                    $FeatureFiles = Get-FeatureFile "$PWD/features" -Exclude 'Fea*3.feature'
+                    $FeatureFiles = Get-FeatureFile "$PWD/features" -Exclude 'Fea.*3\.feature'
                     $FeatureFiles | Should -HaveCount 2
                     $FeatureFiles | Split-Path -Leaf |
                         Should -Not -Contain 'Feature3.feature'

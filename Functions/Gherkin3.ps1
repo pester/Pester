@@ -52,6 +52,7 @@ function Get-SupportScript {
     @($environmentFiles) + @($otherSupportFiles)
 }
 
+# TODO: Need to add support for Rerun file...
 function Get-FeatureFile {
     [CmdletBinding()]
     [OutputType([IO.FileInfo])]
@@ -61,33 +62,21 @@ function Get-FeatureFile {
         [string[]]$Path,
 
         [SupportsWildcards()]
-        [string[]]$Exclude = [string[]]@()
+        [regex[]]$Exclude
     )
 
     Process {
-        # This looks very convoluted, and it is. But Get-ChildItem's
-        # -Exclude parameter doesn't work correctly, especially in
-        # conjunction with -Filter.
-        @(Get-Item $Path | ForEach-Object {
-            # Get all feature files directly under $_ except
-            # files or folders matching any specified exclusions.
-            @($_ | Get-ChildItem -Filter *.feature -File |
-                Select-Object -ExpandProperty FullName |
-                Get-Item -Exclude $Exclude
-            )
-            # If $_ is a directory, get all *.feature files under it
-            # and its subfolders, except files or folders matching any
-            # specified exclusions.
-            if ($_.PSIsContainer) {
-                @($_ | Get-ChildItem -Directory -Recurse |
-                    Select-Object -ExpandProperty FullName |
-                    Get-Item -Exclude @($Exclude) |
-                    Get-ChildItem -Filter *.feature -File |
-                    Select-Object -ExpandProperty FullName |
-                    Get-Item -Exclude $Exclude
-                )
+        Get-ChildItem $Path -Filter '*.feature' -Recurse |
+            Where-Object {
+                if ($Exclude.Length) {
+                    $FeatureFile = $_
+                    $Exclude | ForEach-Object -Begin { $Result = $True } -Process {
+                        $Result = $Result -and ($FeatureFile.FullName -notmatch $_)
+                    } -End { $Result }
+                } else {
+                    $True
+                }
             }
-        })
     }
 }
 
@@ -200,9 +189,13 @@ function Invoke-Gherkin3 {
         # whatever is specified by -Require.
         $SupportScripts = Get-SupportScript -Path $Path -Exclude $Exclude
 
-        $FeatureFiles = Get-FeatureFile -Path "$Path/features" -Exclude $Exclude
+        $FeatureFiles = if ($PSBoundParameters.ContainsKey('Path')) {
+            Get-FeatureFile -Path $Path -Exclude $Exclude
+        } else {
+            Get-FeatureFile -Path "$Path/features" -Exclude $Exclude
+        }
 
-        Write-GherkinResults $Results
+        #Write-GherkinResults $Results
 
         if ($PassThru) {
             $Results
