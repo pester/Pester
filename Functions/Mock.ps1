@@ -1625,7 +1625,7 @@ function New-BlockWithoutParameterAliases {
 
                 foreach ($param in $params) {
                     if ($param.Aliases -contains $varName) {
-                        $startIndex = $var.Extent.StartOffset - $block.Ast.Extent.StartOffset + 1
+                        $startIndex = $var.Extent.StartOffset - $ast.Extent.StartOffset + 1 # move one position after the dollar sign
 
                         $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
                     }

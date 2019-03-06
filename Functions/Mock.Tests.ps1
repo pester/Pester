@@ -2121,7 +2121,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
 
         Context 'Assert-MockCalled' {
-            It "Uses parameter aliases in Parameter-Filter" {
+            It "Uses parameter aliases in ParameterFilter" {
                 function f { Get-Content -Path 'temp.txt' -Tail 10 }
                 Mock Get-Content { }
 
