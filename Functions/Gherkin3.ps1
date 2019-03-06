@@ -20,6 +20,38 @@ function New-GherkinProject {
     }
 }
 
+function Get-SupportScript {
+    [CmdletBinding()]
+    [OutputType([IO.FileInfo[]])]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [SupportsWildCards()]
+        [string[]]$Path,
+
+        [Parameter(Position = 1)]
+        [regex[]]$Exclude
+    )
+
+    $allSupportFiles = Get-ChildItem -Directory -Recurse |
+        Where-Object { (Split-Path $_.FullName -Leaf) -eq 'support' } |
+        Get-ChildItem -File -Filter '*.ps1' |
+        Where-Object {
+            if ($Exclude.Length) {
+                $SupportFile = $_
+                $Exclude | ForEach-Object -Begin { $Result = $True } -Process {
+                    $Result = $Result -and ($SupportFile.FullName -notmatch $_)
+                } -End { $Result }
+            } else {
+                $True
+            }
+        }
+
+    $environmentFiles = $allSupportFiles | Where-Object { $_.Name -eq 'Environment.ps1' }
+    $otherSupportFiles = $allSupportFiles | Where-Object { $_.Name -ne 'Environment.ps1' }
+
+    @($environmentFiles) + @($otherSupportFiles)
+}
+
 function Get-FeatureFile {
     [CmdletBinding()]
     [OutputType([IO.FileInfo])]
@@ -57,31 +89,6 @@ function Get-FeatureFile {
             }
         })
     }
-}
-
-function Get-SupportScript {
-    [CmdletBinding()]
-    [OutputType([IO.FileInfo[]])]
-    param (
-        [Parameter(Position = 0, Mandatory = $True)]
-        [SupportsWildCards()]
-        [string[]]$Path,
-
-        [Parameter(Position = 1)]
-        [SupportsWildCards()]
-        [string[]]$Exclude
-    )
-
-    # 1. ForEach ($p in $path) {
-    #      gci "$p/support" |
-    #      ? { $_.IsPSContainer } |
-    #      gci $_ -Filter *.ps1 -Exclude $Exclude
-    #    }
-    #    Of course, we'll have to do that whacky code to make
-    #    gci -Exclude work as we expect.
-    # 2. Load all sibling and descendent *.ps1 files, excluding
-    #    excluding those already loaded in #1 above, and any matching
-    #    Excludes
 }
 
 function Write-GherkinResults {
@@ -123,8 +130,7 @@ function Invoke-Gherkin3 {
         [string[]]$Path = $PWD,
 
         [Parameter(ParameterSetName = 'Standard')]
-        [SupportsWildCards()]
-        [string[]]$Exclude,
+        [regex[]]$Exclude,
 
         [Parameter(ParameterSetName = 'Standard')]
         [SupportsWildCards()]
@@ -192,17 +198,7 @@ function Invoke-Gherkin3 {
         # scripts. According to Issue #567 on Cucumber's GH repo, when -Require
         # is used, all loading of support and environment scripts becomes explicit:
         # whatever is specified by -Require.
-        $SupportScripts = @(
-            if ($PSBoundParameters.ContainsKey('Require')) {
-                Get-SuuportScript -Path $Require -Exclude $Exclude
-            } else {
-                @(
-                    if ((Test-Path "$Path/features/support/env.ps1")) {
-                        Get-ChildItem "$Path/features/support/env.ps1"
-                    }
-                ) + @(Get-SupportScript "$Path/features" -Exclude "$Path/features/support/env.ps1", $Exclude)
-            }
-        )
+        $SupportScripts = Get-SupportScript -Path $Path -Exclude $Exclude
 
         $FeatureFiles = Get-FeatureFile -Path "$Path/features" -Exclude $Exclude
 

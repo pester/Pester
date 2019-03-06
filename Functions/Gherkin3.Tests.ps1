@@ -106,6 +106,81 @@ InModuleScope Pester {
         }
     }
 
+    Describe 'Get-SupportScript' -Tag Gherkin2 {
+        BeforeEach {
+            $CWD = Get-Location -PSProvider FileSystem
+            Set-Location $TestDrive
+            $null = New-GherkinProject
+        }
+
+        AfterEach {
+            #Get-ChildItem $PWD -Recurse | Remove-Item -Forcel
+            Get-ChildItem $PWD -Recurse | Remove-Item -Force -Recurse
+            Set-Location $CWD
+        }
+
+        Context 'Selecting files to load' {
+            It 'Requires Environment.ps1 files first' {
+                $null = New-Item -ItemType File -Path './features/step_definitions/non_supportFile.ps1'
+                $null = New-Item -ItemType File -Path './features/support' -Name 'A_File.ps1'
+
+                $files = Get-SupportScript "$PWD/features"
+
+                $files | Should -HaveCount 2
+                $files[0].Name | Should -Be 'Environment.ps1'
+                $files[1].Name | Should -Be 'A_File.ps1'
+            }
+
+            It 'features/support/Environment.ps1 is loaded before any other features/**/support/Environment.ps1 file' {
+                $null = New-Item -ItemType Directory -Path './features' -Name 'foo'
+                $null = New-Item -ItemType Directory -Path './features/foo' -Name 'support'
+                $null = New-Item -ItemType Directory -Path './features/foo' -Name 'bar'
+                $null = New-Item -ItemType Directory -Path './features/foo/bar' -Name 'support'
+                $null = New-Item -ItemType File -Path './features/support' -Name 'A_File.ps1'
+                $null = New-Item -ItemType File -Path './features/foo/support/Environment.ps1'
+                $null = New-Item -ItemType File -Path './features/foo/support/A_File.ps1'
+                $null = New-Item -ItemType File -Path './features/foo/bar/support/Environment.ps1'
+                $null = New-Item -ItemType File -Path './features/foo/bar/support/A_File.ps1'
+
+                $files = Get-SupportScript "$PWD/features"
+                $files | Should -HaveCount 6
+                $files[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
+                $files[1].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path 'features' 'foo') 'support') 'Environment.ps1')))
+                $files[2].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path (Join-Path 'features' 'foo') 'bar') 'support') 'Environment.ps1')))
+                $files[3].Fullname | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'A_File.ps1')))
+                $files[4].Fullname | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path 'features' 'foo') 'support') 'A_File.ps1')))
+                $files[5].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path (Join-Path 'features' 'foo') 'bar') 'support') 'A_File.ps1')))
+            }
+        }
+
+        Context '-Exclude' {
+            It 'excludes a PowerShell file from requiring when the name matches exactly' {
+                $null = New-Item -ItemType File -Path './features/support' -Name 'A_File.ps1'
+
+                $files = Get-SupportScript "$PWD/features" -Exclude "A_File.ps1"
+
+                $files | Should -HaveCount 1
+                $files[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
+            }
+
+            It 'excludes all PowerShell files that match the provided patterns from requiring' {
+                $null = New-Item -ItemType File -Path './features/support' -Name 'foof.ps1'
+                $null = New-Item -ItemType File -Path './features/support' -Name 'food.ps1'
+                $null = New-Item -ItemType File -Path './features/support' -Name 'fooz.ps1'
+                $null = New-Item -ItemType File -Path './features/support' -Name 'bar.ps1'
+                $null = New-Item -ItemType File -Path './features/support' -Name 'blah.ps1'
+
+                $files = Get-SupportScript "$PWD/features" -Exclude 'foo[df]', 'blah'
+                $files | Should -HaveCount 3
+                $files[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
+                $files[1].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'bar.ps1')))
+                $files[2].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'fooz.ps1')))
+            }
+        }
+    }
+}
+
+Describe 'Invoke-Gherkin' -Tag Gherkin2 {
     Context 'A ./features directory is present with no feature files' {
         It 'Returns 0 scenarios and 0 steps executed in 0m0.000s' {
             In $TestDrive {
