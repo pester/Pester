@@ -1615,7 +1615,7 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            $ast = $Block.Ast
+            $ast = $Block.Ast.EndBlock
             $blockText = $ast.Extent.Text
             $variables = $Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
 
@@ -1631,9 +1631,6 @@ function New-BlockWithoutParameterAliases {
                     }
                 }
             }
-
-            # Remove top-level brackets {}
-            $blockText = $blockText.Remove($blockText.Length - 1, 1).Remove(0, 1)
 
             $Block = [scriptblock]::Create($blockText)
         }

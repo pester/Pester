@@ -2207,3 +2207,8 @@ Describe "Mock definition output" {
         $output | Should -Be $null
     }
 }
+
+Describe 'Mocking using ParameterFilter with scriptblock' {
+    $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
+    Mock -CommandName 'Test-Path' -ParameterFilter $filter
+}
