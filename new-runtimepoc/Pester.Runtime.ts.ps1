@@ -10,7 +10,7 @@ Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\Pester.Runtime.psm1 -DisableNameChecking
 
-Import-Module $PSScriptRoot\..\experiments\p.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
 $global:PesterDebugPreference = @{

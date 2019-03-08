@@ -1,7 +1,7 @@
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
-Import-Module $PSScriptRoot\..\Experiments\p.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
 Import-Module $PSScriptRoot\..\Pester.psd1
