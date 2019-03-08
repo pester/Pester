@@ -36,6 +36,7 @@ Describe "TestDrive scoping" {
     }
 
     It "Describe file is still available in Describe" {
+        Write-Host ($describe)
         $describe | Should -Exist
     }
 }

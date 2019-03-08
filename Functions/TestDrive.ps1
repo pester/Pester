@@ -28,7 +28,7 @@ function Get-TestDrivePlugin {
             Remove-TestDrive
         }
         else {
-            Clear-TestDrive -Exclude ( $Context.PluginData.TestDrive.TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+            Clear-TestDrive -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
         }
         # }
     }

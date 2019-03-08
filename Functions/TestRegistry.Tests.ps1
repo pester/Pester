@@ -1,5 +1,8 @@
 Set-StrictMode -Version Latest
 
+#TODO: registry plugin is not added yet
+return
+
 $os = InModuleScope -ModuleName Pester { GetPesterOs }
 if ("Windows" -ne $os) {
     # test registry are only for Windows

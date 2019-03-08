@@ -89,90 +89,95 @@ Describe 'Describe-scoped Test Case teardown' {
         $testVariable | Should -Be 'Set in Describe'
     }
 
-    It 'Modifies the variable after the first test' {
-        $testVariable | Should -Be 'Set in AfterEach'
+    It 'Keeps the describe variable after the first test' {
+        $testVariable | Should -Be 'Set in Describe'
     }
 }
 
 Describe 'Multiple Test Case teardown blocks' {
-    $testVariable = 'Set in Describe'
+    # this tests the execution order, not scoping, so I am using a reference object
+    # to pass the state around without being affected by variable scoping and also to
+    # avoid script scoped variables
+    $container = @{ Value = 'Set in Describe' }
 
     AfterEach {
-        $testVariable = 'Set in Describe AfterEach'
+        $container.Value = 'Set in Describe AfterEach'
     }
 
     Context 'The context' {
         AfterEach {
-            $testVariable = 'Set in the first Context AfterEach'
+            $container.Value = 'Set in the first Context AfterEach'
         }
 
         It 'Performs a test in Context' { "some output to prevent the It being marked as Pending and failing because of Strict mode"}
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
-            $testVariable | Should -Be 'Set in the second Describe AfterEach'
+            $container.Value | Should -Be 'Set in the second Describe AfterEach'
         }
     }
 
     AfterEach {
-        $testVariable = 'Set in the second Describe AfterEach'
+        $container.Value = 'Set in the second Describe AfterEach'
     }
 }
 
-$script:DescribeBeforeAllCounter = 0
-$script:DescribeAfterAllCounter = 0
-$script:ContextBeforeAllCounter = 0
-$script:ContextAfterAllCounter = 0
+$container = @{
+    DescribeBeforeAllCounter = 0
+    DescribeAfterAllCounter = 0
+    ContextBeforeAllCounter = 0
+    ContextAfterAllCounter = 0
+}
 
 Describe 'Test Group Setup and Teardown' {
     It 'Executed the Describe BeforeAll regardless of definition order' {
-        $script:DescribeBeforeAllCounter | Should -Be 1
+        $container.DescribeBeforeAllCounter | Should -Be 1
     }
 
     It 'Did not execute any other block yet' {
-        $script:DescribeAfterAllCounter | Should -Be 0
-        $script:ContextBeforeAllCounter | Should -Be 0
-        $script:ContextAfterAllCounter  | Should -Be 0
+        $container.DescribeAfterAllCounter | Should -Be 0
+        $container.ContextBeforeAllCounter | Should -Be 0
+        $container.ContextAfterAllCounter  | Should -Be 0
     }
 
     BeforeAll {
-        $script:DescribeBeforeAllCounter++
+        $container.DescribeBeforeAllCounter++
     }
 
     AfterAll {
-        $script:DescribeAfterAllCounter++
+        $container.DescribeAfterAllCounter++
     }
 
     Context 'Context scoped setup and teardown' {
         BeforeAll {
-            $script:ContextBeforeAllCounter++
+            $container.ContextBeforeAllCounter++
         }
 
         AfterAll {
-            $script:ContextAfterAllCounter++
+            $container.ContextAfterAllCounter++
         }
 
         It 'Executed the Context BeforeAll block' {
-            $script:ContextBeforeAllCounter | Should -Be 1
+            $container.ContextBeforeAllCounter | Should -Be 1
         }
 
         It 'Has not executed any other blocks yet' {
-            $script:DescribeBeforeAllCounter | Should -Be 1
-            $script:DescribeAfterAllCounter  | Should -Be 0
-            $script:ContextAfterAllCounter   | Should -Be 0
+            $container.DescribeBeforeAllCounter | Should -Be 1
+            $container.DescribeAfterAllCounter  | Should -Be 0
+            $container.ContextAfterAllCounter   | Should -Be 0
         }
     }
 
     It 'Executed the Context AfterAll block' {
-        $script:ContextAfterAllCounter | Should -Be 1
+        $container.ContextAfterAllCounter | Should -Be 1
     }
 }
 
 Describe 'Finishing TestGroup Setup and Teardown tests' {
     It 'Executed each Describe and Context group block once' {
-        $script:DescribeBeforeAllCounter | Should -Be 1
-        $script:DescribeAfterAllCounter  | Should -Be 1
-        $script:ContextBeforeAllCounter  | Should -Be 1
-        $script:ContextAfterAllCounter   | Should -Be 1
+        $container.DescribeBeforeAllCounter | Should -Be 1
+        $container.DescribeAfterAllCounter  | Should -Be 1
+        $container.ContextBeforeAllCounter  | Should -Be 1
+        $container.ContextAfterAllCounter   | Should -Be 1
     }
 }
 
