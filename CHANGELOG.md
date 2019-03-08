@@ -1,3 +1,8 @@
+## 4.7.2 (March 8, 2019)
+
+- Fix stripping last character in parameter filter [#1258](https://github.com/pester/Pester/pull/1258)
+- Fix failing null check [#1258](https://github.com/pester/Pester/pull/1258)
+
 ## 4.7.1 (March 5, 2019)
 
 - Fix Mock outputting command metadata
