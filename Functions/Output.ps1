@@ -97,6 +97,10 @@ function Write-PesterStart {
         if ($PesterState.TestNameFilter) {
             $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }
+        if ($PesterState.ScriptBlockFilter) {
+            $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
+            $message += $ReportStrings.FilterMessage -f $m
+        }
         if ($PesterState.TagFilter) {
             $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         }
@@ -138,15 +142,17 @@ function ConvertTo-PesterResult {
         $line = $details.Line
         $Text = $details.LineText
 
-        switch ($ErrorRecord.FullyQualifiedErrorID) {
-            PesterTestInconclusive {
-                $testResult.Result = "Inconclusive"; break;
-            }
-            PesterTestPending {
-                $testResult.Result = "Pending"; break;
-            }
-            PesterTestSkipped {
-                $testResult.Result = "Skipped"; break;
+        if (-not $Pester.Strict) {
+            switch ($ErrorRecord.FullyQualifiedErrorID) {
+                PesterTestInconclusive {
+                    $testResult.Result = "Inconclusive"; break;
+                }
+                PesterTestPending {
+                    $testResult.Result = "Pending"; break;
+                }
+                PesterTestSkipped {
+                    $testResult.Result = "Skipped"; break;
+                }
             }
         }
     }
@@ -168,6 +174,105 @@ function Remove-Comments ($Text) {
     $text -replace "(?s)(<#.*#>)" -replace "\#.*"
 }
 
+# function Write-PesterResult {
+#     param (
+#         [Parameter(mandatory = $true, valueFromPipeline = $true)]
+#         $TestResult
+#     )
+
+#     process {
+#         $quiet = $pester.Show -eq [Pester.OutputTypes]::None
+#         $OutputType = [Pester.OutputTypes] $TestResult.Result
+#         $writeToScreen = $pester.Show | Has-Flag $OutputType
+#         $skipOutput = $quiet -or (-not $writeToScreen)
+
+#         if ($skipOutput) {
+#             return
+#         }
+
+#         $margin = $ReportStrings.Margin * ($pester.IndentLevel + 1)
+#         $error_margin = $margin + $ReportStrings.Margin
+#         $output = $TestResult.Name
+#         $humanTime = Get-HumanTime $TestResult.Time.TotalSeconds
+
+#         if (-not ($OutputType | Has-Flag 'Default, Summary')) {
+#             switch ($TestResult.Result) {
+#                 Passed {
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
+#                     break
+#                 }
+
+#                 Failed {
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+
+#                     if ($pester.IncludeVSCodeMarker) {
+#                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.StackTrace -replace '(?m)^', $error_margin)
+#                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($TestResult.FailureMessage -replace '(?m)^', $error_margin)
+#                     }
+#                     else {
+#                         $TestResult.ErrorRecord |
+#                             ConvertTo-FailureLines |
+#                             ForEach-Object {$_.Message + $_.Trace} |
+#                             ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^', $error_margin) }
+#                     }
+#                     break
+#                 }
+
+#                 Skipped {
+#                     $targetObject = if ($null -ne $testresult.ErrorRecord -and
+#                         ($o = $testresult.ErrorRecord.PSObject.Properties.Item("TargetObject"))) { $o.Value }
+#                     $because = if ($targetObject -and $targetObject.Data.Because) {
+#                         ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
+#                     }
+#                     else {
+#                         $null
+#                     }
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+#                     break
+#                 }
+
+#                 Pending {
+#                     $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+#                         ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
+#                     }
+#                     else {
+#                         $null
+#                     }
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
+#                     break
+#                 }
+
+#                 Inconclusive {
+#                     $because = if ($testresult.ErrorRecord.TargetObject.Data.Because) {
+#                         ", because $($testresult.ErrorRecord.TargetObject.Data.Because)"
+#                     }
+#                     else {
+#                         $null
+#                     }
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+#                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+
+#                     break
+#                 }
+
+#                 default {
+#                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
+#                     if ($null -eq $TestResult.Time) {
+#                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
+#                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
+#                     }
+#                 }
+#             }
+#         }
+#     }
+# }
 
 function Write-PesterReport {
     param (
@@ -356,11 +461,10 @@ function ConvertTo-FailureLines {
             $count ++
         }
 
-        if ($null -ne $PesterDebugPreference -and $PesterDebugPreference.ShowFullErrors) {
+        if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
             $lines.Trace += $traceLines
         }
         else {
-            $PesterDebugPreference
             $lines.Trace += $traceLines |
                 & $SafeCommands['Select-Object'] -First $count |
                 & $SafeCommands['Where-Object'] {

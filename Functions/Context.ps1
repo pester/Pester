@@ -41,6 +41,9 @@ Describe "Add-Numbers" {
 }
 
 .LINK
+https://github.com/pester/Pester/wiki/Context
+
+.LINK
 Describe
 It
 BeforeEach
@@ -59,10 +62,19 @@ about_TestDrive
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
-        [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+        [ScriptBlock] $Fixture,
 
         [Switch] $Focus
     )
+
+    if ($Fixture -eq $null) {
+        if ($Name.Contains("`n")) {
+            throw "Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)"
+        }
+        else {
+            throw 'No test fixture is provided. (Have you put the open curly brace on the next line?)'
+        }
+    }
 
     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus
 

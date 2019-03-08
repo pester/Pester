@@ -53,7 +53,6 @@
 
         # Gherkin Support:
         'Invoke-Gherkin'
-        'Invoke-GherkinStep'
         'Find-GherkinStep'
         'GherkinStep'
         'BeforeEachFeature'

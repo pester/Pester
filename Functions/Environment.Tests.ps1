@@ -136,17 +136,9 @@ InModuleScope -ModuleName Pester {
 
             It 'return the corret temp registry for Windows' {
 
-                $expected = 'HKCU:\Software\Pester'
+                $expected = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
                 $tempPath = Get-TempRegistry
                 $tempPath | Should -Be $expected
-            }
-
-            It 'should throw an error if TempRegistry fails' {
-                Mock New-TempRegistry {
-                    throw [Exception] 'Error'
-                }
-
-                { Get-TempRegistry } | Should -Throw 'Was not able to create a Pester Registry key for TestRegistry'
             }
         }
     }

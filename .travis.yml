@@ -21,4 +21,4 @@ matrix:
             - powershell
 
 script:
-  - pwsh -c 'Set-StrictMode -Version Latest; Import-Module ./Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit'
+  - pwsh -c 'Set-StrictMode -Version Latest; $global:PesterDebugPreference_ShowFullErrors = $true ;Import-Module ./Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit'
