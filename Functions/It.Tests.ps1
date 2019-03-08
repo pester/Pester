@@ -1,7 +1,9 @@
+Set-StrictMode -Version Latest
+
 # TODO: These tests depend on Pester state that no longer exists, keeping this for future reference, most of it is already tested by P
 return
 
-Set-StrictMode -Version Latest
+
 
 InModuleScope Pester {
 

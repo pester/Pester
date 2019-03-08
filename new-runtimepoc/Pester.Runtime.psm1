@@ -74,7 +74,7 @@ function ConvertTo-DiscoveredBlockContainer {
     $type = tryGetProperty $container Type
 
     # TODO: Add other properties that are relevant to found tests
-    $b = $Block | Select -ExcludeProperty @(
+    $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
         "Parent"
         "Name"
         "Tag"
@@ -111,7 +111,7 @@ function ConvertTo-ExecutedBlockContainer {
     $content = tryGetProperty $container Content
     $type = tryGetProperty $container Type
 
-    $b = $Block | Select -ExcludeProperty @(
+    $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
         "Parent"
         "Name"
         "Tag"
@@ -169,7 +169,8 @@ function New-Block {
     }
 
     Set-CurrentBlock -Block $block
-
+    $block.ExecutedAt = [DateTime]::Now
+    $block.Executed = $true
     try {
         if (Is-Discovery) {
             Write-PesterDebugMessage -Scope Discovery "Discovering in body of block $Name"
@@ -219,13 +220,12 @@ function New-Block {
                     } ) `
                     -Context @{
                     # context that is visible in user code
-                    Context = $block | Select -Property Name
+                    Context = $block | &$SafeCommands['Select-Object'] -Property Name
                 } `
                     -ReduceContextToInnerScope `
                     -OnUserScopeTransition { Switch-Timer -Scope Block } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
-                $block.Executed = $true
                 $block.Passed = $result.Success
                 $block.StandardOutput = $result.StandardOutput
 
@@ -358,8 +358,10 @@ function New-Test {
             }
 
             if ($frameworkSetupResult.Success) {
+                $test.ExecutedAt = [DateTime]::Now
+                $test.Executed = $true
                 # invokes the body of the test
-                $testInfo = $Test | Select -Property Name, Path
+                $testInfo = $test | &$SafeCommands['Select-Object'] -Property Name, Path
                 # user provided data are merged with Pester provided context
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
@@ -370,7 +372,6 @@ function New-Test {
 
                 $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
                 $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
-
                 $result = Invoke-ScriptBlock `
                     -Setup @(
                     if (any $eachTestSetups) {
@@ -397,7 +398,6 @@ function New-Test {
                     -NoNewScope
 
                 $test.FrameworkData.Runtime.ExecutionStep = 'Finished'
-                $test.Executed = $true
                 $test.Passed = $result.Success
                 $test.StandardOutput = $result.StandardOutput
                 $test.ErrorRecord = $result.ErrorRecord
@@ -593,11 +593,13 @@ function New-TestObject {
         Data              = $Data
         Block = $null
         Executed          = $false
+        ExecutedAt        = $null
         Passed            = $false
         StandardOutput    = $null
         ErrorRecord       = @()
         First             = $false
         Last              = $false
+        Exclude = $false
         ShouldRun         = $false
         Duration          = [timespan]::Zero
         FrameworkDuration = [timespan]::Zero
@@ -653,6 +655,7 @@ function New-BlockObject {
         StandardOutput       = $null
         ErrorRecord          = @()
         ShouldRun            = $false
+        Exclude = $false
         ExecutedAt           = $null
         Duration             = [timespan]::Zero
         FrameworkDuration    = [timespan]::Zero
@@ -1103,67 +1106,79 @@ function Test-ShouldRun {
     param (
         [Parameter(Mandatory = $true)]
         $Test,
-        $Filter
+        $Filter,
+        $Hint
     )
+
+    # so the logic here is that you first try all exclude filters, and if any exludes then you return false
+    # then you try all other filters and if then do not match you fall to the next one (giving it chance to )
+    # match other filters, then in the end you return true or null (maybe) to indicate whether there were any
+    # filters at all
+    # then the consuming code knows that when false returns the item was explicitly excluded, when null returns
+    # you might include it when it is a block and some of its children should run,
+    # or you exlude it when it is a test and you get false or null
+
+    $anyIncludeFilters = $false
     $fullTestPath = $Test.Path -join "."
     if ($null -eq $Filter) {
-        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is included, because there is no filter."
+        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because there is no filter."
         return $true
     }
 
     # test is excluded when any of the exclude tags match
-    $tagFilter = $Filter.ExcludeTag
+    $tagFilter = tryGetProperty $Filter ExcludeTag
     if (any $tagFilter) {
         foreach ($f in $tagFilter) {
             foreach ($t in $Test.Tag) {
                 if ($t -like $f) {
-                    Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is excluded, because it's tag '$t' matches exclude tag filter '$f'."
+                    Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is excluded, because it's tag '$t' matches exclude tag filter '$f'."
                     return $false
                 }
             }
         }
     }
 
-
-    $hasTagFilter = $false
-    $hasMatchingTag = $false
     # test is included when it has tags and the any of the tags match
     $tagFilter = tryGetProperty $Filter Tag
     if (any $tagFilter) {
-        $hasTagFilter = $true
+        $anyIncludeFilters = $true
         if (none $test.Tag) {
-            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
+            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint might be excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
         }
         else {
             foreach ($f in $tagFilter) {
                 foreach ($t in $Test.Tag) {
                     if ($t -like $f) {
-                        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is included, because it's tag '$t' matches tag filter '$f'."
-                        $hasMatchingTag = $true
-                        break
+                        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because it's tag '$t' matches tag filter '$f'."
+                        return $true
                     }
                 }
             }
         }
     }
 
-    $hasMatchingPath = $false
-    $hasPathFilter = $false
     $allPaths = tryGetProperty $Filter Path | % { $_ -join '.' }
     if (any $allPaths) {
-        $hasPathFilter = $true
+        $anyIncludeFilters = $true
         $include = $allPaths -contains $fullTestPath
         if ($include) {
-            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is included, because it matches full path filter."
-            $hasMatchingPath = $true
+            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because it matches full path filter."
+            return $true
         }
         else {
-            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) Test is excluded, because its full path does not match the path filter."
+            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint might be excluded, because its full path does not match the path filter."
         }
     }
 
-
-    (-not $hasTagFilter -and -not $hasPathFilter) -or ($hasTagFilter -and $hasMatchingTag) -or ($hasPathFilter -and $hasMatchingPath)
+    if ($anyIncludeFilters) {
+        # there were filters but the item did not match any of them
+        # but also was not explicitly excluded
+        $null
+    }
+    else {
+        # there were no filters
+        $true
+    }
 }
 
 function Invoke-Test {
@@ -1235,25 +1250,34 @@ function PostProcess-DiscoveredBlock {
     # link childs to their parents, filter blocks and tests to
     # determine which should run, and mark blocks and tests
     # as first or last to know when one time setups & teardowns should run
-    if ($Block -eq $RootBlock) {
-        $Block.IsRoot = $true
-    }
+    $Block.IsRoot = $Block -eq $RootBlock
     $Block.Root = $RootBlock
     $Block.BlockContainer = $BlockContainer
 
     $tests = $Block.Tests
+
+    # block should run when the result is $true, or $null but not when it $false
+    # because $false means that the block was explicitly excluded from the run
+    # but $null means that the block did not match the filter but still can have some
+    # children that might match the filter
+    $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
+    $Block.Exclude = $blockIsExcluded = $parentBlockIsExcluded -or ($false -eq (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block"))
     $blockShouldRun = $false
     if (any $tests) {
         foreach ($t in $tests) {
             $t.Block = $Block
-            $t.ShouldRun = Test-ShouldRun -Test $t -Filter $Filter
+            # test should run when the result is $true, but not when it is $null or $false
+            # because tests don't have any children, so not matching the filter means they should not run
+            $t.ShouldRun = -not $blockIsExcluded -and ([bool] (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test"))
         }
 
-        $testsToRun = $tests | where { $_.ShouldRun }
-        if (any $testsToRun) {
-            $testsToRun[0].First = $true
-            $testsToRun[-1].Last = $true
-            $blockShouldRun = $true
+        if (-not $blockIsExcluded) {
+            $testsToRun = $tests | where { $_.ShouldRun }
+            if (any $testsToRun) {
+                $testsToRun[0].First = $true
+                $testsToRun[-1].Last = $true
+                $blockShouldRun = $true
+            }
         }
     }
 

@@ -221,9 +221,9 @@ InModuleScope Pester {
             $result.Count | Should -Be 2
 
             $paths = $result | Select-Object -ExpandProperty Path
-
-            ($paths -contains 'TestDrive:\SomeFile.Tests.ps1') | Should -Be $true
-            ($paths -contains 'TestDrive:\SomeOtherFile.Tests.ps1') | Should -Be $true
+            $testDrive = (Get-PSDrive TestDrive).Root
+            ($paths -contains "$testDrive\SomeFile.Tests.ps1") | Should -Be $true
+            ($paths -contains "$TestDrive\SomeOtherFile.Tests.ps1") | Should -Be $true
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
@@ -232,9 +232,9 @@ InModuleScope Pester {
             $result.Count | Should -Be 2
 
             $paths = $result | Select-Object -ExpandProperty Path
-
-            ($paths -contains 'TestDrive:\SomeFile.Tests.ps1') | Should -Be $true
-            ($paths -contains 'TestDrive:\SomeOtherFile.Tests.ps1') | Should -Be $true
+            $testDrive = (Get-PSDrive TestDrive).Root
+            ($paths -contains "$testDrive\SomeFile.Tests.ps1") | Should -Be $true
+            ($paths -contains "$TestDrive\SomeOtherFile.Tests.ps1") | Should -Be $true
         }
 
         It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {

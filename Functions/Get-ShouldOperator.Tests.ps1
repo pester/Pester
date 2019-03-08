@@ -40,7 +40,7 @@ InModuleScope Pester {
 
             It 'Returns help for all internal Pester assertion operators' {
                 $AssertionOperators.Keys | Where-Object {$_ -ne 'test'} | ForEach-Object {
-                    Get-ShouldOperator -Name $_ | Should -Not -BeNullOrEmpty
+                    Get-ShouldOperator -Name $_ | Should -Not -BeNullOrEmpty -Because "$_ should have help"
                 }
             }
         }

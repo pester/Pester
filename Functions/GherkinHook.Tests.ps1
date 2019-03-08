@@ -1,8 +1,8 @@
-﻿
+﻿Set-StrictMode -Version Latest
+
 # TODO: making gherkin run is going to take a loooot of effort. keeping it for later.
 return
 
-Set-StrictMode -Version Latest
 
 $scriptRoot = Split-Path (Split-Path $MyInvocation.MyCommand.Path)
 

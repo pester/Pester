@@ -1,5 +1,11 @@
 function Get-TestDrivePlugin {
 
+    # TODO: add on start block and put this in it
+
+    if (Test-Path TestDrive:\) {
+        Remove-Item (Get-PSDrive TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
+        Remove-PSDrive TestDrive
+    }
     Pester.Runtime\New-PluginObject -Name "TestDrive" -EachBlockSetup {
         param($Context)
         if (-not ($Context.Block.PluginData.ContainsKey('TestDrive'))) {

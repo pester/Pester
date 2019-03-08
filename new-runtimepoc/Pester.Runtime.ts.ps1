@@ -347,8 +347,10 @@ i {
 
         b "filtering" {
 
-            t "Given null filter it returns true" {
-                $t = New-TestObject -Name "test1" -Path "p"  -Tag a
+            # include = true, exclude = false, maybe = $null
+            # when the filter is restrictive and the test
+            t "Given null filter and a tagged test it includes it" {
+                $t = New-TestObject -Name "test1" -Path "p" -Tag a
 
                 $actual = Test-ShouldRun -Test $t -Filter $null
                 $actual | Verify-True
@@ -415,6 +417,15 @@ i {
 
                 $actual = Test-ShouldRun -Test $t -Filter $f
                 $actual | Verify-True
+            }
+
+            t "Given a test with path it maybes it when it does not match path filter " {
+                $t = New-TestObject -Name "test1" -Path "p"
+
+                $f = New-FilterObject -Path "r"
+
+                $actual = Test-ShouldRun -Test $t -Filter $f
+                $actual | Verify-Null
             }
         }
     }
@@ -736,6 +747,16 @@ i {
 
             $result.Tests[0].Executed | Verify-True
             $result.Tests[1].Executed | Verify-False
+        }
+
+        t "blocks can be excluded based on tags" {
+            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" -Tag DoNotRun {
+                        New-Test "test1" {}
+                    }
+                }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
+
+            $result.Blocks[0].Tests[0].Executed | Verify-False
         }
     }
 
@@ -1267,7 +1288,7 @@ i {
 
             $actual.Blocks[0].Blocks[0].Passed | Verify-False
             $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
-            $actual.Blocks[0].Blocks[0].Executed | Verify-False
+            $actual.Blocks[0].Blocks[0].Executed | Verify-True
 
             $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
             $actual.Blocks[0].Blocks[0].Tests[0].ShouldRun | Verify-True
