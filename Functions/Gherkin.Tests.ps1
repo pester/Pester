@@ -25,7 +25,7 @@ foreach ($data in $multiLanguageTestData.GetEnumerator()) {
     Describe "Invoke-Gherkin $fileName ($language)" -Tag Gherkin {
 
         # Use temporary report file with Pester's test drive feature
-        $reportFile = "$TestDrive\my_unit_$language.xml"
+        $reportFile = "TestDrive:\my_unit_$language.xml"
         $reportFileShort = Split-Path $reportFile -Leaf
 
         # Calling this in a job so we don't monkey with the active pester state that's already running
@@ -172,8 +172,8 @@ InModuleScope "Pester" {
             It "Should process a single-column table correctly" {
 
                 # resolve the full name to the temporary feature file because gherkin doesn't support PSDrive paths
-                $testDrive = (Get-PSDrive -Name "TestDrive").Root
-                $featureFile = Join-Path -Path $testDrive -ChildPath "singlecolumn.feature"
+                TestDrive: = (Get-PSDrive -Name "TestDrive").Root
+                $featureFile = Join-Path -Path TestDrive: -ChildPath "singlecolumn.feature"
 
                 # write the temporary feature file that we're going to parse
                 Set-Content -Path $featureFile -Value @'
@@ -221,8 +221,8 @@ Scenario: The test data should be converted properly
             It "Should process a multi-column table correctly" {
 
                 # resolve the full name to the temporary feature file because gherkin doesn't support PSDrive paths
-                $testDrive = (Get-PSDrive -Name "TestDrive").Root
-                $featureFile = Join-Path -Path $testDrive -ChildPath "multicolumn.feature"
+                TestDrive: = (Get-PSDrive -Name "TestDrive").Root
+                $featureFile = Join-Path -Path TestDrive: -ChildPath "multicolumn.feature"
 
                 # write the temporary feature file that we're going to parse
                 Set-Content -Path $featureFile -Value @'
@@ -396,7 +396,7 @@ Describe "Check test results of steps" -Tag Gherkin {
 Describe "A generated NUnit report" -Tag Gherkin {
 
     # Use temporary report file with Pester's test drive feature
-    $reportFile = "$TestDrive\my_unit.xml"
+    $reportFile = "TestDrive:\my_unit.xml"
 
     # Calling this in a job so we don't monkey with the active pester state that's already running
     $job = Start-Job -ArgumentList $scriptRoot, $reportFile -ScriptBlock {

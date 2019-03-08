@@ -4,27 +4,28 @@ InModuleScope Pester {
     Describe "Should -FileContentMatch" {
         Context "when testing file contents" {
             BeforeAll {
-                Setup -File "test.txt" "this is line 1$([System.Environment]::NewLine)rush is awesome$([System.Environment]::NewLine)And this is Unicode: ☺"
+                "this is line 1$([System.Environment]::NewLine)rush is awesome$([System.Environment]::NewLine)And this is Unicode: ☺" |
+                    Set-Content -Path "TestDrive:\test.txt"
             }
 
             It "returns true if the file contains the specified content" {
-                "$TestDrive\test.txt" | Should FileContentMatch rush
-                "$TestDrive\test.txt" | Should -FileContentMatch rush
+                "TestDrive:\test.txt" | Should FileContentMatch rush
+                "TestDrive:\test.txt" | Should -FileContentMatch rush
             }
 
             It "returns true if the file contains the specified content with different case" {
-                "$TestDrive\test.txt" | Should FileContentMatch RUSH
-                "$TestDrive\test.txt" | Should -FileContentMatch RUSH
+                "TestDrive:\test.txt" | Should FileContentMatch RUSH
+                "TestDrive:\test.txt" | Should -FileContentMatch RUSH
             }
 
             It "returns false if the file does not contain the specified content" {
-                "$TestDrive\test.txt" | Should Not FileContentMatch slime
-                "$TestDrive\test.txt" | Should -Not -FileContentMatch slime
+                "TestDrive:\test.txt" | Should Not FileContentMatch slime
+                "TestDrive:\test.txt" | Should -Not -FileContentMatch slime
             }
 
             It "returns true if the file contains the specified UTF8 content" {
-                "$TestDrive\test.txt" | Should FileContentMatch "☺"
-                "$TestDrive\test.txt" | Should -FileContentMatch "☺"
+                "TestDrive:\test.txt" | Should FileContentMatch "☺"
+                "TestDrive:\test.txt" | Should -FileContentMatch "☺"
             }
         }
 

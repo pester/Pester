@@ -177,28 +177,29 @@ Describe 'Finishing TestGroup Setup and Teardown tests' {
 }
 
 
-if ($PSVersionTable.PSVersion.Major -ge 3) {
-    $thisTestScriptFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSCommandPath)
+# if ($PSVersionTable.PSVersion.Major -ge 3) {
+#     # TODO: this depends on the old pester internals it would be easier to test in P
+#     $thisTestScriptFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSCommandPath)
 
-    Describe 'Script Blocks and file association (testing automatic variables)' {
-        BeforeEach {
-            $commandPath = $PSCommandPath
-        }
+#     Describe 'Script Blocks and file association (testing automatic variables)' {
+#         BeforeEach {
+#             $commandPath = $PSCommandPath
+#         }
 
-        $beforeEachBlock = InModuleScope Pester {
-            $pester.CurrentTestGroup.BeforeEach[0]
-        }
+#         $beforeEachBlock = InModuleScope Pester {
+#             $pester.CurrentTestGroup.BeforeEach[0]
+#         }
 
-        It 'Creates script block objects associated with the proper file' {
-            $scriptBlockFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($beforeEachBlock.File)
+#         It 'Creates script block objects associated with the proper file' {
+#             $scriptBlockFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($beforeEachBlock.File)
 
-            $scriptBlockFilePath | Should -Be $thisTestScriptFilePath
-        }
+#             $scriptBlockFilePath | Should -Be $thisTestScriptFilePath
+#         }
 
-        It 'Has the correct automatic variable values inside the BeforeEach block' {
-            $commandPath | Should -Be $PSCommandPath
-        }
-    }
-}
+#         It 'Has the correct automatic variable values inside the BeforeEach block' {
+#             $commandPath | Should -Be $PSCommandPath
+#         }
+#     }
+#}
 
 #Testing if failing setup or teardown will fail 'It' is done in the TestsRunningInCleanRunspace.Tests.ps1 file

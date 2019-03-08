@@ -10,6 +10,7 @@ function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switc
     }
     $PesterPath = Get-Module Pester | Select-Object -First 1 -ExpandProperty Path
 
+    $testDrive = (Get-PSDrive TestDrive).Root
     $job = Start-Job {
         param ($PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport, $UseStrictPesterMode)
         Import-Module $PesterPath -Force | Out-Null
@@ -28,7 +29,7 @@ function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switc
 
         Invoke-Pester @params
 
-    } -ArgumentList  $PesterPath, $TestDrive, $ScriptBlock, $GenerateNUnitReport, $UseStrictPesterMode
+    } -ArgumentList  $PesterPath, $testDrive, $ScriptBlock, $GenerateNUnitReport, $UseStrictPesterMode
     if (-not $Verbose) {
         $job | Wait-Job | Out-Null
     }

@@ -1,3 +1,5 @@
+# TODO: enable this
+return
 Set-StrictMode -Version Latest
 
 if ($PSVersionTable.PSVersion.Major -le 2) {

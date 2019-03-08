@@ -141,33 +141,3 @@ function Remove-TestDrive {
         & $SafeCommands['Remove-Variable'] -Scope Global -Name $DriveName -Force
     }
 }
-
-function Setup {
-    <#
-        .SYNOPSIS
-        This command is included in the Pester Mocking framework for backwards compatibility.  You do not need to call it directly.
-    #>
-    param(
-        [switch]$Dir,
-        [switch]$File,
-        $Path,
-        $Content = "",
-        [switch]$PassThru
-    )
-
-    Assert-DescribeInProgress -CommandName Setup
-
-    $TestDriveName = & $SafeCommands['Get-PSDrive'] TestDrive |
-        & $SafeCommands['Select-Object'] -ExpandProperty Root
-
-    if ($Dir) {
-        $item = & $SafeCommands['New-Item'] -Name $Path -Path "${TestDriveName}\" -Type Container -Force
-    }
-    if ($File) {
-        $item = $Content | & $SafeCommands['New-Item'] -Name $Path -Path "${TestDriveName}\" -Type File -Force
-    }
-
-    if ($PassThru) {
-        return $item
-    }
-}

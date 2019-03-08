@@ -20,20 +20,24 @@ Describe "General" {
 $script:drivePath = $null
 
 Describe "TestRegistry scoping" {
-    $script:drivePath = (Get-PSDrive "TestRegistry").Root -replace "HKEY_CURRENT_USER", "HKCU:"
+    BeforeAll {
+        $script:drivePath = (Get-PSDrive "TestRegistry").Root -replace "HKEY_CURRENT_USER", "HKCU:"
 
-    $describeKey = New-Item -Path "TestRegistry:\" -Name "DescribeKey"
-    $describeValue = New-ItemProperty -Path "TestRegistry:\DescribeKey" -Name "DescribeValue" -Value 1
+        $describeKey = New-Item -Path "TestRegistry:\" -Name "DescribeKey"
+        $describeValue = New-ItemProperty -Path "TestRegistry:\DescribeKey" -Name "DescribeValue" -Value 1
 
-    # define the variables here so we can observe
-    # then outside of the Context, but create items within
-    # the context
-    $script:contextKey = $null
-    $script:contextValue = $null
+        # define the variables here so we can observe
+        # then outside of the Context, but create items within
+        # the context
+        $script:contextKey = $null
+        $script:contextValue = $null
+    }
+
     Context "Describe file is available in context" {
-
-        $script:contextKey = New-Item -Path "TestRegistry:\" -Name "ContextKey"
-        $script:contextValue = New-ItemProperty -Path "TestRegistry:\ContextKey" -Name "ContextValue" -Value 2
+        BeforeAll {
+            $script:contextKey = New-Item -Path "TestRegistry:\" -Name "ContextKey"
+            $script:contextValue = New-ItemProperty -Path "TestRegistry:\ContextKey" -Name "ContextValue" -Value 2
+        }
 
         It "Finds the everything that was setup so far" {
             $itKey = New-Item -Path "TestRegistry:\ContextKey" -Name "ItKey"

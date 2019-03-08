@@ -91,8 +91,8 @@ InModuleScope Pester {
         }
 
         It "can handle Exist assertion" {
-            $TestDrive | Should Exist
-            $TestDrive | Should -Exist
+            "TestDrive:" | Should Exist
+            "TestDrive:" | Should -Exist
         }
 
         It "can handle the Match assertion" {
@@ -101,9 +101,9 @@ InModuleScope Pester {
         }
 
         It "can test for file contents" {
-            Setup -File "test.foo" "expected text"
-            "$TestDrive\test.foo" | Should FileContentMatch "expected text"
-            "$TestDrive\test.foo" | Should -FileContentMatch "expected text"
+            "expected text" | Set-Content "TestDrive:\test.foo"
+            "TestDrive:\test.foo" | Should FileContentMatch "expected text"
+            "TestDrive:\test.foo" | Should -FileContentMatch "expected text"
         }
 
         It "ensures all assertion functions provide failure messages" {

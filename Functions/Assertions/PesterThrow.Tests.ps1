@@ -193,7 +193,8 @@ InModuleScope Pester {
             }
 
             It 'returns the correct assertion message when exceptions messages differ' {
-                $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+                $testDrive = (Get-PSDrive TestDrive).Root
+                $testScriptPath = Join-Path $testDrive test.ps1
                 Set-Content -Path $testScriptPath -Value "throw 'error1'"
 
                 # use the real path of the script, because we don't know it beforehand
@@ -204,7 +205,8 @@ InModuleScope Pester {
             }
 
             It 'returns the correct assertion message when reason is specified' {
-                $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+                $testDrive = (Get-PSDrive TestDrive).Root
+                $testScriptPath = Join-Path $testDrive test.ps1
                 Set-Content -Path $testScriptPath -Value "throw 'error1'"
 
                 # use the real path of the script, because we don't know it beforehand
@@ -254,7 +256,8 @@ InModuleScope Pester {
                     )
 
                     # build a script that will throw an error record, and populate it with the actual data
-                    $testScriptPath = Join-Path $TestDrive.FullName test.ps1
+                    $testDrive = (Get-PSDrive TestDrive).Root
+                    $testScriptPath = Join-Path $testDrive test.ps1
                     Set-Content -Path $testScriptPath -Value "
                         `$errorRecord = New-Object System.Management.Automation.ErrorRecord(
                             (New-Object $($actualType.FullName) '$actualMess'),

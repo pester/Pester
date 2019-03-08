@@ -1,7 +1,7 @@
 function f () { "real" }
 Describe "d" {
 
-    BeforeAll () {}
+    BeforeAll {}
 
     It "i" {
         Mock f { "mock" }

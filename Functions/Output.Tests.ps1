@@ -101,22 +101,23 @@ Describe 'ConvertTo-PesterResult' {
         $pesterResult.FailureMessage | Should -Be $errorRecord.Exception.Message
     }
     Context 'failed tests in another file' {
-        $errorRecord = $null
+        BeforeAll {
+            $errorRecord = $null
 
-        $testPath = Join-Path $TestDrive test.ps1
-        $escapedTestPath = [regex]::Escape($testPath)
+            $testPath = "TestDrive:\test.ps1"
+            $escapedTestPath = [regex]::Escape($testPath)
 
-        Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two'"
+            Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two'"
 
-        try {
-            & $testPath
+            try {
+                & $testPath
+            }
+            catch {
+                $errorRecord = $_
+            }
+
+            $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
         }
-        catch {
-            $errorRecord = $_
-        }
-
-        $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
-
 
         It 'records the correct stack line number' {
             $result.StackTrace | should -match "${escapedTestPath}: line 2"
@@ -192,7 +193,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
     }
 
     Describe ConvertTo-FailureLines {
-        $testPath = Join-Path $TestDrive test.ps1
+        $testPath = "TestDrive:\test.ps1"
         $escapedTestPath = [regex]::Escape($testPath)
         It 'produces correct message lines.' {
             try {
@@ -264,39 +265,37 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         #             }
         #         }
         Context 'exception thrown in nested functions in file' {
-            Set-Content -Path $testPath -Value @'
-                function f1 {
-                    throw 'f1 message'
-                }
-                function f2 {
-                    f1
-                }
-                f2
+            BeforeAll {
+                Set-Content -Path $testPath -Value @'
+                    function f1 {
+                        throw 'f1 message'
+                    }
+                    function f2 {
+                        f1
+                    }
+                    f2
 '@
 
-            try {
-                & $testPath
-            }
-            catch {
-                $e = $_
-            }
+                try {
+                    & $testPath
+                }
+                catch {
+                    $e = $_
+                }
 
-            $r = $e | ConvertTo-FailureLines
+                $r = $e | ConvertTo-FailureLines
+            }
 
             It 'produces correct message lines.' {
                 $r.Message[0] | Should -be 'RuntimeException: f1 message'
             }
-            if ( $e | Get-Member -Name ScriptStackTrace ) {
-                if ((GetPesterOS) -ne 'Windows') {
-                    It 'produces correct trace lines.' {
-                        $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
-                        $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
-                        $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
-                        $r.Trace.Count | Should -be 4
-                    }
-                }
-                else {
-                    It 'produces correct trace lines.' {
+
+            # these ifs inside of the it blocks are remnant of an outer if that
+            # contained both tests, but was dependent on the result of the setup
+            # so during discovery it failed, this is a quickfix
+            if ((GetPesterOS) -ne 'Windows') {
+                It 'produces correct trace lines.' {
+                    if ( $e | Get-Member -Name ScriptStackTrace ) {
                         $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
                         $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
@@ -306,52 +305,60 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
             else {
                 It 'produces correct trace lines.' {
+                    if ( $e | Get-Member -Name ScriptStackTrace ) {
+                        $r.Trace[0] | Should -be "at f1, $testPath`: line 2"
+                        $r.Trace[1] | Should -be "at f2, $testPath`: line 5"
+                        $r.Trace[2] | Should -be "at <ScriptBlock>, $testPath`: line 7"
+                        $r.Trace.Count | Should -be 4
+                    }
+                }
+            }
+
+            It 'produces correct trace lines.' {
+                if (-not ($e | Get-Member -Name ScriptStackTrace )) {
                     $r.Trace[0] | Should -be "at line: 2 in $testPath"
                     $r.Trace.Count | Should -be 1
                 }
             }
         }
         Context 'nested exceptions thrown in file' {
-            Set-Content -Path $testPath -Value @'
-                try
-                {
-                    throw New-Object System.ArgumentException(
-                        'inner message',
-                        'param_name'
-                    )
-                }
-                catch
-                {
-                    throw New-Object System.FormatException(
-                        'outer message',
-                        $_.Exception
-                    )
-                }
+            BeforeAll {
+                Set-Content -Path $testPath -Value @'
+                    try
+                    {
+                        throw New-Object System.ArgumentException(
+                            'inner message',
+                            'param_name'
+                        )
+                    }
+                    catch
+                    {
+                        throw New-Object System.FormatException(
+                            'outer message',
+                            $_.Exception
+                        )
+                    }
 '@
 
-            try {
-                & $testPath
-            }
-            catch {
-                $e = $_
-            }
+                try {
+                    & $testPath
+                }
+                catch {
+                    $e = $_
+                }
 
-            $r = $e | ConvertTo-FailureLines
+                $r = $e | ConvertTo-FailureLines
+            }
 
             It 'produces correct message lines.' {
                 $r.Message[0] | Should -be 'ArgumentException: inner message'
                 $r.Message[1] | Should -be 'Parameter name: param_name'
                 $r.Message[2] | Should -be 'FormatException: outer message'
             }
-            if ( $e | Get-Member -Name ScriptStackTrace ) {
-                if ((GetPesterOS) -ne 'Windows') {
-                    It 'produces correct trace line.' {
-                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
-                        $r.Trace.Count | Should -be 2
-                    }
-                }
-                else {
-                    It 'produces correct trace line.' {
+
+            if ((GetPesterOS) -ne 'Windows') {
+                It 'produces correct trace line.' {
+                    if ( $e | Get-Member -Name ScriptStackTrace ) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
                         $r.Trace.Count | Should -be 2
                     }
@@ -359,6 +366,15 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
             else {
                 It 'produces correct trace line.' {
+                    if ( $e | Get-Member -Name ScriptStackTrace ) {
+                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace.Count | Should -be 2
+                    }
+                }
+            }
+
+            It 'produces correct trace line.' {
+                if (-not ($e | Get-Member -Name ScriptStackTrace )) {
                     $r.Trace[0] | Should -be "at line: 10 in $testPath"
                     $r.Trace.Count | Should -be 1
                 }

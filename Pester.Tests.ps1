@@ -203,43 +203,45 @@ Describe 'Style rules' -Tag StyleRules {
 
 InModuleScope Pester {
     Describe 'ResolveTestScripts' {
-        Setup -File SomeFile.ps1
-        Setup -File SomeFile.Tests.ps1
-        Setup -File SomeOtherFile.ps1
-        Setup -File SomeOtherFile.Tests.ps1
+        BeforeAll {
+            New-Item -ItemType File 'TestDrive:\SomeFile.ps1'
+            New-Item -ItemType File 'TestDrive:\SomeFile.Tests.ps1'
+            New-Item -ItemType File 'TestDrive:\SomeOtherFile.ps1'
+            New-Item -ItemType File 'TestDrive:\SomeOtherFile.Tests.ps1'
+        }
 
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
-            $result = @(ResolveTestScripts (Join-Path $TestDrive 'SomeOtherFile.ps1'))
+            $result = @(ResolveTestScripts 'TestDrive:\SomeOtherFile.ps1')
             $result.Count | Should -Be 1
-            $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeOtherFile.ps1')
+            $result[0].Path | Should -Be 'TestDrive:\SomeOtherFile.ps1'
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
-            $result = @(ResolveTestScripts (Join-Path $TestDrive '*.ps1'))
+            $result = @(ResolveTestScripts 'TestDrive:\*.ps1')
             $result.Count | Should -Be 2
 
             $paths = $result | Select-Object -ExpandProperty Path
 
-            ($paths -contains (Join-Path $TestDrive 'SomeFile.Tests.ps1')) | Should -Be $true
-            ($paths -contains (Join-Path $TestDrive 'SomeOtherFile.Tests.ps1')) | Should -Be $true
+            ($paths -contains 'TestDrive:\SomeFile.Tests.ps1') | Should -Be $true
+            ($paths -contains 'TestDrive:\SomeOtherFile.Tests.ps1') | Should -Be $true
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
-            $result = @(ResolveTestScripts $TestDrive)
+            $result = @(ResolveTestScripts 'TestDrive:\')
 
             $result.Count | Should -Be 2
 
             $paths = $result | Select-Object -ExpandProperty Path
 
-            ($paths -contains ( Join-Path $TestDrive 'SomeFile.Tests.ps1')) | Should -Be $true
-            ($paths -contains ( Join-Path $TestDrive 'SomeOtherFile.Tests.ps1')) | Should -Be $true
+            ($paths -contains 'TestDrive:\SomeFile.Tests.ps1') | Should -Be $true
+            ($paths -contains 'TestDrive:\SomeOtherFile.Tests.ps1') | Should -Be $true
         }
 
         It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
-            $result = @(ResolveTestScripts (Join-Path $TestDrive 'SomeFile.ps1'))
+            $result = @(ResolveTestScripts 'TestDrive:\SomeFile.ps1')
 
             $result.Count | Should -Be 1
-            $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+            $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
             , $result[0].Arguments | Should -Not -Be $null
             , $result[0].Parameters | Should -Not -Be $null
@@ -253,38 +255,38 @@ InModuleScope Pester {
 
         Context 'Passing in Dictionaries instead of Strings' {
             It 'Allows the use of a "p" key instead of "Path"' {
-                $result = @(ResolveTestScripts @{ p = (Join-Path $TestDrive 'SomeFile.ps1') })
+                $result = @(ResolveTestScripts @{ p = 'TestDrive:\SomeFile.ps1' })
 
                 $result.Count | Should -Be 1
-                $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
             }
 
             $testArgs = @('I am a string')
             It 'Allows the use of an "Arguments" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Arguments = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; Arguments = $testArgs })
 
                 $result.Count | Should -Be 1
-                $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
                 $result[0].Arguments.Count | Should -Be 1
                 $result[0].Arguments[0] | Should -Be 'I am a string'
             }
 
             It 'Allows the use of an "args" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); args = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; args = $testArgs })
 
                 $result.Count | Should -Be 1
-                $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
                 $result[0].Arguments.Count | Should -Be 1
                 $result[0].Arguments[0] | Should -Be 'I am a string'
             }
 
             It 'Allows the use of an "a" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); a = $testArgs })
+                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; a = $testArgs })
 
                 $result.Count | Should -Be 1
-                $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
                 $result[0].Arguments.Count | Should -Be 1
                 $result[0].Arguments[0] | Should -Be 'I am a string'
@@ -292,20 +294,20 @@ InModuleScope Pester {
 
             $testParams = @{ MyKey = 'MyValue' }
             It 'Allows the use of a "Parameters" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); Parameters = $testParams })
+                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; Parameters = $testParams })
 
                 $result.Count | Should -Be 1
-                $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
                 $result[0].Parameters.PSBase.Count | Should -Be 1
                 $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
             }
 
             It 'Allows the use of a "params" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = (Join-Path $TestDrive 'SomeFile.ps1'); params = $testParams })
+                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; params = $testParams })
 
                 $result.Count | Should -Be 1
-                $result[0].Path | Should -Be (Join-Path $TestDrive 'SomeFile.ps1')
+                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
                 $result[0].Parameters.PSBase.Count | Should -Be 1
                 $result[0].Parameters['MyKey'] | Should -Be 'MyValue'

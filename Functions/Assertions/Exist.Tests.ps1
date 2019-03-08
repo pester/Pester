@@ -3,13 +3,13 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -Exist" {
         It "returns true for paths that exist" {
-            $TestDrive | Should Exist
-            $TestDrive | Should -Exist
+            "TestDrive:\" | Should Exist
+            "TestDrive:\" | Should -Exist
         }
 
         It "returns false for paths do not exist" {
-            "$TestDrive\nonexistant" | Should Not Exist
-            "$TestDrive\nonexistant" | Should -Not -Exist
+            "TestDrive:\nonexistant" | Should Not Exist
+            "TestDrive:\nonexistant" | Should -Not -Exist
         }
 
         It 'works for path with escaped [ ] characters' {
