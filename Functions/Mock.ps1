@@ -1615,9 +1615,10 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            $ast = $Block.Ast
+            $ast = $Block.Ast.EndBlock
             $blockText = $ast.Extent.Text
-            $variables = $Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true)
+            $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
+            [array]::Reverse($variables)
 
             foreach ($var in $variables) {
                 $varName = $var.VariablePath.UserPath
@@ -1625,15 +1626,14 @@ function New-BlockWithoutParameterAliases {
 
                 foreach ($param in $params) {
                     if ($param.Aliases -contains $varName) {
-                        $startIndex = $var.Extent.StartOffset - $block.Ast.Extent.StartOffset + 1
+                        $startIndex = $var.Extent.StartOffset - $ast.Extent.StartOffset + 1 # move one position after the dollar sign
 
                         $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
+
+                        break # It is safe to stop checking for further params here, since aliases cannot be shared by parameters
                     }
                 }
             }
-
-            # Remove top-level brackets {}
-            $blockText = $blockText.Remove($blockText.Length - 1, 1).Remove(0, 1)
 
             $Block = [scriptblock]::Create($blockText)
         }

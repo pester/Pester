@@ -2103,7 +2103,15 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 It 'returns default mock' {
                     Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
                 }
+            }
 
+            Context "Alias rewriting works when alias and parameter name differ in length" {
+
+                Mock New-Item { return "nic" } -ParameterFilter { $Type -ne $null -and $Type.StartsWith("nic") }
+
+                It 'calls the mock' {
+                    New-Item -Path 'Hello' -Type "nic" | Should -Be "nic"
+                }
             }
 
             if ($PSVersionTable.PSVersion -ge 5.1) {
@@ -2121,7 +2129,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
 
         Context 'Assert-MockCalled' {
-            It "Uses parameter aliases in Parameter-Filter" {
+            It "Uses parameter aliases in ParameterFilter" {
                 function f { Get-Content -Path 'temp.txt' -Tail 10 }
                 Mock Get-Content { }
 
@@ -2206,4 +2214,9 @@ Describe "Mock definition output" {
         $output = Mock a { }
         $output | Should -Be $null
     }
+}
+
+Describe 'Mocking using ParameterFilter with scriptblock' {
+    $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
+    Mock -CommandName 'Test-Path' -ParameterFilter $filter
 }
