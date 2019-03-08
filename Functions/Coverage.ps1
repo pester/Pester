@@ -16,8 +16,7 @@ if ($PSVersionTable.PSVersion.Major -le 2) {
 function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
-        [object[]] $CodeCoverage,
-        [object] $PesterState
+        [object[]] $CodeCoverage
     )
 
     $coverageInfo =
@@ -25,11 +24,12 @@ function Enter-CoverageAnalysis {
         Get-CoverageInfoFromUserInput -InputObject $object
     }
 
-    $PesterState.CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
+    #TODO: where do I return this to to store it??
+    $CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
 }
 
 function Exit-CoverageAnalysis {
-    param ([object] $PesterState)
+    param ([object] $CommandCoverage)
 
     & $SafeCommands['Set-StrictMode'] -Off
 
@@ -38,7 +38,7 @@ function Exit-CoverageAnalysis {
     # to only get those that are not $null
     # (like if we did $breakpoints | where {$_ -ne $null})
     # so DON'T change this.
-    $breakpoints = @($PesterState.CommandCoverage.Breakpoint) -ne $null
+    $breakpoints = @($CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0) {
         & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
     }
@@ -480,7 +480,7 @@ function Get-CoverageHitCommands {
 }
 
 function Get-CoverageReport {
-    param ([object] $PesterState)
+    param ([object] $CommandCoverage)
 
     $properties = @(
         'File'
@@ -494,12 +494,12 @@ function Get-CoverageReport {
         'Command'
         @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
     )
-    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] $properties)
-    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $PesterState.CommandCoverage | & $SafeCommands['Select-Object'] $properties)
-    $analyzedFiles = @($PesterState.CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $CommandCoverage | & $SafeCommands['Select-Object'] $properties)
+    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $CommandCoverage | & $SafeCommands['Select-Object'] $properties)
+    $analyzedFiles = @($CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
 
     [pscustomobject] @{
-        NumberOfCommandsAnalyzed = $PesterState.CommandCoverage.Count
+        NumberOfCommandsAnalyzed = $CommandCoverage.Count
         NumberOfFilesAnalyzed    = $analyzedFiles.Count
         NumberOfCommandsExecuted = $hitCommands.Count
         NumberOfCommandsMissed   = $missedCommands.Count
@@ -572,9 +572,11 @@ function Normalize-Path {
 function Get-JaCoCoReportXml {
     param (
         [parameter(Mandatory = $true)]
-        $PesterState,
+        $CommandCoverage,
         [parameter(Mandatory = $true)]
-        [object] $CoverageReport
+        [object] $CoverageReport,
+        [parameter(Mandatory = $true)]
+        [long] $TotalMilliseconds
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
@@ -584,9 +586,9 @@ function Get-JaCoCoReportXml {
     $now = & $SafeCommands['Get-Date']
     $nineteenSeventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
     [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
-    [long] $startTime = [math]::Floor($endTime - $PesterState.Time.TotalMilliseconds)
+    [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
-    $folderGroups = $PesterState.CommandCoverage | & $SafeCommands["Group-Object"] -Property {
+    $folderGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property {
         & $SafeCommands["Split-Path"] $_.File -Parent
     }
 
