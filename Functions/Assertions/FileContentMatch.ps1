@@ -47,7 +47,7 @@ This test fails, because "I am a file." != "I.am.a.file"
         }
     }
 
-    return[PSCustomObject] @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }
@@ -61,6 +61,6 @@ function NotShouldFileContentMatchFailureMessage($ActualValue, $ExpectedContent,
     return "Expected $(Format-Nicely $ExpectedContent) to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
 }
 
-Add-AssertionOperator -Name         FileContentMatch `
+Add-ShouldOperator -Name         FileContentMatch `
     -InternalName Should-FileContentMatch `
     -Test         ${function:Should-FileContentMatch}

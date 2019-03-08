@@ -32,7 +32,7 @@ It does not throw an error, so the test passes.
     $actualExceptionLine = $null
 
     if ($null -eq $ActualValue) {
-        throw ([ArgumentNullException] "ActualValue", "Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
+        throw [ArgumentNullException] "Input is not a ScriptBlock. Input to '-Throw' and '-Not -Throw' must be enclosed in curly braces."
     }
 
     try {
@@ -167,6 +167,6 @@ function NotShouldThrowFailureMessage {
     # to make the should tests happy, for now
 }
 
-Add-AssertionOperator -Name         Throw `
+Add-ShouldOperator -Name         Throw `
     -InternalName Should-Throw `
     -Test         ${function:Should-Throw}

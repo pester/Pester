@@ -33,7 +33,7 @@ Because the RegEx pattern fails to match, this test fails.
         }
     }
 
-    return[PSCustomObject] @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }
@@ -47,6 +47,6 @@ function NotShouldFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedC
     return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
-Add-AssertionOperator -Name         FileContentMatchExactly `
+Add-ShouldOperator -Name         FileContentMatchExactly `
     -InternalName Should-FileContentMatchExactly `
     -Test         ${function:Should-FileContentMatchExactly}

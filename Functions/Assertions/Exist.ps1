@@ -29,13 +29,13 @@ returns $false because the file was removed, and fails the test.
         }
     }
 
-    return[PSCustomObject] @{
+    return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
     }
 }
 
-Add-AssertionOperator -Name         Exist `
+Add-ShouldOperator -Name         Exist `
     -InternalName Should-Exist `
     -Test         ${function:Should-Exist}
 

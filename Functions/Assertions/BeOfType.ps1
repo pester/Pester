@@ -63,7 +63,7 @@ This test will fail, as FileInfo is not a base class of DirectoryInfo.
 }
 
 
-Add-AssertionOperator -Name         BeOfType `
+Add-ShouldOperator -Name         BeOfType `
     -InternalName Should-BeOfType `
     -Test         ${function:Should-BeOfType} `
     -Alias        'HaveType'

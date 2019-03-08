@@ -33,7 +33,7 @@ This test passes, as 1 exists in the provided collection.
     }
 }
 
-Add-AssertionOperator -Name         BeIn `
+Add-ShouldOperator -Name         BeIn `
     -InternalName Should-BeIn `
     -Test         ${function:Should-BeIn}
 

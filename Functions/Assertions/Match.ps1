@@ -50,6 +50,6 @@ function NotShouldMatchFailureMessage($ActualValue, $RegularExpression, $Because
     return "Expected regular expression $(Format-Nicely $RegularExpression) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
-Add-AssertionOperator -Name         Match `
+Add-ShouldOperator -Name         Match `
     -InternalName Should-Match `
     -Test         ${function:Should-Match}

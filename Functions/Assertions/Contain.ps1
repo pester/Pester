@@ -33,7 +33,7 @@ This test passes, as 1 exists in the provided collection.
     }
 }
 
-Add-AssertionOperator -Name         Contain `
+Add-ShouldOperator -Name         Contain `
     -InternalName Should-Contain `
     -Test         ${function:Should-Contain} `
     -SupportsArrayInput

@@ -339,9 +339,9 @@ Describe 'Assertion operators' {
         function SameNameAndScript {
             $true
         }
-        Add-AssertionOperator -Name SameNameAndScript -Test $function:SameNameAndScript
+        Add-ShouldOperator -Name SameNameAndScript -Test $function:SameNameAndScript
 
-        { Add-AssertionOperator -Name SameNameAndScript -Test {
+        { Add-ShouldOperator -Name SameNameAndScript -Test {
             $true
         } } | Should -Not -Throw
     }
@@ -349,9 +349,9 @@ Describe 'Assertion operators' {
         function SameNameAndScriptAndAlias {
             $true
         }
-        Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
+        Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
 
-        { Add-AssertionOperator -Name SameNameAndScriptAndAlias -Test {
+        { Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test {
             $true
         } -Alias SameAlias } | Should -Not -Throw
     }
@@ -359,9 +359,9 @@ Describe 'Assertion operators' {
         function MultipleAlias {
             $true
         }
-        Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
+        Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
 
-        {Add-AssertionOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
+        {Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing name' {
         function DifferentScriptBlockA {
@@ -370,9 +370,9 @@ Describe 'Assertion operators' {
         function DifferentScriptBlockB {
             $false
         }
-        Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockA
+        Add-ShouldOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockA
 
-        { Add-AssertionOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
+        { Add-ShouldOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing alias' {
         function DifferentAliasA {
@@ -381,9 +381,9 @@ Describe 'Assertion operators' {
         function DifferentAliasB {
             $true
         }
-        Add-AssertionOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
+        Add-ShouldOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
 
-        { Add-AssertionOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
+        { Add-ShouldOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
     }
 }
 

@@ -8,7 +8,7 @@ function Get-ShouldOperator {
     their aliases, and examples to help you craft the tests you need.
 
     Get-ShouldOperator will list all available operators,
-    including any registered by the user with Add-AssertionOperator.
+    including any registered by the user with Add-ShouldOperator.
 
     .NOTES
     Pester uses dynamic parameters to populate Should arguments.
@@ -34,7 +34,7 @@ function Get-ShouldOperator {
 
     # Use a dynamic parameter to create a dynamic ValidateSet
     # Define parameter -Name and tab-complete all current values of $AssertionOperators
-    # Discovers included assertions (-Be, -Not) and any registered by the user via Add-AssertionOperator
+    # Discovers included assertions (-Be, -Not) and any registered by the user via Add-ShouldOperator
     # https://martin77s.wordpress.com/2014/06/09/dynamic-validateset-in-a-dynamic-parameter/
     DynamicParam {
         $ParameterName = 'Name'

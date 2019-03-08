@@ -42,7 +42,7 @@ This test will fail, as the first string does not match the expected value.
     }
 }
 
-Add-AssertionOperator -Name         BeLike `
+Add-ShouldOperator -Name         BeLike `
     -InternalName Should-BeLike `
     -Test         ${function:Should-BeLike}
 

@@ -55,12 +55,12 @@ This test also passes, as PowerShell evaluates `10 -le 10` as true.
     }
 }
 
-Add-AssertionOperator -Name         BeGreaterThan `
+Add-ShouldOperator -Name         BeGreaterThan `
     -InternalName Should-BeGreaterThan `
     -Test         ${function:Should-BeGreaterThan} `
     -Alias        'GT'
 
-Add-AssertionOperator -Name         BeLessOrEqual `
+Add-ShouldOperator -Name         BeLessOrEqual `
     -InternalName Should-BeLessOrEqual `
     -Test         ${function:Should-BeLessOrEqual} `
     -Alias        'LE'

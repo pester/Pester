@@ -9,7 +9,7 @@ InModuleScope Pester {
                 $OpCount = $AssertionOperators.Count
 
                 $get1 = Get-ShouldOperator
-                Add-AssertionOperator -Name 'test' -Test {'test'}
+                Add-ShouldOperator -Name 'test' -Test {'test'}
                 $get2 = Get-ShouldOperator
             }
 

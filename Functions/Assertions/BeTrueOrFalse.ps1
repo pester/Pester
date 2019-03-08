@@ -69,11 +69,11 @@ This test passes as a "falsy" result.
 }
 
 
-Add-AssertionOperator -Name         BeTrue `
+Add-ShouldOperator -Name         BeTrue `
     -InternalName Should-BeTrue `
     -Test         ${function:Should-BeTrue}
 
-Add-AssertionOperator -Name         BeFalse `
+Add-ShouldOperator -Name         BeFalse `
     -InternalName Should-BeFalse `
     -Test         ${function:Should-BeFalse}
 

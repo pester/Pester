@@ -31,10 +31,10 @@ function Assert-ValidAssertionAlias {
     }
 }
 
-function Add-AssertionOperator {
+function Add-ShouldOperator {
     <#
 .SYNOPSIS
-    Register an Assertion Operator with Pester
+    Register a Should Operator with Pester
 .DESCRIPTION
     This function allows you to create custom Should assertions.
 .EXAMPLE
