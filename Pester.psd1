@@ -35,7 +35,6 @@
         'Mock'
         'Assert-MockCalled'
         'Assert-VerifiableMock'
-        'New-Fixture'
         'Invoke-Pester'
         'In'
         'InModuleScope'
