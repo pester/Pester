@@ -863,7 +863,7 @@ i {
                     }
                 }) -Plugin $p
 
-            # $container.OneTimeBlockSetup | Verify-Equal 1
+            $container.OneTimeBlockSetup | Verify-Equal 1
             $container.EachBlockSetup | Verify-Equal 2
 
             $container.OneTimeTestSetup | Verify-Equal 2
@@ -873,7 +873,7 @@ i {
             $container.OneTimeTestTeardown | Verify-Equal 2
 
             $container.EachBlockTeardown | Verify-Equal 2
-            # $container.OneTimeBlockTeardown | Verify-Equal 1
+            $container.OneTimeBlockTeardown | Verify-Equal 1
         }
 
         t "Plugin has access to test info" {
@@ -1288,7 +1288,7 @@ i {
 
             $actual.Blocks[0].Blocks[0].Passed | Verify-False
             $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
-            $actual.Blocks[0].Blocks[0].Executed | Verify-True
+            $actual.Blocks[0].Blocks[0].Executed | Verify-False
 
             $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
             $actual.Blocks[0].Blocks[0].Tests[0].ShouldRun | Verify-True

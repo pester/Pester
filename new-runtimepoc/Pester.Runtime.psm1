@@ -169,8 +169,6 @@ function New-Block {
     }
 
     Set-CurrentBlock -Block $block
-    $block.ExecutedAt = [DateTime]::Now
-    $block.Executed = $true
     try {
         if (Is-Discovery) {
             Write-PesterDebugMessage -Scope Discovery "Discovering in body of block $Name"
@@ -182,6 +180,10 @@ function New-Block {
                 Write-PesterDebugMessage -Scope Runtime "Block is excluded from run, returning"
                 return
             }
+
+            $block.ExecutedAt = [DateTime]::Now
+            $block.Executed = $true
+
             Write-PesterDebugMessage -Scope Runtime "Executing body of block $Name"
 
             # TODO: no callbacks are provided because we are not transitioning between any states,
@@ -324,6 +326,9 @@ function New-Test {
                 return
             }
 
+            $test.ExecutedAt = [DateTime]::Now
+            $test.Executed = $true
+
             # TODO: overwrite the data captured during discovery with the data,
             # captured during execution, to make time sensitive data closer to the execution
             # this should be a good choice because even though the data should not generally change
@@ -358,8 +363,6 @@ function New-Test {
             }
 
             if ($frameworkSetupResult.Success) {
-                $test.ExecutedAt = [DateTime]::Now
-                $test.Executed = $true
                 # invokes the body of the test
                 $testInfo = $test | &$SafeCommands['Select-Object'] -Property Name, Path
                 # user provided data are merged with Pester provided context

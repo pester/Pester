@@ -718,7 +718,7 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers  -Plugin $plugins -SessionState $sessionState -Filter $filter
+            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -SessionState $sessionState -Filter $filter
             $legacyResult = Get-LegacyResult $r
             Write-PesterReport $legacyResult
 
