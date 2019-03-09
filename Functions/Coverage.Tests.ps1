@@ -1,6 +1,5 @@
 Set-StrictMode -Version Latest
-# TODO: finish this
-return
+
 if ($PSVersionTable.PSVersion.Major -le 2) {
     return
 }
@@ -84,8 +83,8 @@ InModuleScope Pester {
                 # Before that, let's just create equivalent commands to above class with exact same line numbers
                 Add-Content -Path $testScriptPath -Value @'
 
-                #class MyClass
-                #{
+                class MyClass
+                {
                     function MyClass
                     {
                         'I am the constructor.'
@@ -100,7 +99,7 @@ InModuleScope Pester {
                     {
                         'I am method two. I never get called.'
                     }
-                #}
+                }
 
                 MyClass
                 MethodOne
@@ -129,17 +128,15 @@ InModuleScope Pester {
 
         Context 'Entire file' {
             BeforeAll {
-                $testState = New-PesterState -Path $root
-
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
-                Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path -PesterState $testState
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path
 
-                $testState.CommandCoverage.Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
+                $breakpoints.Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
 
                 $null = & $testScriptPath
                 $null = & $testScript2Path
                 $null = & $testScript3Path
-                $coverageReport = Get-CoverageReport -PesterState $testState
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
             }
 
             It 'Reports the proper number of executed commands' {
@@ -193,7 +190,7 @@ InModuleScope Pester {
             }
 
             It 'JaCoCo report must be correct' {
-                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -PesterState $testState -CoverageReport $coverageReport
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*', 'Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"', 'start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"', 'dump=""'
@@ -334,19 +331,17 @@ InModuleScope Pester {
             }
 
             AfterAll {
-                Exit-CoverageAnalysis -PesterState $testState
+                Exit-CoverageAnalysis -CommandCoverage $breakpoints
             }
         }
 
         Context 'Single function with missed commands' {
             BeforeAll {
-                $testState = New-PesterState -Path $root
-
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionTwo'} -PesterState $testState
-                $testState.CommandCoverage.Count | Should -Be 1 -Because "it has the proper number of breakpoints defined"
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionTwo'}
+                $breakpoints.Count | Should -Be 1 -Because "it has the proper number of breakpoints defined"
 
                 $null = & $testScriptPath
-                $coverageReport = Get-CoverageReport -PesterState $testState
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
             }
 
             It 'Reports the proper number of executed commands' {
@@ -370,20 +365,19 @@ InModuleScope Pester {
             }
 
             AfterAll {
-                Exit-CoverageAnalysis -PesterState $testState
+                Exit-CoverageAnalysis -CommandCoverage $breakpoints
             }
         }
 
         Context 'Single function with no missed commands' {
             BeforeAll {
-                $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionOne'} -PesterState $testState
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionOne'}
 
-                $testState.CommandCoverage.Count | Should -Be 9 -Because "it has the proper number of breakpoints defined"
+                $breakpoints.Count | Should -Be 9 -Because "it has the proper number of breakpoints defined"
 
                 $null = & $testScriptPath
-                $coverageReport = Get-CoverageReport -PesterState $testState
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
             }
 
             It 'Reports the proper number of executed commands' {
@@ -407,20 +401,19 @@ InModuleScope Pester {
             }
 
             AfterAll {
-                Exit-CoverageAnalysis -PesterState $testState
+                Exit-CoverageAnalysis -CommandCoverage $breakpoints
             }
         }
 
         Context 'Range of lines' {
             BeforeAll {
-                $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; StartLine = 11; EndLine = 12 } -PesterState $testState
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; StartLine = 11; EndLine = 12 }
 
-                $testState.CommandCoverage.Count | Should -Be 2 -Because 'it has the proper number of breakpoints defined'
+                $breakpoints.Count | Should -Be 2 -Because 'it has the proper number of breakpoints defined'
 
                 $null = & $testScriptPath
-                $coverageReport = Get-CoverageReport -PesterState $testState
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
             }
 
             It 'Reports the proper number of executed commands' {
@@ -444,20 +437,19 @@ InModuleScope Pester {
             }
 
             AfterAll {
-                Exit-CoverageAnalysis -PesterState $testState
+                Exit-CoverageAnalysis -CommandCoverage $breakpoints
             }
         }
 
         Context 'Function wildcard resolution' {
             BeforeAll {
-                $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' } -PesterState $testState
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' }
 
-                $testState.CommandCoverage.Count | Should -Be 13 -Because 'it has the proper number of breakpoints defined'
+                $breakpoints.Count | Should -Be 13 -Because 'it has the proper number of breakpoints defined'
 
                 $null = & $testScriptPath
-                $coverageReport = Get-CoverageReport -PesterState $testState
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
             }
 
             It 'Reports the proper number of executed commands' {
@@ -490,7 +482,7 @@ InModuleScope Pester {
             }
 
             AfterAll {
-                Exit-CoverageAnalysis -PesterState $testState
+                Exit-CoverageAnalysis -CommandCoverage $breakpoints
             }
         }
 
@@ -498,14 +490,13 @@ InModuleScope Pester {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             Context 'Single class' {
                 BeforeAll {
-                    $testState = New-PesterState -Path $root
 
-                    Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'} -PesterState $testState
+                    $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'}
 
-                    $testState.CommandCoverage.Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
+                    $breakpoints.Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
-                    $coverageReport = Get-CoverageReport -PesterState $testState
+                    $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 }
 
                 It 'Reports the proper number of executed commands' {
@@ -525,20 +516,19 @@ InModuleScope Pester {
                 }
 
                 AfterAll {
-                    Exit-CoverageAnalysis -PesterState $testState
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
                 }
             }
 
             Context 'Class wildcard resolution' {
                 BeforeAll {
-                    $testState = New-PesterState -Path $root
 
-                    Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*'} -PesterState $testState
+                    $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*'}
 
-                    $testState.CommandCoverage.Count | Should -Be 3 'it has the proper number of breakpoints defined'
+                    $breakpoints.Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
-                    $coverageReport = Get-CoverageReport -PesterState $testState
+                    $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 }
 
                 It 'Reports the proper number of executed commands' {
@@ -558,20 +548,19 @@ InModuleScope Pester {
                 }
 
                 AfterAll {
-                    Exit-CoverageAnalysis -PesterState $testState
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
                 }
             }
 
             Context 'Class and function filter' {
                 BeforeAll {
-                    $testState = New-PesterState -Path $root
 
-                    Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo'} -PesterState $testState
+                    $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo'}
 
-                    $testState.CommandCoverage.Count | Should -Be 1 -Because 'it has the proper number of breakpoints defined'
+                    $breakpoints.Count | Should -Be 1 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
-                    $coverageReport = Get-CoverageReport -PesterState $testState
+                    $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 }
 
                 It 'Reports the proper number of executed commands' {
@@ -591,21 +580,20 @@ InModuleScope Pester {
                 }
 
                 AfterAll {
-                    Exit-CoverageAnalysis -PesterState $testState
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
                 }
             }
         }
         else {
             Context 'Single class when not supported' {
                 BeforeAll {
-                    $testState = New-PesterState -Path $root
 
-                    Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'} -PesterState $testState
+                    $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'}
 
-                    $testState.CommandCoverage.Count | Should -Be 0 -Because 'it has the proper number of breakpoints defined'
+                    $breakpoints.Count | Should -Be 0 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
-                    $coverageReport = Get-CoverageReport -PesterState $testState
+                    $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 }
 
                 It 'Reports the proper number of executed commands' {
@@ -625,217 +613,216 @@ InModuleScope Pester {
                 }
 
                 AfterAll {
-                    Exit-CoverageAnalysis -PesterState $testState
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
                 }
             }
         }
     }
 
-    Describe 'Path resolution for test files' {
-        BeforeAll {
-            $root = (Get-PSDrive TestDrive).Root
+#     Describe 'Path resolution for test files' {
+#         BeforeAll {
+#             $root = (Get-PSDrive TestDrive).Root
 
-            $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.ps1) -ItemType File -ErrorAction SilentlyContinue
+#             $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.ps1) -ItemType File -ErrorAction SilentlyContinue
 
-            $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
+#             $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
 
-            $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
-        }
+#             $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
+#         }
 
-        Context 'Using Path-input (auto-detect)' {
-            It 'Excludes test files by default when using wildcard path' {
-                $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
+#         Context 'Using Path-input (auto-detect)' {
+#             It 'Excludes test files by default when using wildcard path' {
+#                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
 
-                $PesterTests = @($coverageInfo |
-                        Select-Object -ExpandProperty Path |
-                        Where-Object { $_ -match '\.tests.ps1$' })
+#                 $PesterTests = @($coverageInfo |
+#                         Select-Object -ExpandProperty Path |
+#                         Where-Object { $_ -match '\.tests.ps1$' })
 
-                $PesterTests | Should -BeNullOrEmpty
-            }
+#                 $PesterTests | Should -BeNullOrEmpty
+#             }
 
-            It 'Includes test files when specified in wildcard path' {
-                $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *.tests.ps1)"
+#             It 'Includes test files when specified in wildcard path' {
+#                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *.tests.ps1)"
 
-                $PesterTests = @($coverageInfo |
-                        Select-Object -ExpandProperty Path |
-                        Where-Object { $_ -match '\.tests.ps1$' })
+#                 $PesterTests = @($coverageInfo |
+#                         Select-Object -ExpandProperty Path |
+#                         Where-Object { $_ -match '\.tests.ps1$' })
 
-                $PesterTests.Count | Should -Be 2
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
-            }
+#                 $PesterTests.Count | Should -Be 2
+#                 $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
+#                 $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
+#             }
 
-            It 'Includes test file when targeted directly using filepath' {
-                $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
+#             It 'Includes test file when targeted directly using filepath' {
+#                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
 
-                $coverageInfo = Get-CoverageInfoFromUserInput $path
+#                 $coverageInfo = Get-CoverageInfoFromUserInput $path
 
-                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+#                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
 
-                $PesterTests | Should -Be $path
-            }
+#                 $PesterTests | Should -Be $path
+#             }
 
-        }
+#         }
 
-        Context 'Using object-input' {
-            It 'Excludes test files when IncludeTests is not specified' {
-                $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)" }
+#         Context 'Using object-input' {
+#             It 'Excludes test files when IncludeTests is not specified' {
+#                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)" }
 
-                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+#                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
 
-                $PesterTests | Should -BeNullOrEmpty
-            }
+#                 $PesterTests | Should -BeNullOrEmpty
+#             }
 
-            It 'Excludes test files when IncludeTests is false' {
-                $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)"; IncludeTests = $false }
+#             It 'Excludes test files when IncludeTests is false' {
+#                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)"; IncludeTests = $false }
 
-                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+#                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
 
-                $PesterTests | Should -BeNullOrEmpty
-            }
+#                 $PesterTests | Should -BeNullOrEmpty
+#             }
 
-            It 'Includes test files when IncludeTests is true' {
-                $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
+#             It 'Includes test files when IncludeTests is true' {
+#                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
 
-                $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = $path; IncludeTests = $true }
+#                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = $path; IncludeTests = $true }
 
-                $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
+#                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
 
-                $PesterTests | Should -Be $path
-            }
-        }
-    }
+#                 $PesterTests | Should -Be $path
+#             }
+#         }
+#     }
 
-    Describe 'Stripping common parent paths' {
+#     Describe 'Stripping common parent paths' {
 
-        If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or
-            (& $SafeCommands['Get-Variable'] -Name IsMacOS -Scope Global -ErrorAction SilentlyContinue)) {
+#         If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or
+#             (& $SafeCommands['Get-Variable'] -Name IsMacOS -Scope Global -ErrorAction SilentlyContinue)) {
 
-            $paths = @(
-                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder1/File.ps1'
-                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder2/File2.ps1'
-                Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder3/File3.ps1'
+#             $paths = @(
+#                 Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder1/File.ps1'
+#                 Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder2/File2.ps1'
+#                 Normalize-Path '/usr/lib/Common\Folder\UniqueSubfolder3/File3.ps1'
 
-                $expectedCommonPath = Normalize-Path '/usr/lib/Common/Folder'
+#                 $expectedCommonPath = Normalize-Path '/usr/lib/Common/Folder'
 
-            )
+#             )
 
-        }
-        Else {
+#         }
+#         Else {
 
-            $paths = @(
-                Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
-                Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
-                Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
+#             $paths = @(
+#                 Normalize-Path 'C:\Common\Folder\UniqueSubfolder1/File.ps1'
+#                 Normalize-Path 'C:\Common\Folder\UniqueSubfolder2/File2.ps1'
+#                 Normalize-Path 'C:\Common\Folder\UniqueSubfolder3/File3.ps1'
 
-                $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
+#                 $expectedCommonPath = Normalize-Path 'C:\Common/Folder'
 
-            )
+#             )
 
-        }
+#         }
 
-        $commonPath = Get-CommonParentPath -Path $paths
+#         $commonPath = Get-CommonParentPath -Path $paths
 
 
-        It 'Identifies the correct parent path' {
-            $commonPath | Should -Be $expectedCommonPath
-        }
+#         It 'Identifies the correct parent path' {
+#             $commonPath | Should -Be $expectedCommonPath
+#         }
 
-        $expectedRelativePath = Normalize-Path 'UniqueSubfolder1/File.ps1'
-        $relativePath = Get-RelativePath -Path $paths[0] -RelativeTo $commonPath
+#         $expectedRelativePath = Normalize-Path 'UniqueSubfolder1/File.ps1'
+#         $relativePath = Get-RelativePath -Path $paths[0] -RelativeTo $commonPath
 
-        It 'Strips the common path correctly' {
-            $relativePath | Should -Be $expectedRelativePath
-        }
-    }
+#         It 'Strips the common path correctly' {
+#             $relativePath | Should -Be $expectedRelativePath
+#         }
+#     }
 
-    #Workaround for Linux and MacOS - they don't have DSC by default installed with PowerShell - disable tests on these platforms
-    if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4 -and ((GetPesterOS) -eq 'Windows')) {
+#     #Workaround for Linux and MacOS - they don't have DSC by default installed with PowerShell - disable tests on these platforms
+#     if ((Get-Module -ListAvailable PSDesiredStateConfiguration) -and $PSVersionTable.PSVersion.Major -ge 4 -and ((GetPesterOS) -eq 'Windows')) {
 
-        Describe 'Analyzing coverage of a DSC configuration' {
-            BeforeAll {
-                $root = (Get-PSDrive TestDrive).Root
+#         Describe 'Analyzing coverage of a DSC configuration' {
+#             BeforeAll {
+#                 $root = (Get-PSDrive TestDrive).Root
 
-                $null = New-Item -Path $root\TestScriptWithConfiguration.ps1 -ItemType File -ErrorAction SilentlyContinue
+#                 $null = New-Item -Path $root\TestScriptWithConfiguration.ps1 -ItemType File -ErrorAction SilentlyContinue
 
-                Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
-                    $line1 = $true   # Triggers breakpoint
-                    $line2 = $true   # Triggers breakpoint
+#                 Set-Content -Path $root\TestScriptWithConfiguration.ps1 -Value @'
+#                     $line1 = $true   # Triggers breakpoint
+#                     $line2 = $true   # Triggers breakpoint
 
-                    configuration MyTestConfig   # does NOT trigger breakpoint
-                    {
-                        Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
+#                     configuration MyTestConfig   # does NOT trigger breakpoint
+#                     {
+#                         Import-DscResource -ModuleName PSDesiredStateConfiguration # Triggers breakpoint in PowerShell v5 but not in v4
 
-                        Node localhost    # Triggers breakpoint
-                        {
-                            WindowsFeature XPSViewer   # Triggers breakpoint
-                            {
-                                Name = 'XPS-Viewer'  # does NOT trigger breakpoint
-                                Ensure = 'Present'   # does NOT trigger breakpoint
-                            }
-                        }
+#                         Node localhost    # Triggers breakpoint
+#                         {
+#                             WindowsFeature XPSViewer   # Triggers breakpoint
+#                             {
+#                                 Name = 'XPS-Viewer'  # does NOT trigger breakpoint
+#                                 Ensure = 'Present'   # does NOT trigger breakpoint
+#                             }
+#                         }
 
-                        return # does NOT trigger breakpoint
+#                         return # does NOT trigger breakpoint
 
-                        $doesNotExecute = $true   # Triggers breakpoint
-                    }
+#                         $doesNotExecute = $true   # Triggers breakpoint
+#                     }
 
-                    $line3 = $true   # Triggers breakpoint
+#                     $line3 = $true   # Triggers breakpoint
 
-                    return   # does NOT trigger breakpoint
+#                     return   # does NOT trigger breakpoint
 
-                    $doesnotexecute = $true   # Triggers breakpoint
-'@
-                $testState = New-PesterState -Path $root
+#                     $doesnotexecute = $true   # Triggers breakpoint
+# '@
 
-                Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState
+#                 Enter-CoverageAnalysis -CodeCoverage "$root\TestScriptWithConfiguration.ps1" -PesterState $testState
 
-                #the AST does not parse Import-DscResource -ModuleName PSDesiredStateConfiguration on PowerShell 4
-                $runsInPowerShell4 = $PSVersionTable.PSVersion.Major -eq 4
+#                 #the AST does not parse Import-DscResource -ModuleName PSDesiredStateConfiguration on PowerShell 4
+#                 $runsInPowerShell4 = $PSVersionTable.PSVersion.Major -eq 4
 
-                if ($runsInPowerShell4) {
-                    $expected = 7
-                }
-                else {
-                    $expected = 8
-                }
+#                 if ($runsInPowerShell4) {
+#                     $expected = 7
+#                 }
+#                 else {
+#                     $expected = 8
+#                 }
 
-                $testState.CommandCoverage.Count | Should -Be $expected -Because 'it has the proper number of breakpoints defined'
+#                 $breakpoints.Count | Should -Be $expected -Because 'it has the proper number of breakpoints defined'
 
-                $null = . "$root\TestScriptWithConfiguration.ps1"
+#                 $null = . "$root\TestScriptWithConfiguration.ps1"
 
-                $coverageReport = Get-CoverageReport -PesterState $testState
-            }
+#                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
+#             }
 
-            It 'Reports the proper number of missed commands before running the configuration' {
-                if ($runsInPowerShell4) {
-                    $expected = 4
-                }
-                else {
-                    $expected = 5
-                }
+#             It 'Reports the proper number of missed commands before running the configuration' {
+#                 if ($runsInPowerShell4) {
+#                     $expected = 4
+#                 }
+#                 else {
+#                     $expected = 5
+#                 }
 
-                $coverageReport.MissedCommands.Count | Should -Be $expected
-            }
-            It 'Reports the proper number of missed commands after running the configuration' {
+#                 $coverageReport.MissedCommands.Count | Should -Be $expected
+#             }
+#             It 'Reports the proper number of missed commands after running the configuration' {
 
-                MyTestConfig -OutputPath $root
+#                 MyTestConfig -OutputPath $root
 
-                $coverageReport = Get-CoverageReport -PesterState $testState
+#                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
 
-                if ($runsInPowerShell4) {
-                    $expected = 2
-                }
-                else {
-                    $expected = 3
-                }
+#                 if ($runsInPowerShell4) {
+#                     $expected = 2
+#                 }
+#                 else {
+#                     $expected = 3
+#                 }
 
-                $coverageReport.MissedCommands.Count | Should -Be $expected
-            }
+#                 $coverageReport.MissedCommands.Count | Should -Be $expected
+#             }
 
-            AfterAll {
-                Exit-CoverageAnalysis -PesterState $testState
-            }
-        }
-    }
+#             AfterAll {
+#                 Exit-CoverageAnalysis -CommandCoverage $breakpoints
+#             }
+#         }
+#     }
 }

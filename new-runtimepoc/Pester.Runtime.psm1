@@ -1110,6 +1110,8 @@ function Test-ShouldRun {
         $Hint
     )
 
+    # TODO: this filters both blocks and tests, the $Test parameter needs to be renamed
+
     # so the logic here is that you first try all exclude filters, and if any exludes then you return false
     # then you try all other filters and if then do not match you fall to the next one (giving it chance to )
     # match other filters, then in the end you return true or null (maybe) to indicate whether there were any

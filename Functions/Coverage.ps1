@@ -1,18 +1,3 @@
-if ($PSVersionTable.PSVersion.Major -le 2) {
-    function Exit-CoverageAnalysis { }
-    function Get-CoverageReport { }
-    function Write-CoverageReport { }
-    function Enter-CoverageAnalysis {
-        param ( $CodeCoverage )
-
-        if ($CodeCoverage) {
-            & $SafeCommands['Write-Error'] 'Code coverage analysis requires PowerShell 3.0 or later.'
-        }
-    }
-
-    return
-}
-
 function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
@@ -25,7 +10,7 @@ function Enter-CoverageAnalysis {
     }
 
     #TODO: where do I return this to to store it??
-    $CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
+    @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
 }
 
 function Exit-CoverageAnalysis {
