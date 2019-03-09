@@ -11,6 +11,7 @@ $state = [PSCustomObject] @{
     CurrentTest        = $null
 
     Plugin             = $null
+    PluginConfiguration = $null
 
     TotalStopWatch     = $null
     TestStopWatch      = $null
@@ -25,6 +26,7 @@ function Reset-TestSuiteState {
     $state.Discovery = $false
 
     $state.Plugin = $null
+    $state.PluginConfiguration = $null
 
     $state.CurrentBlock = $null
     $state.CurrentTest = $null
@@ -202,6 +204,7 @@ function New-Block {
                     # context that is visible to plugins
                     Block = $block
                     Test  = $null
+                    Configuration = $state.PluginConfiguration
                 }
             }
 
@@ -250,6 +253,7 @@ function New-Block {
                     # context that is visible to plugins
                     Block = $block
                     Test  = $null
+                    Configuration = $state.PluginConfiguration
                 }
             }
 
@@ -359,6 +363,7 @@ function New-Test {
                     # context visible to Plugins
                     Block = $block
                     Test  = $test
+                    Configuration = $state.PluginConfiguration
                 }
             }
 
@@ -420,6 +425,7 @@ function New-Test {
                     # context visible to Plugins
                     Test  = $test
                     Block = $block
+                    Configuration = $state.PluginConfiguration
                 }
             }
 
@@ -627,6 +633,7 @@ function New-BlockObject {
         [string[]] $Tag,
         [ScriptBlock] $ScriptBlock,
         [HashTable] $FrameworkData = @{},
+        [HashTable] $PluginData = @{},
         [Switch] $Focus
     )
 
@@ -636,7 +643,8 @@ function New-BlockObject {
         Tag                  = $Tag
         ScriptBlock          = $ScriptBlock
         FrameworkData        = $FrameworkData
-        Focus = $Focus
+        PluginData           = $PluginData
+        Focus                = $Focus
         Tests                = @()
         BlockContainer       = $null
         Root                 = $null
@@ -658,13 +666,12 @@ function New-BlockObject {
         StandardOutput       = $null
         ErrorRecord          = @()
         ShouldRun            = $false
-        Exclude = $false
+        Exclude              = $false
         ExecutedAt           = $null
         Duration             = [timespan]::Zero
         FrameworkDuration    = [timespan]::Zero
         AggregatedDuration   = [timespan]::Zero
         AggregatedPassed     = $false
-        PluginData           = @{}
     }
 }
 
@@ -1194,10 +1201,12 @@ function Invoke-Test {
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
         $Filter,
-        $Plugin
+        $Plugin,
+        $PluginConfiguration
     )
 
     $state.Plugin = $Plugin
+    $state.PluginConfiguration = $PluginConfiguration
 
     # # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 
@@ -1441,6 +1450,7 @@ function New-PluginObject {
     param (
         [Parameter(Mandatory = $true)]
         [String] $Name,
+        [Hashtable] $Configuration,
         [ScriptBlock] $OneTimeBlockSetup,
         [ScriptBlock] $EachBlockSetup,
         [ScriptBlock] $OneTimeTestSetup,
@@ -1452,6 +1462,7 @@ function New-PluginObject {
     )
 
     New_PSObject -Type "Plugin" @{
+        Configuration        = $Configuration
         OneTimeBlockSetup    = $OneTimeBlockSetup
         EachBlockSetup       = $EachBlockSetup
         OneTimeTestSetup     = $OneTimeTestSetup
@@ -1678,7 +1689,6 @@ function Recurse-Up {
         $i = $i.Parent
     }
 }
-
 
 Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 # initialize internal state

@@ -695,8 +695,19 @@ function Invoke-Pester {
 
             # TODO: remove all references to $pester
             $pester = @{ SessionState = $PSCmdlet.SessionState }
+            $pluginConfiguration = @{}
+            $plugins = @(
+                Get-WriteScreenPlugin
+                Get-TestDrivePlugin
+                Get-MockPlugin
+            )
 
-            $plugins = @((Get-WriteScreenPlugin), (Get-TestDrivePlugin), (Get-MockPlugin))
+            if ($CodeCoverage) {
+                $plugins += (Get-CoveragePlugin)
+                $pluginConfiguration["Coverage"] = $CodeCoverage
+            }
+
+
             $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
 
             $containers = @()
@@ -718,7 +729,7 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -SessionState $sessionState -Filter $filter
+            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter
             $legacyResult = Get-LegacyResult $r
             Write-PesterReport $legacyResult
 

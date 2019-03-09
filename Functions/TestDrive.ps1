@@ -1,6 +1,6 @@
 function Get-TestDrivePlugin {
 
-    # TODO: add on start block and put this in it
+    # TODO: add OnStart block and put this in it
 
     if (Test-Path TestDrive:\) {
         Remove-Item (Get-PSDrive TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
