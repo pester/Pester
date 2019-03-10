@@ -20,36 +20,85 @@ function New-GherkinProject {
     }
 }
 
-function Get-SupportScript {
+function Get-ScriptFile {
     [CmdletBinding()]
     [OutputType([IO.FileInfo[]])]
     param (
         [Parameter(Position = 0, Mandatory = $True)]
         [SupportsWildCards()]
-        [string[]]$Path,
+        [string[]]$Require,
 
         [Parameter(Position = 1)]
-        [regex[]]$Exclude
+        [regex[]]$Exclude = @()
     )
 
-    $allSupportFiles = Get-ChildItem -Directory -Recurse |
-        Where-Object { (Split-Path $_.FullName -Leaf) -eq 'support' } |
-        Get-ChildItem -File -Filter '*.ps1' |
-        Where-Object {
-            if ($Exclude.Length) {
-                $SupportFile = $_
-                $Exclude | ForEach-Object -Begin { $Result = $True } -Process {
-                    $Result = $Result -and ($SupportFile.FullName -notmatch $_)
-                } -End { $Result }
-            } else {
-                $True
-            }
+    begin {
+        $ScriptFiles = [IO.FileInfo[]]@()
+    }
+
+    process {
+        foreach ($Path in $Require) {
+            $ScriptFiles += @(Get-ChildItem $Path -Filter '*.ps1' -File -Recurse |
+                Where-Object {
+                    $ScriptFile = $_
+                    $Exclude | ForEach-Object -Begin { $Result = $True } -Process {
+                        $Result = $Result -and ($ScriptFile.Fullname -notmatch $_)
+                    } -End { $Result }
+                } |
+                ForEach-Object {
+                    [PSCustomObject]@{ Length = $_.FullName.Length; File = $_ }
+                } |
+                Sort-Object -Property Length |
+                Select-Object -ExpandProperty File
+            )
         }
+    }
 
-    $environmentFiles = $allSupportFiles | Where-Object { $_.Name -eq 'Environment.ps1' }
-    $otherSupportFiles = $allSupportFiles | Where-Object { $_.Name -ne 'Environment.ps1' }
+    end {
+        $ScriptFiles
+    }
+}
 
-    @($environmentFiles) + @($otherSupportFiles)
+function Get-StepDefinition {
+    [CmdletBinding()]
+    [OutputType([IO.FileInfo[]])]
+    param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [AllowEmptyCollection()]
+        [IO.FileInfo[]]$ScriptFile
+    )
+
+    foreach ($File in $ScriptFile) {
+        if ($File.FullName -notmatch '(?i)[\\/]support[\\/]') {
+            $File
+        }
+    }
+}
+
+function Get-SupportScript {
+    [CmdletBinding()]
+    [OutputType([IO.FileInfo[]])]
+    param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [AllowEmptyCollection()]
+        [IO.FileInfo[]]$ScriptFile
+    )
+
+    $allSupportFiles = foreach ($File in $ScriptFile) {
+        if ($File.FullName -match '(?i)[\\/]support[\\/]') {
+            $File
+        }
+    }
+
+    $EnvironmentFiles = $allSupportFiles | Where-Object {
+        $_.FullName -match '(?i)[\\/]support[\\/]Environment.ps1'
+    }
+
+    $OtherFiles = $allSupportFiles | Where-Object {
+        $_.FullName -notmatch '(?i)[\\/]support[\\/]Environment.ps1'
+    }
+
+    @($EnvironmentFiles) + @($OtherFiles)
 }
 
 # TODO: Need to add support for Rerun file...
@@ -111,12 +160,8 @@ function Invoke-Gherkin3 {
     [OutputType('Initialize', [int])]
     [OutputType('Standard', 'Pester.GherkinResults')]
     param(
-        [Parameter(Position = 0, ParameterSetName = 'Initialize')]
+        [Parameter(Mandatory = $True, ParameterSetName = 'Initialize')]
         [switch]$Init,
-
-        [Parameter(Position = 0, ParameterSetName = 'Standard')]
-        [SupportsWildCards()]
-        [string[]]$Path = $PWD,
 
         [Parameter(ParameterSetName = 'Standard')]
         [regex[]]$Exclude,
@@ -124,7 +169,7 @@ function Invoke-Gherkin3 {
         [Parameter(ParameterSetName = 'Standard')]
         [SupportsWildCards()]
         [ValidateNotNullOrEmpty()]
-        [string[]]$Require,
+        [string[]]$Require = 'features',
 
         [switch]$EnableExit,
 
@@ -148,9 +193,6 @@ function Invoke-Gherkin3 {
         $CWD = [Environment]::CurrentDirectory
         $Location = Get-Location
         [Environment]::CurrentDirectory = Get-Location -PSProvider FileSystem
-
-        $SupportScripts = [IO.FileInfo[]]@()
-        $FeatureFiles = [IO.FileInfo[]]@()
 
         $Results = [PSCustomObject]@{
             PSTypeName = 'Pester.GherkinResults'
@@ -187,7 +229,9 @@ function Invoke-Gherkin3 {
         # scripts. According to Issue #567 on Cucumber's GH repo, when -Require
         # is used, all loading of support and environment scripts becomes explicit:
         # whatever is specified by -Require.
-        $SupportScripts = Get-SupportScript -Path $Path -Exclude $Exclude
+        $AllScripts = [IO.FileInfo[]]@(Get-ScriptFile $Require $Exclude)
+        $SupportScripts = Get-SupportScript $AllScripts
+        $StepDefintions = Get-StepDefinition $AllScripts
 
         $FeatureFiles = if ($PSBoundParameters.ContainsKey('Path')) {
             Get-FeatureFile -Path $Path -Exclude $Exclude

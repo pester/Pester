@@ -114,7 +114,6 @@ InModuleScope Pester {
         }
 
         AfterEach {
-            #Get-ChildItem $PWD -Recurse | Remove-Item -Forcel
             Get-ChildItem $PWD -Recurse | Remove-Item -Force -Recurse
             Set-Location $CWD
         }
@@ -124,11 +123,12 @@ InModuleScope Pester {
                 $null = New-Item -ItemType File -Path './features/step_definitions/non_supportFile.ps1'
                 $null = New-Item -ItemType File -Path './features/support' -Name 'A_File.ps1'
 
-                $files = Get-SupportScript "$PWD/features"
+                $scriptFiles = Get-ScriptFile (Join-Path $PWD 'features')
+                $supportFiles = Get-SupportScript $scriptFiles
 
-                $files | Should -HaveCount 2
-                $files[0].Name | Should -Be 'Environment.ps1'
-                $files[1].Name | Should -Be 'A_File.ps1'
+                $supportFiles | Should -HaveCount 2
+                $supportFiles[0].Name | Should -Be 'Environment.ps1'
+                $supportFiles[1].Name | Should -Be 'A_File.ps1'
             }
 
             It 'features/support/Environment.ps1 is loaded before any other features/**/support/Environment.ps1 file' {
@@ -142,14 +142,16 @@ InModuleScope Pester {
                 $null = New-Item -ItemType File -Path './features/foo/bar/support/Environment.ps1'
                 $null = New-Item -ItemType File -Path './features/foo/bar/support/A_File.ps1'
 
-                $files = Get-SupportScript "$PWD/features"
-                $files | Should -HaveCount 6
-                $files[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
-                $files[1].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path 'features' 'foo') 'support') 'Environment.ps1')))
-                $files[2].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path (Join-Path 'features' 'foo') 'bar') 'support') 'Environment.ps1')))
-                $files[3].Fullname | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'A_File.ps1')))
-                $files[4].Fullname | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path 'features' 'foo') 'support') 'A_File.ps1')))
-                $files[5].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path (Join-Path 'features' 'foo') 'bar') 'support') 'A_File.ps1')))
+                $scriptFiles = Get-ScriptFile (Join-Path $PWD 'features')
+                $supportFiles = Get-SupportScript $scriptFiles
+
+                $supportFiles | Should -HaveCount 6
+                $supportFiles[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
+                $supportFiles[1].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path 'features' 'foo') 'support') 'Environment.ps1')))
+                $supportFiles[2].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path (Join-Path 'features' 'foo') 'bar') 'support') 'Environment.ps1')))
+                $supportFiles[3].Fullname | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'A_File.ps1')))
+                $supportFiles[4].Fullname | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path 'features' 'foo') 'support') 'A_File.ps1')))
+                $supportFiles[5].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path (Join-Path (Join-Path 'features' 'foo') 'bar') 'support') 'A_File.ps1')))
             }
         }
 
@@ -157,10 +159,11 @@ InModuleScope Pester {
             It 'excludes a PowerShell file from requiring when the name matches exactly' {
                 $null = New-Item -ItemType File -Path './features/support' -Name 'A_File.ps1'
 
-                $files = Get-SupportScript "$PWD/features" -Exclude "A_File.ps1"
+                $scriptFiles = Get-ScriptFile (Join-Path $PWD 'features') -Exclude 'A_File.ps1'
+                $supportFiles = Get-SupportScript $scriptFiles
 
-                $files | Should -HaveCount 1
-                $files[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
+                $supportFiles | Should -HaveCount 1
+                $supportFiles[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
             }
 
             It 'excludes all PowerShell files that match the provided patterns from requiring' {
@@ -170,19 +173,13 @@ InModuleScope Pester {
                 $null = New-Item -ItemType File -Path './features/support' -Name 'bar.ps1'
                 $null = New-Item -ItemType File -Path './features/support' -Name 'blah.ps1'
 
-                $files = Get-SupportScript "$PWD/features" -Exclude 'foo[df]', 'blah'
-                $files | Should -HaveCount 3
-                $files[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
-                $files[1].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'bar.ps1')))
-                $files[2].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'fooz.ps1')))
-            }
-        }
-    }
+                $scriptFiles = Get-ScriptFile (Join-Path $PWD 'features') -Exclude 'foo[df]', 'blah'
+                $supportFiles = Get-SupportScript $scriptFiles
 
-    Describe 'Get-FeatureFile' -Tag Gherkin2 {
-        Context 'selecting feature files' {
-            It 'preserves the order of the feature files' {
-
+                $supportFiles | Should -HaveCount 3
+                $supportFiles[0].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'Environment.ps1')))
+                $supportFiles[1].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'bar.ps1')))
+                $supportFiles[2].FullName | Should Match ([regex]::Escape((Join-Path (Join-Path 'features' 'support') 'fooz.ps1')))
             }
         }
     }
