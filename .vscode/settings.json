@@ -5,5 +5,8 @@
   "files.insertFinalNewline": true,
 
   "editor.tabSize": 4,
-  "editor.formatOnSave": false
+  "editor.formatOnSave": false,
+  "[powershell]": {
+    "editor.codeLens": false
+  }
 }
