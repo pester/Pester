@@ -20,6 +20,53 @@ function New-GherkinProject {
     }
 }
 
+function Get-PotentialFeatureFile {
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    Param (
+        [Parameter(Position = 0)]
+        [SupportsWildCards()]
+        [AllowEmptyCollection()]
+        [string[]]$Path = 'features',
+
+        [Parameter(Position = 1)]
+        [regex[]]$Exclude = @()
+    )
+
+    begin {
+        $PotentialFeatureFiles = [string[]]@()
+    }
+
+    process {
+        foreach ($p in $Path) {
+            switch ($p) {
+                { $_[0] -eq '@'} { $PotentialFeatureFiles += Get-Content $p.Substring(1); break }
+                { $_ -match '(.*?\.feature((:\d+)*))$' } { $PotentialFeatureFiles += $_; break }
+                default {
+                    $PotentialFeatureFiles += @(
+                        Get-ChildItem $p -File -Recurse -Filter '*.feature' |
+                            Select-Object -ExpandProperty FullName
+                    )
+                }
+            }
+        }
+    }
+
+    End {
+        $PotentialFeatureFiles | Where-Object {
+            $FeatureFile = $_
+            $Exclude | ForEach-Object -Begin { $Result = $True } -Process {
+                $Result = $Result -and ($FeatureFile -notmatch $_)
+            } -End { $Result } |
+            ForEach-Object {
+                [PSCustomObject]@{ Length = $_.FeatureFile.Length; FeatureFile   = $_ }
+            } |
+            Sort-Object -Property Length |
+            Select-Object -ExpandProperty FeatureFile
+        }
+    }
+}
+
 function Get-ScriptFile {
     [CmdletBinding()]
     [OutputType([IO.FileInfo[]])]
@@ -101,34 +148,6 @@ function Get-SupportScript {
     @($EnvironmentFiles) + @($OtherFiles)
 }
 
-# TODO: Need to add support for Rerun file...
-function Get-FeatureFile {
-    [CmdletBinding()]
-    [OutputType([IO.FileInfo])]
-    Param (
-        [Parameter(Position = 0, Mandatory = $True)]
-        [SupportsWildcards()]
-        [string[]]$Path,
-
-        [SupportsWildcards()]
-        [regex[]]$Exclude
-    )
-
-    Process {
-        Get-ChildItem $Path -Filter '*.feature' -Recurse |
-            Where-Object {
-                if ($Exclude.Length) {
-                    $FeatureFile = $_
-                    $Exclude | ForEach-Object -Begin { $Result = $True } -Process {
-                        $Result = $Result -and ($FeatureFile.FullName -notmatch $_)
-                    } -End { $Result }
-                } else {
-                    $True
-                }
-            }
-    }
-}
-
 function Write-GherkinResults {
     param (
         [Parameter(Position = 0, Mandatory = $True)]
@@ -174,7 +193,11 @@ function Invoke-Gherkin3 {
         [switch]$EnableExit,
 
         [Parameter(ParameterSetName = 'Standard')]
-        [switch]$PassThru
+        [switch]$PassThru,
+
+        [Parameter(ValueFromRemainingArguments = $True, ParameterSetName = 'Standard')]
+        [SupportsWildCards()]
+        [string[]]$FeaturePathSpec = 'features'
     )
 
     begin {
@@ -213,7 +236,7 @@ function Invoke-Gherkin3 {
             }
         }
 
-        if (!(Test-Path "$Path/features")) {
+        if (!(Test-Path (Join-Path $PWD 'features'))) {
             Write-Output "No such file or directory - features. You can use ``Invoke-Gherkin -Init`` to get started."
 
             if ($EnableExit) {
@@ -232,14 +255,7 @@ function Invoke-Gherkin3 {
         $AllScripts = [IO.FileInfo[]]@(Get-ScriptFile $Require $Exclude)
         $SupportScripts = Get-SupportScript $AllScripts
         $StepDefintions = Get-StepDefinition $AllScripts
-
-        $FeatureFiles = if ($PSBoundParameters.ContainsKey('Path')) {
-            Get-FeatureFile -Path $Path -Exclude $Exclude
-        } else {
-            Get-FeatureFile -Path "$Path/features" -Exclude $Exclude
-        }
-
-        #Write-GherkinResults $Results
+        $PotentialFeatureFiles = Get-PotentialFeatureFile $FeaturePathSpec $Exclude
 
         if ($PassThru) {
             $Results

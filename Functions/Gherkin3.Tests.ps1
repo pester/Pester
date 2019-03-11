@@ -183,169 +183,97 @@ InModuleScope Pester {
             }
         }
     }
-}
 
-Describe 'Invoke-Gherkin' -Tag Gherkin2 {
-    Context 'A ./features directory is present with no feature files' {
-        It 'Returns 0 scenarios and 0 steps executed in 0m0.000s' {
-            In $TestDrive {
-                Invoke-Gherkin3 -Init
+    Describe 'Get-PotentialFeatureFile' -Tag Gherkin2 {
+        Context 'selecting feature files' {
+            BeforeEach {
+                $CWD = Get-Location -PSProvider FileSystem
+                Set-Location $TestDrive
+                $null = New-GherkinProject
+            }
 
-                $Results = Invoke-Gherkin3 -PassThru
+            AfterEach {
+                Get-ChildItem $PWD -Recurse | Remove-Item -Force -Recurse
+                Set-Location $CWD
+            }
 
-                $Results | Should -Not -BeNullOrEmpty
-                $Results.TotalScenarios | Should -BeExactly 0
-                $Results.TotalSteps | Should -BeExactly 0
-                $Results.TestRunDuration | Should -Be ([TimeSpan]::Zero)
+            It 'preserves the order of the feature files' {
+                $PotentialFeatureFiles = Get-PotentialFeatureFile -Path 'b.feature','c.feature','a.feature'
+
+                $PotentialFeatureFiles | Should -HaveCount 3
+                foreach ($n in 0..2) {
+                    $PotentialFeatureFiles[$n] | Should -Be $(switch ($n) {
+                        0 { 'b.feature' }
+                        1 { 'c.feature' }
+                        2 { 'a.feature' }
+                    })
+                }
+            }
+
+            It 'searches for all features in the specified directory' {
+                Mock Get-ChildItem -Module 'Pester' -ParameterFilter { $Path -eq 'feature_directory' } -MockWith {
+                    [IO.FileInfo]::new((Join-Path (Join-Path "$PWD" 'feature_directory') 'cucumber.feature'))
+                }
+
+                $PotentialFeatureFiles = Get-PotentialFeatureFile -Path 'feature_directory'
+                $PotentialFeatureFiles | Should -Match 'cucumber.feature'
+            }
+
+            It 'defaults to the features directory when no feature files or paths are provided' {
+                Mock Get-ChildItem -Module 'Pester' -ParameterFilter { $Path -eq 'features' } -MockWith {
+                    [IO.FileInfo]::new((Join-Path (Join-Path "$PWD" 'features') 'cucumber.feature'))
+                }
+
+                $PotentialFeatureFiles = Get-PotentialFeatureFile
+                $PotentialFeatureFiles | Should -Match 'cucumber.feature'
+            }
+
+            It 'gets the feature files from the rerun file' {
+                $RerunFileContent = @"
+cucumber.feature:1:3
+cucumber.feature:5
+cucumber.feature:10
+domain folder/different cuke.feature:134
+domain folder/cuke.feature:1
+domain folder/different cuke.feature:4:5
+bar.feature
+"@
+
+                $RerunFile = New-Item -ItemType File -Path 'rerun.txt'
+                Set-Content $RerunFile -Value $RerunFileContent
+
+                $ActualPotentialFeatureFiles = Get-PotentialFeatureFile '@rerun.txt'
+                $ExpectedPotentialFeatureFiles = $RerunFileContent -split [Environment]::NewLine
+
+                foreach ($i in 0..($ExpectedPotentialFeatureFiles.Length - 1)) {
+                    $ActualPotentialFeatureFiles[$i] | Should -Be $ExpectedPotentialFeatureFiles[$i]
+                }
             }
         }
     }
 }
 
-InModuleScope 'Pester' {
-    Describe 'Get-FeatureFile' -Tag Gherkin, Gherkin2 {
-        # TODO: See GH #1251
-        # BeforeAll {
-        #     $CWD = Get-Location -PSProvider FileSystem
-        #     try {
-        #         Set-Location $TestDrive
-        #         # Creates the conventional directory structure for Gherkin tests.
-        #         Invoke-Gherkin3 -Init
-
-        #         foreach ($i in 1..2) {
-        #             $null = New-Item -ItemType File -Path (Join-Path $TestDrive 'features') -Name "Feature$i.feature"
-        #         }
-        #         $folder1 = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'features') -Name 'folder1'
-        #         $null = New-Item -ItemType File -Path $folder1.FullName -Name 'Feature3.feature'
-
-        #         # Create an uncoventional directory structure for Gherkin tests.
-        #         $unconventional = New-Item -ItemType Directory -Path $TestDrive -Name 'unconventional'
-        #         foreach ($i in 1..2) {
-        #             $null = New-Item -ItemType File -Path $unconventional.Fullname -Name "Feature$i.feature"
-        #         }
-        #         $folder1 = New-Item -ItemType Directory -Path $unconventional.Fullname -Name 'folder1'
-        #         $null = New-Item -ItemType File -Path $folder1.FullName -Name 'Feature3.feature'
-        #     } finally {
-        #         Set-Location $CWD
-        #     }
-        # }
-
+Describe 'Invoke-Gherkin' -Tag Gherkin2 {
+    Context 'A ./features directory is present with no feature files' {
         BeforeEach {
             $CWD = Get-Location -PSProvider FileSystem
             Set-Location $TestDrive
-            if (!(Test-Path (Join-Path $TestDrive 'features'))) {
-                # Creates the conventional directory structure for Gherkin tests.
-                Invoke-Gherkin3 -Init
-
-                foreach ($i in 1..2) {
-                    $null = New-Item -ItemType File -Path (Join-Path $TestDrive 'features') -Name "Feature$i.feature"
-                }
-                $folder1 = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'features') -Name 'folder1'
-                $null = New-Item -ItemType File -Path $folder1.FullName -Name 'Feature3.feature'
-            }
-
-            if (!(Test-Path (Join-Path $TestDrive 'unconventional'))) {
-                # Create an uncoventional directory structure for Gherkin tests.
-                $unconventional = New-Item -ItemType Directory -Path $TestDrive -Name 'unconventional'
-                foreach ($i in 1..2) {
-                    $null = New-Item -ItemType File -Path $unconventional.Fullname -Name "Feature$i.feature"
-                }
-                $folder1 = New-Item -ItemType Directory -Path $unconventional.Fullname -Name 'folder1'
-                $null = New-Item -ItemType File -Path $folder1.FullName -Name 'Feature3.feature'
-            }
         }
 
-        AfterEach { Set-Location $CWD }
-
-        Context 'Feature files are retrieved from the default, conventional path ''./features''' {
-            It 'Returns 3 feature files' {
-                $FeatureFiles = Get-FeatureFile "$PWD/features"
-
-                $FeatureFiles | Should -HaveCount 3
-                $FeatureFileNames = $FeatureFiles | Split-Path -Leaf
-                foreach ($i in 1..3) {
-                    $FeatureFileNames | Should -Contain "Feature$i.feature"
-                }
-            }
-
-            It 'Returns Feature1.feature' {
-                $FeatureFiles = @(Get-FeatureFile -Path "$PWD/features/Feature1.feature")
-                $FeatureFiles | Should -HaveCount 1
-                $FeatureFiles | Split-Path -Leaf |
-                    Should -Contain 'Feature1.feature'
-            }
-
-            Context 'Features can be excluded' {
-                It 'Does not return Feature1.feature' {
-                    $FeatureFiles = Get-FeatureFile "$PWD/features" -Exclude 'Feature1.feature'
-                    $FeatureFiles | Should -HaveCount 2
-                    $FeatureFiles | Split-Path -Leaf |
-                        Should -Not -Contain 'Feature1.feature'
-                }
-
-                It 'Does not return Feature3.feature' {
-                    $FeatureFiles = Get-FeaturefIle "$PWD/features" -Exclude 'Feature3.feature'
-                    $FeatureFiles | Should -HaveCount 2
-                    $FeatureFiles | Split-Path -Leaf |
-                        Should -Not -Contain 'Feature3.feature'
-                }
-
-                It 'Does not return features in folder1' {
-                    $FeatureFiles = Get-FeatureFile "$PWD/features" -Exclude 'folder1'
-                    $FeatureFiles | Should -HaveCount 2
-                    $FeatureFiles | Split-Path -Leaf |
-                        Should -Not -Contain 'Feature3.feature'
-                }
-
-                It 'Only returns Feature2.feature' {
-                    $FeatureFiles = @(Get-FeatureFile "$Pwd/features" -Exclude 'Feature1.feature','folder1')
-                    $FeatureFiles | Should -HaveCount 1
-                    $FeatureFiles | Split-Path -Leaf |
-                        Should -Contain 'Feature2.feature'
-                }
-
-                It 'Does not return features matching Fea*3.feature' {
-                    $FeatureFiles = Get-FeatureFile "$PWD/features" -Exclude 'Fea.*3\.feature'
-                    $FeatureFiles | Should -HaveCount 2
-                    $FeatureFiles | Split-Path -Leaf |
-                        Should -Not -Contain 'Feature3.feature'
-                }
-            }
+        AfterEach {
+            Get-ChildItem $PWD -Recurse | Remove-Item -Force -Recurse
+            Set-Location $CWD
         }
 
-        Context 'Find all features at and below a specified, unconventional folder' {
-            It 'Returns 3 feature files' {
-                $FeatureFiles = Get-FeatureFile $unconventional.FullName
+        It 'Returns 0 scenarios and 0 steps executed in 0m0.000s' {
+            Invoke-Gherkin3 -Init
 
-                $FeatureFiles | Should -HaveCount 3
-                $FeatureFileNames = $FeatureFiles | Split-Path -Leaf
-                foreach ($i in 1..3) {
-                    $FeatureFileNames | Should -Contain "Feature$i.feature"
-                }
-            }
-        }
+            $Results = Invoke-Gherkin3 -PassThru
 
-        Context 'Can accept a list of paths to feature files' {
-            It 'Returns 6 feature files' {
-                $ActualFeatureFiles = Get-FeatureFile -Path "$PWD/features", $unconventional.FullName
-                $ActualFeatureFiles | Should -HaveCount 6
-                $ExpectedFeatureFiles = foreach ($i in 1..3) {
-                    if ($i -lt 3) {
-                        'features', $unconventional.Name |
-                            ForEach-Object { Join-Path $_ "Feature$i.feature" }
-                    } else {
-                        'features', $unconventional.Name |
-                            ForEach-Object { Join-Path $_ 'folder1' } |
-                            ForEach-Object { Join-Path $_ "Feature$i.feature" }
-                    }
-                }
-                foreach ($expectedFeatureFile in $ExpectedFeatureFiles) {
-                    $ActualFeatureFiles |
-                        Where-Object { $_.FullName -match [Regex]::Escape($expectedFeatureFile) } |
-                        Should -HaveCount 1
-                }
-            }
-
+            $Results | Should -Not -BeNullOrEmpty
+            $Results.TotalScenarios | Should -BeExactly 0
+            $Results.TotalSteps | Should -BeExactly 0
+            $Results.TestRunDuration | Should -Be ([TimeSpan]::Zero)
         }
     }
 }
