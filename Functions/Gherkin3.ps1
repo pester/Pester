@@ -20,6 +20,64 @@ function New-GherkinProject {
     }
 }
 
+function ConvertTo-FileSpec {
+    [CmdletBinding()]
+    [OutputType('Cucumber.FileSpec')]
+    Param (
+        [Parameter(Position = 0, ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
+        [SupportsWildCards()]
+        [AllowEmptyCollection()]
+        [string[]]$FeatureSpec = @()
+    )
+
+    process {
+        foreach ($Spec in $FeatureSpec) {
+            if ($Spec -match '(?n)(?<FilePath>.*?\.feature)(?<LineNumbers>(:\d+)*)$') {
+                Write-Verbose "  * $($Matches.FilePath)"
+
+                $Lines = if ($Matches.LineNumbers) {
+                    [int[]]@(($Matches.LineNumbers.TrimStart(':') -split ':') | ForEach-Object { $_ -as [int] })
+                } else {
+                    [int[]]@()
+                }
+
+                # TODO: Deermine whether or not the Locations ScriptProperty should be kept here.
+                #       I'm still trying to understand the corresponding Ruby code and how it's used.
+                [PSCustomObject] @{
+                    PSTypeName = 'Cucumber.FileSpec'
+                    File = $Matches.FilePath
+                    Lines = $Lines
+                } |
+                Add-Member -MemberType ScriptMethod -Name AddLines -Value {
+                    Param ([int[]]$Lines)
+
+                    $this.Lines = @(@($this.Lines) + @($Lines) | Sort-Object -Unique)
+                } -PassThru |
+                Add-Member -MemberType ScriptMethod -Name ToString -Value {
+                    $this.File, ($this.Lines -join ':') -join ':'
+                } -Force -PassThru |
+                Add-Member -MemberType ScriptProperty -Name Locations -Value {
+                    if ($this.Lines.Length -gt 0) {
+                        foreach ($i in 0..($this.Lines.Length - 1)) {
+                            [PScustomObject]@{
+                                PSTypeName = 'Cucumber.Core.Test.Location'
+                                File = $this.File
+                                Line = $this.Lines[$i]
+                            }
+                        }
+                    } else {
+                        [PSCustomObject]@{
+                            PSTypeName = 'Cucumber.Core.Test.Location'
+                            File = $This.File
+                            Line = [int]$null
+                        }
+                    }
+                } -PassThru
+            }
+        }
+    }
+}
+
 function Get-PotentialFeatureFile {
     [CmdletBinding()]
     [OutputType([string[]])]
@@ -179,21 +237,24 @@ function Invoke-Gherkin3 {
     [OutputType('Initialize', [int])]
     [OutputType('Standard', 'Pester.GherkinResults')]
     param(
-        [Parameter(Mandatory = $True, ParameterSetName = 'Initialize')]
-        [switch]$Init,
-
-        [Parameter(ParameterSetName = 'Standard')]
-        [regex[]]$Exclude,
-
         [Parameter(ParameterSetName = 'Standard')]
         [SupportsWildCards()]
         [ValidateNotNullOrEmpty()]
+        [Alias('-require', 'r')]
         [string[]]$Require = 'features',
+
+        [Parameter(ParameterSetName = 'Standard')]
+        [Alias('-exclude', 'e')]
+        [regex[]]$Exclude,
 
         [switch]$EnableExit,
 
         [Parameter(ParameterSetName = 'Standard')]
         [switch]$PassThru,
+
+        [Parameter(Mandatory = $True, ParameterSetName = 'Initialize')]
+        [Alias('-init')]
+        [switch]$Init,
 
         [Parameter(ValueFromRemainingArguments = $True, ParameterSetName = 'Standard')]
         [SupportsWildCards()]
@@ -255,7 +316,7 @@ function Invoke-Gherkin3 {
         $AllScripts = [IO.FileInfo[]]@(Get-ScriptFile $Require $Exclude)
         $SupportScripts = Get-SupportScript $AllScripts
         $StepDefintions = Get-StepDefinition $AllScripts
-        $PotentialFeatureFiles = Get-PotentialFeatureFile $FeaturePathSpec $Exclude
+        $FeatureFileSpecs = Get-PotentialFeatureFile $FeaturePathSpec $Exclude | ConvertTo-FileSpec
 
         if ($PassThru) {
             $Results

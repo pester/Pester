@@ -251,6 +251,27 @@ bar.feature
             }
         }
     }
+
+    Describe 'ConvertTo-FileSpec' -Tag Gherkin2 {
+        BeforeEach {
+            $FileSpecs = 'features/foo.feature:1:2:3','features/bar.feature:4:5:6', 'features/baz.feature' | ConvertTo-FileSpec
+            $Locations = $FileSpecs.Locations
+            $Files = $FileSpecs | ForEach-Object { $_.File } | Sort-Object -Unique
+        }
+
+        It 'parses locations from files' {
+            $Locations | Should -HaveCount 7
+            foreach ($i in 1..($Locations.Length - 1)) {
+                $Locations[$i-1].Line | Should -BeExactly $i
+            }
+        }
+
+        It 'parses when no line number is specified' {
+            $Last = ($Locations | Select-Object -Last 1)
+            $Last.File | Should -BeExactly 'features/baz.feature'
+            $Lst.Lines | Should -BeNullOrEmpty
+        }
+    }
 }
 
 Describe 'Invoke-Gherkin' -Tag Gherkin2 {
