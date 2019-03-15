@@ -272,6 +272,37 @@ bar.feature
             $Lst.Lines | Should -BeNullOrEmpty
         }
     }
+
+    Describe 'Get-GherkinLanguages' -Tag Gherkin2 {
+        It 'gets the language keys, names, and native names of supported languages' {
+            $Languages = Get-GherkinLanguages | Where-Object { $_.LanguageKey -in 'en','de' }
+
+            $Languages[0].LanguageKey | Should -BeExactly 'de'
+            $Languages[0].Name | Should -BeExactly 'German'
+            $Languages[0].NativeName | Should -BeExactly 'Deutsch'
+            $Languages[1].LanguageKey | Should -BeExactly 'en'
+            $Languages[1].Name | Should -BeExactly 'English'
+            $Languages[1].NativeName | Should -BeExactly 'English'
+        }
+    }
+
+    Describe 'Get-GherkinLanguageKeywordTranslation' -Tag Gherkin2 {
+        It 'gets the keywords and their translation(s) for a supported Gherkin language' {
+            $GherkinLanguageKeywords = Get-GherkinKeywordTranslation -LanguageKey en
+
+            $GherkinLanguageKeywords | Should -HaveCount 16
+        }
+
+        It 'gets a keyword''s translation(s) for a supported Gherkin language' {
+            $GherkinLanguageFeatureKeyword = Get-GherkinKeywordTranslation -KeywordKey 'feature' -LanguageKey 'en'
+
+            $KeywordTranslations = $GherkinLanguageFeatureKeyword.Translations
+            $KeywordTranslations | Should -HaveCount 3
+            $KeywordTranslations[0] | Should -BeExactly 'Feature'
+            $KeywordTranslations[1] | Should -BeExactly 'Business Need'
+            $KeywordTranslations[2] | Should -BeExactly 'Ability'
+        }
+    }
 }
 
 Describe 'Invoke-Gherkin' -Tag Gherkin2 {

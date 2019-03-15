@@ -4,6 +4,8 @@ if (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -
     & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
+$GherkinLanguages = Get-Content (Join-Path $Script:PesterRoot '/lib/Gherkin/gherkin-languages.json') -Raw | ConvertFrom-JSON
+
 function New-GherkinProject {
     @(
         @{ ItemType = 'Directory'; Path = "$PWD"; Name = 'features' },
@@ -76,6 +78,96 @@ function ConvertTo-FileSpec {
             }
         }
     }
+}
+
+function Get-GherkinKeywordTranslation {
+    [OutputType([PSCustomObject[]])]
+    Param(
+        [Parameter(Position = 0, ParameterSetName = 'setLanguageKeywords')]
+        [Parameter(Position = 0, ParameterSetName = 'setKeyword')]
+        [string]$LanguageKey = 'en',
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True, ParameterSetName = 'setKeyword')]
+        [string[]]$KeywordKey,
+
+        [Parameter(ParameterSetName = 'setKeyword')]
+        [switch]$ForStepDefinition
+    )
+
+    begin {
+        $GherkinKeywordTranslation = [hashtable[]]@()
+        $GherkinCodeKeywordTranslation = [PSCustomObject[]]@()
+    }
+
+    process {
+        if ($null -ne $KeywordKey -and $KeywordKey.Length -gt 0) {
+            foreach ($key in $KeywordKey) {
+                if ($ForStepDefinition) {
+                    if ($key -in 'given','when','then','and','but') {
+                        $GherkinCodeKeywordTranslation += [PSCustomObject] @{
+                            PSTypeName = 'Gherkin.Language.KeywordTranslation'
+                            Keyword = "$key (Code)"
+                            Translations = [string[]]@($GherkinLanguages."$LanguageKey"."$key" |
+                                ForEach-Object { $_ -replace '[\s'',!]' })
+                        }
+                    }
+                } else {
+                    $GherkinKeywordTranslation += [PSCustomObject] @{
+                        PSTypeName = 'Gherkin.Language.KeywordTranslation'
+                        Keyword = $key
+                        Translations = [string[]]@($GherkinLanguages."$LanguageKey"."$key")
+                    }
+                }
+            }
+        } else {
+            $GherkinLanguages."$LanguageKey" | Get-Member |
+                Where-Object { $_.MemberType -eq 'NoteProperty' } |
+                Select-Object -ExpandProperty Name |
+                Where-Object { $_ -notin 'name','native' } |
+                ForEach-Object {
+                    if ($_ -in 'given','when','then','and','but') {
+                        $GherkinCodeKeywordTranslation += [PSCustomObject] @{
+                            PSTypeName = 'Gherkin.Language.KeywordTranslation'
+                            Keyword = "${_} (Code)"
+                            Translations = [string[]]@($GherkinLanguages."$LanguageKey"."$_" |
+                                ForEach-Object { $_ -replace '[\s'',! ]' })
+                        }
+
+                        $GherkinKeywordTranslation += [PSCustomObject]@{
+                            PSTypeName = 'Gherkin.Language.KeywordTranslation'
+                            Keyword = $_
+                            Translations = [string[]]@($Gherkinlanguages."$LanguageKey"."$_")
+                        }
+                    } else {
+                        $GherkinKeywordTranslation += [PSCustomObject] @{
+                            PSTypeName = 'Gherkin.Language.KeywordTranslation'
+                            Keyword = $_
+                            Transaltions = [string[]]@($Gherkinlanguages."$LanguageKey"."$_")
+                        }
+                    }
+                }
+        }
+    }
+
+    end {
+        @($GherkinKeywordTranslation) + @($GherkinCodeKeywordTranslation)
+    }
+}
+
+function Get-GherkinLanguages {
+    [OutputType([string[]])]
+
+    $GherkinLanguages | Get-Member | Where-Object { $_.MemberType -eq 'NoteProperty' } |
+        Select-Object -ExpandProperty Name |
+        ForEach-Object {
+            # TODO: Create Gherkin.format.ps1xml file and create a default Table view for these.
+            [PSCustomObject] @{
+                PSTypeName = 'Gherkin.Language'
+                LanguageKey = $_
+                Name = $GherkinLanguages."$_".name
+                NativeName = $GherkinLanguages."$_".native
+            }
+        }
 }
 
 function Get-PotentialFeatureFile {
@@ -256,6 +348,14 @@ function Invoke-Gherkin3 {
         [Alias('-init')]
         [switch]$Init,
 
+        [Parameter(ParameterSetName = 'i18nSet')]
+        [Alias('-i18n-languages')]
+        [switch]$I18nLanguages,
+
+        [Parameter(ParameterSetName = 'i18nSet')]
+        [Alias('-i18n-keywords')]
+        [string]$I18nKeywords,
+
         [Parameter(ValueFromRemainingArguments = $True, ParameterSetName = 'Standard')]
         [SupportsWildCards()]
         [string[]]$FeaturePathSpec = 'features'
@@ -295,6 +395,18 @@ function Invoke-Gherkin3 {
             } else {
                 return
             }
+        }
+
+        if ($I18nLanguages) {
+            # TODO: Once a Gherkin.format.ps1xml file is created, remove the Format-Table
+            Get-GherkinLanguages | Format-Table
+            exit
+        }
+
+        if ($I18nKeywords) {
+            # TODO: Once a Gherkin.format.ps1xml file is created, remove the Format-Table
+            Get-GherkinKeywordTranslation -LanguageKey $I18nKeywords | Format-Table
+            exit
         }
 
         if (!(Test-Path (Join-Path $PWD 'features'))) {
