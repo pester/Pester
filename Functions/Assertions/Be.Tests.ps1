@@ -109,6 +109,23 @@ InModuleScope Pester {
         #are not tested here thoroughly, but the behaviour was visually checked and is
         #implicitly tested by using the whole output in the following tests
 
+        It "Shows excerpted error messages correctly" {
+            $expected = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            $actual = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            { $actual | Should Be $expected } | Should Throw "Expected: '...aaaaabbbbb...'"
+        }
+
+        It "Shows excerpted error messages correctly" {
+            $expected = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            $actual = "abb"
+            { $actual | Should Be $expected } | Should Throw "Expected: 'aaaaaaaaaa...'"
+        }
+
+        It "Shows excerpted 'actual values' correctly" {
+            $expected = "aaab"
+            $actual = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            { $actual | Should Be $expected } | Should Throw "But was:  'aaaaaaaaaa...'"
+        }
 
         It "Returns nothing for two identical strings" {
             #this situation should actually never happen, as the code is called
