@@ -215,42 +215,7 @@ function Format-AsExcerpt {
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [string]$excerptMarker
     )
-    $displayDifferenceIndex = $startIndex - $excerptSize
-    $maximumStringLength = 40
-    $maximumSubstringLength = $excerptSize * 2
-    $substringLength = $InputObject.Length - $displayDifferenceIndex
-    if ($substringLength -gt $maximumSubstringLength) {
-        $substringLength = $maximumSubstringLength
-    }
-    if ($displayDifferenceIndex + $substringLength -lt $InputObject.Length) {
-        $endExcerptMarker = $excerptMarker
-    }
-    if ($displayDifferenceIndex -lt 0) {
-        $displayDifferenceIndex = 0
-    }
-    if ($InputObject.length -ge $maximumStringLength) {
-        if ($displayDifferenceIndex -ne 0) {
-            $InputObjectDisplay = $excerptMarker
-        }
-        $InputObjectDisplay += $InputObject.Substring($displayDifferenceIndex, $substringLength) + $endExcerptMarker
-    }
-    else {
-        $InputObjectDisplay = $InputObject
-    }
-    $InputObjectDisplay
-}
-function Format-AsExcerpt {
-    param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
-        [AllowEmptyString()]
-        [string]$InputObject,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$startIndex,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$excerptSize,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [string]$excerptMarker
-    )
+    $InputObjectDisplay=""
     $displayDifferenceIndex = $startIndex - $excerptSize
     $maximumStringLength = 40
     $maximumSubstringLength = $excerptSize * 2
