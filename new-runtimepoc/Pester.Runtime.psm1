@@ -17,6 +17,16 @@ $state = [PSCustomObject] @{
     TestStopWatch      = $null
     BlockStopWatch     = $null
     FrameworkStopWatch = $null
+
+    ExpandName = {
+        param([string]$Name, [HashTable]$Data)
+
+        $n = $Name
+        foreach ($pair in $Data.GetEnumerator()) {
+            $n = $n -replace "<$($pair.Key)>", "$($pair.Value)"
+        }
+        $n
+    }
 }
 
 
@@ -390,6 +400,8 @@ function New-Test {
             # This choice might need to be revisited
             $test.Data = $Data
 
+            $test.ExpandedName = & $state.ExpandName -Name $test.Name -Data $Data
+
             $block = Get-CurrentBlock
 
             Write-PesterDebugMessage -Scope Runtime "Running test '$Name'."
@@ -684,6 +696,7 @@ function New-TestObject {
         Tag               = $Tag
         Focus             = [Bool]$Focus
         Data              = $Data
+        ExpandedName       = $null
         Block = $null
         Executed          = $false
         ExecutedAt        = $null

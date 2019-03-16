@@ -1638,6 +1638,24 @@ i {
             $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
     }
+
+    b "expanding values in names of parametrized tests" {
+        t "strings expand in the name" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    $v = 1
+                    New-Block -Name "b1" {
+                        New-ParametrizedTest "Hello <name>." -Data @{ Name = "Jakub" } {
+                            $true
+                        }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal  "Hello <name>."
+            $actual.Blocks[0].Tests[0].ExpandedName | Verify-Equal  "Hello Jakub."
+        }
+    }
 }
 
 

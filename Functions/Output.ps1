@@ -523,7 +523,7 @@ function Get-WriteScreenPlugin {
         $level = $_test.Path.Length
         $margin = $ReportStrings.Margin * ($level)
         $error_margin = $margin + $ReportStrings.Margin
-        $output = $_test.Name
+        $output = $_test.ExpandedName
         $humanTime = Get-HumanTime $_test.Duration.TotalSeconds
 
         # TODO: Add output options
