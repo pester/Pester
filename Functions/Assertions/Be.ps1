@@ -167,7 +167,6 @@ function Get-CompareStringMessage {
         }
     }
 
-    [string]$output = $null
     if ($null -ne $differenceIndex) {
         "Expected strings to be the same,$(Format-Because $Because) but they were different."
 
@@ -182,9 +181,9 @@ function Get-CompareStringMessage {
         }
         $ellipsis = "..."
         $excerptSize = 5;
-        $longStringOffset = 0;
-        "Expected: '{0}'" -f ( $ExpectedValue | Expand-SpecialCharacters | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis)
-        "But was:  '{0}'" -f ( $actual | Expand-SpecialCharacters | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis)
+        $longStringOffset = 0
+        "Expected: '{0}'" -f ( $ExpectedValue | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis | Expand-SpecialCharacters )
+        "But was:  '{0}'" -f ( $actual | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis | Expand-SpecialCharacters )
 
         $specialCharacterOffset = $null
         if ($differenceIndex -ne 0) {
@@ -336,4 +335,3 @@ function ReplaceValueInArray {
         }
     }
 }
-
