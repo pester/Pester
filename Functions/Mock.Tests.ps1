@@ -2030,3 +2030,193 @@ Describe "Mocking Set-Variable" {
     }
 
 }
+
+Describe "Mocking functions with conflicting parameters" {
+    InModuleScope Pester {
+        Context "Faked conflicting parameter" {
+            BeforeAll {
+                Mock Get-ConflictingParameterNames { @("ParamToAvoid") }
+
+                function Get-ExampleTest {
+                    param(
+                        [Parameter(Mandatory = $true)]
+                        [string]
+                        $ParamToAvoid
+                    )
+
+                    $ParamToAvoid
+                }
+
+                Mock Get-ExampleTest { "World" } -ParameterFilter { $_ParamToAvoid -eq "Hello" }
+            }
+
+            It 'executes the mock' {
+                Get-ExampleTest -ParamToAvoid "Hello" | Should -Be "World"
+            }
+
+            It 'defaults to the original function' {
+                Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "Bye"
+            }
+
+            Context "Assert-MockCalled" {
+
+                It 'simple Assert-Mockcalled' {
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -Exactly 1 -Scope It
+                }
+
+                It 'with parameterfilter' {
+                    Get-ExampleTest -ParamToAvoid "Another"
+                    Get-ExampleTest -ParamToAvoid "Hello"
+
+                    Assert-MockCalled Get-ExampleTest -ParameterFilter { $_ParamToAvoid -eq "Hello" } -Exactly 1 -Scope It
+                }
+            }
+        }
+    }
+
+    Context "Get-Module" {
+        function f { Get-Module foo }
+        It 'mocks Get-Module properly' {
+            Mock Get-Module -Verifiable { 'mocked' }
+            f
+            Assert-MockCalled Get-Module
+        }
+    }
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 3) {
+    Describe "Usage of Alias in Parameter Filters" {
+        Context 'Mock definition' {
+
+            Context 'Get-Content' {
+                BeforeAll {
+                    Mock Get-Content { "default-get-content" }
+                    Mock Get-Content -ParameterFilter {$Tail -eq 100} -MockWith { "aliased-parameter-name" }
+                }
+
+                It "returns mock that matches parameter filter block" {
+                    Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+                }
+
+                It 'returns default mock' {
+                    Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
+                }
+            }
+
+            Context "Alias rewriting works when alias and parameter name differ in length" {
+
+                Mock New-Item { return "nic" } -ParameterFilter { $Type -ne $null -and $Type.StartsWith("nic") }
+
+                It 'calls the mock' {
+                    New-Item -Path 'Hello' -Type "nic" | Should -Be "nic"
+                }
+            }
+
+            if ($PSVersionTable.PSVersion -ge 5.1) {
+                Context 'Get-Module' {
+                    It 'works with read-only/constant automatic variables' {
+                        function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
+                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+
+                        f
+
+                        Assert-MockCalled Get-Module
+                    }
+                }
+            }
+        }
+
+        Context 'Assert-MockCalled' {
+            It "Uses parameter aliases in ParameterFilter" {
+                function f { Get-Content -Path 'temp.txt' -Tail 10 }
+                Mock Get-Content { }
+
+                f
+
+                Assert-MockCalled Get-Content -ParameterFilter { $Last -eq 10 } -Exactly 1 -Scope It
+            }
+        }
+
+    }
+}
+
+
+InModuleScope Pester {
+    Describe 'Alias for external commands' {
+        Context 'Without extensions' {
+            $case = @(
+                @{Command = 'notepad'}
+            )
+
+            if ((GetPesterOs) -ne 'Windows') {
+                $case = @(
+                    @{Command = 'ls'}
+                )
+            }
+
+            It 'mocks <Command> command' -TestCases $case {
+                param($Command)
+
+                Mock $Command { 'I am being mocked' }
+
+                & $Command | Should -Be 'I am being mocked'
+
+                Assert-MockCalled $Command -Scope It -Exactly 1
+            }
+        }
+
+        if ((GetPesterOs) -eq 'Windows') {
+            Context 'With extensions' {
+                It 'mocks notepad command with extension' {
+                    Mock notepad.exe { 'I am being mocked' }
+
+                    notepad.exe | Should -Be 'I am being mocked'
+
+                    Assert-MockCalled notepad.exe -Scope It -Exactly 1
+                }
+            }
+
+            Context 'Mixed usage' {
+                It 'mocks with extension and calls it without ext' {
+                    Mock notepad.exe { 'I am being mocked' }
+
+                    notepad | Should -Be 'I am being mocked'
+
+                    Assert-MockCalled notepad.exe -Scope It -Exactly 1
+                }
+
+                It 'mocks without extension and calls with extension' {
+                    Mock notepad { 'I am being mocked' }
+
+                    notepad.exe | Should -Be 'I am being mocked'
+                }
+
+                It 'assert that alias to mock works' {
+                    Set-Alias note notepad
+
+                    Mock notepad.exe { 'I am being mocked' }
+
+                    notepad | Should -Be 'I am being mocked'
+
+                    Assert-MockCalled note -Scope It -Exactly 1
+                }
+            }
+        }
+    }
+}
+
+Describe "Mock definition output" {
+    It "Outputs nothing" {
+
+        function a () {}
+        $output = Mock a { }
+        $output | Should -Be $null
+    }
+}
+
+Describe 'Mocking using ParameterFilter with scriptblock' {
+    $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
+    Mock -CommandName 'Test-Path' -ParameterFilter $filter
+}

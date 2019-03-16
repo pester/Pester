@@ -232,6 +232,8 @@ about_Mocking
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
             }
 
+            # Will modify $metadata object in-place
+            Repair-ConflictingParameters -Metadata $metadata
             $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
@@ -336,29 +338,11 @@ about_Mocking
 
         $mockTable["$ModuleName||$CommandName"] = $mock
 
-        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
-        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $Mock.BootstrapFunctionName, $mockScript
+        Invoke-CommonSetupInMockScope -Mock $mock -MockScript $MockScript -CommandName $CommandName
+    }
 
-        $mock.Aliases += $CommandName
-
-        $scriptBlock = {
-            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
-            & $setAlias -Name $args[0] -Value $args[1] -Scope Script
-        }
-
-        $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $mock.BootstrapFunctionName
-
-        if ($mock.OriginalCommand.ModuleName) {
-            $aliasName = "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
-            $mock.Aliases += $aliasName
-
-            $scriptBlock = {
-                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
-                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
-            }
-
-            $null = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $mock.BootstrapFunctionName
-        }
+    if ($null -ne $mock.Metadata -and $null -ne $block.Filter) {
+        $block.Filter = New-BlockWithoutParameterAliases -Metadata $mock.Metadata -Block $block.Filter
     }
 
     $mock.Blocks = @(
@@ -656,6 +640,9 @@ to the original.
             Metadata        = $mock.Metadata
         }
 
+        if ($null -ne $mock.Metadata -and $null -ne $params.ScriptBlock) {
+            $params.ScriptBlock = New-BlockWithoutParameterAliases -Metadata $mock.Metadata -Block $params.ScriptBlock
+        }
 
         if (Test-ParameterFilter @params) {
             $null = $matchingCalls.Add($historyEntry)
@@ -987,6 +974,8 @@ function Invoke-Mock {
 
         End {
             if ($MockCallState['ShouldExecuteOriginalCommand']) {
+                $MockCallState['BeginBoundParameters'] = Reset-ConflictingParameters -BoundParameters $MockCallState['BeginBoundParameters']
+
                 if ($MockCallState['InputObjects'].Count -gt 0) {
                     $scriptBlock = {
                         param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
@@ -1542,5 +1531,175 @@ function Remove-MockFunctionsAndAliases {
 
     foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*")) {
         & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
+    }
+}
+
+function Repair-ConflictingParameters {
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.CommandMetadata])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+
+    $paramMetadatas = @()
+    $paramMetadatas += $Metadata.Parameters.Values
+
+    foreach ($paramMetadata in $paramMetadatas) {
+        if ($paramMetadata.IsDynamic) {
+            continue
+        }
+
+        $conflictingParams = Get-ConflictingParameterNames
+        if ($conflictingParams -contains $paramMetadata.Name) {
+            $paramName = $paramMetadata.Name
+            $newName = "_$paramName"
+            $paramMetadata.Name = $newName
+            $paramMetadata.Aliases.Add($paramName)
+
+            $null = $Metadata.Parameters.Remove($paramName)
+            $Metadata.Parameters.Add($newName, $paramMetadata)
+        }
+    }
+}
+
+function Reset-ConflictingParameters {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]
+        $BoundParameters
+    )
+
+    $parameters = $BoundParameters.Clone()
+    $names = Get-ConflictingParameterNames
+
+    foreach ($param in $names) {
+        $fixedName = "_$param"
+
+        if (-not $parameters.ContainsKey($fixedName)) {
+            continue
+        }
+
+        $parameters[$param] = $parameters[$fixedName]
+        $null = $parameters.Remove($fixedName)
+    }
+
+    $parameters
+}
+
+$script:ConflictingParameterNames = @(
+    "PSEdition"
+)
+
+function Get-ConflictingParameterNames {
+    $script:ConflictingParameterNames
+}
+
+
+function New-BlockWithoutParameterAliases {
+    [CmdletBinding()]
+    [OutputType([scriptblock])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $Block
+    )
+    try {
+        if ($PSVersionTable.PSVersion.Major -ge 3) {
+            $params = $Metadata.Parameters.Values
+            $ast = $Block.Ast.EndBlock
+            $blockText = $ast.Extent.Text
+            $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
+            [array]::Reverse($variables)
+
+            foreach ($var in $variables) {
+                $varName = $var.VariablePath.UserPath
+                $length = $varName.Length
+
+                foreach ($param in $params) {
+                    if ($param.Aliases -contains $varName) {
+                        $startIndex = $var.Extent.StartOffset - $ast.Extent.StartOffset + 1 # move one position after the dollar sign
+
+                        $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
+
+                        break # It is safe to stop checking for further params here, since aliases cannot be shared by parameters
+                    }
+                }
+            }
+
+            $Block = [scriptblock]::Create($blockText)
+        }
+
+        $Block
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+}
+
+function Invoke-CommonSetupInMockScope {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [hashtable]
+        $Mock,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $MockScript,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [string]
+        $CommandName
+    )
+    try {
+        $scriptBlock = { $ExecutionContext.InvokeProvider.Item.Set("Function:\script:$($args[0])", $args[1], $true, $true) }
+        $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $Mock.BootstrapFunctionName, $MockScript
+
+        $mock.Aliases += $CommandName
+
+        $scriptBlock = {
+            $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+            & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+        }
+
+        $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $CommandName, $Mock.BootstrapFunctionName
+
+        if ($Mock.OriginalCommand.ModuleName) {
+            $aliasName = "$($Mock.OriginalCommand.ModuleName)\$($CommandName)"
+            $Mock.Aliases += $aliasName
+
+            $scriptBlock = {
+                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+            }
+
+            $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasName, $Mock.BootstrapFunctionName
+        }
+
+        if ($Mock.OriginalCommand.CommandType -eq 'Application') {
+            $aliasWithoutExt = $CommandName -replace $Mock.OriginalCommand.Extension
+
+            $Mock.Aliases += $aliasWithoutExt
+
+            $scriptBlock = {
+                $setAlias = & (Pester\SafeGetCommand) -Name Set-Alias -CommandType Cmdlet -Module Microsoft.PowerShell.Utility
+                & $setAlias -Name $args[0] -Value $args[1] -Scope Script
+            }
+
+            $null = Invoke-InMockScope -SessionState $Mock.SessionState -ScriptBlock $scriptBlock -ArgumentList $aliasWithoutExt, $Mock.BootstrapFunctionName
+        }
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 }
