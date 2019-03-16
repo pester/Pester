@@ -202,7 +202,7 @@ i {
     }
 
     b "named mock scopes" {
-        dt "asserting in scope describe finds all mocks in the nearest describe" {
+        t "asserting in scope describe finds all mocks in the nearest describe" {
             $actual = Invoke-Pester -ScriptBlock {
                 Add-Dependency { function a { } }
                 Describe 'd-2' {
@@ -246,5 +246,131 @@ i {
         }
 
 
+    }
+
+    b "Running generated tests" {
+        t "generating simple tests from foreach with external Id" {
+            $result = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    foreach ($id in 1..10) {
+                        It "it${id}" { $true } -AutomationId $id
+                    }
+                }
+            } -PassThru
+
+            $result.Blocks[0].ErrorRecord | Verify-Null
+            $result.Blocks[0].Tests.Count | Verify-Equal 10
+            $result.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "generating parametrized tests from foreach with external id" {
+            $result = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    foreach ($id in 1..10) {
+                        It "it$id-<value>" -TestCases @(
+                            @{ Value = 1}
+                            @{ Value = 2}
+                            @{ Value = 3}
+                        ) {
+                            $true
+                        } -AutomationId $id
+                    }
+                }
+            } -PassThru
+
+            $result.Blocks[0].ErrorRecord | Verify-Null
+            $result.Blocks[0].Tests.Count | Verify-Equal 30
+            $result.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "generating simple tests from foreach without external Id" {
+            $result = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    foreach ($id in 1..10) {
+                        It "it$id" { $true }
+                    }
+                }
+            } -PassThru
+
+            $result.Blocks[0].ErrorRecord | Verify-Null
+            $result.Blocks[0].Tests.Count | Verify-Equal 10
+            $result.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "generating parametrized tests from foreach without external id" {
+            $result = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    foreach ($id in 1..10) {
+                        It "it-$id-<value>" -TestCases @(
+                            @{ Value = 1}
+                            @{ Value = 2}
+                            @{ Value = 3}
+                        ) {
+                            $true
+                        }
+                    }
+                }
+            } -PassThru
+
+            $result.Blocks[0].ErrorRecord | Verify-Null
+            $result.Blocks[0].Tests.Count | Verify-Equal 30
+            $result.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "generating multiple parametrized tests from foreach without external id" {
+            $result = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    foreach ($id in 1..10) {
+                        It "first-it-$id-<value>" -TestCases @(
+                            @{ Value = 1}
+                            @{ Value = 2}
+                            @{ Value = 3}
+                        ) {
+                            $true
+                        }
+
+                        It "second-it-$id-<value>" -TestCases @(
+                            @{ Value = 1}
+                            @{ Value = 2}
+                            @{ Value = 3}
+                        ) {
+                            $true
+                        }
+                    }
+                }
+            } -PassThru
+
+            $result.Blocks[0].ErrorRecord | Verify-Null
+            $result.Blocks[0].Tests.Count | Verify-Equal 60
+            $result.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        dt "generating multiple parametrized tests from foreach with external id" {
+            $result = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    foreach ($id in 1..10) {
+                        It "first-it-$id-<value>" -TestCases @(
+                            @{ Value = 1}
+                            @{ Value = 2}
+                            @{ Value = 3}
+                        ) {
+                            $true
+                        } -AutomationId $Id
+
+                        It "second-it-$id-<value>" -TestCases @(
+                            @{ Value = 1}
+                            @{ Value = 2}
+                            @{ Value = 3}
+                        ) {
+                            $true
+                        } -AutomationId $id
+                    }
+                }
+            } -PassThru
+
+            $result.Blocks[0].ErrorRecord | Verify-Null
+            $result.Blocks[0].Tests.Count | Verify-Equal 60
+            $result.Blocks[0].Tests[0].Passed | Verify-True
+        }
     }
 }

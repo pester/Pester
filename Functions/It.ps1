@@ -122,7 +122,16 @@ about_should
         [Alias('Ignore')]
         [Switch] $Skip,
 
-        [Switch]$Focus
+        [Switch]$Focus,
+
+        # to avoid conflicts when tests are externally generated,
+        # e.g. by producing them from foreach, a unique ID should be
+        # provided by the loop, typically this could be a counter
+        # or if you expect the source to change between discovery and
+        # run time, you should use a different unique Id, such as name of
+        # the service that you check the status on. The ids have to be static
+        # between Discovery and run time, so generating a guid is not a good choice.
+        [String] $AutomationId
     )
 
     if ($Pending -or $Skip) {
@@ -132,10 +141,10 @@ about_should
     }
 
     if (any $TestCases) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus -Id $AutomationId
     }
     else {
-        Pester.Runtime\New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus
+        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus -Id $AutomationId
     }
 }
 

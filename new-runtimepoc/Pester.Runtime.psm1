@@ -160,6 +160,19 @@ function New-Block {
 
     if (Is-Discovery) {
         Write-PesterDebugMessage -Scope Discovery "Adding block $Name to discovered blocks"
+
+        # the tests are identified based on the start position of their script block
+        # so in case user generates tests (typically from foreach loop)
+        # we are not able to distinguish between test generated during first iteration of the
+        # loop and second iteration of the loop. this is not a problem for the discovery, but it
+        # is problem for the run, because then we get ambiguous reference to a test
+        # to avoid forcing the user to provide the id in cases where the list of things is the same
+        # between discovery and run, we look at the latest test in this block and if it comes from the same
+        # line we add one to the counter and use that as an implicit Id.
+        # and since there can be multiple tests in the foreach, we add one item per test, and key
+        # them by the position
+        $FrameworkData.Add("PreviousTestInfo", @{})
+
         $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus
         # we attach the current block to the parent
         Add-Block -Block $block
@@ -307,16 +320,65 @@ function New-Test {
     $testStartTime = $state.TestStopWatch.Elapsed
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
 
+
     Write-PesterDebugMessage -Scope Runtime "Entering test $Name"
     Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
     try {
         $path = Get-ScopeHistory | % Name
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
 
+        # give every test implicit id (position), so when we generate and run
+        # tests from forach we can pair them together, even though they are
+        # on the same position in the file
+        $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+
+        $Id = if ($hasExternalId) {
+                $Id
+            }
+            else {
+                $currentTestLocation = $ScriptBlock.StartPosition.StartLine
+                $previousTests = (Get-CurrentBlock).FrameworkData.PreviousTestInfo
+
+                if ($null -eq $previousTests)
+                {
+                    # TODO: this enables tests that are not in a block to run. those are outdated tests in my
+                    # test suite, so this should be imho removed later, and the tests rewritten
+                    $previousTests = @{}
+                }
+
+                if (-not $previousTests.ContainsKey($currentTestLocation)) {
+
+                    $previousTest = New-PreviousTestObject
+                    $previousTests.Add($currentTestLocation, $previousTest)
+                }
+                else {
+                    $previousTest = $previousTests.$currentTestLocation
+                }
+
+                if (-not $previousTest.Any) {
+                   0
+                }
+                else {
+                    if  ($previousTest.Location -eq $currentTestLocation) {
+                        $position = ++$previousTest.Counter
+                        [string] $position
+                    }
+                }
+
+
+                $previousTest.Any = $true
+                # counter is mutated in place above
+                # $previousTest.Counter
+                $previousTest.Location = $currentTestLocation
+                $previousTest.Name = $Name
+            }
+
         # do this setup when we are running discovery
         if (Is-Discovery) {
+
             $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
             $test.FrameworkData.Runtime.Phase = 'Discovery'
+
             Add-Test -Test $test
             Write-PesterDebugMessage -Scope Discovery "Added test '$Name'"
         }
@@ -772,7 +834,22 @@ function Run-Test {
         $blockStartTime = $state.BlockStopWatch.Elapsed
         $overheadStartTime = $state.FrameworkStopWatch.Elapsed
 
-        $null = Invoke-BlockContainer -BlockContainer $rootBlock.BlockContainer -SessionState $SessionState
+        try {
+            $rootBlock.Executed = $true
+            $rootBlock.ExecutedAt = [DateTime]::now
+            # TODO: run container setup here, and put "path" output to plugin
+            if ("file" -eq $rootBlock.BlockContainer.Type) {
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($rootBlock.BlockContainer.Content)'"
+            }
+            $null = Invoke-BlockContainer -BlockContainer $rootBlock.BlockContainer -SessionState $SessionState
+            $rootBlock.Passed = $true
+        }
+        catch {
+            $rootBlock.Passed = $false
+            $rootBlock.ErrorRecord += $_
+            # TODO: run container teardown here, and put this into plugin
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($rootBlock.BlockContainer.Content)' failed with `n$($_ | out-string)"
+        }
 
         $rootBlock.Duration = $state.BlockStopWatch.Elapsed - $blockStartTime
         $rootBlock.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
@@ -1267,6 +1344,7 @@ function PostProcess-DiscoveredBlock {
     $Block.IsRoot = $Block -eq $RootBlock
     $Block.Root = $RootBlock
     $Block.BlockContainer = $BlockContainer
+    $Block.FrameworkData.PreviousTestInfo = @{}
 
     $tests = $Block.Tests
 
@@ -1615,7 +1693,7 @@ function Add-FrameworkDependency {
     # this should be rarely needed, but is useful when you wrap Pester pieces
     # into your own functions, and want to have them available during both
     # discovery and execution
-    & $SafeCommands["Write-Host"] "Adding framework dependency '$Dependency'" -ForegroundColor Yellow
+    Write-PesterDebugMessage -Scope Runtime "Adding framework dependency '$Dependency'"
     Import-Dependency -Dependency $Dependency -SessionState $SessionState
 }
 
@@ -1631,7 +1709,7 @@ function Add-Dependency {
 
     # adds dependency that is dotsourced after discovery and before execution
     if (-not (Is-Discovery)) {
-        & $SafeCommands["Write-Host"] "Adding run-time dependency '$Dependency'" -ForegroundColor Yellow
+        Write-PesterDebugMessage -Scope Runtime "Adding run-time dependency '$Dependency'"
         Import-Dependency -Dependency $Dependency -SessionState $SessionState
     }
 }
@@ -1649,7 +1727,7 @@ function Add-FreeFloatingCode {
     # it differently because this is a bad-practice mitigation tool and should probably
     # write a warning to make you use Before* blocks instead
     if (-not (Is-Discovery)) {
-        & $SafeCommands["Write-Host"] Invoking free floating piece of code -ForegroundColor Yellow
+        Write-PesterDebugMessage -Scope Runtime "Invoking free floating piece of code"
         Import-Dependency $Dependency
     }
 }
@@ -1663,13 +1741,22 @@ function New-ParametrizedTest () {
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         [HashTable[]] $Data = @{},
-        [Switch] $Focus
+        [Switch] $Focus,
+        [String] $Id
     )
 
     Switch-Timer -Scope Framework
     $counter = 0
+    $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
     foreach ($d in $Data) {
-        New-Test -Id ($counter++) -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
+        # no when there is no external id we rely on the internal
+        # logic to do it's test duplication prevention thing,
+        # otherwise we attach our id, so the user can provide their own external ids
+        # this would fail when the count of the test cases would change between discovery
+        # and run, so this might need an option to provide explicit ids for the test cases if the logic
+        # here proves to be not sufficient
+        $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
+        New-Test -Id $innerId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
     }
 }
 
@@ -1687,6 +1774,20 @@ function Recurse-Up {
 
         $level--
         $i = $i.Parent
+    }
+}
+
+function New-PreviousTestObject {
+
+    param ()
+    New_PSObject -Type 'PreviousTestInfo' @{
+        Any = $false
+        Location = 0
+        Counter = 0
+        # just for debugging, not being able to use the name to identify tests, because of
+        # potential expanding variables in the names, is the whole reason the position of the
+        # sb is used
+        Name = $null
     }
 }
 

@@ -736,6 +736,28 @@ i {
             $container.OneTimeTeardown | Verify-Equal 1
 
         }
+
+        t "error in one container during Run phase does not prevent the next container from running" {
+            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
+                New-BlockContainerObject -ScriptBlock {
+                    Add-Dependency { throw } -SessionState $ExecutionContext.SessionState
+                    New-Block "block1" {
+                        New-Test "test1" {}
+                    }
+                }
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block "block2" {
+                        New-Test "test2" {}
+                    }
+                })
+
+            $result.Blocks[0].Passed | Verify-False
+            $result.Blocks[0].Executed | Verify-False
+            $result.Blocks[0].Tests[0].Executed | Verify-False
+
+            $result.Blocks[1].Executed | Verify-True
+            $result.Blocks[1].Tests[0].Executed | Verify-True
+        }
     }
 
     b "Skipping tests" {
@@ -1400,6 +1422,88 @@ i {
             $testsToRun.Count | Verify-Equal 2
             $testsToRun[0].Name | Verify-Equal "test 1"
             $testsToRun[1].Name | Verify-Equal "test 2"
+        }
+    }
+
+    b "generating tests" {
+        t "generating tests without external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-Block -Name "block1" {
+                        foreach ($notUsed in 1..3) {
+                            New-Test "test 1" { } # no -Id here
+                        }
+                    }
+                }
+            )
+
+
+            $actual.Blocks[0].ErrorRecord | Verify-Null
+            $actual.Blocks[0].Tests[2].Id | Verify-Equal 2
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 3
+        }
+
+        t "generating paremetrized tests without external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-Block -Name "block1" {
+                        foreach ($notUsed in 1..3) {
+                            New-ParametrizedTest "test 1" -Data @{ Value = "a" } { }
+                        }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].ErrorRecord | Verify-Null
+            $actual.Blocks[0].Tests[2].Id | Verify-Equal "2"
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 3
+        }
+
+        t "generating multiple tests from one foreach without external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-Block -Name "block1" {
+                        foreach ($notUsed in 1..3) {
+                            New-Test "test 1" { } # no -Id here
+                            New-Test "test 2" { } # no -Id here
+                        }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].ErrorRecord | Verify-Null
+
+            $actual.Blocks[0].Tests[2].Name | Verify-Equal "test 1"
+            $actual.Blocks[0].Tests[2].Id | Verify-Equal 1
+
+            $actual.Blocks[0].Tests[3].Name | Verify-Equal "test 2"
+            $actual.Blocks[0].Tests[3].Id | Verify-Equal 1
+
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 6
+        }
+
+        t "generating tests with external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-Block -Name "block1" {
+                        foreach ($id in 80..82) {
+                            New-Test "test 1" { } -Id $id
+                        }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].ErrorRecord | Verify-Null
+            $actual.Blocks[0].Tests[2].Id | Verify-Equal 82
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 3
         }
     }
 }
