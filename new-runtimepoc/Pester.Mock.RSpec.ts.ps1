@@ -345,7 +345,7 @@ i {
             $result.Blocks[0].Tests[0].Passed | Verify-True
         }
 
-        dt "generating multiple parametrized tests from foreach with external id" {
+        t "generating multiple parametrized tests from foreach with external id" {
             $result = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     foreach ($id in 1..10) {
@@ -373,4 +373,29 @@ i {
             $result.Blocks[0].Tests[0].Passed | Verify-True
         }
     }
+
+    b "Add-Dependency paths" {
+        t "`$PSScriptRoot in Add-Dependency has the same value as in the script that calls it" {
+            $container = [PSCustomObject]@{
+                InScript = $null
+                InAddDependency = $null
+            }
+            $result = Invoke-Pester -ScriptBlock {
+                $container.InScript = $PSScriptRoot
+                Add-Dependency {
+                     $container.InAddDependency = $PSScriptRoot
+                }
+
+                Describe "a" {
+                    It "b" {
+                        # otherwise the container would not run
+                        $true
+                    }
+                }
+            } -PassThru
+
+            $container.InAddDependency | Verify-Equal $container.InScript
+        }
+    }
+
 }

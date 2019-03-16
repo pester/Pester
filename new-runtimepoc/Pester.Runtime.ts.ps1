@@ -1032,7 +1032,7 @@ i {
             $actual.Blocks[0].Tests.Length | Verify-Equal 2
         }
 
-        t "Each generated test has unique id and they both successfully execute and have the correct data" {
+        t "Each parametrized test has unique id and they both successfully execute and have the correct data" {
             $data = @(
                 @{ Value = 1 }
                 @{ Value = 2 }
@@ -1504,6 +1504,138 @@ i {
             $actual.Blocks[0].Tests[2].Id | Verify-Equal 82
             $passedTests = @($actual | View-Flat | where { $_.Passed })
             $passedTests.Count | Verify-Equal 3
+        }
+    }
+
+    b "generating blocks" {
+        t "generating blocks without external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    foreach ($notUsed in 1..3) {
+                        New-Block -Name "block1" {
+                            New-Test "test 1" { }
+                        } # no -Id here
+                    }
+                }
+            )
+
+
+            $actual.Blocks[1].ErrorRecord | Verify-Null
+            $actual.Blocks[1].Id | Verify-Equal 1
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 3
+        }
+
+        t "generating multiple blocks from one foreach without external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    foreach ($notUsed in 1..3) {
+                        New-Block -Name "block1" {
+                            New-Test "test 1" { }
+                        } # no -Id here
+
+                        New-Block -Name "block2" {
+                            New-Test "test 2" { }
+                        } # no -Id here
+                    }
+                }
+            )
+
+            $actual.Blocks[0].ErrorRecord | Verify-Null
+            $actual.Blocks[0].Id | Verify-Equal 0 # block1-0
+
+            $actual.Blocks[1].ErrorRecord | Verify-Null
+            $actual.Blocks[1].Id | Verify-Equal 0 # block2-0
+
+            $actual.Blocks[2].ErrorRecord | Verify-Null
+            $actual.Blocks[2].Id | Verify-Equal 1 # block1-1
+
+            $actual.Blocks[3].ErrorRecord | Verify-Null
+            $actual.Blocks[3].Id | Verify-Equal 1 # block2-1
+
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 6
+        }
+
+        t "generating blocks with external id" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    foreach ($id in 80..82) {
+                        New-Block -Name "block1" {
+                            New-Test "test 1" { }
+                        } -Id $id
+                    }
+                }
+            )
+
+            $actual.Blocks[0].ErrorRecord | Verify-Null
+            $actual.Blocks[2].Id | Verify-Equal 82
+            $passedTests = @($actual | View-Flat | where { $_.Passed })
+            $passedTests.Count | Verify-Equal 3
+        }
+    }
+
+    b "expandable variables in names" {
+        t "can run tests that have expandable variable in their name" {
+            # this should cause no problems, the test name is the same during
+            # discovery and run, so they can easily match
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    $v = 1
+                    New-Block -Name "b1" {
+                        New-Test "$v" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "can run tests that have expandable variable in their name that changes values between discovery and run" {
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    $v = (Get-Date).Ticks
+                    New-Block -Name "b1" {
+                        New-Test "$v" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "can run blocks that have expandable variable in their name" {
+            # this should cause no problems, the block name is the same during
+            # discovery and run, so they can easily match
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    $v = 1
+                    New-Block -Name "$v" {
+                        New-Test "t1" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+        }
+
+        t "can run blocks that have expandable variable in their name that changes value between discovery and run" {
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    $v = (Get-Date).Ticks
+                    New-Block -Name "$v" {
+                        New-Test "t1" { }
+                    }
+                }
+            )
+
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
     }
 }

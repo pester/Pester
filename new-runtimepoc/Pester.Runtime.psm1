@@ -144,8 +144,8 @@ function New-Block {
         [String[]] $Tag = @(),
         # TODO: rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
         [HashTable] $FrameworkData = @{},
-        [Switch] $Focus
-
+        [Switch] $Focus,
+        [string] $Id
     )
 
     Switch-Timer -Scope Framework
@@ -157,6 +157,20 @@ function New-Block {
     Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
 
     $block = $null
+
+    $previousBlock = Get-CurrentBlock
+
+    if (-not $previousBlock.FrameworkData.ContainsKey("PreviouslyGeneratedBlocks")) {
+        $previousBlock.FrameworkData.Add("PreviouslyGeneratedBlocks", @{})
+    }
+    $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+    $Id = if (-not $hasExternalId) {
+            $previouslyGeneratedBlocks = $previousBlock.FrameworkData.PreviouslyGeneratedBlocks
+            Get-Id -ScriptBlock $ScriptBlock -Previous $previouslyGeneratedBlocks
+        }
+        else {
+            $Id
+        }
 
     if (Is-Discovery) {
         Write-PesterDebugMessage -Scope Discovery "Adding block $Name to discovered blocks"
@@ -171,16 +185,17 @@ function New-Block {
         # line we add one to the counter and use that as an implicit Id.
         # and since there can be multiple tests in the foreach, we add one item per test, and key
         # them by the position
-        $FrameworkData.Add("PreviousTestInfo", @{})
+        $FrameworkData.Add("PreviouslyGeneratedTests", @{})
 
-        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus
+        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id
         # we attach the current block to the parent
         Add-Block -Block $block
     }
 
-    $previousBlock = Get-CurrentBlock
+
+
     if ($null -eq $block) {
-        $block = Find-CurrentBlock -Name $Name -ScriptBlock $ScriptBlock
+        $block = Find-CurrentBlock -Block $previousBlock -Name $Name -ScriptBlock $ScriptBlock -Id $Id
     }
 
     Set-CurrentBlock -Block $block
@@ -327,51 +342,20 @@ function New-Test {
         $path = Get-ScopeHistory | % Name
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
 
-        # give every test implicit id (position), so when we generate and run
-        # tests from forach we can pair them together, even though they are
-        # on the same position in the file
         $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+        if (-not $hasExternalId) {
+            $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
 
-        $Id = if ($hasExternalId) {
-                $Id
+            if ($null -eq $PreviouslyGeneratedTests)
+            {
+                # TODO: this enables tests that are not in a block to run. those are outdated tests in my
+                # test suite, so this should be imho removed later, and the tests rewritten
+                $PreviouslyGeneratedTests = @{}
+
             }
-            else {
-                $currentTestLocation = $ScriptBlock.StartPosition.StartLine
-                $previousTests = (Get-CurrentBlock).FrameworkData.PreviousTestInfo
 
-                if ($null -eq $previousTests)
-                {
-                    # TODO: this enables tests that are not in a block to run. those are outdated tests in my
-                    # test suite, so this should be imho removed later, and the tests rewritten
-                    $previousTests = @{}
-                }
-
-                if (-not $previousTests.ContainsKey($currentTestLocation)) {
-
-                    $previousTest = New-PreviousTestObject
-                    $previousTests.Add($currentTestLocation, $previousTest)
-                }
-                else {
-                    $previousTest = $previousTests.$currentTestLocation
-                }
-
-                if (-not $previousTest.Any) {
-                   0
-                }
-                else {
-                    if  ($previousTest.Location -eq $currentTestLocation) {
-                        $position = ++$previousTest.Counter
-                        [string] $position
-                    }
-                }
-
-
-                $previousTest.Any = $true
-                # counter is mutated in place above
-                # $previousTest.Counter
-                $previousTest.Location = $currentTestLocation
-                $previousTest.Name = $Name
-            }
+            $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
+        }
 
         # do this setup when we are running discovery
         if (Is-Discovery) {
@@ -502,6 +486,44 @@ function New-Test {
         $null = Pop-Scope
         Write-PesterDebugMessage -Scope Runtime "Left test $Name"
     }
+}
+
+function Get-Id {
+    param (
+        [Parameter(Mandatory)]
+        $Previous,
+        [Parameter(Mandatory)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    # give every test or block implicit id (position), so when we generate and run
+    # them from foreach we can pair them together, even though they are
+    # on the same position in the file
+    $currentLocation = $ScriptBlock.StartPosition.StartLine
+
+    if (-not $Previous.ContainsKey($currentLocation)) {
+        $previousItem = New-PreviousItemObject
+        $Previous.Add($currentLocation, $previousItem)
+    }
+    else {
+        $previousItem = $previous.$currentLocation
+    }
+
+    if (-not $previousItem.Any) {
+        0
+    }
+    else {
+        if  ($previousItem.Location -eq $currentLocation) {
+            $position = ++$previousItem.Counter
+            [string] $position
+        }
+    }
+
+    $previousItem.Any = $true
+    # counter is mutated in place above
+    # $previousItem.Counter
+    $previousItem.Location = $currentLocation
+    $previousItem.Name = $Name
 }
 
 # endpoint for adding a setup for each test in the block
@@ -696,7 +718,8 @@ function New-BlockObject {
         [ScriptBlock] $ScriptBlock,
         [HashTable] $FrameworkData = @{},
         [HashTable] $PluginData = @{},
-        [Switch] $Focus
+        [Switch] $Focus,
+        [String] $Id
     )
 
     New_PSObject -Type DiscoveredBlock @{
@@ -707,6 +730,7 @@ function New-BlockObject {
         FrameworkData        = $FrameworkData
         PluginData           = $PluginData
         Focus                = $Focus
+        Id                   = $Id
         Tests                = @()
         BlockContainer       = $null
         Root                 = $null
@@ -1175,7 +1199,7 @@ function Find-CurrentTest {
     )
 
     $block = Get-CurrentBlock
-    # todo: optimize this if too slow
+    # TODO: optimize this if too slow
     $testCanditates = @($block.Tests | where { $_.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $_.Id -eq $Id })
     if ($testCanditates.Length -eq 1) {
         $testCanditates[0]
@@ -1185,6 +1209,32 @@ function Find-CurrentTest {
     }
     else {
         throw "Did not find the test '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
+    }
+}
+
+function Find-CurrentBlock {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Block,
+        [Parameter(Mandatory = $true)]
+        [String] $Name,
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $true)]
+        [String] $Id
+    )
+
+    # TODO: optimize this if too slow
+    $blockCanditates = @($block.Blocks | where { $_.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $_.Id -eq $Id })
+    if ($blockCanditates.Length -eq 1) {
+        $blockCanditates[0]
+    }
+    elseif ($blockCanditates.Length -gt 1) {
+        throw "Found more than one block that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
+    }
+    else {
+        throw "Did not find the block '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
     }
 }
 
@@ -1344,7 +1394,8 @@ function PostProcess-DiscoveredBlock {
     $Block.IsRoot = $Block -eq $RootBlock
     $Block.Root = $RootBlock
     $Block.BlockContainer = $BlockContainer
-    $Block.FrameworkData.PreviousTestInfo = @{}
+    $Block.FrameworkData.PreviouslyGeneratedTests = @{}
+    $Block.FrameworkData.PreviouslyGeneratedBlocks = @{}
 
     $tests = $Block.Tests
 
@@ -1473,39 +1524,6 @@ function flattenBlock ($Block, $Accumulator) {
         flattenBlock -Block $bl -Accumulator $Accumulator
     }
     $Accumulator
-}
-
-function Find-CurrentBlock {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-
-    $blocks = (Get-CurrentBlock).Blocks
-    # todo: optimize this if too slow
-    $blockCandidates = @($blocks | where { $_.Name -eq $Name })
-    if ($blockCandidates.Length -eq 1) {
-        $blockCandidates[0]
-    }
-    elseif ($blockCandidates.Length -gt 1) {
-        $found = @($blockCandidates | where { $ScriptBlock.StartPosition.StartLine -eq $_.ScriptBlock.StartPosition.StartLine })
-
-        if ($found.Length -eq 1) {
-            $found
-        }
-        elseif ($found.Length -eq 0) {
-            throw "Could not find block '$Name' that starts on line $($ScriptBlock.StartPosition.StartLine)"
-        }
-        else {
-            throw "Found multiple blocks that start on the same line $($ScriptBlock.StartPosition.StartLine) how is that possible?"
-        }
-    }
-    else {
-        throw "Did not find the block '$($Name)', how is this possible?"
-    }
 }
 
 function New-FilterObject {
@@ -1728,7 +1746,7 @@ function Add-FreeFloatingCode {
     # write a warning to make you use Before* blocks instead
     if (-not (Is-Discovery)) {
         Write-PesterDebugMessage -Scope Runtime "Invoking free floating piece of code"
-        Import-Dependency $Dependency
+        Import-Dependency $ScriptBlock
     }
 }
 
@@ -1777,10 +1795,10 @@ function Recurse-Up {
     }
 }
 
-function New-PreviousTestObject {
+function New-PreviousItemObject {
 
     param ()
-    New_PSObject -Type 'PreviousTestInfo' @{
+    New_PSObject -Type 'PreviousItemInfo' @{
         Any = $false
         Location = 0
         Counter = 0
