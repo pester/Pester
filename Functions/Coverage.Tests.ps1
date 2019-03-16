@@ -14,8 +14,12 @@ InModuleScope Pester {
     Describe 'Code Coverage Analysis' {
         $root = (Get-PSDrive TestDrive).Root
 
+        $rootSubFolder = Join-Path -Path $root -ChildPath TestSubFolder
+        $null = New-Item -Path $rootSubFolder -ItemType Directory -ErrorAction SilentlyContinue
+
         $testScriptPath = Join-Path -Path $root -ChildPath TestScript.ps1
         $testScript2Path = Join-Path -Path $root -ChildPath TestScript2.ps1
+        $testScript3Path = Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1
 
         $null = New-Item -Path $testScriptPath -ItemType File -ErrorAction SilentlyContinue
 
@@ -111,30 +115,40 @@ InModuleScope Pester {
 
 '@
 
+        $null = New-Item -Path $testScript3Path -ItemType File -ErrorAction SilentlyContinue
+
+        Set-Content -Path $testScript3Path -Value @'
+            'Some {0} file' `
+                -f `
+                'other'
+
+'@
+
         Context 'Entire file' {
             $testState = New-PesterState -Path $root
 
             # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
-            Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
-                $testState.CommandCoverage.Count | Should -Be 17
+                $testState.CommandCoverage.Count | Should -Be 18
             }
 
             $null = & $testScriptPath
             $null = & $testScript2Path
+            $null = & $testScript3Path
             $coverageReport = Get-CoverageReport -PesterState $testState
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 14
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 15
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 17
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 18
             }
 
             It 'Reports the proper number of analyzed files' {
-                $coverageReport.NumberOfFilesAnalyzed | Should -Be 2
+                $coverageReport.NumberOfFilesAnalyzed | Should -Be 3
             }
 
             It 'Reports the proper number of missed commands' {
@@ -148,7 +162,7 @@ InModuleScope Pester {
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 14
+                $coverageReport.HitCommands.Count | Should -Be 15
             }
 
             It 'Reports the correct hit command' {
@@ -273,10 +287,34 @@ InModuleScope Pester {
                         <counter type="METHOD" missed="2" covered="6" />
                         <counter type="CLASS" missed="0" covered="2" />
                     </package>
-                    <counter type="INSTRUCTION" missed="3" covered="14" />
-                    <counter type="LINE" missed="2" covered="13" />
-                    <counter type="METHOD" missed="2" covered="6" />
-                    <counter type="CLASS" missed="0" covered="2" />
+                    <package name="CommonRoot/TestSubFolder">
+                        <class name="CommonRoot/TestSubFolder/TestScript3" sourcefilename="TestScript3.ps1">
+                            <method name="&lt;script&gt;" desc="()" line="1">
+                                <counter type="INSTRUCTION" missed="0" covered="1" />
+                                <counter type="LINE" missed="0" covered="1" />
+                                <counter type="METHOD" missed="0" covered="1" />
+                            </method>
+                            <counter type="INSTRUCTION" missed="0" covered="1" />
+                            <counter type="LINE" missed="0" covered="1" />
+                            <counter type="METHOD" missed="0" covered="1" />
+                            <counter type="CLASS" missed="0" covered="1" />
+                        </class>
+                        <sourcefile name="TestScript3.ps1">
+                            <line nr="1" mi="0" ci="1" />
+                            <counter type="INSTRUCTION" missed="0" covered="1" />
+                            <counter type="LINE" missed="0" covered="1" />
+                            <counter type="METHOD" missed="0" covered="1" />
+                            <counter type="CLASS" missed="0" covered="1" />
+                        </sourcefile>
+                        <counter type="INSTRUCTION" missed="0" covered="1" />
+                        <counter type="LINE" missed="0" covered="1" />
+                        <counter type="METHOD" missed="0" covered="1" />
+                        <counter type="CLASS" missed="0" covered="1" />
+                    </package>
+                    <counter type="INSTRUCTION" missed="3" covered="15" />
+                    <counter type="LINE" missed="2" covered="14" />
+                    <counter type="METHOD" missed="2" covered="7" />
+                    <counter type="CLASS" missed="0" covered="3" />
                 </report>
                 ')
             }

@@ -2103,7 +2103,15 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 It 'returns default mock' {
                     Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
                 }
+            }
 
+            Context "Alias rewriting works when alias and parameter name differ in length" {
+
+                Mock New-Item { return "nic" } -ParameterFilter { $Type -ne $null -and $Type.StartsWith("nic") }
+
+                It 'calls the mock' {
+                    New-Item -Path 'Hello' -Type "nic" | Should -Be "nic"
+                }
             }
 
             if ($PSVersionTable.PSVersion -ge 5.1) {
@@ -2121,7 +2129,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
 
         Context 'Assert-MockCalled' {
-            It "Uses parameter aliases in Parameter-Filter" {
+            It "Uses parameter aliases in ParameterFilter" {
                 function f { Get-Content -Path 'temp.txt' -Tail 10 }
                 Mock Get-Content { }
 
@@ -2132,4 +2140,83 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
 
     }
+}
+
+
+InModuleScope Pester {
+    Describe 'Alias for external commands' {
+        Context 'Without extensions' {
+            $case = @(
+                @{Command = 'notepad'}
+            )
+
+            if ((GetPesterOs) -ne 'Windows') {
+                $case = @(
+                    @{Command = 'ls'}
+                )
+            }
+
+            It 'mocks <Command> command' -TestCases $case {
+                param($Command)
+
+                Mock $Command { 'I am being mocked' }
+
+                & $Command | Should -Be 'I am being mocked'
+
+                Assert-MockCalled $Command -Scope It -Exactly 1
+            }
+        }
+
+        if ((GetPesterOs) -eq 'Windows') {
+            Context 'With extensions' {
+                It 'mocks notepad command with extension' {
+                    Mock notepad.exe { 'I am being mocked' }
+
+                    notepad.exe | Should -Be 'I am being mocked'
+
+                    Assert-MockCalled notepad.exe -Scope It -Exactly 1
+                }
+            }
+
+            Context 'Mixed usage' {
+                It 'mocks with extension and calls it without ext' {
+                    Mock notepad.exe { 'I am being mocked' }
+
+                    notepad | Should -Be 'I am being mocked'
+
+                    Assert-MockCalled notepad.exe -Scope It -Exactly 1
+                }
+
+                It 'mocks without extension and calls with extension' {
+                    Mock notepad { 'I am being mocked' }
+
+                    notepad.exe | Should -Be 'I am being mocked'
+                }
+
+                It 'assert that alias to mock works' {
+                    Set-Alias note notepad
+
+                    Mock notepad.exe { 'I am being mocked' }
+
+                    notepad | Should -Be 'I am being mocked'
+
+                    Assert-MockCalled note -Scope It -Exactly 1
+                }
+            }
+        }
+    }
+}
+
+Describe "Mock definition output" {
+    It "Outputs nothing" {
+
+        function a () {}
+        $output = Mock a { }
+        $output | Should -Be $null
+    }
+}
+
+Describe 'Mocking using ParameterFilter with scriptblock' {
+    $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
+    Mock -CommandName 'Test-Path' -ParameterFilter $filter
 }
