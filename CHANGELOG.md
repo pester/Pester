@@ -1,3 +1,10 @@
+## 4.7.3 (March 23,2019)
+
+- Add shorter output when comparing long strings [#1248](https://github.com/pester/Pester/pull/1248)
+- Add platform specific tags for PSGallery
+- Fix manifest to avoid loading the module unnecessarily [#1259](https://github.com/pester/Pester/pull/1259)
+- Fix typos in release script
+
 ## 4.7.2 (March 8, 2019)
 
 - Fix stripping last character in parameter filter [#1258](https://github.com/pester/Pester/pull/1258)
