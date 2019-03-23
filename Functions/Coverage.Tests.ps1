@@ -83,8 +83,8 @@ InModuleScope Pester {
                 # Before that, let's just create equivalent commands to above class with exact same line numbers
                 Add-Content -Path $testScriptPath -Value @'
 
-                class MyClass
-                {
+                #class MyClass
+                #{
                     function MyClass
                     {
                         'I am the constructor.'
@@ -99,7 +99,7 @@ InModuleScope Pester {
                     {
                         'I am method two. I never get called.'
                     }
-                }
+                #}
 
                 MyClass
                 MethodOne
