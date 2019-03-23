@@ -737,9 +737,16 @@ function Invoke-Pester {
             if ($PassThru) {
                 $r
             }
+
+            if ($EnableExit -and $legacyResult.FailedCount -gt 0) {
+                exit ($legacyResult.FailedCount)
+            }
         }
         catch {
             Write-ErrorToScreen $_
+            if ($EnableExit) {
+                exit 999
+            }
         }
     }
 }
