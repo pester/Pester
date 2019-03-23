@@ -675,7 +675,9 @@ function Invoke-MockInternal {
             else {
                 $Hook.SessionState
             }
-            $behavior = FindMatchingBehavior -Behaviors $Behaviors -BoundParameters $BoundParameters -ArgumentList $ArgumentList -SessionState $SessionState -Hook $Hook
+
+            # the @() are needed for powerShell3 otherwise it throws CheckAutomationNullInCommandArgumentArray (unless there is any breakpoint defined anywhere, then it works just fine :DDD)
+            $behavior = FindMatchingBehavior -Behaviors @($Behaviors) -BoundParameters $BoundParameters -ArgumentList @($ArgumentList) -SessionState $SessionState -Hook $Hook
 
             if ($null -ne $behavior) {
                 $call = @{
@@ -695,7 +697,7 @@ function Invoke-MockInternal {
                 ExecuteBehavior -Behavior $behavior `
                     -Hook $Hook `
                     -BoundParameters $BoundParameters `
-                    -ArgumentList $ArgumentList
+                    -ArgumentList @($ArgumentList)
 
                 return
             }
@@ -1001,8 +1003,11 @@ function Test-ParameterFilter {
     if ($null -eq $BoundParameters) {
         $BoundParameters = @{}
     }
-    if ($null -eq $ArgumentList) {
-        $ArgumentList = @()
+
+    $arguments = $null
+    # $() gets rid of the @() defined for powershell 3
+    if ($null -eq $($ArgumentList)) {
+        $arguments = @()
     }
 
     $paramBlock = Get-ParamBlockFromBoundParameters -BoundParameters $BoundParameters -Metadata $Metadata
@@ -1020,7 +1025,7 @@ function Test-ParameterFilter {
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $SessionState
 
     Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
-    $result = & $cmd @BoundParameters @ArgumentList
+    $result = & $cmd @BoundParameters @arguments
     if ($result) {
         Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
     }
