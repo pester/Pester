@@ -1,10 +1,149 @@
-# Pester v5 - alpha2
+# Pester v5 - alpha3
 
 > 🐛 This is branch for pre-release, use at your own risk.
 
-> 👉 Pester v5 - alpha1 info is deep down there below this
+> 👉 Pester v5 - alpha1 and alpha 2 info is deep down there below this
 
 > 🙋‍ Have questions or want to discuss a point? [Go here](https://github.com/pester/Pester/issues/1218)
+
+## Scoping of Describe & It
+
+The scoping changed a bit from `alpha2`, it is now again very similar to how Pester v4 behaves. The setups run before the first `It` or `Describe`, but they run inside of the current `Describe` not outside of it, to avoid leaking variables outside of scopes.
+
+The failures also work very similar to how they work in Pester v4, a failurs in a `Describe` block will fail the whole block. The nice side-effect of having test discovery is that we now know how many tests were in that failed block. So we can report all tests that were supposed to run but did not as failed. For example this would fail with 3 failed tests in v5 and 1 failed test in v4:
+
+```powershell
+
+Describe "d1" {
+
+    BeforeAll {
+        throw "OMG!"
+    }
+
+    It "i1" {
+        $true | Should -Be $true
+    }
+
+    It "i2" -TestCases @(
+        @{ Value = 1 }
+        @{ Value = 2 }
+    ) {
+        $true | Should -Be $true
+    }
+}
+
+# v4 output
+#  Describing d1
+#    [-] Error occurred in Describe block 0ms
+#      RuntimeException: OMG!
+#
+# Tests completed in 524ms
+# Tests Passed: 0, Failed: 1, Skipped: 0, Pending: 0, Inconclusive: 0
+
+# v5 output
+# Describing d1
+# Block 'd1' failed
+# RuntimeException: OMG!
+#
+# Tests completed in 119ms
+# Tests Passed: 0, Failed: 3, Skipped: 0, Pending: 0, Inconclusive: 0
+```
+
+## Mocking
+
+Mocking still keeps the scoping to `It`, and you can also provide scopes to `Assert-MockCalled` as in v4. `Assert-VerifiableMocks` also works.
+
+The parameters of `Assert-MockCalled` removed are now mostly non-positional. The `-CommandName` and `-Times` are still accepted by position, but `-ParameterFilter` is not anymore.
+
+## Code coverage
+
+Code coverage passes all the internal tests, and works just fine, but the parameters to `Invoke-Pester` are probably not fully passed.
+
+## Focus
+
+Tests and blocks can be focused by using `-Focus` parameter. Focus runs only the tests that are focused, not matter what other filters are set. This works accross the whole test suite, and allows you to debug tests very easily.
+
+In v4 when I set a breakpoint into some common function and have 10 passing tests and 1 failing test using that function I need to hit the breakpoint 10 times. With `-Focus` I simply set my breakpoints and run just that single test.
+
+```powershell
+function Get-Hello {
+    "Hello"
+}
+Describe "Get-Hello" {
+    It "Gives Hello" {
+        Get-Hello | Should -Be "Hello"
+    }
+
+    It -Focus "Has no spaces around hello" {
+        $hello = Get-Hello
+        $hello.Trim() | Should -Be $hello
+    }
+}
+
+# Describing Get-Hello
+#    [+] Has no spaces around hello 23ms
+# Tests completed in 168ms
+# Tests Passed: 1, Failed: 0, Skipped: 1, Pending: 0, Inconclusive: 0
+```
+
+## Debugging
+
+Pester is looking for a global `PesterDebugPreference` variable, that can confgure it to print complete error messages, and define which debugging info should be printed. The debugging can be enabled and disabled using `WriteDebugMessages` flag, and the debugging messages can be defined as an array of options (right now: CoreRuntime, Runtime, Mock, Discovery, SessionState or '*' for all ).
+
+I for example debug like this:
+
+```powershell
+$PSModuleAutoloadingPreference = "none"
+Get-Module Pester | Remove-Module
+
+Import-Module $PSSCriptRoot\..\Pester_main\Pester.psd1
+$global:PesterDebugPreference = @{
+    ShowFullErrors         = $true
+    WriteDebugMessages     = $true
+    WriteDebugMessagesFrom = "Mock"
+}
+
+$excludedTags = 'VersionChecks', 'Help', 'StyleChecks'
+$exludedPaths = "*\demo\*"
+
+$path = "$PSScriptRoot\..\Pester_main\"
+# $path = "C:\projects\pester_main\Functions\Mock.Tests.ps1"
+
+Invoke-Pester -PassThru -ExcludeTag $excludedTags -ExcludePath $exludedPaths -Path $path
+```
+
+## What else works?
+
+- Tests and test blocks can be generated from loops, and are resolved correctly on runtime. As long as the data do not change between discovery and run. For such cases an external Id can be provided (to blocks, tests, and later also TestCases), but let's see if that is needed.
+
+- Discover fails with error on first failed file. I admit that is not very convenient, but it's better than seeing hundreds of errors at the same time.
+
+- Paths can be excluded from the run using like-wildcard
+
+- You can provide tests as scriptblocks to Invoke-Pester
+
+- Writing output only when the block should run (so no Describing "abc" but no tests afterwards)
+
+- Before* and After* blocks in parent scopes
+
+- Basic value expansion in test names when TestCases are used
+
+- Up to date with v4
+
+- Runs on windows, macos, linux and PowerShell v3+
+-
+
+### What does not work?
+
+- interactive mode
+- timing is incorrect
+- Skip / Pending / Inconclusive, the params are there, but the runtime ignores them
+- Some of the parameters to `Invoke-Pester` such as Path, are simplified to their core. No fancy hashtables with params.
+- Muting the on-screen output
+
+---
+
+# Pester v5 - alpha2
 
 ## 🍌 Scoping of Describe & It
 
