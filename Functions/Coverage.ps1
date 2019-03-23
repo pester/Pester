@@ -481,9 +481,9 @@ function Get-CoverageReport {
         'Command'
         @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
     )
-    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage $CommandCoverage | & $SafeCommands['Select-Object'] $properties)
-    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage $CommandCoverage | & $SafeCommands['Select-Object'] $properties)
-    $analyzedFiles = @($CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
+    $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage @($CommandCoverage) | & $SafeCommands['Select-Object'] $properties)
+    $hitCommands = @(Get-CoverageHitCommands -CommandCoverage @($CommandCoverage) | & $SafeCommands['Select-Object'] $properties)
+    $analyzedFiles = @(@($CommandCoverage) | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
 
     [pscustomobject] @{
         NumberOfCommandsAnalyzed = $CommandCoverage.Count
