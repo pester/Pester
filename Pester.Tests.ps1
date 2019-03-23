@@ -216,12 +216,13 @@ InModuleScope Pester {
             $result[0].Path | Should -Be 'TestDrive:\SomeOtherFile.ps1'
         }
 
-        It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
+        It -Focus 'Finds only *.Tests.ps1 files when the path contains wildcards' {
             $result = @(ResolveTestScripts 'TestDrive:\*.ps1')
             $result.Count | Should -Be 2
 
             $paths = $result | Select-Object -ExpandProperty Path
             $testDrive = (Get-PSDrive TestDrive).Root
+            Write-Host $paths
             ($paths -contains "$testDrive\SomeFile.Tests.ps1") | Should -Be $true
             ($paths -contains "$TestDrive\SomeOtherFile.Tests.ps1") | Should -Be $true
         }
