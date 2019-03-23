@@ -1065,7 +1065,7 @@ i -PassThru:$PassThru {
 
     b "running from files" {
         t "given a path to file with tests it can execute it" {
-            $tempPath = [IO.Path]::GetTempPath() + "/" + (New-Guid).Guid + ".Tests.ps1"
+            $tempPath = [IO.Path]::GetTempPath() + "/" + ([Guid]::NewGuid().Guid) + ".Tests.ps1"
             try {
                 $c = {
                     New-Block "block1" {
@@ -1089,7 +1089,7 @@ i -PassThru:$PassThru {
         }
 
         t "given a path to multiple files with tests it can execute it" {
-            $tempPath = [IO.Path]::GetTempPath() + "/" + (New-Guid).Guid + ".Tests.ps1"
+            $tempPath = [IO.Path]::GetTempPath() + "/" + ([Guid]::NewGuid().Guid) + ".Tests.ps1"
             try {
                 $c = {
                     New-Block "block1" {
