@@ -131,7 +131,7 @@ InModuleScope Pester {
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path
 
-                $breakpoints.Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
 
                 $null = & $testScriptPath
                 $null = & $testScript2Path
@@ -338,7 +338,7 @@ InModuleScope Pester {
         Context 'Single function with missed commands' {
             BeforeAll {
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionTwo'}
-                $breakpoints.Count | Should -Be 1 -Because "it has the proper number of breakpoints defined"
+                @($breakpoints).Count | Should -Be 1 -Because "it has the proper number of breakpoints defined"
 
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -374,7 +374,7 @@ InModuleScope Pester {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionOne'}
 
-                $breakpoints.Count | Should -Be 9 -Because "it has the proper number of breakpoints defined"
+                @($breakpoints).Count | Should -Be 9 -Because "it has the proper number of breakpoints defined"
 
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -410,7 +410,7 @@ InModuleScope Pester {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; StartLine = 11; EndLine = 12 }
 
-                $breakpoints.Count | Should -Be 2 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should -Be 2 -Because 'it has the proper number of breakpoints defined'
 
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -446,7 +446,7 @@ InModuleScope Pester {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' }
 
-                $breakpoints.Count | Should -Be 13 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should -Be 13 -Because 'it has the proper number of breakpoints defined'
 
                 $null = & $testScriptPath
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -493,7 +493,7 @@ InModuleScope Pester {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'}
 
-                    $breakpoints.Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
                     $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -525,7 +525,7 @@ InModuleScope Pester {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*'}
 
-                    $breakpoints.Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
                     $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -557,7 +557,7 @@ InModuleScope Pester {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo'}
 
-                    $breakpoints.Count | Should -Be 1 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should -Be 1 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
                     $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -590,7 +590,7 @@ InModuleScope Pester {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'}
 
-                    $breakpoints.Count | Should -Be 0 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should -Be 0 -Because 'it has the proper number of breakpoints defined'
 
                     $null = & $testScriptPath
                     $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
@@ -787,7 +787,7 @@ InModuleScope Pester {
 #                     $expected = 8
 #                 }
 
-#                 $breakpoints.Count | Should -Be $expected -Because 'it has the proper number of breakpoints defined'
+#                 @($breakpoints).Count | Should -Be $expected -Because 'it has the proper number of breakpoints defined'
 
 #                 $null = . "$root\TestScriptWithConfiguration.ps1"
 

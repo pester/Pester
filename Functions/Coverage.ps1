@@ -484,10 +484,10 @@ function Get-CoverageReport {
     $analyzedFiles = @($CommandCoverage | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
 
     [pscustomobject] @{
-        NumberOfCommandsAnalyzed = $CommandCoverage.Count
-        NumberOfFilesAnalyzed    = $analyzedFiles.Count
-        NumberOfCommandsExecuted = $hitCommands.Count
-        NumberOfCommandsMissed   = $missedCommands.Count
+        NumberOfCommandsAnalyzed = @($CommandCoverage).Count
+        NumberOfFilesAnalyzed    = @($analyzedFiles).Count
+        NumberOfCommandsExecuted = @($hitCommands).Count
+        NumberOfCommandsMissed   = @($missedCommands).Count
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
         AnalyzedFiles            = $analyzedFiles

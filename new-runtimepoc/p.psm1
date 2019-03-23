@@ -28,7 +28,8 @@ function ImportDir {
 function i {
     param(
         [ScriptBlock] $ScriptBlock,
-        [Switch] $EnableExit
+        [Switch] $EnableExit,
+        [Switch] $PassThru
     )
 
     $script:discovery = $true
@@ -45,6 +46,13 @@ function i {
     Write-Host -NoNewline "`npassed $($passed), " -ForegroundColor Green
     Write-Host -NoNewline "failed $($script:failed), " -ForegroundColor Red
     Write-Host "total $($script:total)" -ForegroundColor Gray
+
+    if ($PassThru) {
+        [PSCustomObject]@{
+            Failed = $script:failed
+            Total = $script:total
+        }
+    }
 
     if ($EnableExit -and $script:failed -gt 0) {
         exit ($script:failed)

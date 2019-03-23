@@ -1,4 +1,4 @@
-
+param ([switch] $PassThru)
 
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
@@ -52,7 +52,7 @@ function Verify-TestFailed {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'stop'
 
-i {
+i -PassThru:$PassThru {
 
     & (Get-Module Pester.Runtime) {
 

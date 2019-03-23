@@ -5,7 +5,7 @@ InModuleScope Pester {
         Context "when testing file contents" {
             BeforeAll {
                 "this is line 1$([System.Environment]::NewLine)Pester is awesome$([System.Environment]::NewLine)And this is Unicode: ☺" |
-                    Set-Content "TestDrive:\test.txt"
+                    Set-Content "TestDrive:\test.txt" -Encoding UTF8
             }
             It "returns true if the file contains the specified content exactly" {
                 "TestDrive:\test.txt" | Should FileContentMatchExactly Pester
@@ -17,7 +17,7 @@ InModuleScope Pester {
                 "TestDrive:\test.txt" | Should -Not -FileContentMatchExactly pESTER
             }
 
-            It "returns true if the file contains the specified Unicode content exactyle" {
+            It "returns true if the file contains the specified Unicode content exactly" {
                 "TestDrive:\test.txt" | Should FileContentMatchExactly "☺"
                 "TestDrive:\test.txt" | Should -FileContentMatchExactly "☺"
             }

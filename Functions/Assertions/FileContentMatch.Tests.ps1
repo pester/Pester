@@ -5,7 +5,7 @@ InModuleScope Pester {
         Context "when testing file contents" {
             BeforeAll {
                 "this is line 1$([System.Environment]::NewLine)rush is awesome$([System.Environment]::NewLine)And this is Unicode: ☺" |
-                    Set-Content -Path "TestDrive:\test.txt"
+                    Set-Content -Path "TestDrive:\test.txt" -Encoding UTF8
             }
 
             It "returns true if the file contains the specified content" {

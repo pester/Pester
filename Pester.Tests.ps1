@@ -335,6 +335,13 @@ InModuleScope Pester {
     }
 }
 Describe 'Assertion operators' {
+
+    BeforeAll {
+        $operators = &(Get-Module Pester){ $script:AssertionOperators }
+        # enumerate to avoid the collection from being modified
+        $builtInOperators = $operators.Keys | Foreach-Object { $_ }
+    }
+
     It 'Allows an operator with an identical name and test to be re-registered' {
         function SameNameAndScript {
             $true
@@ -345,6 +352,7 @@ Describe 'Assertion operators' {
             $true
         } } | Should -Not -Throw
     }
+
     It 'Allows an operator with an identical name, test, and alias to be re-registered' {
         function SameNameAndScriptAndAlias {
             $true
@@ -374,6 +382,7 @@ Describe 'Assertion operators' {
 
         { Add-ShouldOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
     }
+
     It 'Does not allow an operator with a different test to be registered using an existing alias' {
         function DifferentAliasA {
             $true
@@ -384,6 +393,16 @@ Describe 'Assertion operators' {
         Add-ShouldOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
 
         { Add-ShouldOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
+    }
+
+    AfterAll {
+        $operators = &(Get-Module Pester){ $script:AssertionOperators }
+        # enumerate to avoid modifying the collection
+        # list all operators that we added in the tests above
+        # otherwise we leak them to other tests
+        # (especially the help tests that will then fail)
+        $keys = $operators.Keys | Where-Object { $_ -notin $builtInOperators }
+        $keys | ForEach-Object { $operators.Remove($_) }
     }
 }
 

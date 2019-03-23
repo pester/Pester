@@ -645,6 +645,7 @@ function Invoke-Pester {
     param(
         [Parameter(Position = 0, Mandatory = 0)]
         [String[]]$Path = '.',
+        [String[]]$ExcludePath = @(),
 
         [switch]$EnableExit,
 
@@ -720,7 +721,7 @@ function Invoke-Pester {
                 if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     Write-Host -ForegroundColor Magenta "Running all tests in $Path"
-                    $containers += @(Pester.RSpec\Find-RSpecTestFile -Path $Path | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+                    $containers += @(Pester.RSpec\Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
                 }
             }
 
