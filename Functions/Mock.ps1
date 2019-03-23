@@ -1004,7 +1004,7 @@ function Test-ParameterFilter {
         $BoundParameters = @{}
     }
 
-    $arguments = $null
+    $arguments = $ArgumentList
     # $() gets rid of the @() defined for powershell 3
     if ($null -eq $($ArgumentList)) {
         $arguments = @()
