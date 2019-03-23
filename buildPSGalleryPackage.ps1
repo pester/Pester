@@ -16,6 +16,7 @@ try {
     Copy-Item $baseDir\Snippets             $buildDir\ -Recurse
     Copy-Item $baseDir\en-US                $buildDir\ -Recurse
     Copy-Item $baseDir\lib                  $buildDir\ -Recurse
+    Copy-Item $baseDir\new-runtimepoc       $buildDir\ -Recurse
 
     Write-Verbose 'Copy complete. Contents:'
     Get-ChildItem $buildDir -Recurse | Out-Host

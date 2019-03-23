@@ -63,7 +63,7 @@ function Find-Test {
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
-    Write-PesterDebugMessage -Scope Discovery "Running just discovery."
+    Write-PesterDebugMessage -Scope DiscoveryCore "Running just discovery."
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
     foreach ($f in $found) {
@@ -183,7 +183,7 @@ function New-Block {
         }
 
     if (Is-Discovery) {
-        Write-PesterDebugMessage -Scope Discovery "Adding block $Name to discovered blocks"
+        Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
 
         # the tests are identified based on the start position of their script block
         # so in case user generates tests (typically from foreach loop)
@@ -211,9 +211,9 @@ function New-Block {
     Set-CurrentBlock -Block $block
     try {
         if (Is-Discovery) {
-            Write-PesterDebugMessage -Scope Discovery "Discovering in body of block $Name"
+            Write-PesterDebugMessage -Scope DiscoveryCore "Discovering in body of block $Name"
             & $ScriptBlock
-            Write-PesterDebugMessage -Scope Discovery "Finished discovering in body of block $Name"
+            Write-PesterDebugMessage -Scope DiscoveryCore "Finished discovering in body of block $Name"
         }
         else {
             if (-not $block.ShouldRun) {
@@ -374,7 +374,7 @@ function New-Test {
             $test.FrameworkData.Runtime.Phase = 'Discovery'
 
             Add-Test -Test $test
-            Write-PesterDebugMessage -Scope Discovery "Added test '$Name'"
+            Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
         }
         else {
             $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id
@@ -800,10 +800,12 @@ function Discover-Test {
         [Management.Automation.SessionState] $SessionState,
         $Filter
     )
+    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting test discovery in $(@($BlockContainer).Length) files."
     Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($container.Content)"
         Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
         # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
@@ -817,10 +819,13 @@ function Discover-Test {
             Container = $container
             Block     = $root
         }
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $root).Count) tests"
         Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
-        Write-PesterDebugMessage -Scope Discovery "Discovery done in this container."
+        Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
     }
 
+    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing discovery result objects, to set root, parents, filters etc."
     Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
 
     # if any tests / block in the suite have -Focus parameter then all filters are disregarded
@@ -838,7 +843,8 @@ function Discover-Test {
     }
 
     if (any $focusedTests) {
-        Write-PesterDebugMessage -Scope Discovery "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         $Filter = New-FilterObject -Path $focusedTests
     }
 
@@ -847,6 +853,7 @@ function Discover-Test {
         $f.Block
     }
 
+    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished."
     Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
 }
 
