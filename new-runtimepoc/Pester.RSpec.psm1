@@ -9,9 +9,10 @@ function Find-RSpecTestFile {
 
     Get-ChildItem -Path $Path -Filter *.Tests.ps1 -Recurse |
         Foreach-Object {
-            $path = $_.FullName
+            # normalize backslashes for cross-platform ease of use
+            $path = $_.FullName -replace "/","\"
             $excluded = $false
-            foreach ($exclusion in $ExcludePath) {
+            foreach ($exclusion in ($ExcludePath -replace "/","\")) {
                 if ($excluded) {
                     continue
                 }
