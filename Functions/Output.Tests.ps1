@@ -226,9 +226,8 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $r.message[2] | Should -be 'Strings differ at index 0.'
                 $r.Message[3] | Should -be "Expected: 'Two'"
                 $r.Message[4] | Should -be "But was:  'One'"
-                $r.Message[5] | Should -be '-----------^'
-                $r.Message[6] | Should -match "'One' | Should -be 'Two'"
-                $r.Message.Count | Should -be 7
+                $r.Message[5] | Should -match "'One' | Should -be 'Two'"
+                $r.Message.Count | Should -be 6
             }
             # # todo: commented out because it does not work becuase of should, hopefully we can fix that later
             #         Context 'should fails in file' {
