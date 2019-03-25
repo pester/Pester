@@ -10,7 +10,7 @@
 
 The scoping changed a bit from `alpha2`, it is now again very similar to how Pester v4 behaves. The setups run before the first `It` or `Describe`, but they run inside of the current `Describe` not outside of it, to avoid leaking variables outside of scopes.
 
-The failures also work very similar to how they work in Pester v4, a failurs in a `Describe` block will fail the whole block. The nice side-effect of having test discovery is that we now know how many tests were in that failed block. So we can report all tests that were supposed to run but did not as failed. For example this would fail with 3 failed tests in v5 and 1 failed test in v4:
+The failures also work very similar to how they work in Pester v4, a failure in a `Describe` block will fail the whole block. The nice side-effect of having test discovery is that we now know how many tests were in that failed block. So we can report all tests that were supposed to run but did not as failed. For example this would fail with 3 failed tests in v5 and 1 failed test in v4:
 
 ```powershell
 
@@ -61,7 +61,7 @@ Code coverage passes all the internal tests, and works just fine, but the parame
 
 ## Focus
 
-Tests and blocks can be focused by using `-Focus` parameter. Focus runs only the tests that are focused, not matter what other filters are set. This works accross the whole test suite, and allows you to debug tests very easily.
+Tests and blocks can be focused by using `-Focus` parameter. Focus runs only the tests that are focused, no matter what other filters are set. This works accross the whole test suite, and allows you to debug tests very easily.
 
 In v4 when I set a breakpoint into some common function and have 10 passing tests and 1 failing test using that function I need to hit the breakpoint 10 times. With `-Focus` I simply set my breakpoints and run just that single test.
 
@@ -131,7 +131,7 @@ Invoke-Pester -PassThru -ExcludeTag $excludedTags -ExcludePath $exludedPaths -Pa
 - Up to date with v4
 
 - Runs on windows, macos, linux and PowerShell v3+
--
+
 
 ### What does not work?
 
@@ -147,7 +147,7 @@ Invoke-Pester -PassThru -ExcludeTag $excludedTags -ExcludePath $exludedPaths -Pa
 
 ## 🍌 Scoping of Describe & It
 
-This change is not really that new, it works the same as in alpha1, but there I did not describe it 😅 And now it is useful to understand the difference from v4, which in turns make understanding the mocking described below easier. So here we go:
+This change is not really that new, it works the same as in alpha1, but there I did not describe it 😅 And now it is useful to understand the difference from v4, which in turn makes understanding the mocking described below easier. So here we go:
 
 ### Execution order
 
