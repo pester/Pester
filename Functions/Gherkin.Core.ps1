@@ -514,7 +514,7 @@ function Invoke-GherkinFeature {
     }
 
     if ($Scenarios) {
-        Write-Describe (New-Object PSObject -Property @{Name = "$($Feature.Keyword): $($Feature.Name)"; Description = $Feature.Description })
+        Write-Feature $Feature $Pester
     }
 
     try {
@@ -531,7 +531,7 @@ function Invoke-GherkinFeature {
         # planned for v4.0
         $Pester.TestResult[-1].Describe = "Error in $($Feature.Path)"
 
-        $Pester.TestResult[-1] | Write-PesterResult
+        $Pester.TestResult[-1] | Write-GherkinResult -Pester $Pester
     }
     finally {
         $Location | & $SafeCommands["Set-Location"]
@@ -557,7 +557,7 @@ function Invoke-GherkinScenario {
     try {
         # We just display 'Scenario', also for 'Scenario Outline' or 'Scenario Template'
         # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
-        Write-Context (New-Object PSObject -Property @{Name = "$(Get-Translation 'scenario' $Language): $($Scenario.Name)"; Description = $Scenario.Description })
+        Write-Scenario $Scenario $Pester
 
         $script:mockTable = @{ }
 
@@ -596,7 +596,7 @@ function Invoke-GherkinScenario {
         # planned for v4.0
         $Pester.TestResult[-1].Describe = "Error in $($Scenario.Name)"
 
-        $Pester.TestResult[-1] | Write-PesterResult
+        $Pester.TestResult[-1] | Write-GherkinResult -Pester $Pester
     }
 
     Remove-TestDrive
@@ -801,7 +801,7 @@ function Invoke-GherkinStep {
             ${Pester Result}.StackTrace += "`nFrom " + $Step.Location.Path + ': line ' + $Step.Location.Line
         }
         $Pester.AddTestResult($DisplayText, ${Pester Result}.Result, $Elapsed, ${Pester Result}.FailureMessage, ${Pester Result}.StackTrace, $null, $NamedArguments, $PesterErrorRecord)
-        $Pester.TestResult[-1] | Write-PesterResult
+        $Pester.TestResult[-1] | Write-GherkinResult -Pester $Pester
     }
 }
 
