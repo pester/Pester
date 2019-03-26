@@ -1,8 +1,8 @@
 ﻿if (($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
-    & $SafeCommands["Add-Type"] -Path "${Script:PesterRoot}/lib/Gherkin/core/Gherkin.dll"
+    & $SafeCommands['Add-Type'] -Path "${Script:PesterRoot}/lib/Gherkin/core/Gherkin.dll"
 }
 else {
-    & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
+    & $SafeCommands['Import-Module'] -Name "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
 $GherkinSteps = @{ }
@@ -65,22 +65,22 @@ function New-GherkinPesterState {
     )
 
     New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $sessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
-    & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
-    & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
-        $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-        & $SafeCommands["Where-Object"] {
-            $_.Group | & $SafeCommands["Where-Object"] { -not $_.Passed }
+    & $SafeCommands['Add-Member'] -MemberType NoteProperty -Name Features -Value (& $SafeCommands['New-Object'] System.Collections.Generic.List[PSObject] ) -PassThru |
+    & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
+        $Names = $this.TestResult | & $SafeCommands['Group-Object'] Describe |
+        & $SafeCommands['Where-Object'] {
+            $_.Group | & $SafeCommands['Where-Object'] { -not $_.Passed }
         } |
-        & $SafeCommands["Select-Object"] -ExpandProperty Name
-        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+        & $SafeCommands['Select-Object'] -ExpandProperty Name
+        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands['Where-Object'] { $Names -contains $_.Name }
     } |
-    & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
-        $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-        & $SafeCommands["Where-Object"] {
-            -not ($_.Group | & $SafeCommands["Where-Object"] { -not $_.Passed })
+    & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
+        $Names = $this.TestResult | & $SafeCommands['Group-Object'] Describe |
+        & $SafeCommands['Where-Object'] {
+            -not ($_.Group | & $SafeCommands['Where-Object'] { -not $_.Passed })
         } |
-        & $SafeCommands["Select-Object"] -ExpandProperty Name
-        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+        & $SafeCommands['Select-Object'] -ExpandProperty Name
+        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands['Where-Object'] { $Names -contains $_.Name }
     }
 }
 
@@ -270,8 +270,8 @@ function Invoke-Gherkin {
 
         # Make sure broken tests don't leave you in space:
         $CWD = [Environment]::CurrentDirectory
-        $Location = & $SafeCommands["Get-Location"]
-        [Environment]::CurrentDirectory = & $SafeCommands["Get-Location"] -PSProvider FileSystem
+        $Location = & $SafeCommands['Get-Location']
+        [Environment]::CurrentDirectory = & $SafeCommands['Get-Location'] -PSProvider FileSystem
 
         $script:GherkinSteps = @{ }
         $script:GherkinHooks = @{
@@ -284,8 +284,8 @@ function Invoke-Gherkin {
 
     end {
         if ($PSBoundParameters.ContainsKey('Quiet')) {
-            & $SafeCommands["Write-Warning"] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
-            & $SafeCommands["Start-Sleep"] -Seconds 2
+            & $SafeCommands['Write-Warning'] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
+            & $SafeCommands['Start-Sleep'] -Seconds 2
 
             if (!$PSBoundParameters.ContainsKey('Show')) {
                 $Show = [Pester.OutputTypes]::None
@@ -303,17 +303,16 @@ function Invoke-Gherkin {
         $Pester = New-GherkinPesterState -ScenarioName $ScenarioName -Tag $Tag -ExcludeTag $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show $Show -PesterOption $PesterOption
 
         Write-PesterStart $Pester $Path
-
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $Pester
 
-        foreach ($FeatureFile in & $SafeCommands["Get-ChildItem"] $Path -Filter "*.feature" -Recurse ) {
+        foreach ($FeatureFile in & $SafeCommands['Get-ChildItem'] $Path -Filter '*.feature' -Recurse ) {
             Invoke-GherkinFeature $FeatureFile -Pester $Pester
         }
 
         # Remove all the steps
         $Script:GherkinSteps.Clear()
 
-        $Location | & $SafeCommands["Set-Location"]
+        $Location | & $SafeCommands['Set-Location']
         [Environment]::CurrentDirectory = $CWD
 
         $Pester | Write-PesterReport
@@ -321,7 +320,7 @@ function Invoke-Gherkin {
         Write-CoverageReport -CoverageReport $CoverageReport
         Exit-CoverageAnalysis -PesterState $Pester
 
-        if (& $SafeCommands["Get-Variable"]-Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
+        if (& $SafeCommands['Get-Variable']-Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
             Export-PesterResults -PesterState $Pester -Path $OutputFile -Format $OutputFormat
         }
 
@@ -335,7 +334,7 @@ function Invoke-Gherkin {
                 }
             )
 
-            $Result = $Pester | & $SafeCommands["Select-Object"] -Property $Properties
+            $Result = $Pester | & $SafeCommands['Select-Object'] -Property $Properties
             $Result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
             $Result
         }
@@ -374,7 +373,7 @@ function Import-GherkinSteps {
         $Script:GherkinHooks.Clear()
     }
     process {
-        $StepFiles = & $SafeCommands["Get-ChildItem"] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse
+        $StepFiles = & $SafeCommands['Get-ChildItem'] $StepPath -Filter "*.?teps.ps1" -Include "*.[sS]teps.ps1" -Recurse
 
         foreach ($StepFile in $StepFiles) {
             $invokeTestScript = {
@@ -392,7 +391,7 @@ function Import-GherkinSteps {
             & $invokeTestScript $StepFile.FullName
         }
 
-        & $SafeCommands["Write-Verbose"] "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
+        & $SafeCommands['Write-Verbose'] "Loaded $($Script:GherkinSteps.Count) step definitions from $(@($StepFiles).Count) steps file(s)"
     }
 }
 
@@ -515,16 +514,16 @@ function Invoke-GherkinFeature {
     )
     # Make sure broken tests don't leave you in space:
     $CWD = [Environment]::CurrentDirectory
-    $Location = & $SafeCommands["Get-Location"]
-    [Environment]::CurrentDirectory = & $SafeCommands["Get-Location"] -PSProvider FileSystem
+    $Location = & $SafeCommands['Get-Location']
+    [Environment]::CurrentDirectory = & $SafeCommands['Get-Location'] -PSProvider FileSystem
 
     try {
-        $Parent = & $SafeCommands["Split-Path"] $FeatureFile.FullName
+        $Parent = & $SafeCommands['Split-Path'] $FeatureFile.FullName
         Import-GherkinSteps -StepPath $Parent -Pester $pester
         $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
     }
     catch [Gherkin.ParserException] {
-        & $SafeCommands["Write-Error"] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands["Select-Object"] -Expand Message) -join "`n`n")"
+        & $SafeCommands['Write-Error'] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands['Select-Object'] -Expand Message) -join "`n`n")"
         continue
     }
 
@@ -537,19 +536,19 @@ function Invoke-GherkinFeature {
     # Test the name filter first, since it will probably return one single item
     if ($Pester.TestNameFilter) {
         $Scenarios = foreach ($nameFilter in $Pester.TestNameFilter) {
-            $Scenarios | & $SafeCommands["Where-Object"] { $_.Name -like $NameFilter }
+            $Scenarios | & $SafeCommands['Where-Object'] { $_.Name -like $NameFilter }
         }
-        $Scenarios = $Scenarios | & $SafeCommands["Get-Unique"]
+        $Scenarios = $Scenarios | & $SafeCommands['Get-Unique']
     }
 
     # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
     if ($Pester.TagFilter) {
-        $Scenarios = $Scenarios | & $SafeCommands["Where-Object"] { & $SafeCommands["Compare-Object"] $_.Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent }
+        $Scenarios = $Scenarios | & $SafeCommands['Where-Object'] { & $SafeCommands['Compare-Object'] $_.Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent }
     }
 
     # if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
     if ($Pester.ExcludeTagFilter) {
-        $Scenarios = $Scenarios | & $SafeCommands["Where-Object"] { !(& $SafeCommands["Compare-Object"] $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
+        $Scenarios = $Scenarios | & $SafeCommands['Where-Object'] { !(& $SafeCommands['Compare-Object'] $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
     }
 
     if ($Scenarios) {
@@ -562,7 +561,7 @@ function Invoke-GherkinFeature {
         }
     }
     catch {
-        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands["Select-Object"] -First 1
+        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult("Error occurred in test script '$($Feature.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
         # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
@@ -573,7 +572,7 @@ function Invoke-GherkinFeature {
         $Pester.TestResult[-1] | Write-GherkinResult -Pester $Pester
     }
     finally {
-        $Location | & $SafeCommands["Set-Location"]
+        $Location | & $SafeCommands['Set-Location']
         [Environment]::CurrentDirectory = $CWD
     }
 
@@ -627,7 +626,7 @@ function Invoke-GherkinScenario {
         Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
     }
     catch {
-        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands["Select-Object"] -First 1
+        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult("Error occurred in scenario '$($Scenario.Name)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
         # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
@@ -685,16 +684,16 @@ function Find-GherkinStep {
             $StepText = $KeyWord
         }
 
-        & $SafeCommands["Write-Verbose"] "Searching for '$StepText' in $($Script:GherkinSteps.Count) steps"
+        & $SafeCommands['Write-Verbose'] "Searching for '$StepText' in $($Script:GherkinSteps.Count) steps"
         $(
             foreach ($StepCommand in $Script:GherkinSteps.Keys) {
-                & $SafeCommands["Write-Verbose"] "... $StepCommand"
+                & $SafeCommands['Write-Verbose'] "... $StepCommand"
                 if ($StepText -match "^${StepCommand}$") {
-                    & $SafeCommands["Write-Verbose"] "Found match: $StepCommand"
-                    $StepCommand | & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name MatchCount -Value $Matches.Count -PassThru
+                    & $SafeCommands['Write-Verbose'] "Found match: $StepCommand"
+                    $StepCommand | & $SafeCommands['Add-Member'] -MemberType NoteProperty -Name MatchCount -Value $Matches.Count -PassThru
                 }
             }
-        ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] @{
+        ) | & $SafeCommands['Sort-Object'] MatchCount | & $SafeCommands['Select-Object'] @{
             Name       = 'Step'
             Expression = { $Step }
         }, @{
@@ -764,10 +763,10 @@ function Invoke-GherkinStep {
         $StepCommand = $(
             foreach ($StepCommand in $Script:GherkinSteps.Keys) {
                 if ($Step.Text -match "^${StepCommand}$") {
-                    $StepCommand | & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name MatchCount -Value $Matches.Count -PassThru
+                    $StepCommand | & $SafeCommands['Add-Member'] -MemberType NoteProperty -Name MatchCount -Value $Matches.Count -PassThru
                 }
             }
-        ) | & $SafeCommands["Sort-Object"] MatchCount | & $SafeCommands["Select-Object"] -First 1
+        ) | & $SafeCommands['Sort-Object'] MatchCount | & $SafeCommands['Select-Object'] -First 1
 
         $previousStepsNotSuccessful = $false
         # Iterate over the test results of the previous steps
@@ -789,7 +788,7 @@ function Invoke-GherkinStep {
         }
         else {
             $NamedArguments, $Parameters = Get-StepParameters $Step $StepCommand
-            $watch = & $SafeCommands["New-Object"] System.Diagnostics.Stopwatch
+            $watch = & $SafeCommands['New-Object'] System.Diagnostics.Stopwatch
             $watch.Start()
             try {
                 # Invoke-GherkinHook BeforeStep $Step.Text $Step.Tags
@@ -871,7 +870,7 @@ function Get-StepParameters {
             }
         }
     }
-    $Parameters = @($Parameters.GetEnumerator() | & $SafeCommands["Sort-Object"] Name | & $SafeCommands["Select-Object"] -ExpandProperty Value)
+    $Parameters = @($Parameters.GetEnumerator() | & $SafeCommands['Sort-Object'] Name | & $SafeCommands['Select-Object'] -ExpandProperty Value)
 
     # TODO: Convert parsed tables to tables....
     if ($Step.Argument -is [Gherkin.Ast.DataTable]) {
@@ -879,7 +878,7 @@ function Get-StepParameters {
     }
     if ($Step.Argument -is [Gherkin.Ast.DocString]) {
         # trim empty matches if we're attaching DocStringArgument
-        $Parameters = @( $Parameters | & $SafeCommands["Where-Object"] { $_.Length } ) + $Step.Argument.Content
+        $Parameters = @( $Parameters | & $SafeCommands['Where-Object'] { $_.Length } ) + $Step.Argument.Content
     }
 
     return @($NamedArguments, $Parameters)
@@ -903,7 +902,7 @@ function Convert-Tags {
         [string[]]$Tags = foreach ($tag in $InputObject.Tags | & $SafeCommands['Where-Object'] { $_ }) {
             $tag.Name.TrimStart("@")
         }
-        & $SafeCommands["Add-Member"] -MemberType NoteProperty -InputObject $InputObject -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force
+        & $SafeCommands['Add-Member'] -MemberType NoteProperty -InputObject $InputObject -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force
         $InputObject
     }
 }
@@ -926,13 +925,13 @@ function ConvertTo-HashTableArray {
         # Convert the first table row into headers:
         ${InputObject Rows} = @($InputObject)
         if (!${Column Names}) {
-            & $SafeCommands["Write-Verbose"] "Reading Names from Header"
+            & $SafeCommands['Write-Verbose'] "Reading Names from Header"
             ${InputObject Header}, ${InputObject Rows} = ${InputObject Rows}
-            ${Column Names} = @(${InputObject Header}.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
+            ${Column Names} = @(${InputObject Header}.Cells | & $SafeCommands['Select-Object'] -ExpandProperty Value)
         }
 
         if ( $null -ne ${InputObject Rows} ) {
-            & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
+            & $SafeCommands['Write-Verbose'] "Processing $(${InputObject Rows}.Length) Rows"
             foreach (${InputObject row} in ${InputObject Rows}) {
                 ${Pester Result} = @{ }
                 for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
