@@ -10,11 +10,11 @@
         [string] $CommandUsed = 'Feature'
     )
     process {
-        if (-not ( $pester.Show | Has-Flag Describe)) {
+        if (-not ( $Pester.Show | Has-Flag Describe)) {
             return
         }
 
-        $margin = $ReportStrings.Margin * $pester.IndentLevel
+        $margin = $ReportStrings.Margin * $Pester.IndentLevel
 
         $Text = if ($Feature.PSObject.Properties['Name'] -and $Feature.Name) {
             $ReportStrings.$CommandUsed -f $Feature.Name
@@ -28,7 +28,7 @@
         # If the feature has a longer description, write that too
         if ($Feature.PSObject.Properties['Description'] -and $Feature.Description) {
             $Feature.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
-                & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
+                & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($Pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
             }
         }
     }

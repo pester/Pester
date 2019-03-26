@@ -202,8 +202,9 @@ Scenario: The test data should be converted properly
         | Property3    |
 '@;
 
+                $Pester = New-GherkinPesterState -SessionState $SessionState
                 # parse the feature file to extract the scenario data
-                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile;
+                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile -Pester $Pester
                 $Feature | Should -Not -Be $null;
                 $Background | Should -Be $null;
                 $Scenarios | Should -Not -Be $null;
@@ -251,8 +252,9 @@ Scenario: The test data should be converted properly
         | Value3  | Value6  |
 '@;
 
+                $Pester = New-GherkinPesterState -SessionState $sessionState
                 # parse the feature file to extract the scenario data
-                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile;
+                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile -Pester $Pester
                 $Feature | Should -Not -Be $null;
                 $Background | Should -Be $null;
                 $Scenarios | Should -Not -Be $null;

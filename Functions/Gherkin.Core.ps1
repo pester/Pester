@@ -52,6 +52,38 @@ function Invoke-GherkinHook {
     }
 }
 
+function New-GherkinPesterState {
+    [CmdletBinding()]
+    param (
+        [string[]]$ScenarioName = [string[]]@(),
+        [string[]]$Tag = [string[]]@(),
+        [string[]]$ExcludeTag = [string[]]@(),
+        [System.Management.Automation.SessionState]$SessionState = $null,
+        [switch]$Strict,
+        [Pester.OutputTypes]$Show = 'All',
+        [PSObject]$PesterOption = $null
+    )
+
+    New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $sessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
+    & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
+    & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
+        $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
+        & $SafeCommands["Where-Object"] {
+            $_.Group | & $SafeCommands["Where-Object"] { -not $_.Passed }
+        } |
+        & $SafeCommands["Select-Object"] -ExpandProperty Name
+        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+    } |
+    & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
+        $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
+        & $SafeCommands["Where-Object"] {
+            -not ($_.Group | & $SafeCommands["Where-Object"] { -not $_.Passed })
+        } |
+        & $SafeCommands["Select-Object"] -ExpandProperty Name
+        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
+    }
+}
+
 function Invoke-Gherkin {
     <#
         .SYNOPSIS
@@ -248,6 +280,7 @@ function Invoke-Gherkin {
             AfterEachScenario  = @()
         }
     }
+
     end {
         if ($PSBoundParameters.ContainsKey('Quiet')) {
             & $SafeCommands["Write-Warning"] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
@@ -264,30 +297,16 @@ function Invoke-Gherkin {
                 throw "There are no existing failed tests to re-run."
             }
         }
-        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Gherkin" -SessionState $PSCmdlet.SessionState
-        $pester = New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $sessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
-        & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
-        & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
-            $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-            & $SafeCommands["Where-Object"] { $_.Group |
-                & $SafeCommands["Where-Object"] { -not $_.Passed } } |
-            & $SafeCommands["Select-Object"] -ExpandProperty Name
-            $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
-        } |
-        & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
-            $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-            & $SafeCommands["Where-Object"] { -not ($_.Group |
-                    & $SafeCommands["Where-Object"] { -not $_.Passed }) } |
-            & $SafeCommands["Select-Object"] -ExpandProperty Name
-            $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
-        }
 
-        Write-PesterStart $pester $Path
+        $SessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Gherkin" -SessionState $PSCmdlet.SessionState
+        $Pester = New-GherkinPesterState -ScenarioName $ScenarioName -Tag $Tag -ExcludeTag $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show $Show -PesterOption $PesterOption
 
-        Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+        Write-PesterStart $Pester $Path
+
+        Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $Pester
 
         foreach ($FeatureFile in & $SafeCommands["Get-ChildItem"] $Path -Filter "*.feature" -Recurse ) {
-            Invoke-GherkinFeature $FeatureFile -Pester $pester
+            Invoke-GherkinFeature $FeatureFile -Pester $Pester
         }
 
         # Remove all the steps
@@ -296,31 +315,34 @@ function Invoke-Gherkin {
         $Location | & $SafeCommands["Set-Location"]
         [Environment]::CurrentDirectory = $CWD
 
-        $pester | Write-PesterReport
-        $coverageReport = Get-CoverageReport -PesterState $pester
-        Write-CoverageReport -CoverageReport $coverageReport
-        Exit-CoverageAnalysis -PesterState $pester
+        $Pester | Write-PesterReport
+        $CoverageReport = Get-CoverageReport -PesterState $Pester
+        Write-CoverageReport -CoverageReport $CoverageReport
+        Exit-CoverageAnalysis -PesterState $Pester
 
         if (& $SafeCommands["Get-Variable"]-Name OutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) {
-            Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
+            Export-PesterResults -PesterState $Pester -Path $OutputFile -Format $OutputFormat
         }
 
         if ($PassThru) {
-            # Remove all runtime properties like current* and Scope
-            $properties = @(
-                "Path", "Features", "TagFilter", "TestNameFilter", "TotalCount", "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios"
+            # The list of properties on the PesterState object which should be part of the test report
+            $Properties = @( "Path", "Features", "TagFilter", "TestNameFilter", "TotalCount",
+                "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios"
 
                 if ($CodeCoverage) {
-                    @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
+                    @{ Name = 'CodeCoverage'; Expression = { $CoverageReport } }
                 }
             )
-            $result = $pester | & $SafeCommands["Select-Object"] -Property $properties
-            $result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
-            $result
+
+            $Result = $Pester | & $SafeCommands["Select-Object"] -Property $Properties
+            $Result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
+            $Result
         }
-        $script:GherkinFailedLast = @($pester.FailedScenarios.Name)
+
+        $script:GherkinFailedLast = @($Pester.FailedScenarios.Name)
+
         if ($EnableExit) {
-            Exit-WithCode -FailedCount $pester.FailedCount
+            Exit-WithCode -FailedCount $Pester.FailedCount
         }
     }
 }
@@ -385,16 +407,32 @@ function Import-GherkinFeature {
             Internal Pester object. For internal use only
     #>
     [CmdletBinding()]
-    param($Path, [PSObject]$Pester)
+    param(
+        [Parameter(Position = 0, Mandatory = $True)]
+        [string]$Path,
+
+        [Parameter(Position = 1, Mandatory = $True)]
+        [PSObject]$Pester
+    )
+
+    # Lookup some commonly used "Safe Commands" and store them in variables.
+    # 1. It reduces lookup to once
+    # 2. It reduces the amount of typing....
+    $AddMember = $SafeCommands['Add-Member']
+    $NewObject = $SafeCommands['New-Object']
+    $SelectObject = $SafeCommands['Select-Object']
+    $WriteWarning = $SafeCommands['Write-Warning']
+
     $Background = $null
 
-    $parser = & $SafeCommands["New-Object"] Gherkin.Parser
-    $Feature = $parser.Parse($Path).Feature | Convert-Tags
+    $Parser = & $NewObject Gherkin.Parser
+    $Feature = $Parser.Parse($Path).Feature | Convert-Tags
+
     $Scenarios = $(
         :scenarios foreach ($Child in $Feature.Children) {
-            $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Child.Location -Name "Path" -Value $Path
+            $null = & $AddMember -MemberType "NoteProperty" -InputObject $Child.Location -Name "Path" -Value $Path
             foreach ($Step in $Child.Steps) {
-                $null = & $SafeCommands["Add-Member"] -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
+                $null = & $AddMember -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
             }
 
             switch ($Child.Keyword.Trim()) {
@@ -406,7 +444,7 @@ function Import-GherkinFeature {
                     continue scenarios
                 }
                 default {
-                    & $SafeCommands["Write-Warning"] "Unexpected Feature Child: $_"
+                    & $WriteWarning "Unexpected Feature Child: $_"
                 }
             }
 
@@ -414,7 +452,7 @@ function Import-GherkinFeature {
                 # If there is no example set name, the following index will be included in the scenario name
                 $ScenarioIndex = 0
                 foreach ($ExampleSet in $Scenario.Examples) {
-                    ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SafeCommands["Select-Object"] -ExpandProperty Value)
+                    ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SelectObject -ExpandProperty Value)
                     $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
                     # If there is an example set name, the following index will be included in the scenario name
                     $ExampleSetIndex = 0
@@ -432,7 +470,7 @@ function Import-GherkinFeature {
                                 }
                             }
                             if ($StepText -ne $Step.Text) {
-                                & $SafeCommands["New-Object"] Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                & $NewObject Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
                             }
                             else {
                                 $Step
@@ -447,7 +485,7 @@ function Import-GherkinFeature {
                             # Only include index of scenario
                             $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
                         }
-                        & $SafeCommands["New-Object"] Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
+                        & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps | Convert-Tags $Scenario.Tags
                     }
                 }
             }
@@ -457,7 +495,7 @@ function Import-GherkinFeature {
         }
     )
 
-    & $SafeCommands["Add-Member"] -MemberType NoteProperty -InputObject $Feature -Name Scenarios -Value $Scenarios -Force
+    & $AddMember -MemberType NoteProperty -InputObject $Feature -Name Scenarios -Value $Scenarios -Force
     return $Feature, $Background, $Scenarios
 }
 
