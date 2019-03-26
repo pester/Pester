@@ -258,14 +258,15 @@ function Invoke-Gherkin {
         [switch]$PassThru
     )
     begin {
-        & $SafeCommands["Import-LocalizedData"] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName Gherkin.psd1 -ErrorAction SilentlyContinue
+        & $SafeCommands['Import-LocalizedData'] -BindingVariable Script:GherkinReportData -BaseDirectory $PesterRoot -Filename Gherkin.psd1 -ErrorAction SilentlyContinue
 
-        #Fallback to en-US culture strings
-        If ([String]::IsNullOrEmpty($ReportStrings)) {
-
-            & $SafeCommands["Import-LocalizedData"] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName Gherkin.psd1 -ErrorAction Stop
-
+        # Fallback to en-US culture strings and theme colors
+        if (!$Script:GherkinReportData) {
+            & $SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:GherkinReportData -UICulture 'en-US' -Filename Gherkin.psd1 -ErrorAction Stop
         }
+
+        $Script:ReportStrings = $Script:GherkinReportData.ReportStrings
+        $Script:ReportTheme = $Script:GherkinReportData.ReportTheme
 
         # Make sure broken tests don't leave you in space:
         $CWD = [Environment]::CurrentDirectory
