@@ -160,7 +160,9 @@ about_Mocking
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
         [ScriptBlock]$ParameterFilter = {$True},
-        [string]$ModuleName
+        [string]$ModuleName,
+        [string[]]$RemoveParameterType,
+        [string[]]$RemoveParameterValidation
     )
 
     Assert-DescribeInProgress -CommandName Mock
@@ -233,7 +235,8 @@ about_Mocking
             }
 
             # Will modify $metadata object in-place
-            Repair-ConflictingParameters -Metadata $metadata
+            $originalMetdata = $metadata
+            $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
             $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
             if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
@@ -330,6 +333,7 @@ about_Mocking
             Scope                   = $pester.CurrentTestGroup
             PesterState             = $pester
             Metadata                = $metadata
+            OriginalMetadata        = $originalMetdata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
             Aliases                 = @()
@@ -1540,11 +1544,18 @@ function Repair-ConflictingParameters {
     param(
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.CommandMetadata]
-        $Metadata
+        $Metadata,
+        [Parameter()]
+        [string[]]
+        $RemoveParameterType,
+        [Parameter()]
+        [string[]]
+        $RemoveParameterValidation
     )
 
+    $repairedMetadata = [System.Management.Automation.CommandMetadata]::new($Metadata)
     $paramMetadatas = @()
-    $paramMetadatas += $Metadata.Parameters.Values
+    $paramMetadatas += $repairedMetadata.Parameters.Values
 
     foreach ($paramMetadata in $paramMetadatas) {
         if ($paramMetadata.IsDynamic) {
@@ -1558,10 +1569,22 @@ function Repair-ConflictingParameters {
             $paramMetadata.Name = $newName
             $paramMetadata.Aliases.Add($paramName)
 
-            $null = $Metadata.Parameters.Remove($paramName)
-            $Metadata.Parameters.Add($newName, $paramMetadata)
+            $null = $repairedMetadata.Parameters.Remove($paramName)
+            $repairedMetadata.Parameters.Add($newName, $paramMetadata)
+        }
+
+        if ($paramMetadata.Name -in $RemoveParameterType) {
+            $paramMetadata.ParameterType = [object]
+
+            # TODO: Add remove of pstypename attribute
+        }
+
+        if ($paramMetadata.Name -in $RemoveParameterValidation) {
+
         }
     }
+
+    $repairedMetadata
 }
 
 function Reset-ConflictingParameters {

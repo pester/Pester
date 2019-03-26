@@ -2220,3 +2220,44 @@ Describe 'Mocking using ParameterFilter with scriptblock' {
     $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
     Mock -CommandName 'Test-Path' -ParameterFilter $filter
 }
+
+
+Describe "RemoveParameterType" {
+    BeforeAll {
+        function SimpleFuncParameterRemoval([int]$Count, [string]$Name) {
+            $Count + 1
+        }
+
+        function Test-AdvancedFuncParameterRemoval {
+            [CmdletBinding()]
+            param(
+                [Parameter()]
+                [int]
+                $Count,
+                [Parameter()]
+                [string]
+                $Name
+            )
+
+            $Count + 1
+        }
+    }
+
+    It 'removes parameter for simple function' {
+        Mock SimpleFuncParameterRemoval { 10 } -RemoveParameterType 'Count'
+
+        SimpleFuncParameterRemoval -Name 'Hello' -Count 10 | Should -Be 10
+    }
+
+    Context 'NetAdapter example' {
+        It 'works' {
+            Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
+            Mock Set-NetAdapter -RemoveParameterType 'InputObject'
+
+            $adapter = Get-NetAdapter
+            $adapter | Set-NetAdapter
+
+            Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+        }
+    }
+}
