@@ -1,0 +1,60 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "PowerShell Interactive Session",
+            "cwd": "${workspaceRoot}",
+            "createTemporaryIntegratedConsole": true
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "PowerShell Debug Tests w/Args Prompt",
+            "script": "Import-Module '${workspaceRoot}\\Pester.psd1'; Invoke-Pester",
+            "args": [
+                "-PesterOption @{ IncludeVSCodeMarker = $True }",
+                "${command:SpecifyScriptArgs}"
+            ],
+            "cwd": "${workspaceRoot}",
+            "createTemporaryIntegratedConsole": true
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "PowerShell Debug Current Test File w/Args Prompt",
+            "script": "Import-Module '${workspaceRoot}\\Pester.psd1'; Invoke-Pester -Path '${file}'",
+            "args": [
+                "-PesterOption @{ IncludeVSCodeMarker = $True }",
+                "${command:SpecifyScriptArgs}"
+            ],
+            "cwd": "${workspaceRoot}",
+            "createTemporaryIntegratedConsole": true
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "PowerShell Debug Gherkin Test Runner using Current Feature File w/Args Prompt",
+            "script": "Import-Module '${workspaceRoot}\\Pester.psd1'; Invoke-Gherkin -Path '${file}'",
+            "args": [
+                "-PesterOption @{ IncludeVSCodeMarker = $True }",
+                "${command:SpecifyScriptArgs}"
+            ],
+            "cwd": "${workspaceRoot}",
+            "createTemporaryIntegratedConsole": true
+        },
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "PowerShell Debug Gherkin Test Runner w/Args Prompt",
+            "script": "Import-Module '${workspaceRoot}\\Pester.psd1'; Invoke-Gherkin",
+            "args": [
+                "-PesterOption @{ IncludeVSCodeMarker = $True }",
+                "${command:SpecifyScriptArgs}"
+            ],
+            "cwd": "${workspaceRoot}",
+            "createTemporaryIntegratedConsole": true
+        },
+    ]
+}
