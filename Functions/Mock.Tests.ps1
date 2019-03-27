@@ -2227,20 +2227,6 @@ Describe "RemoveParameterType" {
         function SimpleFuncParameterRemoval([int]$Count, [string]$Name) {
             $Count + 1
         }
-
-        function Test-AdvancedFuncParameterRemoval {
-            [CmdletBinding()]
-            param(
-                [Parameter()]
-                [int]
-                $Count,
-                [Parameter()]
-                [string]
-                $Name
-            )
-
-            $Count + 1
-        }
     }
 
     It 'removes parameter for simple function' {
@@ -2249,15 +2235,49 @@ Describe "RemoveParameterType" {
         SimpleFuncParameterRemoval -Name 'Hello' -Count 10 | Should -Be 10
     }
 
-    Context 'NetAdapter example' {
-        It 'works' {
-            Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
-            Mock Set-NetAdapter -RemoveParameterType 'InputObject'
+    if ($PSVersionTable.PSVersion.Major -lt 6) {
+        Context 'NetAdapter example' {
+            It 'works' {
+                Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
+                Mock Set-NetAdapter -RemoveParameterType 'InputObject'
 
-            $adapter = Get-NetAdapter
-            $adapter | Set-NetAdapter
+                $adapter = Get-NetAdapter
+                $adapter | Set-NetAdapter
 
-            Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+                Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+            }
         }
+
+        Context "Get-PhysicalDisk example" {
+            Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
+
+            It "should return 'hello'" {
+                Get-PhysicalDisk | Should Be "hello"
+            }
+        }
+    }
+}
+
+Describe 'RemoveParameterValidation' {
+    BeforeAll {
+        function Test-Validation {
+            param(
+                [Parameter()]
+                [ValidateRange(1, 10)]
+                [int]
+                $Count
+            )
+            $Count + 1
+        }
+    }
+
+    It 'throws' {
+        { Test-Validation -Count -1 } | Should -Throw
+    }
+
+    It 'passes using mock' {
+        Mock Test-Validation -RemoveParameterValidation Count { 0 }
+
+        Test-Validation | Should -Be 0
     }
 }

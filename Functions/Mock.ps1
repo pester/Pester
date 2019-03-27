@@ -1573,14 +1573,31 @@ function Repair-ConflictingParameters {
             $repairedMetadata.Parameters.Add($newName, $paramMetadata)
         }
 
+        $attrIndexesToRemove = New-Object System.Collections.ArrayList
+
         if ($paramMetadata.Name -in $RemoveParameterType) {
             $paramMetadata.ParameterType = [object]
 
-            # TODO: Add remove of pstypename attribute
+            for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
+                $attr = $paramMetadata.Attributes[$i]
+                if ($attr -is [PSTypeNameAttribute]) {
+                    $null = $attrIndexesToRemove.Add($i)
+                    break
+                }
+            }
         }
 
         if ($paramMetadata.Name -in $RemoveParameterValidation) {
+            for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
+                $attr = $paramMetadata.Attributes[$i]
+                if ($attr -is [System.Management.Automation.ValidateArgumentsAttribute]) {
+                    $null = $attrIndexesToRemove.Add($i)
+                }
+            }
+        }
 
+        foreach ($index in $attrIndexesToRemove) {
+            $null = $paramMetadata.Attributes.RemoveAt($index)
         }
     }
 
