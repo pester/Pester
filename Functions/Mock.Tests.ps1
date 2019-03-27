@@ -2235,7 +2235,7 @@ Describe "RemoveParameterType" {
         SimpleFuncParameterRemoval -Name 'Hello' -Count 10 | Should -Be 10
     }
 
-    if ($PSVersionTable.PSVersion.Major -lt 6) {
+    if ($PSVersionTable.PSVersion.Major -eq 5) {
         Context 'NetAdapter example' {
             It 'works' {
                 Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
