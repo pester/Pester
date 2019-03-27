@@ -1553,16 +1553,17 @@ function Repair-ConflictingParameters {
         $RemoveParameterValidation
     )
 
-    $repairedMetadata = [System.Management.Automation.CommandMetadata]::new($Metadata)
+    $repairedMetadata = New-Object System.Management.Automation.CommandMetadata -ArgumentList $Metadata
     $paramMetadatas = @()
     $paramMetadatas += $repairedMetadata.Parameters.Values
+
+    $conflictingParams = Get-ConflictingParameterNames
 
     foreach ($paramMetadata in $paramMetadatas) {
         if ($paramMetadata.IsDynamic) {
             continue
         }
 
-        $conflictingParams = Get-ConflictingParameterNames
         if ($conflictingParams -contains $paramMetadata.Name) {
             $paramName = $paramMetadata.Name
             $newName = "_$paramName"
