@@ -748,7 +748,9 @@ function Exit-MockScope {
             [string[]] $Aliases
         )
 
-        $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
+        if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName", $true, $true)) {
+            $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
+        }
 
         foreach ($alias in $Aliases) {
             if ($ExecutionContext.InvokeProvider.Item.Exists("Alias:$alias", $true, $true)) {
