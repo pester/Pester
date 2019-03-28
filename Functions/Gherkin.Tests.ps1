@@ -320,7 +320,7 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
         $gherkin.Results.FailedScenarios | Should -Be @(
             'The Pester test report shows scenario names with examples [Failing Scenario (later) 1]'
             'The Pester test report shows scenario names with examples [Failing Scenario (early) 1]'
-            'The Pester test report shows scenario names with examples [Failing Scenario (inconclusive) 1]'
+            'The Pester test report shows scenario names with examples [Undefined Scenario (inconclusive) 1]'
         )
     }
 
@@ -390,11 +390,11 @@ Describe "Check test results of steps" -Tag Gherkin {
     }
 
     It "Test result 11 is correct" {
-        $testResults[10] | Should -Be 'Inconclusive'
+        $testResults[10] | Should -Be 'Skipped'
     }
 
     It "Test result 12 is correct" {
-        $testResults[11] | Should -Be 'Inconclusive'
+        $testResults[11] | Should -Be 'Skipped'
     }
 
     It "Test result 13 is correct" {
@@ -402,7 +402,7 @@ Describe "Check test results of steps" -Tag Gherkin {
     }
 
     It "Test result 14 is correct" {
-        $testResults[13] | Should -Be 'Inconclusive'
+        $testResults[13] | Should -Be 'Skipped'
     }
 
     It "Test result 15 is correct" {
@@ -543,15 +543,15 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[2]" | Should -Be "Success"
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[3]" | Should -Be "Success"
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[4]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[5]" | Should -Be "Failure"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[5]" | Should -Be 'Failure'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be 'Ignored'
 
         Get-XmlInnerText "$scenario2Examples1StepsXPath[5]/failure/message" | Should -Be "An example error in the then clause"
+        $StackTraceLines = @((Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace") -split '\r?\n')
+        $StackTraceLines[0] | Should -BeLike "*at <StepDefinition>, $($expectedImplementationFileName):line 23*"
         if ($expectFeatureFileNameInStackTrace) {
-            Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 15*"
+            $StackTraceLines[1] | Should -BeLike "*at <Feature>, ${expectedFeatureFileName1}:line 15*"
         }
-        Get-XmlInnerText "($scenario2Examples1StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 23*"
-        Get-XmlInnerText "($scenario2Examples1StepsXPath)[6]/reason/message" | Should -Be "Step skipped (previous step did not pass)"
     }
 
     It 'should contain all steps of scenario 2 (examples 2) with correct names and test results' {
@@ -591,11 +591,12 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario3StepsXPath/@result)[4]" | Should -Be "Success"
         Get-XmlValue "($scenario3StepsXPath/@result)[5]" | Should -Be "Failure"
 
-        Get-XmlInnerText "$scenario3StepsXPath[5]/failure/message" | Should -Be "Another example error in the then clause"
+        Get-XmlInnerText "$scenario3StepsXPath[5]/failure/message" | Should -Be 'Another example error in the then clause'
+        $StackTraceLines = @((Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace") -split '\r?\n')
+        $StackTraceLines[0] | Should -BeLike "*at <StepDefinition>, $($expectedImplementationFileName):line 57*"
         if ($expectFeatureFileNameInStackTrace) {
-            Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName1): line 32*"
+            $StackTraceLines[1] | Should -BeLike "*at <Feature>, ${expectedFeatureFileName1}:line 32*"
         }
-        Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 57*"
     }
 
     It 'should contain all steps of scenario 4 with correct names and test results' {
@@ -607,16 +608,17 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario4StepsXPath/@name)[2]" | Should -Be "Scenario 4.When step_402"
         Get-XmlValue "($scenario4StepsXPath/@name)[3]" | Should -Be "Scenario 4.Then step_403"
 
-        Get-XmlValue "($scenario4StepsXPath/@result)[1]" | Should -Be "Success"
-        Get-XmlValue "($scenario4StepsXPath/@result)[2]" | Should -Be "Failure"
-        Get-XmlValue "($scenario4StepsXPath/@result)[3]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario4StepsXPath/@result)[1]" | Should -Be 'Success'
+        Get-XmlValue "($scenario4StepsXPath/@result)[2]" | Should -Be 'Failure'
+        Get-XmlValue "($scenario4StepsXPath/@result)[3]" | Should -Be 'Ignored'
 
-        Get-XmlInnerText "$scenario4StepsXPath[2]/failure/message" | Should -Be "An example error in the when clause"
+        Get-XmlInnerText "$scenario4StepsXPath[2]/failure/message" | Should -Be 'An example error in the when clause'
+
+        $StackTraceLines = @((Get-XmlInnerText "($scenario4StepsXPath)[2]/failure/stack-trace") -split '\r?\n')
+        $StackTraceLines[0] | Should -BeLike "*at <StepDefinition>, $($expectedImplementationFileName):line 64*"
         if ($expectFeatureFileNameInStackTrace) {
-            Get-XmlInnerText "($scenario4StepsXPath)[2]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName2): line 6*"
+            $StackTraceLines[1] | Should -BeLike "*at <Feature>, ${expectedFeatureFileName2}:line 6*"
         }
-        Get-XmlInnerText "($scenario4StepsXPath)[2]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 64*"
-        Get-XmlInnerText "($scenario4StepsXPath)[3]/reason/message" | Should -Be "Step skipped (previous step did not pass)"
     }
 
     It 'should contain all steps of scenario 5 (examples 1) with correct names and test results' {
@@ -632,9 +634,9 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples1StepsXPath/@result)[2]" | Should -Be "Inconclusive"
         Get-XmlValue "($scenario5Examples1StepsXPath/@result)[3]" | Should -Be "Inconclusive"
 
-        Get-XmlInnerText "($scenario5Examples1StepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples1StepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples1StepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples1StepsXPath)[1]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples1StepsXPath)[2]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples1StepsXPath)[3]/reason/message" | Should -Be 'No matching step definition found.'
     }
 
     It 'should contain all steps of scenario 5 (examples 2) with correct names and test results' {
@@ -650,9 +652,9 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples2StepsXPath/@result)[2]" | Should -Be "Inconclusive"
         Get-XmlValue "($scenario5Examples2StepsXPath/@result)[3]" | Should -Be "Inconclusive"
 
-        Get-XmlInnerText "($scenario5Examples2StepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples2StepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples2StepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples2StepsXPath)[1]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples2StepsXPath)[2]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples2StepsXPath)[3]/reason/message" | Should -Be 'No matching step definition found.'
     }
 
     It 'should contain all steps of scenario 5 (examples 3) with correct names and test results' {
@@ -674,9 +676,9 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 3 3].When step_902"
         Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 3 3].Then step_903"
 
-        Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[1]" | Should -Be "Failure"
-        Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[2]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[3]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[1]" | Should -Be 'Failure'
+        Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[2]" | Should -Be 'Ignored'
+        Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[3]" | Should -Be 'Ignored'
         Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[1]" | Should -Be "Inconclusive"
         Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[2]" | Should -Be "Inconclusive"
         Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[3]" | Should -Be "Inconclusive"
@@ -684,19 +686,18 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[2]" | Should -Be "Inconclusive"
         Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[3]" | Should -Be "Inconclusive"
 
-        Get-XmlInnerText "$scenario5Examples3aStepsXPath[1]/failure/message" | Should -Be "An example error in the given clause"
+        Get-XmlInnerText "$scenario5Examples3aStepsXPath[1]/failure/message" | Should -Be 'An example error in the given clause'
+        $StackTraceLines = @((Get-XmlInnerText "($scenario5Examples3aStepsXPath)[1]/failure/stack-trace") -split '\r?\n')
+        $StackTraceLines[0] | Should -BeLike "*at <StepDefinition>, $($expectedImplementationFileName):line 71*"
         if ($expectFeatureFileNameInStackTrace) {
-            Get-XmlInnerText "($scenario5Examples3aStepsXPath)[1]/failure/stack-trace" | Should -BeLike "*From $($expectedFeatureFileName2): line 11"
+            $StackTraceLines[1] | Should -BeLike "*at <Feature>, ${expectedFeatureFileName2}:line 11*"
         }
-        Get-XmlInnerText "($scenario5Examples3aStepsXPath)[1]/failure/stack-trace" | Should -BeLike "*at <ScriptBlock>, $($expectedImplementationFileName): line 71*"
-        Get-XmlInnerText "($scenario5Examples3aStepsXPath)[2]/reason/message" | Should -Be "Step skipped (previous step did not pass)"
-        Get-XmlInnerText "($scenario5Examples3aStepsXPath)[3]/reason/message" | Should -Be "Step skipped (previous step did not pass)"
-        Get-XmlInnerText "($scenario5Examples3bStepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples3bStepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples3bStepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples3cStepsXPath)[1]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples3cStepsXPath)[2]/reason/message" | Should -Be "Could not find implementation for step!"
-        Get-XmlInnerText "($scenario5Examples3cStepsXPath)[3]/reason/message" | Should -Be "Could not find implementation for step!"
+        Get-XmlInnerText "($scenario5Examples3bStepsXPath)[1]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples3bStepsXPath)[2]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples3bStepsXPath)[3]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples3cStepsXPath)[1]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples3cStepsXPath)[2]/reason/message" | Should -Be 'No matching step definition found.'
+        Get-XmlInnerText "($scenario5Examples3cStepsXPath)[3]/reason/message" | Should -Be 'No matching step definition found.'
     }
 
 }
