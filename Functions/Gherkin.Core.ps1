@@ -418,15 +418,21 @@ function Import-GherkinFeature {
     # Lookup some commonly used "Safe Commands" and store them in variables.
     # 1. It reduces lookup to once
     # 2. It reduces the amount of typing....
-    $AddMember = $SafeCommands['Add-Member']
-    $NewObject = $SafeCommands['New-Object']
-    $SelectObject = $SafeCommands['Select-Object']
-    $WriteWarning = $SafeCommands['Write-Warning']
+    $AddMember     = $SafeCommands['Add-Member']
+    $CompareObject = $SafeCommands['Compare-Object']
+    $NewObject     = $SafeCommands['New-Object']
+    $SelectObject  = $SafeCommands['Select-Object']
+    $WriteWarning  = $SafeCommands['Write-Warning']
 
     $Background = $null
 
     $Parser = & $NewObject Gherkin.Parser
     $Feature = $Parser.Parse($Path).Feature | Convert-Tags
+
+    # If the entire feature is excluded by tags, then don't process it any further.
+    if ($Pester.ExcludeTagFilter -and @(& $CompareObject $Feature.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).Length -gt 0) {
+        return
+    }
 
     $Scenarios = $(
         :scenarios foreach ($Child in $Feature.Children) {
