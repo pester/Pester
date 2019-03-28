@@ -740,13 +740,17 @@ function Invoke-GherkinStep {
     #>
     [CmdletBinding()]
     param (
-        $Step,
+        [Parameter(Mandatory = $True)]
+        [Gherkin.Ast.Step]$Step,
 
         [Switch]$Visible,
 
-        $Pester,
+        [Parameter(Mandatory = $True)]
+        [PSObject]$Pester,
 
-        $ScenarioState,
+        [System.Management.Automation.SessionState]$ScenarioState,
+
+        [Switch]$NoMultiline,
 
         [int] $TestResultIndexStart
     )
