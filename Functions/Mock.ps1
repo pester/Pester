@@ -236,7 +236,7 @@ about_Mocking
             }
 
             # Will modify $metadata object in-place
-            $originalMetdata = $metadata
+            $originalMetadata = $metadata
             $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
             $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
@@ -334,7 +334,7 @@ about_Mocking
             Scope                   = $pester.CurrentTestGroup
             PesterState             = $pester
             Metadata                = $metadata
-            OriginalMetadata        = $originalMetdata
+            OriginalMetadata        = $originalMetadata
             CallHistory             = @()
             DynamicParamScriptBlock = $dynamicParamScriptBlock
             Aliases                 = @()
