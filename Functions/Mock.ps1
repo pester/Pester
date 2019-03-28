@@ -1576,7 +1576,7 @@ function Repair-ConflictingParameters {
 
         $attrIndexesToRemove = New-Object System.Collections.ArrayList
 
-        if ($paramMetadata.Name -in $RemoveParameterType) {
+        if ($RemoveParameterType -contains $paramMetadata.Name) {
             $paramMetadata.ParameterType = [object]
 
             for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
@@ -1588,7 +1588,7 @@ function Repair-ConflictingParameters {
             }
         }
 
-        if ($paramMetadata.Name -in $RemoveParameterValidation) {
+        if ($RemoveParameterValidation -contains $paramMetadata.Name) {
             for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
                 $attr = $paramMetadata.Attributes[$i]
                 if ($attr -is [System.Management.Automation.ValidateArgumentsAttribute]) {
