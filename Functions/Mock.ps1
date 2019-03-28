@@ -202,6 +202,7 @@ about_Mocking
 
     if (-not $mock) {
         $metadata = $null
+        $originalMetadata = $null
         $cmdletBinding = ''
         $paramBlock = ''
         $dynamicParamBlock = ''
@@ -1579,11 +1580,13 @@ function Repair-ConflictingParameters {
         if ($RemoveParameterType -contains $paramMetadata.Name) {
             $paramMetadata.ParameterType = [object]
 
-            for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
-                $attr = $paramMetadata.Attributes[$i]
-                if ($attr -is [PSTypeNameAttribute]) {
-                    $null = $attrIndexesToRemove.Add($i)
-                    break
+            if (GetPesterPsVersion -ge 3) {
+                for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
+                    $attr = $paramMetadata.Attributes[$i]
+                    if ($attr -is [PSTypeNameAttribute]) {
+                        $null = $attrIndexesToRemove.Add($i)
+                        break
+                    }
                 }
             }
         }
