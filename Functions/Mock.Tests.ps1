@@ -2221,38 +2221,39 @@ Describe 'Mocking using ParameterFilter with scriptblock' {
     Mock -CommandName 'Test-Path' -ParameterFilter $filter
 }
 
-
-Describe "RemoveParameterType" {
-    BeforeAll {
-        function SimpleFuncParameterRemoval([int]$Count, [string]$Name) {
-            $Count + 1
-        }
-    }
-
-    It 'removes parameter for simple function' {
-        Mock SimpleFuncParameterRemoval { 10 } -RemoveParameterType 'Count'
-
-        SimpleFuncParameterRemoval -Name 'Hello' -Count 10 | Should -Be 10
-    }
-
-    if ($PSVersionTable.PSVersion.Major -eq 5) {
-        Context 'NetAdapter example' {
-            It 'works' {
-                Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
-                Mock Set-NetAdapter -RemoveParameterType 'InputObject'
-
-                $adapter = Get-NetAdapter
-                $adapter | Set-NetAdapter
-
-                Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+if ($PSVersionTable.PSVersion.Major -ge 3) {
+    Describe "RemoveParameterType" {
+        BeforeAll {
+            function SimpleFuncParameterRemoval([int]$Count, [string]$Name) {
+                $Count + 1
             }
         }
 
-        Context "Get-PhysicalDisk example" {
-            Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
+        It 'removes parameter for simple function' {
+            Mock SimpleFuncParameterRemoval { 10 } -RemoveParameterType 'Count'
 
-            It "should return 'hello'" {
-                Get-PhysicalDisk | Should Be "hello"
+            SimpleFuncParameterRemoval -Name 'Hello' -Count 10 | Should -Be 10
+        }
+
+        if ($PSVersionTable.PSVersion.Major -eq 5) {
+            Context 'NetAdapter example' {
+                It 'works' {
+                    Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
+                    Mock Set-NetAdapter -RemoveParameterType 'InputObject'
+
+                    $adapter = Get-NetAdapter
+                    $adapter | Set-NetAdapter
+
+                    Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+                }
+            }
+
+            Context "Get-PhysicalDisk example" {
+                Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
+
+                It "should return 'hello'" {
+                    Get-PhysicalDisk | Should Be "hello"
+                }
             }
         }
     }

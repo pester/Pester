@@ -1580,13 +1580,11 @@ function Repair-ConflictingParameters {
         if ($RemoveParameterType -contains $paramMetadata.Name) {
             $paramMetadata.ParameterType = [object]
 
-            if (GetPesterPsVersion -ge 3) {
-                for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
-                    $attr = $paramMetadata.Attributes[$i]
-                    if ($attr -is [PSTypeNameAttribute]) {
-                        $null = $attrIndexesToRemove.Add($i)
-                        break
-                    }
+            for ($i = 0; $i -lt $paramMetadata.Attributes.Count; $i++) {
+                $attr = $paramMetadata.Attributes[$i]
+                if ($attr -is [PSTypeNameAttribute]) {
+                    $null = $attrIndexesToRemove.Add($i)
+                    break
                 }
             }
         }
