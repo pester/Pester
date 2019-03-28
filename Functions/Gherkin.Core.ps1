@@ -446,7 +446,7 @@ function Import-GherkinFeature {
                     $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
                 }
                 { Test-Keyword $_ 'background' $Feature.Language } {
-                    $Background = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
+                    $Background = $Child
                     continue scenarios
                 }
                 default {
