@@ -1019,15 +1019,9 @@ function Get-LegacyResult {
         }
 
         $o.FrameworkTime += $test.FrameworkDuration
-    } -OnBlock {
-        param ($block)
-        $o.FrameworkTime += $block.FrameworkDuration
-    } -OnContainer {
-        param ($container)
-        $o.FrameworkTime += $container.FrameworkDuration
     }
-    $t = (sum $RunResult AggregatedDuration ([timespan]::Zero))
-    $o.Time = $t + $o.FrameworkTime
+
+    $o.Time = (sum $RunResult Duration ([timespan]::Zero)) + (sum $RunResult FrameworkDuration ([timespan]::Zero)) + (sum $RunResult DiscoveryDuration ([timespan]::Zero))
 
     $o
 }

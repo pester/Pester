@@ -28,8 +28,7 @@ $state = [PSCustomObject] @{
     PluginConfiguration = $null
 
     TotalStopWatch     = $null
-    TestStopWatch      = $null
-    BlockStopWatch     = $null
+    UserCodeStopWatch      = $null
     FrameworkStopWatch = $null
 
     ExpandName = {
@@ -180,7 +179,7 @@ function New-Block {
 
     Switch-Timer -Scope Framework
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
-    $blockStartTime = $state.BlockStopWatch.Elapsed
+    $blockStartTime = $state.UserCodeStopWatch.Elapsed
 
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = Get-ScopeHistory | % Name
@@ -297,7 +296,7 @@ function New-Block {
                     Context = $block | &$SafeCommands['Select-Object'] -Property Name
                 } `
                     -ReduceContextToInnerScope `
-                    -OnUserScopeTransition { Switch-Timer -Scope Block } `
+                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
                 $block.Passed = $result.Success
@@ -315,6 +314,13 @@ function New-Block {
             [Array]::Reverse($frameworkEachBlockTeardowns)
             [Array]::Reverse($frameworkOneTimeBlockTeardowns)
 
+
+            # setting those values here so they are available for the teardown
+            # BUT they are then set again at the end of the block to make them accurate
+            # so the value on the screen vs the value in the object is slightly different
+            # with the value in the result being the correct one
+            $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+            $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
                 -Teardown $frameworkEachBlockTeardowns `
@@ -356,12 +362,17 @@ function New-Block {
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Runtime "Left block $Name"
         }
-        $block.Duration = $state.BlockStopWatch.Elapsed - $blockStartTime
-        $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        if ($PesterDebugPreference.WriteDebugMessages) {
-            Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
-            Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
-            Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
+        if (Is-Discovery) {
+            $block.DiscoveryDuration = ($state.FrameworkStopWatch.Elapsed - $overheadStartTime) + ($state.UserCodeStopWatch.Elapsed - $blockStartTime)
+        }
+        else {
+            $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+            $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+            if ($PesterDebugPreference.WriteDebugMessages) {
+                Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
+                Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
+                Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
+            }
         }
     }
 }
@@ -383,7 +394,7 @@ function New-Test {
     # keep this at the top so we report as much time
     # of the actual test run as possible
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
-    $testStartTime = $state.TestStopWatch.Elapsed
+    $testStartTime = $state.UserCodeStopWatch.Elapsed
     Switch-Timer -Scope Framework
 
     if ($PesterDebugPreference.WriteDebugMessages) {
@@ -508,7 +519,7 @@ function New-Test {
                     } ) `
                     -Context $context `
                     -ReduceContextToInnerScope `
-                    -OnUserScopeTransition { Switch-Timer -Scope Test } `
+                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                     -NoNewScope
 
@@ -517,7 +528,12 @@ function New-Test {
                 $test.StandardOutput = $result.StandardOutput
                 $test.ErrorRecord = $result.ErrorRecord
             }
-
+            # setting those values here so they are available for the teardown
+            # BUT they are then set again at the end of the block to make them accurate
+            # so the value on the screen vs the value in the object is slightly different
+            # with the value in the result being the correct one
+            $test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+            $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
                 -Teardown @( $state.Plugin.EachTestTeardown | selectNonNull ) `
@@ -549,7 +565,7 @@ function New-Test {
         }
 
         # keep this at the end so we report even the test teardown in the framework overhead for the test
-        $test.Duration = $state.TestStopWatch.Elapsed - $testStartTime
+        $test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Timing -Message "Test duration $($test.Duration.TotalMilliseconds)ms"
@@ -827,7 +843,8 @@ function New-BlockObject {
         ExecutedAt           = $null
         Duration             = [timespan]::Zero
         FrameworkDuration    = [timespan]::Zero
-        AggregatedDuration   = [timespan]::Zero
+        OwnDuration          = [timespan]::Zero
+        DiscoveryDuration    = [timespan]::Zero
         AggregatedPassed     = $false
     }
 }
@@ -858,6 +875,7 @@ function Discover-Test {
         [Management.Automation.SessionState] $SessionState,
         $Filter
     )
+    $totalDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting test discovery in $(@($BlockContainer).Length) files."
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
@@ -865,6 +883,7 @@ function Discover-Test {
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
+        $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($container.Content)"
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
@@ -882,7 +901,9 @@ function Discover-Test {
             Block     = $root
         }
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $root).Count) tests"
+        $t = $perContainerDiscoveryDuration.Elapsed
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $root).Count) tests. $(ConvertTo-HumanTime $t)"
+        $root.DiscoveryDuration = $t
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
@@ -921,7 +942,7 @@ function Discover-Test {
         $f.Block
     }
 
-    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished."
+    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished. $(ConvertTo-HumanTime $totalDiscoveryDuration.Elapsed)"
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
     }
@@ -938,15 +959,16 @@ function Run-Test {
 
     $state.Discovery = $false
     foreach ($rootBlock in $Block) {
+        $blockStartTime = $state.UserCodeStopWatch.Elapsed
+        $overheadStartTime = $state.FrameworkStopWatch.Elapsed
+        Switch-Timer -Scope Framework
+
         if (-not $rootBlock.ShouldRun) {
             ConvertTo-ExecutedBlockContainer -Block $rootBlock
             continue
         }
         # this resets the timers so keep that before measuring the
         Reset-PerContainerState -RootBlock $rootBlock
-        $blockStartTime = $state.BlockStopWatch.Elapsed
-        $overheadStartTime = $state.FrameworkStopWatch.Elapsed
-        Switch-Timer -Scope Framework
 
         try {
             $rootBlock.Executed = $true
@@ -968,13 +990,12 @@ function Run-Test {
         PostProcess-ExecutedBlock -Block $rootBlock
         $result = ConvertTo-ExecutedBlockContainer -Block $rootBlock
 
-        $result.Duration = $state.TotalStopWatch.Elapsed
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-
-        # if ($PesterDebugPreference.WriteDebugMessages) {
-        #     Write-PesterDebugMessage -Scope Timing "Container duration $($result.Duration.TotalMilliseconds)ms"
-        #     Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
-        # }
+        $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Timing "Container duration $($result.Duration.TotalMilliseconds)ms"
+            Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
+        }
 
         $result
     }
@@ -1243,12 +1264,8 @@ function Reset-TestSuiteTimer {
         $state.TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
     }
 
-    if ($null -eq $state.TestStopWatch) {
-        $state.TestStopWatch = [Diagnostics.Stopwatch]::StartNew()
-    }
-
-    if ($null -eq $state.BlockStopWatch) {
-        $state.BlockStopWatch = [Diagnostics.Stopwatch]::StartNew()
+    if ($null -eq $state.UserCodeStopWatch) {
+        $state.UserCodeStopWatch = [Diagnostics.Stopwatch]::StartNew()
     }
 
     if ($null -eq $state.FrameworkStopWatch) {
@@ -1257,47 +1274,36 @@ function Reset-TestSuiteTimer {
 
     $state.TotalStopWatch.Restart()
     $state.FrameworkStopWatch.Restart()
-    $state.BlockStopWatch.Reset()
-    $state.TestStopWatch.Reset()
+    $state.UserCodeStopWatch.Reset()
 }
 
 function Switch-Timer {
     param (
         [Parameter(Mandatory)]
-        [ValidateSet("Framework", "Block", "Test")]
+        [ValidateSet("Framework", "UserCode")]
         $Scope
     )
     if ($PesterDebugPreference.WriteDebugMessages) {
-        if ($state.TestStopWatch.IsRunning) {
-            Write-PesterDebugMessage -Scope TimingCore "Switching from Test to $Scope"
+        if ($state.UserCodeStopWatch.IsRunning) {
+            Write-PesterDebugMessage -Scope TimingCore "Switching from UserCode to $Scope"
         }
-        if ($state.BlockStopWatch.IsRunning) {
-            Write-PesterDebugMessage -Scope TimingCore "Switching from Block to $Scope"
-        }
+
         if ($state.FrameworkStopWatch.IsRunning) {
             Write-PesterDebugMessage -Scope TimingCore "Switching from Framework to $Scope"
         }
 
-        Write-PesterDebugMessage -Scope TimingCore -Message "Test total time $($state.TestStopWatch.ElapsedMilliseconds)ms"
-        Write-PesterDebugMessage -Scope TimingCore -Message "Block total time $($state.BlockStopWatch.ElapsedMilliseconds)ms"
+        Write-PesterDebugMessage -Scope TimingCore -Message "UserCode total time $($state.UserCodeStopWatch.ElapsedMilliseconds)ms"
         Write-PesterDebugMessage -Scope TimingCore -Message "Framework total time $($state.FrameworkStopWatch.ElapsedMilliseconds)ms"
     }
 
     switch ($Scope) {
         "Framework" {
             # running in framework code adds time only to the overhead timer
-            $state.TestStopWatch.Stop()
-            $state.BlockStopWatch.Stop()
+            $state.UserCodeStopWatch.Stop()
             $state.FrameworkStopWatch.Start()
         }
-        "Block" {
-            $state.TestStopWatch.Stop()
-            $state.BlockStopWatch.Start()
-            $state.FrameworkStopWatch.Stop()
-        }
-        "Test" {
-            $state.TestStopWatch.Start()
-            $state.BlockStopWatch.Stop()
+        "UserCode" {
+            $state.UserCodeStopWatch.Start()
             $state.FrameworkStopWatch.Stop()
         }
         default { throw [ArgumentException]"" }
@@ -1599,13 +1605,13 @@ function PostProcess-ExecutedBlock {
                 foreach ($cb in $childBlocks) {
                     PostProcess-ExecutedBlock -Block $cb
                 }
-                $aggregatedChildDuration = sum $childBlocks 'AggregatedDuration' ([TimeSpan]::Zero)
+                $aggregatedChildDuration = sum $childBlocks 'Duration' ([TimeSpan]::Zero)
                 $anyChildBlockFailed = any ($childBlocks | where { $_.Executed -and -not $_.Passed })
             }
 
 
             $b.AggregatedPassed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
-            $b.AggregatedDuration = $b.Duration + $testDuration + $aggregatedChildDuration
+            $b.OwnDuration = $b.Duration - $testDuration - $aggregatedChildDuration
         }
     }
 }
@@ -1940,6 +1946,16 @@ function New-PreviousItemObject {
         # potential expanding variables in the names, is the whole reason the position of the
         # sb is used
         Name = $null
+    }
+}
+
+function ConvertTo-HumanTime {
+    param ([TimeSpan]$TimeSpan)
+    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
+        "$([int]($TimeSpan.TotalMilliseconds))ms"
+    }
+    else {
+        "$([int]($TimeSpan.TotalSeconds))s"
     }
 }
 

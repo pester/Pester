@@ -3,12 +3,17 @@ import-module ./Pester.psd1
 
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
-    WriteDebugMessages     = $true
+    WriteDebugMessages     = $false
     WriteDebugMessagesFrom = "Timing*"
 }
 
 $excludePath = "*/demo/*"
 $excludeTags = "Help", "VersionChecks", "Formatting"
-$path = '.'
+$path = 'Functions/Assertions/'
+# $path = "~/Projects/playground/tests"
 
-Invoke-Pester -Path $path -excludePath $excludePath -excludeTag $excludeTags
+$script:r = $null
+[Math]::Round((Measure-Command {
+    $script:r = Invoke-Pester -Path $path -excludePath $excludePath -excludeTag $excludeTags -PassThru
+}).TotalMilliseconds, 2)
+# $r

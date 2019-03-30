@@ -1,12 +1,14 @@
-function Get-HumanTime($Seconds) {
-    if ($Seconds -gt 0.99) {
-        $time = [math]::Round($Seconds, 2)
-        $unit = 's'
+function Get-HumanTime {
+    param( [TimeSpan] $TimeSpan)
+    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
+        $time = [int]($TimeSpan.TotalMilliseconds)
+        $unit = "ms"
     }
     else {
-        $time = [math]::Floor($Seconds * 1000)
-        $unit = 'ms'
+        $time = [math]::Round($TimeSpan.TotalSeconds, 2)
+        $unit = 's'
     }
+
     return "$time$unit"
 }
 
