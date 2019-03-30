@@ -158,7 +158,7 @@ i -PassThru:$PassThru {
                         New-Test "test1" {}
                     })
 
-                $actual.Tests.Length | Verify-Equal 1
+                $actual.Tests.Count | Verify-Equal 1
             }
         }
 
@@ -195,7 +195,7 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
             }
 
@@ -229,12 +229,12 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Blocks.Length | Verify-Equal 1
-                $actual.Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks.Count | Verify-Equal 1
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
 
-                $actual.Blocks[0].Blocks.Length | Verify-Equal 1
-                $actual.Blocks[0].Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks[0].Blocks.Count | Verify-Equal 1
+                $actual.Blocks[0].Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
             }
         }
