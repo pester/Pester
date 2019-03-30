@@ -300,7 +300,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Get_Variable             = $SafeCommands["Get-Variable"]
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
-        Write_PesterDebugMessage = if ($PesterDebugPreference.WriteDebugMessages) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else {}
+        # returning empty scriptblock when we should not write debug to avoid patching it in mock prototype
+        Write_PesterDebugMessage = if ($PesterDebugPreference.WriteDebugMessages) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { {} }
 
         # used as temp variable
         PSCmdlet                 = $null
