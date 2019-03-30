@@ -78,7 +78,10 @@ function combineNonNull ($Array) {
 
 
 filter selectNonNull {
-    $_ | where { $_ }
+    param($Collection)
+    @(foreach ($i in $Collection) {
+        if ($i) { $i }
+    })
 }
 
 function any ($InputObject) {

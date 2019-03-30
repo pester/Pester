@@ -182,7 +182,7 @@ function New-Block {
     $blockStartTime = $state.UserCodeStopWatch.Elapsed
 
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
-    $path = Get-ScopeHistory | % Name
+    $path = @(foreach ($h in (Get-ScopeHistory)) { $h.Name })
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
     }
@@ -263,9 +263,9 @@ function New-Block {
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                if ($block.First) { $state.Plugin.OneTimeBlockSetup | selectNonNull }
+                if ($block.First) { selectNonNull $state.Plugin.OneTimeBlockSetup }
             ) `
-                -Setup @( $state.Plugin.EachBlockSetup | selectNonNull ) `
+                -Setup @( selectNonNull $state.Plugin.EachBlockSetup ) `
                 -ScriptBlock {} `
                 -Context @{
                 Context = @{
@@ -293,9 +293,10 @@ function New-Block {
                     } ) `
                     -Context @{
                     # context that is visible in user code
-                    Context = $block | &$SafeCommands['Select-Object'] -Property Name
+                    Context = foreach ($b in $block) { $b.Name }
                 } `
                     -ReduceContextToInnerScope `
+                    -MoveBetweenScopes `
                     -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
@@ -308,8 +309,8 @@ function New-Block {
                 }
             }
 
-            $frameworkEachBlockTeardowns = @( $state.Plugin.EachBlockTeardown | selectNonNull )
-            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardown | selectNonNull } )
+            $frameworkEachBlockTeardowns = @( selectNonNull $state.Plugin.EachBlockTeardown )
+            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { selectNonNull $state.Plugin.OneTimeBlockTeardown } )
             # reverse the teardowns so they run in opposite order to setups
             [Array]::Reverse($frameworkEachBlockTeardowns)
             [Array]::Reverse($frameworkOneTimeBlockTeardowns)
@@ -340,14 +341,14 @@ function New-Block {
                     $ErrorActionPreference = 'Continue'
                     if ($frameworkSetupResult.ErrorRecord) {
                         foreach ($e in $frameworkSetupResult.ErrorRecord) {
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e | out-string)
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e.ScriptStackTrace | out-string)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e )
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e.ScriptStackTrace)
                         }
                     }
                     if ($frameworkTeardownResult.ErrorRecord) {
                         foreach ($e in $frameworkTeardownResult.ErrorRecord) {
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e | out-string)
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red ($e.ScriptStackTrace | out-string)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e)
+                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e.ScriptStackTrace)
                         }
                     }
 
@@ -390,7 +391,6 @@ function New-Test {
         [String] $Id,
         [Switch] $Focus
     )
-
     # keep this at the top so we report as much time
     # of the actual test run as possible
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
@@ -402,7 +402,7 @@ function New-Test {
     }
     Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
     try {
-        $path = Get-ScopeHistory | % Name
+        $path = foreach ($h in (Get-ScopeHistory)) { $h.Name }
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
         }
@@ -465,16 +465,13 @@ function New-Test {
             if ($PesterDebugPreference.WriteDebugMessages) {
                 Write-PesterDebugMessage -Scope Runtime "Running test '$Name'."
             }
-            # TODO: no callbacks are provided because we are not transitioning between any states,
-            # it might be nice to add a parameter to indicate that we run in the same scope
-            # so we can avoid getting and setting the scope on scriptblock that already has that
-            # scope, which is _potentially_ slow because of reflection, it would also allow
-            # making the transition callbacks mandatory unless the parameter is provided
+
+            # no callbacks are provided because we are not transitioning between any states
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                if ($test.First) { $state.Plugin.OneTimeTestSetup | selectNonNull }
+                if ($test.First) { selectNonNull $state.Plugin.OneTimeTestSetup }
             ) `
-                -Setup @( $state.Plugin.EachTestSetup | selectNonNull ) `
+                -Setup @( selectNonNull $state.Plugin.EachTestSetup ) `
                 -ScriptBlock {} `
                 -Context @{
                 Context = @{
@@ -484,10 +481,10 @@ function New-Test {
                     Configuration = $state.PluginConfiguration
                 }
             }
-
+            # Write-Host $sw.ElapsedMilliseconds
             if ($frameworkSetupResult.Success) {
                 # invokes the body of the test
-                $testInfo = $test | &$SafeCommands['Select-Object'] -Property Name, Path
+                $testInfo = @(foreach ($t in $test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path } })
                 # user provided data are merged with Pester provided context
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
@@ -498,6 +495,7 @@ function New-Test {
 
                 $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
                 $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
+
                 $result = Invoke-ScriptBlock `
                     -Setup @(
                     if (any $eachTestSetups) {
@@ -519,6 +517,7 @@ function New-Test {
                     } ) `
                     -Context $context `
                     -ReduceContextToInnerScope `
+                    -MoveBetweenScopes `
                     -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
                     -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                     -NoNewScope
@@ -528,6 +527,7 @@ function New-Test {
                 $test.StandardOutput = $result.StandardOutput
                 $test.ErrorRecord = $result.ErrorRecord
             }
+
             # setting those values here so they are available for the teardown
             # BUT they are then set again at the end of the block to make them accurate
             # so the value on the screen vs the value in the object is slightly different
@@ -536,9 +536,9 @@ function New-Test {
             $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
             $frameworkTeardownResult = Invoke-ScriptBlock `
                 -ScriptBlock {} `
-                -Teardown @( $state.Plugin.EachTestTeardown | selectNonNull ) `
+                -Teardown @( selectNonNull $state.Plugin.EachTestTeardown ) `
                 -OuterTeardown @(
-                if ($test.Last) { $state.Plugin.OneTimeTestTeardown | selectNonNull }
+                if ($test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardown }
             ) `
                 -Context @{
                 Context = @{
@@ -748,7 +748,7 @@ function Add-Test {
         $Test
     )
 
-    (Get-CurrentBlock).Tests += $Test
+    (Get-CurrentBlock).Tests.Add($Test)
 }
 
 function New-TestObject {
@@ -776,7 +776,7 @@ function New-TestObject {
         ExecutedAt        = $null
         Passed            = $false
         StandardOutput    = $null
-        ErrorRecord       = @()
+        ErrorRecord       = [Collections.Generic.List[Object]]@()
         First             = $false
         Last              = $false
         Exclude = $false
@@ -818,7 +818,7 @@ function New-BlockObject {
         PluginData           = $PluginData
         Focus                = $Focus
         Id                   = $Id
-        Tests                = @()
+        Tests                = [Collections.Generic.List[Object]]@()
         BlockContainer       = $null
         Root                 = $null
         IsRoot               = $null
@@ -831,13 +831,13 @@ function New-BlockObject {
         OneTimeBlockSetup    = $null
         EachBlockTeardown    = $null
         OneTimeBlockTeardown = $null
-        Blocks               = @()
+        Blocks               = [Collections.Generic.List[Object]]@()
         Executed             = $false
         Passed               = $false
         First                = $false
         Last                 = $false
         StandardOutput       = $null
-        ErrorRecord          = @()
+        ErrorRecord          = [Collections.Generic.List[Object]]@()
         ShouldRun            = $false
         Exclude              = $false
         ExecutedAt           = $null
@@ -859,7 +859,7 @@ function Add-Block {
 
     $currentBlock = (Get-CurrentBlock)
     $Block.Parent = $currentBlock
-    $currentBlock.Blocks += $Block
+    $currentBlock.Blocks.Add($Block)
 }
 
 function Is-Discovery {
@@ -929,7 +929,7 @@ function Discover-Test {
             } }
     }
 
-    if (any $focusedTests) {
+    if ($focusedTests.Count -gt 0) {
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
@@ -982,9 +982,9 @@ function Run-Test {
         }
         catch {
             $rootBlock.Passed = $false
-            $rootBlock.ErrorRecord += $_
+            $rootBlock.ErrorRecord.Add($_)
             # TODO: run container teardown here, and put this into plugin
-            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($rootBlock.BlockContainer.Content)' failed with `n$($_ | out-string)"
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($rootBlock.BlockContainer.Content)' failed with `n$(Out-String -InputObject $_)"
         }
 
         PostProcess-ExecutedBlock -Block $rootBlock
@@ -1022,6 +1022,7 @@ function Invoke-ScriptBlock {
         # so in combination with the SameScope switch we are effectively
         # running the code in the current scope
         [Switch] $NoNewScope,
+        [Switch] $MoveBetweenScopes,
         [ScriptBlock] $OnUserScopeTransition = {},
         [ScriptBlock] $OnFrameworkScopeTransition = {}
     )
@@ -1040,10 +1041,6 @@ function Invoke-ScriptBlock {
     # }
     # . $OuterTeardown
 
-    # a similar solution was $SessionState.PSVariable.Set('a', 10)
-    # but that sets the variable for all "scopes" in the current
-    # scope so the value persist after the original has run which
-    # is not correct,
 
     $wrapperScriptBlock = {
         # THIS RUNS (MOST OF THE TIME) IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
@@ -1052,10 +1049,10 @@ function Invoke-ScriptBlock {
         try {
             if ($______parameters.ContextInOuterScope) {
                 $______outerSplat = $______parameters.Context
-                &$______parameters.WriteDebug "Setting context variables"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
                 foreach ($______current in $______outerSplat.GetEnumerator()) {
-                    &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'"
-                    &$______parameters.New_Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'" }
+                    $ExecutionContext.SessionState.PSVariable.Set($______current.Key, $______current.Value)
                 }
                 $______current = $null
             }
@@ -1064,18 +1061,18 @@ function Invoke-ScriptBlock {
             }
 
             if ($null -ne $______parameters.OuterSetup -and $______parameters.OuterSetup.Length -gt 0) {
-                &$______parameters.WriteDebug "Running outer setups"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer setups" }
                 foreach ($______current in $______parameters.OuterSetup) {
-                    &$______parameters.WriteDebug "Running outer setup { $______current }"
+                    if ($______parameters.EnableWriteDebug) {  &$______parameters.WriteDebug "Running outer setup { $______current }" }
                     $______parameters.CurrentlyExecutingScriptBlock = $______current
                     . $______current @______outerSplat
                 }
                 $______current = $null
                 $______parameters.OuterSetup = $null
-                &$______parameters.WriteDebug "Done running outer setups"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running outer setups" }
             }
             else {
-                &$______parameters.WriteDebug "There are no outer setups"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no outer setups" }
             }
 
             & {
@@ -1084,16 +1081,17 @@ function Invoke-ScriptBlock {
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object), this way we save the first teardown and ressurect it right before
                     # needing it
-                    if (-not ( &$______parameters.Test_Path 'Variable:$_________teardown2')) {
-                        $_________teardown2 = $______parameters.Teardown
-                    }
+
+                    # setting the value to $true, because if it was null we cannot differentiate
+                    # between the variable not existing and not having value
+                    $_________teardown2 = if ($null -ne $______parameters.Teardown) { $______parameters.Teardown } else { $true }
 
                     if (-not $______parameters.ContextInOuterScope) {
                         $______innerSplat = $______parameters.Context
-                        &$______parameters.WriteDebug "Setting context variables"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
                         foreach ($______current in $______innerSplat.GetEnumerator()) {
-                            &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'"
-                            &$______parameters.New_Variable -Name $______current.Key -Value $______current.Value -Force #-Scope Local
+                            if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variable '$ ($______current.Key)' with value '$($______current.Value)'" }
+                            $ExecutionContext.SessionState.PSVariable.Set($______current.Key, $______current.Value)
                         }
                         $______current = $null
                     }
@@ -1102,53 +1100,58 @@ function Invoke-ScriptBlock {
                     }
 
                     if ($null -ne $______parameters.Setup -and $______parameters.Setup.Length -gt 0) {
-                        &$______parameters.WriteDebug "Running inner setups"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner setups" }
                         foreach ($______current in $______parameters.Setup) {
-                            &$______parameters.WriteDebug "Running inner setup { $______current }"
+                            if ($______parameters.EnableWriteDebug) {  &$______parameters.WriteDebug "Running inner setup { $______current }" }
                             $______parameters.CurrentlyExecutingScriptBlock = $______current
                             . $______current @______innerSplat
                         }
                         $______current = $null
                         $______parameters.Setup = $null
-                        &$______parameters.WriteDebug "Done running inner setups"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running inner setups" }
                     }
                     else {
-                        &$______parameters.WriteDebug "There are no inner setups"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no inner setups" }
                     }
 
-                    &$______parameters.WriteDebug "Running scriptblock { $______current }"
-                    $______parameters.CurrentlyExecutingScriptBlock = $______current
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
+                    $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
                     . $______parameters.ScriptBlock @______innerSplat
 
-                    &$______parameters.WriteDebug "Done running scrtptblock"
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scrtptblock" }
                 }
                 catch {
-                    $______parameters.ErrorRecord += $_
-                    &$______parameters.WriteDebug "Fail running setups or scriptblock"
+                    $______parameters.ErrorRecord.Add($_)
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" }
                 }
                 finally {
                     # this is needed for nonewscope so we can do two different
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object)
-                    if ((&$______parameters.Test_Path 'variable:_________teardown2')) {
+                    if ($null -ne $ExecutionContext.SessionState.PSVariable.Get('_________teardown2')) {
                         # soo we are running the one time test teadown in the same scope as
                         # each block teardown and it overwrites it
-                        $______parameters.Teardown = $_________teardown2
-                        &$______parameters.Remove_Variable _________teardown2
+                        if ($true -eq $ExecutionContext.SessionState.PSVariable.Get('_________teardown2')) {
+                            # do nothing, we needed the true to detect that the property was defined
+                        }
+                        else {
+                            $______parameters.Teardown = $_________teardown2
+                        }
+                        $ExecutionContext.SessionState.PSVariable.Remove('_________teardown2')
                     }
 
                     if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
-                        &$______parameters.WriteDebug "Running inner teardowns"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner teardowns" }
                         foreach ($______current in $______parameters.Teardown) {
                             try {
-                                &$______parameters.WriteDebug "Running inner teardown { $______current }"
+                                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner teardown { $______current }" }
                                 $______parameters.CurrentlyExecutingScriptBlock = $______current
                                 . $______current @______innerSplat
-                                &$______parameters.WriteDebug "Done running inner teardown"
+                                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running inner teardown" }
                             }
                             catch {
-                                $______parameters.ErrorRecord += $_
-                                &$______parameters.WriteDebug "Fail running inner teardown"
+                                $______parameters.ErrorRecord.Add($_)
+                                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running inner teardown" }
                             }
                         }
                         $______current = $null
@@ -1157,10 +1160,10 @@ function Invoke-ScriptBlock {
                         # then $______parameters.Teardown remains set and EachBlockTeardown
                         # runs twice
                         $______parameters.Teardown = $null
-                        &$______parameters.WriteDebug "Done running inner teardowns"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running inner teardowns" }
                     }
                     else {
-                        &$______parameters.WriteDebug "There are no inner teardowns"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no inner teardowns" }
                     }
                 }
             }
@@ -1168,36 +1171,38 @@ function Invoke-ScriptBlock {
         finally {
 
             if ($null -ne $______parameters.OuterTeardown -and $______parameters.OuterTeardown.Length -gt 0) {
-                &$______parameters.WriteDebug "Running outer teardowns"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer teardowns" }
                 foreach ($______current in $______parameters.OuterTeardown) {
                     try {
-                        &$______parameters.WriteDebug "Running outer teardown { $______current }"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer teardown { $______current }" }
                         $______parameters.CurrentlyExecutingScriptBlock = $______current
                         . $______current @______outerSplat
-                        &$______parameters.WriteDebug "Done running outer teardown"
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running outer teardown" }
                     }
                     catch {
-                        &$______parameters.WriteDebug "Fail running outer teardown"
-                        $______parameters.ErrorRecord += $_
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running outer teardown" }
+                        $______parameters.ErrorRecord.Add($_)
                     }
                 }
                 $______parameters.OuterTeardown = $null
                 $______current = $null
-                &$______parameters.WriteDebug "Done running outer teardowns"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running outer teardowns" }
             }
             else {
-                &$______parameters.WriteDebug "There are no outer teardowns"
+                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no outer teardowns" }
             }
         }
     }
 
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $SessionState = $ScriptBlock.GetType().GetProperty("SessionState", $flags).GetValue($ScriptBlock, $null)
-    $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if ($MoveBetweenScopes) {
+        $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+        $SessionState = $ScriptBlock.GetType().GetProperty("SessionState", $flags).GetValue($ScriptBlock, $null)
+        $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
 
-    # attach the original session state to the wrapper scriptblock
-    # making it invoke in the same scope as $ScriptBlock
-    $wrapperScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
+        # attach the original session state to the wrapper scriptblock
+        # making it invoke in the same scope as $ScriptBlock
+        $wrapperScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
+    }
 
     $break = $true
     $err = $null
@@ -1208,20 +1213,12 @@ function Invoke-ScriptBlock {
             Setup                         = $Setup
             Teardown                      = $Teardown
             OuterTeardown                 = $OuterTeardown
-            # SameScope = $SameScope
             CurrentlyExecutingScriptBlock = $null
-            ErrorRecord                   = @()
+            ErrorRecord                   = [Collections.Generic.List[Object]]@()
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
-            WriteDebug                    = {
-                param($Message)
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope "RuntimeCore" $Message
-                }
-            }
-            Test_Path = $SafeCommands['Test-Path']
-            New_Variable = $SafeCommands['New-Variable']
-            Remove_Variable = $SafeCommands['Remove-Variable']
+            EnableWriteDebug              = $PesterDebugPreference.WriteDebugMessages
+            WriteDebug                    = { param($Message) Write-PesterDebugMessage -Scope "RuntimeCore" $Message }
         }
 
         # here we are moving into the user scope if the provided
@@ -1231,7 +1228,9 @@ function Invoke-ScriptBlock {
         # just logging, so the time difference is miniscule.
         # The code might also run just in framework scope, in that case the callback can remain empty,
         # eg when we are invoking framework setup.
-        & $OnUserScopeTransition
+        if ($MoveBetweenScopes) {
+            & $OnUserScopeTransition
+        }
         do {
             $standardOutput = if ($NoNewScope) {
                 . $wrapperScriptBlock $parameters
@@ -1247,15 +1246,22 @@ function Invoke-ScriptBlock {
         $err = $_
     }
 
-    & $OnFrameworkScopeTransition
-    $errors = @( ($parameters.ErrorRecord + $err) | selectNonNull )
+    if ($MoveBetweenScopes) {
+        & $OnFrameworkScopeTransition
+    }
 
-    return New_PSObject -Type ScriptBlockInvocationResult @{
-        Success        = 0 -eq $errors.Length
-        ErrorRecord    = $errors
+    if ($err) {
+        $parameters.ErrorRecord.Add($err)
+    }
+
+    $r = [PSCustomObject] @{
+        Success        = 0 -eq $parameters.ErrorRecord.Count
+        ErrorRecord    = $parameters.ErrorRecord
         StandardOutput = $standardOutput
         Break          = $break
     }
+
+    return $r
 }
 
 
@@ -1321,12 +1327,15 @@ function Find-CurrentTest {
     )
 
     $block = Get-CurrentBlock
-    # TODO: optimize this if too slow
-    $testCanditates = @($block.Tests | where { $_.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $_.Id -eq $Id })
-    if ($testCanditates.Length -eq 1) {
-        $testCanditates[0]
+
+    # this could be optimized by remembering the last position where we were in the array
+    # and by not checking for the next items, but it still takes 9ms if we have 1000 tests in this block
+    $testCandidates = @(foreach ($t in $block.Tests) { if ($t.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $t.Id -eq $Id ) { $t } })
+
+    if ($testCandidates.Length -eq 1) {
+        $testCandidates[0]
     }
-    elseif ($testCanditates.Length -gt 1) {
+    elseif ($testCandidates.Length -gt 1) {
         throw "Found more than one test that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
     }
     else {
@@ -1347,8 +1356,7 @@ function Find-CurrentBlock {
         [String] $Id
     )
 
-    # TODO: optimize this if too slow
-    $blockCanditates = @($block.Blocks | where { $_.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $_.Id -eq $Id })
+    $blockCanditates = @(foreach ($b in $block.Blocks) { if ($b.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $b.Id -eq $Id) { $b } })
     if ($blockCanditates.Length -eq 1) {
         $blockCanditates[0]
     }
@@ -1426,7 +1434,7 @@ function Test-ShouldRun {
         }
     }
 
-    $allPaths = tryGetProperty $Filter Path | % { $_ -join '.' }
+    $allPaths = foreach ($p in @(tryGetProperty $Filter Path)) { $p -join '.' }
     if (any $allPaths) {
         $anyIncludeFilters = $true
         $include = $allPaths -contains $fullTestPath
@@ -1540,7 +1548,7 @@ function PostProcess-DiscoveredBlock {
     $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
     $Block.Exclude = $blockIsExcluded = $parentBlockIsExcluded -or ($false -eq (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block"))
     $blockShouldRun = $false
-    if (any $tests) {
+    if ($tests.Count -gt 0) {
         foreach ($t in $tests) {
             $t.Block = $Block
             # test should run when the result is $true, but not when it is $null or $false
@@ -1549,7 +1557,7 @@ function PostProcess-DiscoveredBlock {
         }
 
         if (-not $blockIsExcluded) {
-            $testsToRun = $tests | where { $_.ShouldRun }
+            $testsToRun = foreach ($t in $tests) { if ($t.ShouldRun) { $t } }
             if (any $testsToRun) {
                 $testsToRun[0].First = $true
                 $testsToRun[-1].Last = $true
@@ -1560,13 +1568,13 @@ function PostProcess-DiscoveredBlock {
 
     $childBlocks = $Block.Blocks
     $anyChildBlockShouldRun = $false
-    if (any $childBlocks) {
+    if ($childBlocks.Count -gt 0) {
         foreach ($cb in $childBlocks) {
             $cb.Parent = $Block
             PostProcess-DiscoveredBlock -Block $cb -Filter $Filter -BlockContainer $BlockContainer -RootBlock $RootBlock
         }
 
-        $childBlocksToRun = $childBlocks | where { $_.ShouldRun }
+        $childBlocksToRun = foreach ($b in $childBlocks) { if ($b.ShouldRun) { $b } }
         $anyChildBlockShouldRun = any $childBlocksToRun
         if ($anyChildBlockShouldRun) {
             $childBlocksToRun[0].First = $true
@@ -1595,7 +1603,7 @@ function PostProcess-ExecutedBlock {
         foreach ($b in $Block) {
             $thisBlockFailed = -not $b.Passed
             $tests = $b.Tests
-            $anyTestFailed = any ($tests | where { $_.Executed -and -not $_.Passed })
+            $anyTestFailed = any ($(foreach ($t in $tests) { if ($t.Executed -and -not $t.Passed) {$t} }))
             $testDuration = sum $tests 'Duration' ([TimeSpan]::Zero)
 
             $childBlocks = $b.Blocks
@@ -1606,7 +1614,7 @@ function PostProcess-ExecutedBlock {
                     PostProcess-ExecutedBlock -Block $cb
                 }
                 $aggregatedChildDuration = sum $childBlocks 'Duration' ([TimeSpan]::Zero)
-                $anyChildBlockFailed = any ($childBlocks | where { $_.Executed -and -not $_.Passed })
+                $anyChildBlockFailed = any ($(foreach ($b in $childBlocks) { if ($b.Executed -and -not $b.Passed) {$b} }))
             }
 
 
@@ -1649,8 +1657,8 @@ function View-Flat {
 }
 
 function flattenBlock ($Block, $Accumulator) {
-    $Accumulator += $Block
-    if ($Block.Blocks.Length -eq 0) {
+    $Accumulator.Add($Block)
+    if ($Block.Blocks.Count -eq 0) {
         return $Accumulator
     }
 

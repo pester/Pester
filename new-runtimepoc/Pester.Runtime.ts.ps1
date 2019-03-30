@@ -211,10 +211,10 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Blocks.Length | Verify-Equal 2
-                $actual.Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks.Count | Verify-Equal 2
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[1].Tests.Length | Verify-Equal 1
+                $actual.Blocks[1].Tests.Count | Verify-Equal 1
                 $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
             }
 
@@ -1029,7 +1029,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Blocks[0].Tests.Length | Verify-Equal 2
+            $actual.Blocks[0].Tests.Count | Verify-Equal 2
         }
 
         t "Each parametrized test has unique id and they both successfully execute and have the correct data" {
@@ -1659,7 +1659,7 @@ i -PassThru:$PassThru {
 
     b "timing" {
 
-        dt "total time is roughly the same as time measured externally" {
+        t "total time is roughly the same as time measured externally" {
             $container = @{
                 Test = $null
                 Block = $null
@@ -1723,7 +1723,7 @@ i -PassThru:$PassThru {
         }
 
 
-        dt "total time is roughly the same as time measured externally (measured on a second test)" {
+        t "total time is roughly the same as time measured externally (measured on a second test)" {
             # this is the same as above, if I add one time setups then the framework time should grow
             # but not the user code time
             $container = @{

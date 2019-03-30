@@ -488,8 +488,6 @@ function Get-WriteScreenPlugin {
 
         # the $context does not mean Context block, it's just a generic name
         # for the invocation context of this callback
-
-
         $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
         # TODO: add Show options, with something like

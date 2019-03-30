@@ -1,5 +1,11 @@
 get-module pester | remove-module
-import-module ./Pester.psd1
+
+$v5 = $true
+if ($v5) {
+    Import-Module ./Pester.psd1
+} else {
+    Import-Module -Name Pester -RequiredVersion 4.7.3
+}
 
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
@@ -10,10 +16,17 @@ $global:PesterDebugPreference = @{
 $excludePath = "*/demo/*"
 $excludeTags = "Help", "VersionChecks", "Formatting"
 $path = 'Functions/Assertions/'
-# $path = "~/Projects/playground/tests"
+$path = "~/Projects/playground/tests"
 
 $script:r = $null
 [Math]::Round((Measure-Command {
-    $script:r = Invoke-Pester -Path $path -excludePath $excludePath -excludeTag $excludeTags -PassThru
+    if ($v5) {
+        Write-Host -ForegroundColor Cyan Running in Version 5
+        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -PassThru
+    }
+    else {
+        Write-Host -ForegroundColor Cyan Running in Version 4
+        $script:r = Invoke-Pester -Path $path -ExcludeTag $excludeTags -PassThru
+    }
 }).TotalMilliseconds, 2)
 # $r
