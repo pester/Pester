@@ -3,6 +3,7 @@ trigger:
   - v5.0
 pr:
   - master
+  - v5.0
 
 resources:
   - repo: self
