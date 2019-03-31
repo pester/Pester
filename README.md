@@ -88,7 +88,7 @@ Describe "Get-Hello" {
 
 ## Debugging
 
-Pester is looking for a global `PesterDebugPreference` variable, that can confgure it to print complete error messages, and define which debugging info should be printed. The debugging can be enabled and disabled using `WriteDebugMessages` flag, and the debugging messages can be defined as an array of options (right now: CoreRuntime, Runtime, Mock, Discovery, SessionState or '*' for all ).
+Pester is looking for a global `PesterDebugPreference` variable, that can confgure it to print complete error messages, and define which debugging info should be printed. The debugging can be enabled and disabled using `WriteDebugMessages` flag, and the debugging messages can be defined as an array of options (right now: RuntimeCore, Runtime, Mock, Discovery, SessionState or '*' for all ).
 
 I for example debug like this:
 

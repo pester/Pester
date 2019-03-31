@@ -16,7 +16,7 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
     WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "discovery"
+    WriteDebugMessagesFrom = "Timing*"
 }
 
 function Verify-TestPassed {
@@ -158,7 +158,7 @@ i -PassThru:$PassThru {
                         New-Test "test1" {}
                     })
 
-                $actual.Tests.Length | Verify-Equal 1
+                $actual.Tests.Count | Verify-Equal 1
             }
         }
 
@@ -195,7 +195,7 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
             }
 
@@ -211,10 +211,10 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Blocks.Length | Verify-Equal 2
-                $actual.Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks.Count | Verify-Equal 2
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[1].Tests.Length | Verify-Equal 1
+                $actual.Blocks[1].Tests.Count | Verify-Equal 1
                 $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
             }
 
@@ -229,12 +229,12 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Blocks.Length | Verify-Equal 1
-                $actual.Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks.Count | Verify-Equal 1
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
 
-                $actual.Blocks[0].Blocks.Length | Verify-Equal 1
-                $actual.Blocks[0].Blocks[0].Tests.Length | Verify-Equal 1
+                $actual.Blocks[0].Blocks.Count | Verify-Equal 1
+                $actual.Blocks[0].Blocks[0].Tests.Count | Verify-Equal 1
                 $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
             }
         }
@@ -1029,7 +1029,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Blocks[0].Tests.Length | Verify-Equal 2
+            $actual.Blocks[0].Tests.Count | Verify-Equal 2
         }
 
         t "Each parametrized test has unique id and they both successfully execute and have the correct data" {
@@ -1654,6 +1654,140 @@ i -PassThru:$PassThru {
 
             $actual.Blocks[0].Tests[0].Name | Verify-Equal  "Hello <name>."
             $actual.Blocks[0].Tests[0].ExpandedName | Verify-Equal  "Hello Jakub."
+        }
+    }
+
+    b "timing" {
+
+        t "total time is roughly the same as time measured externally" {
+            $container = @{
+                Test = $null
+                Block = $null
+                Total = $null
+                Result = $null
+            }
+
+            $container.Total = Measure-Command {
+                $container.Result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                    New-BlockContainerObject -ScriptBlock {
+
+                        $container.Block = (Measure-Command {
+                            New-Block -Name "b1" {
+                                $container.Test = (Measure-Command {
+                                    New-Test "t1" {
+                                        $true | Verify-False
+                                    }
+                                })
+                            }
+                        })
+                    }
+                )
+            }
+
+            $actual = $container.Result
+            $testReported = $actual.Blocks[0].Tests[0].Duration + $actual.Blocks[0].Tests[0].FrameworkDuration
+            $testDifference = $container.Test - $testReported
+            Write-Host Reported test duration $actual.Blocks[0].Tests[0].Duration.TotalMilliseconds
+            Write-Host Reported test overhead $actual.Blocks[0].Tests[0].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported test total $testReported.TotalMilliseconds
+            Write-Host Measured test total $container.Test.TotalMilliseconds
+            Write-Host Test difference $testDifference.TotalMilliseconds
+            # the difference here is actually <1ms but let's make this less finicky
+            $testDifference.TotalMilliseconds -lt 5 | Verify-True
+
+            # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
+            $blockReported =  $actual.Blocks[0].Duration + $actual.Blocks[0].FrameworkDuration
+            $blockDifference = $container.Block - $blockReported
+            Write-Host Reported block duration $actual.Blocks[0].Duration.TotalMilliseconds
+            Write-Host Reported block overhead $actual.Blocks[0].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported block total $blockReported.TotalMilliseconds
+            Write-Host Measured block total $container.Block.TotalMilliseconds
+            Write-Host Block difference $blockDifference.TotalMilliseconds
+
+            # the difference here is actually <1ms but let's make this less finicky
+            $blockDifference.TotalMilliseconds -lt 5 | Verify-True
+
+            $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
+            $totalDifference = $container.Total - $totalReported
+            Write-Host Reported total duration $actual.Duration.TotalMilliseconds
+            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds
+            Write-Host Reported total $totalReported.TotalMilliseconds
+            Write-Host Measured total $container.Total.TotalMilliseconds
+            Write-Host Total difference $totalDifference.TotalMilliseconds
+
+            # the difference here is because of the code that is running after all tests have been discovered
+            # such as figuring out if there are focused tests, setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time because of the focused tests
+            # the difference here is actually <10ms but let's make this less finicky
+            $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+        }
+
+
+        t "total time is roughly the same as time measured externally (measured on a second test)" {
+            # this is the same as above, if I add one time setups then the framework time should grow
+            # but not the user code time
+            $container = @{
+                Test = $null
+                Block = $null
+                Total = $null
+                Result = $null
+            }
+
+            $container.Total = Measure-Command {
+                $container.Result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                    New-BlockContainerObject -ScriptBlock {
+                        New-Block "b1" {
+                        }
+                        $container.Block = (Measure-Command {
+                            New-Block -Name "b2" {
+                                New-Test "t1" { $true }
+                                $container.Test = (Measure-Command {
+                                    New-Test "t2" {
+                                        $true | Verify-False
+                                    }
+                                })
+                            }
+                        })
+                    }
+                )
+            }
+
+            $actual = $container.Result
+            $testReported = $actual.Blocks[1].Tests[1].Duration + $actual.Blocks[1].Tests[1].FrameworkDuration
+            $testDifference = $container.Test - $testReported
+            Write-Host Reported test duration $actual.Blocks[1].Tests[1].Duration.TotalMilliseconds
+            Write-Host Reported test overhead $actual.Blocks[1].Tests[1].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported test total $testReported.TotalMilliseconds
+            Write-Host Measured test total $container.Test.TotalMilliseconds
+            Write-Host Test difference $testDifference.TotalMilliseconds
+            # the difference here is actually <1ms but let's make this less finicky
+            $testDifference.TotalMilliseconds -lt 5 | Verify-True
+
+            # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
+            $blockReported =  $actual.Blocks[1].Duration + $actual.Blocks[1].FrameworkDuration
+            $blockDifference = $container.Block - $blockReported
+            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds
+            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported block total $blockReported.TotalMilliseconds
+            Write-Host Measured block total $container.Block.TotalMilliseconds
+            Write-Host Block difference $blockDifference.TotalMilliseconds
+
+            # the difference here is actually <1ms but let's make this less finicky
+            $blockDifference.TotalMilliseconds -lt 5 | Verify-True
+
+            $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
+            $totalDifference = $container.Total - $totalReported
+            Write-Host Reported total duration $actual.Duration.TotalMilliseconds
+            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds
+            Write-Host Reported total $totalReported.TotalMilliseconds
+            Write-Host Measured total $container.Total.TotalMilliseconds
+            Write-Host Total difference $totalDifference.TotalMilliseconds
+
+            # the difference here is because of the code that is running after all tests have been discovered
+            # such as figuring out if there are focused tests, setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time because of the focused tests
+            # the difference here is actually <10ms but let's make this less finicky
+            $totalDifference.TotalMilliseconds -lt 50 | Verify-True
         }
     }
 }

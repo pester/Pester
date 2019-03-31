@@ -78,7 +78,10 @@ function combineNonNull ($Array) {
 
 
 filter selectNonNull {
-    $_ | where { $_ }
+    param($Collection)
+    @(foreach ($i in $Collection) {
+        if ($i) { $i }
+    })
 }
 
 function any ($InputObject) {
@@ -190,7 +193,7 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("CoreRuntime", "Runtime", "Mock", "Discovery", "DiscoveryCore", "SessionState")]
+        [ValidateSet("RuntimeCore", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore")]
         [String] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
@@ -198,22 +201,24 @@ function Write-PesterDebugMessage {
         [ScriptBlock] $LazyMessage
     )
 
-    if ((notDefined PesterDebugPreference) -or -not (tryGetProperty $PesterDebugPreference WriteDebugMessages)) {
+    if (-not $PesterDebugPreference.WriteDebugMessages) {
         return
     }
 
     $messagePreference = tryGetProperty $PesterDebugPreference WriteDebugMessagesFrom
-    if ('*' -ne $messagePreference -and $messagePreference -notcontains $Scope) {
+    if ($Scope -notlike $messagePreference ) {
         return
     }
 
     $color = switch ($Scope) {
-        "CoreRuntime" { "Cyan" }
+        "RuntimeCore" { "Cyan" }
         "Runtime" { "DarkGray" }
         "Mock" { "DarkYellow" }
         "Discovery" { "DarkMagenta" }
         "DiscoveryCore" { "DarkMagenta" }
         "SessionState" { "Gray" }
+        "Timing" { "Gray" }
+        "TimingCore" { "Gray" }
     }
 
     # this evaluates a message that is expensive to produce so we only evaluate it

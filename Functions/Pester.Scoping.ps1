@@ -39,7 +39,9 @@ function Set-ScriptBlockScope {
                 $hint = 'Unknown unbound ScriptBlock'
             }
         }
-        Write-PesterDebugMessage -Scope SessionState "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope SessionState "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
+        }
     }
 
     $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
@@ -61,7 +63,9 @@ function Get-ScriptBlockScope {
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
     if (-not $script:DisableScopeHints) {
-        Write-PesterDebugMessage -Scope SessionState "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope SessionState "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+        }
     }
     $sessionStateInternal
 }

@@ -281,7 +281,7 @@ function Write-PesterReport {
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
-    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime $PesterState.Time.TotalSeconds)) -Foreground $ReportTheme.Foreground
+    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime $PesterState.Time)) -Foreground $ReportTheme.Foreground
 
     $Success, $Failure = if ($PesterState.FailedCount -gt 0) {
         $ReportTheme.Foreground, $ReportTheme.Fail
@@ -488,8 +488,6 @@ function Get-WriteScreenPlugin {
 
         # the $context does not mean Context block, it's just a generic name
         # for the invocation context of this callback
-
-
         $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
         # TODO: add Show options, with something like
@@ -524,7 +522,7 @@ function Get-WriteScreenPlugin {
         $margin = $ReportStrings.Margin * ($level)
         $error_margin = $margin + $ReportStrings.Margin
         $output = $_test.ExpandedName
-        $humanTime = Get-HumanTime $_test.Duration.TotalSeconds
+        $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         # TODO: Add output options
         # if (-not ($OutputType | Has-Flag 'Default, Summary'))

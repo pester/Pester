@@ -96,7 +96,9 @@ function Get-ScriptModule {
     )
 
     try {
-        Write-PesterDebugMessage -Scope Runtime "Searching for a module $ModuleName."
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Runtime "Searching for a module $ModuleName."
+        }
         $modules = @(& $SafeCommands['Get-Module'] -Name $ModuleName -All -ErrorAction Stop)
     }
     catch {
@@ -123,7 +125,8 @@ function Get-ScriptModule {
 
         throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'"
     }
-
-    Write-PesterDebugMessage -Scope Runtime "Found module $ModuleName version $($scriptModules[0].Version)."
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        Write-PesterDebugMessage -Scope Runtime "Found module $ModuleName version $($scriptModules[0].Version)."
+    }
     return $scriptModules[0]
 }

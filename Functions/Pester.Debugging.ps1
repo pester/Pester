@@ -53,14 +53,15 @@ function Write-ScriptBlockInvocationHint {
     }
 
 
-
-    Write-PesterDebugMessage -Scope SessionState -LazyMessage {
-        $scope = Get-ScriptBlockHint $ScriptBlock
-        $count = Count-Scopes -ScriptBlock $ScriptBlock
-        "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:"
-        "{"
-        $ScriptBlock.ToString().Trim()
-        "}"
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        Write-PesterDebugMessage -Scope SessionState -LazyMessage {
+            $scope = Get-ScriptBlockHint $ScriptBlock
+            $count = Count-Scopes -ScriptBlock $ScriptBlock
+            "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:"
+            "{"
+            $ScriptBlock.ToString().Trim()
+            "}"
+        }
     }
 }
 
