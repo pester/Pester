@@ -284,6 +284,14 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 }
 
                 $r = $e | ConvertTo-FailureLines
+
+                $r.Message[0] | Should -be 'Expected strings to be the same, but they were different.'
+                $r.message[1] | Should -be 'String lengths are both 3.'
+                $r.message[2] | Should -be 'Strings differ at index 0.'
+                $r.Message[3] | Should -be "Expected: 'Two'"
+                $r.Message[4] | Should -be "But was:  'One'"
+                $r.Message[5] | Should -match "'One' | Should -be 'Two'"
+                $r.Message.Count | Should -be 6
             }
             # # todo: commented out because it does not work becuase of should, hopefully we can fix that later
             #         Context 'should fails in file' {
