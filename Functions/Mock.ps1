@@ -47,7 +47,8 @@ function New-MockBehavior {
         }
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
         Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
-        Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $ContextInfo.SessionState
+        # bind the script block to the caller state which is most likely the test scope
+        Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $ContextInfo.CallerSessionState
     }
 
     if ($null -ne $ParameterFilter) {
@@ -231,6 +232,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         OriginalCommand         = $contextInfo.Command
         CommandName             = $commandName
         SessionState            = $contextInfo.SessionState
+        CallerSessionState      = $contextInfo.CallerSessionState
         Metadata                = $metadata
         DynamicParamScriptBlock = $dynamicParamScriptBlock
         Aliases                 = @($commandName)
@@ -406,7 +408,7 @@ function Assert-MockCalledInternal {
             BoundParameters = $historyEntry.BoundParams
             ArgumentList    = $historyEntry.Args
             Metadata        = $ContextInfo.Hook.Metadata
-            SessionState    = $SessionState
+            SessionState    = $ContextInfo.Hook.CallerSessionState
         }
 
         if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
@@ -531,7 +533,7 @@ function Remove-MockHook {
             Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommmandName)."
         }
 
-        $null = Invoke-InMockScope -SessionState $h.SessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases
+        $null = Invoke-InMockScope -SessionState $h.CallerSessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases
     }
 }
 
@@ -542,6 +544,12 @@ function Resolve-Command {
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState
     )
+
+    # saving the caller session state here, below the command is looked up and
+    # the $SessionState is overwritten with the session state in which the command
+    # was found (if -ModuleName was specified), but we will be running the mock body
+    # in the caller scope, not the module scope so we need to hold ont the caller scope
+    $callerSessionState = $SessionState
 
     $command = $null
     $module = $null
@@ -631,6 +639,7 @@ function Resolve-Command {
         return @{
             Command                 = $command.Mock.Hook.OriginalCommand
             SessionState            = $command.Mock.Hook.SessionState
+            CallerSessionState      = $command.Mock.Hook.CallerSessionState
             Module                  = $command.Module
             IsFromModule            = $null -ne $module
             IsFromRequestedModule   = $null -ne $module -and $module -eq $ModuleName
@@ -643,6 +652,7 @@ function Resolve-Command {
     return @{
         Command                 = $command
         SessionState            = $SessionState
+        CallerSessionState      = $callerSessionState
         Module                  = $module
 
         IsFromModule            = $null -ne $module
@@ -703,12 +713,11 @@ function Invoke-MockInternal {
         }
 
         Process {
-            $SessionState = if ($CallerSessionState) {
-                $CallerSessionState
-            }
-            else {
-                $Hook.SessionState
-            }
+            # the incoming caller session state is the place from where
+            # the mock hook is invoked, this does not have to be the same as
+            # the test "caller scope" that we saved earlier, we won't use the
+            # test caller scope here, but the scope from which the mock was called
+            $SessionState = if ($CallerSessionState) { $CallerSessionState } else { $Hook.SessionState }
 
             # the @() are needed for powerShell3 otherwise it throws CheckAutomationNullInCommandArgumentArray (unless there is any breakpoint defined anywhere, then it works just fine :DDD)
             $behavior = FindMatchingBehavior -Behaviors @($Behaviors) -BoundParameters $BoundParameters -ArgumentList @($ArgumentList) -SessionState $SessionState -Hook $Hook
@@ -766,14 +775,14 @@ function Invoke-MockInternal {
                     }
                 }
 
-                $state = if ($CallerSessionState) {
+                $SessionState = if ($CallerSessionState) {
                     $CallerSessionState
                 }
                 else {
                     $Hook.SessionState
                 }
 
-                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $state
+                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $SessionState
 
                 # In order to mock Set-Variable correctly we need to write the variable
                 # two scopes above
@@ -892,7 +901,7 @@ function FindMatchingBehavior {
                 BoundParameters = $BoundParameters
                 ArgumentList    = $ArgumentList
                 Metadata        = $Hook.Metadata
-                SessionState    = $SessionState
+                SessionState    = $Hook.CallerSessionState
             }
 
             if (Test-ParameterFilter @params) {
@@ -991,13 +1000,13 @@ function ExecuteBehavior {
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
-    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $Hook.SessionState
-    $splat = @{
+        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $Hook.CallerSessionState
+        $splat = @{
         'Script Block'                   = $Behavior.ScriptBlock
         '___ArgumentList___'             = $ArgumentList
         '___BoundParameters___'          = $BoundParameters
         'Meta data'                      = $Hook.Metadata
-        'Session State'                  = $Hook.SessionState
+        'Session State'                  = $Hook.CallerSessionState
         'R e p o r t S c o p e'          = {
             param ($CommandName, $ModuleName, $ScriptBlock)
             if ($PesterDebugPreference.WriteDebugMessages) {
