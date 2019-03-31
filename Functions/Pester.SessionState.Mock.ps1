@@ -198,10 +198,16 @@ about_Mocking
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
         [ScriptBlock]$ParameterFilter,
-        [string]$ModuleName
+        [string]$ModuleName,
+        [string[]]$RemoveParameterType,
+        [string[]]$RemoveParameterValidation
     )
 
-    Assert-RunInProgress -CommandName Mock
+    if (Is-Discovery) {
+        # this is to allow mocks in between Describe and It which is discouraged but common
+        # and will make for an easier move to v5
+        return
+    }
 
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."

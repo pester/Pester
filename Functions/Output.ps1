@@ -444,6 +444,7 @@ function ConvertTo-FailureLines {
             [String]$pattern3 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
             [String]$pattern4 = '^at Invoke-Assertion, .*/Functions/.*.ps1: line [0-9]*$'
             [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
+            [String]$pattern6 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
         }
         else {
 
@@ -452,6 +453,7 @@ function ConvertTo-FailureLines {
             [String]$pattern3 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
             [String]$pattern4 = '^at Invoke-Assertion, .*\\Functions\\.*.ps1: line [0-9]*$'
             [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
+            [String]$pattern6 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
         }
 
         foreach ( $line in $traceLines ) {
@@ -471,7 +473,8 @@ function ConvertTo-FailureLines {
                 $_ -notmatch $pattern2 -and
                 $_ -notmatch $pattern3 -and
                 $_ -notmatch $pattern4 -and
-                $_ -notmatch $pattern5
+                $_ -notmatch $pattern5 -and
+                $_ -notmatch $pattern6
             }
         }
 

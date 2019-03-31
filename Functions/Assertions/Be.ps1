@@ -181,26 +181,9 @@ function Get-CompareStringMessage {
         }
         $ellipsis = "..."
         $excerptSize = 5;
-        $longStringOffset = 0
         "Expected: '{0}'" -f ( $ExpectedValue | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis | Expand-SpecialCharacters )
         "But was:  '{0}'" -f ( $actual | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis | Expand-SpecialCharacters )
 
-        $specialCharacterOffset = $null
-        if ($differenceIndex -ne 0) {
-            #count all the special characters before the difference
-            $specialCharacterOffset = ($actual[0..($differenceIndex - 1)] |
-                    & $SafeCommands['Where-Object'] {"`n", "`r", "`t", "`b", "`0" -contains $_} |
-                    & $SafeCommands['Measure-Object'] |
-                    & $SafeCommands['Select-Object'] -ExpandProperty Count)
-        }
-
-        # for excerpted strings, add in an additional length of arrow...
-        $excerptOffset = $ellipsis.Length + $excerptSize
-        if ($differenceIndex -ge $excerptOffset) {
-            $longStringOffset = $excerptOffset
-        }
-
-        '-' * (  $differenceIndex + $specialCharacterOffset + 11 + $longStringOffset) + '^'
     }
 }
 function Format-AsExcerpt {
