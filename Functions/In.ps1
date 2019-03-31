@@ -19,22 +19,40 @@ function In {
     https://github.com/pester/Pester/wiki/In
 
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Default")]
     param(
-        $path,
-        [ScriptBlock] $execute
+        [Parameter(Mandatory, ParameterSetName="Default", Position=0)]
+        [String] $Path,
+        [Parameter(Mandatory, ParameterSetName="TestDrive", Position=0)]
+        [Switch] $TestDrive,
+        [Parameter(Mandatory, Position = 1)]
+        [ScriptBlock] $ScriptBlock
     )
-    Assert-DescribeInProgress -CommandName In
 
-    $old_pwd = $pwd
-    & $SafeCommands['Push-Location'] $path
-    $pwd = $path
+    # test drive is not available during discovery, ideally no code should
+    # depend on location during discovery, but I cannot rely on that, so unless
+    # the path is TestDrive the path is changed in discovery as well as during
+    # the run phase
+    $doNothing = $false
+    if ($TestDrive) {
+        if (Is-Discovery) {
+            $doNothing = $true
+        }
+        else {
+            $Path = (Get-PSDrive 'TestDrive').Root
+        }
+    }
+
+    $originalPath = $pwd
+    if (-not $doNothing) {
+        & $SafeCommands['Set-Location'] $Path
+    }
     try {
-        Write-ScriptBlockInvocationHint -Hint "In" -ScriptBlock $execute
-        & $execute
+        & $ScriptBlock
     }
     finally {
-        & $SafeCommands['Pop-Location']
-        $pwd = $old_pwd
+        if (-not $doNothing) {
+            & $SafeCommands['Set-Location'] $originalPath
+        }
     }
 }
