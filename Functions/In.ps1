@@ -26,6 +26,7 @@ function In {
         [Parameter(Mandatory, ParameterSetName="TestDrive", Position=0)]
         [Switch] $TestDrive,
         [Parameter(Mandatory, Position = 1)]
+        [Alias("Execute")]
         [ScriptBlock] $ScriptBlock
     )
 
@@ -46,6 +47,7 @@ function In {
     $originalPath = $pwd
     if (-not $doNothing) {
         & $SafeCommands['Set-Location'] $Path
+        $pwd = $Path
     }
     try {
         & $ScriptBlock
@@ -53,6 +55,7 @@ function In {
     finally {
         if (-not $doNothing) {
             & $SafeCommands['Set-Location'] $originalPath
+            $pwd = $originalPath
         }
     }
 }
