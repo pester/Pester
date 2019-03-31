@@ -2222,22 +2222,26 @@ Describe 'Mocking using ParameterFilter with scriptblock' {
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 3) {
-    Describe "RemoveParameterType" {
+    Describe "-RemoveParameterType" {
         BeforeAll {
-            function SimpleFuncParameterRemoval([int]$Count, [string]$Name) {
-                $Count + 1
-            }
+
         }
 
-        It 'removes parameter for simple function' {
-            Mock SimpleFuncParameterRemoval { 10 } -RemoveParameterType 'Count'
+        It 'removes parameter type for simple function' {
+            function f ([int]$Count, [string]$Name) {
+                $Count + 1
+            }
 
-            SimpleFuncParameterRemoval -Name 'Hello' -Count 10 | Should -Be 10
+            Mock f { "result" } -RemoveParameterType 'Count'
+            [Diagnostics.Process] $currentProcess = Get-Process -id $pid
+
+            $currentProcess -as [int] -eq $null | Should -BeTrue -Because "Process is not convertible to int"
+            f -Name 'Hello' -Count $currentProcess | Should -Be "result" -Because "we successfuly provided a process to parameter defined as int"
         }
 
         if ($PSVersionTable.PSVersion.Major -eq 5) {
             Context 'NetAdapter example' {
-                It 'works' {
+                It 'passes pscustomobject to a parameter defined as CimSession[]' {
                     Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
                     Mock Set-NetAdapter -RemoveParameterType 'InputObject'
 
@@ -2268,17 +2272,17 @@ Describe 'RemoveParameterValidation' {
                 [int]
                 $Count
             )
-            $Count + 1
+            $Count
         }
     }
 
-    It 'throws' {
-        { Test-Validation -Count -1 } | Should -Throw
+    It 'throws when number is not in the valid range' {
+        { Test-Validation -Count -1 } | Should -Throw -ErrorId 'ParameterArgumentValidationError'
     }
 
-    It 'passes using mock' {
-        Mock Test-Validation -RemoveParameterValidation Count { 0 }
+    It 'passes when mock removes the validation' {
+        Mock Test-Validation -RemoveParameterValidation Count { "mock" }
 
-        Test-Validation | Should -Be 0
+        Test-Validation -Count -1 | Should -Be "mock"
     }
 }
