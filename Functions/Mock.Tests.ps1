@@ -519,9 +519,11 @@ Describe 'When calling Mock on a module-internal function.' {
             Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } {
                 "I'm the mock who's been passed parameter Test"
             }
-            Mock -ModuleName TestModule2 InternalFunction2 {
-                InternalFunction 'Test'
-            }
+            # Mock -ModuleName TestModule2 InternalFunction2 {
+            #     # this does not work in v5 because we are running the mock in the test scope
+            #     # so this module internal function is not accessible to the mock body
+            #     InternalFunction 'Test'
+            # }
             Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
             Mock -ModuleName TestModule2 Get-Content { }
         }
@@ -541,10 +543,11 @@ Describe 'When calling Mock on a module-internal function.' {
         }
 
 
-
-        It 'Should call mocks from inside another mock' {
-            TestModule2\PublicFunction2 | Should -Be "I'm the mock who's been passed parameter Test"
-        }
+        # this does not work because mock bodies are now run in test scope
+        # and so the internal function hidden in the mock body is not accessible
+        # It 'Should call mocks from inside another mock' {
+        #     TestModule2\PublicFunction2 | Should -Be "I'm the mock who's been passed parameter Test"
+        # }
 
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
             TestModule2\FuncThatOverwritesExecutionContext | Should -Be 'I am the second module internal function'
@@ -555,13 +558,10 @@ Describe 'When calling Mock on a module-internal function.' {
             TestModule2\ScopeTest | Should -Be 'TestModule2'
         }
 
-        # TODO: this fails because Assert-Mock called looks only on mocks that are defined in the scope where it
-        # Asserts, so here it fails with no-mock defined, because we look only on mocks in it, and mock is defined
-        # in the block
-        # It 'Does not trigger the mocked Get-Content from Pester internals' {
-        #     Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
-        #     Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
-        # }
+        It 'Does not trigger the mocked Get-Content from Pester internals' {
+            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+            Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
+        }
     }
 
     AfterAll {
@@ -1752,7 +1752,7 @@ Describe 'Mocking Get-Command' {
 Describe 'Mocks with closures' {
     BeforeAll {
         $closureVariable = 'from closure'
-        $scriptBlock = { "Variable resolved $closureVariable" }
+        $scriptBlock =  { "Variable resolved $closureVariable" }
         $closure = $scriptBlock.GetNewClosure()
         $closureVariable = 'from script'
 
@@ -2394,5 +2394,45 @@ Describe 'RemoveParameterValidation' {
         Mock Test-Validation -RemoveParameterValidation Count { "mock" }
 
         Test-Validation -Count -1 | Should -Be "mock"
+    }
+}
+
+Describe "Running Mock with ModuleName in test scope" {
+    BeforeAll {
+        Get-Module "test" -ErrorAction SilentlyContinue | Remove-Module
+        New-Module -Name "test" -ScriptBlock {
+            $script:v = "module variable"
+            function f () { a }
+            function a () { "module" }
+
+            Export-ModuleMember -Function f
+        } -PassThru | Import-Module
+    }
+
+    AfterAll {
+        Get-Module "test" -ErrorAction SilentlyContinue | Remove-Module
+    }
+
+    It "can mock internal function of the module" {
+        Mock -ModuleName test a { "mock" }
+        f | Should -Be "mock"
+    }
+
+    It "runs the body in the current scope" {
+        Mock -ModuleName test a {
+            $ExecutionContext.SessionState
+        }
+        $actual = f
+        $actual | Should -BeOfType ([Management.Automation.SessionState])
+        $actual.Module | Should -Be $null -Because "we are not running inside of the 'test' module"
+    }
+
+    It "runs the parameter filter in the current scope" {
+        $script:ss = $null
+        Mock -ModuleName test a { } -ParameterFilter { $script:ss = $ExecutionContext.SessionState ; $true }
+
+        $null = f
+        $script:ss | Should -BeOfType ([Management.Automation.SessionState])
+        $script:ss.Module | Should -Be $null -Because "we are not running inside of the 'test' module"
     }
 }

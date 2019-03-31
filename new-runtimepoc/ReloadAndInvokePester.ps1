@@ -15,8 +15,10 @@ $global:PesterDebugPreference = @{
 
 $excludePath = "*/demo/*"
 $excludeTags = "Help", "VersionChecks", "Formatting"
+
 $path = "C:\Projects\Pester_main"
-#$path = "C:\Projects\Pester_main"
+# $path = "C:\projects\pester_main\Functions\Mock.Tests.ps1"
+
 
 $script:r = $null
 [Math]::Round((Measure-Command {
