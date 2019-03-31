@@ -555,13 +555,10 @@ Describe 'When calling Mock on a module-internal function.' {
             TestModule2\ScopeTest | Should -Be 'TestModule2'
         }
 
-        # TODO: this fails because Assert-Mock called looks only on mocks that are defined in the scope where it
-        # Asserts, so here it fails with no-mock defined, because we look only on mocks in it, and mock is defined
-        # in the block
-        # It 'Does not trigger the mocked Get-Content from Pester internals' {
-        #     Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
-        #     Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
-        # }
+        It 'Does not trigger the mocked Get-Content from Pester internals' {
+            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+            Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
+        }
     }
 
     AfterAll {

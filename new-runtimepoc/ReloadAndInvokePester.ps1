@@ -9,14 +9,14 @@ if ($v5) {
 
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
-    WriteDebugMessages     = $true
+    WriteDebugMessages     = $false
     WriteDebugMessagesFrom = "Mock*"
 }
 
 $excludePath = "*/demo/*"
 $excludeTags = "Help", "VersionChecks", "Formatting"
 $path = 'Functions/Assertions/'
-$path = "C:\Projects\experiments\in.tests.ps1"
+$path = "C:\projects\pester_main\Functions\Mock.Tests.ps1"
 
 $script:r = $null
 [Math]::Round((Measure-Command {
