@@ -2220,3 +2220,69 @@ Describe 'Mocking using ParameterFilter with scriptblock' {
     $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
     Mock -CommandName 'Test-Path' -ParameterFilter $filter
 }
+
+if ($PSVersionTable.PSVersion.Major -ge 3) {
+    Describe "-RemoveParameterType" {
+        BeforeAll {
+
+        }
+
+        It 'removes parameter type for simple function' {
+            function f ([int]$Count, [string]$Name) {
+                $Count + 1
+            }
+
+            Mock f { "result" } -RemoveParameterType 'Count'
+            [Diagnostics.Process] $currentProcess = Get-Process -id $pid
+
+            $currentProcess -as [int] -eq $null | Should -BeTrue -Because "Process is not convertible to int"
+            f -Name 'Hello' -Count $currentProcess | Should -Be "result" -Because "we successfuly provided a process to parameter defined as int"
+        }
+
+        if ($PSVersionTable.PSVersion.Major -eq 5) {
+            Context 'NetAdapter example' {
+                It 'passes pscustomobject to a parameter defined as CimSession[]' {
+                    Mock Get-NetAdapter { [pscustomobject]@{ Name = 'Mocked' } }
+                    Mock Set-NetAdapter -RemoveParameterType 'InputObject'
+
+                    $adapter = Get-NetAdapter
+                    $adapter | Set-NetAdapter
+
+                    Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+                }
+            }
+
+            Context "Get-PhysicalDisk example" {
+                Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
+
+                It "should return 'hello'" {
+                    Get-PhysicalDisk | Should Be "hello"
+                }
+            }
+        }
+    }
+}
+
+Describe 'RemoveParameterValidation' {
+    BeforeAll {
+        function Test-Validation {
+            param(
+                [Parameter()]
+                [ValidateRange(1, 10)]
+                [int]
+                $Count
+            )
+            $Count
+        }
+    }
+
+    It 'throws when number is not in the valid range' {
+        { Test-Validation -Count -1 } | Should -Throw -ErrorId 'ParameterArgumentValidationError'
+    }
+
+    It 'passes when mock removes the validation' {
+        Mock Test-Validation -RemoveParameterValidation Count { "mock" }
+
+        Test-Validation -Count -1 | Should -Be "mock"
+    }
+}
