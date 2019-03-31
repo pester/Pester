@@ -462,7 +462,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
     $expectedFeatureFileName2 = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting2.feature)
     $expectedImplementationFileName = (Join-Path $scriptRoot Examples\Gherkin\JustForReporting.Steps.ps1)
 
-    $featuresXPath = "/test-results/test-suite/results/test-suite"
+    $featuresXPath = '/test-results/test-suite/results/test-suite'
     $feature1ScenariosXPath = "$featuresXPath[1]/results/test-suite"
     $feature2ScenariosXPath = "$featuresXPath[2]/results/test-suite"
 
@@ -484,33 +484,33 @@ Describe "A generated NUnit report" -Tag Gherkin {
     It 'should contain all scenarios of feature 1 with correct names and test results' {
         Get-XmlCount $feature1ScenariosXPath | Should -Be 4
 
-        Get-XmlValue "$feature1ScenariosXPath[1]/@name" | Should -Be "Scenario 1"
-        Get-XmlValue "$feature1ScenariosXPath[2]/@name" | Should -Be "Scenario 2 [Examples 1 1]"
-        Get-XmlValue "$feature1ScenariosXPath[3]/@name" | Should -Be "Scenario 2 [Examples 2 1]"
-        Get-XmlValue "$feature1ScenariosXPath[4]/@name" | Should -Be "Scenario 3"
+        Get-XmlValue "$feature1ScenariosXPath[1]/@name" | Should -Be 'Scenario 1'
+        Get-XmlValue "$feature1ScenariosXPath[2]/@name" | Should -Be 'Scenario 2 [Examples 1 1]'
+        Get-XmlValue "$feature1ScenariosXPath[3]/@name" | Should -Be 'Scenario 2 [Examples 2 1]'
+        Get-XmlValue "$feature1ScenariosXPath[4]/@name" | Should -Be 'Scenario 3'
 
-        Get-XmlValue "$feature1ScenariosXPath[1]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature1ScenariosXPath[2]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature1ScenariosXPath[3]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature1ScenariosXPath[4]/@result" | Should -Be "Success"
+        Get-XmlValue "$feature1ScenariosXPath[1]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature1ScenariosXPath[2]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature1ScenariosXPath[3]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature1ScenariosXPath[4]/@result" | Should -Be 'Success'
     }
 
     It 'should contain all scenarios of feature 2 with correct names and test results' {
         Get-XmlCount $feature2ScenariosXPath | Should -Be 6
 
-        Get-XmlValue "$feature2ScenariosXPath[1]/@name" | Should -Be "Scenario 4"
-        Get-XmlValue "$feature2ScenariosXPath[2]/@name" | Should -Be "Scenario 5 [Examples 1 1]"
-        Get-XmlValue "$feature2ScenariosXPath[3]/@name" | Should -Be "Scenario 5 [Examples 2 1]"
-        Get-XmlValue "$feature2ScenariosXPath[4]/@name" | Should -Be "Scenario 5 [Examples 3 1]"
-        Get-XmlValue "$feature2ScenariosXPath[5]/@name" | Should -Be "Scenario 5 [Examples 3 2]"
-        Get-XmlValue "$feature2ScenariosXPath[6]/@name" | Should -Be "Scenario 5 [Examples 3 3]"
+        Get-XmlValue "$feature2ScenariosXPath[1]/@name" | Should -Be 'Scenario 4'
+        Get-XmlValue "$feature2ScenariosXPath[2]/@name" | Should -Be 'Scenario 5 [Examples 1 1]'
+        Get-XmlValue "$feature2ScenariosXPath[3]/@name" | Should -Be 'Scenario 5 [Examples 2 1]'
+        Get-XmlValue "$feature2ScenariosXPath[4]/@name" | Should -Be 'Scenario 5 [Examples 3 1]'
+        Get-XmlValue "$feature2ScenariosXPath[5]/@name" | Should -Be 'Scenario 5 [Examples 3 2]'
+        Get-XmlValue "$feature2ScenariosXPath[6]/@name" | Should -Be 'Scenario 5 [Examples 3 3]'
 
-        Get-XmlValue "$feature2ScenariosXPath[1]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature2ScenariosXPath[2]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature2ScenariosXPath[3]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature2ScenariosXPath[4]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature2ScenariosXPath[5]/@result" | Should -Be "Success"
-        Get-XmlValue "$feature2ScenariosXPath[6]/@result" | Should -Be "Success"
+        Get-XmlValue "$feature2ScenariosXPath[1]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature2ScenariosXPath[2]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature2ScenariosXPath[3]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature2ScenariosXPath[4]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature2ScenariosXPath[5]/@result" | Should -Be 'Success'
+        Get-XmlValue "$feature2ScenariosXPath[6]/@result" | Should -Be 'Success'
     }
 
     It 'should contain all steps of scenario 1 with correct names and test results' {
@@ -518,13 +518,13 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario1StepsXPath | Should -Be 3
 
-        Get-XmlValue "($scenario1StepsXPath/@name)[1]" | Should -Be "Scenario 1.Given step_001"
-        Get-XmlValue "($scenario1StepsXPath/@name)[2]" | Should -Be "Scenario 1.When step_002"
-        Get-XmlValue "($scenario1StepsXPath/@name)[3]" | Should -Be "Scenario 1.Then step_003"
+        Get-XmlValue "($scenario1StepsXPath/@name)[1]" | Should -Be 'Scenario 1.Given step_001'
+        Get-XmlValue "($scenario1StepsXPath/@name)[2]" | Should -Be 'Scenario 1.When step_002'
+        Get-XmlValue "($scenario1StepsXPath/@name)[3]" | Should -Be 'Scenario 1.Then step_003'
 
-        Get-XmlValue "($scenario1StepsXPath/@result)[1]" | Should -Be "Success"
-        Get-XmlValue "($scenario1StepsXPath/@result)[2]" | Should -Be "Success"
-        Get-XmlValue "($scenario1StepsXPath/@result)[3]" | Should -Be "Success"
+        Get-XmlValue "($scenario1StepsXPath/@result)[1]" | Should -Be 'Success'
+        Get-XmlValue "($scenario1StepsXPath/@result)[2]" | Should -Be 'Success'
+        Get-XmlValue "($scenario1StepsXPath/@result)[3]" | Should -Be 'Success'
     }
 
     It 'should contain all steps of scenario 2 (examples 1) with correct names and test results' {
@@ -532,17 +532,17 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario2Examples1StepsXPath | Should -Be 6
 
-        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[1]" | Should -Be "Scenario 2 [Examples 1 1].Given step_101"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[2]" | Should -Be "Scenario 2 [Examples 1 1].And and_101"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[3]" | Should -Be "Scenario 2 [Examples 1 1].When step_102"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[4]" | Should -Be "Scenario 2 [Examples 1 1].And and_102"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[5]" | Should -Be "Scenario 2 [Examples 1 1].Then step_103"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[6]" | Should -Be "Scenario 2 [Examples 1 1].And and_103"
+        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[1]" | Should -Be 'Scenario 2 [Examples 1 1].Given step_101'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[2]" | Should -Be 'Scenario 2 [Examples 1 1].And and_101'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[3]" | Should -Be 'Scenario 2 [Examples 1 1].When step_102'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[4]" | Should -Be 'Scenario 2 [Examples 1 1].And and_102'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[5]" | Should -Be 'Scenario 2 [Examples 1 1].Then step_103'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@name)[6]" | Should -Be 'Scenario 2 [Examples 1 1].And and_103'
 
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[1]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[2]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[3]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[4]" | Should -Be "Success"
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[1]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[2]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[3]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples1StepsXPath/@result)[4]" | Should -Be 'Success'
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[5]" | Should -Be 'Failure'
         Get-XmlValue "($scenario2Examples1StepsXPath/@result)[6]" | Should -Be 'Ignored'
 
@@ -559,19 +559,19 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario2Examples2StepsXPath | Should -Be 6
 
-        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[1]" | Should -Be "Scenario 2 [Examples 2 1].Given step_201"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[2]" | Should -Be "Scenario 2 [Examples 2 1].And and_201"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[3]" | Should -Be "Scenario 2 [Examples 2 1].When step_202"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[4]" | Should -Be "Scenario 2 [Examples 2 1].And and_202"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[5]" | Should -Be "Scenario 2 [Examples 2 1].Then step_203"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[6]" | Should -Be "Scenario 2 [Examples 2 1].And and_203"
+        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[1]" | Should -Be 'Scenario 2 [Examples 2 1].Given step_201'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[2]" | Should -Be 'Scenario 2 [Examples 2 1].And and_201'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[3]" | Should -Be 'Scenario 2 [Examples 2 1].When step_202'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[4]" | Should -Be 'Scenario 2 [Examples 2 1].And and_202'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[5]" | Should -Be 'Scenario 2 [Examples 2 1].Then step_203'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@name)[6]" | Should -Be 'Scenario 2 [Examples 2 1].And and_203'
 
-        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[1]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[2]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[3]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[4]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[5]" | Should -Be "Success"
-        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[6]" | Should -Be "Success"
+        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[1]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[2]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[3]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[4]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[5]" | Should -Be 'Success'
+        Get-XmlValue "($scenario2Examples2StepsXPath/@result)[6]" | Should -Be 'Success'
     }
 
     It 'should contain all steps of scenario 3 with correct names and test results' {
@@ -579,17 +579,17 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario3StepsXPath | Should -Be 5
 
-        Get-XmlValue "($scenario3StepsXPath/@name)[1]" | Should -Be "Scenario 3.Given step_301"
-        Get-XmlValue "($scenario3StepsXPath/@name)[2]" | Should -Be "Scenario 3.When step_302"
-        Get-XmlValue "($scenario3StepsXPath/@name)[3]" | Should -Be "Scenario 3.Then step_303"
-        Get-XmlValue "($scenario3StepsXPath/@name)[4]" | Should -Be "Scenario 3.When step_302"
-        Get-XmlValue "($scenario3StepsXPath/@name)[5]" | Should -Be "Scenario 3.Then step_304"
+        Get-XmlValue "($scenario3StepsXPath/@name)[1]" | Should -Be 'Scenario 3.Given step_301'
+        Get-XmlValue "($scenario3StepsXPath/@name)[2]" | Should -Be 'Scenario 3.When step_302'
+        Get-XmlValue "($scenario3StepsXPath/@name)[3]" | Should -Be 'Scenario 3.Then step_303'
+        Get-XmlValue "($scenario3StepsXPath/@name)[4]" | Should -Be 'Scenario 3.When step_302'
+        Get-XmlValue "($scenario3StepsXPath/@name)[5]" | Should -Be 'Scenario 3.Then step_304'
 
-        Get-XmlValue "($scenario3StepsXPath/@result)[1]" | Should -Be "Success"
-        Get-XmlValue "($scenario3StepsXPath/@result)[2]" | Should -Be "Success"
-        Get-XmlValue "($scenario3StepsXPath/@result)[3]" | Should -Be "Success"
-        Get-XmlValue "($scenario3StepsXPath/@result)[4]" | Should -Be "Success"
-        Get-XmlValue "($scenario3StepsXPath/@result)[5]" | Should -Be "Failure"
+        Get-XmlValue "($scenario3StepsXPath/@result)[1]" | Should -Be 'Success'
+        Get-XmlValue "($scenario3StepsXPath/@result)[2]" | Should -Be 'Success'
+        Get-XmlValue "($scenario3StepsXPath/@result)[3]" | Should -Be 'Success'
+        Get-XmlValue "($scenario3StepsXPath/@result)[4]" | Should -Be 'Success'
+        Get-XmlValue "($scenario3StepsXPath/@result)[5]" | Should -Be 'Failure'
 
         Get-XmlInnerText "$scenario3StepsXPath[5]/failure/message" | Should -Be 'Another example error in the then clause'
         $StackTraceLines = @((Get-XmlInnerText "($scenario3StepsXPath)[5]/failure/stack-trace") -split '\r?\n')
@@ -604,9 +604,9 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario4StepsXPath | Should -Be 3
 
-        Get-XmlValue "($scenario4StepsXPath/@name)[1]" | Should -Be "Scenario 4.Given step_401"
-        Get-XmlValue "($scenario4StepsXPath/@name)[2]" | Should -Be "Scenario 4.When step_402"
-        Get-XmlValue "($scenario4StepsXPath/@name)[3]" | Should -Be "Scenario 4.Then step_403"
+        Get-XmlValue "($scenario4StepsXPath/@name)[1]" | Should -Be 'Scenario 4.Given step_401'
+        Get-XmlValue "($scenario4StepsXPath/@name)[2]" | Should -Be 'Scenario 4.When step_402'
+        Get-XmlValue "($scenario4StepsXPath/@name)[3]" | Should -Be 'Scenario 4.Then step_403'
 
         Get-XmlValue "($scenario4StepsXPath/@result)[1]" | Should -Be 'Success'
         Get-XmlValue "($scenario4StepsXPath/@result)[2]" | Should -Be 'Failure'
@@ -626,13 +626,13 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario5Examples1StepsXPath | Should -Be 3
 
-        Get-XmlValue "($scenario5Examples1StepsXPath/@name)[1]" | Should -Be "Scenario 5 [Examples 1 1].Given step_501"
-        Get-XmlValue "($scenario5Examples1StepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 1 1].When step_502"
-        Get-XmlValue "($scenario5Examples1StepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 1 1].Then step_503"
+        Get-XmlValue "($scenario5Examples1StepsXPath/@name)[1]" | Should -Be 'Scenario 5 [Examples 1 1].Given step_501'
+        Get-XmlValue "($scenario5Examples1StepsXPath/@name)[2]" | Should -Be 'Scenario 5 [Examples 1 1].When step_502'
+        Get-XmlValue "($scenario5Examples1StepsXPath/@name)[3]" | Should -Be 'Scenario 5 [Examples 1 1].Then step_503'
 
-        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[1]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[2]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[3]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[1]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[2]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples1StepsXPath/@result)[3]" | Should -Be 'Inconclusive'
 
         Get-XmlInnerText "($scenario5Examples1StepsXPath)[1]/reason/message" | Should -Be 'No matching step definition found.'
         Get-XmlInnerText "($scenario5Examples1StepsXPath)[2]/reason/message" | Should -Be 'No matching step definition found.'
@@ -644,13 +644,13 @@ Describe "A generated NUnit report" -Tag Gherkin {
 
         Get-XmlCount $scenario5Examples2StepsXPath | Should -Be 3
 
-        Get-XmlValue "($scenario5Examples2StepsXPath/@name)[1]" | Should -Be "Scenario 5 [Examples 2 1].Given step_601"
-        Get-XmlValue "($scenario5Examples2StepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 2 1].When step_602"
-        Get-XmlValue "($scenario5Examples2StepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 2 1].Then step_603"
+        Get-XmlValue "($scenario5Examples2StepsXPath/@name)[1]" | Should -Be 'Scenario 5 [Examples 2 1].Given step_601'
+        Get-XmlValue "($scenario5Examples2StepsXPath/@name)[2]" | Should -Be 'Scenario 5 [Examples 2 1].When step_602'
+        Get-XmlValue "($scenario5Examples2StepsXPath/@name)[3]" | Should -Be 'Scenario 5 [Examples 2 1].Then step_603'
 
-        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[1]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[2]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[3]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[1]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[2]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples2StepsXPath/@result)[3]" | Should -Be 'Inconclusive'
 
         Get-XmlInnerText "($scenario5Examples2StepsXPath)[1]/reason/message" | Should -Be 'No matching step definition found.'
         Get-XmlInnerText "($scenario5Examples2StepsXPath)[2]/reason/message" | Should -Be 'No matching step definition found.'
@@ -666,25 +666,25 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Get-XmlCount $scenario5Examples3bStepsXPath | Should -Be 3
         Get-XmlCount $scenario5Examples3cStepsXPath | Should -Be 3
 
-        Get-XmlValue "($scenario5Examples3aStepsXPath/@name)[1]" | Should -Be "Scenario 5 [Examples 3 1].Given step_701"
-        Get-XmlValue "($scenario5Examples3aStepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 3 1].When step_702"
-        Get-XmlValue "($scenario5Examples3aStepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 3 1].Then step_703"
-        Get-XmlValue "($scenario5Examples3bStepsXPath/@name)[1]" | Should -Be "Scenario 5 [Examples 3 2].Given step_801"
-        Get-XmlValue "($scenario5Examples3bStepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 3 2].When step_802"
-        Get-XmlValue "($scenario5Examples3bStepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 3 2].Then step_803"
-        Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[1]" | Should -Be "Scenario 5 [Examples 3 3].Given step_901"
-        Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[2]" | Should -Be "Scenario 5 [Examples 3 3].When step_902"
-        Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[3]" | Should -Be "Scenario 5 [Examples 3 3].Then step_903"
+        Get-XmlValue "($scenario5Examples3aStepsXPath/@name)[1]" | Should -Be 'Scenario 5 [Examples 3 1].Given step_701'
+        Get-XmlValue "($scenario5Examples3aStepsXPath/@name)[2]" | Should -Be 'Scenario 5 [Examples 3 1].When step_702'
+        Get-XmlValue "($scenario5Examples3aStepsXPath/@name)[3]" | Should -Be 'Scenario 5 [Examples 3 1].Then step_703'
+        Get-XmlValue "($scenario5Examples3bStepsXPath/@name)[1]" | Should -Be 'Scenario 5 [Examples 3 2].Given step_801'
+        Get-XmlValue "($scenario5Examples3bStepsXPath/@name)[2]" | Should -Be 'Scenario 5 [Examples 3 2].When step_802'
+        Get-XmlValue "($scenario5Examples3bStepsXPath/@name)[3]" | Should -Be 'Scenario 5 [Examples 3 2].Then step_803'
+        Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[1]" | Should -Be 'Scenario 5 [Examples 3 3].Given step_901'
+        Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[2]" | Should -Be 'Scenario 5 [Examples 3 3].When step_902'
+        Get-XmlValue "($scenario5Examples3cStepsXPath/@name)[3]" | Should -Be 'Scenario 5 [Examples 3 3].Then step_903'
 
         Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[1]" | Should -Be 'Failure'
         Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[2]" | Should -Be 'Ignored'
         Get-XmlValue "($scenario5Examples3aStepsXPath/@result)[3]" | Should -Be 'Ignored'
-        Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[1]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[2]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[3]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[1]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[2]" | Should -Be "Inconclusive"
-        Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[3]" | Should -Be "Inconclusive"
+        Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[1]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[2]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples3bStepsXPath/@result)[3]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[1]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[2]" | Should -Be 'Inconclusive'
+        Get-XmlValue "($scenario5Examples3cStepsXPath/@result)[3]" | Should -Be 'Inconclusive'
 
         Get-XmlInnerText "$scenario5Examples3aStepsXPath[1]/failure/message" | Should -Be 'An example error in the given clause'
         $StackTraceLines = @((Get-XmlInnerText "($scenario5Examples3aStepsXPath)[1]/failure/stack-trace") -split '\r?\n')
