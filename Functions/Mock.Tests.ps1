@@ -2436,3 +2436,14 @@ Describe "Running Mock with ModuleName in test scope" {
         $script:ss.Module | Should -Be $null -Because "we are not running inside of the 'test' module"
     }
 }
+
+Describe "Mocks can be defined outside of BeforeAll" {
+
+    # this is discouraged but useful for v4 to v5 migration
+    function a () { "a" }
+    Mock a { "mock" }
+
+    It "Finds the mock" {
+        a | Should -Be "mock"
+    }
+}
