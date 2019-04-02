@@ -565,12 +565,15 @@ function Invoke-GherkinFeature {
         $Scenarios = $Scenarios | & $SafeCommands['Where-Object'] { !(& $SafeCommands['Compare-Object'] $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
     }
 
+    $Script:GherkinIndentationLevel = 0
+
     if ($Scenarios) {
         Write-Feature $Feature $Pester
     }
 
     try {
         foreach ($Scenario in $Scenarios) {
+            $Script:GherkinIndentationLevel = 1
             Invoke-GherkinScenario $Pester $Background $Scenario -Language $Feature.Language -NoMultiline:$NoMultiline
         }
     }

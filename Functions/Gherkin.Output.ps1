@@ -38,8 +38,8 @@
             # Falling through to set the test result and stack trace
         }
 
-        PesterAssertionFailed      { break }
-        PesterGherkinStepPending   { $StepResult.Result = 'Pending'; break }
+        PesterAssertionFailed { break }
+        PesterGherkinStepPending { $StepResult.Result = 'Pending'; break }
 
         { 'PesterGherkinStepUndefined', 'PesterGherkinStepSkipped' -contains $_ } {
             $Step = ([Gherkin.Ast.Step]$ErrorRecord.TargetObject)
@@ -54,7 +54,7 @@
         }
 
         PesterGherkinStepUndefined { $StepResult.Result = 'Inconclusive'; break }
-        PesterGherkinStepSkipped   { $StepResult.Result = 'Skipped';      break }
+        PesterGherkinStepSkipped { $StepResult.Result = 'Skipped'; break }
 
         default {
             $FailureMessage = $ErrorRecord.ToString()
@@ -74,8 +74,12 @@
     $StackTraceFormatString = '{3}  at <{0}>, {1}:line {2}'
     $StackTraceLines = @($StackTraceFormatString -f $LocationType, $File, $Line, '')
 
+    # TODO: I'm not happy with this code--particularly, that it lives here. And I just had to add this hack
+    # to check for 'Inconclusive' results so that the errors aren't added twice to the stack trace.
     $Location = if ($ErrorRecord.TargetObject -is [Gherkin.Ast.Step]) {
-        $ErrorRecord.TargetObject.Location
+        if ($StepResult.Result -ne 'Inconclusive') {
+            $ErrorRecord.TargetObject.Location
+        }
     }
     elseif ($ErrorRecord.TargetObject.ContainsKey('Step')) {
         $ErrorRecord.TargetObject.Step.Location
@@ -141,10 +145,10 @@ function Write-Scenario {
             return
         }
         $Text = if ($Scenario.PSObject.Properties['Name'] -and $Scenario.Name) {
-            $ReportStrings.Context -f $Scenario.Name
+            $ReportStrings.Scenario -f $Scenario.Name
         }
         else {
-            $ReportStrings.Context -f $Scenario
+            $ReportStrings.Scenario -f $Scenario
         }
 
         & $SafeCommands['Write-Host']
@@ -158,7 +162,408 @@ function Write-Scenario {
     }
 }
 
-function Format-FailedStepResult {
+function Write-GherkinStepResult {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSObject]$Pester,
+
+        [Parameter(Position = 1)]
+        [Gherkin.Ast.StepArgument]$MultilineArgument,
+
+        [Parameter(Position = 2, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    process {
+        $Quiet = $Pester.Show -eq [Pester.OutputTypes]::None
+        $OutputType = [Pester.OutputTypes] $StepResult.Result
+        $WriteToScreen = $Pester.Show | Has-Flag $OutputType
+        $SkipOutput = $Quiet -or (-not $WriteToScreen)
+
+        if ($SkipOutput) { return }
+
+        if (-not ($OutputType | Has-Flag 'Default, Summary')) {
+            switch ($StepResult.Result) {
+                Passed { $StepResult | Write-PassedGherkinStep $MultilineArgument; break }
+                Skipped { $StepResult | Write-SkippedGherkinStep $MultilineArgument; break }
+                Failed { $StepResult | Write-FailedGherkinStep $MultilineArgument; break }
+                Pending { $StepResult | Write-PendingGherkinStep $MultilineArgument; break }
+                Inconclusive { $StepResult | Write-UndefinedGherkinStep $MultilineArgument; break }
+            }
+        }
+    }
+}
+
+function Write-PassedGherkinStep {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0)]
+        [Gherkin.Ast.StepArgument]$MultilineArgument,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    Process {
+        $WriteStepParams = @{
+            StepResult        = $StepResult
+            IndentationLevel  = $Script:GherkinIndentationLevel + 1
+            MultilineArgument = $MultilineArgument
+            StepTextColor     = $Script:ReportTheme.Pass
+            StepArgumentColor = $Script:ReportTheme.PassArgument
+            StepDurationColor = $Script:ReportTheme.PassTime
+        }
+
+        Write-GherkinStepText @WriteStepParams
+    }
+}
+
+function Write-FailedGherkinStep {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0)]
+        [Gherkin.Ast.StepArgument]$MultilineArgument,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    Process {
+        $IndentationLevel = $Script:GherkinIndentationLevel + 1
+        $WriteStepParams += @{
+            StepResult        = $StepResult
+            IndentationLevel  = $IndentationLevel
+            MultilineArgument = $MultilineArgument
+            StepTextColor     = $Script:ReportTheme.Fail
+            StepArgumentColor = $Script:ReportTheme.FailArgument
+            StepDurationColor = $Script:ReportTheme.FailTime
+        }
+
+        Write-GherkinStepText @WriteStepParams
+        Write-FailedStepErrorText $StepResult -IndentationLevel ($IndentationLevel + 1)
+    }
+}
+
+function Write-SkippedGherkinStep {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0)]
+        [Gherkin.Ast.StepArgument]$MultilineArgument,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    Process {
+        $WriteStepParams = @{
+            StepResult        = $StepResult
+            IndentationLevel  = $Script:GherkinIndentationLevel + 1
+            MultilineArgument = $MultilineArgument
+            StepTextColor     = $Script:ReportTheme.Skipped
+            StepArgumentColor = $Script:ReportTheme.SkippedArgument
+            StepDurationColor = $Script:ReportTheme.SkippedTime
+        }
+
+        Write-GherkinStepText @WriteStepParams
+    }
+}
+
+function Write-PendingGherkinStep {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0)]
+        [Gherkin.Ast.StepArgument]$MultilineArgument,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    Process {
+        $IndentationLevel = $Script:GherkinIndentationLevel + 1
+        $WriteStepParams = @{
+            StepResult        = $StepResult
+            IndentationLevel  = $IndentationLevel
+            MultilineArgument = $MultilineArgument
+            StepTextColor     = $Script:ReportTheme.Pending
+            StepArgumentColor = $Script:ReportTheme.PendingArgument
+            StepDurationColor = $Script:ReportTheme.PendingTime
+        }
+
+        Write-GherkinStepText @WriteStepParams
+        Write-PendingStepErrorText $StepResult -IndentationLevel ($IndentationLevel + 1)
+    }
+}
+
+function Write-UndefinedGherkinStep {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0)]
+        [Gherkin.Ast.StepArgument]$MultilineArgument,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    Process {
+        $IndentationLevel = $Script:GherkinIndentationLevel + 1
+        $WriteStepParams = @{
+            StepResult        = $StepResult
+            IndentationLevel  = $IndentationLevel
+            MultilineArgument = $MultilineArgument
+            StepTextColor     = $Script:ReportTheme.Undefined
+            StepDurationColor = $Script:ReportTheme.UndefinedTime
+        }
+
+        Write-GherkinStepText  @WriteStepParams
+        Write-UndefinedStepErrorText $StepResult -IndentationLevel $IndentationLevel
+    }
+}
+
+function Get-GherkinStepTextParts {
+    [CmdletBinding()]
+    [OutputType([hashtable[]])]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult
+    )
+
+    Process {
+        $StepText = $StepResult.Name
+        $StepParameters = $StepResult.Parameters
+        $Result = $StepResult.Result
+
+        # Split the step text into pieces, where the pieces are either generic step text, or input to the step
+        # definition. This will allow "highlighting" of the replaceable text parameters of the step
+        # definition.
+        $StepTextParts = [hashtable[]]@()
+        if ($Result -ne 'Inconclusive' -and $StepParameters.Keys.Count) {
+            $startingFromIndex = 0
+            foreach ($v in $StepParameters.Values) {
+                $indexOfValue = $StepText.Substring($startingFromIndex).IndexOf($v)
+
+                if ($indexOfValue -lt 0) {
+                    $StepTextParts += [hashtable[]]@(@{ Type = 'Text'; Value = $StepText.Substring($startingFromIndex) })
+                    $startingFromIndex += $StepTextParts[-1].Value.Length
+                    break;
+                }
+
+                $StepTextParts += [hashtable[]]@(
+                    @{ Type = 'Text'; Value = $StepText.Substring($startingFromIndex, $indexOfValue) },
+                    @{ Type = 'Argument'; Value = $v }
+                )
+
+                $startingFromIndex += $indexOfValue + $v.Length
+            }
+
+            if ($startingfromIndex -lt ($StepText.Length - 1)) {
+                $StepTextParts += [hashtable[]]@(@{ Type = 'Text'; Value = $StepText.Substring($startingFromIndex) })
+            }
+        }
+        else {
+            $StepTextParts += [hashtable[]]@(@{ Type = 'Text'; Value = $StepText })
+        }
+
+        $StepTextParts
+    }
+}
+
+function Write-GherkinStepText {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0)]
+        [int]$IndentationLevel = 2,
+
+        [Parameter(Position = 1)]
+        [ConsoleColor]$StepTextColor = [ConsoleColor]::Gray,
+
+        [Parameter(Position = 2)]
+        [ConsoleColor]$StepArgumentColor = [ConsoleColor]::Gray,
+
+        [Parameter(Position = 3)]
+        [ConsoleColor]$StepDurationColor = [ConsoleColor]::DarkGray,
+
+        [Parameter(Position = 4, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult,
+
+        [Gherkin.Ast.StepArgument]$MultilineArgument
+    )
+
+    Process {
+        $WriteHost = $SafeCommands['Write-Host']
+        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+
+        $StepResult |
+        Get-GherkinStepTextParts |
+        ForEach-Object {
+            $FgColor = switch ($_.Type) {
+                'Text' { $StepTextColor; break }
+                'Argument' { $StepArgumentColor; break }
+            }
+
+            & $WriteHost -ForegroundColor $FgColor "${Margin}$($_.Value)" -NoNewline
+
+            # After we print the first part, we don't need the indentation anymore.
+            $Margin = ''
+        }
+
+        & $WriteHost -ForegroundColor $StepDurationColor " $(Get-HumanTime $StepResult.Time.TotalSeconds)"
+
+        if ($MultilineArgument) {
+            if ($MultilineArgument -is [Gherkin.Ast.DataTable]) {
+                Write-GherkinMultilineArgument $MultilineArgument ($BaseIndent + 1)
+            }
+            else {
+                Write-GherkinMultilineArgument $MultilineArgument ($BaseIndent + 1) $StepTextColor
+            }
+        }
+    }
+}
+
+filter Write-GherkinMultilineArgument {
+    [CmdletBinding(DefaultParameterSetName = 'DataTable')]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True, ParameterSetName = 'DataTable')]
+        [Gherkin.Ast.DataTable]$DataTable,
+
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True, ParameterSetName = 'DocString')]
+        [Gherkin.Ast.DocString]$DocString,
+
+        [Parameter(Position = 1)]
+        [int]$IndentationLevel = 3,
+
+        [Parameter(Position = 2, Mandatory = $True, ParameterSetName = 'DocString')]
+        [ConsoleColor]$ForegroundColor = [ConsoleColor]::Gray
+    )
+
+    Begin {
+        $ForEachObject = $SafeCommands['ForEach-Object']
+        $MeasureObject = $SafeCommands['Measure-Object']
+        $SelectObject = $SafeCommands['Select-Object']
+    }
+
+    Process {
+        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+
+        if ($PSCmdlet.ParameterSetName -eq 'DataTable') {
+            $FgDiv = $Script:ReportTheme.TableCellDivider
+            $FgVal = $Script:ReportTheme.TableCellValue
+
+            $Table = $DataTable.Rows | & $ForEachObject {
+                , @($_.Cells | & $SelectObject -ExpandProperty Value)
+            }
+
+            if ($Table[0].Length -gt 1) {
+                $TransposedTable = for ($i = $Table[0].Length - 1; $i -ge 0; $i--) {
+                    , @(for ($j = 0; $j -lt $Table.Length; $j++) { $Table[$j][$i] })
+                }
+
+                [Array]::Reverse($TransposedTable)
+                $TableColumnWidths = $TransposedTable |
+                & $ForEachObject {
+                    $_ |
+                    & $MeasureObject -Property Length -Maximum |
+                    & $SelectObject -ExpandProperty Maximum
+                }
+            }
+            else {
+                $TableColumnWidths = @(
+                    $Table |
+                    & $ForEachObject { $_ } |
+                    & $MeasureObject -Property Length -Maximum |
+                    & $SelectObject -ExpandProperty Maximum
+                )
+            }
+
+            foreach ($Row in $DataTable.Rows) {
+                & $WriteHost -ForegroundColor $FgDiv "${Margin}|" -NoNewline
+                for ($ci = 0; $ci -lt $Row.Cells.Length; $ci++) {
+                    & $WriteHost -ForegroundColor $FgVal (" {0,$(-$TableColumnWidths[$ci])} " -f $Row.Cells[$ci].Value) -NoNewline
+                    & $WriteHost -ForegroundColor $FgDiv '|' -NoNewLine
+                }
+                & $WriteHost
+            }
+        }
+        else {
+            $DocString.Content -split '\r?\n' | ForEach-Object -Begin {
+                & $WriteHost -ForegroundColor $ForegroundColor "${Margin}`"`"`""
+            } -Process {
+                & $WriteHost -ForegroundColor $ForegroundColor "${Margin}${_}"
+            } -End {
+                & $WriteHost -ForegroundColor $ForegroundColor "${Margin}`"`"`""
+            }
+        }
+    }
+}
+
+filter Write-FailedStepErrorText {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult,
+
+        [int]$IndentationLevel
+    )
+
+    Process {
+        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+
+        $StepResult |
+        Format-StepResultErrorRecord |
+        ForEach-Object { $_.Message -split '\r?\n' } |
+        Select-Object -First 1 |
+        ForEach-Object {
+            "${Margin}Error: $_"
+            $StepResult.StackTrace -replace '(?m)^', $Margin
+        } |
+        & $SafeCommands['Write-Host'] -ForegroundColor $Script:ReportTheme.Fail
+    }
+}
+
+filter Write-PendingStepErrorText {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult,
+
+        [int]$IndentationLevel
+    )
+
+    Process {
+        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+
+        $StepResult |
+        Format-StepResultErrorRecord |
+        ForEach-Object { $_.Message -split '\r?\n' } |
+        Select-Object -First 1 |
+        ForEach-Object {
+            "${Margin}$($_ -replace 'Exception:\s*')"
+            $StepResult.StackTrace -replace '(?m)^', $Margin
+        } |
+        & $SafeCommands['Write-Host'] -ForegroundColor $Script:ReportTheme.Pending
+    }
+}
+
+filter Write-UndefinedStepErrorText {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$StepResult,
+
+        [int]$IndentationLevel
+    )
+
+    Process {
+        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+        $WriteHost = $SafeCommands['Write-Host']
+        $Undefined = $Script:ReportTheme.Undefined
+
+        & $WriteHost -ForegroundColor $Undefined $($StepResult.FailureMessage -replace '(?m)^', "${Margin}  >>> ")
+        & $WriteHost -ForegroundColor $Undefined $($StepResult.StackTrace -replace '(?m)^', "$Margin  ")
+    }
+}
+
+function Format-StepResultErrorRecord {
     [CmdletBinding()]
     [OutputType([string])]
     Param (
@@ -265,111 +670,5 @@ function Format-FailedStepResult {
         # }
 
         # return $lines
-    }
-}
-
-function Write-GherkinStepResult {
-    param (
-        [Parameter(Position = 0, Mandatory = $True)]
-        [PSObject]$Pester,
-
-        [Parameter(Position = 1)]
-        [Gherkin.Ast.StepArgument]$MultilineArgument,
-
-        [Parameter(Position = 2, Mandatory = $True, ValueFromPipeline = $True)]
-        $StepResult
-    )
-
-    process {
-        $quiet = $Pester.Show -eq [Pester.OutputTypes]::None
-        $OutputType = [Pester.OutputTypes] $StepResult.Result
-        $writeToScreen = $Pester.Show | Has-Flag $OutputType
-        $skipOutput = $quiet -or (-not $writeToScreen)
-
-        if ($skipOutput) {
-            return
-        }
-
-        $margin = $ReportStrings.Margin * ($pester.IndentLevel + 1)
-        $error_margin = $margin + $ReportStrings.Margin
-        $output = $StepResult.Name
-        $humanTime = Get-HumanTime $StepResult.Time.TotalSeconds
-
-        if (-not ($OutputType | Has-Flag 'Default, Summary')) {
-            switch ($StepResult.Result) {
-                Passed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
-                    break
-                }
-
-                Failed {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
-
-                    if ($pester.IncludeVSCodeMarker) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($StepResult.StackTrace -replace '(?m)^', $error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($StepResult.FailureMessage -replace '(?m)^', $error_margin)
-                    }
-                    else {
-                        $StepResult |
-                            Format-FailedStepResult |
-                            ForEach-Object {$_.Message + $_.Trace} |
-                            ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^', $error_margin) }
-                    }
-                    break
-                }
-
-                Skipped {
-                    $targetObject = if ($null -ne $StepResult.ErrorRecord -and
-                        ($o = $StepResult.ErrorRecord.PSObject.Properties.Item("TargetObject"))) { $o.Value }
-                    $because = if ($targetObject -and $targetObject.Data.Because) {
-                        ", because $($StepResult.ErrorRecord.TargetObject.Data.Because)"
-                    }
-                    else {
-                        $null
-                    }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
-                    break
-                }
-
-                Pending {
-                    $because = if ($StepResult.ErrorRecord.TargetObject.Data.Because) {
-                        ", because $($StepResult.ErrorRecord.TargetObject.Data.Because)"
-                    }
-                    else {
-                        $null
-                    }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
-                    break
-                }
-
-                Inconclusive {
-                    $because = if ($StepResult.ErrorRecord.TargetObject.Data.Because) {
-                        ", because $($StepResult.ErrorRecord.TargetObject.Data.Because)"
-                    }
-                    else {
-                        $null
-                    }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
-
-                    break
-                }
-
-                default {
-                    # TODO:  Add actual Incomplete status as default rather than checking for null time.
-                    if ($null -eq $StepResult.Time) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
-                    }
-                }
-            }
-        }
     }
 }
