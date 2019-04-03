@@ -68,23 +68,68 @@ function New-GherkinPesterState {
     $NewObject = $SafeCommands['New-Object']
 
     New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $SessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
-    & $AddMember -MemberType NoteProperty -Name Features -Value (& $NewObject System.Collections.Generic.List[PSObject] ) -PassThru |
-    & $AddMember -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
-        $Names = $this.TestResult | & $SafeCommands['Group-Object'] Describe |
-        & $SafeCommands['Where-Object'] {
-            $_.Group | & $SafeCommands['Where-Object'] { -not $_.Passed }
+        & $AddMember -MemberType NoteProperty -Name Features -Value (& $NewObject System.Collections.Generic.List[PSObject] ) -PassThru |
+        & $AddMember -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
+            [string[]]@(
+                $this.TestResult |
+                    & $SafeCommands['Group-Object'] Context |
+                    & $SafeCommands['Where-Object'] {
+                        $Failed = $False
+                        foreach ($g in $_.Group) {
+                            if ($Failed) { break }
+                            $Failed = $Failed -or $g.Result -eq 'Failed'
+                        }
+                        $Failed
+                    } |
+                    & $SafeCommands['ForEach-Object'] { $_.Name }
+            )
         } |
-        & $SafeCommands['Select-Object'] -ExpandProperty Name
-        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands['Where-Object'] { $Names -contains $_.Name }
-    } |
-    & $AddMember -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
-        $Names = $this.TestResult | & $SafeCommands['Group-Object'] Describe |
-        & $SafeCommands['Where-Object'] {
-            -not ($_.Group | & $SafeCommands['Where-Object'] { -not $_.Passed })
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value {
+            [string[]]@(
+                $this.TestResult |
+                    & $SafeCommands['Group-Object'] Context |
+                    & $SafeCommands['Where-Object'] {
+                        $Pending = $False
+                        foreach ($g in $_.Group) {
+                            if ($Pending) { break }
+                            $Pending = $Pending -or $g.Result -eq 'Pending'
+                        }
+                        $Pending
+                    } |
+                    & $SafeCommands['ForEach-Object'] { $_.Name }
+            )
         } |
-        & $SafeCommands['Select-Object'] -ExpandProperty Name
-        $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands['Where-Object'] { $Names -contains $_.Name }
-    }
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value {
+            [string[]]@(
+                $this.TestResult |
+                    & $SafeCommands['Group-Object'] Context |
+                    & $SafeCommands['Where-Object'] {
+                        $Undefined = $False
+                        foreach ($g in $_.Group) {
+                            if ($Undefined) { break }
+                            $Undefined = $Undefined -or $g.Result -eq 'Inconclusive'
+                        }
+                        $Undefined
+                    } |
+                    & $SafeCommands['ForEach-Object'] { $_.Name }
+            )
+        } |
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
+            [string[]]@(
+                $this.TestResult |
+                    & $SafeCommands['Group-Object'] Context |
+                    & $SafeCommands['Where-Object'] {
+                        $Passed = $True
+                        foreach ($g in $_.Group) {
+                            if (!$Passed) { break }
+                            $Passed = $Passed -and $g.Result -eq 'Passed'
+                        }
+                        $Passed
+                    } |
+                    & $SafeCommands['ForEach-Object'] { $_.Name }
+            )
+
+        }
 }
 
 function Invoke-Gherkin {
@@ -342,8 +387,9 @@ function Invoke-Gherkin {
 
         if ($PassThru) {
             # The list of properties on the PesterState object which should be part of the test report
-            $Properties = @( "Path", "Features", "TagFilter", "TestNameFilter", "TotalCount",
-                "PassedCount", "FailedCount", "Time", "TestResult", "PassedScenarios", "FailedScenarios"
+            $Properties = @( 'Path', 'TagFilter', 'TestNameFilter', 'Features', 'PassedCount', 'FailedCount',
+                'PendingCount', 'SkippedCount', 'InconclusiveCount', 'TotalCount', 'Time', 'TestResult',
+                'PassedScenarios', 'FailedScenarios', 'PendingScenarios', 'UndefinedScenarios'
 
                 if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $CoverageReport } }
@@ -583,12 +629,6 @@ function Invoke-GherkinFeature {
         continue
     }
 
-    # To create a more user-friendly test report, we use the feature name for the test group
-    $Pester.EnterTestGroup($Feature.Name, 'Script')
-
-    $null = $Pester.Features.Add($Feature)
-    Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
-
     # Test the name filter first, since it will probably return one single item
     if ($Pester.TestNameFilter) {
         $Scenarios = foreach ($nameFilter in $Pester.TestNameFilter) {
@@ -607,13 +647,19 @@ function Invoke-GherkinFeature {
         $Scenarios = $Scenarios | & $SafeCommands['Where-Object'] { !(& $SafeCommands['Compare-Object'] $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
     }
 
-    $Script:GherkinIndentationLevel = 0
-
-    if ($Scenarios) {
-        Write-Feature $Feature $Pester
-    }
-
     try {
+        $Script:GherkinIndentationLevel = 0
+
+        # To create a more user-friendly test report, we use the feature name for the test group
+        $Pester.EnterTestGroup($Feature.Name, 'Feature')
+
+        $null = $Pester.Features.Add($Feature)
+        Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
+
+        if ($Scenarios) {
+            Write-Feature $Feature $Pester
+        }
+
         foreach ($Scenario in $Scenarios) {
             $Script:GherkinIndentationLevel = 1
             Invoke-GherkinScenario $Pester $Background $Scenario -Language $Feature.Language -NoMultiline:$NoMultiline
@@ -631,13 +677,13 @@ function Invoke-GherkinFeature {
         $Pester.TestResult[-1] | Write-GherkinStepResult -Pester $Pester
     }
     finally {
+        Invoke-GherkinHook AfterEachFeature $Feature.Name $Feature.Tags
+        if ($Pester.CurrentTestGroup) {
+            $Pester.LeaveTestGroup($Feature.Name, 'Feature')
+        }
         $Location | & $SafeCommands['Set-Location']
         [Environment]::CurrentDirectory = $CWD
     }
-
-    Invoke-GherkinHook AfterEachFeature $Feature.Name $Feature.Tags
-
-    $Pester.LeaveTestGroup($Feature.Name, 'Script')
 }
 
 function Find-StepDefinition {
@@ -694,21 +740,19 @@ function Invoke-GherkinScenario {
         [switch]$NoMultiline
     )
 
-    $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
     try {
-        # We just display 'Scenario', also for 'Scenario Outline' or 'Scenario Template'
-        # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
-        Write-Scenario $Scenario $Pester
+        $Pester.EnterTestGroup($Scenario.Name, 'Scenario')
+        $Pester.EnterTest()
 
-        $Script:MockTable = @{ }
-
-        # Create a clean variable scope in each scenario
+        # Setup "the World", as it's called in Ruby Cucumber, by creating a clean variable and mock scope and
+        # a new TestDrive.
         $Script:GherkinScenarioScope = New-Module Scenario { }
         $Script:GherkinSessionState = Set-SessionStateHint -PassThru -Hint Scenario -SessionState $Script:GherkinScenarioScope.SessionState
-
-        #Wait-Debugger
-
+        $Script:MockTable = @{ }
         New-TestDrive
+
+        Write-Scenario $Scenario $Pester
+
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
         $Background, $Scenario | Invoke-GherkinStep $Pester $Script:GherkinSessionState -NoMultiline:$NoMultiline
@@ -727,11 +771,12 @@ function Invoke-GherkinScenario {
         $Pester.TestResult[-1].Describe = "Error in $($Scenario.Name)"
 
         $Pester.TestResult[-1] | Write-GherkinStepResult -Pester $Pester
+    } finally {
+        Remove-TestDrive
+        Exit-MockScope
+        $Pester.LeaveTest()
+        $Pester.LeaveTestGroup($Scenario.Name, 'Scenario')
     }
-
-    Remove-TestDrive
-    $Pester.LeaveTestGroup($Scenario.Name, 'Scenario')
-    Exit-MockScope
 }
 
 function Find-GherkinStep {

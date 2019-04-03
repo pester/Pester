@@ -32,6 +32,8 @@ Feature: PesterResult shows executed feature names
 
       Examples: Undefined Scenario (inconclusive)
         | Outcome         | Status               |
-        # In PesterResult.Steps.ps1 we do not implement anything for the following example
-        # to produce an inconclusive test result
-        | Does not matter | Does not matter      |
+        | Undefined       | UndefinedScenarios   |
+
+      Examples: Pending Scenario
+        | Outcome         | Status               |
+        | Pending         | PendingScenarios     |

@@ -222,7 +222,7 @@ function New-PesterState {
                 if ($group.Hint -eq 'Root' -or $group.Hint -eq 'Script') {
                     continue
                 }
-                if ($describe -eq '') {
+                if ($describe -eq '' -or $group.Hint -eq 'Feature') {
                     $describe = $group.Name
                 }
                 else {
