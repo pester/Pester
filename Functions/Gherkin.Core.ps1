@@ -172,6 +172,15 @@ function Invoke-Gherkin {
             This parameter does not affect the PassThru custom object or the XML output that
             is written when you use the Output parameters.
 
+        .PARAMETER Multiline
+            Controls whether or not Step Definition DocString and DataTable arguments are printed to the
+            console during the test run.
+
+        .PARAMETER Expand
+            Controls whether or not Scenario Outline example scenarios are displayed fully expanded instead of
+            just printing the scenario outline and table. This can be useful to determine exactly which step
+            in a scenario outline example scenario failed.
+
         .PARAMETER PassThru
             Returns a custom object (PSCustomObject) that contains the test results.
             By default, Invoke-Gherkin writes to the host program, not to the output stream (stdout).
@@ -258,6 +267,10 @@ function Invoke-Gherkin {
 
         [Pester.OutputTypes]$Show = 'All',
 
+        [switch]$NoMultiline,
+
+        [switch]$Expand,
+
         [switch]$PassThru
     )
     begin {
@@ -309,7 +322,7 @@ function Invoke-Gherkin {
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $Pester
 
         foreach ($FeatureFile in & $SafeCommands['Get-ChildItem'] $Path -Filter '*.feature' -Recurse ) {
-            Invoke-GherkinFeature $FeatureFile -Pester $Pester
+            Invoke-GherkinFeature $FeatureFile -Pester $Pester -NoMultiline:$NoMultiline -Expand:$Expand
         }
 
         # Remove all the steps
@@ -408,6 +421,15 @@ function Import-GherkinFeature {
 
         .PARAMETER Pester
             Internal Pester object. For internal use only
+
+        .PARAMETER NoMultiline
+            Controls whether or not StepDefinition DocStrings and DataTables are printed to the console during
+            the test run.
+
+        .PARAMETER Expand
+            Controls whether or not Scenario Outline example scenarios are displayed fully expanded instead of
+            just printing the secnario outline and scenario example table. This can be useful to determine
+            exactly which step of a scenario outline example scenario failed.
     #>
     [CmdletBinding()]
     param(
@@ -415,17 +437,18 @@ function Import-GherkinFeature {
         [string]$Path,
 
         [Parameter(Position = 1, Mandatory = $True)]
-        [PSObject]$Pester
+        [PSObject]$Pester,
+
+        [switch]$NoMultiline,
+
+        [switch]$Expand
     )
 
-    # Lookup some commonly used "Safe Commands" and store them in variables.
-    # 1. It reduces lookup to once
-    # 2. It reduces the amount of typing....
-    $AddMember = $SafeCommands['Add-Member']
+    $AddMember     = $SafeCommands['Add-Member']
     $CompareObject = $SafeCommands['Compare-Object']
-    $NewObject = $SafeCommands['New-Object']
-    $SelectObject = $SafeCommands['Select-Object']
-    $WriteWarning = $SafeCommands['Write-Warning']
+    $NewObject     = $SafeCommands['New-Object']
+    $SelectObject  = $SafeCommands['Select-Object']
+    $WriteWarning  = $SafeCommands['Write-Warning']
 
     $Background = $null
 
@@ -440,15 +463,16 @@ function Import-GherkinFeature {
     $Scenarios = $(
         :scenarios foreach ($Child in $Feature.Children) {
             $null = & $AddMember -MemberType "NoteProperty" -InputObject $Child.Location -Name "Path" -Value $Path
+
             foreach ($Step in $Child.Steps) {
                 $null = & $AddMember -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
             }
 
-            switch ($Child.Keyword.Trim()) {
-                { (Test-Keyword $_ 'scenario' $Feature.Language) -or (Test-Keyword $_ 'scenarioOutline' $Feature.Language) } {
+            switch ($Child) {
+                { $Child -is [Gherkin.Ast.Scenario] -or $Child -is [Gherkin.Ast.ScenarioOutline] } {
                     $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
                 }
-                { Test-Keyword $_ 'background' $Feature.Language } {
+                { $Child -is [Gherkin.Ast.Background] } {
                     $Background = $Child | & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru
                     continue scenarios
                 }
@@ -514,18 +538,36 @@ function Invoke-GherkinFeature {
     <#
         .SYNOPSIS
             Internal function to (parse and) run a whole feature file
+
+        .PARAMETER FeatureFile
+            The feature file to invoke.
+
+        .PARAMETER Pester
+            Internal Pester object. For internal use only.
+
+        .PARAMETER NoMultiline
+            Controls whether or not Step Definition DocStrings and DataTables are displayed to the console
+            during the test run.
+
+        .PARAMETER Expand
+            Controls whether or not Scenario Outline example scenarios are displayed fully expanded instead of
+            just printing the scenario outline and table. This can be useful to determine exactly which step
+            of a scenrio outline example scenario is failing.
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Position = 0, Mandatory = $True)]
-        [PSObject]$Pester,
-
         [Alias('PSPath', 'Path')]
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
         [IO.FileInfo]$FeatureFile,
 
-        [switch]$NoMultiline
+        [Parameter(Position = 1, Mandatory = $True)]
+        [PSObject]$Pester,
+
+        [switch]$NoMultiline,
+
+        [switch]$Expand
     )
+
     # Make sure broken tests don't leave you in space:
     $CWD = [Environment]::CurrentDirectory
     $Location = & $SafeCommands['Get-Location']
@@ -658,7 +700,7 @@ function Invoke-GherkinScenario {
         # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
         Write-Scenario $Scenario $Pester
 
-        $Script:mockTable = @{ }
+        $Script:MockTable = @{ }
 
         # Create a clean variable scope in each scenario
         $Script:GherkinScenarioScope = New-Module Scenario { }
