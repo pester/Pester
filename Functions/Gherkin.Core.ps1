@@ -68,68 +68,7 @@ function New-GherkinPesterState {
     $NewObject = $SafeCommands['New-Object']
 
     New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $SessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
-        & $AddMember -MemberType NoteProperty -Name Features -Value (& $NewObject System.Collections.Generic.List[PSObject] ) -PassThru |
-        & $AddMember -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
-            [string[]]@(
-                $this.TestResult |
-                    & $SafeCommands['Group-Object'] Context |
-                    & $SafeCommands['Where-Object'] {
-                        $Failed = $False
-                        foreach ($g in $_.Group) {
-                            if ($Failed) { break }
-                            $Failed = $Failed -or $g.Result -eq 'Failed'
-                        }
-                        $Failed
-                    } |
-                    & $SafeCommands['ForEach-Object'] { $_.Name }
-            )
-        } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value {
-            [string[]]@(
-                $this.TestResult |
-                    & $SafeCommands['Group-Object'] Context |
-                    & $SafeCommands['Where-Object'] {
-                        $Pending = $False
-                        foreach ($g in $_.Group) {
-                            if ($Pending) { break }
-                            $Pending = $Pending -or $g.Result -eq 'Pending'
-                        }
-                        $Pending
-                    } |
-                    & $SafeCommands['ForEach-Object'] { $_.Name }
-            )
-        } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value {
-            [string[]]@(
-                $this.TestResult |
-                    & $SafeCommands['Group-Object'] Context |
-                    & $SafeCommands['Where-Object'] {
-                        $Undefined = $False
-                        foreach ($g in $_.Group) {
-                            if ($Undefined) { break }
-                            $Undefined = $Undefined -or $g.Result -eq 'Inconclusive'
-                        }
-                        $Undefined
-                    } |
-                    & $SafeCommands['ForEach-Object'] { $_.Name }
-            )
-        } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
-            [string[]]@(
-                $this.TestResult |
-                    & $SafeCommands['Group-Object'] Context |
-                    & $SafeCommands['Where-Object'] {
-                        $Passed = $True
-                        foreach ($g in $_.Group) {
-                            if (!$Passed) { break }
-                            $Passed = $Passed -and $g.Result -eq 'Passed'
-                        }
-                        $Passed
-                    } |
-                    & $SafeCommands['ForEach-Object'] { $_.Name }
-            )
-
-        }
+        & $AddMember -MemberType NoteProperty -Name Features -Value (& $NewObject System.Collections.Generic.List[PSObject] ) -PassThru
 }
 
 function Invoke-Gherkin {
@@ -386,19 +325,7 @@ function Invoke-Gherkin {
         }
 
         if ($PassThru) {
-            # The list of properties on the PesterState object which should be part of the test report
-            $Properties = @( 'Path', 'TagFilter', 'TestNameFilter', 'Features', 'PassedCount', 'FailedCount',
-                'PendingCount', 'SkippedCount', 'InconclusiveCount', 'TotalCount', 'Time', 'TestResult',
-                'PassedScenarios', 'FailedScenarios', 'PendingScenarios', 'UndefinedScenarios'
-
-                if ($CodeCoverage) {
-                    @{ Name = 'CodeCoverage'; Expression = { $CoverageReport } }
-                }
-            )
-
-            $Result = $Pester | & $SafeCommands['Select-Object'] -Property $Properties
-            $Result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
-            $Result
+            $Pester | New-PesterGherkinResults
         }
 
         $script:GherkinFailedLast = @($Pester.FailedScenarios.Name)
@@ -407,6 +334,52 @@ function Invoke-Gherkin {
             Exit-WithCode -FailedCount $Pester.FailedCount
         }
     }
+}
+
+function New-PesterGherkinResults {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$Pester
+    )
+
+    # The list of properties on the PesterState object which should be part of the test report
+    $Properties = @( 'Path', 'TagFilter', 'TestNameFilter', 'Features', 'PassedCount', 'FailedCount',
+        'PendingCount', 'SkippedCount', 'InconclusiveCount', 'TotalCount', 'Time', 'TestResult'
+
+        if ($CodeCoverage) {
+            @{ Name = 'CodeCoverage'; Expression = { $CoverageReport } }
+        }
+    )
+
+    $Result = $Pester | & $SafeCommands['Select-Object'] -Property $Properties
+    $Result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
+    $Result |
+        & $AddMember -MemberType ScriptMethod -Name GetScenariosWithResult -PassThru -Value {
+            [CmdletBinding()]
+            Param(
+                [Parameter(Position = 0, Mandatory = $True)]
+                [ValidateSet('Passed','Failed','Inconclusive','Pending')]
+                [string]$Result
+            )
+
+            $this.Features |
+                & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
+                & $SafeCommands['Where-Object'] {
+                    $ScenarioName = $_.Name
+                    $ScenarioResult = $_.Result
+
+                    $MatchesResult = $ScenarioResult -eq $Result
+                    $HasTestResults = @($this.TestResult | Select-Object -ExpandProperty Context) -contains $ScenarioName
+
+                    $HasTestResults -and $MatchesResult
+                } |
+                & $SafeCommands['ForEach-Object'] { $_.Name }
+        } |
+        & $AddMember -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value { $this.GetScenariosWithResult('Failed') } |
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value { $this.GetScenariosWithResult('Pending') } |
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value { $this.GetScenariosWithResult('Inconclusive') } |
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value { $this.GetScenariosWithResult('Passed') }
 }
 
 function Import-GherkinSteps {
@@ -516,7 +489,7 @@ function Import-GherkinFeature {
 
             switch ($Child) {
                 { $Child -is [Gherkin.Ast.Scenario] -or $Child -is [Gherkin.Ast.ScenarioOutline] } {
-                    $Scenario = Convert-Tags -InputObject $Child -BaseTags $Feature.Tags
+                    $Scenario = $Child | Convert-Tags $Feature.Tags
                 }
                 { $Child -is [Gherkin.Ast.Background] } {
                     $Background = $Child | & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru
@@ -564,9 +537,10 @@ function Import-GherkinFeature {
                             # Only include index of scenario
                             $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
                         }
+
                         & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps |
-                        & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru |
-                        Convert-Tags $Scenario.Tags
+                            & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru |
+                            Convert-Tags $Scenario.Tags
                     }
                 }
             }
@@ -576,7 +550,7 @@ function Import-GherkinFeature {
         }
     )
 
-    & $AddMember -MemberType NoteProperty -InputObject $Feature -Name Scenarios -Value $Scenarios -Force
+    $Feature = $Feature | & $AddMember -MemberType NoteProperty -Name Scenarios -Value $Scenarios -Force -PassThru
     return $Feature, $Background, $Scenarios
 }
 
@@ -730,10 +704,12 @@ function Invoke-GherkinScenario {
         [PSObject]$Pester,
 
         [Parameter(Position = 1)]
-        [Gherkin.Ast.Background]$Background,
+        #[Gherkin.Ast.Background]  # <-- If you do this, PSv2 corerces away the PSObject wrapper
+        $Background,               # <-- For Pester v5, this will not be an isue.
 
         [Parameter(Position = 2, Mandatory = $True)]
-        [Gherkin.Ast.Scenario]$Scenario,
+        #[Gherkin.Ast.Scenario]    # <-- If you do this, PSv2 corerces away the PSObject wrapper
+        $Scenario,                 # <-- For Pester v5, this will not be an isue.
 
         [string]$Language = 'en',
 
@@ -763,8 +739,6 @@ function Invoke-GherkinScenario {
         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult("Error occurred in scenario '$($Scenario.Name)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
-        # TODO: This is technically incorrect. The Context property should be set, not the Describe.
-        # TODO: The Describe property should have the name of the feature.
         # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
         # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
         # planned for v4.0
@@ -880,7 +854,8 @@ function Invoke-GherkinStep {
 
         [Parameter(Position = 2, Mandatory = $True, ValueFromPipeline = $True)]
         [AllowNull()]
-        [Gherkin.Ast.ScenarioDefinition[]]$ScenarioDefinition,
+        #[Gherkin.Ast.ScenarioDefinition[]]   # <-- If you do this, PSv2 corerces away the PSObject wrapper
+        $ScenarioDefinition,                  # <-- For Pester v5, this will not be an isue.
 
         [switch]$NoMultiline
     )
@@ -896,14 +871,6 @@ function Invoke-GherkinStep {
             # keeps going and ends up failing the step (and the whole scenario)!
             if (!$ScenarioDef) {
                 continue
-            }
-            elseif (!($ScenarioDef | Get-Member Result)) {
-                # This only occurs in PowerShell 2.0.
-                # Passing the Scenario or Background along, the synthetic Result NoteProperty is "lost"
-                # because the synthetic property is added to a wrapping PSObject and not the actual
-                # object instance itself. In PS 3+, the "wrapper" object is never "lost" and is always
-                # passed along.
-                $ScenarioDef = $ScenarioDef | & $SafeCommands['Add-Member'] -MemberType NoteProperty -Name Result -Value Passed -PassThru
             }
 
             if ($ScenarioDef.Result -ne 'Passed') {
@@ -1064,8 +1031,7 @@ function Convert-Tags {
         [string[]]$Tags = foreach ($tag in $InputObject.Tags | & $SafeCommands['Where-Object'] { $_ }) {
             $tag.Name.TrimStart("@")
         }
-        & $SafeCommands['Add-Member'] -MemberType NoteProperty -InputObject $InputObject -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force
-        $InputObject
+        $InputObject | & $SafeCommands['Add-Member'] -MemberType NoteProperty -Name Tags -Value ([string[]]($Tags + $BaseTags)) -Force -PassThru
     }
 }
 
