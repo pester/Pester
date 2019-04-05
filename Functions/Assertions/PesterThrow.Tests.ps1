@@ -72,11 +72,11 @@ InModuleScope Pester {
             }
 
             It "given scriptblock that throws exception with message that contains the expected message it passes" {
-                { throw 'expected error' } | Should -Throw -ExpectedMessage 'error'
+                { throw 'expected error' } | Should -Throw -ExpectedMessage '*error*'
             }
 
             It "given scriptblock that throws exception with message that contains the expected message it passes - legacy syntax" {
-                { throw 'expected error' } | Should Throw 'error'
+                { throw 'expected error' } | Should Throw '*error*'
             }
         }
 
@@ -108,7 +108,7 @@ InModuleScope Pester {
                     throw $errorRecord
                 }
 
-                $ScriptBlock | Should -Throw -ErrorId $expectedErrorId
+                $ScriptBlock | Should -Throw -ErrorId "*$expectedErrorId*"
             }
 
             It "given scriptblock that throws exception with FullyQualifiedErrorId that is different from the expected ErrorId it fails" {
@@ -369,7 +369,7 @@ InModuleScope Pester {
         }
 
         It "given message that contains the expectation it returns true" {
-            Get-DoValuesMatch "this is a long error message" "long error" | Verify-True
+            Get-DoValuesMatch "this is a long error message" "*long error*" | Verify-True
         }
     }
 }

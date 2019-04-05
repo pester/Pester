@@ -98,7 +98,7 @@ InModuleScope Pester {
                 $a2 = @($a1, 2)
                 $a1[0] = $a2
 
-                { $a1 | Should -be $a2 } | Should -throw 'recursion depth limit'
+                { $a1 | Should -be $a2 } | Should -throw '*recursion depth limit*'
             }
         }
 
@@ -112,19 +112,19 @@ InModuleScope Pester {
         It "Shows excerpted error messages correctly" {
             $expected = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             $actual = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-            { $actual | Should Be $expected } | Should Throw "Expected: '...aaaaabbbbb...'"
+            { $actual | Should Be $expected } | Should Throw "*Expected: '...aaaaabbbbb...'*"
         }
 
         It "Shows excerpted error messages correctly" {
             $expected = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             $actual = "abb"
-            { $actual | Should Be $expected } | Should Throw "Expected: 'aaaaaaaaaa...'"
+            { $actual | Should Be $expected } | Should Throw "*Expected: 'aaaaaaaaaa...'*"
         }
 
         It "Shows excerpted 'actual values' correctly" {
             $expected = "aaab"
             $actual = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-            { $actual | Should Be $expected } | Should Throw "But was:  'aaaaaaaaaa...'"
+            { $actual | Should Be $expected } | Should Throw "*But was:  'aaaaaaaaaa...'*"
         }
 
         It "Returns nothing for two identical strings" {

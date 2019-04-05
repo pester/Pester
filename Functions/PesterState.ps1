@@ -164,7 +164,7 @@
 #                 if (($Result -eq "Skipped") -or ($Result -eq "Pending"))
 #                 {
 #                     $FailureMessage = "The test failed because the test was executed in Strict mode and the result '$result' was translated to Failed."
-#                     $ErrorRecord = New-ErrorRecord -ErrorId 'PesterTestInconclusive' -Message $FailureMessage
+#                     $ErrorRecord = New-ErrorRecord -ErrorId '*PesterTestInconclusive*' -Message $FailureMessage
 #                     $Result = "Failed"
 #                 }
 
