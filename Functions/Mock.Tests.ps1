@@ -744,7 +744,7 @@ Describe "When Calling Assert-MockCalled without exactly" {
 
     It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
         $scriptBlock = { Assert-MockCalled FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
-        $scriptBlock | Should -Throw '1 non-matching calls were made'
+        $scriptBlock | Should -Throw '*1 non-matching calls were made*'
     }
 }
 
@@ -2387,7 +2387,7 @@ Describe 'RemoveParameterValidation' {
     }
 
     It 'throws when number is not in the valid range' {
-        { Test-Validation -Count -1 } | Should -Throw -ErrorId 'ParameterArgumentValidationError'
+        { Test-Validation -Count -1 } | Should -Throw -ErrorId '*ParameterArgumentValidationError*'
     }
 
     It 'passes when mock removes the validation' {

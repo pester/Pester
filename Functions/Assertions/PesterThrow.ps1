@@ -1,4 +1,14 @@
-function Should-Throw([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType, [switch] $Negate, [string] $Because, [switch] $PassThru) {
+function Should-Throw {
+    param (
+        [ScriptBlock] $ActualValue,
+        [string] $ExpectedMessage,
+        [string] $ErrorId,
+        [type] $ExceptionType,
+        [switch] $Negate,
+        [string] $Because,
+        [switch] $PassThru
+    )
+
     <#
 .SYNOPSIS
 Checks if an exception was thrown. Enclose input in a script block.
@@ -102,7 +112,7 @@ It does not throw an error, so the test passes.
         }
     }
 
-    $filterOnMessage = -not [string]::IsNullOrEmpty($ExpectedMessage -replace "\s")
+    $filterOnMessage = -not [string]::IsNullOrWhitespace($ExpectedMessage)
     if ($filterOnMessage) {
         $filters += "with message $(Format-Nicely $ExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
@@ -110,7 +120,7 @@ It does not throw an error, so the test passes.
         }
     }
 
-    $filterOnId = -not [string]::IsNullOrEmpty($ErrorId -replace "\s")
+    $filterOnId = -not [string]::IsNullOrWhitespace($ErrorId)
     if ($filterOnId) {
         $filters += "with FullyQualifiedErrorId $(Format-Nicely $ErrorId)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ErrorId))) {
@@ -146,11 +156,11 @@ It does not throw an error, so the test passes.
 
 function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
     #user did not specify any message filter, so any message matches
-    if ($null -eq $ExpectedValue ) {
+    if ($null -eq $ExpectedValue) {
         return $true
     }
 
-    return $ActualValue.ToString().IndexOf($ExpectedValue, [System.StringComparison]::InvariantCultureIgnoreCase) -ge 0
+    return $ActualValue.ToString() -like $ExpectedValue
 }
 
 function Get-ExceptionLineInfo($info) {
