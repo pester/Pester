@@ -156,7 +156,7 @@ function Invoke-Gherkin {
             This parameter does not affect the PassThru custom object or the XML output that
             is written when you use the Output parameters.
 
-        .PARAMETER Multiline
+        .PARAMETER NoMultiline
             Controls whether or not Step Definition DocString and DataTable arguments are printed to the
             console during the test run.
 
@@ -365,18 +365,21 @@ function New-PesterGherkinResults {
 
             $this.Features |
                 & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
-                & $SafeCommands['Where-Object'] {
-                    $ScenarioName = $_.Name
-                    $ScenarioResult = $_.Result
-
-                    $MatchesResult = $ScenarioResult -eq $Result
-                    $HasTestResults = @($this.TestResult | Select-Object -ExpandProperty Context) -contains $ScenarioName
-
-                    $HasTestResults -and $MatchesResult
-                } |
-                & $SafeCommands['ForEach-Object'] { $_.Name }
+                & $SafeCommands['ForEach-Object'] -Begin { $Scenarios = @() } -Process {
+                    $Scenarios += @(
+                        if ($_ -is [Gherkin.Ast.ScenarioOutline]) {
+                            $_ | & $SafeCommands['Select-Object'] -ExpandProperty Examples |
+                                & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
+                                & $SafeCommands['Select-Object'] Name, Result
+                        } else {
+                            $_ | & $SafeCommands['Select-Object'] Name, Result
+                        }
+                    )
+                } -End { $Scenarios } |
+                & $SafeCommands['Where-Object'] { $_.Result -eq $Result } |
+                & $SafeCommands['Select-Object'] -ExpandProperty Name
         } |
-        & $AddMember -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value { $this.GetScenariosWithResult('Failed') } |
+        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value { $this.GetScenariosWithResult('Failed') } |
         & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value { $this.GetScenariosWithResult('Pending') } |
         & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value { $this.GetScenariosWithResult('Inconclusive') } |
         & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value { $this.GetScenariosWithResult('Passed') }
@@ -465,8 +468,11 @@ function Import-GherkinFeature {
 
     $AddMember     = $SafeCommands['Add-Member']
     $CompareObject = $SafeCommands['Compare-Object']
+    $GetUnique     = $SafeCommands['Get-Unique']
+    $MeasureObject = $SafeCommands['Measure-Object']
     $NewObject     = $SafeCommands['New-Object']
     $SelectObject  = $SafeCommands['Select-Object']
+    $WhereObject   = $SafeCommands['Where-Object']
     $WriteWarning  = $SafeCommands['Write-Warning']
 
     $Background = $null
@@ -479,79 +485,181 @@ function Import-GherkinFeature {
         return
     }
 
-    $Scenarios = $(
+    $Scenarios = @(
         :scenarios foreach ($Child in $Feature.Children) {
-            $null = & $AddMember -MemberType "NoteProperty" -InputObject $Child.Location -Name "Path" -Value $Path
+            $null = & $AddMember -MemberType NoteProperty -InputObject $Child.Location -Name Path -Value $Path
 
             foreach ($Step in $Child.Steps) {
-                $null = & $AddMember -MemberType "NoteProperty" -InputObject $Step.Location -Name "Path" -Value $Path
+                $null = & $AddMember -MemberType NoteProperty -InputObject $Step.Location -Name Path -Value $Path
             }
 
             switch ($Child) {
                 { $Child -is [Gherkin.Ast.Scenario] -or $Child -is [Gherkin.Ast.ScenarioOutline] } {
-                    $Scenario = $Child | Convert-Tags $Feature.Tags
+                    $ScenarioDef = $Child | Convert-Tags $Feature.Tags; break
                 }
                 { $Child -is [Gherkin.Ast.Background] } {
-                    $Background = $Child | & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru
+                    $Background = $Child | & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru
                     continue scenarios
                 }
                 default {
-                    & $WriteWarning "Unexpected Feature Child: $_"
+                    & $WriteWarning "Unexpected Feature Child: $_"; break
                 }
             }
 
-            if ( $Scenario -is [Gherkin.Ast.ScenarioOutline] ) {
-                # If there is no example set name, the following index will be included in the scenario name
-                $ScenarioIndex = 0
-                foreach ($ExampleSet in $Scenario.Examples) {
-                    ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SelectObject -ExpandProperty Value)
-                    $NamesPattern = "<(?:" + (${Column Names} -join "|") + ")>"
-                    # If there is an example set name, the following index will be included in the scenario name
-                    $ExampleSetIndex = 0
-                    foreach ($Example in $ExampleSet.TableBody) {
-                        $ScenarioIndex++
-                        $ExampleSetIndex++
-                        $Steps = foreach ($Step in $Scenario.Steps) {
-                            [string]$StepText = $Step.Text
-                            if ($StepText -match $NamesPattern) {
-                                for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
-                                    $Name = ${Column Names}[$n]
-                                    if ($Example.Cells[$n].Value -and $StepText -match "<${Name}>") {
-                                        $StepText = $StepText -replace "<${Name}>", $Example.Cells[$n].Value
+            if ($ScenarioDef -is [Gherkin.Ast.ScenarioOutline]) {
+                # If ExcludeTags were specified, check the scenario outline's tags before further processing
+                # the scenario outline.
+                if ($Pester.ExcludeTagFilter -and @(& $CompareObject $ScenarioDef.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).Count -gt 0) {
+                    continue scenarios
+                }
+
+                $ScenarioDefExamples = @(
+                    foreach ($ExampleSet in $ScenarioDef.Examples) {
+                        # Get the coulmn names from the scenario outline table so we can replace step text table tokens later
+                        # when creating the scenario outline example scenarios.
+                        ${Column Names} = @($ExampleSet.TableHeader.Cells | & $SelectObject -ExpandProperty Value)
+                        $NamesPattern = "<(?:$(${Column Names} -join "|"))>"
+
+                        $ExampleSetScenarios = @()
+
+                        # TODO: I decided to tackle changing how example scenario names are generated, as a first
+                        # TODO: step, so that they match how Ruby Cucumber does it, instead of doing everything
+                        # TODO: "all at once" since this will require several changes to unit tests. It'll also
+                        # TODO: make this PR easier to code review--not that this PR will be easy to code review.
+                        # TODO: Anyway, here is where we would check to see if -Expand was specified. That'll
+                        # TODO: come in a later commit.
+                        $ExampleSetScenarios += @(
+                            foreach ($Row in $ExampleSet.TableBody) {
+                                # Generate example scenario name
+                                $ExampleScenarioName = "| $(@($Row.Cells | & $SelectObject -ExpandProperty Value) -join ' | ') |"
+
+                                # Replace Step Text scenario outline tokens with data from the example scenario row
+                                $ExampleScenarioSteps = foreach ($Step in $ScenarioDef.Steps) {
+                                    [string]$StepText = $Step.Text
+                                    if ($StepText -match $NamesPattern) {
+                                        for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                                            $Name = ${Column Names}[$n]
+                                            if ($Row.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                                $StepText = $StepText -replace "<${Name}>", $Row.Cells[$n].Value
+                                            }
+                                        }
+                                    }
+
+                                    if ($StepText -ne $Step.Text) {
+                                        & $NewObject Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                    }
+                                    else {
+                                        $Step
                                     }
                                 }
+
+                                $ScenarioKeyword = Get-Translation 'scenario' $Feature.Language
+                                & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $Row.Location, $ScenarioKeyword, $ExampleScenarioName, $null, $ExampleScenarioSteps |
+                                    & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru |
+                                    & $AddMember -MemberType NoteProperty -Name Expand -Value $Expand -PassThru |
+                                    & $AddMember -MemberType NoteProperty -Name ExampleSet -Value $ExampleSet -PassThru |
+                                    Convert-Tags $ScenarioDef.Tags
                             }
-                            if ($StepText -ne $Step.Text) {
-                                & $NewObject Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                        )
+
+                        if ($ExampleSetScenarios.Length -eq 0) { continue scenarios }
+
+                        # Filter the example scenarios.
+                        # Test the name  filter first, since it will probably return one single item.
+                        if ($Pester.TestNameFilter) {
+                            $ExampleSetScenarios = foreach ($f in $Pester.TestNameFilter) {
+                                $f = $f.Trim()
+                                $ExampleSetScenarios | & $WhereObject {
+                                    $n = $_.Name.Trim()
+                                    $r = $n -like $f
+                                    $r = $r -or ($n -replace '(\s)\s+','$1') -like $f
+                                    $r -or $n -like ($f -replace '(\s)\s+','$1')
+                                }
                             }
-                            else {
-                                $Step
-                            }
-                        }
-                        $ScenarioName = $Scenario.Name
-                        if ($ExampleSet.Name) {
-                            # Include example set name and index of example
-                            $ScenarioName = $ScenarioName + " [$($ExampleSet.Name.Trim()) $ExampleSetIndex]"
-                        }
-                        else {
-                            # Only include index of scenario
-                            $ScenarioName = $ScenarioName + " [$ScenarioIndex]"
+
+                            $ExampleSetScenarios = @($ExampleSetScenarios | & $GetUnique)
                         }
 
-                        & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $Scenario.Location, $Scenario.Keyword.Trim(), $ScenarioName, $Scenario.Description, $Steps |
-                            & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru |
-                            Convert-Tags $Scenario.Tags
+                        # If Include tags were specified, then only include scenarios having one or more of those tags.
+                        if ($Pester.TagFilter) {
+                            $ExampleSetScenarios = @(
+                                $ExampleSetScenarios | & $WhereObject {
+                                    & $CompareObject $_.Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent }
+                            )
+                        }
+
+                        # If ExcludeTags were specified, then exclude any example scenarios whose tags match any exclude tag.
+                        if ($Pester.ExcludeTagFilter) {
+                            $ExampleSetScenarios = @(
+                                $ExampleSetScenarios | & $WhereObject {
+                                    !(& $CompareObject $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
+                            )
+                        }
+
+                        $ExampleSet |
+                            & $AddMember -MemberType NoteProperty -Name Scenarios -Value $ExampleSetScenarios -PassThru |
+                            & $AddMember -MemberType NoteProperty -Name ScenarioOutline -Value $ScenarioDef -PassThru
                     }
+                )
+
+                $ScenarioDef = $ScenarioDef | & $AddMember -MemberType NoteProperty -Name Examples -Value $ScenarioDefExamples -Force -PassThru
+
+                # Return the secnario outline iff. there are any example scenarios in any of the example sets.
+                # I.e. if all scenarios were filtered out of the scenario outline, don't return an empty scenario outline.
+                if (($ScenarioDef.Examples | & $SelectObject -ExpandProperty Scenarios | & $MeasureObject).Count -eq 0) {
+                    continue scenarios
                 }
+
+                # It's possible only some of the examples sets are empty due to secnario filtering.
+                # THerefore, likewise, only return those Scenario Outline ExampleSets that contain example
+                # scenarios to be executed.
+                $ExampleSets = @($ScenarioDef.Examples | & $WhereObject { $_.Scenarios.Length -gt 0 })
+
+                & $NewObject Gherkin.Ast.ScenarioOutline $null, $ScenarioDef.Location, $ScenarioDef.Keyword.Trim(), $ScenarioDef.Name, $ScenarioDef.Description, $ScenarioDef.Steps, $null |
+                    & $AddMember -MemberType NoteProperty -Name Examples -Value $ExampleSets -Force -PassThru |
+                    Convert-Tags $ScenarioDef.Tags
             }
             else {
-                $Scenario | & $AddMember -MemberType NoteProperty -Name Result -Value 'Passed' -PassThru
+                # Apply filters to the scenario.
+                # Test the name filter first, since it will probably most quickly determine whethe or not to
+                # run the secnario at all.
+                if ($Pester.TestNameFilter -and @($Pester.TestNameFilter | & $WhereObject { $ScenarioDef.Name -like $_.Trim() }).Length -eq 0) {
+                    continue scenarios
+                }
+
+                # If include tags were specified, then only include the scenario if it has one or more of
+                # those tags.
+                if ($Pester.TagFilter -and @(& $CompareObject $ScenarioDef.Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).Length -eq 0) {
+                    continue scenarios
+                }
+
+                # If ExcludeTags were specified, then exclude any example scenarios whose tags match any
+                # exclude tag.
+                if ($Pester.ExcludeTagFilter -and @(& $CompareObject $ScenarioDef.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).Length -gt 0) {
+                    continue scenarios
+                }
+
+                $ScenarioDef |
+                    & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru |
+                    & $AddMember -MemberType NoteProperty -Name Expand -Value $False -PassThru | # TODO: <-- May not need this? The thought was to be able to treat all secnarios the same...
+                    & $AddMember -MemberType NoteProperty -Name IsExampleSetScenario -Value $False -PassThru
             }
         }
     )
 
+    $Scenarios = , $Scenarios | & $WhereObject { $null -ne $_}
+
+    # TODO: Either, add to this and set Background on the Feature and don't return three values, or just
+    # TODO: get rid of this line and return all the values separately as we are already doing...
+    # * I Prefer adding to this and not returning 3 distinct values
     $Feature = $Feature | & $AddMember -MemberType NoteProperty -Name Scenarios -Value $Scenarios -Force -PassThru
-    return $Feature, $Background, $Scenarios
+
+    if ($Scenarios -and $Scenarios.Length) {
+        $Feature, $Background, $Scenarios
+    }
+    else {
+        $null, $null, $null
+    }
 }
 
 function Invoke-GherkinFeature {
@@ -596,52 +704,47 @@ function Invoke-GherkinFeature {
     try {
         $Parent = & $SafeCommands['Split-Path'] $FeatureFile.FullName
         Import-GherkinSteps -StepPath $Parent -Pester $pester
-        $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
+        $Feature, $Background, $ScenarioDefs = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
     }
     catch [Gherkin.ParserException] {
         & $SafeCommands['Write-Error'] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands['Select-Object'] -Expand Message) -join "`n`n")"
         continue
     }
 
-    # Test the name filter first, since it will probably return one single item
-    if ($Pester.TestNameFilter) {
-        $Scenarios = foreach ($nameFilter in $Pester.TestNameFilter) {
-            $Scenarios | & $SafeCommands['Where-Object'] { $_.Name -like $NameFilter }
-        }
-        $Scenarios = $Scenarios | & $SafeCommands['Get-Unique']
-    }
-
-    # if($Pester.TagFilter -and @(Compare-Object $Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent).count -eq 0) {return}
-    if ($Pester.TagFilter) {
-        $Scenarios = $Scenarios | & $SafeCommands['Where-Object'] { & $SafeCommands['Compare-Object'] $_.Tags $Pester.TagFilter -IncludeEqual -ExcludeDifferent }
-    }
-
-    # if($Pester.ExcludeTagFilter -and @(Compare-Object $Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent).count -gt 0) {return}
-    if ($Pester.ExcludeTagFilter) {
-        $Scenarios = $Scenarios | & $SafeCommands['Where-Object'] { !(& $SafeCommands['Compare-Object'] $_.Tags $Pester.ExcludeTagFilter -IncludeEqual -ExcludeDifferent) }
-    }
+    if (!$Feature) { return }
+    $null = $Pester.Features.Add($Feature)
 
     try {
-        $Script:GherkinIndentationLevel = 0
-
         # To create a more user-friendly test report, we use the feature name for the test group
         $Pester.EnterTestGroup($Feature.Name, 'Feature')
-
-        $null = $Pester.Features.Add($Feature)
         Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
 
-        if ($Scenarios) {
-            Write-Feature $Feature $Pester
-        }
+        # Reset indentation level for displaying feature information on the console.
+        $Script:GherkinIndentationLevel = 0
+        Write-Feature $Feature $Pester
 
-        foreach ($Scenario in $Scenarios) {
+        foreach ($ScenarioDef in $ScenarioDefs) {
+            # Reset indentation level for displaying scenario information on the console.
             $Script:GherkinIndentationLevel = 1
-            Invoke-GherkinScenario $Pester $Background $Scenario -Language $Feature.Language -NoMultiline:$NoMultiline
+
+            if ($ScenarioDef -is [Gherkin.Ast.ScenarioOutline]) {
+                try {
+                    $Pester.EnterTestGroup($ScenarioDef.Name, 'Scenario Outline')
+                    # TODO: Do we need to pass along the language?
+                    Invoke-GherkinExamples $Pester $Background $ScenarioDef -Language $Feature.Language -NoMultiline:$NoMultiline
+                } finally {
+                    $Pester.LeaveTestGroup($ScenarioDef.Name, 'Scenario Outline')
+                }
+            }
+            else {
+                # TODO: Do we need to pass along the language?
+                Invoke-GherkinScenario $Pester $Background $ScenarioDef -Language $Feature.Language -NoMultiline:$NoMultiline
+            }
         }
     }
     catch {
         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
-        $Pester.AddTestResult("Error occurred in test script '$($Feature.Path)'", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
+        $Pester.AddTestResult("Error occurred in test script '$($Feature.Path)'", 'Failed', $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
         # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
         # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
@@ -657,6 +760,32 @@ function Invoke-GherkinFeature {
         }
         $Location | & $SafeCommands['Set-Location']
         [Environment]::CurrentDirectory = $CWD
+    }
+}
+
+function Invoke-GherkinExamples {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSObject]$Pester,
+
+        [Parameter(Position = 1)]
+        #[Gherkin.Ast.Background]
+        $Background,
+
+        [Parameter(Position = 2, ValueFromPipeline = $True)]
+        #[Gherkin.Ast.ScenarioOutline]
+        $ScenarioOutline,
+
+        [string]$Language = 'en',
+
+        [switch]$NoMultiline
+    )
+
+    foreach ($ExampleSet in $ScenarioOutline.Examples)  {
+        foreach ($Scenario in $ExampleSet.Scenarios) {
+            Invoke-GherkinScenario $Pester $Background $Scenario -NoMultiline:$NoMultiline
+        }
     }
 }
 
