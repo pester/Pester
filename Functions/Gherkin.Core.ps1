@@ -522,43 +522,85 @@ function Import-GherkinFeature {
 
                         $ExampleSetScenarios = @()
 
-                        # TODO: I decided to tackle changing how example scenario names are generated, as a first
-                        # TODO: step, so that they match how Ruby Cucumber does it, instead of doing everything
-                        # TODO: "all at once" since this will require several changes to unit tests. It'll also
-                        # TODO: make this PR easier to code review--not that this PR will be easy to code review.
-                        # TODO: Anyway, here is where we would check to see if -Expand was specified. That'll
-                        # TODO: come in a later commit.
                         $ExampleSetScenarios += @(
-                            foreach ($Row in $ExampleSet.TableBody) {
-                                # Generate example scenario name
-                                $ExampleScenarioName = "| $(@($Row.Cells | & $SelectObject -ExpandProperty Value) -join ' | ') |"
+                            if ($Expand) {
+                                foreach ($Row in $ExampleSet.TableBody) {
+                                    # Generate example scenario name
+                                    $ExampleScenarioName = "| $(@($Row.Cells | & $SelectObject -ExpandProperty Value) -join ' | ') |"
 
-                                # Replace Step Text scenario outline tokens with data from the example scenario row
-                                $ExampleScenarioSteps = foreach ($Step in $ScenarioDef.Steps) {
-                                    [string]$StepText = $Step.Text
-                                    if ($StepText -match $NamesPattern) {
-                                        for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
-                                            $Name = ${Column Names}[$n]
-                                            if ($Row.Cells[$n].Value -and $StepText -match "<${Name}>") {
-                                                $StepText = $StepText -replace "<${Name}>", $Row.Cells[$n].Value
+                                    # Replace Step Text scenario outline tokens with data from the example scenario row
+                                    $ExampleScenarioSteps = foreach ($Step in $ScenarioDef.Steps) {
+                                        [string]$StepText = $Step.Text
+                                        if ($StepText -match $NamesPattern) {
+                                            for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                                                $Name = ${Column Names}[$n]
+                                                if ($Row.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                                    $StepText = $StepText -replace "<${Name}>", $Row.Cells[$n].Value
+                                                }
                                             }
+                                        }
+
+                                        if ($StepText -ne $Step.Text) {
+                                            & $NewObject Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
+                                        }
+                                        else {
+                                            $Step
                                         }
                                     }
 
-                                    if ($StepText -ne $Step.Text) {
-                                        & $NewObject Gherkin.Ast.Step $Step.Location, $Step.Keyword.Trim(), $StepText, $Step.Argument
-                                    }
-                                    else {
-                                        $Step
-                                    }
+                                    $ScenarioKeyword = Get-Translation 'scenario' $Feature.Language
+                                    & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $Row.Location, $ScenarioKeyword, $ExampleScenarioName, $null, $ExampleScenarioSteps |
+                                        & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru |
+                                        & $AddMember -MemberType NoteProperty -Name Expand -Value $Expand -PassThru |
+                                        & $AddMember -MemberType NoteProperty -Name ExampleSet -Value $ExampleSet -PassThru |
+                                        Convert-Tags $ScenarioDef.Tags
                                 }
+                            }
+                            else {
+                                $ExampleSetRows = [Gherkin.Ast.TableRow[]]@($ExampleSet.TableHeader)
+                                foreach ($r in $ExampleSet.TableBody) { $ExampleSetRows += $r }
+                                $TableColumnWidths = Get-TableColumnWidths $ExampleSetRows
 
-                                $ScenarioKeyword = Get-Translation 'scenario' $Feature.Language
-                                & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $Row.Location, $ScenarioKeyword, $ExampleScenarioName, $null, $ExampleScenarioSteps |
-                                    & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru |
-                                    & $AddMember -MemberType NoteProperty -Name Expand -Value $Expand -PassThru |
-                                    & $AddMember -MemberType NoteProperty -Name ExampleSet -Value $ExampleSet -PassThru |
-                                    Convert-Tags $ScenarioDef.Tags
+                                foreach ($Row in $ExampleSet.TableBody) {
+                                    $ExampleScenarioName = "| $(
+                                        for ($j = 0; $j -lt $Row.Cells.Length; $j++) {
+                                            "{0,$(-$TableColumnWidths[$j])} |" -f $Row.Cells[$j].Value
+                                        }
+                                    )"
+
+                                    # Replace Step Text scenario outline tokens with data from the example
+                                    # scenario row
+                                    $ExampleScenarioSteps = foreach ($Step in $ScenarioDef.Steps) {
+                                        [string]$StepText = $Step.Text
+                                        if ($StepText -match $NamesPattern) {
+                                            for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
+                                                $Name = ${Column Names}[$n]
+                                                if ($Row.Cells[$n].Value -and $StepText -match "<${Name}>") {
+                                                    $StepText = $StepText -replace "<${Name}>", $Row.Cells[$n].Value
+                                                }
+                                            }
+                                        }
+
+                                        if ($StepText -ne $Step.Text) {
+                                            $StepLocation = $Step.Location
+                                            & $NewObject Gherkin.Ast.Step $null, $Step.Keyword.Trim(), $StepText, $Step.Argument |
+                                                & $AddMember -MemberType NoteProperty -Name Location -Value $StepLocation -Force -PassThru
+
+                                        }
+                                        else {
+                                            $Step
+                                        }
+                                    }
+
+                                    $ExampleScenarioLocation = $Row.Location |
+                                        & $AddMember -MemberType NoteProperty -Name Path -Value $Path -PassThru
+
+                                    & $NewObject Gherkin.Ast.Scenario $ExampleSet.Tags, $ExampleScenarioLocation, $null, $ExampleScenarioName, $null, $ExampleScenarioSteps |
+                                        & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru |
+                                        & $AddMember -MemberType NoteProperty -Name Expand -Value $Expand -PassThru |
+                                        & $AddMember -MemberType NoteProperty -Name ExampleSet -Value $ExampleSet -PassThru |
+                                        Convert-Tags $ScenarioDef.Tags
+                                }
                             }
                         )
 
