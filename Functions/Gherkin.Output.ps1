@@ -436,12 +436,6 @@ filter Write-GherkinMultilineArgument {
         [ConsoleColor]$ForegroundColor = [ConsoleColor]::Gray
     )
 
-    Begin {
-        $ForEachObject = $SafeCommands['ForEach-Object']
-        $MeasureObject = $SafeCommands['Measure-Object']
-        $SelectObject = $SafeCommands['Select-Object']
-    }
-
     Process {
         $Margin = $Script:ReportStrings.Margin * $IndentationLevel
 
@@ -449,31 +443,7 @@ filter Write-GherkinMultilineArgument {
             $FgDiv = $Script:ReportTheme.TableCellDivider
             $FgVal = $Script:ReportTheme.TableCellValue
 
-            $Table = $DataTable.Rows | & $ForEachObject {
-                , @($_.Cells | & $SelectObject -ExpandProperty Value)
-            }
-
-            if ($Table[0].Length -gt 1) {
-                $TransposedTable = for ($i = $Table[0].Length - 1; $i -ge 0; $i--) {
-                    , @(for ($j = 0; $j -lt $Table.Length; $j++) { $Table[$j][$i] })
-                }
-
-                [Array]::Reverse($TransposedTable)
-                $TableColumnWidths = $TransposedTable |
-                & $ForEachObject {
-                    $_ |
-                    & $MeasureObject -Property Length -Maximum |
-                    & $SelectObject -ExpandProperty Maximum
-                }
-            }
-            else {
-                $TableColumnWidths = @(
-                    $Table |
-                    & $ForEachObject { $_ } |
-                    & $MeasureObject -Property Length -Maximum |
-                    & $SelectObject -ExpandProperty Maximum
-                )
-            }
+            $TableColumnWidths = Get-TableColumnWidths $DataTable.Rows
 
             foreach ($Row in $DataTable.Rows) {
                 & $WriteHost -ForegroundColor $FgDiv "${Margin}|" -NoNewline

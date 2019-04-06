@@ -1142,6 +1142,58 @@ function Get-StepParameters {
     return @($NamedArguments, $Parameters)
 }
 
+function Get-TableColumnWidths {
+    [CmdletBinding()]
+    [OutputType([int[]])]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [Gherkin.Ast.TableRow[]]$Rows
+    )
+
+    Begin {
+        $MeasureObject = $SafeCommands['Measure-Object']
+        $SelectObject  = $SafeCommands['Select-Object']
+    }
+
+    Process {
+        $TableRows = , $(
+            foreach ($r in $Rows) {
+                , [string[]]@($r.Cells | & $SelectObject -ExpandProperty Value)
+            }
+        )
+
+        # Check if the table has more than one column. If so, we need to transpose the table so we can
+        # ascertain, for ecah row, the widest column width.
+        if ($TableRows[0].Length -gt 1) {
+            $TransposedTableRows = @(
+                for ($i = $TableRows[0].Length - 1; $i -ge 0; $i--) {
+                    , [string[]]@(for ($j = 0; $j -lt $TableRows.Length; $j++) { $TableRows[$j][$i] })
+                }
+            )
+
+            [Array]::Reverse($TransposedTableRows)
+            , [int[]]@(
+                foreach ($TransposedRow in $TransposedTableRows) {
+                    $TransposedRow |
+                        & $MeasureObject -Property Length -Maximum |
+                        & $SelectObject -ExpandProperty Maximum
+                }
+            )
+        }
+        else {
+            [int[]]@(
+                @(
+                    foreach ($Row in $TableRows) {
+                        $Row |
+                            & $MeasureObject -Property Length -Maximum |
+                            & $SelectObject -ExpandProperty Maximum
+                    }
+                ) | & $MeasureObject -Maximum | & $SelectObject -ExpandProperty Maximum
+            )
+        }
+    }
+}
+
 function Convert-Tags {
     <#
         .SYNOPSIS
