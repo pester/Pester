@@ -94,70 +94,205 @@
     $StepResult
 }
 
-function Write-Feature {
-    param (
-        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
-        #[Gherkin.Ast.Feature]
-        $Feature,
-
-        [Parameter(Position = 1, Mandatory = $True)]
+function Write-Background {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True)]
         [PSObject]$Pester,
 
-        [string] $CommandUsed = 'Feature'
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        #[Gherkin.Ast.Background]
+        $Background
     )
+
+    process {
+        if (-not ($Pester.Show | Has-Flag Context)) {
+            return
+        }
+
+        $WriteHost = $SafeCommands['Write-Host']
+
+        $Margin = $Script:Reportstrings.Margin * $Script:GherkinIndentationLevel
+
+        $BackgroundText = "${Margin}$($Script:ReportStrings.Background)" -f $Background.Keyword, $Background.Name
+
+        & $WriteHost
+        & $WriteHost $BackgroundText -ForegroundColor $Script:ReportTheme.Background
+        if ($Background.Description) {
+            & $WriteHost $Background.Description -ForegroundColor $Script:ReportTheme.BackgroundDescription
+        }
+    }
+}
+
+function Write-ExampleSet {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSObject]$Pester,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        #[Gherkin.Ast.Examples]
+        $ExampleSet
+    )
+
+    process {
+        if (-not ($Pester.Show | Has-Flag Context)) {
+            return
+        }
+
+        $WriteHost = $SafeCommands['Write-Host']
+
+        $Margin = $Script:Reportstrings.Margin * $Script:GherkinIndentationLevel++
+
+        $ExampleSetText = "${Margin}$($Script:ReportStrings.Examples)" -f $ExampleSet.Keyword, $ExampleSet.Name
+
+        & $WriteHost
+        & $WriteHost $ExampleSetText -ForegroundColor $Script:ReportTheme.Examples
+        if ($ExampleSet.Descripion) {
+            & $WriteHost $ExampleSet.Descripion -ForegroundColor $Script:ReportTheme.ExamplesDescription
+        }
+
+        if (!$ExampleSet.Scenarios[0].Expand) {
+            $Margin = $Script:ReportStrings.Margin * $Script:GherkinIndentationLevel
+
+            & $WriteHost "${Margin}|" -ForegroundColor $Script:ReportTheme.TableCellDivider -NoNewLine
+            foreach ($cellvalue in ($ExampleSet.TableHeaderRow.Trim('|') -split '\|')) {
+                & $WriteHost $cellValue -ForegroundColor $Script:ReportTheme.ScenarioOutlineTableHeaderCell -NoNewLine
+                & $WriteHost '|' -ForegroundColor $Script:ReportTheme.TableCellDivider -NoNewLine
+            }
+            & $WriteHost
+        }
+    }
+}
+function Write-Feature {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSObject]$Pester,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        #[Gherkin.Ast.Feature]
+        $Feature
+    )
+
     process {
         if (-not ( $Pester.Show | Has-Flag Describe)) {
             return
         }
 
-        $margin = $ReportStrings.Margin * $Pester.IndentLevel
+        $WriteHost = $SafeCommands['Write-Host']
+        $FgFeatureName = $Script:ReportTheme.Feature
+        $FgFeatureDescription = $Script:ReportTheme.FeatureDescription
 
-        $Text = if ($Feature.PSObject.Properties['Name'] -and $Feature.Name) {
-            $ReportStrings.$CommandUsed -f $Feature.Name
+        $Margin = $Script:ReportStrings.Margin * $Script:GherkinIndentationLevel++
+
+        $FeatureText = "${Margin}$($Script:ReportStrings.Feature)" -f $Feature.Keyword, $Feature.Name
+
+        & $WriteHost
+        & $WriteHost $FeatureText -ForegroundColor $FgFeatureName
+        if ($Feature.Description) {
+            & $WriteHost $Feature.Description -ForegroundColor $FgFeatureDescription
         }
-        else {
-            $ReportStrings.$CommandUsed -f $Feature
+    }
+}
+
+function Write-ScenarioOutline {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSObject]$Pester,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        #[Gherkin.Ast.ScenarioOutline]
+        $ScenarioOutline
+    )
+
+    process {
+        if (-not ( $Pester.Show | Has-Flag Context)) {
+            return
         }
 
-        & $SafeCommands['Write-Host']
-        & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.Describe
-        # If the feature has a longer description, write that too
-        if ($Feature.PSObject.Properties['Description'] -and $Feature.Description) {
-            $Feature.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
-                & $SafeCommands['Write-Host'] ($ReportStrings.Margin * ($Pester.IndentLevel + 1)) $_ -ForegroundColor $ReportTheme.DescribeDetail
-            }
+        $WriteHost = $SafeCommands['Write-Host']
+
+        $FgName = $Script:ReportTheme.ScenarioOutline
+        $FgDescription = $Script:ReportTheme.ScenarioOutlineDescription
+
+        $Margin = $Script:ReportStrings.Margin * $Script:GherkinIndentationLevel++
+
+        $ScenarioOutlineText = "${Margin}$($Script:ReportStrings.ScenarioOutline)" -f $ScenarioOutline.Keyword, $ScenarioOutline.Name
+
+        & $WriteHost
+        & $WriteHost $ScenarioOutlineText -ForegroundColor $FgName
+        if ($ScenarioOutline.Description) {
+            & $WriteHost $ScenarioOutline.Description -ForegroundColor $FgDescription
+        }
+
+        $Margin = $Script:ReportStrings.Margin * $Script:GherkinIndentationLevel
+        foreach ($Step in $ScenarioOutline.Steps) {
+            & $WriteHost "${Margin}$($Step.Keyword.Trim()) $($Step.Text.Trim())" -ForegroundColor $Script:ReportTheme.ScenarioOutlineStep
         }
     }
 }
 
 function Write-Scenario {
     param (
-        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
-        #[Gherkin.Ast.Scenario]
-        $Scenario,
+        [Parameter(Position = 0, Mandatory = $True)]
+        [PSObject]$Pester,
 
-        [Parameter(Position = 1, Mandatory = $True)]
-        [PSObject]$Pester
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        #[Gherkin.Ast.Scenario]
+        $Scenario
     )
 
     process {
-        if (-not ( $pester.Show | Has-Flag Context)) {
+        if (-not ( $Pester.Show | Has-Flag Context)) {
             return
         }
-        $Text = if ($Scenario.PSObject.Properties['Name'] -and $Scenario.Name) {
-            $ReportStrings.Scenario -f $Scenario.Name
+
+        $WhereObject = $SafeCommands['Where-Object']
+        $WriteHost = $SafeCommands['Write-Host']
+        $FgScenarioName = $Script:ReportTheme.Scenario
+        $FgScenarioDescription = $Script:ReportTheme.ScenarioDescription
+
+        if (!$Scenario.ExampleSet -or $Scenario.Expand) {
+            $Margin = $Script:ReportStrings.Margin * $Script:GherkinIndentationLevel
+            $ScenarioText = "${Margin}$($Script:ReportStrings.Scenario)" -f $Scenario.Keyword, $Scenario.Name
+
+            & $WriteHost
+            & $WriteHost $ScenarioText -ForegroundColor $FgScenarioName
+            if ($Scenario.Description) {
+                & $WriteHost $Scenario.Description -ForegroundColor $FgScenarioDescription
+            }
         }
         else {
-            $ReportStrings.Scenario -f $Scenario
-        }
-
-        & $SafeCommands['Write-Host']
-        & $SafeCommands['Write-Host'] ($ReportStrings.Margin + $Text) -ForegroundColor $ReportTheme.Context
-        # If the scenario has a longer description, write that too
-        if ($Scenario.PSObject.Properties['Description'] -and $Scenario.Description) {
-            $Scenario.Description -split "$([System.Environment]::NewLine)" | ForEach-Object {
-                & $SafeCommands['Write-Host'] (" " * $ReportStrings.Context.Length) $_ -ForegroundColor $ReportTheme.ContextDetail
+            $FgColor = switch ($Scenario.Result) {
+                'Passed' { $Script:ReportTheme.Pass; break }
+                'Failed' { $Script:ReportTheme.Fail; break }
+                'Skipped' { $Script:ReportTheme.Skipped; break }
+                'Pending' { $Script:ReportTheme.Pending; break }
+                'Inconclusive' { $Script:ReportTheme.Undefined; break }
             }
+            $FgTableSep = $Script:ReportTheme.TableCellDivider
+
+            $Margin = $Script:ReportStrings.Margin * $Script:GherkinIndentationLevel
+
+            & $WriteHost "${Margin}|" -ForegroundColor $FgTableSep -NoNewLine
+            foreach ($Cell in ($Scenario.Name.Trim('|') -split '\|')) {
+                & $WriteHost $Cell -ForegroundColor $FgColor -NoNewLine
+                & $WriteHost '|' -ForegroundColor $FgTableSep -NoNewLine
+            }
+            & $WriteHost
+
+            if ($Scenario.Result -eq 'Failed') {
+                # Find the failing test result belonging to this scenario and show the error/stack trace.
+                $Pester.TestResult | & $WhereObject {
+                    $ContextNameParts = $_.Context -split '\\'
+                    $Result = $ContextNameParts[$ContextNameParts.Length - 1] -eq $Scenario.Name
+                    $Result -and $_.Result -eq 'Failed'
+                } |
+                Write-FailedStepErrorText -IndentationLevel ($Script:GherkinIndentationLevel + 1)
+            }
+
         }
     }
 }
@@ -208,7 +343,6 @@ function Write-PassedGherkinStep {
     Process {
         $WriteStepParams = @{
             StepResult        = $StepResult
-            IndentationLevel  = $Script:GherkinIndentationLevel + 1
             MultilineArgument = $MultilineArgument
             StepTextColor     = $Script:ReportTheme.Pass
             StepArgumentColor = $Script:ReportTheme.PassArgument
@@ -233,7 +367,6 @@ function Write-FailedGherkinStep {
         $IndentationLevel = $Script:GherkinIndentationLevel + 1
         $WriteStepParams += @{
             StepResult        = $StepResult
-            IndentationLevel  = $IndentationLevel
             MultilineArgument = $MultilineArgument
             StepTextColor     = $Script:ReportTheme.Fail
             StepArgumentColor = $Script:ReportTheme.FailArgument
@@ -258,7 +391,6 @@ function Write-SkippedGherkinStep {
     Process {
         $WriteStepParams = @{
             StepResult        = $StepResult
-            IndentationLevel  = $Script:GherkinIndentationLevel + 1
             MultilineArgument = $MultilineArgument
             StepTextColor     = $Script:ReportTheme.Skipped
             StepArgumentColor = $Script:ReportTheme.SkippedArgument
@@ -283,7 +415,6 @@ function Write-PendingGherkinStep {
         $IndentationLevel = $Script:GherkinIndentationLevel + 1
         $WriteStepParams = @{
             StepResult        = $StepResult
-            IndentationLevel  = $IndentationLevel
             MultilineArgument = $MultilineArgument
             StepTextColor     = $Script:ReportTheme.Pending
             StepArgumentColor = $Script:ReportTheme.PendingArgument
@@ -309,7 +440,6 @@ function Write-UndefinedGherkinStep {
         $IndentationLevel = $Script:GherkinIndentationLevel + 1
         $WriteStepParams = @{
             StepResult        = $StepResult
-            IndentationLevel  = $IndentationLevel
             MultilineArgument = $MultilineArgument
             StepTextColor     = $Script:ReportTheme.Undefined
             StepDurationColor = $Script:ReportTheme.UndefinedTime
@@ -372,18 +502,15 @@ function Write-GherkinStepText {
     [CmdletBinding()]
     Param (
         [Parameter(Position = 0)]
-        [int]$IndentationLevel = 2,
-
-        [Parameter(Position = 1)]
         [ConsoleColor]$StepTextColor = [ConsoleColor]::Gray,
 
-        [Parameter(Position = 2)]
+        [Parameter(Position = 1)]
         [ConsoleColor]$StepArgumentColor = [ConsoleColor]::Gray,
 
-        [Parameter(Position = 3)]
+        [Parameter(Position = 2)]
         [ConsoleColor]$StepDurationColor = [ConsoleColor]::DarkGray,
 
-        [Parameter(Position = 4, Mandatory = $True, ValueFromPipeline = $True)]
+        [Parameter(Position = 3, Mandatory = $True, ValueFromPipeline = $True)]
         [PSObject]$StepResult,
 
         [Gherkin.Ast.StepArgument]$MultilineArgument
@@ -391,7 +518,7 @@ function Write-GherkinStepText {
 
     Process {
         $WriteHost = $SafeCommands['Write-Host']
-        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+        $Margin = $Script:ReportStrings.Margin * ($Script:GherkinIndentationLevel + 1)
 
         $StepResult |
         Get-GherkinStepTextParts |
@@ -411,10 +538,10 @@ function Write-GherkinStepText {
 
         if ($MultilineArgument) {
             if ($MultilineArgument -is [Gherkin.Ast.DataTable]) {
-                Write-GherkinMultilineArgument $MultilineArgument ($BaseIndent + 1)
+                Write-GherkinMultilineArgument $MultilineArgument
             }
             else {
-                Write-GherkinMultilineArgument $MultilineArgument ($BaseIndent + 1) $StepTextColor
+                Write-GherkinMultilineArgument $MultilineArgument $StepTextColor
             }
         }
     }
@@ -429,15 +556,12 @@ filter Write-GherkinMultilineArgument {
         [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True, ParameterSetName = 'DocString')]
         [Gherkin.Ast.DocString]$DocString,
 
-        [Parameter(Position = 1)]
-        [int]$IndentationLevel = 3,
-
-        [Parameter(Position = 2, Mandatory = $True, ParameterSetName = 'DocString')]
+        [Parameter(Position = 1, Mandatory = $True, ParameterSetName = 'DocString')]
         [ConsoleColor]$ForegroundColor = [ConsoleColor]::Gray
     )
 
     Process {
-        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+        $Margin = $Script:ReportStrings.Margin * ($Script:GherkinIndentationLevel + 2)
 
         if ($PSCmdlet.ParameterSetName -eq 'DataTable') {
             $FgDiv = $Script:ReportTheme.TableCellDivider

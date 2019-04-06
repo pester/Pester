@@ -300,7 +300,7 @@ Describe "When displaying PesterResults in the console" -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -PassThru -Show None
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\Gherkin-PesterResultShowsFeatureAndScenarioNames.feature) -Expand -PassThru -Show None
         }
     }
 
@@ -447,7 +447,7 @@ Describe "A generated NUnit report" -Tag Gherkin {
         Import-Module $scriptRoot\Pester.psd1 -Force
 
         New-Object psobject -Property @{
-            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\JustForReporting*.feature) -PassThru -Show None -OutputFile $reportFile
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\JustForReporting*.feature) -Expand -PassThru -Show None -OutputFile $reportFile
         }
     }
 

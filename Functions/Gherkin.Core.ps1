@@ -524,6 +524,12 @@ function Import-GherkinFeature {
 
                         $ExampleSetScenarios += @(
                             if ($Expand) {
+                                $ExampleSet = $ExampleSet | & $AddMember -PassThru -MemberType NoteProperty -Name TableHeaderRow -Value "| $(
+                                    for ($j = 0; $j -lt $ExampleSet.TableHeader.Cells.Length; $j++) {
+                                        "$($ExampleSet.Tableheader.Cells[$j].Value) |"
+                                    }
+                                )"
+
                                 foreach ($Row in $ExampleSet.TableBody) {
                                     # Generate example scenario name
                                     $ExampleScenarioName = "| $(@($Row.Cells | & $SelectObject -ExpandProperty Value) -join ' | ') |"
@@ -560,6 +566,12 @@ function Import-GherkinFeature {
                                 $ExampleSetRows = [Gherkin.Ast.TableRow[]]@($ExampleSet.TableHeader)
                                 foreach ($r in $ExampleSet.TableBody) { $ExampleSetRows += $r }
                                 $TableColumnWidths = Get-TableColumnWidths $ExampleSetRows
+
+                                $ExampleSet = $ExampleSet | & $AddMember -PassThru -MemberType NoteProperty -Name TableHeaderRow -Value "| $(
+                                    for ($j = 0; $j -lt $ExampleSet.TableHeader.Cells.Length; $j++) {
+                                        "{0,$(-$TableColumnWidths[$j])} |" -f $ExampleSet.Tableheader.Cells[$j].Value
+                                    }
+                                )"
 
                                 foreach ($Row in $ExampleSet.TableBody) {
                                     $ExampleScenarioName = "| $(
@@ -659,6 +671,7 @@ function Import-GherkinFeature {
 
                 & $NewObject Gherkin.Ast.ScenarioOutline $null, $ScenarioDef.Location, $ScenarioDef.Keyword.Trim(), $ScenarioDef.Name, $ScenarioDef.Description, $ScenarioDef.Steps, $null |
                     & $AddMember -MemberType NoteProperty -Name Examples -Value $ExampleSets -Force -PassThru |
+                    & $AddMember -MemberType NoteProperty -Name Expand -Value $Expand -PassThru |
                     Convert-Tags $ScenarioDef.Tags
             }
             else {
@@ -683,7 +696,7 @@ function Import-GherkinFeature {
 
                 $ScenarioDef |
                     & $AddMember -MemberType NoteProperty -Name Result -Value Passed -PassThru |
-                    & $AddMember -MemberType NoteProperty -Name Expand -Value $False -PassThru | # TODO: <-- May not need this? The thought was to be able to treat all secnarios the same...
+                    & $AddMember -MemberType NoteProperty -Name Expand -Value $False -PassThru |
                     & $AddMember -MemberType NoteProperty -Name IsExampleSetScenario -Value $False -PassThru
             }
         }
@@ -746,7 +759,7 @@ function Invoke-GherkinFeature {
     try {
         $Parent = & $SafeCommands['Split-Path'] $FeatureFile.FullName
         Import-GherkinSteps -StepPath $Parent -Pester $pester
-        $Feature, $Background, $ScenarioDefs = Import-GherkinFeature -Path $FeatureFile.FullName -Pester $Pester
+        $Feature, $Background, $ScenarioDefs = Import-GherkinFeature $FeatureFile.FullName $Pester -Expand:$Expand -NoMultiline:$NoMultiline
     }
     catch [Gherkin.ParserException] {
         & $SafeCommands['Write-Error'] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands['Select-Object'] -Expand Message) -join "`n`n")"
@@ -761,9 +774,14 @@ function Invoke-GherkinFeature {
         $Pester.EnterTestGroup($Feature.Name, 'Feature')
         Invoke-GherkinHook BeforeEachFeature $Feature.Name $Feature.Tags
 
+        # If there is a feature background, the first executed scenario in the feature will result in the
+        # results of the Background execution being displayed. Future background executions for scenarios in
+        # the feature will not be displayed.
+        $Script:PrintGherkinFeatureBackground = $True
+
         # Reset indentation level for displaying feature information on the console.
         $Script:GherkinIndentationLevel = 0
-        Write-Feature $Feature $Pester
+        $Feature | Write-Feature $Pester
 
         foreach ($ScenarioDef in $ScenarioDefs) {
             # Reset indentation level for displaying scenario information on the console.
@@ -772,15 +790,13 @@ function Invoke-GherkinFeature {
             if ($ScenarioDef -is [Gherkin.Ast.ScenarioOutline]) {
                 try {
                     $Pester.EnterTestGroup($ScenarioDef.Name, 'Scenario Outline')
-                    # TODO: Do we need to pass along the language?
-                    Invoke-GherkinExamples $Pester $Background $ScenarioDef -Language $Feature.Language -NoMultiline:$NoMultiline
+                    Invoke-GherkinExamples $Pester $Background $ScenarioDef -NoMultiline:$NoMultiline
                 } finally {
                     $Pester.LeaveTestGroup($ScenarioDef.Name, 'Scenario Outline')
                 }
             }
             else {
-                # TODO: Do we need to pass along the language?
-                Invoke-GherkinScenario $Pester $Background $ScenarioDef -Language $Feature.Language -NoMultiline:$NoMultiline
+                Invoke-GherkinScenario $Pester $Background $ScenarioDef -NoMultiline:$NoMultiline
             }
         }
     }
@@ -792,7 +808,6 @@ function Invoke-GherkinFeature {
         # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
         # planned for v4.0
         $Pester.TestResult[-1].Describe = "Error in $($Feature.Path)"
-
         $Pester.TestResult[-1] | Write-GherkinStepResult -Pester $Pester
     }
     finally {
@@ -819,14 +834,19 @@ function Invoke-GherkinExamples {
         #[Gherkin.Ast.ScenarioOutline]
         $ScenarioOutline,
 
-        [string]$Language = 'en',
-
         [switch]$NoMultiline
     )
 
-    foreach ($ExampleSet in $ScenarioOutline.Examples)  {
-        foreach ($Scenario in $ExampleSet.Scenarios) {
-            Invoke-GherkinScenario $Pester $Background $Scenario -NoMultiline:$NoMultiline
+    $Script:PrintGherkinScenarioOutline = $True
+    foreach ($ExampleSet in $ScenarioOutline.Examples) {
+        try {
+            $Script:PrintGherkinExampleSet = $True
+            foreach ($Scenario in $ExampleSet.Scenarios) {
+                Invoke-GherkinScenario $Pester $Background $Scenario -NoMultiline:$NoMultiline
+            }
+        }
+        finally {
+            $Script:GherkinIndentationLevel--
         }
     }
 }
@@ -842,9 +862,9 @@ function Find-StepDefinition {
         [Gherkin.Ast.Step]$Step
     )
 
-    $AddMember = $SafeCommands['Add-Member']
+    $AddMember    = $SafeCommands['Add-Member']
     $SelectObject = $SafeCommands['Select-Object']
-    $SortObject = $SafeCommands['Sort-Object']
+    $SortObject   = $SafeCommands['Sort-Object']
 
     $StepDefinitionRegex = $(
         foreach ($StepDefinitionRegex in $Script:GherkinStepDefinitions.Keys) {
@@ -882,8 +902,6 @@ function Invoke-GherkinScenario {
         #[Gherkin.Ast.Scenario]    # <-- If you do this, PSv2 corerces away the PSObject wrapper
         $Scenario,                 # <-- For Pester v5, this will not be an isue.
 
-        [string]$Language = 'en',
-
         [switch]$NoMultiline
     )
 
@@ -898,11 +916,45 @@ function Invoke-GherkinScenario {
         $Script:MockTable = @{ }
         New-TestDrive
 
-        Write-Scenario $Scenario $Pester
-
         Invoke-GherkinHook BeforeEachScenario $Scenario.Name $Scenario.Tags
 
-        $Background, $Scenario | Invoke-GherkinStep $Pester $Script:GherkinSessionState -NoMultiline:$NoMultiline
+        if ($Background) {
+            if ($Script:PrintGherkinFeatureBackground) {
+                $Background | Write-Background $Pester
+            }
+
+            $Background | Invoke-GherkinStep $Pester $Script:GherkinSessionState -NoMultiline:$NoMultiline
+
+            # Don't move this line above the call to `Invoke-GherkinStep` or the background steps results
+            # will not print to the console.
+            $Script:PrintGherkinFeatureBackground = $False
+
+            # Since feature background steps run as part of every scenario, the outcome of the background
+            # steps contributes to the outcome of th scenario as a whole.
+            $Scenario.Result = $Background.Result
+        }
+
+        if ($Scenario.ExampleSet) {
+            if ($Script:PrintGherkinScenarioOutline) {
+                $Scenario.ExampleSet.ScenarioOutline | Write-ScenarioOutline $Pester
+                $Script:PrintGherkinScenarioOutline = $False
+            }
+
+            if ($Script:PrintGherkinExampleSet) {
+                $Scenario.ExampleSet | Write-ExampleSet $Pester
+                $Script:PrintGherkinExampleSet = $False
+            }
+        }
+
+        if (!$Scenario.ExampleSet -or $Scenario.Expand) {
+            $Scenario | Write-Scenario $Pester
+        }
+
+        $Scenario | Invoke-GherkinStep $Pester $Script:GherkinSessionState -NoMultiline:$NoMultiline
+
+        if ($Scenario.ExampleSet -and !$Scenario.Expand) {
+            $Scenario | Write-Scenario $Pester
+        }
 
         Invoke-GherkinHook AfterEachScenario $Scenario.Name $Scenario.Tags
     }
@@ -914,7 +966,6 @@ function Invoke-GherkinScenario {
         # objects, and a blank name is invalid NUnit XML.  This will go away when we promote test scripts to have their own test-suite nodes,
         # planned for v4.0
         $Pester.TestResult[-1].Describe = "Error in $($Scenario.Name)"
-
         $Pester.TestResult[-1] | Write-GherkinStepResult -Pester $Pester
     } finally {
         Remove-TestDrive
@@ -1060,7 +1111,6 @@ function Invoke-GherkinStep {
                     elseif ($ScenarioResult -eq 'Passed') {
                         $PesterErrorRecord = $null
                         $Elapsed = 0
-                        $MultilineArgument = $Step.Argument
                         $NamedArguments, $Parameters = Get-StepParameters $Step $StepDefinition.Regex
 
                         if ($NamedArguments.Count) {
@@ -1130,11 +1180,15 @@ function Invoke-GherkinStep {
                 # * display data _really_ doesn't belong in TestResult, for now, until the concerns are separated,
                 # * let Write-GherkinStepResult accept a parameter for the step definition's multiline argument,
                 # * if any.
-                if (!$NoMultiline -and $Step.Argument) {
-                    $Pester.TestResult[-1] | Write-GherkinStepResult $Pester $MultilineArgument
-                }
-                else {
-                    $Pester.TestResult[-1] | Write-GherkinStepResult $Pester
+                if ($ScenarioDef -isnot [Gherkin.Ast.Background] -or $Script:PrintGherkinFeatureBackground) {
+                    if (!$ScenarioDef.ExampleSet -or $ScenarioDef.Expand) {
+                        if (!$NoMultiline -and $Step.Argument) {
+                            $Pester.TestResult[-1] | Write-GherkinStepResult $Pester $Step.Argument
+                        }
+                        else {
+                            $Pester.TestResult[-1] | Write-GherkinStepResult $Pester
+                        }
+                    }
                 }
             }
 
@@ -1188,7 +1242,7 @@ function Get-TableColumnWidths {
     [CmdletBinding()]
     [OutputType([int[]])]
     Param (
-        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [Parameter(Position = 0, Mandatory = $True)]
         [Gherkin.Ast.TableRow[]]$Rows
     )
 
@@ -1198,7 +1252,7 @@ function Get-TableColumnWidths {
     }
 
     Process {
-        $TableRows = , $(
+        $TableRows = @(
             foreach ($r in $Rows) {
                 , [string[]]@($r.Cells | & $SelectObject -ExpandProperty Value)
             }
