@@ -22,17 +22,19 @@
         Scenario          = '{0}: {1}'
         Step              = '{0} {1}'
         Margin            = '  '
-        Timing            = 'Tests completed in {0}' #'{0:m\ms\.fff\s'
+        Timing            = '{0:m\ms\.fff\s}'
 
-        # If this is set to an empty string, the count won't be printed
-        ContextsPassed    = ''
-        ContextsFailed    = ''
-
-        TestsPassed       = 'Tests Passed: {0}, '
-        TestsFailed       = 'Failed: {0}, '
-        TestsSkipped      = 'Skipped: {0}, '
-        TestsPending      = 'Pending: {0}, '
-        TestsInconclusive = 'Inconclusive: {0} '
+        ScenarioSummary    = '{0} scenarios ('
+        ScenariosFailed    = '{0} failed'
+        ScenariosUndefined = '{0} undefined'
+        ScenariosPending   = '{0} pending'
+        ScenariosPassed    = '{0} passed'
+        StepsSummary       = '{0} steps ('
+        StepsFailed        = '{0} failed'
+        StepsUndefined     = '{0} undefined'
+        StepsSkipped       = '{0} skipped'
+        StepsPending       = '{0} pending'
+        StepsPassed        = '{0} passed'
     }
 
     ReportTheme   = @{

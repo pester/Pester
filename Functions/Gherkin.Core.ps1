@@ -68,7 +68,35 @@ function New-GherkinPesterState {
     $NewObject = $SafeCommands['New-Object']
 
     New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $SessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
-        & $AddMember -MemberType NoteProperty -Name Features -Value (& $NewObject System.Collections.Generic.List[PSObject] ) -PassThru
+        & $AddMember -MemberType NoteProperty -Name Features -Value (& $NewObject System.Collections.Generic.List[PSObject] ) -PassThru |
+        & $AddMember -MemberType ScriptMethod -Name GetScenariosWithResult -PassThru -Value {
+            [CmdletBinding()]
+            Param(
+                [Parameter(Position = 0, Mandatory = $True)]
+                [ValidateSet('Passed','Failed','Inconclusive','Pending')]
+                [string]$Result
+            )
+
+            $this.Features |
+                & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
+                & $SafeCommands['ForEach-Object'] -Begin { $Scenarios = @() } -Process {
+                    $Scenarios += @(
+                        if ($_ -is [Gherkin.Ast.ScenarioOutline]) {
+                            $_ | & $SafeCommands['Select-Object'] -ExpandProperty Examples |
+                                & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
+                                & $SafeCommands['Select-Object'] Name, Result
+                        } else {
+                            $_ | & $SafeCommands['Select-Object'] Name, Result
+                        }
+                    )
+                } -End { $Scenarios } |
+                & $SafeCommands['Where-Object'] { $_.Result -eq $Result } |
+                & $SafeCommands['Select-Object'] -ExpandProperty Name
+        } |
+        & $AddMember -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value { $this.GetScenariosWithResult('Failed') } |
+        & $AddMember -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value { $this.GetScenariosWithResult('Pending') } |
+        & $AddMember -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value { $this.GetScenariosWithResult('Inconclusive') } |
+        & $AddMember -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value { $this.GetScenariosWithResult('Passed') }
 }
 
 function Invoke-Gherkin {
@@ -315,7 +343,7 @@ function Invoke-Gherkin {
         $Location | & $SafeCommands['Set-Location']
         [Environment]::CurrentDirectory = $CWD
 
-        $Pester | Write-PesterReport
+        $Pester | Write-GherkinReport
         $CoverageReport = Get-CoverageReport -PesterState $Pester
         Write-CoverageReport -CoverageReport $CoverageReport
         Exit-CoverageAnalysis -PesterState $Pester
@@ -344,7 +372,8 @@ function New-PesterGherkinResults {
     )
 
     # The list of properties on the PesterState object which should be part of the test report
-    $Properties = @( 'Path', 'TagFilter', 'TestNameFilter', 'Features', 'PassedCount', 'FailedCount',
+    $Properties = @( 'Path', 'TagFilter', 'TestNameFilter', 'Features', 'PassedScenarios', 'FailedScenarios',
+        'PendingScenarios', 'UndefinedScenarios', 'PassedCount', 'FailedCount',
         'PendingCount', 'SkippedCount', 'InconclusiveCount', 'TotalCount', 'Time', 'TestResult'
 
         if ($CodeCoverage) {
@@ -354,35 +383,7 @@ function New-PesterGherkinResults {
 
     $Result = $Pester | & $SafeCommands['Select-Object'] -Property $Properties
     $Result.PSTypeNames.Insert(0, "Pester.Gherkin.Results")
-    $Result |
-        & $AddMember -MemberType ScriptMethod -Name GetScenariosWithResult -PassThru -Value {
-            [CmdletBinding()]
-            Param(
-                [Parameter(Position = 0, Mandatory = $True)]
-                [ValidateSet('Passed','Failed','Inconclusive','Pending')]
-                [string]$Result
-            )
-
-            $this.Features |
-                & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
-                & $SafeCommands['ForEach-Object'] -Begin { $Scenarios = @() } -Process {
-                    $Scenarios += @(
-                        if ($_ -is [Gherkin.Ast.ScenarioOutline]) {
-                            $_ | & $SafeCommands['Select-Object'] -ExpandProperty Examples |
-                                & $SafeCommands['Select-Object'] -ExpandProperty Scenarios |
-                                & $SafeCommands['Select-Object'] Name, Result
-                        } else {
-                            $_ | & $SafeCommands['Select-Object'] Name, Result
-                        }
-                    )
-                } -End { $Scenarios } |
-                & $SafeCommands['Where-Object'] { $_.Result -eq $Result } |
-                & $SafeCommands['Select-Object'] -ExpandProperty Name
-        } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value { $this.GetScenariosWithResult('Failed') } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PendingScenarios -PassThru -Value { $this.GetScenariosWithResult('Pending') } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name UndefinedScenarios -PassThru -Value { $this.GetScenariosWithResult('Inconclusive') } |
-        & $SafeCommands['Add-Member'] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value { $this.GetScenariosWithResult('Passed') }
+    $Result
 }
 
 function Import-GherkinSteps {

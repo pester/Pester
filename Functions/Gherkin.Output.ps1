@@ -766,3 +766,142 @@ function Format-StepResultErrorRecord {
         # return $lines
     }
 }
+
+function Write-GherkinReport {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [PSObject]$Pester
+    )
+
+    begin {
+        $WriteHost = $SafeCommands['Write-Host']
+    }
+
+    process {
+        if (-not ($Pester.Show | Has-Flag Summary)) {
+            return
+        }
+
+        $Passed    = $Script:ReportTheme.Pass
+        $Failure   = $Script:ReportTheme.Fail
+        $Skipped   = $Script:ReportTheme.Skipped
+        $Pending   = $Script:ReportTheme.Pending
+        $Undefined = $Script:ReportTheme.Undefined
+
+        $PassedScenarioCount    = $Pester.PassedScenarios.Count
+        $FailedScenarioCount    = $Pester.FailedScenarios.Count
+        $PendingScenarioCount   = $Pester.PendingScenarios.Count
+        $UndefinedScenarioCount = $Pester.UndefinedScenarios.Count
+        $TotalScenarioCount = $PassedScenarioCount + $FailedScenarioCount + $PendingScenarioCount + $UndefinedScenarioCount
+
+        $ScenarioSummaryCounts = [string[]]@($Script:ReportStrings.ScenarioSummary -f $TotalScenarioCount)
+        if ($TotalScenarioCount -eq 1) {
+            $ScenarioSummaryCounts[0] = $ScenarioSummaryCounts[0] -replace 'scenarios', 'scenario'
+        }
+
+        $ScenarioSummaryCounts += @(
+            ($Script:ReportStrings.ScenariosFailed    -f $FailedScenarioCount),
+            ($Script:ReportStrings.ScenariosUndefined -f $UndefinedScenarioCount),
+            ($Script:ReportStrings.ScenariosPending   -f $PendingScenarioCount),
+            ($Script:ReportStrings.ScenariosPassed    -f $PassedScenarioCount)
+        )
+
+        $ScenarioSummaryData = foreach ($count in $ScenarioSummaryCounts) {
+            $null = $count -match '^(?<ScenarioCount>\d+) (?<Result>failed|undefined|skipped|pending|passed|scenarios \()'
+            if ($Matches) {
+                switch ($Matches.Result) {
+                    failed    { $Foreground = $Failure;                       break }
+                    undefined { $Foreground = $Undefined;                     break }
+                    pending   { $Foreground = $Pending;                       break }
+                    passed    { $Foreground = $Passed;                        break }
+                    default   { $Foreground = $Script:ReportTheme.Foreground; break }
+                }
+
+                if ($Matches.ScenarioCount -gt 0) {
+                    [PSCustomObject]@{ Foreground = $Foreground; Text = $count }
+                }
+            }
+        }
+
+        & $WriteHost
+        for ($i = 0; $i -lt $ScenarioSummaryData.Length; $i++) {
+            $SummaryData = $ScenarioSummaryData[$i]
+            if ($i -eq $ScenarioSummaryData.Length - 1) {
+                & $WriteHost ($SummaryData.Text -replace ', ') -ForegroundColor $SummaryData.Foreground -NoNewLine
+                & $WriteHost ')' -ForegroundColor $Script:ReportTheme.Foreground
+            }
+            else {
+                & $WriteHost $SummaryData.Text -ForegroundColor $SummaryData.Foreground -NoNewLine
+                if ($i) {
+                    & $WriteHost ', ' -Foreground $Script:ReportTheme.Foreground -NoNewLine
+                }
+            }
+        }
+
+        $StepSummaryCounts = [string[]]@($Script:ReportStrings.StepsSummary -f $Pester.TotalCount)
+        if ($Pester.TotalCount -eq 1) {
+            $StepSummaryCounts[0] = $StepSummaryCounts[0] -replace 'steps', 'step'
+        }
+
+        $StepSummaryCounts += @(
+            ($Script:ReportStrings.StepsFailed    -f $Pester.FailedCount),
+            ($Script:ReportStrings.StepsUndefined -f $Pester.InconclusiveCount),
+            ($Script:ReportStrings.StepsSkipped   -f $Pester.SkippedCount),
+            ($Script:ReportStrings.StepsPending   -f $Pester.PendingCount),
+            ($Script:ReportStrings.StepsPassed    -f $Pester.PassedCount)
+        )
+
+        $StepSummaryData = foreach ($count in $StepSummaryCounts) {
+            $null = $count -match '^(?<StepCount>\d+) (?<Result>failed|undefined|skipped|pending|passed|steps \()'
+            switch ($Matches.Result) {
+                failed    { $Foreground    = $Failure;                       break }
+                undefined { $Foreground    = $Undefined;                     break }
+                skipped   { $Foreground    = $Skipped;                       break }
+                pending   { $Foreground    = $Pending;                       break }
+                passed    { $Foreground    = $Passed;                        break }
+                default   { $Foreground    = $Script:ReportTheme.Foreground; break }
+            }
+
+            if ($Matches.StepCount -gt 0) {
+                [PSCustomObject]@{ Foreground = $Foreground; Text = $count }
+            }
+        }
+
+        for ($i = 0; $i -lt $StepSummaryData.Length; $i++) {
+            $SummaryData = $StepSummaryData[$i]
+            if ($i -eq $StepSummaryData.Length - 1) {
+                & $WriteHost ($SummaryData.Text -replace ', ') -Foreground $SummaryData.Foreground -NoNewLine
+                & $WriteHost ')' -Foreground $Script:ReportTheme.Foreground
+            }
+            else {
+                & $WriteHost $SummaryData.Text -Foreground $SummaryData.Foreground -NoNewLine
+                if ($i) {
+                    & $WriteHost ', ' -Foreground $Script:ReportTheme.Foreground -NoNewLine
+                }
+            }
+        }
+
+        #& $WriteHost ($Script:ReportStrings.Timing -f $Pester.Time) -ForegroundColor $Script:ReportTheme.Foreground
+        & $WriteHost (
+            $Script:ReportStrings.Timing -f (
+                $Pester.TestResult |
+                    Select-Object -ExpandProperty Time |
+                    ForEach-Object -Begin {
+                        [TimeSpan]$TotalTime = [TimeSpan]::Zero
+                    } -Process {
+                        $TotalTime = $TotalTime.Add($_)
+                    } -End { $TotalTime }
+            )
+        ) -ForegroundColor $Script:ReportTheme.Foreground
+        & $WriteHost
+
+        # TODO: Can we create a method that would auto-generate the Step Definition script blocks to the console for undefined steps?
+        # You can implement step definitions for undefined steps with these snippets:
+        #
+        # Given "the input '(.*?)'" {
+        #     param($arg1)
+        #     Set-TestPending
+        # }
+    }
+}
