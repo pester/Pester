@@ -1635,11 +1635,18 @@ function Reset-ConflictingParameters {
 }
 
 $script:ConflictingParameterNames = @(
-    "PSEdition"
+    #
 )
 
 function Get-ConflictingParameterNames {
-    $script:ConflictingParameterNames
+    $ConstantVariables = Get-Variable | Where-Object {$_.Options -like "*Constant*"}
+    $ReadOnlyVariables = Get-Variable | Where-Object {$_.Options -like "*ReadOnly*"}
+    #$ConstantVariables = Get-Variable | Where-Object {$_.Options -band 2}
+    #$ReadOnlyVariables = Get-Variable | Where-Object {$_.Options -band 1}
+    $ConstantVariableNames = $ConstantVariables.Name
+    $ReadOnlyVariableNames = $ReadOnlyVariables.Name
+
+    $ConstantVariableNames + $ReadOnlyVariableNames + $script:ConflictingParameterNames
 }
 
 
