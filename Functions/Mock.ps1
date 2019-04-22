@@ -1643,8 +1643,13 @@ function Get-ConflictingParameterNames {
     $ReadOnlyVariables = Get-Variable | Where-Object {$_.Options -like "*ReadOnly*"}
     #$ConstantVariables = Get-Variable | Where-Object {$_.Options -band 2}
     #$ReadOnlyVariables = Get-Variable | Where-Object {$_.Options -band 1}
-    $ConstantVariableNames = $ConstantVariables.Name
-    $ReadOnlyVariableNames = $ReadOnlyVariables.Name
+    $ConstantVariableNames = $ConstantVariables | Select-Object -ExpandProperty Name
+    $ReadOnlyVariableNames = $ReadOnlyVariables | Select-Object -ExpandProperty Name
+
+    #$ConstantOrReadOnlyVariables = Get-Variable | Where-Object {$_.Options -like "*Constant*" -or $_.Options -like "*ReadOnly*"}
+    #$ConstantOrReadOnlyVariables = Get-Variable | Where-Object {$_.Options -band 3}
+    #$ConstantOrReadOnlyVariableNames =  | Select-Object -ExpandProperty Name
+    #$ConstantOrReadOnlyVariableNames + $script:ConflictingParameterNames
 
     $ConstantVariableNames + $ReadOnlyVariableNames + $script:ConflictingParameterNames
 }
