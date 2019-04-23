@@ -92,7 +92,7 @@ InModuleScope -ModuleName Pester {
 
     Describe 'Get-TempDirectory' {
         It 'returns the correct temp directory for Windows' -Skip:((GetPesterOs) -ne 'Windows') {
-            $expected = $env:TEMP = "$($env:SystemDrive)\temp"
+            $expected = [System.IO.Path]::GetTempPath()
 
             $temp = Get-TempDirectory
             $temp | Should -Not -BeNullOrEmpty
