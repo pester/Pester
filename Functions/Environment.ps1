@@ -24,8 +24,8 @@ function GetPesterOs {
 
 function Get-TempDirectory {
     if ((GetPesterOs) -eq 'macOS') {
-        # Special case for macOS which returns a symlink to the real temp folder
-        "/private/tmp/"
+        # Special case for macOS using the real path instead of /tmp which is a symlink to this path
+        "/private/tmp"
     }
     else {
         [System.IO.Path]::GetTempPath()
