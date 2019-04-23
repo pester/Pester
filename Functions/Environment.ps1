@@ -23,11 +23,12 @@ function GetPesterOs {
 }
 
 function Get-TempDirectory {
-    if ((GetPesterOs) -eq 'Windows') {
-        $env:TEMP
+    if ((GetPesterOs) -eq 'macOS') {
+        # Special case for macOS which returns a symlink to the real temp folder
+        "/private/tmp/"
     }
     else {
-        '/tmp'
+        [System.IO.Path]::GetTempPath()
     }
 }
 
