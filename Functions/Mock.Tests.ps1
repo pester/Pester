@@ -2105,6 +2105,24 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 }
             }
 
+            Context 'Get-Content mock ParamFilter passed as function definition instead of scriptblock' {
+                BeforeAll {
+                    Function ParamFilter {
+                        $Tail -eq 100
+                    }
+                    Mock Get-Content { "default-get-content" }
+                    Mock Get-Content -ParameterFilter ${function:ParamFilter} -MockWith { "aliased-parameter-name" }
+                }
+
+                It "returns mock that matches parameter filter block" {
+                    Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+                }
+
+                It 'returns default mock' {
+                    Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
+                }
+            }
+
             Context "Alias rewriting works when alias and parameter name differ in length" {
 
                 Mock New-Item { return "nic" } -ParameterFilter { $Type -ne $null -and $Type.StartsWith("nic") }
