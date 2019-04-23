@@ -1659,11 +1659,13 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            if ($block.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
-                $ast = $block.Ast.Body.EndBlock
+            if ($Block.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                $ast = $Block.Ast.Body.EndBlock
             }
-            elseif ($block.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+            elseif ($Block.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
                 $ast = $Block.Ast.EndBlock
+            } else {
+                throw "Pester failed to parse ParameterFilter, scriptblock is invalid type. Please reformat your ParameterFilter."
             }
             $blockText = $ast.Extent.Text
             $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
