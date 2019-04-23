@@ -1659,7 +1659,12 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            $ast = $Block.Ast.EndBlock
+            if ($block.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                $ast = $block.Ast.Body.EndBlock
+            }
+            elseif ($block.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+                $ast = $Block.Ast.EndBlock
+            }
             $blockText = $ast.Extent.Text
             $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
             [array]::Reverse($variables)
