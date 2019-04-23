@@ -1664,7 +1664,8 @@ function New-BlockWithoutParameterAliases {
             }
             elseif ($Block.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
                 $ast = $Block.Ast.EndBlock
-            } else {
+            }
+            else {
                 throw "Pester failed to parse ParameterFilter, scriptblock is invalid type. Please reformat your ParameterFilter."
             }
             $blockText = $ast.Extent.Text
