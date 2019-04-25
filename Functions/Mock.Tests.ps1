@@ -2105,24 +2105,6 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 }
             }
 
-            Context 'Get-Content mock ParamFilter passed as function definition instead of scriptblock' {
-                BeforeAll {
-                    Function ParamFilter {
-                        $Tail -eq 100
-                    }
-                    Mock Get-Content { "default-get-content" }
-                    Mock Get-Content -ParameterFilter ${function:ParamFilter} -MockWith { "aliased-parameter-name" }
-                }
-
-                It "returns mock that matches parameter filter block" {
-                    Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
-                }
-
-                It 'returns default mock' {
-                    Get-Content -Path "c:\temp.txt" | Should -Be "default-get-content"
-                }
-            }
-
             Context "Alias rewriting works when alias and parameter name differ in length" {
 
                 Mock New-Item { return "nic" } -ParameterFilter { $Type -ne $null -and $Type.StartsWith("nic") }
@@ -2234,10 +2216,91 @@ Describe "Mock definition output" {
     }
 }
 
-Describe 'Mocking using ParameterFilter with scriptblock' {
-    $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
-    Mock -CommandName 'Test-Path' -ParameterFilter $filter
+Describe 'Mocking using ParameterFilter' {
+
+    Context 'Scriptblock [Scriptblock]::Create() passed to ParameterFilter as var' {
+        BeforeAll{
+            $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
+            Mock Test-Path { $True }
+            Mock Test-Path -ParameterFilter $filter -MockWith { $False }
+        }
+
+        It "Returns default mock" {
+            Test-Path -Path C:\AwesomePath | Should -Be $True
+        }
+
+        It "returns mock that matches parameter filter block" {
+            Test-Path -Path C:\Windows | Should -Be $false
+        }
+    }
+
+    Context 'Scriptblock expression $( [Scriptblock]::Create() ) passed to ParameterFilter' {
+        BeforeAll{
+            $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
+            Mock Test-Path { $True }
+            Mock Test-Path -ParameterFilter $( [scriptblock]::Create(('$Path -eq ''C:\Windows''')) ) -MockWith { $False }
+        }
+
+        It "Returns default mock" {
+            Test-Path -Path C:\AwesomePath | Should -Be $True
+        }
+
+        It "returns mock that matches parameter filter block" {
+            Test-Path -Path C:\Windows | Should -Be $false
+        }
+    }
+
+    Context 'Scriptblock {} passed to ParameterFilter' {
+        BeforeAll{
+            Mock Test-Path { $True }
+            Mock Test-Path -ParameterFilter { $Path -eq "C:\Windows" } -MockWith { $False }
+        }
+
+        It "Returns default mock" {
+            Test-Path -Path C:\AwesomePath | Should -Be $True
+        }
+
+        It "returns mock that matches parameter filter block" {
+            Test-Path -Path C:\Windows | Should -Be $false
+        }
+    }
+    Context 'Scriptblock {} passed to ParameterFilter as var' {
+        BeforeAll{
+            $filter = {
+                $Path -eq "C:\Windows"
+            }
+            Mock Test-Path { $True }
+            Mock Test-Path -ParameterFilter $filter -MockWith { $False }
+        }
+
+        It "Returns default mock" {
+            Test-Path -Path C:\AwesomePath | Should -Be $True
+        }
+
+        It "returns mock that matches parameter filter block" {
+            Test-Path -Path C:\Windows | Should -Be $false
+        }
+    }
+
+    Context 'Function Definition ${} passed to ParameterFilter' {
+        BeforeAll {
+            Function ParamFilter {
+                $Path -eq "C:\Windows"
+            }
+            Mock Test-Path { $True }
+            Mock Test-Path -ParameterFilter ${function:ParamFilter} -MockWith { $False }
+        }
+
+        It "Returns default mock" {
+            Test-Path -Path C:\AwesomePath | Should -Be $True
+        }
+
+        It "returns mock that matches parameter filter block" {
+            Test-Path -Path C:\Windows | Should -Be $false
+        }
+    }
 }
+
 
 if ($PSVersionTable.PSVersion.Major -ge 3) {
     Describe "-RemoveParameterType" {
