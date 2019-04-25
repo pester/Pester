@@ -1642,6 +1642,22 @@ function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
 }
 
+function Get-ScriptBlockAST {
+    param (
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    if ($ScriptBlock.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+        $ast = $Block.Ast.EndBlock
+    } elseif ($ScriptBlock.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        $ast = $Block.Ast.Body.EndBlock
+    } else {
+        throw "Pester failed to parse ParameterFilter, scriptblock is invalid type. Please reformat your ParameterFilter."
+    }
+
+    return $ast
+}
 
 function New-BlockWithoutParameterAliases {
     [CmdletBinding()]
@@ -1659,15 +1675,7 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            if ($Block.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
-                $ast = $Block.Ast.Body.EndBlock
-            }
-            elseif ($Block.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
-                $ast = $Block.Ast.EndBlock
-            }
-            else {
-                throw "Pester failed to parse ParameterFilter, scriptblock is invalid type. Please reformat your ParameterFilter."
-            }
+            $ast = Get-ScriptBlockAST $Block
             $blockText = $ast.Extent.Text
             $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
             [array]::Reverse($variables)
