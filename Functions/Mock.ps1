@@ -1560,7 +1560,7 @@ function Repair-ConflictingParameters {
     $paramMetadatas = @()
     $paramMetadatas += $repairedMetadata.Parameters.Values
 
-    $conflictingParams = Get-ConflictingParameterNames
+    $conflictingParams = $script:ConflictingParameterNames
 
     foreach ($paramMetadata in $paramMetadatas) {
         if ($paramMetadata.IsDynamic) {
@@ -1618,7 +1618,7 @@ function Reset-ConflictingParameters {
     )
 
     $parameters = $BoundParameters.Clone()
-    $names = Get-ConflictingParameterNames
+    $names = $script:ConflictingParameterNames
 
     foreach ($param in $names) {
         $fixedName = "_$param"
@@ -1634,25 +1634,17 @@ function Reset-ConflictingParameters {
     $parameters
 }
 
-$script:ConflictingParameterNames = @(
-    #
-)
+[System.Collections.ArrayList]$script:ConflictingParameterNames = @()
 
 function Get-ConflictingParameterNames {
-    $ConstantVariables = Get-Variable | Where-Object {$_.Options -like "*Constant*"}
-    $ReadOnlyVariables = Get-Variable | Where-Object {$_.Options -like "*ReadOnly*"}
-    #$ConstantVariables = Get-Variable | Where-Object {$_.Options -band 2}
-    #$ReadOnlyVariables = Get-Variable | Where-Object {$_.Options -band 1}
-    $ConstantVariableNames = $ConstantVariables | Select-Object -ExpandProperty Name
-    $ReadOnlyVariableNames = $ReadOnlyVariables | Select-Object -ExpandProperty Name
-
-    #$ConstantOrReadOnlyVariables = Get-Variable | Where-Object {$_.Options -like "*Constant*" -or $_.Options -like "*ReadOnly*"}
-    #$ConstantOrReadOnlyVariables = Get-Variable | Where-Object {$_.Options -band 3}
-    #$ConstantOrReadOnlyVariableNames =  | Select-Object -ExpandProperty Name
-    #$ConstantOrReadOnlyVariableNames + $script:ConflictingParameterNames
-
-    $ConstantVariableNames + $ReadOnlyVariableNames + $script:ConflictingParameterNames
+    foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
+        if (($var.Options -band [System.Management.Automation.ScopedItemOptions]::Constant) -or ($var.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly)) {
+            $null = $script:ConflictingParameterNames.Add($var.Name)
+        }
+    }
 }
+
+Get-ConflictingParameterNames
 
 
 function New-BlockWithoutParameterAliases {
