@@ -99,7 +99,7 @@ InModuleScope -ModuleName Pester {
             $temp | Should -Be $expected
         }
 
-        It "returns '/tmp' directory for MacOS" {
+        It "returns '/private/tmp' directory for MacOS" {
             Mock 'GetPesterOs' {
                 'MacOS'
             }
