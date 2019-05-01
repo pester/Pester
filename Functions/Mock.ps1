@@ -320,7 +320,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $mock
 }
 
-function Assert-VerifiableMockInternal {
+function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -342,7 +342,16 @@ function Assert-VerifiableMockInternal {
             }
             $message += "to be called with $($b.Filter)"
         }
-        throw $message
+
+        return [PSCustomObject] @{
+            Succeeded      = $false
+            FailureMessage = $message
+        }
+    }
+
+    return [PSCustomObject] @{
+        Succeeded      = $true
+        FailureMessage = $null
     }
 }
 

@@ -62,7 +62,7 @@ they will act as a "catch all" mock.
 
 Mocks can be marked Verifiable. If so, the Assert-VerifiableMock command
 can be used to check if all Verifiable mocks were actually called. If any
-verifiable mock is not called, Assert-VerifiableMock will throw an
+verifiable mock is not called, Should -InvokeVerifiable will throw an
 exception and indicate all mocks not called.
 
 If you wish to mock commands that are called from inside a script module,
@@ -84,7 +84,7 @@ being mocked, and the MockWith script block can contain references to the
 mocked commands parameter variables.
 
 .PARAMETER Verifiable
-When this is set, the mock will be checked when Assert-VerifiableMock is
+When this is set, the mock will be checked when Should -InvokeVerifiable is
 called.
 
 .PARAMETER ParameterFilter
@@ -114,7 +114,7 @@ This Mock will only be applied to Get-ChildItem calls within the user's temp dir
 .EXAMPLE
 Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $Value -eq "Expected Value" }
 
-When this mock is used, if the Mock is never invoked and Assert-VerifiableMock is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
+When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
@@ -184,7 +184,6 @@ mocked by using the -ModuleName parameter.
 
 .LINK
 Should
-Assert-VerifiableMock
 Describe
 Context
 It
@@ -545,8 +544,28 @@ function Get-MockDataForCurrentScope {
     $location.PluginData.Mock
 }
 
-
 function Assert-VerifiableMock {
+    <#
+.SYNOPSIS
+Checks if all verifiable Mocks has been called at least once.
+
+THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
+USE Should -InvokeVerifiable INSTEAD.
+#>
+
+    # Should does not accept a session state, so invoking it directly would
+    # make the assertion run from inside of Pester module, we move it to the
+    # user scope instead an run it from there to keep the scoping correct
+    # for this compatibility adapter
+    [CmdletBinding()]param()
+    $sb = {
+        Should -InvokeVerifiable
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
+    & $sb
+}
+function Should-InvokeVerifiable {
     <#
 .SYNOPSIS
 Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -554,7 +573,7 @@ Checks if any Verifiable Mock has not been invoked. If so, this will throw an ex
 .DESCRIPTION
 This can be used in tandem with the -Verifiable switch of the Mock
 function. Mock can be used to mock the behavior of an existing command
-and optionally take a -Verifiable switch. When Assert-VerifiableMock
+and optionally take a -Verifiable switch. When Should -InvokeVerifiable
 is called, it checks to see if any Mock marked Verifiable has not been
 invoked. If any mocks have been found that specified -Verifiable and
 have not been invoked, an exception will be thrown.
@@ -564,7 +583,7 @@ Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Va
 
 { ...some code that never calls Set-Content some_path -Value "Expected Value"... }
 
-Assert-VerifiableMock
+Should -InvokeVerifiable
 
 This will throw an exception and cause the test to fail.
 
@@ -573,18 +592,18 @@ Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Va
 
 Set-Content some_path -Value "Expected Value"
 
-Assert-VerifiableMock
+Should -InvokeVerifiable
 
 This will not throw an exception because the mock was invoked.
 
 #>
-    [CmdletBinding()]param()
-
-    Assert-DescribeInProgress -CommandName Assert-VerifiableMock
-
     $behaviors = @(Get-VerifiableBehaviors)
-    Assert-VerifiableMockInternal -Behaviors $behaviors
+    Should-InvokeVerifiableInternal -Behaviors $behaviors
 }
+
+Add-ShouldOperator -Name InvokeVerifiable `
+    -InternalName Should-InvokeVerifiable `
+    -Test         ${function:Should-InvokeVerifiable}
 
 function Assert-MockCalled {
     <#

@@ -12,7 +12,7 @@ When "we call a function that writes an error" {
 
 Then "we can verify the mock" {
     Should -Invoke Write-Error
-    Assert-VerifiableMock
+    Should -InvokeVerifiable
 }
 
 Then "we cannot verify the mock" {

@@ -626,9 +626,9 @@ Describe "When Creating a Verifiable Mock that is not called" {
             FunctionUnderTest "three" | Out-Null
             $result = $null
             try {
-                Assert-VerifiableMock
+                Should -InvokeVerifiable
             }
-            Catch {
+            catch {
                 $result = $_
             }
 
@@ -648,7 +648,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
             TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
             try {
-                Assert-VerifiableMock
+                Should -InvokeVerifiable
             }
             Catch {
                 $result = $_
@@ -671,8 +671,8 @@ Describe "When Creating a Verifiable Mock that is called" {
         FunctionUnderTest "one"
     }
 
-    It "Assert-VerifiableMock Should not throw" {
-        { Assert-VerifiableMock } | Should -Not -Throw
+    It "Should -InvokeVerifiable Should not throw" {
+        { Should -InvokeVerifiable } | Should -Not -Throw
     }
 }
 
@@ -2445,7 +2445,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             Context "Get-PhysicalDisk example" {
                 It "should return 'hello'" {
                     Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
-                    Get-PhysicalDisk | Should Be "hello"
+                    Get-PhysicalDisk | Should -Be "hello"
                 }
             }
         }
@@ -2534,5 +2534,15 @@ Describe "Assert-MockCalled is available as a wrapper over Should -Invoke for ba
         Mock f { "mock" }
         f
         Assert-MockCalled -CommandName f -Exactly 1
+    }
+}
+
+Describe "Assert-VerfiableMock is available as a wrapper over Should -InvokeVerifiable for backwards compatibility" {
+
+    It  "Verify calls" {
+        function f () { "real" }
+        Mock f { "mock" } -Verifiable
+        f
+        Assert-VerfiableMock
     }
 }
