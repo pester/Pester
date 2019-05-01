@@ -14,10 +14,12 @@ $global:PesterDebugPreference = @{
 }
 
 $excludePath = "*/demo/*"
+$excludePath =""
 $excludeTags = "Help", "VersionChecks", "Formatting"
 
 $path = "C:\Projects\Pester_main"
 #$path = "./Functions/Assertions/PesterThrow.Tests.ps1"
+$path = "C:\projects\pester_main\demo\mocking\CountingMocks.Tests.ps1"
 
 
 $script:r = $null
