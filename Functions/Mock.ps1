@@ -1635,7 +1635,25 @@ function Reset-ConflictingParameters {
 }
 
 $script:ConflictingParameterNames = @(
-    "PSEdition"
+    '?'
+    'ConsoleFileName'
+    'EnabledExperimentalFeatures'
+    'Error'
+    'ExecutionContext'
+    'false'
+    'HOME'
+    'Host'
+    'IsCoreCLR'
+    'IsMacOS'
+    'IsWindows'
+    'PID'
+    'PSCulture'
+    'PSEdition'
+    'PSHOME'
+    'PSUICulture'
+    'PSVersionTable'
+    'ShellId'
+    'true'
 )
 
 function Get-ConflictingParameterNames {
