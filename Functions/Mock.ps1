@@ -45,7 +45,7 @@ function New-MockBehavior {
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         }
-        $mockWithCopy = $MockWith
+        $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
         Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
         # bind the script block to the caller state which is most likely the test scope
         Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $ContextInfo.CallerSessionState
