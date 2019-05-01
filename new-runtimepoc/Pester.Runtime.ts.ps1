@@ -740,7 +740,9 @@ i -PassThru:$PassThru {
         t "error in one container during Run phase does not prevent the next container from running" {
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
                 New-BlockContainerObject -ScriptBlock {
-                    BeforeAll { throw } -SessionState $ExecutionContext.SessionState
+                    New-OneTimeTestSetup {
+                        throw
+                    }
                     New-Block "block1" {
                         New-Test "test1" {}
                     }
@@ -818,7 +820,7 @@ i -PassThru:$PassThru {
             }
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
 
-                    New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
+                    # New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
                     New-EachBlockSetup {
                         $container.EachBlockSetup1++ }
 
@@ -840,9 +842,7 @@ i -PassThru:$PassThru {
                     New-EachBlockTeardown {
                         $container.EachBlockTeardown1++
                     }
-                    New-OneTimeBlockTeardown {
-                        $container.OneTimeBlockTeardown1++
-                    }
+                   # New-OneTimeBlockTeardown { $container.OneTimeBlockTeardown1++ }
                 }) -Filter (New-FilterObject -ExcludeTag DoNotRun)
 
             # $container.OneTimeBlockSetup1 | Verify-Equal 1
@@ -1788,6 +1788,47 @@ i -PassThru:$PassThru {
             # this needs to be done over all blocks at the same time because of the focused tests
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+        }
+    }
+
+    b "Setup and Teardown on root block" {
+        t "OneTimeTestSetup is invoked when placed in the script root" {
+            # the one time test setup that is placed in the top level block should
+            # be invoked before the first inner block runs and should be scoped to the
+            # outside of the block so the setup is shared with other blocks
+            # that follow the first block
+            $container = @{
+                OneTimeTestSetup = 0
+                ValueInTestInFirstBlock = ''
+                ValueInTestInSecondBlock = ''
+            }
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-OneTimeTestSetup {
+                        $container.OneTimeTestSetup++
+                        $outside = "outside"
+                    }
+
+                    New-Block -Name "b1" {
+                        New-Test "t1" {
+                            $true
+                            $container.ValueInTestInFirstBlock = $outside
+                        }
+                    }
+
+                    New-Block -name "b2" {
+                        New-Test "b2" {
+                            $true
+                            $container.ValueInTestInSecondBlock = $outside
+                        }
+                    }
+
+                }
+            )
+
+            $container.OneTimeTestSetup | Verify-Equal 1
+            $container.ValueInTestInFirstBlock | Verify-Equal "outside"
+            $container.ValueInTestInSecondBlock | Verify-Equal "outside"
         }
     }
 }

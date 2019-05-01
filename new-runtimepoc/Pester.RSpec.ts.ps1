@@ -144,12 +144,12 @@ i -PassThru:$PassThru {
         t "`$PSScriptRoot in BeforeAll has the same value as in the script that calls it" {
             $container = [PSCustomObject]@{
                 InScript = $null
-                InAddDependency = $null
+                InBeforeAll = $null
             }
             $result = Invoke-Pester -ScriptBlock {
                 $container.InScript = $PSScriptRoot
                 BeforeAll {
-                    $container.InAddDependency = $PSScriptRoot
+                    $container.InBeforeAll = $PSScriptRoot
                 }
 
                 Describe "a" {
@@ -160,7 +160,7 @@ i -PassThru:$PassThru {
                 }
             } -PassThru
 
-            $container.InAddDependency | Verify-Equal $container.InScript
+            $container.InBeforeAll | Verify-Equal $container.InScript
         }
     }
 }
