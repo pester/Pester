@@ -3,6 +3,9 @@ Set-StrictMode -Version Latest
 if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
     $tempPath = $env:TEMP
 }
+elseif ($IsMacOS) {
+    $tempPath = '/private/tmp'
+}
 else {
     $tempPath = '/tmp'
 }
@@ -179,7 +182,7 @@ InModuleScope Pester {
         # Symlink cmdlets were introduced in PowerShell v5 and deleting them
         # requires running as admin, so skip tests when those conditions are
         # not met
-        if  ((GetPesterOs) -eq "Windows") {
+        if ((GetPesterOs) -eq "Windows") {
             if ($psVersion -lt 5) {
                 $skipTest = $true
             }
@@ -197,8 +200,8 @@ InModuleScope Pester {
         It "Deletes symbolic links in TestDrive" -skip:$skipTest {
 
             # using non-powershell paths here because we need to interop with cmd below
-            $root    = (Get-PsDrive 'TestDrive').Root
-            $source  = "$root\source"
+            $root = (Get-PsDrive 'TestDrive').Root
+            $source = "$root\source"
             $symlink = "$root\symlink"
 
             $null = New-Item -Type Directory -Path $source
