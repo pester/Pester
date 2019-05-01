@@ -1735,8 +1735,8 @@ Describe 'Assert-MockCalled with Aliases' {
         Mock PesterTF
         $null = PesterTF
 
-        { Assert-MockCalled PesterTF } | Should -Not -Throw
-        { Assert-MockCalled TestFunction } | Should -Not -Throw
+        { Should -Invoke PesterTF } | Should -Not -Throw
+        { Should -Invoke TestFunction } | Should -Not -Throw
     }
 }
 
@@ -2524,5 +2524,15 @@ Describe "Mocks can be defined outside of BeforeAll" {
 
     It "Finds the mock" {
         a | Should -Be "mock"
+    }
+}
+
+Describe "Assert-MockCalled is available as a wrapper over Should -Invoke for backwards compatibility" {
+
+    It  "Count calls" {
+        function f () { "real" }
+        Mock f { "mock" }
+        f
+        Assert-MockCalled -CommandName f -Exactly 1
     }
 }

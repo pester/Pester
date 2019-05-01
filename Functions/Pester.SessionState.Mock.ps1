@@ -595,7 +595,7 @@ and throws an exception if it has not.
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -Invoke INSTEAD.
 #>
-[CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
+    [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$CommandName,
@@ -614,8 +614,20 @@ USE Should -Invoke INSTEAD.
         [switch] $Exactly
     )
 
-    Should -Invoke @PSBoundParameters
+    # Should does not accept a session state, so invoking it directly would
+    # make the assertion run from inside of Pester module, we move it to the
+    # user scope instead an run it from there to keep the scoping correct
+    # for this compatibility adapter
+
+    $sb = {
+        param ($__params__p)
+        Should -Invoke @__params__p
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
+    & $sb $PSBoundParameters
 }
+
 function Should-Invoke {
     <#
 .SYNOPSIS
@@ -769,12 +781,14 @@ to the original.
         [scriptblock] $ExclusiveFilter,
 
         [string] $ModuleName,
-
         [string] $Scope = 0,
         [switch] $Exactly,
+
+        # built-in variables
         [object] $ActualValue,
         [switch] $Negate,
-        [string] $Because
+        [string] $Because,
+        [Management.Automation.SessionState] $CallerSessionState
     )
 
     if ($null -ne $ActualValue) {
@@ -789,8 +803,6 @@ to the original.
     if ($PSBoundParameters.ContainsKey("Negate")) {
         $PSBoundParameters.Remove("Negate")
     }
-
-    $SessionState = $PSCmdlet.SessionState
 
     $isNumericScope = $Scope -match "^\d+$"
     $currentTest = Get-CurrentTest
@@ -847,6 +859,7 @@ to the original.
         }
     }
 
+    $SessionState = $CallerSessionState
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.ModuleName } else { $null }
     $resolvedCommand = $contextInfo.Command.Name
@@ -858,6 +871,7 @@ to the original.
     tryRemoveKey $PSBoundParameters CommandName
     tryRemoveKey $PSBoundParameters ActualValue
     tryRemoveKey $PSBoundParameters Negate
+    tryRemoveKey $PSBoundParameters CallerSessionState
 
     $result = Should-InvokeInternal @PSBoundParameters `
         -ContextInfo $contextInfo `

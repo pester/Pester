@@ -140,14 +140,14 @@ function Should {
             $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
 
             if ($inputArray.Count -eq 0) {
-                Invoke-Assertion $entry $PSBoundParameters $null $file $lineNumber $lineText -Negate:$negate
+                Invoke-Assertion $entry $PSBoundParameters $null $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
             }
             elseif ($entry.SupportsArrayInput) {
-                Invoke-Assertion $entry $PSBoundParameters $inputArray.ToArray() $file $lineNumber $lineText -Negate:$negate
+                Invoke-Assertion $entry $PSBoundParameters $inputArray.ToArray() $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
             }
             else {
                 foreach ($object in $inputArray) {
-                    Invoke-Assertion $entry $PSBoundParameters $object $file $lineNumber $lineText -Negate:$negate
+                    Invoke-Assertion $entry $PSBoundParameters $object $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
                 }
             }
         }
@@ -178,10 +178,11 @@ function Invoke-Assertion {
         [string] $File,
         [int] $LineNumber,
         [string] $LineText,
-        [switch] $Negate
+        [switch] $Negate,
+        [Management.Automation.SessionState] $CallerSessionState
     )
 
-    $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate @BoundParameters
+    $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
     if (-not $testResult.Succeeded) {
         throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
     }
