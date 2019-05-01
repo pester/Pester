@@ -320,7 +320,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $mock
 }
 
-function Assert-VerifiableMockInternal {
+function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -342,11 +342,20 @@ function Assert-VerifiableMockInternal {
             }
             $message += "to be called with $($b.Filter)"
         }
-        throw $message
+
+        return [PSCustomObject] @{
+            Succeeded      = $false
+            FailureMessage = $message
+        }
+    }
+
+    return [PSCustomObject] @{
+        Succeeded      = $true
+        FailureMessage = $null
     }
 }
 
-function Assert-MockCalledInternal {
+function Should-InvokeInternal {
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
         [Parameter(Mandatory = $true)]
@@ -423,22 +432,28 @@ function Assert-MockCalledInternal {
         }
     }
 
-
-    $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
-    $line = $MyInvocation.ScriptLineNumber
-
-    # todo: return this as an object and throw externally? so Mock is sepearate from Should
-    if ($matchingCalls.Count -ne $times -and ($Exactly -or ($times -eq 0))) {
-        $failureMessage = "Expected ${commandName}${moduleMessage} to be called $times times exactly but was called $($matchingCalls.Count) times"
-        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+    if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
+        return [PSCustomObject] @{
+            Succeeded      = $false
+            FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly but was called $($matchingCalls.Count) times"
+        }
     }
-    elseif ($matchingCalls.Count -lt $times) {
-        $failureMessage = "Expected ${commandName}${moduleMessage} to be called at least $times times but was called $($matchingCalls.Count) times"
-        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+    elseif ($matchingCalls.Count -lt $Times) {
+        return [PSCustomObject] @{
+            Succeeded      = $false
+            FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times but was called $($matchingCalls.Count) times"
+        }
     }
     elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
-        $failureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
-        throw ( New-ShouldErrorRecord -Message $failureMessage -Line $line -LineText $lineText)
+        return [PSCustomObject] @{
+            Succeeded      = $false
+            FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+        }
+    }
+
+    return [PSCustomObject] @{
+        Succeeded      = $true
+        FailureMessage = $null
     }
 }
 

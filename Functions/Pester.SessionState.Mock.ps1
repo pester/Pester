@@ -62,7 +62,7 @@ they will act as a "catch all" mock.
 
 Mocks can be marked Verifiable. If so, the Assert-VerifiableMock command
 can be used to check if all Verifiable mocks were actually called. If any
-verifiable mock is not called, Assert-VerifiableMock will throw an
+verifiable mock is not called, Should -InvokeVerifiable will throw an
 exception and indicate all mocks not called.
 
 If you wish to mock commands that are called from inside a script module,
@@ -84,7 +84,7 @@ being mocked, and the MockWith script block can contain references to the
 mocked commands parameter variables.
 
 .PARAMETER Verifiable
-When this is set, the mock will be checked when Assert-VerifiableMock is
+When this is set, the mock will be checked when Should -InvokeVerifiable is
 called.
 
 .PARAMETER ParameterFilter
@@ -114,7 +114,7 @@ This Mock will only be applied to Get-ChildItem calls within the user's temp dir
 .EXAMPLE
 Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $Value -eq "Expected Value" }
 
-When this mock is used, if the Mock is never invoked and Assert-VerifiableMock is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
+When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
@@ -183,8 +183,7 @@ mocked by using the -ModuleName parameter.
 
 
 .LINK
-Assert-MockCalled
-Assert-VerifiableMock
+Should
 Describe
 Context
 It
@@ -545,8 +544,28 @@ function Get-MockDataForCurrentScope {
     $location.PluginData.Mock
 }
 
-
 function Assert-VerifiableMock {
+    <#
+.SYNOPSIS
+Checks if all verifiable Mocks has been called at least once.
+
+THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
+USE Should -InvokeVerifiable INSTEAD.
+#>
+
+    # Should does not accept a session state, so invoking it directly would
+    # make the assertion run from inside of Pester module, we move it to the
+    # user scope instead an run it from there to keep the scoping correct
+    # for this compatibility adapter
+    [CmdletBinding()]param()
+    $sb = {
+        Should -InvokeVerifiable
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
+    & $sb
+}
+function Should-InvokeVerifiable {
     <#
 .SYNOPSIS
 Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -554,7 +573,7 @@ Checks if any Verifiable Mock has not been invoked. If so, this will throw an ex
 .DESCRIPTION
 This can be used in tandem with the -Verifiable switch of the Mock
 function. Mock can be used to mock the behavior of an existing command
-and optionally take a -Verifiable switch. When Assert-VerifiableMock
+and optionally take a -Verifiable switch. When Should -InvokeVerifiable
 is called, it checks to see if any Mock marked Verifiable has not been
 invoked. If any mocks have been found that specified -Verifiable and
 have not been invoked, an exception will be thrown.
@@ -564,7 +583,7 @@ Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Va
 
 { ...some code that never calls Set-Content some_path -Value "Expected Value"... }
 
-Assert-VerifiableMock
+Should -InvokeVerifiable
 
 This will throw an exception and cause the test to fail.
 
@@ -573,20 +592,62 @@ Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Va
 
 Set-Content some_path -Value "Expected Value"
 
-Assert-VerifiableMock
+Should -InvokeVerifiable
 
 This will not throw an exception because the mock was invoked.
 
 #>
-    [CmdletBinding()]param()
-
-    Assert-DescribeInProgress -CommandName Assert-VerifiableMock
-
     $behaviors = @(Get-VerifiableBehaviors)
-    Assert-VerifiableMockInternal -Behaviors $behaviors
+    Should-InvokeVerifiableInternal -Behaviors $behaviors
 }
 
+Add-ShouldOperator -Name InvokeVerifiable `
+    -InternalName Should-InvokeVerifiable `
+    -Test         ${function:Should-InvokeVerifiable}
+
 function Assert-MockCalled {
+    <#
+.SYNOPSIS
+Checks if a Mocked command has been called a certain number of times
+and throws an exception if it has not.
+
+THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
+USE Should -Invoke INSTEAD.
+#>
+    [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$CommandName,
+
+        [Parameter(Position = 1)]
+        [int]$Times = 1,
+
+        [ScriptBlock]$ParameterFilter = {$True},
+
+        [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
+        [scriptblock] $ExclusiveFilter,
+
+        [string] $ModuleName,
+
+        [string] $Scope = 0,
+        [switch] $Exactly
+    )
+
+    # Should does not accept a session state, so invoking it directly would
+    # make the assertion run from inside of Pester module, we move it to the
+    # user scope instead an run it from there to keep the scoping correct
+    # for this compatibility adapter
+
+    $sb = {
+        param ($__params__p)
+        Should -Invoke @__params__p
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
+    & $sb $PSBoundParameters
+}
+
+function Should-Invoke {
     <#
 .SYNOPSIS
 Checks if a Mocked command has been called a certain number of times
@@ -595,7 +656,7 @@ and throws an exception if it has not.
 .DESCRIPTION
 This command verifies that a mocked command has been called a certain number
 of times.  If the call history of the mocked command does not match the parameters
-passed to Assert-MockCalled, Assert-MockCalled will throw an exception.
+passed to Should -Invoke, Should -Invoke will throw an exception.
 
 .PARAMETER CommandName
 The mocked command whose call history should be checked.
@@ -623,21 +684,21 @@ will be counted.
 Like ParameterFilter, except when you use ExclusiveFilter, and there
 were any calls to the mocked command which do not match the filter,
 an exception will be thrown.  This is a convenient way to avoid needing
-to have two calls to Assert-MockCalled like this:
+to have two calls to Should -Invoke like this:
 
-Assert-MockCalled SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
-Assert-MockCalled SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
+Should -Invoke SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
+Should -Invoke SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
 
 .PARAMETER Scope
 An optional parameter specifying the Pester scope in which to check for
-calls to the mocked command. For RSpec style tests, Assert-MockCalled will find
+calls to the mocked command. For RSpec style tests, Should -Invoke will find
 all calls to the mocked command in the current Context block (if present),
 or the current Describe block (if there is no active Context), by default. Valid
 values are Describe, Context and It. If you use a scope of Describe or
 Context, the command will identify all calls to the mocked command in the
 current Describe / Context block, as well as all child scopes of that block.
 
-For Gherkin style tests, Assert-MockCalled will find all calls to the mocked
+For Gherkin style tests, Should -Invoke will find all calls to the mocked
 command in the current Scenario block or the current Feature block (if there is
 no active Scenario), by default. Valid values for Gherkin style tests are Feature
 and Scenario. If you use a scope of Feature or Scenario, the command will identify
@@ -649,7 +710,7 @@ C:\PS>Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content
+C:\PS>Should -Invoke Set-Content
 
 This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
 
@@ -658,7 +719,7 @@ C:\PS>Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content 2 { $path -eq "$env:temp\test.txt" }
+C:\PS>Should -Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
 
 This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
 
@@ -667,7 +728,7 @@ C:\PS>Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content 0
+C:\PS>Should -Invoke Set-Content 0
 
 This will throw an exception if some code calls Set-Content at all
 
@@ -676,18 +737,18 @@ C:\PS>Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content -Exactly 2
+C:\PS>Should -Invoke Set-Content -Exactly 2
 
 This will throw an exception if some code does not call Set-Content Exactly two times.
 
 .EXAMPLE
-Describe 'Assert-MockCalled Scope behavior' {
+Describe 'Should -Invoke Scope behavior' {
     Mock Set-Content { }
 
     It 'Calls Set-Content at least once in the It block' {
         {... Some Code ...}
 
-        Assert-MockCalled Set-Content -Exactly 0 -Scope It
+        Should -Invoke Set-Content -Exactly 0 -Scope It
     }
 }
 
@@ -700,31 +761,31 @@ Describe 'Describe' {
     {... Some Code ...}
 
     It 'Calls Set-Content at least once in the Describe block' {
-        Assert-MockCalled -ModuleName SomeModule Set-Content
+        Should -Invoke -ModuleName SomeModule Set-Content
     }
 }
 
 Checks for calls to the mock within the SomeModule module.  Note that both the Mock
-and Assert-MockCalled commands use the same module name.
+and Should -Invoke commands use the same module name.
 
 .EXAMPLE
-Assert-MockCalled Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+Should -Invoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
 
 Checks to make sure that Get-ChildItem was called at least one time with
 the -Path parameter set to 'C:\', and that it was not called at all with
 the -Path parameter set to any other value.
 
 .NOTES
-The parameter filter passed to Assert-MockCalled does not necessarily have to match the parameter filter
-(if any) which was used to create the Mock.  Assert-MockCalled will find any entry in the command history
+The parameter filter passed to Should -Invoke does not necessarily have to match the parameter filter
+(if any) which was used to create the Mock.  Should -Invoke will find any entry in the command history
 which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
 mocked command are made which did not match any mock's parameter filter (resulting in the original command
 being executed instead of a mock), these calls to the original command are not tracked in the call history.
-In other words, Assert-MockCalled can only be used to check for calls to the mocked implementation, not
+In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
 to the original.
 
 #>
-    # Assert-MockCalled
+    # Should -Invoke
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
@@ -739,17 +800,33 @@ to the original.
         [scriptblock] $ExclusiveFilter,
 
         [string] $ModuleName,
-
         [string] $Scope = 0,
-        [switch] $Exactly
+        [switch] $Exactly,
+
+        # built-in variables
+        [object] $ActualValue,
+        [switch] $Negate,
+        [string] $Because,
+        [Management.Automation.SessionState] $CallerSessionState
     )
 
-    # Assert-DescribeInProgress -CommandName Assert-MockCalled
+    if ($null -ne $ActualValue) {
+        if ($ActualValue -is [string]) {
+            $CommandName = $ActualValue
+        }
+        else {
+            throw "Should -Invoke does not take pipeline input or ActualValue."
+        }
+    }
+
+    # Assert-DescribeInProgress -CommandName Should -Invoke
     if ('Describe', 'Context', 'It' -notcontains $Scope -and $Scope -notmatch "^\d+$") {
         throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
     }
 
-    $SessionState = $PSCmdlet.SessionState
+    if ($PSBoundParameters.ContainsKey("Negate")) {
+        $PSBoundParameters.Remove("Negate")
+    }
 
     $isNumericScope = $Scope -match "^\d+$"
     $currentTest = Get-CurrentTest
@@ -806,6 +883,7 @@ to the original.
         }
     }
 
+    $SessionState = $CallerSessionState
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.ModuleName } else { $null }
     $resolvedCommand = $contextInfo.Command.Name
@@ -815,11 +893,21 @@ to the original.
     tryRemoveKey $PSBoundParameters Scope
     tryRemoveKey $PSBoundParameters ModuleName
     tryRemoveKey $PSBoundParameters CommandName
-    Assert-MockCalledInternal @PSBoundParameters `
+    tryRemoveKey $PSBoundParameters ActualValue
+    tryRemoveKey $PSBoundParameters Negate
+    tryRemoveKey $PSBoundParameters CallerSessionState
+
+    $result = Should-InvokeInternal @PSBoundParameters `
         -ContextInfo $contextInfo `
         -MockTable $mockTable `
         -SessionState $SessionState
+
+    return $result
 }
+
+Add-ShouldOperator -Name Invoke `
+    -InternalName Should-Invoke `
+    -Test         ${function:Should-Invoke}
 
 function Invoke-Mock {
     [CmdletBinding()]

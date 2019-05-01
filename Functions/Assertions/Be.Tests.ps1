@@ -3,25 +3,21 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -Be" {
         It "returns true if the 2 arguments are equal" {
-            1 | Should Be 1
             1 | Should -Be 1
             1 | Should -EQ 1
         }
         It "returns true if the 2 arguments are equal and have different case" {
-            'A' | Should Be 'a'
             'A' | Should -Be 'a'
             'A' | Should -EQ 'a'
         }
 
         It "returns false if the 2 arguments are not equal" {
-            1 | Should Not Be 2
             1 | Should -Not -Be 2
             1 | Should -Not -EQ 2
         }
 
         It 'Compares Arrays properly' {
             $array = @(1, 2, 3, 4, 'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
-            $array | Should Be $array
             $array | Should -Be $array
             $array | Should -EQ $array
         }
@@ -31,7 +27,6 @@ InModuleScope Pester {
             $array = @(1, 2, 3, 4, $string)
             $arrayWithCaps = @(1, 2, 3, 4, $string.ToUpper())
 
-            $array | Should Be $arrayWithCaps
             $array | Should -Be $arrayWithCaps
             $array | Should -EQ $arrayWithCaps
         }
@@ -40,8 +35,6 @@ InModuleScope Pester {
             $object1 = New-Object psobject -Property @{ Value = 'Test' }
             $object2 = New-Object psobject -Property @{ Value = 'Test' }
 
-            $object1 | Should Be $object1
-            $object1 | Should Not Be $object2
             $object1 | Should -Be $object1
             $object1 | Should -Not -Be $object2
             $object1 | Should -EQ $object1
@@ -59,7 +52,6 @@ InModuleScope Pester {
                 @(6, 7, 8, 9, 0)
             )
 
-            $array1 | Should Be $array2
             $array1 | Should -Be $array2
             $array1 | Should -EQ $array2
 
@@ -68,19 +60,16 @@ InModuleScope Pester {
                 @(6, 7, 8, 9, 0, 'Oops!')
             )
 
-            $array1 | Should Not Be $array3
             $array1 | Should -Not -Be $array3
             $array1 | Should -Not -EQ $array3
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
-            {abc} | Should Be "aBc"
             {abc} | Should -Be "aBc"
             {abc} | Should -EQ "aBc"
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value (case sensitive)" {
-            {abc} | Should BeExactly "abc"
             {abc} | Should -BeExactly "abc"
             {abc} | Should -CEQ "abc"
         }
@@ -112,19 +101,16 @@ InModuleScope Pester {
         It "Shows excerpted error messages correctly" {
             $expected = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             $actual = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-            { $actual | Should Be $expected } | Should Throw "*Expected: '...aaaaabbbbb...'*"
         }
 
         It "Shows excerpted error messages correctly" {
             $expected = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             $actual = "abb"
-            { $actual | Should Be $expected } | Should Throw "*Expected: 'aaaaaaaaaa...'*"
         }
 
         It "Shows excerpted 'actual values' correctly" {
             $expected = "aaab"
             $actual = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-            { $actual | Should Be $expected } | Should Throw "*But was:  'aaaaaaaaaa...'*"
         }
 
         It "Returns nothing for two identical strings" {
@@ -172,25 +158,20 @@ InModuleScope Pester {
 InModuleScope Pester {
     Describe "Should -BeExactly" {
         It "passes if letter case matches" {
-            'a' | Should BeExactly 'a'
             'a' | Should -BeExactly 'a'
         }
 
         It "fails if letter case doesn't match" {
-            'A' | Should Not BeExactly 'a'
             'A' | Should -Not -BeExactly 'a'
         }
 
         It "passes for numbers" {
-            1 | Should BeExactly 1
-            2.15 | Should BeExactly 2.15
             1 | Should -BeExactly 1
             2.15 | Should -BeExactly 2.15
         }
 
         It 'Compares Arrays properly' {
             $array = @(1, 2, 3, 4, 'I am a string', (New-Object psobject -Property @{ IAm = 'An Object' }))
-            $array | Should BeExactly $array
             $array | Should -BeExactly $array
         }
 
@@ -199,7 +180,6 @@ InModuleScope Pester {
             $array = @(1, 2, 3, 4, $string)
             $arrayWithCaps = @(1, 2, 3, 4, $string.ToUpper())
 
-            $array | Should Not BeExactly $arrayWithCaps
             $array | Should -Not -BeExactly $arrayWithCaps
         }
     }

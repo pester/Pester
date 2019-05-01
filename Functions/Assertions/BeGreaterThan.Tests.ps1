@@ -3,19 +3,16 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -BeGreaterThan" {
         It "passes if value greater than expected" {
-            2 | Should BeGreaterThan 1
             2 | Should -BeGreaterThan 1
             2 | Should -GT 1
         }
 
         It "fails if values equal" {
-            { 3 | Should BeGreaterThan 3 } | Verify-AssertionFailed
             { 3 | Should -BeGreaterThan 3 } | Verify-AssertionFailed
             { 3 | Should -GT 3 } | Verify-AssertionFailed
         }
 
         It "fails if value less than expected" {
-            { 4 | Should BeGreaterThan 5 } | Verify-AssertionFailed
             { 4 | Should -BeGreaterThan 5 } | Verify-AssertionFailed
             { 4 | Should -GT 5 } | Verify-AssertionFailed
         }
@@ -32,19 +29,16 @@ InModuleScope Pester {
 
     Describe "Should -Not -BeGreaterThan" {
         It "passes if value is lower than the expected value" {
-            0 | Should Not BeGreaterThan 1
             0 | Should -Not -BeGreaterThan 1
             0 | Should -Not -GT 1
         }
 
         It "passes if value is equal to the expected value" {
-            1 | Should Not BeGreaterThan 1
             1 | Should -Not -BeGreaterThan 1
             1 | Should -Not -GT 1
         }
 
         It "fails if value is greater than the expected value" {
-            { 4 | Should Not BeGreaterThan 3 } | Verify-AssertionFailed
             { 4 | Should -Not -BeGreaterThan 3 } | Verify-AssertionFailed
             { 4 | Should -Not -GT 3 } | Verify-AssertionFailed
         }

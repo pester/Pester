@@ -82,12 +82,12 @@ i -PassThru:$PassThru {
 
                     It 'i1' {
                         f
-                        Assert-MockCalled f -Times 1 -Exactly
+                        Should -Invoke f -Times 1 -Exactly
                     }
 
                     It 'i2' {
                         f
-                        Assert-MockCalled f -Times 1 -Exactly
+                        Should -Invoke f -Times 1 -Exactly
                     }
                 }
             } -PassThru
@@ -106,12 +106,12 @@ i -PassThru:$PassThru {
 
                     It 'i1' {
                         f
-                        Assert-MockCalled f -Times 1 -Exactly
+                        Should -Invoke f -Times 1 -Exactly
                     }
 
                     It 'i2' {
                         f
-                        Assert-MockCalled f -Times 2 -Exactly -Scope Describe
+                        Should -Invoke f -Times 2 -Exactly -Scope Describe
                     }
                 }
             } -PassThru
@@ -137,7 +137,7 @@ i -PassThru:$PassThru {
                     }
 
                     AfterAll {
-                        Assert-MockCalled f -Times 2 -Exactly
+                        Should -Invoke f -Times 2 -Exactly
                     }
                 }
             } -PassThru
@@ -165,7 +165,7 @@ i -PassThru:$PassThru {
                     }
 
                     AfterAll {
-                        Assert-MockCalled f -Times 1 -Exactly
+                        Should -Invoke f -Times 1 -Exactly
                     }
                 }
             } -PassThru
@@ -228,14 +228,14 @@ i -PassThru:$PassThru {
 
                                 It 'i1' {
                                     # scope 0
-                                    Assert-MockCalled a -Exactly 0 -Scope 0
-                                    Assert-MockCalled a -Exactly 0 -Scope It
-                                    Assert-MockCalled a -Exactly 1 -Scope 1
-                                    Assert-MockCalled a -Exactly 1 -Scope Context
-                                    Assert-MockCalled a -Exactly 2 -Scope 2
-                                    Assert-MockCalled a -Exactly 2 -Scope Describe
-                                    Assert-MockCalled a -Exactly 2 -Scope 3
-                                    Assert-MockCalled a -Exactly 2 -Scope 4
+                                    Should -Invoke a -Exactly 0 -Scope 0
+                                    Should -Invoke a -Exactly 0 -Scope It
+                                    Should -Invoke a -Exactly 1 -Scope 1
+                                    Should -Invoke a -Exactly 1 -Scope Context
+                                    Should -Invoke a -Exactly 2 -Scope 2
+                                    Should -Invoke a -Exactly 2 -Scope Describe
+                                    Should -Invoke a -Exactly 2 -Scope 3
+                                    Should -Invoke a -Exactly 2 -Scope 4
                                 }
                             }
                         }

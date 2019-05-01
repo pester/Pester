@@ -83,11 +83,11 @@ Describe "When the caller mocks a command Pester uses internally" {
 
         It "does not make extra calls to the mocked command" {
             Write-Host 'Some String'
-            Assert-MockCalled 'Write-Host' -Exactly 1
+            Should -Invoke 'Write-Host' -Exactly 1
         }
 
         It "retains the correct mock count after the first test completes" {
-            Assert-MockCalled 'Write-Host' -Exactly 1 -Scope Context
+            Should -Invoke 'Write-Host' -Exactly 1 -Scope Context
         }
     }
 }
@@ -366,7 +366,7 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     }
 
     It 'Properly asserts the mock was called when there is a variable in the parameter filter' {
-        Assert-MockCalled FunctionUnderTest -Exactly 1 -ParameterFilter { $param1 -eq $testValue } -Scope Describe
+        Should -Invoke FunctionUnderTest -Exactly 1 -ParameterFilter { $param1 -eq $testValue } -Scope Describe
     }
 }
 
@@ -535,7 +535,7 @@ Describe 'When calling Mock on a module-internal function.' {
         It 'Should mock calls to external functions from inside the module' {
             PublicFunctionThatCallsExternalCommand
 
-            Assert-MockCalled -ModuleName TestModule Start-Sleep -Exactly 1
+            Should -Invoke -ModuleName TestModule -CommandName Start-Sleep -Exactly 1
         }
 
         It 'Should only call mocks within the same module' {
@@ -560,7 +560,7 @@ Describe 'When calling Mock on a module-internal function.' {
 
         It 'Does not trigger the mocked Get-Content from Pester internals' {
             Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
-            Assert-MockCalled -ModuleName TestModule2 Get-Content -Times 0 -Scope It
+            Should -Invoke -ModuleName TestModule2 -CommandName Get-Content -Times 0 -Scope It
         }
     }
 
@@ -626,9 +626,9 @@ Describe "When Creating a Verifiable Mock that is not called" {
             FunctionUnderTest "three" | Out-Null
             $result = $null
             try {
-                Assert-VerifiableMock
+                Should -InvokeVerifiable
             }
-            Catch {
+            catch {
                 $result = $_
             }
 
@@ -648,7 +648,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
             TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
             try {
-                Assert-VerifiableMock
+                Should -InvokeVerifiable
             }
             Catch {
                 $result = $_
@@ -671,18 +671,18 @@ Describe "When Creating a Verifiable Mock that is called" {
         FunctionUnderTest "one"
     }
 
-    It "Assert-VerifiableMock Should not throw" {
-        { Assert-VerifiableMock } | Should -Not -Throw
+    It "Should -InvokeVerifiable Should not throw" {
+        { Should -InvokeVerifiable } | Should -Not -Throw
     }
 }
 
-Describe "When Calling Assert-MockCalled 0 without exactly" {
+Describe "When Calling Should -Invoke 0 without exactly" {
     BeforeAll {
         Mock FunctionUnderTest {}
         FunctionUnderTest "one"
 
         try {
-            Assert-MockCalled FunctionUnderTest 0
+            Should -Invoke FunctionUnderTest 0
         }
         Catch {
             $result = $_
@@ -694,18 +694,18 @@ Describe "When Calling Assert-MockCalled 0 without exactly" {
     }
 
     It "Should not throw if mock was not called" {
-        Assert-MockCalled FunctionUnderTest 0 -ParameterFilter { $param1 -eq "stupid" }
+        Should -Invoke FunctionUnderTest 0 -ParameterFilter { $param1 -eq "stupid" }
     }
 }
 
-Describe "When Calling Assert-MockCalled with exactly" {
+Describe "When Calling Should -Invoke with exactly" {
     BeforeAll {
         Mock FunctionUnderTest {}
         FunctionUnderTest "one"
         FunctionUnderTest "one"
 
         try {
-            Assert-MockCalled FunctionUnderTest -exactly 3
+            Should -Invoke FunctionUnderTest -exactly 3
         }
         catch {
             $result = $_
@@ -717,11 +717,11 @@ Describe "When Calling Assert-MockCalled with exactly" {
     }
 
     It "Should not throw if mock was called the number of times specified" {
-        Assert-MockCalled FunctionUnderTest -Exactly 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
+        Should -Invoke FunctionUnderTest -Exactly 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
     }
 }
 
-Describe "When Calling Assert-MockCalled without exactly" {
+Describe "When Calling Should -Invoke without exactly" {
     BeforeAll {
         Mock FunctionUnderTest {}
         FunctionUnderTest "one"
@@ -730,20 +730,20 @@ Describe "When Calling Assert-MockCalled without exactly" {
     }
 
     It "Should throw if mock was not called at least the number of times specified" {
-        $scriptBlock = { Assert-MockCalled FunctionUnderTest 4 -Scope Describe }
+        $scriptBlock = { Should -Invoke FunctionUnderTest 4 -Scope Describe }
         $scriptBlock | Should -Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
-        Assert-MockCalled FunctionUnderTest -Scope Describe
+        Should -Invoke FunctionUnderTest -Scope Describe
     }
 
     It "Should not throw if mock was called at exactly the number of times specified" {
-        Assert-MockCalled FunctionUnderTest 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
+        Should -Invoke FunctionUnderTest 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
     }
 
     It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
-        $scriptBlock = { Assert-MockCalled FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
+        $scriptBlock = { Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
         $scriptBlock | Should -Throw '*1 non-matching calls were made*'
     }
 }
@@ -832,7 +832,7 @@ Describe 'Testing mock history behavior from each scope' {
 
     Context 'Without overriding the mock in lower scopes' {
         It "Reports that zero calls have been made to in the describe scope" {
-            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope Describe
+            Should -Invoke MockHistoryChecker -Exactly 0 -Scope Describe
         }
 
         It 'Calls the describe mock' {
@@ -840,25 +840,25 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It "Reports that zero calls have been made in an It block, after a context-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 0 -Scope It
+            Should -Invoke MockHistoryChecker -Exactly 0 -Scope It
         }
 
         It "Reports one Context-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
+            Should -Invoke MockHistoryChecker -Exactly 1 -Scope Context
         }
 
         It "Reports one Describe-scoped call" {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Describe
+            Should -Invoke MockHistoryChecker -Exactly 1 -Scope Describe
         }
     }
 
     Context 'After exiting the previous context' {
         It 'Reports zero context-scoped calls in the new context.' {
-            Assert-MockCalled MockHistoryChecker -Exactly 0
+            Should -Invoke MockHistoryChecker -Exactly 0
         }
 
         It 'Reports one describe-scoped call from the previous context' {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Describe
+            Should -Invoke MockHistoryChecker -Exactly 1 -Scope Describe
         }
     }
 
@@ -872,11 +872,11 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports one context-scoped call' {
-            Assert-MockCalled MockHistoryChecker -Exactly 1 -Scope Context
+            Should -Invoke MockHistoryChecker -Exactly 1 -Scope Context
         }
 
         It 'Reports two describe-scoped calls, even when one is an override mock in a lower scope' {
-            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Describe
+            Should -Invoke MockHistoryChecker -Exactly 2 -Scope Describe
         }
 
         It 'Calls an It-scoped mock' {
@@ -885,16 +885,16 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Reports 2 context-scoped calls' {
-            Assert-MockCalled MockHistoryChecker -Exactly 2 -Scope Context
+            Should -Invoke MockHistoryChecker -Exactly 2 -Scope Context
         }
 
         It 'Reports 3 describe-scoped calls' {
-            Assert-MockCalled MockHistoryChecker -Exactly 3 -Scope Describe
+            Should -Invoke MockHistoryChecker -Exactly 3 -Scope Describe
         }
     }
 
     It 'Reports 3 describe-scoped calls using the default scope in a Describe block' {
-        Assert-MockCalled MockHistoryChecker -Exactly 3  -Scope Describe
+        Should -Invoke MockHistoryChecker -Exactly 3  -Scope Describe
     }
 }
 
@@ -928,14 +928,14 @@ Describe 'Dot Source Test' {
     }
 
     It "Calls the mock with parameter 'Test'" {
-        Assert-MockCalled Test-Path -Exactly 1 -ParameterFilter { $Path -eq 'Test' } -Scope Describe
+        Should -Invoke Test-Path -Exactly 1 -ParameterFilter { $Path -eq 'Test' } -Scope Describe
     }
 
     It "Doesn't call the mock with any other parameters" {
         InModuleScope Pester {
             $global:calls = $mockTable['||Test-Path'].CallHistory
         }
-        Assert-MockCalled Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' } -Scope Describe
+        Should -Invoke Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' } -Scope Describe
     }
 }
 
@@ -952,7 +952,7 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
             { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
-            Assert-MockCalled Get-ChildItem
+            Should -Invoke Get-ChildItem
         }
     }
     else {
@@ -965,7 +965,7 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
             Get-ChildItem -Path Cert:\ -CodeSigningCert
-            Assert-MockCalled Get-ChildItem
+            Should -Invoke Get-ChildItem
         }
     }
 }
@@ -1020,13 +1020,13 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
             { Get-Greeting -Name lowercase -Capitalize } | Should -Not -Throw
-            Assert-MockCalled Get-Greeting
+            Should -Invoke Get-Greeting
         }
 
         It 'Sets the dynamic parameter variable properly' {
             $Capitalize = $false
             { Get-Greeting -Name lowercase -Capitalize } | Should -Not -Throw
-            Assert-MockCalled Get-Greeting -Scope It
+            Should -Invoke Get-Greeting -Scope It
         }
     }
 
@@ -1093,7 +1093,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
             { TestModule\PublicFunction } | Should -Not -Throw
-            Assert-MockCalled Get-Greeting -ModuleName TestModule -Scope Describe
+            Should -Invoke Get-Greeting -ModuleName TestModule -Scope Describe
         }
 
         AfterAll {
@@ -1353,7 +1353,7 @@ Describe 'Mocking Cmdlets with dynamic parameters in a module' {
 
     It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
         { TestModule\PublicFunction } | Should -Not -Throw
-        Assert-MockCalled Get-ChildItem -ModuleName TestModule
+        Should -Invoke Get-ChildItem -ModuleName TestModule
     }
 
     AfterAll {
@@ -1492,8 +1492,8 @@ Describe 'Parameter Filters and Common Parameters' {
 
         It 'Applies common parameters correctly when testing the parameter filter' {
             { Test-Function -Verbose } | Should -Not -Throw
-            Assert-MockCalled Test-Function
-            Assert-MockCalled Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
+            Should -Invoke Test-Function
+            Should -Invoke Test-Function -ParameterFilter { $VerbosePreference -eq 'Continue' }
         }
     }
 }
@@ -1556,7 +1556,7 @@ Describe 'Mocking commands with potentially ambiguous parameter sets' {
     It 'Should call the function successfully, even with delayed parameter binding' {
         $object = New-Object psobject -Property @{ p1 = 'Whatever' }
         { $object | SomeFunction } | Should -Not -Throw
-        Assert-MockCalled SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
+        Should -Invoke SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
     }
 }
 
@@ -1585,7 +1585,7 @@ Describe 'Mocking New-Object' {
 
         $result = New-Object -TypeName Object
         $result | Should -Be $null
-        Assert-MockCalled New-Object
+        Should -Invoke New-Object
     }
 }
 
@@ -1721,22 +1721,22 @@ Describe 'After a mock goes out of scope' {
     }
 }
 
-Describe 'Assert-MockCalled with Aliases' {
+Describe 'Should -Invoke with Aliases' {
     AfterEach {
         if (Test-Path alias:PesterTF) {
             Remove-Item Alias:PesterTF
         }
     }
 
-    It 'Allows calls to Assert-MockCalled to use both aliases and the original command name' {
+    It 'Allows calls to Should -Invoke to use both aliases and the original command name' {
         function TestFunction {
         }
         Set-Alias -Name PesterTF -Value TestFunction
         Mock PesterTF
         $null = PesterTF
 
-        { Assert-MockCalled PesterTF } | Should -Not -Throw
-        { Assert-MockCalled TestFunction } | Should -Not -Throw
+        { Should -Invoke PesterTF } | Should -Not -Throw
+        { Should -Invoke TestFunction } | Should -Not -Throw
     }
 }
 
@@ -1999,7 +1999,7 @@ Describe 'Passing unbound script blocks as mocks' {
     }
 }
 
-Describe 'Assert-MockCalled when mock called outside of It block' {
+Describe 'Should -Invoke when mock called outside of It block' {
     BeforeAll {
         function TestMe {
             'Original '
@@ -2016,16 +2016,16 @@ Describe 'Assert-MockCalled when mock called outside of It block' {
 
         It 'Should log the correct number of calls' {
             TestMe | Should -Be Mocked
-            Assert-MockCalled TestMe -Scope It -Exactly -Times 1
-            Assert-MockCalled TestMe -Scope Context -Exactly -Times 2
-            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 3
+            Should -Invoke TestMe -Scope It -Exactly -Times 1
+            Should -Invoke TestMe -Scope Context -Exactly -Times 2
+            Should -Invoke TestMe -Scope Describe -Exactly -Times 3
         }
 
         It 'Should log the correct number of calls (second test)' {
             TestMe | Should -Be Mocked
-            Assert-MockCalled TestMe -Scope It -Exactly -Times 1
-            Assert-MockCalled TestMe -Scope Context -Exactly -Times 3
-            Assert-MockCalled TestMe -Scope Describe -Exactly -Times 4
+            Should -Invoke TestMe -Scope It -Exactly -Times 1
+            Should -Invoke TestMe -Scope Context -Exactly -Times 3
+            Should -Invoke TestMe -Scope Describe -Exactly -Times 4
         }
     }
 }
@@ -2169,19 +2169,19 @@ Describe "Mocking functions with conflicting parameters" {
                 Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "Bye"
             }
 
-            Context "Assert-MockCalled" {
+            Context "Should -Invoke" {
 
-                It 'simple Assert-Mockcalled' {
+                It 'simple Should -Invoke' {
                     Get-ExampleTest -ParamToAvoid "Hello"
 
-                    Assert-MockCalled Get-ExampleTest -Exactly 1 -Scope It
+                    Should -Invoke Get-ExampleTest -Exactly 1 -Scope It
                 }
 
                 It 'with parameterfilter' {
                     Get-ExampleTest -ParamToAvoid "Another"
                     Get-ExampleTest -ParamToAvoid "Hello"
 
-                    Assert-MockCalled Get-ExampleTest -ParameterFilter { $_ParamToAvoid -eq "Hello" } -Exactly 1 -Scope It
+                    Should -Invoke Get-ExampleTest -ParameterFilter { $_ParamToAvoid -eq "Hello" } -Exactly 1 -Scope It
                 }
             }
         }
@@ -2192,7 +2192,7 @@ Describe "Mocking functions with conflicting parameters" {
         It 'mocks Get-Module properly' {
             Mock Get-Module -Verifiable { 'mocked' }
             f
-            Assert-MockCalled Get-Module
+            Should -Invoke Get-Module
         }
     }
 }
@@ -2234,20 +2234,20 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
 
                         f
 
-                        Assert-MockCalled Get-Module
+                        Should -Invoke Get-Module
                     }
                 }
             }
         }
 
-        Context 'Assert-MockCalled' {
+        Context 'Should -Invoke' {
             It "Uses parameter aliases in ParameterFilter" {
                 function f { Get-Content -Path 'temp.txt' -Tail 10 }
                 Mock Get-Content { }
 
                 f
 
-                Assert-MockCalled Get-Content -ParameterFilter { $Last -eq 10 } -Exactly 1 -Scope It
+                Should -Invoke Get-Content -ParameterFilter { $Last -eq 10 } -Exactly 1 -Scope It
             }
         }
 
@@ -2275,7 +2275,7 @@ InModuleScope Pester {
 
                 & $Command | Should -Be 'I am being mocked'
 
-                Assert-MockCalled $Command -Scope It -Exactly 1
+                Should -Invoke $Command -Scope It -Exactly 1
             }
         }
 
@@ -2286,7 +2286,7 @@ InModuleScope Pester {
 
                     notepad.exe | Should -Be 'I am being mocked'
 
-                    Assert-MockCalled notepad.exe -Scope It -Exactly 1
+                    Should -Invoke notepad.exe -Scope It -Exactly 1
                 }
             }
 
@@ -2296,7 +2296,7 @@ InModuleScope Pester {
 
                     notepad | Should -Be 'I am being mocked'
 
-                    Assert-MockCalled notepad.exe -Scope It -Exactly 1
+                    Should -Invoke notepad.exe -Scope It -Exactly 1
                 }
 
                 It 'mocks without extension and calls with extension' {
@@ -2312,7 +2312,7 @@ InModuleScope Pester {
 
                     notepad | Should -Be 'I am being mocked'
 
-                    Assert-MockCalled note -Scope It -Exactly 1
+                    Should -Invoke note -Scope It -Exactly 1
                 }
             }
         }
@@ -2438,14 +2438,14 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                     $adapter = Get-NetAdapter
                     $adapter | Set-NetAdapter
 
-                    Assert-MockCalled Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
+                    Should -Invoke Set-NetAdapter -ParameterFilter { $InputObject.Name -eq 'Mocked' }
                 }
             }
 
             Context "Get-PhysicalDisk example" {
                 It "should return 'hello'" {
                     Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
-                    Get-PhysicalDisk | Should Be "hello"
+                    Get-PhysicalDisk | Should -Be "hello"
                 }
             }
         }
@@ -2524,5 +2524,25 @@ Describe "Mocks can be defined outside of BeforeAll" {
 
     It "Finds the mock" {
         a | Should -Be "mock"
+    }
+}
+
+Describe "Assert-MockCalled is available as a wrapper over Should -Invoke for backwards compatibility" {
+
+    It  "Count calls" {
+        function f () { "real" }
+        Mock f { "mock" }
+        f
+        Assert-MockCalled -CommandName f -Exactly 1
+    }
+}
+
+Describe "Assert-VerifiableMock is available as a wrapper over Should -InvokeVerifiable for backwards compatibility" {
+
+    It  "Verify calls" {
+        function f () { "real" }
+        Mock f { "mock" } -Verifiable
+        f
+        Assert-VerifiableMock
     }
 }

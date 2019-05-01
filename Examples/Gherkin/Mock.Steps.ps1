@@ -11,13 +11,13 @@ When "we call a function that writes an error" {
 }
 
 Then "we can verify the mock" {
-    Assert-MockCalled Write-Error
-    Assert-VerifiableMock
+    Should -Invoke Write-Error
+    Should -InvokeVerifiable
 }
 
 Then "we cannot verify the mock" {
     try {
-        Assert-MockCalled Write-Error
+        Should -Invoke Write-Error
     }
     catch {
         return

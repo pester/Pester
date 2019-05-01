@@ -3,12 +3,10 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -BeIn" {
         It "passes if value is in the collection" {
-            'a' | Should BeIn @(1, 'a', 3)
             'a' | Should -BeIn @(1, 'a', 3)
         }
 
         It "fails if value is not in the collection" {
-            { 'b' | Should BeIn @(1, 'a', 3) } | Verify-AssertionFailed
             { 'b' | Should -BeIn @(1, 'a', 3) } | Verify-AssertionFailed
         }
 
@@ -20,12 +18,10 @@ InModuleScope Pester {
 
     Describe "Should -Not -BeIn" {
         It "passes if value is not in the collection" {
-            'g' | Should Not BeIn @(1, 'a', 3)
             'g' | Should -Not -BeIn @(1, 'a', 3)
         }
 
         It "fails if value is in the collection" {
-            { 'a' | Should Not BeIn @(1, 'a', 3) } | Verify-AssertionFailed
             { 'a' | Should -Not -BeIn @(1, 'a', 3) } | Verify-AssertionFailed
         }
 
