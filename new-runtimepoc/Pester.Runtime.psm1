@@ -1878,7 +1878,7 @@ function Add-Dependency {
     }
 }
 
-function Add-FreeFloatingCode {
+function Anywhere {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -1985,9 +1985,8 @@ Export-ModuleMember -Function @(
     'New-EachBlockTeardown'
     'New-OneTimeBlockSetup'
     'New-OneTimeBlockTeardown'
-    'Add-Dependency'
     'Add-FrameworkDependency'
-    'Add-FreeFloatingCode'
+    'Anywhere'
     'Invoke-Test',
     'Find-Test',
 

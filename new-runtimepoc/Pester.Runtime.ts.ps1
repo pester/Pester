@@ -740,7 +740,7 @@ i -PassThru:$PassThru {
         t "error in one container during Run phase does not prevent the next container from running" {
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
                 New-BlockContainerObject -ScriptBlock {
-                    Add-Dependency { throw } -SessionState $ExecutionContext.SessionState
+                    BeforeAll { throw } -SessionState $ExecutionContext.SessionState
                     New-Block "block1" {
                         New-Test "test1" {}
                     }

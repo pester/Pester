@@ -18,7 +18,7 @@ i -PassThru:$PassThru {
     b "basic mocking in RSpec Pester" {
         t "running a single mock in one It" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     It 'i1' {
                         Mock f { "mock" }
@@ -32,7 +32,7 @@ i -PassThru:$PassThru {
 
         t "mock does not leak into the subsequent It" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     It 'i1' {
                         Mock f { "mock" }
@@ -51,7 +51,7 @@ i -PassThru:$PassThru {
 
         t "mock defined in beforeall is used in every it" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
                         Mock f { "mock" }
@@ -74,7 +74,7 @@ i -PassThru:$PassThru {
 
         t "mock defined in beforeall is counted independently" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
                         Mock f { "mock" }
@@ -98,7 +98,7 @@ i -PassThru:$PassThru {
 
         t "mock defined in before all can be counted from all tests with -Describe" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
                         Mock f { "mock" }
@@ -122,7 +122,7 @@ i -PassThru:$PassThru {
 
         t "mock defined in before all can and counted from after all automatically counts all calls in the current block" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
                         Mock f { "mock" }
@@ -150,7 +150,7 @@ i -PassThru:$PassThru {
     b "taking mocks from all scopes" {
         t "mocks defined in the parent scope can still be used" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
                         Mock f { "mock" }
@@ -177,7 +177,7 @@ i -PassThru:$PassThru {
     b "mock filters" {
         t "calling filtered and default mock chooses the correct mock to call" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function f { "real" } }
+                BeforeAll { function f { "real" } }
                 Describe 'd1' {
                     BeforeAll {
                         Mock Get-Variable { "filtered" } -ParameterFilter {
@@ -205,7 +205,7 @@ i -PassThru:$PassThru {
     b "named mock scopes" {
         t "asserting in scope describe finds all mocks in the nearest describe" {
             $actual = Invoke-Pester -ScriptBlock {
-                Add-Dependency { function a { } }
+                BeforeAll { function a { } }
                 Describe 'd-2' {
                     # scope 4
                     Describe "d-1" {
