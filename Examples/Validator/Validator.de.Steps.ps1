@@ -19,7 +19,7 @@ When 'jemand etwas aufruft, das MeinValidator benutzt' {
 }
 
 Then 'wurde MeinValidator einmal aufgerufen' {
-    Assert-MockCalled -Module ValidatorTestDe MeinValidator 1
+    Should -Invoke -Module ValidatorTestDe MeinValidator 1
 }
 
 When 'MeinValidator mit (?<word>\w+) aufgerufen wird' {

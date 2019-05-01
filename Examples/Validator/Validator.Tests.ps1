@@ -7,7 +7,7 @@ Describe "Testing a validator" {
         Mock MyValidator -MockWith { return $true }
         Invoke-SomethingThatUsesMyValidator "test"
         $was_called_once = 1
-        Assert-MockCalled MyValidator $was_called_once
+        Should -Invoke MyValidator -Times $was_called_once
     }
 
 }

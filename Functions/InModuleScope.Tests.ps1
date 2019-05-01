@@ -67,7 +67,7 @@ Describe "Get-ScriptModule behavior" {
                 Mock -CommandName "Invoke-MyMethod" `
                     -ModuleName  "MyNonExistentModule" `
                     -MockWith { write-host "my mock called!" }
-            } | Should Throw "No modules named 'MyNonExistentModule' are currently loaded."
+            } | Should -Throw "No modules named 'MyNonExistentModule' are currently loaded."
         }
 
     }

@@ -9,15 +9,15 @@ InModuleScope Pester {
             }
 
             It "returns true if the file matches the specified content on one line" {
-                "TestDrive:\test.txt" | Should FileContentMatchMultiline  "Pester"
+                "TestDrive:\test.txt" | Should -FileContentMatchMultiline  "Pester"
             }
 
             It "returns true if the file matches the specified content across multiple lines" {
-                "TestDrive:\test.txt" | Should FileContentMatchMultiline  "line 2$([System.Environment]::NewLine)Pester"
+                "TestDrive:\test.txt" | Should -FileContentMatchMultiline  "line 2$([System.Environment]::NewLine)Pester"
             }
 
             It "returns false if the file does not contain the specified content" {
-                "TestDrive:\test.txt" | Should Not FileContentMatchMultiline  "Pastor"
+                "TestDrive:\test.txt" | Should -Not -FileContentMatchMultiline  "Pastor"
             }
         }
 

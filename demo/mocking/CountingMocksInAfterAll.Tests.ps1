@@ -7,15 +7,15 @@ Describe "d" {
 
     It "i" {
         f
-        Assert-MockCalled f -Exactly 1
+        Should -Invoke f -Exactly 1
     }
 
     It "j" {
         f
-        Assert-MockCalled f -Exactly 1
+        Should -Invoke f -Exactly 1
     }
 
     AfterAll {
-        Assert-MockCalled f -Exactly 2
+        Should -Invoke f -Exactly 2
     }
 }

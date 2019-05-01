@@ -190,7 +190,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             Write-PesterStart -PesterState (New-PesterState) -Path $expected
-            Assert-MockCalled Format-PesterPath -ParameterFilter {$Path -eq $expected}
+            Should -Invoke Format-PesterPath -ParameterFilter {$Path -eq $expected}
         }
     }
     Describe ConvertTo-FailureLines {

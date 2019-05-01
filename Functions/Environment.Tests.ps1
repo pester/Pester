@@ -53,7 +53,7 @@ InModuleScope -ModuleName Pester {
 
                 $null = GetPesterOs
 
-                Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and ($ValueOnly) } -Exactly 1 -Scope It
+                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and ($ValueOnly) } -Exactly 1 -Scope It
             }
         }
 
@@ -73,7 +73,7 @@ InModuleScope -ModuleName Pester {
 
                 $null = GetPesterOs
 
-                Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -Exactly 1 -Scope It
+                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -Exactly 1 -Scope It
             }
         }
 
@@ -92,7 +92,7 @@ InModuleScope -ModuleName Pester {
 
                 $null = GetPesterOs
 
-                Assert-MockCalled Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1 -Scope It
+                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1 -Scope It
             }
         }
     }

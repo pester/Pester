@@ -19,7 +19,7 @@ When 'alguien llama algo que usa MiValidator' {
 }
 
 Then 'MiValidator fue llamado una vez' {
-    Assert-MockCalled -Module ValidatorTestEs MiValidator 1
+    Should -Invoke -Module ValidatorTestEs MiValidator 1
 }
 
 When 'MiValidator se llama con (?<word>\w+)' {

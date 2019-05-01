@@ -1,36 +1,3 @@
-function Parse-ShouldArgs([object[]] $shouldArgs) {
-    if ($null -eq $shouldArgs) {
-        $shouldArgs = @()
-    }
-
-    $parsedArgs = @{
-        PositiveAssertion = $true
-        ExpectedValue     = $null
-    }
-
-    $assertionMethodIndex = 0
-    $expectedValueIndex = 1
-
-    if ($shouldArgs.Count -gt 0 -and $shouldArgs[0] -eq "not") {
-        $parsedArgs.PositiveAssertion = $false
-        $assertionMethodIndex += 1
-        $expectedValueIndex += 1
-    }
-
-    if ($assertionMethodIndex -lt $shouldArgs.Count) {
-        $parsedArgs.AssertionMethod = "$($shouldArgs[$assertionMethodIndex])"
-    }
-    else {
-        throw 'You cannot call Should without specifying an assertion method.'
-    }
-
-    if ($expectedValueIndex -lt $shouldArgs.Count) {
-        $parsedArgs.ExpectedValue = $shouldArgs[$expectedValueIndex]
-    }
-
-    return $parsedArgs
-}
-
 function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
     if ($negate) {
         $failureMessageFunction = $assertionEntry.GetNegativeFailureMessage
@@ -74,18 +41,9 @@ function Should {
     about_Pester
 #>
 
-    [CmdletBinding(DefaultParameterSetName = 'Legacy')]
+    [CmdletBinding()]
     param (
-        [Parameter(ParameterSetName = 'Legacy', Position = 0)]
-        [object] $__LegacyArg1,
-
-        [Parameter(ParameterSetName = 'Legacy', Position = 1)]
-        [object] $__LegacyArg2,
-
-        [Parameter(ParameterSetName = 'Legacy', Position = 2)]
-        [object] $__LegacyArg3,
-
-        [Parameter(ValueFromPipeline = $true)]
+        [Parameter(ValueFromPipeline = $true, ValueFromRemainingArguments = $true)]
         [object] $ActualValue
     )
 
@@ -95,14 +53,6 @@ function Should {
 
     begin {
         $inputArray = [System.Collections.Generic.List[PSObject]]@()
-
-        if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
-            $parsedArgs = Parse-ShouldArgs ($__LegacyArg1, $__LegacyArg2, $__LegacyArg3)
-            $entry = Get-AssertionOperatorEntry -Name $parsedArgs.AssertionMethod
-            if ($null -eq $entry) {
-                throw "'$($parsedArgs.AssertionMethod)' is not a valid Should operator."
-            }
-        }
     }
 
     process {

@@ -86,7 +86,7 @@ InModuleScope Pester {
             }
 
             It 'Does not attempt to run the rest of the Describe block after the error occurs' {
-                Assert-MockCalled MockMe -Scope Context -Exactly -Times 0
+                Should -Invoke MockMe -Scope Context -Exactly -Times 0
             }
         }
 
@@ -105,8 +105,8 @@ InModuleScope Pester {
 
                 DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive -NoTestRegistry
 
-                Assert-MockCalled MockMe -Exactly 0 -ParameterFilter { $Name -eq 'Test' } -Scope It
-                Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
+                Should -Invoke MockMe -Exactly 0 -ParameterFilter { $Name -eq 'Test' } -Scope It
+                Should -Invoke MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
             }
 
             It 'Calls the Describe output block once, and the test output block once if an error occurs.' {
@@ -114,8 +114,8 @@ InModuleScope Pester {
 
                 DescribeImpl -Pester $testState -Name 'A test' -Fixture $block -DescribeOutputBlock $describeOutput -TestOutputBlock $testOutput -NoTestDrive -NoTestRegistry
 
-                Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Test' } -Scope It
-                Assert-MockCalled MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
+                Should -Invoke MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Test' } -Scope It
+                Should -Invoke MockMe -Exactly 1 -ParameterFilter { $Name -eq 'Describe' } -Scope It
             }
         }
 
@@ -133,7 +133,7 @@ InModuleScope Pester {
             It -TestCases $cases 'Calls the test block when the test name <Description>' {
                 param ($Name)
                 DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
-                Assert-MockCalled MockMe -Scope It -Exactly 1
+                Should -Invoke MockMe -Scope It -Exactly 1
             }
 
             It 'Does not call the test block when the test name doesn''t match a filter' {
@@ -141,7 +141,7 @@ InModuleScope Pester {
                 DescribeImpl -Name 'Two' -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
                 DescribeImpl -Name 'Bogus' -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
-                Assert-MockCalled MockMe -Scope It -Exactly 0
+                Should -Invoke MockMe -Scope It -Exactly 0
             }
         }
 
@@ -166,7 +166,7 @@ InModuleScope Pester {
                 # test case was called, to see if the test was executed.
 
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
-                Assert-MockCalled MockMe -Scope It -Exactly 1
+                Should -Invoke MockMe -Scope It -Exactly 1
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it does not run the test, because <because>' -TestCases @(
@@ -176,7 +176,7 @@ InModuleScope Pester {
 
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
-                Assert-MockCalled MockMe -Scope It -Exactly 0
+                Should -Invoke MockMe -Scope It -Exactly 0
             }
         }
 
@@ -201,7 +201,7 @@ InModuleScope Pester {
                 # test case was called, to see if the test was executed.
 
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
-                Assert-MockCalled MockMe -Scope It -Exactly 0
+                Should -Invoke MockMe -Scope It -Exactly 0
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it runs the test, because <because>' -TestCases @(
@@ -211,7 +211,7 @@ InModuleScope Pester {
 
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
-                Assert-MockCalled MockMe -Scope It -Exactly 1
+                Should -Invoke MockMe -Scope It -Exactly 1
             }
         }
 

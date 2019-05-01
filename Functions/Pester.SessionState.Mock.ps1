@@ -183,7 +183,7 @@ mocked by using the -ModuleName parameter.
 
 
 .LINK
-Assert-MockCalled
+Should
 Assert-VerifiableMock
 Describe
 Context
@@ -792,10 +792,15 @@ to the original.
     )
 
     if ($null -ne $ActualValue) {
-        throw "Should -Invoke does not take pipeline input or ActualValue."
+        if ($ActualValue -is [string]) {
+            $CommandName = $ActualValue
+        }
+        else {
+            throw "Should -Invoke does not take pipeline input or ActualValue."
+        }
     }
 
-    # Assert-DescribeInProgress -CommandName Assert-MockCalled
+    # Assert-DescribeInProgress -CommandName Should -Invoke
     if ('Describe', 'Context', 'It' -notcontains $Scope -and $Scope -notmatch "^\d+$") {
         throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
     }

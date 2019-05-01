@@ -40,7 +40,7 @@ When 'Someone calls something that uses MyValidator' {
 }
 
 Then 'MyValidator gets called once' {
-    Assert-MockCalled -Module ValidatorTest MyValidator 1
+    Should -Invoke -Module ValidatorTest MyValidator 1
 }
 
 When 'MyValidator is called with (?<word>\w+)' {

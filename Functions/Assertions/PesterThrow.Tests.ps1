@@ -7,25 +7,12 @@ InModuleScope Pester {
                 { throw } | Should -Throw
             }
 
-            It "given scriptblock that throws an exception is passes - legacy syntax" {
-                { throw } | Should Throw
-            }
-
             It "given scriptblock that does not throw an exception it fails" {
                 { { 1 + 1 } | Should -Throw } | Verify-AssertionFailed
             }
 
-            It "given scriptblock that does not throw an exception it fails - legacy syntax" {
-                { { 1 + 1 } | Should Throw } | Verify-AssertionFailed
-            }
-
             It "throws ArgumentException if null ScriptBlock is provided" {
                 $err = { $null | Should -Throw } | Verify-Throw
-                $err.Exception | Verify-Type ([System.ArgumentException])
-            }
-
-            It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
-                $err = { $null | Should Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([System.ArgumentException])
             }
 
@@ -42,21 +29,10 @@ InModuleScope Pester {
                 { throw $expectedErrorMessage } | Should -Throw -ExpectedMessage $expectedErrorMessage
             }
 
-            It "given scriptblock that throws exception with the expected message it passes - legacy syntax" {
-                $expectedErrorMessage = "expected error message"
-                { throw $expectedErrorMessage } | Should Throw $expectedErrorMessage
-            }
-
             It "given scriptblock that throws exception with the expected message in UPPERCASE it passes" {
                 $expectedErrorMessage = "expected error message"
                 $errorMessage = $expectedErrorMessage.ToUpperInvariant()
                 { throw $errorMessage } | Should -Throw -ExpectedMessage $expectedErrorMessage
-            }
-
-            It "given scriptblock that throws exception with the expected message in UPPERCASE it passes - legacy syntax" {
-                $expectedErrorMessage = "expected error message"
-                $errorMessage = $expectedErrorMessage.ToUpperInvariant()
-                { throw $errorMessage } | Should Throw $expectedErrorMessage
             }
 
             It "given scriptblock that throws exception with a different message it fails" {
@@ -65,18 +41,8 @@ InModuleScope Pester {
                 { { throw $unexpectedErrorMessage } | Should -Throw -ExpectedMessage $expectedErrorMessage } | Verify-AssertionFailed
             }
 
-            It "given scriptblock that throws exception with a different message it fails - legacy syntax" {
-                $expectedErrorMessage = "expected error message"
-                $unexpectedErrorMessage = "different error message"
-                { { throw $unexpectedErrorMessage } | Should Throw $expectedErrorMessage } | Verify-AssertionFailed
-            }
-
             It "given scriptblock that throws exception with message that contains the expected message it passes" {
                 { throw 'expected error' } | Should -Throw -ExpectedMessage '*error*'
-            }
-
-            It "given scriptblock that throws exception with message that contains the expected message it passes - legacy syntax" {
-                { throw 'expected error' } | Should Throw '*error*'
             }
         }
 
@@ -294,16 +260,8 @@ InModuleScope Pester {
                 { } | Should -Not -Throw
             }
 
-            It "given scriptblock that does not throw an exception it passes - legacy syntax" {
-                { } | Should Not Throw
-            }
-
             It "given scriptblock that throws an exception it fails" {
                 { { throw } | Should -Not -Throw } | Verify-AssertionFailed
-            }
-
-            It "given scriptblock that throws an exception it fails - legacy syntax" {
-                { { throw } | Should Not Throw } | Verify-AssertionFailed
             }
 
             It "given scriptblock that throws an exception it fails, even if the messages match " {
@@ -313,16 +271,8 @@ InModuleScope Pester {
             # this might seem odd, but the filters are there to refine exceptions that were thrown
             # but for Should -Not -Throw it should not matter what properties the exception has,
             # once *any* exception was thrown it should fail
-            It "given scriptblock that throws an exception it fails, even if the messages match - legacy syntax" {
-                { { throw "message" } | Should Not Throw "message" } | Verify-AssertionFailed
-            }
-
             It "given scriptblock that throws an exception it fails, even if the messages do not match " {
                 { { throw "dummy" } | Should -Not -Throw -ExpectedMessage "message" } | Verify-AssertionFailed
-            }
-
-            It "given scriptblock that throws an exception it fails, even if the messages do not match - legacy syntax" {
-                { { throw "dummy" } | Should Not Throw "message" } | Verify-AssertionFailed
             }
 
             It "throws ArgumentException if null ScriptBlock is provided" {
@@ -330,10 +280,6 @@ InModuleScope Pester {
                 $err.Exception | Verify-Type ([System.ArgumentException])
             }
 
-            It "throws ArgumentException if null ScriptBlock is provided - legacy syntax" {
-                $err = { $null | Should Not Throw } | Verify-Throw
-                $err.Exception | Verify-Type ([System.ArgumentException])
-            }
         }
 
         Context 'Assertion messages' {

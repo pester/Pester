@@ -3,7 +3,6 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
     Describe "Should -BeLike" {
         It "passes for things that are like wildcard" {
-            "foobar" | Should BeLike "*ob*"
             "foobar" | Should -BeLike "*ob*"
         }
 
@@ -23,7 +22,6 @@ InModuleScope Pester {
 
     Describe "Should -Not -BeLike" {
         It "passes for things that are not like wildcard" {
-            "gef" | Should Not BeLike "*ob*"
             "gef" | Should -Not -BeLike "*ob*"
         }
 

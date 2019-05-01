@@ -8,17 +8,14 @@ InModuleScope Pester {
                     Set-Content "TestDrive:\test.txt" -Encoding UTF8
             }
             It "returns true if the file contains the specified content exactly" {
-                "TestDrive:\test.txt" | Should FileContentMatchExactly Pester
                 "TestDrive:\test.txt" | Should -FileContentMatchExactly Pester
             }
 
             It "returns false if the file does not contain the specified content exactly" {
-                "TestDrive:\test.txt" | Should Not FileContentMatchExactly pESTER
                 "TestDrive:\test.txt" | Should -Not -FileContentMatchExactly pESTER
             }
 
             It "returns true if the file contains the specified Unicode content exactly" {
-                "TestDrive:\test.txt" | Should FileContentMatchExactly "☺"
                 "TestDrive:\test.txt" | Should -FileContentMatchExactly "☺"
             }
         }
