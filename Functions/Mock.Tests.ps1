@@ -2537,12 +2537,12 @@ Describe "Assert-MockCalled is available as a wrapper over Should -Invoke for ba
     }
 }
 
-Describe "Assert-VerfiableMock is available as a wrapper over Should -InvokeVerifiable for backwards compatibility" {
+Describe "Assert-VerifiableMock is available as a wrapper over Should -InvokeVerifiable for backwards compatibility" {
 
     It  "Verify calls" {
         function f () { "real" }
         Mock f { "mock" } -Verifiable
         f
-        Assert-VerfiableMock
+        Assert-VerifiableMock
     }
 }
