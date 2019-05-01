@@ -974,25 +974,6 @@ function Contain-AnyStringLike ($Filter, $Collection) {
     return $false
 }
 
-$snippetsDirectoryPath = "$PSScriptRoot\Snippets"
-if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
-    ($null -ne $psISE) -and
-    ($PSVersionTable.PSVersion.Major -ge 3) -and
-    (& $script:SafeCommands['Test-Path'] $snippetsDirectoryPath)) {
-    Import-IseSnippet -Path $snippetsDirectoryPath
-}
-
-function Add-Dependency {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        $Dependency
-    )
-
-    Pester.Runtime\Add-Dependency -Dependency $Dependency -SessionState $PSCmdlet.SessionState
-
-}
-
 function Get-LegacyResult {
     param($RunResult)
 
@@ -1034,8 +1015,8 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Pester, Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
-& $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
+& $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll, Anywhere
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-& $script:SafeCommands['Export-ModuleMember'] New-PesterOption, Add-Dependency, Add-FreeFloatingCode
+& $script:SafeCommands['Export-ModuleMember'] New-PesterOptions
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator

@@ -90,7 +90,6 @@ function BeforeAll {
         [Scriptblock]
         $Scriptblock
     )
-    Assert-DescribeInProgress -CommandName BeforeAll
 
     Pester.Runtime\New-OneTimeTestSetup -ScriptBlock $Scriptblock
 }

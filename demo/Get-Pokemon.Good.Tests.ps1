@@ -1,4 +1,6 @@
-Add-Dependency $PSScriptRoot\Get-Pokemon.ps1
+BeforeAll {
+    . $PSScriptRoot\Get-Pokemon.ps1
+}
 
 Describe "Get pikachu by Get-Pokemon from the real api" {
 

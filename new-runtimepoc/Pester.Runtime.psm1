@@ -892,6 +892,9 @@ function Discover-Test {
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
         $root = New-BlockObject -Name "Root"
+        $root.First = $true
+        $root.Last = $true
+
         Reset-PerContainerState -RootBlock $root
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
@@ -974,9 +977,57 @@ function Run-Test {
             $rootBlock.Executed = $true
             $rootBlock.ExecutedAt = [DateTime]::now
             # TODO: run container setup here, and put "path" output to plugin
+            # TODO: replicate what is done inside of New-block here, so we have trace of what happened even when we throw and have teardowns and exensibility
+
             if ("file" -eq $rootBlock.BlockContainer.Type) {
                 & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($rootBlock.BlockContainer.Content)'"
             }
+
+            # if ($null -ne $rootBlock.OneTimeBlockSetup) {
+            #    throw "One time block setup is not supported in root (directly in the block container)."
+            #}
+
+            # if ($null -ne $rootBlock.EachBlockSetup) {
+            #     throw "Each block setup is not supported in root (directly in the block container)."
+            # }
+
+            if ($null -ne $rootBlock.EachTestSetup) {
+                throw "Each test setup is not supported in root (directly in the block container)."
+            }
+
+            if (
+                $null -ne $rootBlock.EachTestTeardown `
+                -or $null -ne $rootBlock.OneTimeTestTeardown #`
+                #-or $null -ne $rootBlock.OneTimeBlockTeardown `
+                #-or $null -ne $rootBlock.EachBlockTeardown `
+            ) {
+                throw "Teardowns are not supported in root (directly in the block container)."
+            }
+
+            $rootSetupResult = $null
+            if ($null -ne $rootBlock.OneTimeTestSetup) {
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Runtime "One time setup from root block is executing"
+                }
+
+                $rootSetupResult = Invoke-ScriptBlock `
+                    -OuterSetup @(
+                        if ($block.First) { selectNonNull $rootBlock.OneTimeTestSetup }
+                    ) `
+                    -Setup @() `
+                    -ScriptBlock {} `
+                    -Context @{} `
+                    -ReduceContextToInnerScope `
+                    -MoveBetweenScopes `
+                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
+                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+            }
+
+
+            if ($null -ne $rootSetupResult -and -not $rootSetupResult.Success) {
+                & $SafeCommands["Write-Error"] -ErrorRecord $rootSetupResult.ErrorRecord[0] -ErrorAction 'Stop'
+            }
+
             $null = Invoke-BlockContainer -BlockContainer $rootBlock.BlockContainer -SessionState $SessionState
             $rootBlock.Passed = $true
         }
@@ -1496,25 +1547,25 @@ function Invoke-Test {
     # }
 
 
-    if ($originalErrorCount -lt $errsCount) {
-        # probably the most usual case,  there are more errors then there were before,
-        # so some were written to the screen, this also runs when the user cleared the
-        # array and wrote more errors than there originally were
-        $i = $errsCount - $originalErrorCount
-    }
-    else {
-        # there is equal amount of errors, the array was probably full and so the original
-        # error shifted towards the end of the array, we try to find it and see how many new
-        # errors are there
-        for ($i = 0 ; $i -lt $errsLength; $i++) {
-            if ([object]::referenceEquals($errs[$i], $lastError)) {
-                break
-            }
-        }
-    }
-    if (0 -ne $i) {
-        throw "Test discovery failed. There were $i non-terminating errors during test discovery. This indicates that some of your code is invoked outside of Pester controlled blocks and fails. No tests will be run."
-    }
+    # if ($originalErrorCount -lt $errsCount) {
+    #     # probably the most usual case,  there are more errors then there were before,
+    #     # so some were written to the screen, this also runs when the user cleared the
+    #     # array and wrote more errors than there originally were
+    #     $i = $errsCount - $originalErrorCount
+    # }
+    # else {
+    #     # there is equal amount of errors, the array was probably full and so the original
+    #     # error shifted towards the end of the array, we try to find it and see how many new
+    #     # errors are there
+    #     for ($i = 0 ; $i -lt $errsLength; $i++) {
+    #         if ([object]::referenceEquals($errs[$i], $lastError)) {
+    #             break
+    #         }
+    #     }
+    # }
+    # if (0 -ne $i) {
+    #     throw "Test discovery failed. There were $i non-terminating errors during test discovery. This indicates that some of your code is invoked outside of Pester controlled blocks and fails. No tests will be run."
+    # }
     Run-Test -Block $found -SessionState $SessionState
 }
 
@@ -1878,7 +1929,7 @@ function Add-Dependency {
     }
 }
 
-function Add-FreeFloatingCode {
+function Anywhere {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -1985,9 +2036,8 @@ Export-ModuleMember -Function @(
     'New-EachBlockTeardown'
     'New-OneTimeBlockSetup'
     'New-OneTimeBlockTeardown'
-    'Add-Dependency'
     'Add-FrameworkDependency'
-    'Add-FreeFloatingCode'
+    'Anywhere'
     'Invoke-Test',
     'Find-Test',
 

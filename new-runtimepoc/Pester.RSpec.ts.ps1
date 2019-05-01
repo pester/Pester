@@ -140,16 +140,16 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Add-Dependency paths" {
-        t "`$PSScriptRoot in Add-Dependency has the same value as in the script that calls it" {
+    b "BeforeAll paths" {
+        t "`$PSScriptRoot in BeforeAll has the same value as in the script that calls it" {
             $container = [PSCustomObject]@{
                 InScript = $null
-                InAddDependency = $null
+                InBeforeAll = $null
             }
             $result = Invoke-Pester -ScriptBlock {
                 $container.InScript = $PSScriptRoot
-                Add-Dependency {
-                    $container.InAddDependency = $PSScriptRoot
+                BeforeAll {
+                    $container.InBeforeAll = $PSScriptRoot
                 }
 
                 Describe "a" {
@@ -160,7 +160,7 @@ i -PassThru:$PassThru {
                 }
             } -PassThru
 
-            $container.InAddDependency | Verify-Equal $container.InScript
+            $container.InBeforeAll | Verify-Equal $container.InScript
         }
     }
 }

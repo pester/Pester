@@ -42,14 +42,13 @@
         'AfterEach'
         'BeforeAll'
         'AfterAll'
+        'Anywhere'
         'Set-TestInconclusive'
         'Set-ItResult'
         'New-PesterOption'
         'New-MockObject'
         'Add-ShouldOperator'
         'Get-ShouldOperator'
-        'Add-Dependency'
-        'Add-FreeFloatingCode'
 
         # Gherkin Support:
         'Invoke-Gherkin'
