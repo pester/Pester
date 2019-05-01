@@ -1,3 +1,13 @@
+## 4.8.0 (May 1, 2019)
+
+- Add parameter to remove validation when mocking [#1278](https://github.com/pester/Pester/pull/1278)
+- Add built-in readonly variables to conflicting params list [#1298](https://github.com/pester/Pester/pull/1298)
+- Fix using function definition as mock paramfilter [#1293](https://github.com/pester/Pester/pull/1293)
+- Fix temp path on macOS [#1294](https://github.com/pester/Pester/pull/1294)
+- Fix filtering out error lines [#1253](https://github.com/pester/Pester/pull/1253)
+- Fix mock teardown when mock is outside of Describe [#1255](https://github.com/pester/Pester/pull/1255)
+- Remove arrow from string comparison [#1264](https://github.com/pester/Pester/pull/1264)
+
 ## 4.7.3 (March 23,2019)
 
 - Add shorter output when comparing long strings [#1248](https://github.com/pester/Pester/pull/1248)

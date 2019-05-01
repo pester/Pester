@@ -676,7 +676,7 @@ function Invoke-MockInternal {
         $ModuleName,
 
         [hashtable]
-        $BoundParameters = @{},
+        $BoundParameters = @{ },
 
         [object[]]
         $ArgumentList = @(),
@@ -965,7 +965,7 @@ function ExecuteBehavior {
             ${Script Block},
 
             [hashtable]
-            $___BoundParameters___ = @{},
+            $___BoundParameters___ = @{ },
 
             [object[]]
             $___ArgumentList___ = @(),
@@ -1078,7 +1078,7 @@ function Test-ParameterFilter {
     )
 
     if ($null -eq $BoundParameters) {
-        $BoundParameters = @{}
+        $BoundParameters = @{ }
     }
 
     $arguments = $ArgumentList
@@ -1189,7 +1189,7 @@ function Set-DynamicParameterVariable {
     )
 
     if ($null -eq $Parameters) {
-        $Parameters = @{}
+        $Parameters = @{ }
     }
 
     foreach ($keyValuePair in $Parameters.GetEnumerator()) {
@@ -1224,8 +1224,8 @@ function Get-DynamicParamBlock {
         If ( $ScriptBlock.AST.psobject.Properties.Name -match "Body") {
             if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock) {
                 $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                    & $SafeCommands['Select-Object'] -ExpandProperty Extent |
-                    & $SafeCommands['Select-Object'] -ExpandProperty Text
+                & $SafeCommands['Select-Object'] -ExpandProperty Extent |
+                & $SafeCommands['Select-Object'] -ExpandProperty Text
 
                 return $statements -join "$([System.Environment]::NewLine)"
             }
@@ -1327,7 +1327,7 @@ function Get-DynamicParametersForCmdlet {
     }
     else {
         if ($null -eq $Parameters) {
-            $Parameters = @{}
+            $Parameters = @{ }
         }
 
         $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
@@ -1523,13 +1523,49 @@ function Reset-ConflictingParameters {
 }
 
 $script:ConflictingParameterNames = @(
-    "PSEdition"
+    '?'
+    'ConsoleFileName'
+    'EnabledExperimentalFeatures'
+    'Error'
+    'ExecutionContext'
+    'false'
+    'HOME'
+    'Host'
+    'IsCoreCLR'
+    'IsMacOS'
+    'IsWindows'
+    'PID'
+    'PSCulture'
+    'PSEdition'
+    'PSHOME'
+    'PSUICulture'
+    'PSVersionTable'
+    'ShellId'
+    'true'
 )
 
 function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
 }
 
+function Get-ScriptBlockAST {
+    param (
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    if ($ScriptBlock.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+        $ast = $Block.Ast.EndBlock
+    }
+    elseif ($ScriptBlock.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        $ast = $Block.Ast.Body.EndBlock
+    }
+    else {
+        throw "Pester failed to parse ParameterFilter, scriptblock is invalid type. Please reformat your ParameterFilter."
+    }
+
+    return $ast
+}
 
 function New-BlockWithoutParameterAliases {
     [CmdletBinding()]
@@ -1547,9 +1583,9 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            $ast = $Block.Ast.EndBlock
+            $ast = Get-ScriptBlockAST $Block
             $blockText = $ast.Extent.Text
-            $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
+            $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst] }, $true))
             [array]::Reverse($variables)
 
             foreach ($var in $variables) {

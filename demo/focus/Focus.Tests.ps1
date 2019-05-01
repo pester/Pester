@@ -6,7 +6,7 @@ Describe "Get-Hello" {
         Get-Hello | Should -Be "Hello"
     }
 
-    It -Focus "Has no spaces around hello" {
+    It "Has no spaces around hello" {
         $hello = Get-Hello
         $hello.Trim() | Should -Be $hello
     }

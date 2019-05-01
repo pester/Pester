@@ -17,7 +17,7 @@ $excludePath = "*/demo/*"
 $excludeTags = "Help", "VersionChecks", "Formatting"
 
 $path = "C:\Projects\Pester_main"
-$path = "/Users/jares/Projects/pester_main/Functions/Assertions/PesterThrow.Tests.ps1"
+#$path = "./Functions/Assertions/PesterThrow.Tests.ps1"
 
 
 $script:r = $null
