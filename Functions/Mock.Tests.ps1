@@ -2035,7 +2035,7 @@ Describe "Mocking functions with conflicting parameters" {
     InModuleScope Pester {
         Context "Faked conflicting parameter" {
             BeforeAll {
-                Mock Get-ConflictingParameterNames { [System.Collections.ArrayList]$script:ConflictingParameterNames = @("ParamToAvoid") }
+                Mock Get-ConflictingParameterNames { @("ParamToAvoid") }
 
                 function Get-ExampleTest {
                     param(

@@ -1560,7 +1560,7 @@ function Repair-ConflictingParameters {
     $paramMetadatas = @()
     $paramMetadatas += $repairedMetadata.Parameters.Values
 
-    $conflictingParams = $script:ConflictingParameterNames
+    $conflictingParams = Get-ConflictingParameterNames
 
     foreach ($paramMetadata in $paramMetadatas) {
         if ($paramMetadata.IsDynamic) {
@@ -1618,7 +1618,7 @@ function Reset-ConflictingParameters {
     )
 
     $parameters = $BoundParameters.Clone()
-    $names = $script:ConflictingParameterNames
+    $names = Get-ConflictingParameterNames
 
     foreach ($param in $names) {
         $fixedName = "_$param"
@@ -1634,18 +1634,9 @@ function Reset-ConflictingParameters {
     $parameters
 }
 
-[System.Collections.ArrayList]$script:ConflictingParameterNames = @()
-
 function Get-ConflictingParameterNames {
-    foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
-        if (($var.Options -band [System.Management.Automation.ScopedItemOptions]::Constant) -or ($var.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly)) {
-            $null = $script:ConflictingParameterNames.Add($var.Name)
-        }
-    }
+    $script:ConflictingParameterNames
 }
-
-Get-ConflictingParameterNames
-
 
 function New-BlockWithoutParameterAliases {
     [CmdletBinding()]

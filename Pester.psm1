@@ -1077,6 +1077,7 @@ function Invoke-Pester {
 
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
+        Set-ConflictingParameterNames
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
         $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
@@ -1513,6 +1514,15 @@ function Assert-VerifiableMocks {
 
     Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
 
+}
+
+function Set-ConflictingParameterNames {
+    [System.Collections.ArrayList]$script:ConflictingParameterNames = @()
+    foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
+        if (($var.Options -band [System.Management.Automation.ScopedItemOptions]::Constant) -or ($var.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly)) {
+            $null = $script:ConflictingParameterNames.Add($var.Name)
+        }
+    }
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
