@@ -202,7 +202,7 @@ Describe 'Style rules' -Tag StyleRules {
 }
 
 InModuleScope Pester {
-    Describe 'ResolveTestScripts' {
+    Describe 'Find-RSpecTestFile' {
         BeforeAll {
             New-Item -ItemType File 'TestDrive:\SomeFile.ps1'
             New-Item -ItemType File 'TestDrive:\SomeFile.Tests.ps1'
@@ -211,127 +211,127 @@ InModuleScope Pester {
         }
 
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
-            $result = @(ResolveTestScripts 'TestDrive:\SomeOtherFile.ps1')
+            $result = @(Find-RSpecTestFile 'TestDrive:\SomeOtherFile.ps1')
             $result.Count | Should -Be 1
-            $result[0].Path | Should -Be 'TestDrive:\SomeOtherFile.ps1'
+            $result[0].UnresolvedPath | Should -Be 'TestDrive:\SomeOtherFile.ps1'
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
-            $result = @(ResolveTestScripts 'TestDrive:\*.ps1')
+            $result = @(Find-RSpecTestFile 'TestDrive:\*.ps1')
             $result.Count | Should -Be 2
 
-            $paths = $result | Select-Object -ExpandProperty Path
+            $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
             ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should -Be $true
             ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
-            $result = @(ResolveTestScripts 'TestDrive:\')
+            $result = @(Find-RSpecTestFile 'TestDrive:\')
 
             $result.Count | Should -Be 2
 
-            $paths = $result | Select-Object -ExpandProperty Path
+            $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
             ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should -Be $true
             ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
         }
 
-        It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
-            $result = @(ResolveTestScripts 'TestDrive:\SomeFile.ps1')
+        # It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
+        #     $result = @(Find-RSpecTestFile 'TestDrive:\SomeFile.ps1')
 
-            $result.Count | Should -Be 1
-            $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #     $result.Count | Should -Be 1
+        #     $result[0].UnresolvedPath | Should -Be 'TestDrive:\SomeFile.ps1'
 
-            , $result[0].Arguments | Should -Not -Be $null
-            , $result[0].Parameters | Should -Not -Be $null
+        #     , $result[0].Arguments | Should -Not -Be $null
+        #     , $result[0].Parameters | Should -Not -Be $null
 
-            $result[0].Arguments.GetType() | Should -Be ([object[]])
-            $result[0].Arguments.Count | Should -Be 0
+        #     $result[0].Arguments.GetType() | Should -Be ([object[]])
+        #     $result[0].Arguments.Count | Should -Be 0
 
-            $result[0].Parameters.GetType() | Should -Be ([hashtable])
-            $result[0].Parameters.PSBase.Count | Should -Be 0
-        }
+        #     $result[0].Parameters.GetType() | Should -Be ([hashtable])
+        #     $result[0].Parameters.PSBase.Count | Should -Be 0
+        # }
 
-        Context 'Passing in Dictionaries instead of Strings' {
-            It 'Allows the use of a "p" key instead of "Path"' {
-                $result = @(ResolveTestScripts @{ p = 'TestDrive:\SomeFile.ps1' })
+        # Context 'Passing in Dictionaries instead of Strings' {
+        #     It 'Allows the use of a "p" key instead of "Path"' {
+        #         $result = @(Find-RSpecTestFile @{ p = 'TestDrive:\SomeFile.ps1' })
 
-                $result.Count | Should -Be 1
-                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
-            }
+        #         $result.Count | Should -Be 1
+        #         $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #     }
 
-            $testArgs = @('I am a string')
-            It 'Allows the use of an "Arguments" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; Arguments = $testArgs })
+        #     $testArgs = @('I am a string')
+        #     It 'Allows the use of an "Arguments" key in the dictionary' {
+        #         $result = @(Find-RSpecTestFile @{ Path = 'TestDrive:\SomeFile.ps1'; Arguments = $testArgs })
 
-                $result.Count | Should -Be 1
-                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #         $result.Count | Should -Be 1
+        #         $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
-                $result[0].Arguments.Count | Should -Be 1
-                $result[0].Arguments[0] | Should -Be 'I am a string'
-            }
+        #         $result[0].Arguments.Count | Should -Be 1
+        #         $result[0].Arguments[0] | Should -Be 'I am a string'
+        #     }
 
-            It 'Allows the use of an "args" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; args = $testArgs })
+        #     It 'Allows the use of an "args" key in the dictionary' {
+        #         $result = @(Find-RSpecTestFile @{ Path = 'TestDrive:\SomeFile.ps1'; args = $testArgs })
 
-                $result.Count | Should -Be 1
-                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #         $result.Count | Should -Be 1
+        #         $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
-                $result[0].Arguments.Count | Should -Be 1
-                $result[0].Arguments[0] | Should -Be 'I am a string'
-            }
+        #         $result[0].Arguments.Count | Should -Be 1
+        #         $result[0].Arguments[0] | Should -Be 'I am a string'
+        #     }
 
-            It 'Allows the use of an "a" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; a = $testArgs })
+        #     It 'Allows the use of an "a" key in the dictionary' {
+        #         $result = @(Find-RSpecTestFile @{ Path = 'TestDrive:\SomeFile.ps1'; a = $testArgs })
 
-                $result.Count | Should -Be 1
-                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #         $result.Count | Should -Be 1
+        #         $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
-                $result[0].Arguments.Count | Should -Be 1
-                $result[0].Arguments[0] | Should -Be 'I am a string'
-            }
+        #         $result[0].Arguments.Count | Should -Be 1
+        #         $result[0].Arguments[0] | Should -Be 'I am a string'
+        #     }
 
-            $testParams = @{ MyKey = 'MyValue' }
-            It 'Allows the use of a "Parameters" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; Parameters = $testParams })
+        #     $testParams = @{ MyKey = 'MyValue' }
+        #     It 'Allows the use of a "Parameters" key in the dictionary' {
+        #         $result = @(Find-RSpecTestFile @{ Path = 'TestDrive:\SomeFile.ps1'; Parameters = $testParams })
 
-                $result.Count | Should -Be 1
-                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #         $result.Count | Should -Be 1
+        #         $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
-                $result[0].Parameters.PSBase.Count | Should -Be 1
-                $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
-            }
+        #         $result[0].Parameters.PSBase.Count | Should -Be 1
+        #         $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
+        #     }
 
-            It 'Allows the use of a "params" key in the dictionary' {
-                $result = @(ResolveTestScripts @{ Path = 'TestDrive:\SomeFile.ps1'; params = $testParams })
+        #     It 'Allows the use of a "params" key in the dictionary' {
+        #         $result = @(Find-RSpecTestFile @{ Path = 'TestDrive:\SomeFile.ps1'; params = $testParams })
 
-                $result.Count | Should -Be 1
-                $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
+        #         $result.Count | Should -Be 1
+        #         $result[0].Path | Should -Be 'TestDrive:\SomeFile.ps1'
 
-                $result[0].Parameters.PSBase.Count | Should -Be 1
-                $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
-            }
+        #         $result[0].Parameters.PSBase.Count | Should -Be 1
+        #         $result[0].Parameters['MyKey'] | Should -Be 'MyValue'
+        #     }
 
-            It 'Allows to pass test script string' {
-                $result = @(ResolveTestScripts @{ Script = "Test script string" })
+        #     It 'Allows to pass test script string' {
+        #         $result = @(Find-RSpecTestFile @{ Script = "Test script string" })
 
-                $result.Count | Should -Be 1
-                $result[0].Script | Should -Be "Test script string"
+        #         $result.Count | Should -Be 1
+        #         $result[0].Script | Should -Be "Test script string"
 
-                $result[0].Path | Should -BeNullOrEmpty
-                $result[0].Parameters | Should -BeNullOrEmpty
-                $result[0].Arguments |  Should -BeNullOrEmpty
-            }
+        #         $result[0].Path | Should -BeNullOrEmpty
+        #         $result[0].Parameters | Should -BeNullOrEmpty
+        #         $result[0].Arguments |  Should -BeNullOrEmpty
+        #     }
 
-            It 'Throws an error if no Path is specified' {
-                { ResolveTestScripts @{} } | Should -Throw
-            }
+            # It 'Throws an error if no Path is specified' {
+            #     { Find-RSpecTestFile @{} } | Should -Throw
+            # }
 
-            It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
-                { ResolveTestScripts @{ P = 'P'; Params = 'A string' } } | Should -Throw
-            }
-        }
+            # It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
+            #     { Find-RSpecTestFile @{ P = 'P'; Params = 'A string' } } | Should -Throw
+            # }
+        #}
     }
 }
 Describe 'Assertion operators' {
