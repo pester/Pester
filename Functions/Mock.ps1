@@ -63,6 +63,27 @@ is to be mocked.  This should be a module that _calls_ the mocked
 command; it doesn't necessarily have to be the same module which
 originally implemented the command.
 
+.PARAMETER RemoveParameterType
+Optional parameter that removes a type of a parameter in the fuction
+declaration. This is useful when you are testing a function that has a
+strongly typed parameter but you are not able to create an object of the
+required type.
+
+This parameter applies only to the first definintion of a mock within the
+current scope. If there are multiple mocks with the same name, any subsequent
+configuration of parameters will be ingored, including parameter validation
+described below.
+
+.PARAMETER RemoveParameterValidation
+Optional parameter that removes validation from a parameter in the fuction
+declaration. This is useful when you are testing a function that validates
+it's input, but you are unable to satisfy the validation.
+
+This parameter applies only to the first definintion of a mock within the
+current scope. If there are multiple mocks with the same name, any subsequent
+configuration of parameters will be ingored, including parameter types described
+above.
+
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
@@ -157,9 +178,9 @@ about_Mocking
     [CmdletBinding()]
     param(
         [string]$CommandName,
-        [ScriptBlock]$MockWith = {},
+        [ScriptBlock]$MockWith = { },
         [switch]$Verifiable,
-        [ScriptBlock]$ParameterFilter = {$True},
+        [ScriptBlock]$ParameterFilter = { $True },
         [string]$ModuleName,
         [string[]]$RemoveParameterType,
         [string[]]$RemoveParameterValidation
@@ -222,7 +243,7 @@ about_Mocking
             # Some versions of PowerShell may include dynamic parameters here
             # We will filter them out and add them at the end to be
             # compatible with both earlier and later versions
-            $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
+            $dynamicParams = $metadata.Parameters.Values | & $SafeCommands['Where-Object'] { $_.IsDynamic }
             if ($null -ne $dynamicParams) {
                 $dynamicparams | & $SafeCommands['ForEach-Object'] { $null = $metadata.Parameters.Remove($_.name) }
             }
@@ -399,13 +420,13 @@ This will not throw an exception because the mock was invoked.
     [CmdletBinding()]param()
     Assert-DescribeInProgress -CommandName Assert-VerifiableMock
 
-    $unVerified = @{}
+    $unVerified = @{ }
     $mockTable.Keys | & $SafeCommands['ForEach-Object'] {
         $m = $_;
 
         $mockTable[$m].blocks |
-            & $SafeCommands['Where-Object'] { $_.Verifiable } |
-            & $SafeCommands['ForEach-Object'] { $unVerified[$m] = $_ }
+        & $SafeCommands['Where-Object'] { $_.Verifiable } |
+        & $SafeCommands['ForEach-Object'] { $unVerified[$m] = $_ }
     }
     if ($unVerified.Count -gt 0) {
         foreach ($mock in $unVerified.Keys) {
@@ -571,7 +592,7 @@ to the original.
         [int]$Times = 1,
 
         [Parameter(ParameterSetName = 'ParameterFilter', Position = 2)]
-        [ScriptBlock]$ParameterFilter = {$True},
+        [ScriptBlock]$ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
@@ -856,7 +877,7 @@ function Validate-Command([string]$CommandName, [string]$ModuleName) {
         $session = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( & $module { $ExecutionContext.SessionState } )
     }
 
-    $hash = @{Command = $command; Session = $session}
+    $hash = @{Command = $command; Session = $session }
 
     if ($command.CommandType -eq 'Function') {
         foreach ($mock in $mockTable.Values) {
@@ -922,7 +943,7 @@ function Invoke-Mock {
         $ModuleName,
 
         [hashtable]
-        $BoundParameters = @{},
+        $BoundParameters = @{ },
 
         [object[]]
         $ArgumentList = @(),
@@ -1054,7 +1075,7 @@ function FindMock {
 function FindMatchingBlock {
     param (
         [object] $Mock,
-        [hashtable] $BoundParameters = @{},
+        [hashtable] $BoundParameters = @{ },
         [object[]] $ArgumentList = @()
     )
 
@@ -1082,7 +1103,7 @@ function ExecuteBlock {
         [object] $Mock,
         [string] $CommandName,
         [string] $ModuleName,
-        [hashtable] $BoundParameters = @{},
+        [hashtable] $BoundParameters = @{ },
         [object[]] $ArgumentList = @()
     )
 
@@ -1103,7 +1124,7 @@ function ExecuteBlock {
             ${Script Block},
 
             [hashtable]
-            $___BoundParameters___ = @{},
+            $___BoundParameters___ = @{ },
 
             [object[]]
             $___ArgumentList___ = @(),
@@ -1197,7 +1218,7 @@ function Test-ParameterFilter {
     )
 
     if ($null -eq $BoundParameters) {
-        $BoundParameters = @{}
+        $BoundParameters = @{ }
     }
     if ($null -eq $ArgumentList) {
         $ArgumentList = @()
@@ -1289,7 +1310,7 @@ function Set-DynamicParameterVariable {
     )
 
     if ($null -eq $Parameters) {
-        $Parameters = @{}
+        $Parameters = @{ }
     }
 
     foreach ($keyValuePair in $Parameters.GetEnumerator()) {
@@ -1324,8 +1345,8 @@ function Get-DynamicParamBlock {
         If ( $ScriptBlock.AST.psobject.Properties.Name -match "Body") {
             if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock) {
                 $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                    & $SafeCommands['Select-Object'] -ExpandProperty Extent |
-                    & $SafeCommands['Select-Object'] -ExpandProperty Text
+                & $SafeCommands['Select-Object'] -ExpandProperty Extent |
+                & $SafeCommands['Select-Object'] -ExpandProperty Text
 
                 return $statements -join "$([System.Environment]::NewLine)"
             }
@@ -1429,7 +1450,7 @@ function Get-DynamicParametersForCmdlet {
     }
     else {
         if ($null -eq $Parameters) {
-            $Parameters = @{}
+            $Parameters = @{ }
         }
 
         $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
@@ -1638,6 +1659,25 @@ function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
 }
 
+function Get-ScriptBlockAST {
+    param (
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    if ($ScriptBlock.Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+        $ast = $Block.Ast.EndBlock
+    }
+    elseif ($ScriptBlock.Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        $ast = $Block.Ast.Body.EndBlock
+    }
+    else {
+        throw "Pester failed to parse ParameterFilter, scriptblock is invalid type. Please reformat your ParameterFilter."
+    }
+
+    return $ast
+}
+
 function New-BlockWithoutParameterAliases {
     [CmdletBinding()]
     [OutputType([scriptblock])]
@@ -1654,9 +1694,9 @@ function New-BlockWithoutParameterAliases {
     try {
         if ($PSVersionTable.PSVersion.Major -ge 3) {
             $params = $Metadata.Parameters.Values
-            $ast = $Block.Ast.EndBlock
+            $ast = Get-ScriptBlockAST $Block
             $blockText = $ast.Extent.Text
-            $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst]}, $true))
+            $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst] }, $true))
             [array]::Reverse($variables)
 
             foreach ($var in $variables) {
