@@ -80,6 +80,12 @@ function Find-Test {
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState
     )
+
+    # don't scope InvokedNonInteractively to script we want the functions
+    # that are called by this to see the value but it should not be
+    # persisted afterwards so we don't have to reset it to $false
+    $InvokedNonInteractively = $true
+
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Running just discovery."
     }
@@ -709,13 +715,19 @@ function New-OneTimeBlockTeardown {
 
 function Get-CurrentBlock {
     [CmdletBinding()]
-    param ( )
+    param()
+
+    Assert-InvokedNonInteractively
+
     $state.CurrentBlock
 }
 
 function Get-CurrentTest {
     [CmdletBinding()]
-    param ( )
+    param()
+
+    Assert-InvokedNonInteractively
+
     $state.CurrentTest
 }
 
@@ -1525,6 +1537,11 @@ function Invoke-Test {
         $PluginConfiguration
     )
 
+    # don't scope InvokedNonInteractively to script we want the functions
+    # that are called by this to see the value but it should not be
+    # persisted afterwards so we don't have to reset it to $false
+    $InvokedNonInteractively = $true
+
     $state.Plugin = $Plugin
     $state.PluginConfiguration = $PluginConfiguration
 
@@ -2015,6 +2032,12 @@ function ConvertTo-HumanTime {
     }
     else {
         "$([int]($TimeSpan.TotalSeconds))s"
+    }
+}
+
+function Assert-InvokedNonInteractively () {
+    if (-not $ExecutionContext.SessionState.PSVariable.Get("InvokedNonInteractively")) {
+        throw "Running tests interactively (e.g. by pressing F5 in your IDE) is not supported, run tests via Invoke-Pester."
     }
 }
 
