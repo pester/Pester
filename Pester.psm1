@@ -641,39 +641,27 @@ function Invoke-Pester {
     New-PesterOption
 
     #>
-    [CmdletBinding(DefaultParameterSetName = 'Default')]
+    [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
-        [Parameter(Position = 0, Mandatory = 0)]
+        [Parameter(Position = 0, Mandatory = 0,  ParameterSetName = "Simple")]
         [String[]]$Path = '.',
+        [Parameter(ParameterSetName = "Simple")]
         [String[]]$ExcludePath = @(),
 
-        [switch]$EnableExit,
-
+        [Parameter(ParameterSetName = "Simple")]
         [string[]]$Tag,
-
+        [Parameter(ParameterSetName = "Simple")]
         [string[]]$ExcludeTag,
 
+        [Parameter(ParameterSetName = "Simple")]
         [switch]$PassThru,
 
-        [object[]] $CodeCoverage = @(),
+        [Parameter(ParameterSetName = "Simple")]
+        [Switch]$CI,
 
-        [string] $CodeCoverageOutputFile,
-
-        [ValidateSet('JaCoCo')]
-        [String]$CodeCoverageOutputFileFormat = "JaCoCo",
-
-        [Switch]$Strict,
-
-        [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
-        [string] $OutputFile,
-
-        [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('NUnitXml')]
-        [string] $OutputFormat = 'NUnitXml',
-
-        [object]$PesterOption,
-
-        [Pester.OutputTypes]$Show = 'All',
+        [Parameter(ParameterSetName = "Simple")]
+        [ValidateSet("Normal", "None")]
+        $Output = 'Normal',
 
         [ScriptBlock[]] $ScriptBlock
     )
@@ -694,11 +682,15 @@ function Invoke-Pester {
             Remove-MockFunctionsAndAliases
             $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
 
-            # TODO: remove all references to $pester
-            $pester = @{ SessionState = $PSCmdlet.SessionState }
             $pluginConfiguration = @{}
-            $plugins = @(
-                Get-WriteScreenPlugin
+
+            $plugins = @()
+            if ($Output -ne "None") {
+                $plugins += Get-WriteScreenPlugin
+            }
+
+            $plugins +=
+            @(
                 Get-TestDrivePlugin
                 Get-MockPlugin
             )
@@ -707,7 +699,6 @@ function Invoke-Pester {
                 $plugins += (Get-CoveragePlugin)
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
-
 
             $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
 

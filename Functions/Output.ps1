@@ -1,4 +1,7 @@
-$Script:ReportStrings = DATA {
+
+
+
+$script:ReportStrings = DATA {
     @{
         StartMessage      = "Executing all tests in '{0}'"
         FilterMessage     = ' matching test name {0}'
@@ -32,7 +35,7 @@ $Script:ReportStrings = DATA {
     }
 }
 
-$Script:ReportTheme = DATA {
+$script:ReportTheme = DATA {
     @{
         Describe         = 'Green'
         DescribeDetail   = 'DarkYellow'
@@ -486,18 +489,19 @@ function ConvertTo-FailureLines {
 
 function Get-WriteScreenPlugin {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
-    Pester.Runtime\New-PluginObject -Name "WriteScreen" -EachBlockSetup {
+    Pester.Runtime\New-PluginObject -Name "WriteScreen" -EachBlockSetupStart {
         param ($Context)
-
         # the $context does not mean Context block, it's just a generic name
         # for the invocation context of this callback
-        $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
-        # TODO: add Show options, with something like
-        # if ($commandused -eq 'Describe' -and -not $Context.PluginOption.ShowDescribe) {
-        #     return
-        # }
-        # and equivalent for Context
+        $noOutput = $Context.PluginOption.Output -eq "none"
+
+        if ($noOutput)
+        {
+            return
+        }
+
+        $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
         $block = $Context.Block
         $level = $block.Path.Length - 1
@@ -507,7 +511,7 @@ function Get-WriteScreenPlugin {
 
         & $SafeCommands['Write-Host']
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
-    } -EachTestTeardown {
+    } -EachTestTeardownEnd {
         param ($Context)
         # we are currently in scope of describe so $Test is hardtyped and conflicts
         $_test = $Context.Test
@@ -588,7 +592,7 @@ function Get-WriteScreenPlugin {
             }
         }
         # }
-    } -EachBlockTeardown {
+    } -EachBlockTeardownEnd {
         param ($Context)
         if (-not $Context.Block.Passed) {
             & $SafeCommands['Write-Host'] -ForegroundColor Red "Block '$($Context.Block.Path -join ".")' failed"

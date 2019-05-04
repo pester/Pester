@@ -19,19 +19,19 @@ $state = [PSCustomObject] @{
     # indicate whether or not we are currently
     # running in discovery mode se we can change
     # behavior of the commands appropriately
-    Discovery          = $false
+    Discovery           = $false
 
-    CurrentBlock       = $null
-    CurrentTest        = $null
+    CurrentBlock        = $null
+    CurrentTest         = $null
 
-    Plugin             = $null
+    Plugin              = $null
     PluginConfiguration = $null
 
-    TotalStopWatch     = $null
-    UserCodeStopWatch      = $null
-    FrameworkStopWatch = $null
+    TotalStopWatch      = $null
+    UserCodeStopWatch   = $null
+    FrameworkStopWatch  = $null
 
-    ExpandName = {
+    ExpandName          = {
         param([string]$Name, [HashTable]$Data)
 
         $n = $Name
@@ -125,9 +125,9 @@ function ConvertTo-DiscoveredBlockContainer {
         "Duration",
         "Aggregated*"
     ) -Property @(
-        @{n = "Content"; e = {$content}}
-        @{n = "Type"; e = {$type}},
-        @{n = "PSTypename"; e = {"DiscoveredBlockContainer"}}
+        @{n = "Content"; e = { $content } }
+        @{n = "Type"; e = { $type } },
+        @{n = "PSTypename"; e = { "DiscoveredBlockContainer" } }
         '*'
     )
 
@@ -157,9 +157,9 @@ function ConvertTo-ExecutedBlockContainer {
         "StandardOutput"
         "Path"
     ) -Property @(
-        @{n = "Content"; e = {$content}}
-        @{n = "Type"; e = {$type}},
-        @{n = "PSTypename"; e = {"ExecutedBlockContainer"}}
+        @{n = "Content"; e = { $content } }
+        @{n = "Type"; e = { $type } },
+        @{n = "PSTypename"; e = { "ExecutedBlockContainer" } }
         '*'
     )
 
@@ -178,7 +178,7 @@ function New-Block {
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         # TODO: rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
-        [HashTable] $FrameworkData = @{},
+        [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
         [string] $Id
     )
@@ -198,16 +198,16 @@ function New-Block {
     $previousBlock = Get-CurrentBlock
 
     if (-not $previousBlock.FrameworkData.ContainsKey("PreviouslyGeneratedBlocks")) {
-        $previousBlock.FrameworkData.Add("PreviouslyGeneratedBlocks", @{})
+        $previousBlock.FrameworkData.Add("PreviouslyGeneratedBlocks", @{ })
     }
     $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
     $Id = if (-not $hasExternalId) {
-            $previouslyGeneratedBlocks = $previousBlock.FrameworkData.PreviouslyGeneratedBlocks
-            Get-Id -ScriptBlock $ScriptBlock -Previous $previouslyGeneratedBlocks
-        }
-        else {
-            $Id
-        }
+        $previouslyGeneratedBlocks = $previousBlock.FrameworkData.PreviouslyGeneratedBlocks
+        Get-Id -ScriptBlock $ScriptBlock -Previous $previouslyGeneratedBlocks
+    }
+    else {
+        $Id
+    }
 
     if (Is-Discovery) {
         if ($PesterDebugPreference.WriteDebugMessages) {
@@ -224,7 +224,7 @@ function New-Block {
         # line we add one to the counter and use that as an implicit Id.
         # and since there can be multiple tests in the foreach, we add one item per test, and key
         # them by the position
-        $FrameworkData.Add("PreviouslyGeneratedTests", @{})
+        $FrameworkData.Add("PreviouslyGeneratedTests", @{ })
 
         $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id
         # we attach the current block to the parent
@@ -269,15 +269,15 @@ function New-Block {
             # making the transition callbacks mandatory unless the parameter is provided
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                if ($block.First) { selectNonNull $state.Plugin.OneTimeBlockSetup }
+                if ($block.First) { selectNonNull $state.Plugin.OneTimeBlockSetupStart }
             ) `
-                -Setup @( selectNonNull $state.Plugin.EachBlockSetup ) `
-                -ScriptBlock {} `
+                -Setup @( selectNonNull $state.Plugin.EachBlockSetupStart ) `
+                -ScriptBlock { } `
                 -Context @{
                 Context = @{
                     # context that is visible to plugins
-                    Block = $block
-                    Test  = $null
+                    Block         = $block
+                    Test          = $null
                     Configuration = $state.PluginConfiguration
                 }
             }
@@ -315,8 +315,8 @@ function New-Block {
                 }
             }
 
-            $frameworkEachBlockTeardowns = @( selectNonNull $state.Plugin.EachBlockTeardown )
-            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { selectNonNull $state.Plugin.OneTimeBlockTeardown } )
+            $frameworkEachBlockTeardowns = @( selectNonNull $state.Plugin.EachBlockTeardownEnd )
+            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { selectNonNull $state.Plugin.OneTimeBlockTeardownEnd } )
             # reverse the teardowns so they run in opposite order to setups
             [Array]::Reverse($frameworkEachBlockTeardowns)
             [Array]::Reverse($frameworkOneTimeBlockTeardowns)
@@ -329,14 +329,14 @@ function New-Block {
             $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
             $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
             $frameworkTeardownResult = Invoke-ScriptBlock `
-                -ScriptBlock {} `
+                -ScriptBlock { } `
                 -Teardown $frameworkEachBlockTeardowns `
                 -OuterTeardown $frameworkOneTimeBlockTeardowns `
                 -Context @{
                 Context = @{
                     # context that is visible to plugins
-                    Block = $block
-                    Test  = $null
+                    Block         = $block
+                    Test          = $null
                     Configuration = $state.PluginConfiguration
                 }
             }
@@ -393,7 +393,7 @@ function New-Test {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable] $Data = @{},
+        [HashTable] $Data = @{ },
         [String] $Id,
         [Switch] $Focus
     )
@@ -417,11 +417,10 @@ function New-Test {
         if (-not $hasExternalId) {
             $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
 
-            if ($null -eq $PreviouslyGeneratedTests)
-            {
+            if ($null -eq $PreviouslyGeneratedTests) {
                 # TODO: this enables tests that are not in a block to run. those are outdated tests in my
                 # test suite, so this should be imho removed later, and the tests rewritten
-                $PreviouslyGeneratedTests = @{}
+                $PreviouslyGeneratedTests = @{ }
 
             }
 
@@ -475,22 +474,23 @@ function New-Test {
             # no callbacks are provided because we are not transitioning between any states
             $frameworkSetupResult = Invoke-ScriptBlock `
                 -OuterSetup @(
-                if ($test.First) { selectNonNull $state.Plugin.OneTimeTestSetup }
+                if ($test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
             ) `
-                -Setup @( selectNonNull $state.Plugin.EachTestSetup ) `
-                -ScriptBlock {} `
+                -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
+                -ScriptBlock { } `
                 -Context @{
                 Context = @{
                     # context visible to Plugins
-                    Block = $block
-                    Test  = $test
+                    Block         = $block
+                    Test          = $test
                     Configuration = $state.PluginConfiguration
                 }
             }
             # Write-Host $sw.ElapsedMilliseconds
             if ($frameworkSetupResult.Success) {
                 # invokes the body of the test
-                $testInfo = @(foreach ($t in $test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path } })
+                $testInfo = @(foreach ($t in $test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }
+                    })
                 # user provided data are merged with Pester provided context
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
@@ -541,16 +541,16 @@ function New-Test {
             $test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
             $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
             $frameworkTeardownResult = Invoke-ScriptBlock `
-                -ScriptBlock {} `
-                -Teardown @( selectNonNull $state.Plugin.EachTestTeardown ) `
+                -ScriptBlock { } `
+                -Teardown @( selectNonNull $state.Plugin.EachTestTeardownEnd ) `
                 -OuterTeardown @(
-                if ($test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardown }
+                if ($test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd }
             ) `
                 -Context @{
                 Context = @{
                     # context visible to Plugins
-                    Test  = $test
-                    Block = $block
+                    Test          = $test
+                    Block         = $block
                     Configuration = $state.PluginConfiguration
                 }
             }
@@ -605,7 +605,7 @@ function Get-Id {
         0
     }
     else {
-        if  ($previousItem.Location -eq $currentLocation) {
+        if ($previousItem.Location -eq $currentLocation) {
             $position = ++$previousItem.Counter
             [string] $position
         }
@@ -782,8 +782,8 @@ function New-TestObject {
         Tag               = $Tag
         Focus             = [Bool]$Focus
         Data              = $Data
-        ExpandedName       = $null
-        Block = $null
+        ExpandedName      = $null
+        Block             = $null
         Executed          = $false
         ExecutedAt        = $null
         Passed            = $false
@@ -791,13 +791,13 @@ function New-TestObject {
         ErrorRecord       = [Collections.Generic.List[Object]]@()
         First             = $false
         Last              = $false
-        Exclude = $false
+        Exclude           = $false
         ShouldRun         = $false
         Duration          = [timespan]::Zero
         FrameworkDuration = [timespan]::Zero
         Id                = $Id
         ScriptBlock       = $ScriptBlock
-        PluginData        = @{}
+        PluginData        = @{ }
         FrameworkData     = @{
             Runtime = @{
                 Phase         = $null
@@ -815,8 +815,8 @@ function New-BlockObject {
         [string[]] $Path,
         [string[]] $Tag,
         [ScriptBlock] $ScriptBlock,
-        [HashTable] $FrameworkData = @{},
-        [HashTable] $PluginData = @{},
+        [HashTable] $FrameworkData = @{ },
+        [HashTable] $PluginData = @{ },
         [Switch] $Focus,
         [String] $Id
     )
@@ -936,8 +936,8 @@ function Discover-Test {
     foreach ($f in $found) {
         Fold-Container -Container $f.Block `
             -OnTest {
-                # add all focused tests
-                param($t) if ($t.Focus) { $focusedTests.Add($t.Path) } } `
+            # add all focused tests
+            param($t) if ($t.Focus) { $focusedTests.Add($t.Path) } } `
             -OnBlock { param($b) if ($b.Focus) {
                 # add all tests in the current block, no matter if they are focused or not
                 Fold-Block -Block $b -OnTest { param ($t) $focusedTests.Add($t.Path) }
@@ -1009,7 +1009,7 @@ function Run-Test {
 
             if (
                 $null -ne $rootBlock.EachTestTeardown `
-                -or $null -ne $rootBlock.OneTimeTestTeardown #`
+                    -or $null -ne $rootBlock.OneTimeTestTeardown #`
                 #-or $null -ne $rootBlock.OneTimeBlockTeardown `
                 #-or $null -ne $rootBlock.EachBlockTeardown `
             ) {
@@ -1024,11 +1024,11 @@ function Run-Test {
 
                 $rootSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                        if ($block.First) { selectNonNull $rootBlock.OneTimeTestSetup }
-                    ) `
+                    if ($block.First) { selectNonNull $rootBlock.OneTimeTestSetup }
+                ) `
                     -Setup @() `
-                    -ScriptBlock {} `
-                    -Context @{} `
+                    -ScriptBlock { } `
+                    -Context @{ } `
                     -ReduceContextToInnerScope `
                     -MoveBetweenScopes `
                     -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
@@ -1073,7 +1073,7 @@ function Invoke-ScriptBlock {
         [ScriptBlock[]] $Setup,
         [ScriptBlock[]] $Teardown,
         [ScriptBlock[]] $OuterTeardown,
-        $Context = @{},
+        $Context = @{ },
         # define data to be shared in only in the inner scope where e.g eachTestSetup + test run but not
         # in the scope where OneTimeTestSetup runs, on the other hand, plugins want context
         # in all scopes
@@ -1086,8 +1086,8 @@ function Invoke-ScriptBlock {
         # running the code in the current scope
         [Switch] $NoNewScope,
         [Switch] $MoveBetweenScopes,
-        [ScriptBlock] $OnUserScopeTransition = {},
-        [ScriptBlock] $OnFrameworkScopeTransition = {}
+        [ScriptBlock] $OnUserScopeTransition = { },
+        [ScriptBlock] $OnFrameworkScopeTransition = { }
     )
 
     # this is what the code below does
@@ -1120,13 +1120,13 @@ function Invoke-ScriptBlock {
                 $______current = $null
             }
             else {
-                $______outerSplat = @{}
+                $______outerSplat = @{ }
             }
 
             if ($null -ne $______parameters.OuterSetup -and $______parameters.OuterSetup.Length -gt 0) {
                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer setups" }
                 foreach ($______current in $______parameters.OuterSetup) {
-                    if ($______parameters.EnableWriteDebug) {  &$______parameters.WriteDebug "Running outer setup { $______current }" }
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer setup { $______current }" }
                     $______parameters.CurrentlyExecutingScriptBlock = $______current
                     . $______current @______outerSplat
                 }
@@ -1165,7 +1165,7 @@ function Invoke-ScriptBlock {
                     if ($null -ne $______parameters.Setup -and $______parameters.Setup.Length -gt 0) {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner setups" }
                         foreach ($______current in $______parameters.Setup) {
-                            if ($______parameters.EnableWriteDebug) {  &$______parameters.WriteDebug "Running inner setup { $______current }" }
+                            if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner setup { $______current }" }
                             $______parameters.CurrentlyExecutingScriptBlock = $______current
                             . $______current @______innerSplat
                         }
@@ -1604,8 +1604,8 @@ function PostProcess-DiscoveredBlock {
     $Block.IsRoot = $Block -eq $RootBlock
     $Block.Root = $RootBlock
     $Block.BlockContainer = $BlockContainer
-    $Block.FrameworkData.PreviouslyGeneratedTests = @{}
-    $Block.FrameworkData.PreviouslyGeneratedBlocks = @{}
+    $Block.FrameworkData.PreviouslyGeneratedTests = @{ }
+    $Block.FrameworkData.PreviouslyGeneratedBlocks = @{ }
 
     $tests = $Block.Tests
 
@@ -1671,7 +1671,7 @@ function PostProcess-ExecutedBlock {
         foreach ($b in $Block) {
             $thisBlockFailed = -not $b.Passed
             $tests = $b.Tests
-            $anyTestFailed = any ($(foreach ($t in $tests) { if ($t.Executed -and -not $t.Passed) {$t} }))
+            $anyTestFailed = any ($(foreach ($t in $tests) { if ($t.Executed -and -not $t.Passed) { $t } }))
             $testDuration = sum $tests 'Duration' ([TimeSpan]::Zero)
 
             $childBlocks = $b.Blocks
@@ -1682,7 +1682,7 @@ function PostProcess-ExecutedBlock {
                     PostProcess-ExecutedBlock -Block $cb
                 }
                 $aggregatedChildDuration = sum $childBlocks 'Duration' ([TimeSpan]::Zero)
-                $anyChildBlockFailed = any ($(foreach ($b in $childBlocks) { if ($b.Executed -and -not $b.Passed) {$b} }))
+                $anyChildBlockFailed = any ($(foreach ($b in $childBlocks) { if ($b.Executed -and -not $b.Passed) { $b } }))
             }
 
 
@@ -1757,26 +1757,54 @@ function New-PluginObject {
         [Parameter(Mandatory = $true)]
         [String] $Name,
         [Hashtable] $Configuration,
-        [ScriptBlock] $OneTimeBlockSetup,
-        [ScriptBlock] $EachBlockSetup,
-        [ScriptBlock] $OneTimeTestSetup,
-        [ScriptBlock] $EachTestSetup,
-        [ScriptBlock] $EachTestTeardown,
-        [ScriptBlock] $OneTimeTestTeardown,
-        [ScriptBlock] $EachBlockTeardown,
-        [ScriptBlock] $OneTimeBlockTeardown
+        [ScriptBlock] $Start,
+        [ScriptBlock] $DiscoveryStart,
+        [ScriptBlock] $ContainerDiscoveryStart,
+        [ScriptBlock] $BlockDiscoveryStart,
+        [ScriptBlock] $TestDiscoveryStart,
+        [ScriptBlock] $TestDiscoveryEnd,
+        [ScriptBlock] $BlockDiscoveryEnd,
+        [ScriptBlock] $ContainerDiscoveryEnd,
+        [ScriptBlock] $DiscoveryEnd,
+        [ScriptBlock] $RunStart,
+        [scriptblock] $ContainerRunStart,
+        [ScriptBlock] $OneTimeBlockSetupStart,
+        [ScriptBlock] $EachBlockSetupStart,
+        [ScriptBlock] $OneTimeTestSetupStart,
+        [ScriptBlock] $EachTestSetupStart,
+        [ScriptBlock] $EachTestTeardownEnd,
+        [ScriptBlock] $OneTimeTestTeardownEnd,
+        [ScriptBlock] $EachBlockTeardownEnd,
+        [ScriptBlock] $OneTimeBlockTeardownEnd,
+        [ScriptBlock] $ContainerRunEnd,
+        [ScriptBlock] $RunEnd,
+        [ScriptBlock] $End
     )
 
     New_PSObject -Type "Plugin" @{
-        Configuration        = $Configuration
-        OneTimeBlockSetup    = $OneTimeBlockSetup
-        EachBlockSetup       = $EachBlockSetup
-        OneTimeTestSetup     = $OneTimeTestSetup
-        EachTestSetup        = $EachTestSetup
-        EachTestTeardown     = $EachTestTeardown
-        OneTimeTestTeardown  = $OneTimeTestTeardown
-        EachBlockTeardown    = $EachBlockTeardown
-        OneTimeBlockTeardown = $OneTimeBlockTeardown
+        Configuration           = $Configuration
+        Start                   = $Start
+        DiscoveryStart          = $DiscoveryStart
+        ContainerDiscoveryStart = $ContainerDiscoveryStart
+        BlockDiscoveryStart     = $BlockDiscoveryStart
+        TestDiscoveryStart      = $TestDiscoveryStart
+        TestDiscoveryEnd        = $TestDiscoveryEnd
+        BlockDiscoveryEnd       = $BlockDiscoveryEnd
+        ContainerDiscoveryEnd   = $ContainerDiscoveryEnd
+        DiscoveryEnd            = $DiscoveryEnd
+        RunStart                = $RunStart
+        ContainerRunStart       = $ContainerRunStart
+        OneTimeBlockSetupStart  = $OneTimeBlockSetupStart
+        EachBlockSetupStart     = $EachBlockSetupStart
+        OneTimeTestSetupStart   = $OneTimeTestSetupStart
+        EachTestSetupStart      = $EachTestSetupStart
+        EachTestTeardownEnd     = $EachTestTeardownEnd
+        OneTimeTestTeardownEnd  = $OneTimeTestTeardownEnd
+        EachBlockTeardownEnd    = $EachBlockTeardownEnd
+        OneTimeBlockTeardownEnd = $OneTimeBlockTeardownEnd
+        ContainerRunEnd         = $ContainerRunEnd
+        RunEnd                  = $RunEnd
+        End                     = $End
     }
 }
 
@@ -1974,7 +2002,7 @@ function New-ParametrizedTest () {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable[]] $Data = @{},
+        [HashTable[]] $Data = @{ },
         [Switch] $Focus,
         [String] $Id
     )
@@ -2015,13 +2043,13 @@ function New-PreviousItemObject {
 
     param ()
     New_PSObject -Type 'PreviousItemInfo' @{
-        Any = $false
+        Any      = $false
         Location = 0
-        Counter = 0
+        Counter  = 0
         # just for debugging, not being able to use the name to identify tests, because of
         # potential expanding variables in the names, is the whole reason the position of the
         # sb is used
-        Name = $null
+        Name     = $null
     }
 }
 
