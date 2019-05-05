@@ -29,7 +29,7 @@ $script:r = $null
 [Math]::Round((Measure-Command {
     if ($v5) {
         Write-Host -ForegroundColor Cyan Running in Version 5
-        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -PassThru -Output None
+        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -PassThru -Output Normal
     }
     else {
         Write-Host -ForegroundColor Cyan Running in Version 4

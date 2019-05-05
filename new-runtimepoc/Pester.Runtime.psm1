@@ -1446,7 +1446,7 @@ function New-InvocationResultObject {
     param (
         [bool] $Success = $true,
         [Collections.Generic.List[Management.Automation.ErrorRecord]] $ErrorRecord,
-        [Collections.Generic.List[string]] $StandardOutput
+        $StandardOutput
     )
 
     New_PSObject -Type 'InvocationResult' -Property @{
@@ -1472,7 +1472,7 @@ function Merge-InvocationResult {
     foreach ($r in $Result) {
         $m.Success = $m.Success -and $r.Success
         $null = $m.ErrorRecord.AddRange($r.ErrorRecord)
-        $null = $m.StandardOutput.AddRange($r.StandardOutput)
+        $null = $m.StandardOutput.AddRange(@($r.StandardOutput))
     }
 
     $m
