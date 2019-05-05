@@ -193,12 +193,14 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("RuntimeCore", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore")]
+        [ValidateSet("RuntimeCore", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore")]
         [String] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Lazy")]
-        [ScriptBlock] $LazyMessage
+        [ScriptBlock] $LazyMessage,
+        [Parameter(Position = 2)]
+        [Management.Automation.ErrorRecord] $ErrorRecord
     )
 
     if (-not $PesterDebugPreference.WriteDebugMessages) {
@@ -210,27 +212,40 @@ function Write-PesterDebugMessage {
         return
     }
 
-    $color = switch ($Scope) {
-        "RuntimeCore" { "Cyan" }
-        "Runtime" { "DarkGray" }
-        "Mock" { "DarkYellow" }
-        "Discovery" { "DarkMagenta" }
-        "DiscoveryCore" { "DarkMagenta" }
-        "SessionState" { "Gray" }
-        "Timing" { "Gray" }
-        "TimingCore" { "Gray" }
-    }
+
+    $color =
+        if ($null -ne $ErrorRecord) {
+            "Red"
+        }
+        else {
+            switch ($Scope) {
+                "RuntimeCore" { "Cyan" }
+                "Runtime" { "DarkGray" }
+                "Mock" { "DarkYellow" }
+                "Discovery" { "DarkMagenta" }
+                "DiscoveryCore" { "DarkMagenta" }
+                "SessionState" { "Gray" }
+                "Timing" { "Gray" }
+                "TimingCore" { "Gray" }
+                "PluginCore" { "Blue" }
+                "Plugin" { "Blue" }
+            }
+        }
 
     # this evaluates a message that is expensive to produce so we only evaluate it
     # when we know that we will write it. All messages could be provided as scriptblocks
     # but making a script block is slightly more expensive than making a string, so lazy approach
     # is used only when the message is obviously expensive, like folding the whole tree to get
     # count of found tests
+    #TODO: remove this, it was clever but the best performance is achieved by putting an if around the whole call which is what I do in hopefully all places, that way the scriptblock nor the string are allocated
     if ($null -ne $LazyMessage) {
         $Message = (&$LazyMessage) -join "`n"
     }
 
     & $_Write_Host -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
+    if ($null -ne $ErrorRecord) {
+        & $_Write_Host -ForegroundColor Black -BackgroundColor $color "$ErrorRecord"
+    }
 }
 
 function Fold-Block {

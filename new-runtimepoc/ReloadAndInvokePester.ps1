@@ -10,7 +10,7 @@ if ($v5) {
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
     WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "Mock*"
+    WriteDebugMessagesFrom = "Plugin*"
 }
 
 $excludePath = "*/demo/*"
@@ -22,7 +22,7 @@ $path = "C:\Projects\Pester_main"
 #$path = "C:\projects\pester_main\demo\mocking\CountingMocks.Tests.ps1"
 # $path = "C:\Projects\pester_main\Examples\Validator\"
 #$path = "C:\Projects\Pester_main\Functions\Mock.Tests.ps1"
-$path  = "C:\Users\nohwnd\Desktop\mock.tests.ps1"
+#$path  = "C:\Users\nohwnd\Desktop\mock.tests.ps1"
 
 
 $script:r = $null

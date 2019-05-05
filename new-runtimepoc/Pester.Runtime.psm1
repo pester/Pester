@@ -343,23 +343,7 @@ function New-Block {
 
 
             if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
-                & { # report framework failure
-                    $ErrorActionPreference = 'Continue'
-                    if ($frameworkSetupResult.ErrorRecord) {
-                        foreach ($e in $frameworkSetupResult.ErrorRecord) {
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e )
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e.ScriptStackTrace)
-                        }
-                    }
-                    if ($frameworkTeardownResult.ErrorRecord) {
-                        foreach ($e in $frameworkTeardownResult.ErrorRecord) {
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e)
-                            & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e.ScriptStackTrace)
-                        }
-                    }
-
-                    throw "framework fail"
-                }
+                Assert-Success -InvocationResult @($frameworkSetupResult, $frameworkTeardownResult) -Message "Framework failed"
             }
         }
     }
@@ -486,7 +470,7 @@ function New-Test {
                     Configuration = $state.PluginConfiguration
                 }
             }
-            # Write-Host $sw.ElapsedMilliseconds
+
             if ($frameworkSetupResult.Success) {
                 # invokes the body of the test
                 $testInfo = @(foreach ($t in $test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }
@@ -888,18 +872,21 @@ function Discover-Test {
         $Filter
     )
     $totalDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
-    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting test discovery in $(@($BlockContainer).Length) files."
+
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
+    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{ BlockContainers = $BlockContainer } -ThrowOnFailure
+
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
         $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($container.Content)"
+
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
         }
+
         # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
@@ -909,6 +896,8 @@ function Discover-Test {
 
         Reset-PerContainerState -RootBlock $root
 
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{ BlockContainer  = $container } -ThrowOnFailure
+
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
         [PSCustomObject]@{
@@ -916,16 +905,19 @@ function Discover-Test {
             Block     = $root
         }
 
-        $t = $perContainerDiscoveryDuration.Elapsed
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $root).Count) tests. $(ConvertTo-HumanTime $t)"
-        $root.DiscoveryDuration = $t
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
+            BlockContainer  = $container
+            Block = $root
+            Duration = $perContainerDiscoveryDuration.Elapsed
+        } -ThrowOnFailure
+
+        $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
         }
     }
 
-    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing discovery result objects, to set root, parents, filters etc."
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
     }
@@ -945,7 +937,6 @@ function Discover-Test {
     }
 
     if ($focusedTests.Count -gt 0) {
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         }
@@ -957,7 +948,13 @@ function Discover-Test {
         $f.Block
     }
 
-    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished. $(ConvertTo-HumanTime $totalDiscoveryDuration.Elapsed)"
+    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
+        BlockContainers  = $BlockContainers
+        AnyFocusedTests = $focusedTests.Count -gt 0
+        FocusedTests = $focusedTests
+        Duration =  $totalDiscoveryDuration.Elapsed
+    } -ThrowOnFailure
+
     if ($PesterDebugPreference.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
     }
@@ -985,16 +982,12 @@ function Run-Test {
         # this resets the timers so keep that before measuring the
         Reset-PerContainerState -RootBlock $rootBlock
 
+        $rootBlock.Executed = $true
+        $rootBlock.ExecutedAt = [DateTime]::now
+
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{ Block = $rootBlock } -ThrowOnFailure
+
         try {
-            $rootBlock.Executed = $true
-            $rootBlock.ExecutedAt = [DateTime]::now
-            # TODO: run container setup here, and put "path" output to plugin
-            # TODO: replicate what is done inside of New-block here, so we have trace of what happened even when we throw and have teardowns and exensibility
-
-            if ("file" -eq $rootBlock.BlockContainer.Type) {
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($rootBlock.BlockContainer.Content)'"
-            }
-
             # if ($null -ne $rootBlock.OneTimeBlockSetup) {
             #    throw "One time block setup is not supported in root (directly in the block container)."
             #}
@@ -1046,13 +1039,20 @@ function Run-Test {
         catch {
             $rootBlock.Passed = $false
             $rootBlock.ErrorRecord.Add($_)
-            # TODO: run container teardown here, and put this into plugin
-            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($rootBlock.BlockContainer.Content)' failed with `n$(Out-String -InputObject $_)"
         }
 
         PostProcess-ExecutedBlock -Block $rootBlock
         $result = ConvertTo-ExecutedBlockContainer -Block $rootBlock
+        $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+        $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
 
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
+            Result = $result
+            Block = $rootBlock
+        } -ThrowOnFailure
+
+        # set this again so the plugins have some data but that we also include the plugin invocation to the
+        # overall time to keep the actual timing correct
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
         if ($PesterDebugPreference.WriteDebugMessages) {
@@ -1061,6 +1061,119 @@ function Run-Test {
         }
 
         $result
+    }
+}
+
+function Invoke-PluginStep {
+    [CmdletBinding()]
+    param (
+        [PSObject[]] $Plugins,
+        [Parameter(Mandatory)]
+        [ValidateSet('Start','DiscoveryStart','ContainerDiscoveryStart','BlockDiscoveryStart','TestDiscoveryStart','TestDiscoveryEnd','BlockDiscoveryEnd','ContainerDiscoveryEnd','DiscoveryEnd','RunStart','ContainerRunStart','OneTimeBlockSetupStart','EachBlockSetupStart','OneTimeTestSetupStart','EachTestSetupStart','EachTestTeardownEnd','OneTimeTestTeardownEnd','EachBlockTeardownEnd','OneTimeBlockTeardownEnd','ContainerRunEnd','RunEnd','End')]
+        [String] $Step,
+        $Context = @{},
+        [Switch] $ThrowOnFailure
+    )
+
+    Switch-Timer -Scope Framework
+
+    # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
+    $isEndStep = $Step -like "*End"
+
+    $pluginsWithGivenStep =
+        @(foreach ($p in $Plugins) {
+            if ($p."Has$Step") {
+                $p
+            }
+        })
+
+
+    if ($null -eq $pluginsWithGivenStep -or 0 -eq @($pluginsWithGivenStep).Count) {
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope PluginCore "No plugins with step $Step were provided"
+        }
+        return
+    }
+
+    if (-not $isEndStep) {
+        [Array]::Reverse($pluginsWithGivenStep)
+    }
+
+    $err = [Collections.Generic.List[Management.Automation.ErrorRecord]]@()
+    $failed = $false
+    $standardOutput =
+        foreach ($p in $pluginsWithGivenStep) {
+            if ($failed -and -not $isEndStep)
+            {
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Plugin "Skipping $($p.Name) step $Step because some previous plugin failed"
+                }
+                continue
+            }
+
+            try {
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
+                }
+
+                # the plugins expect -Context and then the actual context in it
+                # this was a choice at the start of the project to make it easy to see
+                # what is available, not sure if a good choice
+                $ctx = @{
+                    Context = $Context
+                }
+                do {
+                    &$p.$Step @ctx
+                } while ($false)
+
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Plugin "Finished $($p.Name) step $Step"
+                }
+            }
+            catch {
+                $failed = $true
+                $err.Add($_)
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step" -ErrorRecord $_
+                }
+            }
+        }
+
+    $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
+
+    if ($ThrowOnFailure) {
+        Assert-Success $r -Message "Invoking step $step failed"
+    }
+    else {
+        return $r
+    }
+}
+
+function Assert-Success {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [PStypeName("InvocationResult")][PSObject[]] $InvocationResult,
+        [String] $Message = "Invocation failed"
+    )
+
+    $rc = 0
+    $anyFailed = $false
+    foreach ($r in $InvocationResult) {
+        $ec = 0
+        if ($null -ne $r.ErrorRecord -and $r.ErrorRecord.Length -gt 0) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "Result $($rc++):"
+            $anyFailed = $true
+            foreach ($e in $r.ErrorRecord) {
+                & $SafeCommands["Write-Host"] -ForegroundColor Red "Error $($ec++):"
+                & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e )
+                & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e.ScriptStackTrace)
+            }
+        }
+
+        if ($anyFailed) {
+            throw $Message
+        }
     }
 }
 
@@ -1185,7 +1298,7 @@ function Invoke-ScriptBlock {
                 }
                 catch {
                     $______parameters.ErrorRecord.Add($_)
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" }
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" -ErrorRecord $_ }
                 }
                 finally {
                     # this is needed for nonewscope so we can do two different
@@ -1214,7 +1327,7 @@ function Invoke-ScriptBlock {
                             }
                             catch {
                                 $______parameters.ErrorRecord.Add($_)
-                                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running inner teardown" }
+                                if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running inner teardown" -ErrorRecord $_ }
                             }
                         }
                         $______current = $null
@@ -1243,7 +1356,7 @@ function Invoke-ScriptBlock {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running outer teardown" }
                     }
                     catch {
-                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running outer teardown" }
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running outer teardown" -ErrorRecord $_ }
                         $______parameters.ErrorRecord.Add($_)
                     }
                 }
@@ -1267,7 +1380,7 @@ function Invoke-ScriptBlock {
         $wrapperScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
     }
 
-    $break = $true
+    #$break = $true
     $err = $null
     try {
         $parameters = @{
@@ -1277,11 +1390,14 @@ function Invoke-ScriptBlock {
             Teardown                      = $Teardown
             OuterTeardown                 = $OuterTeardown
             CurrentlyExecutingScriptBlock = $null
-            ErrorRecord                   = [Collections.Generic.List[Object]]@()
+            ErrorRecord                   = [Collections.Generic.List[Management.Automation.ErrorRecord]]@()
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
             EnableWriteDebug              = $PesterDebugPreference.WriteDebugMessages
-            WriteDebug                    = { param($Message) Write-PesterDebugMessage -Scope "RuntimeCore" $Message }
+            WriteDebug                    = {
+                    param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
+                    Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
+                }
         }
 
         # here we are moving into the user scope if the provided
@@ -1302,7 +1418,7 @@ function Invoke-ScriptBlock {
                 & $wrapperScriptBlock $parameters
             }
             # if the code reaches here we did not break
-            $break = $false
+            #$break = $false
         } while ($false)
     }
     catch {
@@ -1317,14 +1433,49 @@ function Invoke-ScriptBlock {
         $parameters.ErrorRecord.Add($err)
     }
 
-    $r = [PSCustomObject] @{
-        Success        = 0 -eq $parameters.ErrorRecord.Count
-        ErrorRecord    = $parameters.ErrorRecord
-        StandardOutput = $standardOutput
-        Break          = $break
-    }
+    $r = New-InvocationResultObject `
+        -Success (0 -eq $parameters.ErrorRecord.Count) `
+        -ErrorRecord $parameters.ErrorRecord `
+        -StandardOutput $standardOutput
 
     return $r
+}
+
+function New-InvocationResultObject {
+    [CmdletBinding()]
+    param (
+        [bool] $Success = $true,
+        [Collections.Generic.List[Management.Automation.ErrorRecord]] $ErrorRecord,
+        [Collections.Generic.List[string]] $StandardOutput
+    )
+
+    New_PSObject -Type 'InvocationResult' -Property @{
+        Success = $Success
+        ErrorRecord = $ErrorRecord
+        StandardOutput = $StandardOutput
+    }
+}
+
+function Merge-InvocationResult {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [PSTypeName("InvocationResult")][PSObject[]] $Result
+    )
+
+    if ($Result.Count -eq 1) {
+        return $Result[0]
+    }
+
+    $m = New-InvocationResultObject
+
+    foreach ($r in $Result) {
+        $m.Success = $m.Success -and $r.Success
+        $null = $m.ErrorRecord.AddRange($r.ErrorRecord)
+        $null = $m.StandardOutput.AddRange($r.StandardOutput)
+    }
+
+    $m
 }
 
 
@@ -1781,7 +1932,8 @@ function New-PluginObject {
         [ScriptBlock] $End
     )
 
-    New_PSObject -Type "Plugin" @{
+    $h = @{
+        Name = $Name
         Configuration           = $Configuration
         Start                   = $Start
         DiscoveryStart          = $DiscoveryStart
@@ -1806,6 +1958,20 @@ function New-PluginObject {
         RunEnd                  = $RunEnd
         End                     = $End
     }
+
+    # enumerate to avoid modifying the key collection
+    # when we edit the hashtable
+    $keys = foreach ($k in $h.Keys) { $k }
+
+    foreach ($k in $keys) {
+        if ("Configuration" -eq $k -or "Name" -eq $k) {
+            continue
+        }
+
+        $h.Add("Has$k", ($null -ne $h.$k))
+    }
+
+    New_PSObject -Type "Plugin" $h
 }
 
 function Invoke-BlockContainer {
@@ -2091,6 +2257,7 @@ Export-ModuleMember -Function @(
     'Anywhere'
     'Invoke-Test',
     'Find-Test',
+    'Invoke-PluginStep'
 
     # here I have doubts if that is too much to expose
     'Get-CurrentTest'

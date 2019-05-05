@@ -487,9 +487,66 @@ function ConvertTo-FailureLines {
     }
 }
 
+function ConvertTo-HumanTime {
+    param ([TimeSpan]$TimeSpan)
+    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
+        "$([int]($TimeSpan.TotalMilliseconds))ms"
+    }
+    else {
+        "$([int]($TimeSpan.TotalSeconds))s"
+    }
+}
+
 function Get-WriteScreenPlugin {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
-    Pester.Runtime\New-PluginObject -Name "WriteScreen" -EachBlockSetupStart {
+    Pester.Runtime\New-PluginObject -Name "WriteScreen" `
+    -Start {
+        param ($Context)
+
+        if ($null -eq $Context.Conatiners -or @($Context.Containers).Count -eq 0) {
+            return
+        }
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running all tests in $($Context.Containers.Content -join ', ')"
+    } `
+    -DiscoveryStart {
+        param ($Context)
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting test discovery in $(@($Context.BlockContainers).Length) files."
+    } `
+    -ContainerDiscoveryStart {
+        param ($Context)
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($Context.BlockContainer.Content)."
+    } `
+    -ContainerDiscoveryEnd {
+        param ($Context)
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+    } `
+    -DiscoveryEnd {
+        param ($Context)
+
+        if ($Context.AnyFocusedTests) {
+            $focusedTests = $Context.FocusedTests
+            "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        }
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished. $(ConvertTo-HumanTime $Context.Duration)"
+    } `
+    -ContainerRunStart {
+        param ($Context)
+
+        if ("file" -eq $Context.Block.BlockContainer.Type) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($Context.Block.BlockContainer.Content)'"
+        }
+    } `
+    -ContainerRunEnd  {
+        param ($Context)
+
+        if ($Context.RootBlock.ErrorRecord.Count -gt 0) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.$rootBlock.BlockContainer.Content)' failed with:"
+            Write-ErrorToScreen $cursorColumn.RootBlock.ErrorRecord
+        }
+    } `
+    -EachBlockSetupStart {
         param ($Context)
         # the $context does not mean Context block, it's just a generic name
         # for the invocation context of this callback
@@ -598,7 +655,14 @@ function Get-WriteScreenPlugin {
             & $SafeCommands['Write-Host'] -ForegroundColor Red "Block '$($Context.Block.Path -join ".")' failed"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
+    } `
+    -End {
+        param ( $Context )
+        $r = $Context.Result
+        $legacyResult = Get-LegacyResult $r
+        Write-PesterReport $legacyResult
     }
+
 }
 
 function Write-ErrorToScreen {

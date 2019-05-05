@@ -666,6 +666,9 @@ function Invoke-Pester {
         [ScriptBlock[]] $ScriptBlock
     )
     begin {
+        if ($CI) {
+            $EnableExit = $true
+        }
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
@@ -704,26 +707,30 @@ function Invoke-Pester {
 
             $containers = @()
             if (any $ScriptBlock) {
-                Write-Host -ForegroundColor Magenta "Running tests in $($ScriptBlock.Count) scriptblocks."
                 $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
             }
 
             if (any $Path) {
                 if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
-                    Write-Host -ForegroundColor Magenta "Running all tests in $Path"
+                    # TODO: pass the startup options as context to Start instead of just paths
+
                     $containers += @(Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
                 }
             }
 
+            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{ Containers = $containers } -ThrowOnFailure
+
             if (none $containers) {
-                Write-Host -ForegroundColor Magenta "No test files were found and no scriptblocks were provided."
+                throw "No test files were found and no scriptblocks were provided."
                 return
             }
 
             $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter
-            $legacyResult = Get-LegacyResult $r
-            Write-PesterReport $legacyResult
+
+
+            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
+
 
             if ($PassThru) {
                 $r
