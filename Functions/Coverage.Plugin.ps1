@@ -1,5 +1,5 @@
 function Get-CoveragePlugin {
-    New-PluginObject -Name "Coverage" -OneTimeBlockSetup {
+    New-PluginObject -Name "Coverage" -OneTimeBlockSetupStart {
         param($Context)
 
 
@@ -10,7 +10,7 @@ function Get-CoveragePlugin {
             CoverageReport = $null
         })
 
-    } -OneTimeBlockTeardown {
+    } -OneTimeBlockTeardownEnd {
         if ($Context.Block.Root.PluginData.ContainsKey('Coverage')) {
             $breakpoints = $Context.Block.Root.PluginData.Coverage.CommandCoverage
 

@@ -6,7 +6,7 @@ function Get-TestDrivePlugin {
         Remove-Item (Get-PSDrive TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
         Remove-PSDrive TestDrive
     }
-    Pester.Runtime\New-PluginObject -Name "TestDrive" -EachBlockSetup {
+    Pester.Runtime\New-PluginObject -Name "TestDrive" -EachBlockSetupStart {
         param($Context)
         if (-not ($Context.Block.PluginData.ContainsKey('TestDrive'))) {
             $Context.Block.PluginData.Add('TestDrive', @{
@@ -27,7 +27,7 @@ function Get-TestDrivePlugin {
         }
         # }
 
-    } -EachBlockTearDown {
+    } -EachBlockTearDownEnd {
         # if (-not $NoTestDrive)
         # {
         if ($Context.Block.PluginData.TestDrive.TestDriveAdded) {

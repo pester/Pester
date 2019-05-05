@@ -5,21 +5,21 @@
 
 function Get-MockPlugin () {
     Pester.Runtime\New-PluginObject -Name "Mock" `
-        -EachBlockSetup {
+        -EachBlockSetupStart {
         param($Context)
         $Context.Block.PluginData.Mock = @{
             Hooks       = @()
             CallHistory = @{}
             Behaviors   = @{}
         }
-    } -EachTestSetup {
+    } -EachTestSetupStart {
         param($Context)
         $Context.Test.PluginData.Mock = @{
             Hooks       = @()
             CallHistory = @{}
             Behaviors   = @{}
         }
-    } -EachTestTeardown {
+    } -EachTestTeardownEnd {
         param($Context)
         # we are defining that table in the setup but the teardowns
         # need to be resilient, because they will run even if the setups
@@ -27,7 +27,7 @@ function Get-MockPlugin () {
         # TODO: resolve this path safely
         $hooks = $Context.Test.PluginData.Mock.Hooks
         Remove-MockHook -Hooks $hooks
-    } -EachBlockTeardown {
+    } -EachBlockTeardownEnd {
         param($Context)
         # TODO: resolve this path safely
         $hooks = $Context.Block.PluginData.Mock.Hooks

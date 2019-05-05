@@ -865,14 +865,14 @@ i -PassThru:$PassThru {
                 OneTimeBlockTeardown = 0
             }
             $p = New-PluginObject -Name "CountCalls" `
-                -OneTimeBlockSetup { $container.OneTimeBlockSetup++ } `
-                -EachBlockSetup { $container.EachBlockSetup++ } `
-                -OneTimeTestSetup { $container.OneTimeTestSetup++ } `
-                -EachTestSetup { $container.EachTestSetup++ } `
-                -EachTestTeardown { $container.EachTestTeardown++ } `
-                -OneTimeTestTeardown { $container.OneTimeTestTeardown++ } `
-                -EachBlockTeardown { $container.EachBlockTeardown++ } `
-                -OneTimeBlockTeardown { $container.OneTimeBlockTeardown++ }
+                -OneTimeBlockSetupStart { $container.OneTimeBlockSetup++ } `
+                -EachBlockSetupStart { $container.EachBlockSetup++ } `
+                -OneTimeTestSetupStart { $container.OneTimeTestSetup++ } `
+                -EachTestSetupStart { $container.EachTestSetup++ } `
+                -EachTestTeardownEnd { $container.EachTestTeardown++ } `
+                -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown++ } `
+                -EachBlockTeardownEnd { $container.EachBlockTeardown++ } `
+                -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown++ }
 
             $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block 'block1' {
@@ -903,7 +903,7 @@ i -PassThru:$PassThru {
                 Test = $null
             }
             $p = New-PluginObject -Name "readContext" `
-                -EachTestTeardown { param($context) $container.Test = $context.Test }
+                -EachTestTeardownEnd { param($context) $container.Test = $context.Test }
 
             $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Test "test1" {}
@@ -920,7 +920,7 @@ i -PassThru:$PassThru {
             }
 
             $p = New-PluginObject -Name "readContext" `
-                -EachBlockSetup { param($context)
+                -EachBlockSetupStart { param($context)
                 $container.Block = $context.Block }
 
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
