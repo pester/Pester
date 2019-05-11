@@ -372,13 +372,16 @@ about_Mocking
     }
 
     $mock.Blocks = @(
-        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -eq '$True' }
-        if ($block.Filter.ToString() -eq '$True') {
+        # trim the script to avoid errors when formatting adds spaces around the default
+        # filter script, this only affects powershell v2, newer powershell trims it
+        # automatically
+        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString().Trim() -eq '$True' }
+        if ($block.Filter.ToString().Trim() -eq '$True') {
             $block
         }
 
-        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString() -ne '$True' }
-        if ($block.Filter.ToString() -ne '$True') {
+        $mock.Blocks | & $SafeCommands['Where-Object'] { $_.Filter.ToString().Trim() -ne '$True' }
+        if ($block.Filter.ToString().Trim() -ne '$True') {
             $block
         }
     )
