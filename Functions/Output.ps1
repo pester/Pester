@@ -426,7 +426,7 @@ function Get-WriteScreenPlugin {
 
         if ($Context.AnyFocusedTests) {
             $focusedTests = $Context.FocusedTests
-            "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
         }
 
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished. $(ConvertTo-HumanTime $Context.Duration)"
