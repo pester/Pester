@@ -91,7 +91,7 @@ Describe "When the caller mocks a command Pester uses internally" {
 }
 
 Describe "When calling Mock on existing cmdlet" {
-    Mock Get-Process {return "I am not Get-Process"}
+    Mock Get-Process { return "I am not Get-Process" }
 
     $result = Get-Process
 
@@ -124,7 +124,7 @@ Describe 'When calling Mock on an alias' {
             }
         }
 
-        Mock dir {return 'I am not dir'}
+        Mock dir { return 'I am not dir' }
 
         $result = dir
 
@@ -147,14 +147,14 @@ Describe 'When calling Mock on an alias that refers to a function Pester can''t 
 
         ali | Should -Be 'orig'
 
-        { mock ali {'mck'} } | Should -Not -Throw
+        { mock ali { 'mck' } } | Should -Not -Throw
 
         ali | Should -Be 'mck'
     }
 }
 
 Describe 'When calling Mock on a filter' {
-    Mock FilterUnderTest {return 'I am not FilterUnderTest'}
+    Mock FilterUnderTest { return 'I am not FilterUnderTest' }
 
     $result = 'Yes I am' | FilterUnderTest
 
@@ -167,7 +167,7 @@ Describe 'When calling Mock on an external script' {
     $ps1File = New-Item 'TestDrive:\tempExternalScript.ps1' -ItemType File -Force
     $ps1File | Set-Content -Value "'I am tempExternalScript.ps1'"
 
-    Mock 'TestDrive:\tempExternalScript.ps1' {return 'I am not tempExternalScript.ps1'}
+    Mock 'TestDrive:\tempExternalScript.ps1' { return 'I am not tempExternalScript.ps1' }
 
     <#
         # Invoking the script using its absolute path is not supported
@@ -231,7 +231,7 @@ InModuleScope -ModuleName Pester {
 
         if ((GetPesterOs) -ne 'Windows') {
 
-            Mock id {return "I am not 'id'"}
+            Mock id { return "I am not 'id'" }
 
             $result = id
 
@@ -242,7 +242,7 @@ InModuleScope -ModuleName Pester {
         }
         else {
 
-            Mock schtasks.exe {return 'I am not schtasks.exe'}
+            Mock schtasks.exe { return 'I am not schtasks.exe' }
 
             $result = schtasks.exe
 
@@ -254,7 +254,7 @@ InModuleScope -ModuleName Pester {
 }
 
 Describe "When calling Mock in the Describe block" {
-    Mock Out-File {return "I am not Out-File"}
+    Mock Out-File { return "I am not Out-File" }
 
     It "Should mock Out-File successfully" {
         $outfile = "test" | Out-File "TestDrive:\testfile.txt"
@@ -316,7 +316,7 @@ Describe "When calling Mock on existing cmdlet with Common params" {
 
 Describe "When calling Mock on non-existing function" {
     try {
-        Mock NotFunctionUnderTest {return}
+        Mock NotFunctionUnderTest { return }
     }
     Catch {
         $result = $_
@@ -367,7 +367,7 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
 }
 
 Describe "When calling Mock on existing function without matching bound params" {
-    Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "test"}
+    Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
 
     $result = FunctionUnderTest "badTest"
 
@@ -377,7 +377,7 @@ Describe "When calling Mock on existing function without matching bound params" 
 }
 
 Describe "When calling Mock on existing function with matching bound params" {
-    Mock FunctionUnderTest {return "fake results"} -parameterFilter {$param1 -eq "badTest"}
+    Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "badTest" }
 
     $result = FunctionUnderTest "badTest"
 
@@ -387,7 +387,7 @@ Describe "When calling Mock on existing function with matching bound params" {
 }
 
 Describe "When calling Mock on existing function without matching unbound arguments" {
-    Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "test" -and $args[0] -eq 'notArg0'}
+    Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "test" -and $args[0] -eq 'notArg0' }
 
     $result = FunctionUnderTestWithoutParams -param1 "test" "arg0"
 
@@ -397,7 +397,7 @@ Describe "When calling Mock on existing function without matching unbound argume
 }
 
 Describe "When calling Mock on existing function with matching unbound arguments" {
-    Mock FunctionUnderTestWithoutParams {return "fake results"} -parameterFilter {$param1 -eq "badTest" -and $args[0] -eq 'arg0'}
+    Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "badTest" -and $args[0] -eq 'arg0' }
 
     $result = FunctionUnderTestWithoutParams "badTest" "arg0"
 
@@ -425,8 +425,8 @@ Describe 'When calling Mock on a function that has no parameters' {
 }
 
 Describe "When calling Mock on cmdlet Used by Mock" {
-    Mock Set-Item {return "I am not Set-Item"}
-    Mock Set-Item {return "I am not Set-Item"}
+    Mock Set-Item { return "I am not Set-Item" }
+    Mock Set-Item { return "I am not Set-Item" }
 
     $result = Set-Item "mypath" -value "value"
 
@@ -436,10 +436,10 @@ Describe "When calling Mock on cmdlet Used by Mock" {
 }
 
 Describe "When calling Mock on More than one command" {
-    Mock Invoke-Command {return "I am not Invoke-Command"}
-    Mock FunctionUnderTest {return "I am the mock test"}
+    Mock Invoke-Command { return "I am not Invoke-Command" }
+    Mock FunctionUnderTest { return "I am the mock test" }
 
-    $result = Invoke-Command {return "yes I am"}
+    $result = Invoke-Command { return "yes I am" }
     $result2 = FunctionUnderTest
 
     It "Should Invoke the mocked script for the first Mock" {
@@ -570,8 +570,8 @@ Describe 'When calling Mock on a module-internal function.' {
 }
 
 Describe "When Applying multiple Mocks on a single command" {
-    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
-    Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
+    Mock FunctionUnderTest { return "I am the first mock test" } -parameterFilter { $param1 -eq "one" }
+    Mock FunctionUnderTest { return "I am the Second mock test" } -parameterFilter { $param1 -eq "two" }
 
     $result = FunctionUnderTest "one"
     $result2 = FunctionUnderTest "two"
@@ -585,8 +585,8 @@ Describe "When Applying multiple Mocks on a single command" {
 }
 
 Describe "When Applying multiple Mocks with filters on a single command where both qualify" {
-    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1.Length -gt 0 }
-    Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -gt 1 }
+    Mock FunctionUnderTest { return "I am the first mock test" } -parameterFilter { $param1.Length -gt 0 }
+    Mock FunctionUnderTest { return "I am the Second mock test" } -parameterFilter { $param1 -gt 1 }
 
     $result = FunctionUnderTest "one"
 
@@ -596,9 +596,9 @@ Describe "When Applying multiple Mocks with filters on a single command where bo
 }
 
 Describe "When Applying multiple Mocks on a single command where one has no filter" {
-    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
-    Mock FunctionUnderTest {return "I am the paramless mock test"}
-    Mock FunctionUnderTest {return "I am the Second mock test"} -parameterFilter {$param1 -eq "two"}
+    Mock FunctionUnderTest { return "I am the first mock test" } -parameterFilter { $param1 -eq "one" }
+    Mock FunctionUnderTest { return "I am the paramless mock test" }
+    Mock FunctionUnderTest { return "I am the Second mock test" } -parameterFilter { $param1 -eq "two" }
 
     $result = FunctionUnderTest "one"
     $result2 = FunctionUnderTest "three"
@@ -614,7 +614,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 
 Describe "When Creating a Verifiable Mock that is not called" {
     Context "In the test script's scope" {
-        Mock FunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" }
         FunctionUnderTest "three" | Out-Null
 
         try {
@@ -636,7 +636,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
             }
         } | Import-Module -Force
 
-        Mock -ModuleName TestModule ModuleFunctionUnderTest {return "I am a verifiable test"} -Verifiable -parameterFilter {$param1 -eq "one"}
+        Mock -ModuleName TestModule ModuleFunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" }
         TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
         try {
@@ -657,7 +657,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
 }
 
 Describe "When Creating a Verifiable Mock that is called" {
-    Mock FunctionUnderTest -Verifiable -parameterFilter {$param1 -eq "one"}
+    Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
     FunctionUnderTest "one"
     It "Assert-VerifiableMock Should not throw" {
         { Assert-VerifiableMock } | Should -Not -Throw
@@ -665,7 +665,7 @@ Describe "When Creating a Verifiable Mock that is called" {
 }
 
 Describe "When Calling Assert-MockCalled 0 without exactly" {
-    Mock FunctionUnderTest {}
+    Mock FunctionUnderTest { }
     FunctionUnderTest "one"
 
     try {
@@ -685,7 +685,7 @@ Describe "When Calling Assert-MockCalled 0 without exactly" {
 }
 
 Describe "When Calling Assert-MockCalled with exactly" {
-    Mock FunctionUnderTest {}
+    Mock FunctionUnderTest { }
     FunctionUnderTest "one"
     FunctionUnderTest "one"
 
@@ -706,7 +706,7 @@ Describe "When Calling Assert-MockCalled with exactly" {
 }
 
 Describe "When Calling Assert-MockCalled without exactly" {
-    Mock FunctionUnderTest {}
+    Mock FunctionUnderTest { }
     FunctionUnderTest "one"
     FunctionUnderTest "one"
     FunctionUnderTest "two"
@@ -731,8 +731,8 @@ Describe "When Calling Assert-MockCalled without exactly" {
 }
 
 Describe "Using Pester Scopes (Describe,Context,It)" {
-    Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
-    Mock FunctionUnderTest {return "I am the paramless mock test"}
+    Mock FunctionUnderTest { return "I am the first mock test" } -parameterFilter { $param1 -eq "one" }
+    Mock FunctionUnderTest { return "I am the paramless mock test" }
 
     Context "When in the first context" {
         It "should mock Describe scoped paramless mock" {
@@ -753,7 +753,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
     }
 
     Context "When using mocks in both scopes" {
-        Mock FunctionUnderTestWithoutParams {return "I am the other function"}
+        Mock FunctionUnderTestWithoutParams { return "I am the other function" }
 
         It "should mock Describe scoped mock." {
             FunctionUnderTest | should -be "I am the paramless mock test"
@@ -764,8 +764,8 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
     }
 
     Context "When context hides a describe mock" {
-        Mock FunctionUnderTest {return "I am the context mock"}
-        Mock FunctionUnderTest {return "I am the parameterized context mock"} -parameterFilter {$param1 -eq "one"}
+        Mock FunctionUnderTest { return "I am the context mock" }
+        Mock FunctionUnderTest { return "I am the parameterized context mock" } -parameterFilter { $param1 -eq "one" }
 
         It "should use the context paramless mock" {
             FunctionUnderTest | should -be "I am the context mock"
@@ -870,10 +870,10 @@ Describe 'Testing mock history behavior from each scope' {
 }
 
 Describe "Using a single no param Describe" {
-    Mock FunctionUnderTest {return "I am the describe mock test"}
+    Mock FunctionUnderTest { return "I am the describe mock test" }
 
     Context "With a context mocking the same function with no params" {
-        Mock FunctionUnderTest {return "I am the context mock test"}
+        Mock FunctionUnderTest { return "I am the context mock test" }
         It "Should use the context mock" {
             FunctionUnderTest | should -be "I am the context mock test"
         }
@@ -903,30 +903,63 @@ Describe 'Dot Source Test' {
     }
 }
 
-InModuleScope -ModuleName Pester {
 
-    Describe 'Mocking Cmdlets with dynamic parameters' {
+Describe 'Mocking Cmdlets with dynamic parameters' {
+    Context 'Get-ChildItem' {
+        InModuleScope -ModuleName Pester {
+            if ((GetPesterOs) -ne 'Windows') {
+                $mockWith = { if (-not $Hidden) {
+                        throw 'Hidden variable not found, or set to false!'
+                    } }
+                Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
 
-        if ((GetPesterOs) -ne 'Windows') {
-            $mockWith = { if (-not $Hidden) {
-                    throw 'Hidden variable not found, or set to false!'
-                } }
-            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
+                It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+                    { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
+                    Assert-MockCalled Get-ChildItem
+                }
+            }
+            else {
+                $mockWith = { if (-not $CodeSigningCert) {
+                        throw 'CodeSigningCert variable not found, or set to false!'
+                    } }
+                Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
 
-            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-                { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
-                Assert-MockCalled Get-ChildItem
+                It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+                    { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should -Not -Throw
+                    Assert-MockCalled Get-ChildItem
+                }
             }
         }
-        else {
-            $mockWith = { if (-not $CodeSigningCert) {
-                    throw 'CodeSigningCert variable not found, or set to false!'
-                } }
-            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
+    }
 
-            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-                { Get-ChildItem -Path Cert:\ -CodeSigningCert } | Should -Not -Throw
-                Assert-MockCalled Get-ChildItem
+    if ('5.0.10586.122' -lt $PSVersionTable.PSVersion) {
+        Context 'Selected parameter set is defined by dynamic parameter resolution' {
+            Context 'Get-PackageSource' {
+                BeforeAll {
+                    Import-Module PackageManagement
+                }
+
+                Context 'Mocked' {
+                    BeforeAll {
+                        Mock Get-PackageSource { 'Hello World' }
+                    }
+
+                    It 'should invoke our Mock without dynamic params' {
+                        Get-PackageSource | Should -Be 'Hello World'
+                    }
+
+                    It 'should invoke our Mock with dynamic params' {
+                        Get-PackageSource -ProviderName NuGet -SkipValidate | Should -Be 'Hello World'
+                    }
+
+                    It 'should invoke our Mock with mixed params' {
+                        Get-PackageSource -ForceBootstrap -ProviderName PowerShellGet -PackageManagementProvider 'Mine' | Should -Be 'Hello World'
+                    }
+                }
+
+                AfterAll {
+                    Remove-Module PackageManagement
+                }
             }
         }
     }
@@ -1329,7 +1362,7 @@ InModuleScope -ModuleName Pester {
                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
 
                             $params['Path'] = [string[]]'/'
-                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
+                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', '/')
                         }
                     }
 
@@ -1379,11 +1412,11 @@ InModuleScope -ModuleName Pester {
                                 $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
                             }
                             else {
-                                $params = @{}
+                                $params = @{ }
                             }
 
                             $params['Path'] = [string[]]'Cert:\'
-                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params
+                            Get-MockDynamicParameter -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', 'Cert:\')
                         }
                     }
 
@@ -1526,8 +1559,8 @@ Describe 'Mocking New-Object' {
 }
 
 Describe 'Mocking a function taking input from pipeline' {
-    $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp' = '1'; 'PipeArrayProp' = 1; 'PipeStringProp' = 1}
-    $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp' = @(1)}
+    $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp' = '1'; 'PipeArrayProp' = 1; 'PipeStringProp' = 1 }
+    $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp' = @(1) }
     $noMockArrayResult = @(1, 2) | PipelineInputFunction
     $noMockIntResult = 1 | PipelineInputFunction
     $noMockStringResult = '1' | PipelineInputFunction
@@ -1727,8 +1760,8 @@ Describe '$args handling' {
 
     AfterAll {
         Get-Command Invoke-CmdletWithArgs -CommandType Cmdlet |
-            Select-Object -ExpandProperty Module |
-            Remove-Module
+        Select-Object -ExpandProperty Module |
+        Remove-Module
     }
 }
 
@@ -2093,7 +2126,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             Context 'Get-Content' {
                 BeforeAll {
                     Mock Get-Content { "default-get-content" }
-                    Mock Get-Content -ParameterFilter {$Tail -eq 100} -MockWith { "aliased-parameter-name" }
+                    Mock Get-Content -ParameterFilter { $Tail -eq 100 } -MockWith { "aliased-parameter-name" }
                 }
 
                 It "returns mock that matches parameter filter block" {
@@ -2118,7 +2151,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 Context 'Get-Module' {
                     It 'works with read-only/constant automatic variables' {
                         function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
-                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter { $PSEdition -eq 'Desktop' }
 
                         f
 
@@ -2147,12 +2180,12 @@ InModuleScope Pester {
     Describe 'Alias for external commands' {
         Context 'Without extensions' {
             $case = @(
-                @{Command = 'notepad'}
+                @{Command = 'notepad' }
             )
 
             if ((GetPesterOs) -ne 'Windows') {
                 $case = @(
-                    @{Command = 'ls'}
+                    @{Command = 'ls' }
                 )
             }
 
@@ -2210,7 +2243,7 @@ InModuleScope Pester {
 Describe "Mock definition output" {
     It "Outputs nothing" {
 
-        function a () {}
+        function a () { }
         $output = Mock a { }
         $output | Should -Be $null
     }
@@ -2219,7 +2252,7 @@ Describe "Mock definition output" {
 Describe 'Mocking using ParameterFilter' {
 
     Context 'Scriptblock [Scriptblock]::Create() passed to ParameterFilter as var' {
-        BeforeAll{
+        BeforeAll {
             $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
             Mock Test-Path { $True }
             Mock Test-Path -ParameterFilter $filter -MockWith { $False }
@@ -2235,7 +2268,7 @@ Describe 'Mocking using ParameterFilter' {
     }
 
     Context 'Scriptblock expression $( [Scriptblock]::Create() ) passed to ParameterFilter' {
-        BeforeAll{
+        BeforeAll {
             $filter = [scriptblock]::Create( ('$Path -eq ''C:\Windows''') )
             Mock Test-Path { $True }
             Mock Test-Path -ParameterFilter $( [scriptblock]::Create(('$Path -eq ''C:\Windows''')) ) -MockWith { $False }
@@ -2251,7 +2284,7 @@ Describe 'Mocking using ParameterFilter' {
     }
 
     Context 'Scriptblock {} passed to ParameterFilter' {
-        BeforeAll{
+        BeforeAll {
             Mock Test-Path { $True }
             Mock Test-Path -ParameterFilter { $Path -eq "C:\Windows" } -MockWith { $False }
         }
@@ -2265,7 +2298,7 @@ Describe 'Mocking using ParameterFilter' {
         }
     }
     Context 'Scriptblock {} passed to ParameterFilter as var' {
-        BeforeAll{
+        BeforeAll {
             $filter = {
                 $Path -eq "C:\Windows"
             }

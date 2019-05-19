@@ -224,10 +224,6 @@ about_Mocking
     if (-not $mock) {
         $metadata = $null
         $originalMetadata = $null
-        $cmdletBinding = ''
-        $paramBlock = ''
-        $dynamicParamBlock = ''
-        $dynamicParamScriptBlock = $null
 
         if ($contextInfo.Command.psobject.Properties['ScriptBlock'] -or $contextInfo.Command.CommandType -eq 'Cmdlet') {
             $metadata = [System.Management.Automation.CommandMetaData]$contextInfo.Command
@@ -248,104 +244,12 @@ about_Mocking
                 $dynamicparams | & $SafeCommands['ForEach-Object'] { $null = $metadata.Parameters.Remove($_.name) }
             }
 
-            $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
-            if ($global:PSVersionTable.PSVersion.Major -ge 3 -and $contextInfo.Command.CommandType -eq 'Cmdlet') {
-                if ($cmdletBinding -ne '[CmdletBinding()]') {
-                    $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
-                }
-                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
-            }
-
             # Will modify $metadata object in-place
             $originalMetadata = $metadata
             $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
-            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
-
-            if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
-                $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
-            }
-            else {
-                $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
-
-                if ($dynamicParamStatements -match '\S') {
-                    $metadataSafeForDynamicParams = [System.Management.Automation.CommandMetaData]$contextInfo.Command
-                    foreach ($param in $metadataSafeForDynamicParams.Parameters.Values) {
-                        $param.ParameterSets.Clear()
-                    }
-
-                    $paramBlockSafeForDynamicParams = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataSafeForDynamicParams)
-                    $comma = if ($metadataSafeForDynamicParams.Parameters.Count -gt 0) {
-                        ','
-                    }
-                    else {
-                        ''
-                    }
-                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
-
-                    $code = @"
-                        $cmdletBinding
-                        param(
-                            [object] `${P S Cmdlet}$comma
-                            $paramBlockSafeForDynamicParams
-                        )
-
-                        `$PSCmdlet = `${P S Cmdlet}
-
-                        $dynamicParamStatements
-"@
-
-                    $dynamicParamScriptBlock = [scriptblock]::Create($code)
-
-                    $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
-
-                    if ($null -ne $sessionStateInternal) {
-                        Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionStateInternal $sessionStateInternal
-                    }
-                }
-            }
         }
 
-        $EscapeSingleQuotedStringContent =
-        if ($global:PSVersionTable.PSVersion.Major -ge 5) {
-            { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
-        }
-        else {
-            { $args[0] -replace "['‘’‚‛]", '$&$&' }
-        }
-
-        $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
-        $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
-        $newContent = $newContent -replace '#MODULENAME#', (& $EscapeSingleQuotedStringContent $ModuleName)
-
-        $canCaptureArgs = 'true'
-        if ($contextInfo.Command.CommandType -eq 'Cmdlet' -or
-            ($contextInfo.Command.CommandType -eq 'Function' -and $contextInfo.Command.CmdletBinding)) {
-            $canCaptureArgs = 'false'
-        }
-        $newContent = $newContent -replace '#CANCAPTUREARGS#', $canCaptureArgs
-
-        $code = @"
-            $cmdletBinding
-            param ( $paramBlock )
-            $dynamicParamBlock
-            begin
-            {
-                `${mock call state} = @{}
-                $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
-            }
-
-            process
-            {
-                $($newContent -replace '#BLOCK#', 'Process' -replace '#INPUT#', '-InputObject @($input)')
-            }
-
-            end
-            {
-                $($newContent -replace '#BLOCK#', 'End' -replace '#INPUT#')
-            }
-"@
-
-        $mockScript = [scriptblock]::Create($code)
+        $mockBlocks = New-CodeBlocksForMock -ContextInfo $contextInfo -Metadata $metadata
 
         $mock = @{
             OriginalCommand         = $contextInfo.Command
@@ -357,14 +261,14 @@ about_Mocking
             Metadata                = $metadata
             OriginalMetadata        = $originalMetadata
             CallHistory             = @()
-            DynamicParamScriptBlock = $dynamicParamScriptBlock
+            DynamicParamScriptBlock = $mockBlocks.DynamicParamScriptBlock
             Aliases                 = @()
             BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
         }
 
         $mockTable["$ModuleName||$CommandName"] = $mock
 
-        Invoke-CommonSetupInMockScope -Mock $mock -MockScript $MockScript -CommandName $CommandName
+        Invoke-CommonSetupInMockScope -Mock $mock -MockScript $mockBlocks.MockScript -CommandName $CommandName
     }
 
     if ($null -ne $mock.Metadata -and $null -ne $block.Filter) {
@@ -1033,14 +937,14 @@ function Invoke-Mock {
                 # two scopes above
                 if ( $mock.OriginalCommand -like "Set-Variable" ) {
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
-                        $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
+                        $MockCallState['BeginBoundParameters'].Add( "Scope", 3)
                     }
                     # local is the same as scope 0, in that case we also write to scope 2
                     elseif ("Local", "0" -contains $MockCallState['BeginBoundParameters'].Scope) {
-                        $MockCallState['BeginBoundParameters'].Scope = 2
+                        $MockCallState['BeginBoundParameters'].Scope = 3
                     }
                     elseif ($MockCallState['BeginBoundParameters'].Scope -match "\d+") {
-                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]
+                        $MockCallState['BeginBoundParameters'].Scope = 3 + $matches[0]
                     }
                     else {
                         # not sure what the user did, but we won't change it
@@ -1357,6 +1261,155 @@ function Get-DynamicParamBlock {
     }
 }
 
+function New-CodeBlocksForMock {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [hashtable]
+        $ContextInfo,
+        [Parameter(Mandatory = $true)]
+        [AllowNull()]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+    try {
+        $cmdletBinding = ''
+        $paramBlock = ''
+        $dynamicParamBlock = ''
+        $dynamicParamScriptBlock = $null
+
+        if ($null -ne $Metadata) {
+            $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($Metadata)
+
+            if ($global:PSVersionTable.PSVersion.Major -ge 3 -and $contextInfo.Command.CommandType -eq 'Cmdlet') {
+                if ($cmdletBinding -ne '[CmdletBinding()]') {
+                    $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
+                }
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
+            }
+
+            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($Metadata)
+
+            if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
+                $dynamicParamBlock = @"
+                dynamicparam {
+                    Get-MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters -InputArgs `$script:receivedArgs
+                }
+"@
+            }
+            else {
+                $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
+
+                if ($dynamicParamStatements -match '\S') {
+                    $metadataSafeForDynamicParams = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+                    foreach ($param in $metadataSafeForDynamicParams.Parameters.Values) {
+                        $param.ParameterSets.Clear()
+                    }
+
+                    $paramBlockSafeForDynamicParams = [System.Management.Automation.ProxyCommand]::GetParamBlock($metadataSafeForDynamicParams)
+                    $comma = if ($metadataSafeForDynamicParams.Parameters.Count -gt 0) {
+                        ','
+                    }
+                    else {
+                        ''
+                    }
+                    $dynamicParamBlock = "dynamicparam { Get-MockDynamicParameter -ModuleName '$ModuleName' -FunctionName '$CommandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet }"
+
+                    $code = @"
+                        $cmdletBinding
+                        param(
+                            [object] `${P S Cmdlet}$comma
+                            $paramBlockSafeForDynamicParams
+                        )
+
+                        `$PSCmdlet = `${P S Cmdlet}
+
+                        $dynamicParamStatements
+"@
+
+                    $dynamicParamScriptBlock = [scriptblock]::Create($code)
+
+                    $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
+
+                    if ($null -ne $sessionStateInternal) {
+                        Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionStateInternal $sessionStateInternal
+                    }
+                }
+            }
+        }
+
+        $EscapeSingleQuotedStringContent = if ($global:PSVersionTable.PSVersion.Major -ge 5) {
+            { [System.Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($args[0]) }
+        }
+        else {
+            { $args[0] -replace "['‘’‚‛]", '$&$&' }
+        }
+
+        $newContent = & $SafeCommands['Get-Content'] function:\MockPrototype
+        $newContent = $newContent -replace '#FUNCTIONNAME#', (& $EscapeSingleQuotedStringContent $CommandName)
+        $newContent = $newContent -replace '#MODULENAME#', (& $EscapeSingleQuotedStringContent $ModuleName)
+
+        $canCaptureArgs = 'true'
+        if ($contextInfo.Command.CommandType -eq 'Cmdlet' -or
+            ($contextInfo.Command.CommandType -eq 'Function' -and $contextInfo.Command.CmdletBinding)) {
+            $canCaptureArgs = 'false'
+        }
+        $newContent = $newContent -replace '#CANCAPTUREARGS#', $canCaptureArgs
+
+
+        $functionBody = @"
+        $cmdletBinding
+        param(
+            $paramBlock
+        )
+        $dynamicParamBlock
+        begin
+        {
+            `${mock call state} = @{}
+            $($newContent -replace '#BLOCK#', 'Begin' -replace '#INPUT#')
+        }
+        process
+        {
+            $($newContent -replace '#BLOCK#', 'Process' -replace '#INPUT#', '-InputObject @($input)')
+        }
+        end
+        {
+            $($newContent -replace '#BLOCK#', 'End' -replace '#INPUT#')
+        }
+"@
+
+        $functionName = [Guid]::NewGuid().Guid
+        $code = @"
+            begin {
+                `$script:receivedArgs = `$args
+                function Internal_$functionName {
+                    $functionBody
+                }
+            }
+            end {
+                `$receivedInput = @(`$input)
+
+                if (`$receivedInput.Count -gt 0) {
+                    `$receivedInput | Internal_$functionName @args
+                }
+                else {
+                    Internal_$functionName @args
+                }
+            }
+"@
+
+        @{
+            MockScript              = [scriptblock]::Create($code)
+            DynamicParamScriptBlock = $dynamicParamScriptBlock
+        }
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+}
+
 function Get-MockDynamicParameter {
     <#
         .SYNOPSIS
@@ -1376,12 +1429,16 @@ function Get-MockDynamicParameter {
 
         [System.Collections.IDictionary] $Parameters,
 
-        [object] $Cmdlet
+        [object] $Cmdlet,
+
+        [Parameter(ParameterSetName = 'Cmdlet')]
+        [AllowEmptyCollection()]
+        [object[]]$InputArgs = @()
     )
 
     switch ($PSCmdlet.ParameterSetName) {
         'Cmdlet' {
-            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters
+            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters -InputArgs $InputArgs
         }
 
         'Function' {
@@ -1405,7 +1462,11 @@ function Get-DynamicParametersForCmdlet {
 
                 return $true
             })]
-        [System.Collections.IDictionary] $Parameters
+        [System.Collections.IDictionary] $Parameters,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]]$InputArgs
     )
 
     try {
@@ -1423,16 +1484,15 @@ function Get-DynamicParametersForCmdlet {
         return
     }
 
+    if ($null -eq $InputArgs -or $InputArgs.Count -eq 0) {
+        return
+    }
+
     if ('5.0.10586.122' -lt $PSVersionTable.PSVersion) {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
 
-        if ($null -eq $Parameters) {
-            $paramsArg = @()
-        }
-        else {
-            $paramsArg = @($Parameters)
-        }
+        $paramsArg = $InputArgs | ForEach-Object { $_.ToString() }
 
         $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
         $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
@@ -1446,7 +1506,7 @@ function Get-DynamicParametersForCmdlet {
             }
 
             $dynParam = [System.Management.Automation.RuntimeDefinedParameter]::new($param.Name, $param.ParameterType, $param.Attributes)
-            $paramDictionary.Add($param.Name, $dynParam)
+            $null = $paramDictionary.Add($param.Name, $dynParam)
         }
 
         return $paramDictionary
