@@ -1663,10 +1663,9 @@ function Get-ConflictingParameterNames {
 }
 
 function Set-ConflictingParameterNames {
-    [System.Collections.ArrayList]$script:ConflictingParameterNames = @()
-    foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
+    $script:ConflictingParameterNames = foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
         if (($var.Options -band [System.Management.Automation.ScopedItemOptions]::Constant) -or ($var.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly)) {
-            $null = $script:ConflictingParameterNames.Add($var.Name)
+            $var.Name
         }
     }
 }
