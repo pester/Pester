@@ -1,3 +1,7 @@
+## 4.8.1 (May 11, 2019)
+
+- Fix default parameter comparison on v2 [#1310](https://github.com/pester/Pester/pull/1310)
+
 ## 4.8.0 (May 1, 2019)
 
 - Add parameter to remove validation when mocking [#1278](https://github.com/pester/Pester/pull/1278)

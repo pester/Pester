@@ -15,7 +15,7 @@ try {
     & $psGet { [CmdletBinding()] param () Install-NuGetClientBinaries -CallerPSCmdlet $PSCmdlet -BootstrapNuGetExe -Force }
 
     Write-Host 'Publishing module to PowerShellGet'
-    $null = Publish-Module -Path $buildDir -NuGetApiKey $ApiKey -Confirm:$false
+    $null = Publish-Module -Path $buildDir -NuGetApiKey $ApiKey -Confirm:$false -Force
 }
 catch {
     Write-Error -ErrorRecord $_
