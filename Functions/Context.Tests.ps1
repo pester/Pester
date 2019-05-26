@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 Describe 'Testing Context' {
-    It -Focus "Context throws a missing name error" {
+    It "Context throws a missing name error" {
         { Context {
                 it "runs a test" {
 
