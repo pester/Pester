@@ -13,7 +13,6 @@ try {
     Copy-Item $baseDir\bin                  $buildDir\ -Recurse
     Copy-Item $baseDir\Functions            $buildDir\ -Recurse
     Copy-Item $baseDir\Dependencies         $buildDir\ -Recurse
-    Copy-Item $baseDir\Snippets             $buildDir\ -Recurse
     Copy-Item $baseDir\en-US                $buildDir\ -Recurse
     Copy-Item $baseDir\lib                  $buildDir\ -Recurse
     Copy-Item $baseDir\new-runtimepoc       $buildDir\ -Recurse
