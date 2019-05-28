@@ -1662,8 +1662,8 @@ function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
 }
 
-function Set-ConflictingParameterNames {
-    $script:ConflictingParameterNames = foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
+function Initialize-ConflictingParameterNames {
+    foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
         if (($var.Options -band [System.Management.Automation.ScopedItemOptions]::Constant) -or ($var.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly)) {
             $var.Name
         }

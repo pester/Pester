@@ -1518,7 +1518,7 @@ function Assert-VerifiableMocks {
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 # in the future rename the function to Add-ShouldOperator
 Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
-Set-ConflictingParameterNames
+$script:ConflictingParameterNames = Initialize-ConflictingParameterNames
 
 & $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
