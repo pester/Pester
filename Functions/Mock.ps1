@@ -118,7 +118,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
-            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters -InputArgs `$script:receivedArgs }"
         }
         else {
             $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
@@ -203,7 +203,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
     $newContent = $newContent -replace '#CANCAPTUREARGS#', $canCaptureArgs
 
-    $code = @"
+    $functionBody = @"
     $cmdletBinding
     param ( $paramBlock )
     $dynamicParamBlock
@@ -226,6 +226,26 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
 "@
 
+    $functionName = [Guid]::NewGuid().Guid
+    $code = @"
+    begin {
+        `$script:receivedArgs = `$args
+        function Internal_$functionName {
+            $functionBody
+        }
+    }
+    end {
+        `$receivedInput = @(`$input)
+
+        if (`$receivedInput.Count -gt 0) {
+            `$receivedInput | Internal_$functionName @args
+        }
+        else {
+            Internal_$functionName @args
+        }
+    }
+"@
+
     $mockScript = [scriptblock]::Create($code)
 
     $mock = @{
@@ -243,10 +263,10 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         $mock.Aliases += "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
     }
 
-    if ('Application' -eq $Mock.OriginalCommand.CommandType) {
+    if ('Application' -eq $mock.OriginalCommand.CommandType) {
         $aliasWithoutExt = $CommandName -replace $Mock.OriginalCommand.Extension
 
-        $Mock.Aliases += $aliasWithoutExt
+        $mock.Aliases += $aliasWithoutExt
     }
 
     $parameters = @{
@@ -1202,12 +1222,16 @@ function Get-MockDynamicParameter {
         [object] $Cmdlet,
 
         [Parameter(ParameterSetName = "Function")]
-        $DynamicParamScriptBlock
+        $DynamicParamScriptBlock,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'Cmdlet')]
+        [AllowEmptyCollection()]
+        [object[]] $InputArgs
     )
 
     switch ($PSCmdlet.ParameterSetName) {
         'Cmdlet' {
-            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters
+            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters -InputArgs $InputArgs
         }
 
         'Function' {
@@ -1231,7 +1255,11 @@ function Get-DynamicParametersForCmdlet {
 
                 return $true
             })]
-        [System.Collections.IDictionary] $Parameters
+        [System.Collections.IDictionary] $Parameters,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]] $InputArgs
     )
 
     try {
@@ -1249,16 +1277,15 @@ function Get-DynamicParametersForCmdlet {
         return
     }
 
+    if ($null -eq $InputArgs -or $InputArgs.Count -eq 0) {
+        return
+    }
+
     if ('5.0.10586.122' -lt $PSVersionTable.PSVersion) {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
 
-        if ($null -eq $Parameters) {
-            $paramsArg = @()
-        }
-        else {
-            $paramsArg = @($Parameters)
-        }
+        $paramsArg = $InputArgs | ForEach-Object { $_.ToString() }
 
         $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
         $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
