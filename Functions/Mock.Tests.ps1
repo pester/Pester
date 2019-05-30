@@ -1412,7 +1412,7 @@ Describe 'DynamicParam blocks in other scopes' {
 
                             $params['Path'] = [string[]]'/'
                             $gmdp = InModuleScope Pester { Get-Command Get-MockDynamicParameter }
-                            &$gmdp -CmdletName Get-ChildItem -Parameters $params
+                            & $gmdp -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', '/')
                         }
                     }
 
@@ -1465,7 +1465,7 @@ Describe 'DynamicParam blocks in other scopes' {
 
                             $params['Path'] = [string[]]'Cert:\'
                             $gmdp = InModuleScope Pester { Get-Command Get-MockDynamicParameter }
-                            &$gmdp -CmdletName Get-ChildItem -Parameters $params
+                            & $gmdp -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', 'Cert:\')
                         }
                     }
 

@@ -235,6 +235,9 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         }
     }
     end {
+        `$internalFunction = & `$MyInvocation.MyCommand.Mock.Get_Item -Path "Function:Internal_$functionName"
+        & `$MyInvocation.MyCommand.Mock.Add_Member -InputObject `$internalFunction -MemberType NoteProperty -Name Mock -Value `$MyInvocation.MyCommand.Mock
+
         `$receivedInput = @(`$input)
 
         if (`$receivedInput.Count -gt 0) {
@@ -325,6 +328,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Get_Variable             = $SafeCommands["Get-Variable"]
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
+        Add_Member               = $SafeCommands["Add-Member"]
+        Get_Item               = $SafeCommands["Get-Item"]
         # returning empty scriptblock when we should not write debug to avoid patching it in mock prototype
         Write_PesterDebugMessage = if ($PesterDebugPreference.WriteDebugMessages) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { {} }
 
@@ -763,14 +768,14 @@ function Invoke-MockInternal {
                         Write-PesterDebugMessage -Scope Mock "Original command is Set-Variable, patching the call."
                     }
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
-                        $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
+                        $MockCallState['BeginBoundParameters'].Add( "Scope", 3)
                     }
                     # local is the same as scope 0, in that case we also write to scope 2
                     elseif ("Local", "0" -contains $MockCallState['BeginBoundParameters'].Scope) {
-                        $MockCallState['BeginBoundParameters'].Scope = 2
+                        $MockCallState['BeginBoundParameters'].Scope = 3
                     }
                     elseif ($MockCallState['BeginBoundParameters'].Scope -match "\d+") {
-                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]
+                        $MockCallState['BeginBoundParameters'].Scope = 3 + $matches[0]
                     }
                     else {
                         # not sure what the user did, but we won't change it
