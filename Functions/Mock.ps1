@@ -1658,30 +1658,16 @@ function Reset-ConflictingParameters {
     $parameters
 }
 
-$script:ConflictingParameterNames = @(
-    '?'
-    'ConsoleFileName'
-    'EnabledExperimentalFeatures'
-    'Error'
-    'ExecutionContext'
-    'false'
-    'HOME'
-    'Host'
-    'IsCoreCLR'
-    'IsMacOS'
-    'IsWindows'
-    'PID'
-    'PSCulture'
-    'PSEdition'
-    'PSHOME'
-    'PSUICulture'
-    'PSVersionTable'
-    'ShellId'
-    'true'
-)
-
 function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
+}
+
+function Initialize-ConflictingParameterNames {
+    foreach ($var in (& $script:SafeCommands['Get-Variable'])) {
+        if (($var.Options -band [System.Management.Automation.ScopedItemOptions]::Constant) -or ($var.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly)) {
+            $var.Name
+        }
+    }
 }
 
 function Get-ScriptBlockAST {
