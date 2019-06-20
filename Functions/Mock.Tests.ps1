@@ -941,31 +941,64 @@ Describe 'Dot Source Test' {
 
 
 Describe 'Mocking Cmdlets with dynamic parameters' {
+    Context 'Get-ChildItem' {
+        if ((InModuleScope Pester { GetPesterOs }) -ne 'Windows') {
+            BeforeAll {
+                $mockWith = { if (-not $Hidden) {
+                        throw 'Hidden variable not found, or set to false!'
+                    } }
+                Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
+            }
 
-    if ((InModuleScope Pester { GetPesterOs }) -ne 'Windows') {
-        BeforeAll {
-            $mockWith = { if (-not $Hidden) {
-                    throw 'Hidden variable not found, or set to false!'
-                } }
-            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$Hidden }
+            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+                { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
+                Should -Invoke Get-ChildItem
+            }
         }
+        else {
+            BeforeAll {
+                $mockWith = { if (-not $CodeSigningCert) {
+                        throw 'CodeSigningCert variable not found, or set to false!'
+                    } }
+                Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
+            }
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            { Get-ChildItem -Path / -Hidden } | Should -Not -Throw
-            Should -Invoke Get-ChildItem
+            It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
+                Get-ChildItem -Path Cert:\ -CodeSigningCert
+                Should -Invoke Get-ChildItem
+            }
         }
     }
-    else {
-        BeforeAll {
-            $mockWith = { if (-not $CodeSigningCert) {
-                    throw 'CodeSigningCert variable not found, or set to false!'
-                } }
-            Mock Get-ChildItem -MockWith $mockWith -ParameterFilter { [bool]$CodeSigningCert }
-        }
 
-        It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
-            Get-ChildItem -Path Cert:\ -CodeSigningCert
-            Should -Invoke Get-ChildItem
+    if ('5.0.10586.122' -lt $PSVersionTable.PSVersion) {
+        Context 'Selected parameter set is defined by dynamic parameter resolution' {
+            Context 'Get-PackageSource' {
+                BeforeAll {
+                    Import-Module PackageManagement
+                }
+
+                Context 'Mocked' {
+                    BeforeAll {
+                        Mock Get-PackageSource { 'Hello World' }
+                    }
+
+                    It 'should invoke our Mock without dynamic params' {
+                        Get-PackageSource | Should -Be 'Hello World'
+                    }
+
+                    It 'should invoke our Mock with dynamic params' {
+                        Get-PackageSource -ProviderName NuGet -SkipValidate | Should -Be 'Hello World'
+                    }
+
+                    It 'should invoke our Mock with mixed params' {
+                        Get-PackageSource -ForceBootstrap -ProviderName PowerShellGet -PackageManagementProvider 'Mine' | Should -Be 'Hello World'
+                    }
+                }
+
+                AfterAll {
+                    Remove-Module PackageManagement
+                }
+            }
         }
     }
 }
@@ -1379,7 +1412,7 @@ Describe 'DynamicParam blocks in other scopes' {
 
                             $params['Path'] = [string[]]'/'
                             $gmdp = InModuleScope Pester { Get-Command Get-MockDynamicParameter }
-                            &$gmdp -CmdletName Get-ChildItem -Parameters $params
+                            & $gmdp -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', '/')
                         }
                     }
 
@@ -1432,7 +1465,7 @@ Describe 'DynamicParam blocks in other scopes' {
 
                             $params['Path'] = [string[]]'Cert:\'
                             $gmdp = InModuleScope Pester { Get-Command Get-MockDynamicParameter }
-                            &$gmdp -CmdletName Get-ChildItem -Parameters $params
+                            & $gmdp -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', 'Cert:\')
                         }
                     }
 
