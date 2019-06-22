@@ -9,7 +9,7 @@ if '%1'=='/help' goto usage
 if '%1'=='help' goto usage
 
 @PowerShell -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command ^
- "& Import-Module '%DIR%..\Pester.psd1';  & { Invoke-Pester -EnableExit %ARGS%}"
+ "& Import-Module '%DIR%..\Pester.psd1';  & { Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*' -CI %ARGS%}"
 
 goto finish
 :usage
