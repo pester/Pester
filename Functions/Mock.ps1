@@ -118,7 +118,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
-            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters -InputArgs `$script:receivedArgs }"
         }
         else {
             $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
@@ -203,7 +203,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
     $newContent = $newContent -replace '#CANCAPTUREARGS#', $canCaptureArgs
 
-    $code = @"
+    $functionBody = @"
     $cmdletBinding
     param ( $paramBlock )
     $dynamicParamBlock
@@ -226,6 +226,29 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
 "@
 
+    $functionName = [Guid]::NewGuid().Guid
+    $code = @"
+    begin {
+        `$script:receivedArgs = `$args
+        function Internal_$functionName {
+            $functionBody
+        }
+    }
+    end {
+        `$internalFunction = & `$MyInvocation.MyCommand.Mock.Get_Item -Path "Function:Internal_$functionName"
+        & `$MyInvocation.MyCommand.Mock.Add_Member -InputObject `$internalFunction -MemberType NoteProperty -Name Mock -Value `$MyInvocation.MyCommand.Mock
+
+        `$receivedInput = @(`$input)
+
+        if (`$receivedInput.Count -gt 0) {
+            `$receivedInput | Internal_$functionName @args
+        }
+        else {
+            Internal_$functionName @args
+        }
+    }
+"@
+
     $mockScript = [scriptblock]::Create($code)
 
     $mock = @{
@@ -243,10 +266,10 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         $mock.Aliases += "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
     }
 
-    if ('Application' -eq $Mock.OriginalCommand.CommandType) {
+    if ('Application' -eq $mock.OriginalCommand.CommandType) {
         $aliasWithoutExt = $CommandName -replace $Mock.OriginalCommand.Extension
 
-        $Mock.Aliases += $aliasWithoutExt
+        $mock.Aliases += $aliasWithoutExt
     }
 
     $parameters = @{
@@ -305,6 +328,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Get_Variable             = $SafeCommands["Get-Variable"]
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
+        Add_Member               = $SafeCommands["Add-Member"]
+        Get_Item               = $SafeCommands["Get-Item"]
         # returning empty scriptblock when we should not write debug to avoid patching it in mock prototype
         Write_PesterDebugMessage = if ($PesterDebugPreference.WriteDebugMessages) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { {} }
 
@@ -743,14 +768,14 @@ function Invoke-MockInternal {
                         Write-PesterDebugMessage -Scope Mock "Original command is Set-Variable, patching the call."
                     }
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
-                        $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
+                        $MockCallState['BeginBoundParameters'].Add( "Scope", 3)
                     }
                     # local is the same as scope 0, in that case we also write to scope 2
                     elseif ("Local", "0" -contains $MockCallState['BeginBoundParameters'].Scope) {
-                        $MockCallState['BeginBoundParameters'].Scope = 2
+                        $MockCallState['BeginBoundParameters'].Scope = 3
                     }
                     elseif ($MockCallState['BeginBoundParameters'].Scope -match "\d+") {
-                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]
+                        $MockCallState['BeginBoundParameters'].Scope = 3 + $matches[0]
                     }
                     else {
                         # not sure what the user did, but we won't change it
@@ -1202,12 +1227,16 @@ function Get-MockDynamicParameter {
         [object] $Cmdlet,
 
         [Parameter(ParameterSetName = "Function")]
-        $DynamicParamScriptBlock
+        $DynamicParamScriptBlock,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'Cmdlet')]
+        [AllowEmptyCollection()]
+        [object[]] $InputArgs
     )
 
     switch ($PSCmdlet.ParameterSetName) {
         'Cmdlet' {
-            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters
+            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters -InputArgs $InputArgs
         }
 
         'Function' {
@@ -1231,7 +1260,11 @@ function Get-DynamicParametersForCmdlet {
 
                 return $true
             })]
-        [System.Collections.IDictionary] $Parameters
+        [System.Collections.IDictionary] $Parameters,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]] $InputArgs
     )
 
     try {
@@ -1249,16 +1282,15 @@ function Get-DynamicParametersForCmdlet {
         return
     }
 
+    if ($null -eq $InputArgs -or $InputArgs.Count -eq 0) {
+        return
+    }
+
     if ('5.0.10586.122' -lt $PSVersionTable.PSVersion) {
         # Older version of PS required Reflection to do this.  It has run into problems on occasion with certain cmdlets,
         # such as ActiveDirectory and AzureRM, so we'll take advantage of the newer PSv5 engine features if at all possible.
 
-        if ($null -eq $Parameters) {
-            $paramsArg = @()
-        }
-        else {
-            $paramsArg = @($Parameters)
-        }
+        $paramsArg = $InputArgs | ForEach-Object { $_.ToString() }
 
         $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
         $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
