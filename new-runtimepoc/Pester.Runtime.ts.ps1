@@ -1766,22 +1766,22 @@ i -PassThru:$PassThru {
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
             $blockReported =  $actual.Blocks[1].Duration + $actual.Blocks[1].FrameworkDuration
             $blockDifference = $container.Block - $blockReported
-            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds
-            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds
-            Write-Host Reported block total $blockReported.TotalMilliseconds
-            Write-Host Measured block total $container.Block.TotalMilliseconds
-            Write-Host Block difference $blockDifference.TotalMilliseconds
+            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds ms
+            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds ms
+            Write-Host Reported block total $blockReported.TotalMilliseconds ms
+            Write-Host Measured block total $container.Block.TotalMilliseconds ms
+            Write-Host Block difference $blockDifference.TotalMilliseconds ms
 
             # the difference here is actually <1ms but let's make this less finicky
             $blockDifference.TotalMilliseconds -lt 5 | Verify-True
 
             $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
             $totalDifference = $container.Total - $totalReported
-            Write-Host Reported total duration $actual.Duration.TotalMilliseconds
-            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds
-            Write-Host Reported total $totalReported.TotalMilliseconds
-            Write-Host Measured total $container.Total.TotalMilliseconds
-            Write-Host Total difference $totalDifference.TotalMilliseconds
+            Write-Host Reported total duration $actual.Duration.TotalMilliseconds ms
+            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds ms
+            Write-Host Reported total $totalReported.TotalMilliseconds ms
+            Write-Host Measured total $container.Total.TotalMilliseconds ms
+            Write-Host Total difference $totalDifference.TotalMilliseconds ms
 
             # the difference here is because of the code that is running after all tests have been discovered
             # such as figuring out if there are focused tests, setting filters and determining which tests to run
