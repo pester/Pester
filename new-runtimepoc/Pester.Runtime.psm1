@@ -177,7 +177,6 @@ function New-Block {
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        # TODO: rename to FrameworkData to avoid confusion with Data (on TestObject)? but first look at how we use it, and if it makes sense
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
         [string] $Id
@@ -209,142 +208,34 @@ function New-Block {
         $Id
     }
 
-    if (Is-Discovery) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
-            Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
-        }
-
-        # the tests are identified based on the start position of their script block
-        # so in case user generates tests (typically from foreach loop)
-        # we are not able to distinguish between test generated during first iteration of the
-        # loop and second iteration of the loop. this is not a problem for the discovery, but it
-        # is problem for the run, because then we get ambiguous reference to a test
-        # to avoid forcing the user to provide the id in cases where the list of things is the same
-        # between discovery and run, we look at the latest test in this block and if it comes from the same
-        # line we add one to the counter and use that as an implicit Id.
-        # and since there can be multiple tests in the foreach, we add one item per test, and key
-        # them by the position
-        $FrameworkData.Add("PreviouslyGeneratedTests", @{ })
-
-        $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id
-        # we attach the current block to the parent
-        Add-Block -Block $block
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
     }
 
+    # the tests are identified based on the start position of their script block
+    # so in case user generates tests (typically from foreach loop)
+    # we are not able to distinguish between test generated during first iteration of the
+    # loop and second iteration of the loop. this is not a problem for the discovery, but it
+    # is problem for the run, because then we get ambiguous reference to a test
+    # to avoid forcing the user to provide the id in cases where the list of things is the same
+    # between discovery and run, we look at the latest test in this block and if it comes from the same
+    # line we add one to the counter and use that as an implicit Id.
+    # and since there can be multiple tests in the foreach, we add one item per test, and key
+    # them by the position
+    # TODO: in the new-new-runtime we should be able to remove this because the invocation will be sequential
+    $FrameworkData.Add("PreviouslyGeneratedTests", @{ })
 
-
-    if ($null -eq $block) {
-        $block = Find-CurrentBlock -Block $previousBlock -Name $Name -ScriptBlock $ScriptBlock -Id $Id
-    }
-
+    $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id
+    # we attach the current block to the parent
+    Add-Block -Block $block
     Set-CurrentBlock -Block $block
     try {
-        if (Is-Discovery) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope DiscoveryCore "Discovering in body of block $Name"
-            }
-            & $ScriptBlock
-            if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope DiscoveryCore "Finished discovering in body of block $Name"
-            }
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope DiscoveryCore "Discovering in body of block $Name"
         }
-        else {
-            if (-not $block.ShouldRun) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Runtime "Block is excluded from run, returning"
-                }
-                return
-            }
-
-            $block.ExecutedAt = [DateTime]::Now
-            $block.Executed = $true
-            if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope Runtime "Executing body of block $Name"
-            }
-
-            # TODO: no callbacks are provided because we are not transitioning between any states,
-            # it might be nice to add a parameter to indicate that we run in the same scope
-            # so we can avoid getting and setting the scope on scriptblock that already has that
-            # scope, which is _potentially_ slow because of reflection, it would also allow
-            # making the transition callbacks mandatory unless the parameter is provided
-            $frameworkSetupResult = Invoke-ScriptBlock `
-                -OuterSetup @(
-                if ($block.First) { selectNonNull $state.Plugin.OneTimeBlockSetupStart }
-            ) `
-                -Setup @( selectNonNull $state.Plugin.EachBlockSetupStart ) `
-                -ScriptBlock { } `
-                -Context @{
-                Context = @{
-                    # context that is visible to plugins
-                    Block         = $block
-                    Test          = $null
-                    Configuration = $state.PluginConfiguration
-                }
-            }
-
-            if ($frameworkSetupResult.Success) {
-                $result = Invoke-ScriptBlock `
-                    -ScriptBlock $ScriptBlock `
-                    -OuterSetup $( if (-not (Is-Discovery)) {
-                        combineNonNull @(
-                            $previousBlock.EachBlockSetup
-                            $block.OneTimeTestSetup
-                        )
-                    }) `
-                    -OuterTeardown $( if (-not (Is-Discovery)) {
-                        combineNonNull @(
-                            $block.OneTimeTestTeardown
-                            $previousBlock.EachBlockTeardown
-                        )
-                    } ) `
-                    -Context @{
-                    # context that is visible in user code
-                    Context = foreach ($b in $block) { $b.Name }
-                } `
-                    -ReduceContextToInnerScope `
-                    -MoveBetweenScopes `
-                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
-
-                $block.Passed = $result.Success
-                $block.StandardOutput = $result.StandardOutput
-
-                $block.ErrorRecord = $result.ErrorRecord
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
-                }
-            }
-
-            $frameworkEachBlockTeardowns = @( selectNonNull $state.Plugin.EachBlockTeardownEnd )
-            $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { selectNonNull $state.Plugin.OneTimeBlockTeardownEnd } )
-            # reverse the teardowns so they run in opposite order to setups
-            [Array]::Reverse($frameworkEachBlockTeardowns)
-            [Array]::Reverse($frameworkOneTimeBlockTeardowns)
-
-
-            # setting those values here so they are available for the teardown
-            # BUT they are then set again at the end of the block to make them accurate
-            # so the value on the screen vs the value in the object is slightly different
-            # with the value in the result being the correct one
-            $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-            $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-            $frameworkTeardownResult = Invoke-ScriptBlock `
-                -ScriptBlock { } `
-                -Teardown $frameworkEachBlockTeardowns `
-                -OuterTeardown $frameworkOneTimeBlockTeardowns `
-                -Context @{
-                Context = @{
-                    # context that is visible to plugins
-                    Block         = $block
-                    Test          = $null
-                    Configuration = $state.PluginConfiguration
-                }
-            }
-
-
-            if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
-                Assert-Success -InvocationResult @($frameworkSetupResult, $frameworkTeardownResult) -Message "Framework failed"
-            }
+        & $ScriptBlock
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope DiscoveryCore "Finished discovering in body of block $Name"
         }
     }
     finally {
@@ -353,16 +244,186 @@ function New-Block {
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Runtime "Left block $Name"
         }
-        if (Is-Discovery) {
-            $block.DiscoveryDuration = ($state.FrameworkStopWatch.Elapsed - $overheadStartTime) + ($state.UserCodeStopWatch.Elapsed - $blockStartTime)
+        $block.DiscoveryDuration = ($state.FrameworkStopWatch.Elapsed - $overheadStartTime) + ($state.UserCodeStopWatch.Elapsed - $blockStartTime)
+    }
+}
+
+function Invoke-Block ($previousBlock) {
+    Switch-Timer -Scope Framework
+    $overheadStartTime = $state.FrameworkStopWatch.Elapsed
+    $blockStartTime = $state.UserCodeStopWatch.Elapsed
+
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
+    }
+
+    foreach ($item in $previousBlock.Order) {
+        if ('Test' -eq $item.ItemType) {
+            Invoke-TestItem -Test $item
         }
         else {
-            $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-            $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-            if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
-                Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
-                Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
+            $block = $item
+            if (-not $previousBlock.FrameworkData.ContainsKey("PreviouslyGeneratedBlocks")) {
+                $previousBlock.FrameworkData.Add("PreviouslyGeneratedBlocks", @{ })
+            }
+            $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+            $Id = if (-not $hasExternalId) {
+                    $previouslyGeneratedBlocks = $previousBlock.FrameworkData.PreviouslyGeneratedBlocks
+                    Get-Id -ScriptBlock $block.ScriptBlock -Previous $previouslyGeneratedBlocks
+                }
+                else {
+                    $Id
+                }
+
+            Set-CurrentBlock -Block $block
+            try {
+                if (-not $block.ShouldRun) {
+                    if ($PesterDebugPreference.WriteDebugMessages) {
+                        Write-PesterDebugMessage -Scope Runtime "Block is excluded from run, returning"
+                    }
+                    return
+                }
+
+                $block.ExecutedAt = [DateTime]::Now
+                $block.Executed = $true
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Runtime "Executing body of block $Name"
+                }
+
+                # TODO: no callbacks are provided because we are not transitioning between any states,
+                # it might be nice to add a parameter to indicate that we run in the same scope
+                # so we can avoid getting and setting the scope on scriptblock that already has that
+                # scope, which is _potentially_ slow because of reflection, it would also allow
+                # making the transition callbacks mandatory unless the parameter is provided
+                $frameworkSetupResult = Invoke-ScriptBlock `
+                    -OuterSetup @(
+                    if ($block.First) { selectNonNull $state.Plugin.OneTimeBlockSetupStart }
+                ) `
+                    -Setup @( selectNonNull $state.Plugin.EachBlockSetupStart ) `
+                    -ScriptBlock { } `
+                    -Context @{
+                    Context = @{
+                        # context that is visible to plugins
+                        Block         = $block
+                        Test          = $null
+                        Configuration = $state.PluginConfiguration
+                    }
+                }
+
+                if ($frameworkSetupResult.Success) {
+                    # this craziness makes one extra scope that is bound to the user session state
+                    # and inside of it the Invoke-Block is called recursively. Ultimately this invokes all blocks
+                    # in their own scope like this:
+                    # & { # block 1
+                    #     . block 1 setup
+                    #     & { # block 2
+                    #         . block 2 setup
+                    #         & { # block 3
+                    #             . block 3 setup
+                    #             & { # test one
+                    #                 . test 1 setup
+                    #                 . test1
+                    #             }
+                    #         }
+                    #     }
+                    # }
+
+                    $sb = {
+                        param($______pester_invoke_block_parameters)
+                        & $______pester_invoke_block_parameters.Invoke_Block -previousBlock $______pester_invoke_block_parameters.Block
+                    }
+
+                    function Set-SessionStateFromScriptBlock ($OriginScriptBlock, $ScriptBlock) {
+                        $flags = [Reflection.BindingFlags]'Instance,NonPublic'
+
+                        # $sessionStateInternal = $ScriptBlock.SessionStateInternal
+                        $sessionStateInternal = [ScriptBlock].GetProperty(
+                            'SessionStateInternal', $flags).GetValue($OriginScriptBlock, $null)
+
+                        # $ScriptBlock.SessionStateInternal = $sessionStateInternal
+                        [ScriptBlock].GetProperty(
+                            'SessionStateInternal', $flags).SetValue(
+                                $ScriptBlock, $SessionStateInternal)
+                    }
+
+                    Set-SessionStateFromScriptBlock -OriginScriptBlock $block.ScriptBlock -ScriptBlock $sb
+
+                    $result = Invoke-ScriptBlock `
+                        -ScriptBlock $sb `
+                        -OuterSetup $( if (-not (Is-Discovery)) {
+                            combineNonNull @(
+                                $previousBlock.EachBlockSetup
+                                $block.OneTimeTestSetup
+                            )
+                        }) `
+                        -OuterTeardown $( if (-not (Is-Discovery)) {
+                            combineNonNull @(
+                                $block.OneTimeTestTeardown
+                                $previousBlock.EachBlockTeardown
+                            )
+                        } ) `
+                        -Context @{
+                            ______pester_invoke_block_parameters = @{
+                                Invoke_Block = ${function:Invoke-Block}
+                                Block = $block
+                            }
+                        } `
+                        -ReduceContextToInnerScope `
+                        -MoveBetweenScopes `
+                        -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
+                        -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+
+                    $block.Passed = $result.Success
+                    $block.StandardOutput = $result.StandardOutput
+
+                    $block.ErrorRecord = $result.ErrorRecord
+                    if ($PesterDebugPreference.WriteDebugMessages) {
+                        Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
+                    }
+                }
+
+                $frameworkEachBlockTeardowns = @( selectNonNull $state.Plugin.EachBlockTeardownEnd )
+                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { selectNonNull $state.Plugin.OneTimeBlockTeardownEnd } )
+                # reverse the teardowns so they run in opposite order to setups
+                [Array]::Reverse($frameworkEachBlockTeardowns)
+                [Array]::Reverse($frameworkOneTimeBlockTeardowns)
+
+
+                # setting those values here so they are available for the teardown
+                # BUT they are then set again at the end of the block to make them accurate
+                # so the value on the screen vs the value in the object is slightly different
+                # with the value in the result being the correct one
+                $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+                $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+                $frameworkTeardownResult = Invoke-ScriptBlock `
+                    -ScriptBlock { } `
+                    -Teardown $frameworkEachBlockTeardowns `
+                    -OuterTeardown $frameworkOneTimeBlockTeardowns `
+                    -Context @{
+                    Context = @{
+                        # context that is visible to plugins
+                        Block         = $block
+                        Test          = $null
+                        Configuration = $state.PluginConfiguration
+                    }
+                }
+
+                if (-not $frameworkSetupResult.Success -or -not $frameworkTeardownResult.Success) {
+                    Assert-Success -InvocationResult @($frameworkSetupResult, $frameworkTeardownResult) -Message "Framework failed"
+                }
+            }
+            finally {
+                Set-CurrentBlock -Block $previousBlock
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Runtime "Left block $Name"
+                }
+                $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+                $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+                if ($PesterDebugPreference.WriteDebugMessages) {
+                    Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
+                    Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
+                    Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
+                }
             }
         }
     }
@@ -411,137 +472,12 @@ function New-Test {
             $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
         }
 
-        # do this setup when we are running discovery
-        if (Is-Discovery) {
+        $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
+        $test.FrameworkData.Runtime.Phase = 'Discovery'
 
-            $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
-            $test.FrameworkData.Runtime.Phase = 'Discovery'
-
-            Add-Test -Test $test
-            if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
-            }
-        }
-        else {
-            $test = Find-CurrentTest -Name $Name -ScriptBlock $ScriptBlock -Id $Id
-            $test.FrameworkData.Runtime.Phase = 'Execution'
-            Set-CurrentTest -Test $test
-
-            if (-not $test.ShouldRun) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Runtime "Test is excluded from run, returning"
-                }
-                return
-            }
-
-            $test.ExecutedAt = [DateTime]::Now
-            $test.Executed = $true
-
-            # TODO: overwrite the data captured during discovery with the data,
-            # captured during execution, to make time sensitive data closer to the execution
-            # this should be a good choice because even though the data should not generally change
-            # when we for example do @{ Time = (Get-Date) } or load some counter, we should get the
-            # data from the moment of execution, not from the moment of test discovery, which can
-            # potentially be few seconds earlier. This also means that we should never identify tests
-            # based on their names + data because the data can change. And also that we should not show
-            # the data from the discovery when execution will follow (so it's not just a call to Find-Test)
-            # This choice might need to be revisited
-            $test.Data = $Data
-
-            $test.ExpandedName = & $state.ExpandName -Name $test.Name -Data $Data
-
-            $block = Get-CurrentBlock
-            if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope Runtime "Running test '$Name'."
-            }
-
-            # no callbacks are provided because we are not transitioning between any states
-            $frameworkSetupResult = Invoke-ScriptBlock `
-                -OuterSetup @(
-                if ($test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
-            ) `
-                -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
-                -ScriptBlock { } `
-                -Context @{
-                Context = @{
-                    # context visible to Plugins
-                    Block         = $block
-                    Test          = $test
-                    Configuration = $state.PluginConfiguration
-                }
-            }
-
-            if ($frameworkSetupResult.Success) {
-                # invokes the body of the test
-                $testInfo = @(foreach ($t in $test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }
-                    })
-                # user provided data are merged with Pester provided context
-                # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
-                $context = @{
-                    # context visible in test
-                    Context = $testInfo
-                }
-                Merge-Hashtable -Source $test.Data -Destination $context
-
-                $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
-                $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
-
-                $result = Invoke-ScriptBlock `
-                    -Setup @(
-                    if (any $eachTestSetups) {
-                        # we collect the child first but want the parent to run first
-                        [Array]::Reverse($eachTestSetups)
-                        @( { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
-                    }
-                    # setting the execution info here so I don't have to invoke change the
-                    # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
-                    # that is not needed, and would complicate figuring out in which session
-                    # state we should run.
-                    # this should run every time.
-                    { $test.FrameworkData.Runtime.ExecutionStep = 'Test' }
-                ) `
-                    -ScriptBlock $ScriptBlock `
-                    -Teardown @(
-                    if (any $eachTestTeardowns) {
-                        @( { $test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
-                    } ) `
-                    -Context $context `
-                    -ReduceContextToInnerScope `
-                    -MoveBetweenScopes `
-                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
-                    -NoNewScope
-
-                $test.FrameworkData.Runtime.ExecutionStep = 'Finished'
-                $test.Passed = $result.Success
-                $test.StandardOutput = $result.StandardOutput
-                $test.ErrorRecord = $result.ErrorRecord
-            }
-
-            # setting those values here so they are available for the teardown
-            # BUT they are then set again at the end of the block to make them accurate
-            # so the value on the screen vs the value in the object is slightly different
-            # with the value in the result being the correct one
-            $test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
-            $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-            $frameworkTeardownResult = Invoke-ScriptBlock `
-                -ScriptBlock { } `
-                -Teardown @( selectNonNull $state.Plugin.EachTestTeardownEnd ) `
-                -OuterTeardown @(
-                if ($test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd }
-            ) `
-                -Context @{
-                Context = @{
-                    # context visible to Plugins
-                    Test          = $test
-                    Block         = $block
-                    Configuration = $state.PluginConfiguration
-                }
-            }
-
-            if (-not $frameworkTeardownResult.Success -or -not $frameworkTeardownResult.Success) {
-                throw $frameworkTeardownResult.ErrorRecord[-1]
-            }
+        Add-Test -Test $test
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
         }
     }
     finally {
@@ -560,6 +496,153 @@ function New-Test {
         if ($PesterDebugPreference.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Timing -Message "Test duration $($test.Duration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing -Message "Framework duration $($test.FrameworkDuration.TotalMilliseconds)ms"
+        }
+    }
+}
+
+function Invoke-TestItem {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Test
+    )
+    # keep this at the top so we report as much time
+    # of the actual test run as possible
+    $overheadStartTime = $state.FrameworkStopWatch.Elapsed
+    $testStartTime = $state.UserCodeStopWatch.Elapsed
+    Switch-Timer -Scope Framework
+
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        Write-PesterDebugMessage -Scope Runtime "Entering test $($Test.Name)"
+    }
+
+    try {
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Runtime "Entering path $($Test.Path -join '.')"
+        }
+
+        $Test.FrameworkData.Runtime.Phase = 'Execution'
+        Set-CurrentTest -Test $Test
+
+        if (-not $Test.ShouldRun) {
+            if ($PesterDebugPreference.WriteDebugMessages) {
+                Write-PesterDebugMessage -Scope Runtime "Test is excluded from run, returning"
+            }
+            return
+        }
+
+        $Test.ExecutedAt = [DateTime]::Now
+        $Test.Executed = $true
+
+        $Test.ExpandedName = & $state.ExpandName -Name $Test.Name -Data $Test.Data
+
+        $block = $Test.Block
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
+        }
+
+        # no callbacks are provided because we are not transitioning between any states
+        $frameworkSetupResult = Invoke-ScriptBlock `
+            -OuterSetup @(
+            if ($Test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
+        ) `
+            -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
+            -ScriptBlock { } `
+            -Context @{
+            Context = @{
+                # context visible to Plugins
+                Block         = $block
+                Test          = $Test
+                Configuration = $state.PluginConfiguration
+            }
+        }
+
+        if ($frameworkSetupResult.Success) {
+            $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
+            # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
+            $context = @{
+                # context visible in test
+                Context = $testInfo
+            }
+            # user provided data are merged with Pester provided context
+            Merge-Hashtable -Source $Test.Data -Destination $context
+
+            $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
+            $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
+
+            $result = Invoke-ScriptBlock `
+                -Setup @(
+                if (any $eachTestSetups) {
+                    # we collect the child first but want the parent to run first
+                    [Array]::Reverse($eachTestSetups)
+                    @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
+                }
+                # setting the execution info here so I don't have to invoke change the
+                # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
+                # that is not needed, and would complicate figuring out in which session
+                # state we should run.
+                # this should run every time.
+                { $Test.FrameworkData.Runtime.ExecutionStep = 'Test' }
+            ) `
+                -ScriptBlock $Test.ScriptBlock `
+                -Teardown @(
+                if (any $eachTestTeardowns) {
+                    @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
+                } ) `
+                -Context $context `
+                -ReduceContextToInnerScope `
+                -MoveBetweenScopes `
+                -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
+                -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
+                -NoNewScope
+
+            $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
+            $Test.Passed = $result.Success
+            $Test.StandardOutput = $result.StandardOutput
+            $Test.ErrorRecord = $result.ErrorRecord
+        }
+
+        # setting those values here so they are available for the teardown
+        # BUT they are then set again at the end of the block to make them accurate
+        # so the value on the screen vs the value in the object is slightly different
+        # with the value in the result being the correct one
+        $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+        $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+        $frameworkTeardownResult = Invoke-ScriptBlock `
+            -ScriptBlock { } `
+            -Teardown @( selectNonNull $state.Plugin.EachTestTeardownEnd ) `
+            -OuterTeardown @(
+            if ($Test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd }
+        ) `
+            -Context @{
+            Context = @{
+                # context visible to Plugins
+                Test          = $Test
+                Block         = $block
+                Configuration = $state.PluginConfiguration
+            }
+        }
+
+        if (-not $frameworkTeardownResult.Success -or -not $frameworkTeardownResult.Success) {
+            throw $frameworkTeardownResult.ErrorRecord[-1]
+        }
+
+    }
+    finally {
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Runtime "Leaving path $($Test.Path -join '.')"
+        }
+        $state.CurrentTest = $null
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Runtime "Left test $($Test.Name)"
+        }
+
+        # keep this at the end so we report even the test teardown in the framework overhead for the test
+        $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+        $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+        if ($PesterDebugPreference.WriteDebugMessages) {
+            Write-PesterDebugMessage -Scope Timing -Message "Test duration $($Test.Duration.TotalMilliseconds)ms"
+            Write-PesterDebugMessage -Scope Timing -Message "Framework duration $($Test.FrameworkDuration.TotalMilliseconds)ms"
         }
     }
 }
@@ -743,8 +826,9 @@ function Add-Test {
         [PSTypeName("DiscoveredTest")]
         $Test
     )
-
-    (Get-CurrentBlock).Tests.Add($Test)
+    $block = Get-CurrentBlock
+    $block.Tests.Add($Test)
+    $block.Order.Add($Test)
 }
 
 function New-TestObject {
@@ -766,6 +850,7 @@ function New-TestObject {
         Tag               = $Tag
         Focus             = [Bool]$Focus
         Data              = $Data
+        ItemType = 'Test'
         ExpandedName      = $null
         Block             = $null
         Executed          = $false
@@ -814,6 +899,7 @@ function New-BlockObject {
         PluginData           = $PluginData
         Focus                = $Focus
         Id                   = $Id
+        ItemType                 = 'Block'
         Tests                = [Collections.Generic.List[Object]]@()
         BlockContainer       = $null
         Root                 = $null
@@ -827,6 +913,7 @@ function New-BlockObject {
         OneTimeBlockSetup    = $null
         EachBlockTeardown    = $null
         OneTimeBlockTeardown = $null
+        Order                = [Collections.Generic.List[Object]]@()
         Blocks               = [Collections.Generic.List[Object]]@()
         Executed             = $false
         Passed               = $false
@@ -855,6 +942,7 @@ function Add-Block {
 
     $currentBlock = (Get-CurrentBlock)
     $Block.Parent = $currentBlock
+    $currentBlock.Order.Add($Block)
     $currentBlock.Blocks.Add($Block)
 }
 
@@ -896,7 +984,7 @@ function Discover-Test {
 
         Reset-PerContainerState -RootBlock $root
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{ BlockContainer  = $container } -ThrowOnFailure
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{ BlockContainer = $container } -ThrowOnFailure
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
@@ -906,9 +994,9 @@ function Discover-Test {
         }
 
         Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
-            BlockContainer  = $container
-            Block = $root
-            Duration = $perContainerDiscoveryDuration.Elapsed
+            BlockContainer = $container
+            Block          = $root
+            Duration       = $perContainerDiscoveryDuration.Elapsed
         } -ThrowOnFailure
 
         $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
@@ -944,15 +1032,20 @@ function Discover-Test {
     }
 
     foreach ($f in $found) {
-        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
+        # this takes non-trivial time, measure how long it takes and add it to the discovery
+        # so we get more accurate total time
+        $overhead = Measure-Command {
+            PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
+        }
+        $f.Block.DiscoveryDuration += $overhead
         $f.Block
     }
 
     Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-        BlockContainers  = $BlockContainers
+        BlockContainers = $BlockContainers
         AnyFocusedTests = $focusedTests.Count -gt 0
-        FocusedTests = $focusedTests
-        Duration =  $totalDiscoveryDuration.Elapsed
+        FocusedTests    = $focusedTests
+        Duration        = $totalDiscoveryDuration.Elapsed
     } -ThrowOnFailure
 
     if ($PesterDebugPreference.WriteDebugMessages) {
@@ -979,7 +1072,7 @@ function Run-Test {
             ConvertTo-ExecutedBlockContainer -Block $rootBlock
             continue
         }
-        # this resets the timers so keep that before measuring the
+        # this resets the timers so keep that before measuring the time
         Reset-PerContainerState -RootBlock $rootBlock
 
         $rootBlock.Executed = $true
@@ -1033,7 +1126,8 @@ function Run-Test {
                 & $SafeCommands["Write-Error"] -ErrorRecord $rootSetupResult.ErrorRecord[0] -ErrorAction 'Stop'
             }
 
-            $null = Invoke-BlockContainer -BlockContainer $rootBlock.BlockContainer -SessionState $SessionState
+            $null = Invoke-Block -previousBlock $rootBlock
+
             $rootBlock.Passed = $true
         }
         catch {
@@ -1048,7 +1142,7 @@ function Run-Test {
 
         Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
             Result = $result
-            Block = $rootBlock
+            Block  = $rootBlock
         } -ThrowOnFailure
 
         # set this again so the plugins have some data but that we also include the plugin invocation to the
@@ -1069,19 +1163,21 @@ function Invoke-PluginStep {
     param (
         [PSObject[]] $Plugins,
         [Parameter(Mandatory)]
-        [ValidateSet('Start','DiscoveryStart','ContainerDiscoveryStart','BlockDiscoveryStart','TestDiscoveryStart','TestDiscoveryEnd','BlockDiscoveryEnd','ContainerDiscoveryEnd','DiscoveryEnd','RunStart','ContainerRunStart','OneTimeBlockSetupStart','EachBlockSetupStart','OneTimeTestSetupStart','EachTestSetupStart','EachTestTeardownEnd','OneTimeTestTeardownEnd','EachBlockTeardownEnd','OneTimeBlockTeardownEnd','ContainerRunEnd','RunEnd','End')]
+        [ValidateSet('Start', 'DiscoveryStart', 'ContainerDiscoveryStart', 'BlockDiscoveryStart', 'TestDiscoveryStart', 'TestDiscoveryEnd', 'BlockDiscoveryEnd', 'ContainerDiscoveryEnd', 'DiscoveryEnd', 'RunStart', 'ContainerRunStart', 'OneTimeBlockSetupStart', 'EachBlockSetupStart', 'OneTimeTestSetupStart', 'EachTestSetupStart', 'EachTestTeardownEnd', 'OneTimeTestTeardownEnd', 'EachBlockTeardownEnd', 'OneTimeBlockTeardownEnd', 'ContainerRunEnd', 'RunEnd', 'End')]
         [String] $Step,
-        $Context = @{},
+        $Context = @{ },
         [Switch] $ThrowOnFailure
     )
 
     Switch-Timer -Scope Framework
+    # useful for measuring the plugin execution without overhead of the debug messages
+    # $sw = [Diagnostics.Stopwatch]::StartNew()
 
     # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
     $isEndStep = $Step -like "*End"
 
     $pluginsWithGivenStep =
-        @(foreach ($p in $Plugins) {
+    @(foreach ($p in $Plugins) {
             if ($p."Has$Step") {
                 $p
             }
@@ -1102,45 +1198,46 @@ function Invoke-PluginStep {
     $err = [Collections.Generic.List[Management.Automation.ErrorRecord]]@()
     $failed = $false
     $standardOutput =
-        foreach ($p in $pluginsWithGivenStep) {
-            if ($failed -and -not $isEndStep)
-            {
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Plugin "Skipping $($p.Name) step $Step because some previous plugin failed"
-                }
-                continue
+    foreach ($p in $pluginsWithGivenStep) {
+        if ($failed -and -not $isEndStep) {
+            if ($PesterDebugPreference.WriteDebugMessages) {
+                Write-PesterDebugMessage -Scope Plugin "Skipping $($p.Name) step $Step because some previous plugin failed"
+            }
+            continue
+        }
+
+        try {
+            if ($PesterDebugPreference.WriteDebugMessages) {
+                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
             }
 
-            try {
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
-                }
-
-                # the plugins expect -Context and then the actual context in it
-                # this was a choice at the start of the project to make it easy to see
-                # what is available, not sure if a good choice
-                $ctx = @{
-                    Context = $Context
-                }
-                do {
-                    &$p.$Step @ctx
-                } while ($false)
-
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Plugin "Finished $($p.Name) step $Step"
-                }
+            # the plugins expect -Context and then the actual context in it
+            # this was a choice at the start of the project to make it easy to see
+            # what is available, not sure if a good choice
+            $ctx = @{
+                Context = $Context
             }
-            catch {
-                $failed = $true
-                $err.Add($_)
-                if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step" -ErrorRecord $_
-                }
+            do {
+                & $p.$Step @ctx
+            } while ($false)
+
+            if ($PesterDebugPreference.WriteDebugMessages) {
+                Write-PesterDebugMessage -Scope Plugin "Finished $($p.Name) step $Step"
             }
         }
+        catch {
+            $failed = $true
+            $err.Add($_)
+            if ($PesterDebugPreference.WriteDebugMessages) {
+                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step" -ErrorRecord $_
+            }
+        }
+    }
 
     $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
 
+
+    # Write-Host "Invoking step $Step took $($sw.ElapsedMilliseconds) ms"
     if ($ThrowOnFailure) {
         Assert-Success $r -Message "Invoking step $step failed"
     }
@@ -1395,9 +1492,9 @@ function Invoke-ScriptBlock {
             ContextInOuterScope           = -not $ReduceContextToInnerScope
             EnableWriteDebug              = $PesterDebugPreference.WriteDebugMessages
             WriteDebug                    = {
-                    param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
-                    Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
-                }
+                param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
+                Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
+            }
         }
 
         # here we are moving into the user scope if the provided
@@ -1450,8 +1547,8 @@ function New-InvocationResultObject {
     )
 
     New_PSObject -Type 'InvocationResult' -Property @{
-        Success = $Success
-        ErrorRecord = $ErrorRecord
+        Success        = $Success
+        ErrorRecord    = $ErrorRecord
         StandardOutput = $StandardOutput
     }
 }
@@ -1748,6 +1845,8 @@ function PostProcess-DiscoveredBlock {
         [PSTypeName("DiscoveredBlock")][PSObject] $RootBlock
     )
 
+    # TODO: this is quite slow, make it faster
+
     # traverses the block structure after a block was found and
     # link childs to their parents, filter blocks and tests to
     # determine which should run, and mark blocks and tests
@@ -1933,7 +2032,7 @@ function New-PluginObject {
     )
 
     $h = @{
-        Name = $Name
+        Name                    = $Name
         Configuration           = $Configuration
         Start                   = $Start
         DiscoveryStart          = $DiscoveryStart

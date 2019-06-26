@@ -513,34 +513,6 @@ i -PassThru:$PassThru {
     }
 
     b "executing each setup & teardown on test" {
-        t "given a test with setup it executes the setup right before the test and makes the variables avaliable to test" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                    # $s is set to 'block' here
-                    $s = "block"
-                    New-Block 'block1' {
-                        # $s will still be 'block' here so if we invoke the setup on the
-                        # start of the block then $s would be 'block'
-                        $s = "test"
-                        # if the test does not run then this value will stay in $g
-                        $g = "setup did not run"
-                        # here $s is 'test', and here is where we want to invoke the script
-                        New-Test 'test1' {
-                            # $g should be test here, because we run the setup right before
-                            # this scriptblock and kept the changed value of $g in scope
-                            $g
-                        }
-                        New-EachTestSetup {
-                            # setup runs on top of test and in the same scope
-                            # so $g is modifiable and becomes the value of $s
-                            # test then reports the $s value not the original $g value
-                            $g = $s
-                        }
-                    }
-                })
-
-            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
-        }
-
         t "given a test with setups and teardowns they run in correct scopes" {
 
             # what I want here is that the test runs in this fashion
@@ -620,39 +592,70 @@ i -PassThru:$PassThru {
     }
 
     b "executing all test and teardown" {
-        t "given a test with all setup it executes the setup right before the start of the block and keeps the variables in upper scope" {
+        t "given a test with one time setup it executes the setup inside of the block and does not bleed variables to the next block" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                    # $s is set to 'block' here
-                    $s = "block"
                     New-Block 'block1' {
-                        # one time test setup is invoked here
+                        # one time test setup is runs here
                         New-Test 'test1' {
-                            # each setup technically runs here
-
-                            # $g should be test here, because we run the setup right before
-                            # this scriptblock and kept the changed value of $g in scope
-                            if ($g -ne '') { throw "setup did not run ($g)" }
+                            if ($g -eq '') { throw "one time setup did not run" }
                             # $g should be one scope below one time setup so this change
                             # should not be visible in the teardown
                             $g = 10
 
                         }
                         New-OneTimeTestSetup {
-                            if (-not $s) {
-                                throw "`$s is not defined are we running in the correct scope? $($executionContext.SessionState.Module)"
-                            }
                             $g = "from setup"
                         }
                         New-OneTimeTestTeardown {
                             # teardown runs in the scope after the test scope dies so
                             # g should be 'from setup', to which the code after setup set it
                             # set it
-                            $g
+                            $g | Verify-Equal "from setup"
+                        }
+                    }
+
+                    New-Block 'block2' {
+                        New-Test 'test1' {
+                            $err = { Get-Variable g } | Verify-Throw
+                            $err.FullyQualifiedErrorId | Verify-Equal 'VariableNotFound,Microsoft.PowerShell.Commands.GetVariableCommand'
                         }
                     }
                 })
 
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
             $actual.Blocks[0].StandardOutput | Verify-Equal "from setup"
+        }
+
+        t "given a test with each time setup it executes the setup inside of the test and does not affect the whole block" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block 'block1' {
+                        # one time test setup is runs here
+                        New-Test 'test1' {
+                            if ($g -eq '') { throw "one time setup did not run" }
+                            # $g should be one scope below one time setup so this change
+                            # should not be visible in the teardown
+                            $g = "changed"
+
+                        }
+                        New-EachTestSetup {
+                            $g = "from setup"
+                        }
+                        New-EachTestTeardown {
+                            # teardown runs in the scope after the test scope dies so
+                            # g should be 'from setup', to which the code after setup set it
+                            # set it
+                            $g | Verify-Equal "changed"
+                        }
+
+                        New-OneTimeTestTeardown {
+                            $err = { Get-Variable g } | Verify-Throw
+                            $err.FullyQualifiedErrorId | Verify-Equal 'VariableNotFound,Microsoft.PowerShell.Commands.GetVariableCommand'
+                        }
+                    }
+                })
+
+            $actual.Blocks[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "setups and teardowns don't run if there are no tests" {
@@ -1111,53 +1114,6 @@ i -PassThru:$PassThru {
                     Remove-Item $tempPath -Force
                 }
             }
-        }
-    }
-
-    b "interpolated variables in names" {
-        t "using variable in test name that changes between discovery and run does not fail" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-                    $var = "'discovery'"
-                    New-Block -Name "block1" {
-                        New-OneTimeTestSetup {
-                            $var = "'run'"
-                        }
-
-                        New-Test "test 1 $var" {
-                            # the one time setup runs before the
-                            # script block, but AFTER the name is evaluated
-                            # so the first test runs just fine,
-                            # because the name is the same during discovery
-                            # and run
-                        }
-
-                        New-Test "test 2 $var" {
-                            # if the name of the test is used as identifier
-                            # then the discovery phase name and run phase name differ
-                            # because the interpolated variable has changed
-                            # because of the one time setup
-                        }
-                    }
-                }
-            )
-
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Blocks[0].Tests[1].Passed | Verify-True
-        }
-
-        t "using variable in test name that changes between discovery and run does not fail" {
-            $container = @{ Iteration = 0 }
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-                    New-Block -Name "block $($container.Iteration++)" {
-                        New-Test "test 1" { }
-                    }
-                }
-            )
-
-            $container.Iteration | Verify-Equal 2
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
     }
 
@@ -1661,8 +1617,8 @@ i -PassThru:$PassThru {
 
         t "total time is roughly the same as time measured externally" {
             $container = @{
-                Test = $null
-                Block = $null
+                # Test = $null
+                # Block = $null
                 Total = $null
                 Result = $null
             }
@@ -1670,42 +1626,38 @@ i -PassThru:$PassThru {
             $container.Total = Measure-Command {
                 $container.Result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                     New-BlockContainerObject -ScriptBlock {
-
-                        $container.Block = (Measure-Command {
-                            New-Block -Name "b1" {
-                                $container.Test = (Measure-Command {
-                                    New-Test "t1" {
-                                        $true | Verify-False
-                                    }
-                                })
+                        New-Block -Name "b1" {
+                            New-Test "t1" {
+                                $true | Verify-False
                             }
-                        })
-                    }
-                )
+                        }
+                    })
             }
-
+            # some of the code is commented out here because before changing the runtime to the new-new runtime
+            # I was able to measure the block and the test execution time and so if I come up with a way again
+            # I don't want to write the same code one more time
             $actual = $container.Result
             $testReported = $actual.Blocks[0].Tests[0].Duration + $actual.Blocks[0].Tests[0].FrameworkDuration
-            $testDifference = $container.Test - $testReported
+            #$testDifference = $container.Test - $testReported
             Write-Host Reported test duration $actual.Blocks[0].Tests[0].Duration.TotalMilliseconds
             Write-Host Reported test overhead $actual.Blocks[0].Tests[0].FrameworkDuration.TotalMilliseconds
             Write-Host Reported test total $testReported.TotalMilliseconds
-            Write-Host Measured test total $container.Test.TotalMilliseconds
-            Write-Host Test difference $testDifference.TotalMilliseconds
+            #Write-Host Measured test total $container.Test.TotalMilliseconds
+            #Write-Host Test difference $testDifference.TotalMilliseconds
             # the difference here is actually <1ms but let's make this less finicky
-            $testDifference.TotalMilliseconds -lt 5 | Verify-True
+           # $testDifference.TotalMilliseconds -lt 5 | Verify-True
 
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
             $blockReported =  $actual.Blocks[0].Duration + $actual.Blocks[0].FrameworkDuration
-            $blockDifference = $container.Block - $blockReported
+            #$blockDifference = $container.Block - $blockReported
             Write-Host Reported block duration $actual.Blocks[0].Duration.TotalMilliseconds
             Write-Host Reported block overhead $actual.Blocks[0].FrameworkDuration.TotalMilliseconds
             Write-Host Reported block total $blockReported.TotalMilliseconds
-            Write-Host Measured block total $container.Block.TotalMilliseconds
-            Write-Host Block difference $blockDifference.TotalMilliseconds
+            #Write-Host Measured block total $container.Block.TotalMilliseconds
+            #Write-Host Block difference $blockDifference.TotalMilliseconds
 
             # the difference here is actually <1ms but let's make this less finicky
-            $blockDifference.TotalMilliseconds -lt 5 | Verify-True
+            #$blockDifference.TotalMilliseconds -lt 5 | Verify-True
 
             $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
             $totalDifference = $container.Total - $totalReported
@@ -1738,56 +1690,107 @@ i -PassThru:$PassThru {
                     New-BlockContainerObject -ScriptBlock {
                         New-Block "b1" {
                         }
-                        $container.Block = (Measure-Command {
-                            New-Block -Name "b2" {
-                                New-Test "t1" { $true }
-                                $container.Test = (Measure-Command {
-                                    New-Test "t2" {
-                                        $true | Verify-False
-                                    }
-                                })
+
+                        New-Block -Name "b2" {
+                            New-Test "t1" { $true }
+                            New-Test "t2" {
+                                $true | Verify-False
                             }
-                        })
+                        }
                     }
                 )
             }
 
             $actual = $container.Result
             $testReported = $actual.Blocks[1].Tests[1].Duration + $actual.Blocks[1].Tests[1].FrameworkDuration
-            $testDifference = $container.Test - $testReported
+            # $testDifference = $container.Test - $testReported
             Write-Host Reported test duration $actual.Blocks[1].Tests[1].Duration.TotalMilliseconds
             Write-Host Reported test overhead $actual.Blocks[1].Tests[1].FrameworkDuration.TotalMilliseconds
             Write-Host Reported test total $testReported.TotalMilliseconds
-            Write-Host Measured test total $container.Test.TotalMilliseconds
-            Write-Host Test difference $testDifference.TotalMilliseconds
+            # Write-Host Measured test total $container.Test.TotalMilliseconds
+            # Write-Host Test difference $testDifference.TotalMilliseconds
             # the difference here is actually <1ms but let's make this less finicky
-            $testDifference.TotalMilliseconds -lt 5 | Verify-True
+            # $testDifference.TotalMilliseconds -lt 5 | Verify-True
 
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
             $blockReported =  $actual.Blocks[1].Duration + $actual.Blocks[1].FrameworkDuration
-            $blockDifference = $container.Block - $blockReported
-            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds
-            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds
-            Write-Host Reported block total $blockReported.TotalMilliseconds
-            Write-Host Measured block total $container.Block.TotalMilliseconds
-            Write-Host Block difference $blockDifference.TotalMilliseconds
+            # $blockDifference = $container.Block - $blockReported
+            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds ms
+            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds ms
+            Write-Host Reported block total $blockReported.TotalMilliseconds ms
+            # Write-Host Measured block total $container.Block.TotalMilliseconds ms
+            # Write-Host Block difference $blockDifference.TotalMilliseconds ms
 
             # the difference here is actually <1ms but let's make this less finicky
-            $blockDifference.TotalMilliseconds -lt 5 | Verify-True
+            # $blockDifference.TotalMilliseconds -lt 5 | Verify-True
 
             $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
             $totalDifference = $container.Total - $totalReported
-            Write-Host Reported total duration $actual.Duration.TotalMilliseconds
-            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds
-            Write-Host Reported total $totalReported.TotalMilliseconds
-            Write-Host Measured total $container.Total.TotalMilliseconds
-            Write-Host Total difference $totalDifference.TotalMilliseconds
+            Write-Host Reported total duration $actual.Duration.TotalMilliseconds ms
+            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds ms
+            Write-Host Reported total $totalReported.TotalMilliseconds ms
+            Write-Host Measured total $container.Total.TotalMilliseconds ms
+            Write-Host Total difference $totalDifference.TotalMilliseconds ms
 
             # the difference here is because of the code that is running after all tests have been discovered
             # such as figuring out if there are focused tests, setting filters and determining which tests to run
             # this needs to be done over all blocks at the same time because of the focused tests
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+        }
+
+        dt "total time is roughly the same as time measured externally (on many tests)" {
+            # this is the same as above, if I add one time setups then the framework time should grow
+            # but not the user code time
+            $container = @{
+                Test = $null
+                Block = $null
+                Total = $null
+                Result = $null
+            }
+
+            $bs = 1..10
+            $ts = 1..10
+            $container.Total = Measure-Command {
+                $container.Result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                    New-BlockContainerObject -ScriptBlock {
+                        foreach ($b in $bs) {
+
+                            New-Block -Name "b$b" {
+                                foreach ($t in $ts) {
+                                    New-Test "b$b-t$t" {
+                                        $true | Verify-True
+                                    }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+
+            $actual = $container.Result
+
+            $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
+            $totalDifference = $container.Total - $totalReported
+            $testCount = $bs.Count * $ts.Count
+            Write-Host Test count $testCount
+            Write-Host Per test $([int]($container.Total.TotalMilliseconds / $testCount)) ms
+            Write-Host Per test without discovery $([int](($actual.Duration + $actual.FrameworkDuration).TotalMilliseconds / $testCount)) ms
+            Write-Host Reported discovery duration $actual.DiscoveryDuration.TotalMilliseconds ms
+            Write-Host Reported total duration $actual.Duration.TotalMilliseconds ms
+            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds ms
+            Write-Host Reported total $totalReported.TotalMilliseconds ms
+            Write-Host Measured total $container.Total.TotalMilliseconds ms
+            Write-Host Total difference $totalDifference.TotalMilliseconds ms
+
+
+            # the difference here is because of the code that is running after all tests have been discovered
+            # such as figuring out if there are focused tests, setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time because of the focused tests
+            # the difference here is actually <10ms but let's make this less finicky
+            $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+
+            # TODO: revisit the difference on many tests, it is still missing some parts of the common discovery processing I guess (replicates on 10k tests)
         }
     }
 
