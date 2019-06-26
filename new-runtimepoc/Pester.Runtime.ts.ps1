@@ -1739,7 +1739,7 @@ i -PassThru:$PassThru {
             $totalDifference.TotalMilliseconds -lt 50 | Verify-True
         }
 
-        dt "total time is roughly the same as time measured externally (on many tests)" {
+        t "total time is roughly the same as time measured externally (on many tests)" {
             # this is the same as above, if I add one time setups then the framework time should grow
             # but not the user code time
             $container = @{
@@ -1837,46 +1837,3 @@ i -PassThru:$PassThru {
 }
 
 
-
-
-
-# okay so the idea here is that we run the scripts twice, in the first pass we import all the test dependencies
-# those dependencies might be non-existent if the user does not do anything fancy, like wrapping the IT blocks into
-# a custom function. This way we know that the dependencies are available during the discovery phase, and hopefully they are
-# not expensive to run
-
-
-# in the second pass we run as Dependencies and invoke all describes again and also invoke all its this way we first discovered the
-# test accumulated all the setups and teardowns of all blocks without using ast and we can invoke them in the correct scope without
-# unbinding them
-
-# further more we possibly know that we ended the run so we can also print the summary??? :D
-
-# # run
-# Invoke-P {
-#     . (TestDependency -Path $PSScriptRoot\wrapper.ps1)
-
-#     wrapper "kk" { write-host "wrapped test"}
-#     d "top" {
-#         ba {
-#             Write-Host "this is ba" -ForegroundColor Blue
-#         }
-#         be {
-#             Write-Host "this is be" -ForegroundColor Blue
-#         }
-#         Work {
-#             Write-Host "offending piece of code" -ForegroundColor Red
-#         }
-#         d "l1" {
-#             d "l2" {
-#                 i "test 1" {
-#                     Write-Host "I run"
-#                 }
-
-#                 i "test 1" {
-#                     Write-Host "I run"
-#                 }
-#             }
-#         }
-#     }
-# }

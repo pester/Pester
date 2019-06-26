@@ -148,6 +148,17 @@ function ConvertTo-ExecutedBlockContainer {
     $content = tryGetProperty $container Content
     $type = tryGetProperty $container Type
 
+    $properties = @(
+        @{n = "Content"; e = { $content } }
+        @{n = "Type"; e = { $type } },
+        @{n = "PSTypename"; e = { "ExecutedBlockContainer" } }
+        '*'
+    )
+
+    if ("file" -eq $Block.BlockContainer.Type) {
+        $properties += @{n = "Path"; e = { $content}}
+    }
+
     $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
         "Parent"
         "Name"
@@ -156,12 +167,8 @@ function ConvertTo-ExecutedBlockContainer {
         "Last"
         "StandardOutput"
         "Path"
-    ) -Property @(
-        @{n = "Content"; e = { $content } }
-        @{n = "Type"; e = { $type } },
-        @{n = "PSTypename"; e = { "ExecutedBlockContainer" } }
-        '*'
-    )
+        "Order"
+    ) -Property $properties
 
     $b
 }

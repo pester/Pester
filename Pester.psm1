@@ -654,9 +654,6 @@ function Invoke-Pester {
         [string[]]$ExcludeTag,
 
         [Parameter(ParameterSetName = "Simple")]
-        [switch]$PassThru,
-
-        [Parameter(ParameterSetName = "Simple")]
         [Switch]$CI,
 
         [Parameter(ParameterSetName = "Simple")]
@@ -715,7 +712,7 @@ function Invoke-Pester {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $containers += @(Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+                    $containers += @(Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | where { $_ } | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
                 }
             }
 
@@ -732,9 +729,8 @@ function Invoke-Pester {
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
 
 
-            if ($PassThru) {
-                $r
-            }
+            $r
+
 
             if ($EnableExit -and $legacyResult.FailedCount -gt 0) {
                 exit ($legacyResult.FailedCount)
