@@ -25,7 +25,7 @@ i -PassThru:$PassThru {
                         f
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
         }
@@ -43,7 +43,7 @@ i -PassThru:$PassThru {
                         f
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
             $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "real"
@@ -65,7 +65,7 @@ i -PassThru:$PassThru {
                         f
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
             $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "mock"
@@ -90,7 +90,7 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 1 -Exactly
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
@@ -114,7 +114,7 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 2 -Exactly -Scope Describe
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
@@ -140,7 +140,7 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 2 -Exactly
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
@@ -168,7 +168,7 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 1 -Exactly
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal 'mock'
         }
@@ -195,7 +195,7 @@ i -PassThru:$PassThru {
                         Get-Variable -Name PSVersionTable | Should -Be "default"
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Tests[0].Passed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
@@ -241,7 +241,7 @@ i -PassThru:$PassThru {
                         }
                     }
                 }
-            } -PassThru
+            }
 
             $actual.Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
         }
