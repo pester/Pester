@@ -1032,7 +1032,12 @@ function Discover-Test {
     }
 
     foreach ($f in $found) {
-        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
+        # this takes non-trivial time, measure how long it takes and add it to the discovery
+        # so we get more accurate total time
+        $overhead = Measure-Command {
+            PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
+        }
+        $f.Block.DiscoveryDuration += $overhead
         $f.Block
     }
 
@@ -1165,6 +1170,8 @@ function Invoke-PluginStep {
     )
 
     Switch-Timer -Scope Framework
+    # useful for measuring the plugin execution without overhead of the debug messages
+    # $sw = [Diagnostics.Stopwatch]::StartNew()
 
     # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
     $isEndStep = $Step -like "*End"
@@ -1211,7 +1218,7 @@ function Invoke-PluginStep {
                 Context = $Context
             }
             do {
-                &$p.$Step @ctx
+                & $p.$Step @ctx
             } while ($false)
 
             if ($PesterDebugPreference.WriteDebugMessages) {
@@ -1229,6 +1236,8 @@ function Invoke-PluginStep {
 
     $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
 
+
+    # Write-Host "Invoking step $Step took $($sw.ElapsedMilliseconds) ms"
     if ($ThrowOnFailure) {
         Assert-Success $r -Message "Invoking step $step failed"
     }
@@ -1835,6 +1844,8 @@ function PostProcess-DiscoveredBlock {
         [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")][PSObject] $RootBlock
     )
+
+    # TODO: this is quite slow, make it faster
 
     # traverses the block structure after a block was found and
     # link childs to their parents, filter blocks and tests to
