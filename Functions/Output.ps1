@@ -485,7 +485,7 @@ function Get-WriteScreenPlugin {
         $level = $_test.Path.Length
         $margin = $ReportStrings.Margin * ($level)
         $error_margin = $margin + $ReportStrings.Margin
-        $output = $_test.ExpandedName
+        $out = $_test.ExpandedName
         $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         # TODO: Add output options
@@ -495,13 +495,13 @@ function Get-WriteScreenPlugin {
         $result = if ($_test.Passed) { "Passed" } else { "Failed" }
         switch ($result) {
             Passed {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $output" -NoNewLine
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
                 break
             }
 
             Failed {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $output" -NoNewLine
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
                 # TODO: Add include VSCodeMarker
@@ -517,7 +517,7 @@ function Get-WriteScreenPlugin {
 
             Skipped {
                 $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)"} else { $null }
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $output" -NoNewLine
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                 break
@@ -525,7 +525,7 @@ function Get-WriteScreenPlugin {
 
             Pending {
                 $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)"} else { $null }
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $output" -NoNewLine
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
                 break
@@ -533,7 +533,7 @@ function Get-WriteScreenPlugin {
 
             Inconclusive {
                 $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)"} else { $null }
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $output" -NoNewLine
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
 
@@ -543,7 +543,7 @@ function Get-WriteScreenPlugin {
             default {
                 # TODO:  Add actual Incomplete status as default rather than checking for null time.
                 if ($null -eq $_test.Duration) {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $output" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                 }
             }
