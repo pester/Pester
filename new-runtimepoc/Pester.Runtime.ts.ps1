@@ -1739,7 +1739,7 @@ i -PassThru:$PassThru {
             $totalDifference.TotalMilliseconds -lt 50 | Verify-True
         }
 
-        dt "total time is roughly the same as time measured externally (on many tests)" {
+        t "total time is roughly the same as time measured externally (on many tests)" {
             # this is the same as above, if I add one time setups then the framework time should grow
             # but not the user code time
             $container = @{
