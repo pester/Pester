@@ -729,7 +729,7 @@ function Invoke-Pester {
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
 
 
-            $r
+            @($r)
 
 
             if ($EnableExit -and $legacyResult.FailedCount -gt 0) {

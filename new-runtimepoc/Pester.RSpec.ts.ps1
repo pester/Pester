@@ -161,13 +161,13 @@ i -PassThru:$PassThru {
             }
 
             $container.InBeforeAll | Verify-Equal $container.InScript
-        }
+        }`
     }
 
     b "Invoke-Pester parameters" {
         try {
             $c = 'Describe "d1" { It "i1" -Tag i1 { $true }; It "i2" -Tag i2 { $true }}'
-            $tempDir = [IO.Path]::GetTempPath() + "dir"
+            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "dir"
             New-Item -ItemType Directory -Path $tempDir -Force
             $file1 = Join-Path $tempDir "file1.Tests.ps1"
             $file2 = Join-Path $tempDir "file2.Tests.ps1"
