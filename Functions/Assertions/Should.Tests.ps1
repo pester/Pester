@@ -63,12 +63,12 @@ InModuleScope Pester {
             }
 
             # TODO: figure out why this is the case
-            if ($PSVersionTable.PSVersion -eq "2.0") {
+            # if ($PSVersionTable.PSVersion -eq "2.0") {
                 { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Not -Throw
-            }
-            else {
-                { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Throw
-            }
+            # }
+            # else {
+            #     { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Throw
+            # }
         }
 
         # Assertion messages aren't convention-based anymore, but we should probably still make sure

@@ -4,23 +4,22 @@ function Verify-AssertionFailed {
         [ScriptBlock]$ScriptBlock
     )
 
-    $assertionExceptionThrown = $false
-    $err = $null
+    $assertionResult = $null
     try {
-        $null = & $ScriptBlock
+        $assertionResult = & $ScriptBlock
     }
     catch [Exception] {
-        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
-        $err = $_
-        $err
+        $assertionResult = $_
     }
 
-    if (-not $assertionExceptionThrown) {
-        $result = if ($null -eq $err) {
+    $assertionResult
+
+    if ($assertionResult -isnot [System.Management.Automation.ErrorRecord]) {
+        $result = if ($null -eq $assertionResult) {
             "no assertion failure error was thrown!"
         }
         else {
-            "other error was thrown! $($err | Format-List -Force * | Out-String)"
+            "other error was thrown! $($assertionResult | Format-List -Force * | Out-String)"
         }
         throw [Exception]"Expected the script block { $ScriptBlock } to fail in Pester assertion, but $result"
     }

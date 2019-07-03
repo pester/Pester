@@ -57,9 +57,15 @@ function Should {
 
     process {
         $inputArray.Add($ActualValue)
+
+        # Check if this Should assert is not the last in a chained assertion
+        if ($PSCmdlet.MyInvocation.PipelinePosition -lt $PSCmdlet.MyInvocation.PipelineLength) {
+            $ActualValue
+        }
     }
 
     end {
+        $errorRecords = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
         $lineNumber = $MyInvocation.ScriptLineNumber
         $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
         $file = $MyInvocation.ScriptName
@@ -89,16 +95,44 @@ function Should {
 
             $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
 
-            if ($inputArray.Count -eq 0) {
-                Invoke-Assertion $entry $PSBoundParameters $null $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
+            $assertionParams = @{
+                AssertionEntry = $entry
+                BoundParameters = $PSBoundParameters
+                File = $file
+                LineNumber = $lineNumber
+                LineText = $lineText
+                Negate = $negate
+                CallerSessionState = $PSCmdlet.SessionState
             }
-            elseif ($entry.SupportsArrayInput) {
-                Invoke-Assertion $entry $PSBoundParameters $inputArray.ToArray() $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
+
+            $result = if ($inputArray.Count -eq 0) {
+                    Invoke-Assertion @assertionParams -ValueToTest $null
+                }
+                elseif ($entry.SupportsArrayInput) {
+                    Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
+                }
+                else {
+                    foreach ($object in $inputArray) {
+                        Invoke-Assertion @assertionParams -ValueToTest $object
+                    }
+                }
+
+            if ($result -is [System.Management.Automation.ErrorRecord]) {
+                $errorRecords += $result
+            }
+            elseif ($result -is [array]) {
+                foreach ($elementResult in $result) {
+                    if ($elementResult -is [System.Management.Automation.ErrorRecord]) {
+                        $errorRecords += $elementResult
+                    }
+                }
+            }
+
+            if ($errorRecords -and $ErrorActionPreference -eq 'Stop') {
+                throw $errorRecords
             }
             else {
-                foreach ($object in $inputArray) {
-                    Invoke-Assertion $entry $PSBoundParameters $object $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
-                }
+                $errorRecords
             }
         }
     }
@@ -112,36 +146,70 @@ function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $fil
     #     }
     # )
 
-    $negate = -not $shouldArgs.PositiveAssertion
+    # $negate = -not $shouldArgs.PositiveAssertion
 
-    $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
-    if (-not $testResult.Succeeded) {
-        throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
-    }
+    # $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
+    # if (-not $testResult.Succeeded) {
+    #     throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
+    # }
 }
 
 function Invoke-Assertion {
+    [CmdletBinding()]
     param (
-        [object] $AssertionEntry,
-        [System.Collections.IDictionary] $BoundParameters,
-        [object] $valuetoTest,
-        [string] $File,
-        [int] $LineNumber,
-        [string] $LineText,
-        [switch] $Negate,
-        [Management.Automation.SessionState] $CallerSessionState
-    )
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [object]
+        $AssertionEntry,
 
-    $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
-    if (-not $testResult.Succeeded) {
-        throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
-    }
-    else {
-        #extract data to return if there are any on the object
-        $data = $testResult.psObject.Properties.Item('Data')
-        if ($data) {
-            $data.Value
+        [Parameter(Mandatory)]
+        [System.Collections.IDictionary]
+        $BoundParameters,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $File,
+
+        [Parameter(Mandatory)]
+        [int]
+        $LineNumber,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $LineText,
+
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState]
+        $CallerSessionState,
+
+        [Parameter()]
+        [switch]
+        $Negate,
+
+        [Parameter()]
+        [AllowNull()]
+        [object]
+        $ValueToTest
+    )
+    try {
+        # Write-Host "Bound Parameters: $($PSBoundParameters | Out-String)"
+        $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
+        # Write-Host "Test result: $testResult"
+        if (-not $testResult.Succeeded) {
+            New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText
         }
+        else {
+            #extract data to return if there are any on the object
+            $data = $testResult.psObject.Properties.Item('Data')
+            if ($data) {
+                $data.Value
+            }
+        }
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 }
 
