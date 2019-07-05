@@ -660,6 +660,7 @@ function Invoke-Pester {
         [ValidateSet("Normal", "None")]
         $Output = 'Normal',
 
+        [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock
     )
     begin {
@@ -695,7 +696,8 @@ function Invoke-Pester {
                 Get-MockPlugin
             )
 
-            if ($CodeCoverage) {
+            if ($CI) {
+                $CodeCoverage = @{ Path = '*'  }
                 $plugins += (Get-CoveragePlugin)
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }

@@ -17,6 +17,10 @@ function Get-CoveragePlugin {
             $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
             $Context.Block.Root.PluginData.Coverage.CoverageReport = $coverageReport
 
+            # TODO: Is the duration correct?
+            $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $Context.Block.Duration -CoverageReport $coverageReport
+            $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
+
             Exit-CoverageAnalysis -CommandCoverage $breakpoints
         }
     }
