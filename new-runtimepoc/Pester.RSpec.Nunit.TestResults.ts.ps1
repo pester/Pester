@@ -24,7 +24,7 @@ i -PassThru:$PassThru {
                         $true
                     }
                 }
-            }
+            } -Output None
             $r.Blocks[0].Tests[0].Duration = [TimeSpan]::FromSeconds(1)
 
             #export and validate the file
@@ -35,229 +35,261 @@ i -PassThru:$PassThru {
             $xmlTestCase.time     | Verify-Equal "1"
         }
 
-    #     It "should write a failed test result" {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-    #         $time = [TimeSpan]25000000 #2.5 seconds
-    #         $TestResults.AddTestResult("Failed testcase", 'Failed', $time, 'Assert failed: "Expected: Test. But was: Testing"', 'at line: 28 in  C:\Pester\Result.Tests.ps1')
+        t "should write a failed test result" {
+            #create state
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Mocked Describe" {
+                    It "Failed testcase" {
+                        throw "error"
+                    }
+                }
+            } -Output None
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xmlResult = [xml] (Get-Content $testFile)
-    #         $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
-    #         $xmlTestCase.name                   | Should -Be "Mocked Describe.Failed testcase"
-    #         $xmlTestCase.result                 | Should -Be "Failure"
-    #         $xmlTestCase.time                   | Should -Be "2.5"
-    #         $xmlTestCase.failure.message        | Should -Be 'Assert failed: "Expected: Test. But was: Testing"'
-    #         $xmlTestCase.failure.'stack-trace'  | Should -Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
-    #     }
+            $r.Blocks[0].Tests[0].Duration = [TimeSpan]::FromSeconds(2.5)
+            # this sets up the messages etc. if we want to test this way then it's better to generate the result
+            # directly instead of taking a result of Pester run, so I will probably remove this
+            # $TestResults = New-PesterState -Path TestDrive:\
+            # $testResults.EnterTestGroup('Mocked Describe', 'Describe')
+            # $time = [TimeSpan]25000000 #2.5 seconds
+            # $TestResults.AddTestResult("Failed testcase", 'Failed', $time, 'Assert failed: "Expected: Test. But was: Testing"', 'at line: 28 in  C:\Pester\Result.Tests.ps1')
 
-    #     It "should write the test summary" {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-    #         $TestResults.AddTestResult("Testcase", 'Passed', (New-TimeSpan -Seconds 1))
+            #export and validate the xml
+            $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xmlResult = [xml] (Get-Content $testFile)
-    #         $xmlTestResult = $xmlResult.'test-results'
-    #         $xmlTestResult.total    | Should -Be 1
-    #         $xmlTestResult.failures | Should -Be 0
-    #         $xmlTestResult.date     | Should -Not -BeNullOrEmpty
-    #         $xmlTestResult.time     | Should -Not -BeNullOrEmpty
-    #     }
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
+            $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
+            $xmlTestCase.result | Verify-Equal "Failure"
+            $xmlTestCase.time | Verify-Equal "2.5"
 
-    #     it "should write the test-suite information" {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-    #         $TestResults.EnterTest()
-    #         Start-Sleep -Milliseconds 100
-    #         $TestResults.LeaveTest()
-    #         $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
-    #         $TestResults.EnterTest()
-    #         Start-Sleep -Milliseconds 100
-    #         $TestResults.LeaveTest()
-    #         $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
-    #         $testResults.LeaveTestGroup('Mocked Describe', 'Describe')
+            # TODO: test the actual error messages once they are standardized
+            # $xmlTestCase.failure.message        | Should -Be 'Assert failed: "Expected: Test. But was: Testing"'
+            # $xmlTestCase.failure.'stack-trace'  | Should -Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
+        }
 
-    #         $TestGroup = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
+        t "should write the test summary" {
+            #create state
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Mocked Describe" {
+                    It "Passed testcase" {
+                        $true
+                    }
+                }
+            } -Output None
 
-    #         Set-PesterStatistics -Node $TestResults.TestActions
+            $r.Blocks[0].Tests[0].Duration = [TimeSpan]::FromSeconds(1)
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xmlResult = [xml] (Get-Content $testFile)
+            #export and validate the file
 
-    #         $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
-    #         $xmlTestResult.type            | Should -Be "TestFixture"
-    #         $xmlTestResult.name            | Should -Be "Mocked Describe"
-    #         $xmlTestResult.description     | Should -Be "Mocked Describe"
-    #         $xmlTestResult.result          | Should -Be "Success"
-    #         $xmlTestResult.success         | Should -Be "True"
-    #         $xmlTestResult.time            | Should -Be ([math]::Round($TestGroup.time.TotalSeconds,4))
-    #     }
+            $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
+            $xmlTestResult = $xmlResult.'test-results'
+            $xmlTestResult.total    | Verify-Equal 1
+            $xmlTestResult.failures | Verify-Equal 0
+            $xmlTestResult.date     | Verify-NotNull
+            $xmlTestResult.time     | Verify-NotNull
+        }
 
-    #     it "should write two test-suite elements for two describes" {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $TestResults.EnterTestGroup('Describe #1', 'Describe')
-    #         $TestResults.EnterTest()
-    #         Start-Sleep -Milliseconds 200
-    #         $TestResults.LeaveTest()
-    #         $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
-    #         $TestResults.LeaveTestGroup('Describe #1', 'Describe')
-    #         $Describe1 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
-    #         $testResults.EnterTestGroup('Describe #2', 'Describe')
-    #         $TestResults.EnterTest()
-    #         Start-Sleep -Milliseconds 200
-    #         $TestResults.LeaveTest()
-    #         $TestResults.AddTestResult("Failed testcase", 'Failed', $null)
-    #         $TestResults.LeaveTestGroup('Describe #2', 'Describe')
-    #         $Describe2 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
+        t "should write the test-suite information" {
 
-    #         Set-PesterStatistics -Node $TestResults.TestActions
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true
+                    }
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xmlResult = [xml] (Get-Content $testFile)
+                    It "Successful testcase" {
+                        $true
+                    }
+                }
+            } -Output None
 
-    #         $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
-    #         $xmlTestSuite1.name        | Should -Be "Describe #1"
-    #         $xmlTestSuite1.description | Should -Be "Describe #1"
-    #         $xmlTestSuite1.result      | Should -Be "Success"
-    #         $xmlTestSuite1.success     | Should -Be "True"
-    #         $xmlTestSuite1.time        | Should -Be ([math]::Round($Describe1.time.TotalSeconds,4))
+            $r.Blocks[0].Duration = [TimeSpan]::FromSeconds(1)
 
-    #         $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
-    #         $xmlTestSuite2.name        | Should -Be "Describe #2"
-    #         $xmlTestSuite2.description | Should -Be "Describe #2"
-    #         $xmlTestSuite2.result      | Should -Be "Failure"
-    #         $xmlTestSuite2.success     | Should -Be "False"
-    #         $xmlTestSuite2.time        | Should -Be ([math]::Round($Describe2.time.TotalSeconds,4))
-    #     }
+            $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
 
-    #     it "should write the environment information" {
-    #         $state = New-PesterState "."
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $state $testFile
-    #         $xmlResult = [xml] (Get-Content $testFile)
+            $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
+            $xmlTestResult.type            | Should -Be "TestFixture"
+            $xmlTestResult.name            | Should -Be "Mocked Describe"
+            $xmlTestResult.description     | Should -Be "Mocked Describe"
+            $xmlTestResult.result          | Should -Be "Success"
+            $xmlTestResult.success         | Should -Be "True"
+            $xmlTestResult.time            | Should -Be 1
+        }
 
-    #         $xmlEnvironment = $xmlResult.'test-results'.'environment'
-    #         $xmlEnvironment.'os-Version'    | Should -Not -BeNullOrEmpty
-    #         $xmlEnvironment.platform        | Should -Not -BeNullOrEmpty
-    #         $xmlEnvironment.cwd             | Should -Be (Get-Location).Path
-    #         if ($env:Username) {
-    #             $xmlEnvironment.user        | Should -Be $env:Username
-    #         }
-    #         $xmlEnvironment.'machine-name'  | Should -Be $(hostname)
-    #     }
+        t "should write two test-suite elements for two describes" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Describe #1" {
+                    It "Successful testcase" {
+                        $true
+                    }
+                }
 
-    #     it "Should validate test results against the nunit 2.5 schema" {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $testResults.EnterTestGroup('Describe #1', 'Describe')
-    #         $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -mi 1))
-    #         $testResults.LeaveTestGroup('Describe #1', 'Describe')
-    #         $testResults.EnterTestGroup('Describe #2', 'Describe')
-    #         $TestResults.AddTestResult("Failed testcase", 'Failed', (New-TimeSpan -Seconds 2))
+                Describe "Describe #2" {
+                    It "Successful testcase" {
+                        $true
+                    }
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xml = [xml] (Get-Content $testFile)
+                    It "Failed testcase" {
+                        throw
+                    }
+                }
+            } -Output None
 
-    #         $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-    #         $xml.Schemas.Add($null, $schemePath) > $null
-    #         { $xml.Validate( {throw $args.Exception }) } | Should -Not -Throw
-    #     }
+            $r.Blocks[0].Duration = [TimeSpan]::FromSeconds(1)
+            $r.Blocks[1].Duration = [TimeSpan]::FromSeconds(2)
 
-    #     it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $testResults.EnterTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
-    #         $TestResults.AddTestResult("Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-", 'Passed', (New-TimeSpan -Seconds 1))
-    #         $TestResults.LeaveTestGroup('Describe -!@#$%^&*()_+`1234567890[];'',./"- #1', 'Describe')
+            $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xml = [xml] (Get-Content $testFile)
+            $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
+            $xmlTestSuite1.name        | Verify-Equal "Describe #1"
+            $xmlTestSuite1.description | Verify-Equal "Describe #1"
+            $xmlTestSuite1.result      | Verify-Equal "Success"
+            $xmlTestSuite1.success     | Verify-Equal "True"
+            $xmlTestSuite1.time        | Verify-Equal "1"
 
-    #         $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-    #         $xml.Schemas.Add($null, $schemePath) > $null
-    #         { $xml.Validate( {throw $args.Exception }) } | Should -Not -Throw
-    #     }
+            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
+            $xmlTestSuite2.name        | Verify-Equal "Describe #2"
+            $xmlTestSuite2.description | Verify-Equal "Describe #2"
+            $xmlTestSuite2.result      | Verify-Equal "Failure"
+            $xmlTestSuite2.success     | Verify-Equal "False"
+            $xmlTestSuite2.time        | Verify-Equal "2"
+        }
 
-    #     Context 'Exporting Parameterized Tests (Newer format)' {
-    #         #create state
-    #         $TestResults = New-PesterState -Path TestDrive:\
-    #         $testResults.EnterTestGroup('Mocked Describe', 'Describe')
+        t "should write the environment information" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Describe #1" {
+                    It "Successful testcase" {
+                        $true
+                    }
+                }
+            } -Output None
 
-    #         $TestResults.AddTestResult(
-    #             'Parameterized Testcase One',
-    #             'Passed',
-    #             (New-TimeSpan -Seconds 1),
-    #             $null,
-    #             $null,
-    #             'Parameterized Testcase <A>',
-    #             @{Parameter = 'One'}
-    #         )
+            $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
 
-    #         $parameters = New-Object System.Collections.Specialized.OrderedDictionary
-    #         $parameters.Add('StringParameter', 'Two')
-    #         $parameters.Add('NullParameter', $null)
-    #         $parameters.Add('NumberParameter', -42.67)
+            $xmlEnvironment = $xmlResult.'test-results'.'environment'
+            $xmlEnvironment.'os-Version'    | Verify-NotNull
+            $xmlEnvironment.platform        | Verify-NotNull
+            $xmlEnvironment.cwd             | Verify-Equal (Get-Location).Path
+            if ($env:Username) {
+                $xmlEnvironment.user        | Verify-Equal $env:Username
+            }
+            $xmlEnvironment.'machine-name'  | Verify-Equal $(hostname)
+        }
 
-    #         $TestResults.AddTestResult(
-    #             'Parameterized Testcase <A>',
-    #             'Failed',
-    #             (New-TimeSpan -Seconds 1),
-    #             'Assert failed: "Expected: Test. But was: Testing"',
-    #             'at line: 28 in  C:\Pester\Result.Tests.ps1',
-    #             'Parameterized Testcase <A>',
-    #             $parameters
-    #         )
+        t "Should validate test results against the nunit 2.5 schema" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Describe #1" {
+                    It "Successful testcase" {
+                        $true
+                    }
+                }
 
-    #         #export and validate the file
-    #         [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-    #         Export-NunitReport $testResults $testFile
-    #         $xmlResult = [xml] (Get-Content $testFile)
+                Describe "Describe #2" {
+                    It "Failed testcase" {
+                        throw
+                    }
+                }
+            } -Output None
 
-    #         It 'should write parameterized test results correctly' {
-    #             $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
+            $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
 
-    #             $xmlTestSuite.name        | Should -Be 'Mocked Describe.Parameterized Testcase <A>'
-    #             $xmlTestSuite.description | Should -Be 'Parameterized Testcase <A>'
-    #             $xmlTestSuite.type        | Should -Be 'ParameterizedTest'
-    #             $xmlTestSuite.result      | Should -Be 'Failure'
-    #             $xmlTestSuite.success     | Should -Be 'False'
-    #             $xmlTestSuite.time        | Should -Be '2'
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Validate( {throw $args.Exception })
+        }
 
-    #             $testCase1 = $xmlTestSuite.results.'test-case'[0]
-    #             $testCase2 = $xmlTestSuite.results.'test-case'[1]
+        t "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "Describe -!@#$%^&*()_+`1234567890[];'',./""- #1" {
+                    It "Successful testcase -!@#$%^&*()_+`1234567890[];'',./""- " {
+                        $true
+                    }
+                }
+            } -Output None
 
-    #             $testCase1.Name | Should -Be 'Mocked Describe.Parameterized Testcase One'
-    #             $testCase1.Time | Should -Be 1
+            $xml = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
 
-    #             $testCase2.Name | Should -Be 'Mocked Describe.Parameterized Testcase <A>("Two",null,-42.67)'
-    #             $testCase2.Time | Should -Be 1
-    #         }
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+            $xml.Schemas.Add($null, $schemePath) > $null
+            $xml.Validate({throw $args.Exception })
+        }
+    }
 
-    #         it 'Should validate test results against the nunit 2.5 schema' {
-    #             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-    #             $null = $xmlResult.Schemas.Add($null, $schemaPath)
-    #             { $xmlResult.Validate( {throw $args.Exception }) } | Should -Not -Throw
-    #         }
-    #     }
+    b 'Exporting Parameterized Tests (Newer format)' {
+        # #create state
+        # $TestResults = New-PesterState -Path TestDrive:\
+        # $testResults.EnterTestGroup('Mocked Describe', 'Describe')
 
-    # }
+        # $TestResults.AddTestResult(
+        #     'Parameterized Testcase One',
+        #     'Passed',
+        #     (New-TimeSpan -Seconds 1),
+        #     $null,
+        #     $null,
+        #     'Parameterized Testcase <A>',
+        #     @{Parameter = 'One'}
+        # )
+
+        # $parameters = New-Object System.Collections.Specialized.OrderedDictionary
+        # $parameters.Add('StringParameter', 'Two')
+        # $parameters.Add('NullParameter', $null)
+        # $parameters.Add('NumberParameter', -42.67)
+
+        # $TestResults.AddTestResult(
+        #     'Parameterized Testcase <A>',
+        #     'Failed',
+        #     (New-TimeSpan -Seconds 1),
+        #     'Assert failed: "Expected: Test. But was: Testing"',
+        #     'at line: 28 in  C:\Pester\Result.Tests.ps1',
+        #     'Parameterized Testcase <A>',
+        #     $parameters
+        # )
+
+        $r = Invoke-Pester -ScriptBlock {
+            Describe "Mocked Describe" {
+                It "Parameterized Testcase <A>" -TestCases @(
+                    @{ A = "One"}
+                    ([ordered]@{
+                        StringParameter = 'Two'
+                        NullParameter = $null
+                        NumberParameter = -42.67
+                    })
+                ) {
+                    throw
+                }
+            }
+        } -Output None
+
+        $r.Blocks[0].Tests[0].Duration = [timespan]::FromSeconds(1)
+        $r.Blocks[0].Tests[1].Duration = [timespan]::FromSeconds(1)
+
+        $xmlResult = & (Get-Module Pester) { param($Result) ConvertTo-NunitReport -Result $Result } $r
+
+        t 'should write parameterized test results correctly' {
+            $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
+
+            $xmlTestSuite.name        | Should -Be 'Mocked Describe.Parameterized Testcase <A>'
+            $xmlTestSuite.description | Should -Be 'Parameterized Testcase <A>'
+            $xmlTestSuite.type        | Should -Be 'ParameterizedTest'
+            $xmlTestSuite.result      | Should -Be 'Failure'
+            $xmlTestSuite.success     | Should -Be 'False'
+            $xmlTestSuite.time        | Should -Be '2'
+
+            $testCase1 = $xmlTestSuite.results.'test-case'[0]
+            $testCase2 = $xmlTestSuite.results.'test-case'[1]
+
+            $testCase1.Name | Should -Be 'Mocked Describe.Parameterized Testcase <A>("One")'
+            $testCase1.Time | Should -Be 1
+
+            $testCase2.Name | Should -Be 'Mocked Describe.Parameterized Testcase <A>("Two",null,-42.67)'
+            $testCase2.Time | Should -Be 1
+        }
+
+        t 'Should validate test results against the nunit 2.5 schema' {
+            $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
+            $null = $xmlResult.Schemas.Add($null, $schemaPath)
+            { $xmlResult.Validate( {throw $args.Exception }) } | Should -Not -Throw
+        }
+    }
 
     # Describe "Get-TestTime" {
     #     function Using-Culture {
@@ -343,6 +375,5 @@ i -PassThru:$PassThru {
     #     }
 
     #     Pop-Location
-
-    }
+    # }
 }

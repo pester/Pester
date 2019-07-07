@@ -221,12 +221,13 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
     $suites = @(
         # todo: what is this? is it ordering tests into groups based on which test cases they belong to so we data driven tests in one result?
-        $Node.Tests | & $SafeCommands['Group-Object'] -Property ParameterizedSuiteName
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property Id
     )
 
     foreach ($suite in $suites) {
-        # when suite has name it belongs into a test group (test cases that are generated from the same test, based on the provided data) so we want extra level of nesting for them
-        if ($suite.Name) {
+        # TODO: when suite has name it belongs into a test group (test cases that are generated from the same test, based on the provided data) so we want extra level of nesting for them, right now this is encoded as having an Id that is non empty, but this is not ideal, it would be nicer to make it more explicit
+        $testGroupId = $suite.Name
+        if ($testGroupId) {
             $parameterizedSuiteInfo = Get-ParameterizedTestSuiteInfo -TestSuiteGroup $suite
 
             $XmlWriter.WriteStartElement('test-suite')
@@ -237,10 +238,11 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         }
 
         foreach ($testCase in $suite.Group) {
-            Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path $newPath -ParameterizedSuiteName $suite.Name
+            $suiteName = if ($testGroupId) {$parameterizedSuiteInfo.Name } else { "" }
+            Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path $newPath -ParameterizedSuiteName $suiteName
         }
 
-        if ($suite.Name) {
+        if ($testGroupId) {
             # close the extra nesting element when we were writing testcases
             $XmlWriter.WriteEndElement()
             $XmlWriter.WriteEndElement()
@@ -252,10 +254,17 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 }
 
 function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
+    # this is generating info for a group of tests that were generated from the same test when TestCases are used
+    # I am using the Name from the first test as the name of the test group, even though we are grouping at
+    # the Id of the test (which is the line where the ScriptBlock of that test starts). This allows us to have
+    # unique Id (the line number) and also a readable name
+    # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
+    # grouping the tests together if we used just the name, and not the linenumber (which remains static)
+    $name = $TestSuiteGroup.Group[0].Name
     $node =[PSCustomObject] @{
-        Name              = $TestSuiteGroup.Name
+        Name              = $name
         TotalCount        = 0
-        Time              = [timespan]0
+        Duration              = [timespan]0
         PassedCount       = 0
         FailedCount       = 0
         SkippedCount      = 0
@@ -266,25 +275,35 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
     foreach ($testCase in $TestSuiteGroup.Group) {
         $node.TotalCount++
 
-        switch ($testCase.Result) {
+        # todo: move this directly onto the TestObject, and BlockObject so we don't have to re-implement it in two places, and it is also easy to see for the people using the result object. I am implementing it here as a big if statement to avoid re-writing the switch below, because it will become relevant again once the result is in the Result property
+
+        $result = if ($testCase.Executed -and $testCase.Passed) {
+            'Passed'
+        } elseif (-not $testCase.ShouldRun) {
+            'Skipped'
+        } elseif (-not $testCase.Passed -or ($testCase.ShouldRun -and -not $testCase.Executed)) {
+            'Failed'
+        }
+
+        switch ($result) {
             Passed {
-                $Node.PassedCount++; break;
+                $node.PassedCount++; break;
             }
             Failed {
-                $Node.FailedCount++; break;
+                $node.FailedCount++; break;
             }
             Skipped {
-                $Node.SkippedCount++; break;
+                $node.SkippedCount++; break;
             }
             Pending {
-                $Node.PendingCount++; break;
+                $node.PendingCount++; break;
             }
             Inconclusive {
-                $Node.InconclusiveCount++; break;
+                $node.InconclusiveCount++; break;
             }
         }
 
-        $Node.Time += $testCase.Duration
+        $node.Duration += $testCase.Duration
     }
 
     return Get-TestSuiteInfo -TestSuite $node
@@ -376,11 +395,12 @@ function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWrit
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
     $testName = $TestResult.Name
 
+    # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time
     if ($testName -eq $ParameterizedSuiteName) {
         $paramString = ''
-        if ($null -ne $TestResult.Parameters) {
+        if ($null -ne $TestResult.Data) {
             $params = @(
-                foreach ($value in $TestResult.Parameters.Values) {
+                foreach ($value in $TestResult.Data.Values) {
                     if ($null -eq $value) {
                         'null'
                     }
@@ -468,14 +488,14 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             } else {
                 $c = 0
                 foreach ($err in $TestResult.ErrorRecord) {
-                    "[$($c++)] $($err.ToString())$([Environment]::NewLine)"
+                    "[$(($c++))] $($err.ToString())$([Environment]::NewLine)"
                 }
             }
 
             $stackTrace = &{
                 $c = 0
                 foreach ($err in $TestResult.ErrorRecord) {
-                    "[$($c++)] $($err.StackTrace.ToString())$([Environment]::NewLine)"
+                    "[$(($c++))] $($err.ScriptStackTrace.ToString())$([Environment]::NewLine)"
                 }
             }
 

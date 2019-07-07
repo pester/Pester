@@ -445,7 +445,7 @@ function New-Test {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable] $Data = @{ },
+        [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
         [Switch] $Focus
     )
@@ -465,19 +465,21 @@ function New-Test {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
         }
 
-        $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
-        if (-not $hasExternalId) {
-            $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
+        # TODO: this id stuff is probably not needed, we don't need to relay tests together here, it was useful before for new runtime that was executing the code twice, but now we are just going by the test order so we don't need the id anymore
+        # $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+        # if (-not $hasExternalId) {
+        #     $Id = 0
+        #     $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
 
-            if ($null -eq $PreviouslyGeneratedTests) {
-                # TODO: this enables tests that are not in a block to run. those are outdated tests in my
-                # test suite, so this should be imho removed later, and the tests rewritten
-                $PreviouslyGeneratedTests = @{ }
+        #     if ($null -eq $PreviouslyGeneratedTests) {
+        #         # TODO: this enables tests that are not in a block to run. those are outdated tests in my
+        #         # test suite, so this should be imho removed later, and the tests rewritten
+        #         $PreviouslyGeneratedTests = @{ }
 
-            }
+        #     }
 
-            $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
-        }
+        #     $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
+        # }
 
         $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
         $test.FrameworkData.Runtime.Phase = 'Discovery'
@@ -845,7 +847,7 @@ function New-TestObject {
         [String] $Name,
         [String[]] $Path,
         [String[]] $Tag,
-        [HashTable] $Data,
+        [System.Collections.IDictionary] $Data,
         [String] $Id,
         [ScriptBlock] $ScriptBlock,
         [Switch] $Focus
@@ -2352,23 +2354,20 @@ function New-ParametrizedTest () {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable[]] $Data = @{ },
-        [Switch] $Focus,
-        [String] $Id
+        # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
+        [System.Collections.IDictionary[]] $Data = @{ },
+        [Switch] $Focus
     )
 
     Switch-Timer -Scope Framework
-    $counter = 0
-    $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+    # TODO: there used to be counter, that was added to the id, seems like I am missing TestGroup on the test cases, so I can reconcile them back if they were generated from testcases
+    # $counter = 0
+
+    # using the start line of the scriptblock as the id of the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
+    $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
-        # no when there is no external id we rely on the internal
-        # logic to do it's test duplication prevention thing,
-        # otherwise we attach our id, so the user can provide their own external ids
-        # this would fail when the count of the test cases would change between discovery
-        # and run, so this might need an option to provide explicit ids for the test cases if the logic
-        # here proves to be not sufficient
-        $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
-        New-Test -Id $innerId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
+    #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
+        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
     }
 }
 
