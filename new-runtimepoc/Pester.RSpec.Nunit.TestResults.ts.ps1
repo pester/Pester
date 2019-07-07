@@ -291,44 +291,50 @@ i -PassThru:$PassThru {
         }
     }
 
-    # Describe "Get-TestTime" {
-    #     function Using-Culture {
-    #         param (
-    #             [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-    #             [ScriptBlock]$ScriptBlock,
-    #             [System.Globalization.CultureInfo]$Culture = 'en-US'
-    #         )
+    b "Get-TestTime" {
 
-    #         $oldCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
-    #         try {
-    #             [System.Threading.Thread]::CurrentThread.CurrentCulture = $Culture
-    #             $ExecutionContext.InvokeCommand.InvokeScript($ScriptBlock)
-    #         }
-    #         finally {
-    #             [System.Threading.Thread]::CurrentThread.CurrentCulture = $oldCulture
-    #         }
-    #     }
 
-    #     It "output is culture agnostic" {
-    #         #on cs-CZ, de-DE and other systems where decimal separator is ",". value [double]3.5 is output as 3,5
-    #         #this makes some of the tests fail, it could also leak to the nUnit report if the time was output
+        t "output is culture agnostic" {
+            & (Get-Module Pester) {
+                function Using-Culture {
+                    param (
+                        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+                        [ScriptBlock]$ScriptBlock,
+                        [System.Globalization.CultureInfo]$Culture = 'en-US'
+                    )
 
-    #         $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]35000000 } #3.5 seconds
+                    $oldCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+                    try {
+                        [System.Threading.Thread]::CurrentThread.CurrentCulture = $Culture
+                        $ExecutionContext.InvokeCommand.InvokeScript($ScriptBlock)
+                    }
+                    finally {
+                        [System.Threading.Thread]::CurrentThread.CurrentCulture = $oldCulture
+                    }
+                }
+                #on cs-CZ, de-DE and other systems where decimal separator is ",". value [double]3.5 is output as 3,5
+                #this makes some of the tests fail, it could also leak to the nUnit report if the time was output
 
-    #         #using the string formatter here to know how the string will be output to screen
-    #         $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
-    #         $Result | Should -Be "3.5"
-    #     }
-    #     It "Time is measured in seconds with 0,1 millisecond as lowest value" {
-    #         $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
-    #         Get-TestTime -Tests $TestResult | Should -Be 0.0001
-    #         $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
-    #         Get-TestTime -Tests $TestResult | Should -Be 0
-    #         $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
-    #         Get-TestTime -Tests $TestResult | Should -Be 0.1235
-    #     }
-    # }
+                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]35000000 } #3.5 seconds
 
+                #using the string formatter here to know how the string will be output to screen
+                $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
+                $Result | Should -Be "3.5"
+            }
+        }
+        t "Time is measured in seconds with 0,1 millisecond as lowest value" {
+            & (Get-Module Pester) {
+                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
+                Get-TestTime -Tests $TestResult | Should -Be 0.0001
+                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
+                Get-TestTime -Tests $TestResult | Should -Be 0
+                $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
+                Get-TestTime -Tests $TestResult | Should -Be 0.1235
+            }
+        }
+    }
+
+    # TODO: test get full path
     # Describe "GetFullPath" {
     #     It "Resolves non existing path correctly" {
     #         Push-Location -Path TestDrive:\
