@@ -94,7 +94,35 @@ function Export-NUnitReport {
     }
 }
 
-function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+function ConvertTo-NUnitReport {
+    param (
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Result
+    )
+
+    $settings =  [Xml.XmlWriterSettings] @{
+        Indent              = $true
+        NewLineOnAttributes = $false
+    }
+
+    $stringWriter = $null
+    $xmlWriter = $null
+    try {
+        $stringWriter = & $SafeCommands["New-Object"] IO.StringWriter
+        $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
+
+        Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+
+        $xmlWriter.Flush()
+        $stringWriter.Flush()
+    }
+    finally {
+        $xmlWriter.Close()
+        [xml] $stringWriter.ToString()
+    }
+}
+
+function Write-NUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -107,16 +135,16 @@ function Write-NUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', 'Pester')
-    $XmlWriter.WriteAttributeString('total', ($PesterState.TotalCount - $PesterState.SkippedCount))
+    $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.SkippedCount))
     $XmlWriter.WriteAttributeString('errors', '0')
-    $XmlWriter.WriteAttributeString('failures', $PesterState.FailedCount)
+    $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', '0')
-    $XmlWriter.WriteAttributeString('inconclusive', $PesterState.PendingCount + $PesterState.InconclusiveCount)
-    $XmlWriter.WriteAttributeString('ignored', $PesterState.SkippedCount)
+    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount)
+    $XmlWriter.WriteAttributeString('ignored', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('skipped', '0')
     $XmlWriter.WriteAttributeString('invalid', '0')
     $date = & $SafeCommands['Get-Date']
@@ -124,11 +152,11 @@ function Write-NUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteAttributeString('time', (& $SafeCommands['Get-Date'] -Date $date -Format 'HH:mm:ss'))
 }
 
-function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWriter) {
     Write-NUnitEnvironmentInformation @PSBoundParameters
     Write-NUnitCultureInformation @PSBoundParameters
 
-    $suiteInfo = Get-TestSuiteInfo -TestSuite $PesterState -TestSuiteName $PesterState.TestSuiteName
+    $suiteInfo = Get-TestSuiteInfo -TestSuite $Result -TestSuiteName $Result.TestSuiteName
 
     $XmlWriter.WriteStartElement('test-suite')
 
@@ -136,7 +164,7 @@ function Write-NUnitTestResultChildNodes($PesterState, [System.Xml.XmlWriter] $X
 
     $XmlWriter.WriteStartElement('results')
 
-    foreach ($action in $PesterState.TestActions.Actions) {
+    foreach ($action in $Result.Blocks) {
         Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $action
     }
 
@@ -187,19 +215,17 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     }
     $newPath = "${Path}${separator}${newName}"
 
-    foreach ($action in $Node.Actions) {
-        if ($action.Type -eq 'TestGroup') {
-            Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $newPath
-        }
+    foreach ($action in $Node.Blocks) {
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $newPath
     }
 
     $suites = @(
-        $Node.Actions |
-            & $SafeCommands['Where-Object'] { $_.Type -eq 'TestCase' } |
-            & $SafeCommands['Group-Object'] -Property ParameterizedSuiteName
+        # todo: what is this? is it ordering tests into groups based on which test cases they belong to so we data driven tests in one result?
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property ParameterizedSuiteName
     )
 
     foreach ($suite in $suites) {
+        # when suite has name it belongs into a test group (test cases that are generated from the same test, based on the provided data) so we want extra level of nesting for them
         if ($suite.Name) {
             $parameterizedSuiteInfo = Get-ParameterizedTestSuiteInfo -TestSuiteGroup $suite
 
@@ -215,6 +241,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         }
 
         if ($suite.Name) {
+            # close the extra nesting element when we were writing testcases
             $XmlWriter.WriteEndElement()
             $XmlWriter.WriteEndElement()
         }
@@ -257,7 +284,7 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
             }
         }
 
-        $Node.Time += $testCase.Time
+        $Node.Time += $testCase.Duration
     }
 
     return Get-TestSuiteInfo -TestSuite $node
@@ -276,7 +303,7 @@ function Get-TestSuiteInfo ($TestSuite, $TestSuiteName) {
         else {
             'False'
         }
-        totalTime     = Convert-TimeSpan $TestSuite.Time
+        totalTime     = Convert-TimeSpan $TestSuite.Duration
         name          = $TestSuiteName
         description   = $TestSuiteName
     }
@@ -385,11 +412,21 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     $XmlWriter.WriteAttributeString('description', $TestResult.Name)
 
     $XmlWriter.WriteAttributeString('name', $testName)
-    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Time))
+    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Duration))
     $XmlWriter.WriteAttributeString('asserts', '0')
     $XmlWriter.WriteAttributeString('success', $TestResult.Passed)
 
-    switch ($TestResult.Result) {
+    # todo: move this directly onto the TestObject, and BlockObject so we don't have to re-implement it in two places, and it is also easy to see for the people using the result object. I am implementing it here as a big if statement to avoid re-writing the switch below, because it will become relevant again once the result is in the Result property
+
+    $result = if ($TestResult.Executed -and $TestResult.Passed) {
+        'Passed'
+    } elseif (-not $TestResult.ShouldRun) {
+        'Skipped'
+    } elseif (-not $TestResult.Passed -or ($TestResult.ShouldRun -and -not $TestResult.Executed)) {
+        'Failed'
+    }
+
+    switch ($result) {
         Passed {
             $XmlWriter.WriteAttributeString('result', 'Success')
             $XmlWriter.WriteAttributeString('executed', 'True')
@@ -422,8 +459,28 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Failure')
             $XmlWriter.WriteAttributeString('executed', 'True')
             $XmlWriter.WriteStartElement('failure')
-            $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
-            $XmlWriter.WriteElementString('stack-trace', $TestResult.StackTrace)
+
+            # TODO: remove monkey patching the error message when parent setup failed so this test never run
+            # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
+
+            $failureMessage =if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
+                "This test should run but it did not. Most likely a setup in some parent block failed."
+            } else {
+                $c = 0
+                foreach ($err in $TestResult.ErrorRecord) {
+                    "[$($c++)] $($err.ToString())$([Environment]::NewLine)"
+                }
+            }
+
+            $stackTrace = &{
+                $c = 0
+                foreach ($err in $TestResult.ErrorRecord) {
+                    "[$($c++)] $($err.StackTrace.ToString())$([Environment]::NewLine)"
+                }
+            }
+
+            $xmlWriter.WriteElementString('message', $failureMessage)
+            $XmlWriter.WriteElementString('stack-trace', $stackTrace)
             $XmlWriter.WriteEndElement() # Close failure tag
             break
         }

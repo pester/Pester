@@ -697,7 +697,20 @@ function Invoke-Pester {
             )
 
             if ($CI) {
-                $CodeCoverage = @{ Path = '*'  }
+                $CodeCoverage = @{ Path = foreach ($p in $Path) {
+                    # this is a bit ugly, but the logic here is
+                    # that we check if the path exists,
+                    # and if it does and is a file then we return the
+                    # parent directory, otherwise we got a directory
+                    # and return just it
+                    $i = Get-Item $p
+                    if ($i.PSIsContainer) {
+                        Join-Path $i.FullName "*"
+                    }
+                    else {
+                        Join-Path $i.Directory.FullName "*"
+                    }
+                }}
                 $plugins += (Get-CoveragePlugin)
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
@@ -733,6 +746,13 @@ function Invoke-Pester {
 
             @($r)
 
+            if ($ci) {
+                $legacyResult = $legacyResult = Get-LegacyResult $r
+            }
+
+            if ($CI) {
+                Export-NunitReport $legacyResult (Join-Path  "." "testResults.xml")
+            }
 
             if ($EnableExit -and $legacyResult.FailedCount -gt 0) {
                 exit ($legacyResult.FailedCount)

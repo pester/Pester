@@ -551,7 +551,7 @@ function Get-WriteScreenPlugin {
         # }
     } -EachBlockTeardownEnd {
         param ($Context)
-        if (-not $Context.Block.Passed) {
+        if (-not $Context.Block.OwnPassed) {
             & $SafeCommands['Write-Host'] -ForegroundColor Red "Block '$($Context.Block.Path -join ".")' failed"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
