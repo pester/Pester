@@ -856,6 +856,7 @@ function New-TestObject {
         Executed          = $false
         ExecutedAt        = $null
         Passed            = $false
+        Result            = $null
         StandardOutput    = $null
         ErrorRecord       = [Collections.Generic.List[Object]]@()
         First             = $false
@@ -1057,9 +1058,12 @@ function Run-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
+        [PSTypeName("DiscoveredBlock")]
+        [PSObject[]]
+        $Block,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState]
+        $SessionState
     )
 
     $state.Discovery = $false
@@ -1359,6 +1363,8 @@ function Invoke-ScriptBlock {
                     # between the variable not existing and not having value
                     $_________teardown2 = if ($null -ne $______parameters.Teardown) { $______parameters.Teardown } else { $true }
 
+                    $______testResult = $null
+
                     if (-not $______parameters.ContextInOuterScope) {
                         $______innerSplat = $______parameters.Context
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
@@ -1389,7 +1395,7 @@ function Invoke-ScriptBlock {
 
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
                     $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
-                    . $______parameters.ScriptBlock @______innerSplat
+                    $______testResult = . $______parameters.ScriptBlock @______innerSplat
 
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scrtptblock" }
                 }
@@ -1398,6 +1404,16 @@ function Invoke-ScriptBlock {
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" -ErrorRecord $_ }
                 }
                 finally {
+
+                    if ($______testResult) {
+                        Write-Host "Test Result is: $______testResult"
+                        if ($______testResult -is [Management.Automation.ErrorRecord]) {
+                            $______parameters.ErrorRecord.Add($______testResult)
+                        }
+                        elseif ($______testResult -is [array] -and $______testResult[0] -is [Management.Automation.ErrorRecord]) {
+                            $______parameters.ErrorRecord += $______testResult
+                        }
+                    }
                     # this is needed for nonewscope so we can do two different
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object)
@@ -1534,6 +1550,10 @@ function Invoke-ScriptBlock {
         -Success (0 -eq $parameters.ErrorRecord.Count) `
         -ErrorRecord $parameters.ErrorRecord `
         -StandardOutput $standardOutput
+
+    if ($null -ne $ScriptBlock) {
+        # & $SafeCommands["Write-Host"] "ScriptBlock: $ScriptBlock\nResult: $($r | Out-String)"
+    }
 
     return $r
 }
@@ -1777,9 +1797,12 @@ function Invoke-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
+        [PSTypeName("BlockContainer")]
+        [PSObject[]]
+        $BlockContainer,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState,
+        [Management.Automation.SessionState]
+        $SessionState,
         $Filter,
         $Plugin,
         $PluginConfiguration

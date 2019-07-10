@@ -96,4 +96,93 @@ InModuleScope Pester {
         }
         #>
     }
+
+    Describe 'Compound Assertions' {
+        $script:functionBlock = {
+            function Get-Object {
+                [PSCustomObject]@{
+                    Name = 'Rene'
+                    Age = 28
+                }
+            }
+        }
+
+        Context "ErrorAction specification" {
+            BeforeAll {
+                . $script:functionBlock
+            }
+
+            It "with ErrorAction" {
+                $user = Get-Object
+                $user | Should -Not -Be $null -ErrorAction Stop
+            }
+
+            It 'without ErrorAction' {
+                $user = Get-Object
+                $user | Should -Not -Be $null
+            }
+        }
+
+        Context "Chained assertions" {
+            BeforeAll {
+                . $script:functionBlock
+            }
+
+            It "Succeeding without ErrorAction " {
+                $user = Get-Object
+
+                $user |
+                    Should -BeOfType PSCustomObject |
+                    Should -Not -Be $null
+            }
+
+            It "Failing without ErrorAction" {
+                $user = Get-Object
+
+                $user |
+                    Should -Not -BeOfType PSCustomObject |
+                    Should -Be $null
+            }
+
+            It "With ErrorAction in first assertions section" {
+                $user = Get-Object
+
+                $user |
+                    Should -Not -BeOfType PSCustomObject -ErrorAction Stop |
+                    Should -Be $null
+            }
+
+            It "With ErrorAction in last assertion section" {
+                $user = Get-Object
+
+                $user |
+                    Should -Not -BeOfType PSCustomObject |
+                    Should -Be $null -ErrorAction Stop
+            }
+        }
+
+        Context "Mixing" {
+            BeforeAll {
+                . $script:functionBlock
+            }
+
+            It "ErrorAction on Single assertion" {
+                $user = Get-Object
+                $user | Should -Be $null -ErrorAction Stop
+
+                $user |
+                    Should -BeOfType PSCustomObject |
+                    Should -Be $null
+            }
+
+            It 'No ErrorAction' {
+                $user = Get-Object
+                $user | Should -Be $null
+
+                $user |
+                    Should -BeOfType PSCustomObject |
+                    Should -Be $null
+            }
+        }
+    }
 }

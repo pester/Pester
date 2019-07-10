@@ -53,9 +53,20 @@ function Should {
 
     begin {
         $inputArray = [System.Collections.Generic.List[PSObject]]@()
+        $errorRecords = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
+        $lineNumber = $MyInvocation.ScriptLineNumber
+        $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
+        $file = $MyInvocation.ScriptName
     }
 
     process {
+        & $SafeCommands["Write-Host"] "Actual Value in process: $ActualValue"
+
+        if (Test-IsShouldErrorRecord -Value $ActualValue) {
+            $errorRecords += $ActualValue
+            return
+        }
+
         $inputArray.Add($ActualValue)
 
         # Check if this Should assert is not the last in a chained assertion
@@ -65,11 +76,6 @@ function Should {
     }
 
     end {
-        $errorRecords = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
-        $lineNumber = $MyInvocation.ScriptLineNumber
-        $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
-        $file = $MyInvocation.ScriptName
-
         if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
             if ($inputArray.Count -eq 0) {
                 Invoke-LegacyAssertion $entry $parsedArgs $null $file $lineNumber $lineText
@@ -84,6 +90,7 @@ function Should {
             }
         }
         else {
+
             $negate = $false
             if ($PSBoundParameters.ContainsKey('Not')) {
                 $negate = [bool]$PSBoundParameters['Not']
@@ -129,12 +136,34 @@ function Should {
             }
 
             if ($errorRecords -and $ErrorActionPreference -eq 'Stop') {
-                throw $errorRecords
+                throw $errorRecords[-1]
             }
             else {
                 $errorRecords
             }
         }
+    }
+}
+
+function Test-IsShouldErrorRecord {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        [object]
+        $Value
+    )
+
+    try {
+        if ($Value -is [array] -and $Value) {
+            $Value = $Value[0]
+        }
+
+        $Value -is [System.Management.Automation.ErrorRecord] -and
+            $Value.FullyQualifiedErrorId -eq 'PesterAssertionFailed'
+    }
+    catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 }
 
