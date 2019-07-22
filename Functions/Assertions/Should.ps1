@@ -53,26 +53,19 @@ function Should {
 
     begin {
         $inputArray = [System.Collections.Generic.List[PSObject]]@()
-        $errorRecords = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
+        # $errorRecords = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
         $lineNumber = $MyInvocation.ScriptLineNumber
         $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
         $file = $MyInvocation.ScriptName
     }
 
     process {
-        & $SafeCommands["Write-Host"] "Actual Value in process: $ActualValue"
-
         if (Test-IsShouldErrorRecord -Value $ActualValue) {
-            $errorRecords += $ActualValue
+            # $errorRecords += $ActualValue
             return
         }
 
         $inputArray.Add($ActualValue)
-
-        # Check if this Should assert is not the last in a chained assertion
-        if ($PSCmdlet.MyInvocation.PipelinePosition -lt $PSCmdlet.MyInvocation.PipelineLength) {
-            $ActualValue
-        }
     }
 
     end {
@@ -125,22 +118,20 @@ function Should {
                 }
 
             if ($result -is [System.Management.Automation.ErrorRecord]) {
-                $errorRecords += $result
+                $Context.Test.ErrorRecord += $result
             }
-            elseif ($result -is [array]) {
-                foreach ($elementResult in $result) {
-                    if ($elementResult -is [System.Management.Automation.ErrorRecord]) {
-                        $errorRecords += $elementResult
-                    }
-                }
+            elseif ($result -is [array] -and $result[0] -is [System.Management.Automation.ErrorRecord]) {
+                $Context.Test.ErrorRecord += $result
             }
 
-            if ($errorRecords -and $ErrorActionPreference -eq 'Stop') {
-                throw $errorRecords[-1]
-            }
-            else {
-                $errorRecords
-            }
+            # if ($errorRecords -and $ErrorActionPreference -eq 'Stop') {
+            #     throw $errorRecords[-1]
+            # }
+            # else {
+            #     $errorRecords
+            # }
+
+            $result
         }
     }
 }

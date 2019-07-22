@@ -562,7 +562,7 @@ function Invoke-TestItem {
             # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
             $context = @{
                 # context visible in test
-                Context = $testInfo
+                LocationContext = $testInfo
             }
             # user provided data are merged with Pester provided context
             Merge-Hashtable -Source $Test.Data -Destination $context
@@ -1394,6 +1394,7 @@ function Invoke-ScriptBlock {
                     }
 
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
+
                     $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
                     $______testResult = . $______parameters.ScriptBlock @______innerSplat
 
@@ -1404,9 +1405,16 @@ function Invoke-ScriptBlock {
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" -ErrorRecord $_ }
                 }
                 finally {
+                    $testContext = $ExecutionContext.SessionState.PSVariable.Get('Context').Value
+
+                    # Write-Host "Scriptblock Test: $($testContext.Test | Out-String)"
+                    if ($null -ne $testContext) {
+                        if ($testContext.Test) {
+                            $______parameters.ErrorRecord += $testContext.Test.ErrorRecord
+                        }
+                    }
 
                     if ($______testResult) {
-                        Write-Host "Test Result is: $______testResult"
                         if ($______testResult -is [Management.Automation.ErrorRecord]) {
                             $______parameters.ErrorRecord.Add($______testResult)
                         }
@@ -1494,6 +1502,7 @@ function Invoke-ScriptBlock {
     }
 
     #$break = $true
+
     $err = $null
     try {
         $parameters = @{
@@ -1556,6 +1565,16 @@ function Invoke-ScriptBlock {
     }
 
     return $r
+}
+
+function New-TestExecutionResultObject {
+    [CmdletBinding()]
+    param()
+
+    New_PSObject -Type 'TestExecutionResult' -Property @{
+        Success        = $null
+        ErrorRecord    = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
+    }
 }
 
 function New-InvocationResultObject {
