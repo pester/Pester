@@ -27,13 +27,13 @@ function Get-Planet ([string]$Name='*')
 
 # Pester tests
 Describe 'Get-Planet' {
-  It "Given no parameters, it lists all 8 planets" {
+  If "Given no parameters, it lists all 8 planets" {
     $allPlanets = Get-Planet
     $allPlanets.Count | Should -Be 8
   }
 
   Context "Filtering by Name" {
-    It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
+    If "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
       @{ Filter = 'Earth'; Expected = 'Earth' }
       @{ Filter = 'ne*'  ; Expected = 'Neptune' }
       @{ Filter = 'ur*'  ; Expected = 'Uranus' }
@@ -45,7 +45,7 @@ Describe 'Get-Planet' {
       $planets.Name | Should -Be $Expected
     }
 
-    It "Given invalid parameter -Name 'Alpha Centauri', it returns `$null" {
+    If "Given invalid parameter -Name 'Alpha Centauri', it returns `$null" {
       $planets = Get-Planet -Name 'Alpha Centauri'
       $planets | Should -Be $null
     }
