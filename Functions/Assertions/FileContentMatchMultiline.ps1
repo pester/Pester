@@ -1,5 +1,5 @@
 function Should-FileContentMatchMultiline($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
-<#
+    <#
 .SYNOPSIS
 As opposed to FileContentMatch and FileContentMatchExactly operators,
 FileContentMatchMultiline presents content of the file being tested as one string object,
@@ -26,18 +26,17 @@ not the end of any single line within the file. This test fails.
 #>
     $succeeded = [bool] ((& $SafeCommands['Get-Content'] $ActualValue -Delimiter ([char]0)) -match $ExpectedContent)
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
     $failureMessage = ''
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             $failureMessage = NotShouldFileContentMatchMultilineFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
-        else
-        {
+        else {
             $failureMessage = ShouldFileContentMatchMultilineFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
         }
     }
@@ -57,5 +56,5 @@ function NotShouldFileContentMatchMultilineFailureMessage($ActualValue, $Expecte
 }
 
 Add-AssertionOperator -Name         FileContentMatchMultiline `
-                      -InternalName Should-FileContentMatchMultiline `
-                      -Test         ${function:Should-FileContentMatchMultiline}
+    -InternalName Should-FileContentMatchMultiline `
+    -Test         ${function:Should-FileContentMatchMultiline}

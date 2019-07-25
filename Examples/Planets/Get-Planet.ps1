@@ -2,8 +2,7 @@
 # open Get-Planet.Tests.ps1 as well :)
 
 
-function Get-Planet ([string]$Name = '*')
-{
+function Get-Planet ([string]$Name = '*') {
     $planets = @(
         @{ Name = 'Mercury' }
         @{ Name = 'Venus'   }

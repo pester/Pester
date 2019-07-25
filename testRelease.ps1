@@ -10,7 +10,7 @@ Get-Module Pester | Remove-Module
 Import-Module $psd1 -ErrorAction Stop
 
 $xml = Join-Path $PSScriptRoot Test.Version.xml
-$result = Invoke-Pester -Path $PSScriptRoot -Tag VersionChecks, StyleRules -OutputFile $xml -OutputFormat NUnitXml -PassThru -Strict -ErrorAction Stop
+$result = Invoke-Pester -Script $PSScriptRoot -Tag VersionChecks, StyleRules, Help -OutputFile $xml -OutputFormat NUnitXml -PassThru -Strict -ErrorAction Stop
 
 if ($LocalBuild) {
     # when I build release locally I don't want to
@@ -18,8 +18,7 @@ if ($LocalBuild) {
     Remove-Item $xml
 }
 
-if ($result.TotalCount -lt 1)
-{
+if ($result.TotalCount -lt 1) {
     $m = "No tests were run."
 
     if ($LocalBuild) {
@@ -31,15 +30,13 @@ if ($result.TotalCount -lt 1)
     }
 }
 
-if ($result.FailedCount -gt 0)
-{
+if ($result.FailedCount -gt 0) {
     $m = "$($result.FailedCount) tests did not pass."
     if ($LocalBuild) {
         $m
         exit $result.FailedCount
     }
-    else
-    {
+    else {
         throw $m
     }
 }

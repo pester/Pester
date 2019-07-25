@@ -1,6 +1,6 @@
 function GetPesterPsVersion {
     # accessing the value indirectly so it can be mocked
-    (Get-Variable 'PSVersionTable' -ValueOnly).PsVersion.Major
+    (Get-Variable 'PSVersionTable' -ValueOnly).PSVersion.Major
 }
 
 function GetPesterOs {
@@ -23,27 +23,24 @@ function GetPesterOs {
 }
 
 function Get-TempDirectory {
-    if ((GetPesterOs) -eq 'Windows') {
-        $env:TEMP
+    if ((GetPesterOs) -eq 'macOS') {
+        # Special case for macOS using the real path instead of /tmp which is a symlink to this path
+        "/private/tmp"
     }
     else {
-        '/tmp'
+        [System.IO.Path]::GetTempPath()
     }
 }
 
 function Get-TempRegistry {
-    $pesterTempRegistryRoot = 'HKCU:\Software\Pester'
-    if (Test-Path 'HKCU:\Software\Pester') {
+    $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
+    if (-not (Test-Path $pesterTempRegistryRoot)) {
         try {
-            $null = New-TempRegistry
+            $null = New-Item -Path $pesterTempRegistryRoot -ErrorAction Stop
         }
         catch [Exception] {
             throw (New-Object Exception -ArgumentList "Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))
         }
     }
     return $pesterTempRegistryRoot
-}
-
-function New-TempRegistry {
-    New-Item -Path 'HKCU:\Software\Pester' -Force
 }

@@ -1,13 +1,10 @@
 #
 function New-TestDrive ([Switch]$PassThru, [string] $Path) {
-    if ($Path -notmatch '\S')
-    {
+    if ($Path -notmatch '\S') {
         $directory = New-RandomTempDirectory
     }
-    else
-    {
-        if (-not (& $SafeCommands['Test-Path'] -Path $Path))
-        {
+    else {
+        if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
             $null = & $SafeCommands['New-Item'] -ItemType Container -Path $Path
         }
 
@@ -17,40 +14,38 @@ function New-TestDrive ([Switch]$PassThru, [string] $Path) {
     $DriveName = "TestDrive"
 
     #setup the test drive
-    if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") )
-    {
+    if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") ) {
         $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description "Pester test drive"
     }
 
     #publish the global TestDrive variable used in few places within the module
-    if (-not (& $SafeCommands['Test-Path'] "Variable:Global:$DriveName"))
-    {
+    if (-not (& $SafeCommands['Test-Path'] "Variable:Global:$DriveName")) {
         & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $directory
     }
 
-    if ( $PassThru ) { & $SafeCommands['Get-PSDrive'] -Name $DriveName }
+    if ( $PassThru ) {
+        & $SafeCommands['Get-PSDrive'] -Name $DriveName
+    }
 }
 
 
 function Clear-TestDrive ([String[]]$Exclude) {
     $Path = (& $SafeCommands['Get-PSDrive'] -Name TestDrive).Root
-    if (& $SafeCommands['Test-Path'] -Path $Path )
-    {
+    if (& $SafeCommands['Test-Path'] -Path $Path ) {
 
         Remove-TestDriveSymbolicLinks -Path $Path
 
         #Get-ChildItem -Exclude did not seem to work with full paths
         & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
-        & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
-        & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
-        & $SafeCommands['Remove-Item'] -Force -Recurse
+            & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
+            & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
+            & $SafeCommands['Remove-Item'] -Force -Recurse
 
     }
 }
 
 function New-RandomTempDirectory {
-    do
-    {
+    do {
         $tempPath = Get-TempDirectory
         $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
@@ -59,7 +54,7 @@ function New-RandomTempDirectory {
 }
 
 function Get-TestDriveItem {
-<#
+    <#
     .SYNOPSIS
     The Get-TestDriveItem cmdlet gets the item in Pester test drive.
 
@@ -99,8 +94,7 @@ function Get-TestDriveItem {
 
 function Get-TestDriveChildItem {
     $Path = (& $SafeCommands['Get-PSDrive'] -Name TestDrive).Root
-    if (& $SafeCommands['Test-Path'] -Path $Path )
-    {
+    if (& $SafeCommands['Test-Path'] -Path $Path ) {
         & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path
     }
 }
@@ -115,12 +109,17 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path -Attributes "ReparsePoint" |
     #    % { $_.Delete() }
 
+    # issue 621 was fixed before PowerShell 6.1
+    # now there is an issue with calling the Delete method in recent (6.1) builds of PowerShell
+    if ( (GetPesterPSVersion) -ge 6) {
+        return
+    }
+
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
-       where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-       % { $_.Delete() }
-
+        where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+        foreach-object { $_.Delete() }
 }
 
 function Remove-TestDrive {
@@ -136,15 +135,13 @@ function Remove-TestDrive {
         & $SafeCommands['Write-Warning'] -Message "Your current path is set to ${pwd}:. You should leave ${DriveName}:\ before leaving Describe."
     }
 
-    if ( $Drive )
-    {
+    if ( $Drive ) {
         $Drive | & $SafeCommands['Remove-PSDrive'] -Force #This should fail explicitly as it impacts future pester runs
     }
 
     Remove-TestDriveSymbolicLinks -Path $Path
 
-    if (& $SafeCommands['Test-Path'] -Path $Path)
-    {
+    if (& $SafeCommands['Test-Path'] -Path $Path) {
         & $SafeCommands['Remove-Item'] -Path $Path -Force -Recurse
     }
 
@@ -159,17 +156,17 @@ function Setup {
         This command is included in the Pester Mocking framework for backwards compatibility.  You do not need to call it directly.
     #>
     param(
-    [switch]$Dir,
-    [switch]$File,
-    $Path,
-    $Content = "",
-    [switch]$PassThru
+        [switch]$Dir,
+        [switch]$File,
+        $Path,
+        $Content = "",
+        [switch]$PassThru
     )
 
     Assert-DescribeInProgress -CommandName Setup
 
     $TestDriveName = & $SafeCommands['Get-PSDrive'] TestDrive |
-                     & $SafeCommands['Select-Object'] -ExpandProperty Root
+        & $SafeCommands['Select-Object'] -ExpandProperty Root
 
     if ($Dir) {
         $item = & $SafeCommands['New-Item'] -Name $Path -Path "${TestDriveName}\" -Type Container -Force
@@ -178,7 +175,7 @@ function Setup {
         $item = $Content | & $SafeCommands['New-Item'] -Name $Path -Path "${TestDriveName}\" -Type File -Force
     }
 
-    if($PassThru) {
+    if ($PassThru) {
         return $item
     }
 }

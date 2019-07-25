@@ -1,6 +1,6 @@
 
 function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Checks values for null or empty (strings).
 The static [String]::IsNullOrEmpty() method is used to do the comparison.
@@ -21,39 +21,33 @@ An empty collection will pass this test.
 ""  | Should -BeNullOrEmpty
 An empty string will pass this test.
 #>
-    if ($null -eq $ActualValue -or $ActualValue.Count -eq 0)
-    {
+    if ($null -eq $ActualValue -or $ActualValue.Count -eq 0) {
         $succeeded = $true
     }
-    elseif ($ActualValue.Count -eq 1)
-    {
+    elseif ($ActualValue.Count -eq 1) {
         $expandedValue = $ActualValue[0]
-        if ($expandedValue -is [hashtable])
-        {
+        if ($expandedValue -is [hashtable]) {
             $succeeded = $expandedValue.Count -eq 0
         }
-        else
-        {
+        else {
             $succeeded = [String]::IsNullOrEmpty($expandedValue)
         }
     }
-    else
-    {
+    else {
         $succeeded = $false
     }
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
     $failureMessage = ''
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             $failureMessage = NotShouldBeNullOrEmptyFailureMessage -Because $Because
         }
-        else
-        {
+        else {
             $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $ActualValue -Because $Because
         }
     }
@@ -73,6 +67,6 @@ function NotShouldBeNullOrEmptyFailureMessage ($Because) {
 }
 
 Add-AssertionOperator -Name               BeNullOrEmpty `
-                      -InternalName       Should-BeNullOrEmpty `
-                      -Test               ${function:Should-BeNullOrEmpty} `
-                      -SupportsArrayInput
+    -InternalName       Should-BeNullOrEmpty `
+    -Test               ${function:Should-BeNullOrEmpty} `
+    -SupportsArrayInput

@@ -1,11 +1,9 @@
-﻿if ($PSVersionTable.PSVersion.Major -ge 3)
-{
+﻿if ($PSVersionTable.PSVersion.Major -ge 3) {
     $script:IgnoreErrorPreference = 'Ignore'
     $outNullModule = 'Microsoft.PowerShell.Core'
     $outHostModule = 'Microsoft.PowerShell.Core'
 }
-else
-{
+else {
     $script:IgnoreErrorPreference = 'SilentlyContinue'
     $outNullModule = 'Microsoft.PowerShell.Utility'
     $outHostModule = $null
@@ -23,8 +21,7 @@ $safeCommandLookupParameters = @{
     ErrorAction = [System.Management.Automation.ActionPreference]::Stop
 }
 
-if ($PSVersionTable.PSVersion.Major -gt 2)
-{
+if ($PSVersionTable.PSVersion.Major -gt 2) {
     $safeCommandLookupParameters['All'] = $true
 }
 
@@ -93,34 +90,27 @@ $script:SafeCommands = @{
 # Get-CimInstance is preferred, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
-if ( Get-Command -ea SilentlyContinue Get-CimInstance )
-{
+if ( Get-Command -ea SilentlyContinue Get-CimInstance ) {
     $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets @safeCommandLookupParameters
 }
-elseif ( Get-command -ea SilentlyContinue Get-WmiObject )
-{
-    $script:SafeCommands['Get-WmiObject']   = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+elseif ( Get-command -ea SilentlyContinue Get-WmiObject ) {
+    $script:SafeCommands['Get-WmiObject'] = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
 }
-elseif ( Get-Command -ea SilentlyContinue uname -Type Application )
-{
+elseif ( Get-Command -ea SilentlyContinue uname -Type Application ) {
     $script:SafeCommands['uname'] = Get-Command -Name uname -Type Application | Select-Object -First 1
-    if ( Get-Command -ea SilentlyContinue id -Type Application )
-    {
+    if ( Get-Command -ea SilentlyContinue id -Type Application ) {
         $script:SafeCommands['id'] = Get-Command -Name id -Type Application | Select-Object -First 1
     }
 }
-else
-{
+else {
     Write-Warning "OS Information retrieval is not possible, reports will contain only partial system data"
 }
 
 # little sanity check to make sure we don't blow up a system with a typo up there
 # (not that I've EVER done that by, for example, mapping New-Item to Remove-Item...)
 
-foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
-{
-    if ($keyValuePair.Key -ne $keyValuePair.Value.Name)
-    {
+foreach ($keyValuePair in $script:SafeCommands.GetEnumerator()) {
+    if ($keyValuePair.Key -ne $keyValuePair.Value.Name) {
         throw "SafeCommands entry for $($keyValuePair.Key) does not hold a reference to the proper command."
     }
 }
@@ -128,6 +118,256 @@ foreach ($keyValuePair in $script:SafeCommands.GetEnumerator())
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
+$script:DisableScopeHints = $true
+
+function Count-Scopes {
+    param(
+        [Parameter(Mandatory = $true)]
+        $ScriptBlock)
+
+    if ($script:DisableScopeHints) {
+        return 0
+    }
+
+    # automatic variable that can help us count scopes must be constant a must not be all scopes
+    # from the standard ones only Error seems to be that, let's ensure it is like that everywhere run
+    # other candidate variables can be found by this code
+    # Get-Variable  | where { -not ($_.Options -band [Management.Automation.ScopedItemOptions]"AllScope") -and $_.Options -band $_.Options -band [Management.Automation.ScopedItemOptions]"Constant" }
+
+    # get-variable steps on it's toes and recurses when we mock it in a test
+    # and we are also invoking this in user scope so we need to pass the reference
+    # to the safely captured function in the user scope
+    $safeGetVariable = $script:SafeCommands['Get-Variable']
+    $sb = {
+        param($safeGetVariable)
+        $err = (& $safeGetVariable -Name Error).Options
+        if ($err -band "AllScope" -or (-not ($err -band "Constant"))) {
+            throw "Error variable is set to AllScope, or is not marked as constant cannot use it to count scopes on this platform."
+        }
+
+        $scope = 0
+        while ($null -eq (& $safeGetVariable -Name Error -Scope $scope -ErrorAction SilentlyContinue)) {
+            $scope++
+        }
+
+        $scope - 1 # because we are in a function
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $ssi = $property.GetValue($ScriptBlock, $null)
+    $property.SetValue($sb, $ssi, $null)
+
+    &$sb $safeGetVariable
+}
+
+function Write-ScriptBlockInvocationHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $true)]
+        [String]
+        $Hint
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    $scope = Get-ScriptBlockHint $ScriptBlock
+    $count = Count-Scopes -ScriptBlock $ScriptBlock
+
+    Write-Hint "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:
+    {
+        $ScriptBlock
+    }`n`n"
+}
+
+function Write-Hint ($Hint) {
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    Write-Host -ForegroundColor Cyan $Hint
+}
+
+function Test-Hint {
+    param (
+        [Parameter(Mandatory = $true)]
+        $InputObject
+    )
+
+    if ($script:DisableScopeHints) {
+        return $true
+    }
+
+    $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
+    if ($null -eq $property) {
+        return $false
+    }
+
+    Test-NullOrWhiteSpace $property.Value
+}
+
+function Set-Hint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        $InputObject,
+        [Switch] $Force
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) {
+        $hintIsNotSet = Test-NullOrWhiteSpace $InputObject.Hint
+        if ($Force -or $hintIsNotSet) {
+            $InputObject.Hint = $Hint
+        }
+    }
+    else {
+        # do not change this to be called without the pipeline, it will throw: Cannot evaluate parameter 'InputObject' because its argument is specified as a script block and there is no input. A script block cannot be evaluated without input.
+        $InputObject | Add-Member -Name Hint -Value $Hint -MemberType NoteProperty
+    }
+}
+
+function Set-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [String] $Hint,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState,
+        [Switch] $PassThru
+    )
+
+    if ($script:DisableScopeHints) {
+        if ($PassThru) {
+            return $SessionState
+        }
+        return
+    }
+
+    # in all places where we capture SessionState we mark its internal state with a hint
+    # the internal state does not change and we use it to invoke scriptblock in diferent
+    # states, setting the hint on SessionState is only secondary to make is easier to debug
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if ($null -eq $internalSessionState) {
+        throw "SessionState does not have any internal SessionState, this should never happen."
+    }
+
+    $hashcode = $internalSessionState.GetHashCode()
+    # optionally sets the hint if there was none, so the hint from the
+    # function that first captured this session state is preserved
+    Set-Hint -Hint "$Hint ($hashcode))" -InputObject $internalSessionState
+    # the public session state should always depend on the internal state
+    Set-Hint -Hint $internalSessionState.Hint -InputObject $SessionState -Force
+
+    if ($PassThru) {
+        $SessionState
+    }
+}
+
+function Get-SessionStateHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    # the hint is also attached to the session state object, but sessionstate objects are recreated while
+    # the internal state stays static so to see the hint on object that we receive via $PSCmdlet.SessionState we need
+    # to look at the InternalSessionState. the internal state should be never null so just looking there is enough
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+    if (Test-Hint $internalSessionState) {
+        $internalSessionState.Hint
+    }
+}
+
+function Set-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [string] $Hint
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if ($null -eq $internalSessionState) {
+        if (Test-Hint -InputObject $ScriptBlock) {
+            # the scriptblock already has a hint and there is not internal state
+            # so the hint on the scriptblock is enough
+            # if there was an internal state we would try to copy the hint from it
+            # onto the scriptblock to keep them in sync
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it is unbound ScriptBlock (with null internal state) and no -Hint was provided."
+        }
+
+        # adds hint on the ScriptBlock
+        # the internal session state is null so we must attach the hint directly
+        # on the scriptblock
+        Set-Hint -Hint "$Hint (Unbound)" -InputObject $ScriptBlock -Force
+    }
+    else {
+        if (Test-Hint -InputObject $internalSessionState) {
+            # there already is hint on the internal state, we take it and sync
+            # it with the hint on the object
+            Set-Hint -Hint $internalSessionState.Hint -InputObject $ScriptBlock -Force
+            return
+        }
+
+        if ($null -eq $Hint) {
+            throw "Cannot set ScriptBlock hint because it's internal state does not have any Hint and no external -Hint was provided."
+        }
+
+        $hashcode = $internalSessionState.GetHashCode()
+        $Hint = "$Hint - ($hashCode)"
+        Set-Hint -Hint $Hint -InputObject $internalSessionState -Force
+        Set-Hint -Hint $Hint -InputObject $ScriptBlock -Force
+    }
+}
+
+function Get-ScriptBlockHint {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock
+    )
+
+    if ($script:DisableScopeHints) {
+        return
+    }
+
+    # the hint is also attached to the scriptblock object, but not all scriptblocks are tagged by us,
+    # the internal state stays static so to see the hint on object that we receive we need to look at the InternalSessionState
+    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+    $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+
+
+    if ($null -ne $internalSessionState -and (Test-Hint $internalSessionState)) {
+        return $internalSessionState.Hint
+    }
+
+    if (Test-Hint $ScriptBlock) {
+        return $ScriptBlock.Hint
+    }
+
+    "Unknown unbound ScriptBlock"
+}
+
 
 function Test-NullOrWhiteSpace {
     param ([string]$String)
@@ -135,27 +375,22 @@ function Test-NullOrWhiteSpace {
     $String -match "^\s*$"
 }
 
-function Assert-ValidAssertionName
-{
+function Assert-ValidAssertionName {
     param([string]$Name)
-    if ($Name -notmatch '^\S+$')
-    {
+    if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
     }
 }
 
-function Assert-ValidAssertionAlias
-{
+function Assert-ValidAssertionAlias {
     param([string[]]$Alias)
-    if ($Alias -notmatch '^\S+$')
-    {
+    if ($Alias -notmatch '^\S+$') {
         throw "Assertion alias '$string' is invalid, assertion alias must be a single word."
     }
 }
 
-function Add-AssertionOperator
-{
-<#
+function Add-AssertionOperator {
+    <#
 .SYNOPSIS
     Register an Assertion Operator with Pester
 .DESCRIPTION
@@ -222,14 +457,18 @@ function Add-AssertionOperator
     )
 
     $entry = New-Object psobject -Property @{
-        Test                       = $Test
-        SupportsArrayInput         = [bool]$SupportsArrayInput
-        Name                       = $Name
-        Alias                      = $Alias
-        InternalName               = If ($InternalName) {$InternalName} Else {$Name}
+        Test               = $Test
+        SupportsArrayInput = [bool]$SupportsArrayInput
+        Name               = $Name
+        Alias              = $Alias
+        InternalName       = If ($InternalName) {
+            $InternalName
+        }
+        Else {
+            $Name
+        }
     }
-    if (Test-AssertionOperatorIsDuplicate -Operator $entry)
-    {
+    if (Test-AssertionOperatorIsDuplicate -Operator $entry) {
         # This is an exact duplicate of an existing assertion operator.
         return
     }
@@ -243,8 +482,7 @@ function Add-AssertionOperator
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_)})
-    {
+    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_)}) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -252,43 +490,39 @@ function Add-AssertionOperator
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
 
-function Test-AssertionOperatorIsDuplicate
-{
+function Test-AssertionOperatorIsDuplicate {
     param (
         [psobject] $Operator
     )
 
     $existing = $script:AssertionOperators[$Operator.Name]
-    if (-not $existing) { return $false }
+    if (-not $existing) {
+        return $false
+    }
 
     return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
-           $Operator.Test.ToString() -eq $existing.Test.ToString() -and
-           -not (Compare-Object $Operator.Alias $existing.Alias)
+    $Operator.Test.ToString() -eq $existing.Test.ToString() -and
+    -not (Compare-Object $Operator.Alias $existing.Alias)
 }
-function Assert-AssertionOperatorNameIsUnique
-{
+function Assert-AssertionOperatorNameIsUnique {
     param (
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_)})
-    {
+    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_)}) {
         Assert-ValidAssertionName -Name $string
 
-        if ($script:AssertionOperators.ContainsKey($string))
-        {
+        if ($script:AssertionOperators.ContainsKey($string)) {
             throw "Assertion operator name '$string' has been added multiple times."
         }
 
-        if ($script:AssertionAliases.ContainsKey($string))
-        {
+        if ($script:AssertionAliases.ContainsKey($string)) {
             throw "Assertion operator name '$string' already exists as an alias for operator '$($script:AssertionAliases[$key])'"
         }
     }
 }
 
-function Add-AssertionDynamicParameterSet
-{
+function Add-AssertionDynamicParameterSet {
     param (
         [object] $AssertionEntry
     )
@@ -303,8 +537,7 @@ function Add-AssertionDynamicParameterSet
 
     $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
-    if (-not (Test-NullOrWhiteSpace $AssertionEntry.Alias))
-    {
+    if (-not (Test-NullOrWhiteSpace $AssertionEntry.Alias)) {
         Assert-ValidAssertionAlias -Alias $AssertionEntry.Alias
         $attribute = New-Object System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
         $attributeCollection.Add($attribute)
@@ -313,12 +546,10 @@ function Add-AssertionDynamicParameterSet
     $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
     $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
 
-    if ($script:AssertionDynamicParams.ContainsKey('Not'))
-    {
+    if ($script:AssertionDynamicParams.ContainsKey('Not')) {
         $dynamic = $script:AssertionDynamicParams['Not']
     }
-    else
-    {
+    else {
         $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Not', [switch], (New-Object System.Collections.ObjectModel.Collection[Attribute]))
         $null = $script:AssertionDynamicParams.Add('Not', $dynamic)
     }
@@ -329,31 +560,27 @@ function Add-AssertionDynamicParameterSet
     $null = $dynamic.Attributes.Add($attribute)
 
     $i = 1
-    foreach ($parameter in $metadata.Parameters.Values)
-    {
+    foreach ($parameter in $metadata.Parameters.Values) {
         # common parameters that are already defined
-        if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not' -or $parameter.Name -eq 'Negate') { continue }
+        if ($parameter.Name -eq 'ActualValue' -or $parameter.Name -eq 'Not' -or $parameter.Name -eq 'Negate') {
+            continue
+        }
 
 
-        if ($script:AssertionOperators.ContainsKey($parameter.Name) -or $script:AssertionAliases.ContainsKey($parameter.Name))
-        {
+        if ($script:AssertionOperators.ContainsKey($parameter.Name) -or $script:AssertionAliases.ContainsKey($parameter.Name)) {
             throw "Test block for assertion operator $($AssertionEntry.Name) contains a parameter named $($parameter.Name), which conflicts with another assertion operator's name or alias."
         }
 
-        foreach ($alias in $parameter.Aliases)
-        {
-            if ($script:AssertionOperators.ContainsKey($alias) -or $script:AssertionAliases.ContainsKey($alias))
-            {
+        foreach ($alias in $parameter.Aliases) {
+            if ($script:AssertionOperators.ContainsKey($alias) -or $script:AssertionAliases.ContainsKey($alias)) {
                 throw "Test block for assertion operator $($AssertionEntry.Name) contains a parameter named $($parameter.Name) with alias $alias, which conflicts with another assertion operator's name or alias."
             }
         }
 
-        if ($script:AssertionDynamicParams.ContainsKey($parameter.Name))
-        {
+        if ($script:AssertionDynamicParams.ContainsKey($parameter.Name)) {
             $dynamic = $script:AssertionDynamicParams[$parameter.Name]
         }
-        else
-           {
+        else {
             # We deliberately use a type of [object] here to avoid conflicts between different assertion operators that may use the same parameter name.
             # We also don't bother to try to copy transformation / validation attributes here for the same reason.
             # Because we'll be passing these parameters on to the actual test function later, any errors will come out at that time.
@@ -362,7 +589,8 @@ function Add-AssertionDynamicParameterSet
             # so for switches we must prefer the conflicts over type
             if ([switch] -eq $parameter.ParameterType) {
                 $type = [switch]
-            } else {
+            }
+            else {
                 $type = [object]
             }
 
@@ -379,26 +607,24 @@ function Add-AssertionDynamicParameterSet
     }
 }
 
-function Get-AssertionOperatorEntry([string] $Name)
-{
+function Get-AssertionOperatorEntry([string] $Name) {
     return $script:AssertionOperators[$Name]
 }
 
-function Get-AssertionDynamicParams
-{
+function Get-AssertionDynamicParams {
     return $script:AssertionDynamicParams
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
-& $script:SafeCommands['Resolve-Path'] |
-& $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
-& $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+    & $script:SafeCommands['Resolve-Path'] |
+    & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+    & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
 if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
     # sub-modules
     & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
 }
 
 Add-Type -TypeDefinition @"
@@ -427,370 +653,377 @@ namespace Pester
 "@
 
 function Has-Flag {
-     param
-     (
-         [Parameter(Mandatory = $true)]
-         [Pester.OutputTypes]
-         $Setting,
-         [Parameter(Mandatory = $true, ValueFromPipeline=$true)]
-         [Pester.OutputTypes]
-         $Value
-     )
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [Pester.OutputTypes]
+        $Setting,
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [Pester.OutputTypes]
+        $Value
+    )
 
-  0 -ne ($Setting -band $Value)
+    0 -ne ($Setting -band $Value)
 }
 
 function Invoke-Pester {
-<#
-.SYNOPSIS
-Runs Pester tests
+    <#
+    .SYNOPSIS
+    Runs Pester tests
 
-.DESCRIPTION
-The Invoke-Pester function runs Pester tests, including *.Tests.ps1 files and
-Pester tests in PowerShell scripts.
+    .DESCRIPTION
+    The Invoke-Pester function runs Pester tests, including *.Tests.ps1 files and
+    Pester tests in PowerShell scripts.
 
-You can run scripts that include Pester tests just as you would any other
-Windows PowerShell script, including typing the full path at the command line
-and running in a script editing program. Typically, you use Invoke-Pester to run
-all Pester tests in a directory, or to use its many helpful parameters,
-including parameters that generate custom objects or XML files.
-
-By default, Invoke-Pester runs all *.Tests.ps1 files in the current directory
-and all subdirectories recursively. You can use its parameters to select tests
-by file name, test name, or tag.
+    You can run scripts that include Pester tests just as you would any other
+    Windows PowerShell script, including typing the full path at the command line
+    and running in a script editing program. Typically, you use Invoke-Pester to run
+    all Pester tests in a directory, or to use its many helpful parameters,
+    including parameters that generate custom objects or XML files.
+
+    By default, Invoke-Pester runs all *.Tests.ps1 files in the current directory
+    and all subdirectories recursively. You can use its parameters to select tests
+    by file name, test name, or tag.
 
-To run Pester tests in scripts that take parameter values, use the Script
-parameter with a hash table value.
+    To run Pester tests in scripts that take parameter values, use the Script
+    parameter with a hash table value.
 
-Also, by default, Pester tests write test results to the console host, much like
-Write-Host does, but you can use the Show parameter set to None to suppress the host
-messages, use the PassThru parameter to generate a custom object
-(PSCustomObject) that contains the test results, use the OutputXml and
-OutputFormat parameters to write the test results to an XML file, and use the
-EnableExit parameter to return an exit code that contains the number of failed
-tests.
+    Also, by default, Pester tests write test results to the console host, much like
+    Write-Host does, but you can use the Show parameter set to None to suppress the host
+    messages, use the PassThru parameter to generate a custom object
+    (PSCustomObject) that contains the test results, use the OutputXml and
+    OutputFormat parameters to write the test results to an XML file, and use the
+    EnableExit parameter to return an exit code that contains the number of failed
+    tests.
 
-You can also use the Strict parameter to fail all pending and skipped tests.
-This feature is ideal for build systems and other processes that require success
-on every test.
+    You can also use the Strict parameter to fail all pending and skipped tests.
+    This feature is ideal for build systems and other processes that require success
+    on every test.
 
-To help with test design, Invoke-Pester includes a CodeCoverage parameter that
-lists commands, functions, and lines of code that did not run during test
-execution and returns the code that ran as a percentage of all tested code.
+    To help with test design, Invoke-Pester includes a CodeCoverage parameter that
+    lists commands, classes, functions, and lines of code that did not run during test
+    execution and returns the code that ran as a percentage of all tested code.
 
-Invoke-Pester, and the Pester module that exports it, are products of an
-open-source project hosted on GitHub. To view, comment, or contribute to the
-repository, see https://github.com/Pester.
+    Invoke-Pester, and the Pester module that exports it, are products of an
+    open-source project hosted on GitHub. To view, comment, or contribute to the
+    repository, see https://github.com/Pester.
 
-.PARAMETER Script
-Specifies the test files that Pester runs. You can also use the Script parameter
-to pass parameter names and values to a script that contains Pester tests. The
-value of the Script parameter can be a string, a hash table, or a collection
-of hash tables and strings. Wildcard characters are supported.
+    .PARAMETER Script
+    Specifies the test files that Pester runs. You can also use the Script parameter
+    to pass parameter names and values to a script that contains Pester tests. The
+    value of the Script parameter can be a string, a hash table, or a collection
+    of hash tables and strings. Wildcard characters are supported.
 
-The Script parameter is optional. If you omit it, Invoke-Pester runs all
-*.Tests.ps1 files in the local directory and its subdirectories recursively.
+    The Script parameter is optional. If you omit it, Invoke-Pester runs all
+    *.Tests.ps1 files in the local directory and its subdirectories recursively.
+
+    To run tests in other files, such as .ps1 files, enter the path and file name of
+    the file. (The file name is required. Name patterns that end in "*.ps1" run only
+    *.Tests.ps1 files.)
 
-To run tests in other files, such as .ps1 files, enter the path and file name of
-the file. (The file name is required. Name patterns that end in "*.ps1" run only
-*.Tests.ps1 files.)
+    To run a Pester test with parameter names and/or values, use a hash table as the
+    value of the script parameter. The keys in the hash table are:
 
-To run a Pester test with parameter names and/or values, use a hash table as the
-value of the script parameter. The keys in the hash table are:
+    -- Path [string] (required): Specifies a test to run. The value is a path\file
+    name or name pattern. Wildcards are permitted. All hash tables in a Script
+    parameter value must have a Path key.
 
--- Path [string] (required): Specifies a test to run. The value is a path\file
-   name or name pattern. Wildcards are permitted. All hash tables in a Script
-   parameter value must have a Path key.
+    -- Parameters [hashtable]: Runs the script with the specified parameters. The
+    value is a nested hash table with parameter name and value pairs, such as
+    @{UserName = 'User01'; Id = '28'}.
 
--- Parameters [hashtable]: Runs the script with the specified parameters. The
-   value is a nested hash table with parameter name and value pairs, such as
-   @{UserName = 'User01'; Id = '28'}.
+    -- Arguments [array]: An array or comma-separated list of parameter values
+    without names, such as 'User01', 28. Use this key to pass values to positional
+    parameters.
 
--- Arguments [array]: An array or comma-separated list of parameter values
-   without names, such as 'User01', 28. Use this key to pass values to positional
-   parameters.
 
+    .PARAMETER TestName
+    Runs only tests in Describe blocks that have the specified name or name pattern.
+    Wildcard characters are supported.
 
-.PARAMETER TestName
-Runs only tests in Describe blocks that have the specified name or name pattern.
-Wildcard characters are supported.
+    If you specify multiple TestName values, Invoke-Pester runs tests that have any
+    of the values in the Describe name (it ORs the TestName values).
 
-If you specify multiple TestName values, Invoke-Pester runs tests that have any
-of the values in the Describe name (it ORs the TestName values).
+    .PARAMETER EnableExit
+    Will cause Invoke-Pester to exit with a exit code equal to the number of failed
+    tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
-.PARAMETER EnableExit
-Will cause Invoke-Pester to exit with a exit code equal to the number of failed
-tests once all tests have been run. Use this to "fail" a build when any tests fail.
+    .PARAMETER OutputFile
+    The path where Invoke-Pester will save formatted test results log file.
 
-.PARAMETER OutputFile
-The path where Invoke-Pester will save formatted test results log file.
+    The path must include the location and name of the folder and file name with
+    the xml extension.
 
-The path must include the location and name of the folder and file name with
-the xml extension.
+    If this path is not provided, no log will be generated.
 
-If this path is not provided, no log will be generated.
+    .PARAMETER OutputFormat
+    The format of output. Two formats of output are supported: NUnitXML and
+    LegacyNUnitXML.
 
-.PARAMETER OutputFormat
-The format of output. Two formats of output are supported: NUnitXML and
-LegacyNUnitXML.
+    .PARAMETER Tag
+    Runs only tests in Describe blocks with the specified Tag parameter values.
+    Wildcard characters are supported. Tag values that include spaces or whitespace
+    will be split into multiple tags on the whitespace.
 
-.PARAMETER Tag
-Runs only tests in Describe blocks with the specified Tag parameter values.
-Wildcard characters are supported. Tag values that include spaces or whitespace
- will be split into multiple tags on the whitespace.
+    When you specify multiple Tag values, Invoke-Pester runs tests that have any
+    of the listed tags (it ORs the tags). However, when you specify TestName
+    and Tag values, Invoke-Pester runs only describe blocks that have one of the
+    specified TestName values and one of the specified Tag values.
 
-When you specify multiple Tag values, Invoke-Pester runs tests that have any
-of the listed tags (it ORs the tags). However, when you specify TestName
-and Tag values, Invoke-Pester runs only describe blocks that have one of the
-specified TestName values and one of the specified Tag values.
+    If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
 
-If you use both Tag and ExcludeTag, ExcludeTag takes precedence.
+    .PARAMETER ExcludeTag
+    Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
+    characters are supported. Tag values that include spaces or whitespace
+    will be split into multiple tags on the whitespace.
 
-.PARAMETER ExcludeTag
-Omits tests in Describe blocks with the specified Tag parameter values. Wildcard
-characters are supported. Tag values that include spaces or whitespace
- will be split into multiple tags on the whitespace.
+    When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
+    any of the listed tags (it ORs the tags). However, when you specify TestName
+    and ExcludeTag values, Invoke-Pester omits only describe blocks that have one
+    of the specified TestName values and one of the specified Tag values.
 
-When you specify multiple ExcludeTag values, Invoke-Pester omits tests that have
-any of the listed tags (it ORs the tags). However, when you specify TestName
-and ExcludeTag values, Invoke-Pester omits only describe blocks that have one
-of the specified TestName values and one of the specified Tag values.
+    If you use both Tag and ExcludeTag, ExcludeTag takes precedence
 
-If you use both Tag and ExcludeTag, ExcludeTag takes precedence
+    .PARAMETER PassThru
+    Returns a custom object (PSCustomObject) that contains the test results.
 
-.PARAMETER PassThru
-Returns a custom object (PSCustomObject) that contains the test results.
+    By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
+    If you try to save the result in a variable, the variable is empty unless you
+    use the PassThru parameter.
 
-By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
-If you try to save the result in a variable, the variable is empty unless you
-use the PassThru parameter.
+    To suppress the host output, use the Show parameter set to None.
 
-To suppress the host output, use the Show parameter set to None.
+    .PARAMETER CodeCoverage
+    Adds a code coverage report to the Pester tests. Takes strings or hash table values.
 
-.PARAMETER CodeCoverage
-Adds a code coverage report to the Pester tests. Takes strings or hash table values.
+    A code coverage report lists the lines of code that did and did not run during
+    a Pester test. This report does not tell whether code was tested; only whether
+    the code ran during the test.
 
-A code coverage report lists the lines of code that did and did not run during
-a Pester test. This report does not tell whether code was tested; only whether
-the code ran during the test.
+    By default, the code coverage report is written to the host program
+    (like Write-Host). When you use the PassThru parameter, the custom object
+    that Invoke-Pester returns has an additional CodeCoverage property that contains
+    a custom object with detailed results of the code coverage test, including lines
+    hit, lines missed, and helpful statistics.
 
-By default, the code coverage report is written to the host program
-(like Write-Host). When you use the PassThru parameter, the custom object
-that Invoke-Pester returns has an additional CodeCoverage property that contains
-a custom object with detailed results of the code coverage test, including lines
-hit, lines missed, and helpful statistics.
+    However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include
+    any code coverage information, because it's not supported by the schema.
 
-However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include
-any code coverage information, because it's not supported by the schema.
+    Enter the path to the files of code under test (not the test file).
+    Wildcard characters are supported. If you omit the path, the default is local
+    directory, not the directory specified by the Script parameter. Pester test files
+    are by default excluded from code coverage when a directory is provided. When you
+    provide a test file directly using string, code coverage will be measured. To include
+    tests in code coverage of a directory, use the dictionary syntax and provide
+    IncludeTests = $true option, as shown below.
 
-Enter the path to the files of code under test (not the test file).
-Wildcard characters are supported. If you omit the path, the default is local
-directory, not the directory specified by the Script parameter.
+    To run a code coverage test only on selected classes, functions or lines in a script,
+    enter a hash table value with the following keys:
 
-To run a code coverage test only on selected functions or lines in a script,
-enter a hash table value with the following keys:
+    -- Path (P)(mandatory) <string>: Enter one path to the files. Wildcard characters
+    are supported, but only one string is permitted.
+    -- IncludeTests <bool>: Includes code coverage for Pester test files (*.tests.ps1).
+    Default is false.
 
--- Path (P)(mandatory) <string>. Enter one path to the files. Wildcard characters
-   are supported, but only one string is permitted.
+    One of the following: Class/Function or StartLine/EndLine
 
-One of the following: Function or StartLine/EndLine
+    -- Class (C) <string>: Enter the class name. Wildcard characters are
+    supported, but only one string is permitted. Default is *.
+    -- Function (F) <string>: Enter the function name. Wildcard characters are
+    supported, but only one string is permitted. Default is *.
 
--- Function (F) <string>: Enter the function name. Wildcard characters are
-   supported, but only one string is permitted.
+    -or-
 
--or-
+    -- StartLine (S): Performs code coverage analysis beginning with the specified
+    line. Default is line 1.
+    -- EndLine (E): Performs code coverage analysis ending with the specified line.
+    Default is the last line of the script.
 
--- StartLine (S): Performs code coverage analysis beginning with the specified
-   line. Default is line 1.
--- EndLine (E): Performs code coverage analysis ending with the specified line.
-   Default is the last line of the script.
+    .PARAMETER CodeCoverageOutputFile
+    The path where Invoke-Pester will save formatted code coverage results file.
 
-.PARAMETER CodeCoverageOutputFile
-The path where Invoke-Pester will save formatted code coverage results file.
+    The path must include the location and name of the folder and file name with
+    a required extension (usually the xml).
 
-The path must include the location and name of the folder and file name with
-a required extension (usually the xml).
+    If this path is not provided, no file will be generated.
 
-If this path is not provided, no file will be generated.
+    .PARAMETER CodeCoverageOutputFileFormat
+    The name of a code coverage report file format.
 
-.PARAMETER CodeCoverageOutputFileFormat
-The name of a code coverage report file format.
+    Default value is: JaCoCo.
 
-Default value is: JaCoCo.
+    Currently supported formats are:
+    - JaCoCo - this XML file format is compatible with the VSTS/TFS
 
-Currently supported formats are:
-- JaCoCo - this XML file format is compatible with the VSTS/TFS
+    .PARAMETER Strict
+    Makes Pending and Skipped tests to Failed tests. Useful for continuous
+    integration where you need to make sure all tests passed.
 
-.PARAMETER DetailedCodeCoverage
-Add the sourcefile names and lines covered and missed to the codecoverage file.
+    .PARAMETER Quiet
+    The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
+    in the next major version of Pester. Please use the parameter Show
+    with value 'None' instead.
 
-.PARAMETER Strict
-Makes Pending and Skipped tests to Failed tests. Useful for continuous
-integration where you need to make sure all tests passed.
+    The parameter Quiet suppresses the output that Pester writes to the host program,
+    including the result summary and CodeCoverage output.
 
-.PARAMETER Quiet
-The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
-in the next major version of Pester. Please use the parameter Show
-with value 'None' instead.
+    This parameter does not affect the PassThru custom object or the XML output that
+    is written when you use the Output parameters.
 
-The parameter Quiet suppresses the output that Pester writes to the host program,
-including the result summary and CodeCoverage output.
+    .PARAMETER Show
+    Customizes the output Pester writes to the screen. Available options are None, Default,
+    Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
 
-This parameter does not affect the PassThru custom object or the XML output that
-is written when you use the Output parameters.
+    The options can be combined to define presets.
+    Common use cases are:
 
-.PARAMETER Show
-Customizes the output Pester writes to the screen. Available options are None, Default,
-Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+    None - to write no output to the screen.
+    All - to write all available information (this is default option).
+    Fails - to write everything except Passed (but including Describes etc.).
 
-The options can be combined to define presets.
-Common use cases are:
+    A common setting is also Failed, Summary, to write only failed tests and test summary.
 
-None - to write no output to the screen.
-All - to write all available information (this is default option).
-Fails - to write everything except Passed (but including Describes etc.).
+    This parameter does not affect the PassThru custom object or the XML output that
+    is written when you use the Output parameters.
 
-A common setting is also Failed, Summary, to write only failed tests and test summary.
+    .PARAMETER PesterOption
+    Sets advanced options for the test execution. Enter a PesterOption object,
+    such as one that you create by using the New-PesterOption cmdlet, or a hash table
+    in which the keys are option names and the values are option values.
+    For more information on the options available, see the help for New-PesterOption.
 
-This parameter does not affect the PassThru custom object or the XML output that
-is written when you use the Output parameters.
+    .Example
+    Invoke-Pester
 
-.PARAMETER PesterOption
-Sets advanced options for the test execution. Enter a PesterOption object,
-such as one that you create by using the New-PesterOption cmdlet, or a hash table
-in which the keys are option names and the values are option values.
-For more information on the options available, see the help for New-PesterOption.
+    This command runs all *.Tests.ps1 files in the current directory and its subdirectories.
 
-.Example
-Invoke-Pester
+    .Example
+    Invoke-Pester -Script .\Util*
 
-This command runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    This commands runs all *.Tests.ps1 files in subdirectories with names that begin
+    with 'Util' and their subdirectories.
 
-.Example
-Invoke-Pester -Script .\Util*
+    .Example
+    Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
 
-This commands runs all *.Tests.ps1 files in subdirectories with names that begin
-with 'Util' and their subdirectories.
+    This command runs all *.Tests.ps1 files in D:\MyModule and its subdirectories.
+    It also runs the tests in the ModuleUnit.Tests.ps1 file using the following
+    parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01
 
-.Example
-Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
+    .Example
+    Invoke-Pester -Script @{Script = $scriptText}
+    This command runs all tests passed as string in $scriptText variable with no aditional parameters and arguments. This notation can be combined with
+    Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
+    if needed. This command can be used when tests and scripts are stored not on the FileSystem, but somewhere else, and it is impossible to provide a path to it.
 
-This command runs all *.Tests.ps1 files in D:\MyModule and its subdirectories.
-It also runs the tests in the ModuleUnit.Tests.ps1 file using the following
-parameters: .\Tests\Utility\ModuleUnit.Tests.ps1 srvNano16 -Name User01
+    .Example
+    Invoke-Pester -TestName "Add Numbers"
 
-.Example
-Invoke-Pester -Script @{Script = $scriptText}
-This command runs all tests passed as string in $scriptText variable with no aditional parameters and arguments. This notation can be combined with
-Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
-if needed. This command can be used when tests and scripts are stored not on the FileSystem, but somewhere else, and it is impossible to provide a path to it.
+    This command runs only the tests in the Describe block named "Add Numbers".
 
-.Example
-Invoke-Pester -TestName "Add Numbers"
+    .EXAMPLE
+    $results = Invoke-Pester -Script D:\MyModule -PassThru -Show None
+    $failed = $results.TestResult | where Result -eq 'Failed'
 
-This command runs only the tests in the Describe block named "Add Numbers".
+    $failed.Name
+    cannot find help for parameter: Force : in Compress-Archive
+    help for Force parameter in Compress-Archive has wrong Mandatory value
+    help for Compress-Archive has wrong parameter type for Force
+    help for Update parameter in Compress-Archive has wrong Mandatory value
+    help for DestinationPath parameter in Expand-Archive has wrong Mandatory value
 
-.EXAMPLE
-$results = Invoke-Pester -Script D:\MyModule -PassThru -Show None
-$failed = $results.TestResult | where Result -eq 'Failed'
+    $failed[0]
+    Describe               : Test help for Compress-Archive in Microsoft.PowerShell.Archive (1.0.0.0)
+    Context                : Test parameter help for Compress-Archive
+    Name                   : cannot find help for parameter: Force : in Compress-Archive
+    Result                 : Failed
+    Passed                 : False
+    Time                   : 00:00:00.0193083
+    FailureMessage         : Expected: value to not be empty
+    StackTrace             : at line: 279 in C:\GitHub\PesterTdd\Module.Help.Tests.ps1
+                            279:                     $parameterHelp.Description.Text | Should Not BeNullOrEmpty
+    ErrorRecord            : Expected: value to not be empty
+    ParameterizedSuiteName :
+    Parameters             : {}
 
-$failed.Name
-cannot find help for parameter: Force : in Compress-Archive
-help for Force parameter in Compress-Archive has wrong Mandatory value
-help for Compress-Archive has wrong parameter type for Force
-help for Update parameter in Compress-Archive has wrong Mandatory value
-help for DestinationPath parameter in Expand-Archive has wrong Mandatory value
+    This examples uses the PassThru parameter to return a custom object with the
+    Pester test results. By default, Invoke-Pester writes to the host program, but not
+    to the output stream. It also uses the Show parameter set to None to suppress the host output.
 
-$failed[0]
-Describe               : Test help for Compress-Archive in Microsoft.PowerShell.Archive (1.0.0.0)
-Context                : Test parameter help for Compress-Archive
-Name                   : cannot find help for parameter: Force : in Compress-Archive
-Result                 : Failed
-Passed                 : False
-Time                   : 00:00:00.0193083
-FailureMessage         : Expected: value to not be empty
-StackTrace             : at line: 279 in C:\GitHub\PesterTdd\Module.Help.Tests.ps1
-                         279:                     $parameterHelp.Description.Text | Should Not BeNullOrEmpty
-ErrorRecord            : Expected: value to not be empty
-ParameterizedSuiteName :
-Parameters             : {}
+    The first command runs Invoke-Pester with the PassThru and Show parameters and
+    saves the PassThru output in the $results variable.
 
-This examples uses the PassThru parameter to return a custom object with the
-Pester test results. By default, Invoke-Pester writes to the host program, but not
-to the output stream. It also uses the Show parameter set to None to suppress the host output.
+    The second command gets only failing results and saves them in the $failed variable.
 
-The first command runs Invoke-Pester with the PassThru and Show parameters and
-saves the PassThru output in the $results variable.
+    The third command gets the names of the failing results. The result name is the
+    name of the It block that contains the test.
 
-The second command gets only failing results and saves them in the $failed variable.
+    The fourth command uses an array index to get the first failing result. The
+    property values describe the test, the expected result, the actual result, and
+    useful values, including a stack trace.
 
-The third command gets the names of the failing results. The result name is the
-name of the It block that contains the test.
+    .Example
+    Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
 
-The fourth command uses an array index to get the first failing result. The
-property values describe the test, the expected result, the actual result, and
-useful values, including a stack trace.
+    This command runs all tests in the current directory and its subdirectories. It
+    writes the results to the TestResults.xml file using the NUnitXml schema. The
+    test returns an exit code equal to the number of test failures.
 
-.Example
-Invoke-Pester -EnableExit -OutputFile ".\artifacts\TestResults.xml" -OutputFormat NUnitXml
+    .EXAMPLE
+    Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
 
-This command runs all tests in the current directory and its subdirectories. It
-writes the results to the TestResults.xml file using the NUnitXml schema. The
-test returns an exit code equal to the number of test failures.
+    Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
+    report for all commands in the "ScriptUnderTest.ps1" file.
 
- .EXAMPLE
-Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1'
+    .EXAMPLE
+    Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
-report for all commands in the "ScriptUnderTest.ps1" file.
+    Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
+    report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
 
-.EXAMPLE
-Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; Function = 'FunctionUnderTest' }
+    .EXAMPLE
+    Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1' -CodeCoverageOutputFile '.\artifacts\TestOutput.xml'
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
-report for all commands in the "FunctionUnderTest" function in the "ScriptUnderTest.ps1" file.
+    Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
+    report for all commands in the "ScriptUnderTest.ps1" file, and writes the coverage report to TestOutput.xml
+    file using the JaCoCo XML Report DTD.
 
- .EXAMPLE
-Invoke-Pester -CodeCoverage 'ScriptUnderTest.ps1' -CodeCoverageOutputFile '.\artifacts\TestOutput.xml'
+    .EXAMPLE
+    Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
-report for all commands in the "ScriptUnderTest.ps1" file, and writes the coverage report to TestOutput.xml
-file using the JaCoCo XML Report DTD.
+    Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
+    report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
 
-.EXAMPLE
-Invoke-Pester -CodeCoverage @{ Path = 'ScriptUnderTest.ps1'; StartLine = 10; EndLine = 20 }
+    .EXAMPLE
+    Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
 
-Runs all *.Tests.ps1 scripts in the current directory, and generates a coverage
-report for all commands on lines 10 through 20 in the "ScriptUnderTest.ps1" file.
+    This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those
+    files, it runs only tests that have UnitTest or Newest tags, unless the test
+    also has a Bug tag.
 
-.EXAMPLE
-Invoke-Pester -Script C:\Tests -Tag UnitTest, Newest -ExcludeTag Bug
+    .LINK
+    https://github.com/pester/Pester/wiki/Invoke-Pester
 
-This command runs *.Tests.ps1 files in C:\Tests and its subdirectories. In those
-files, it runs only tests that have UnitTest or Newest tags, unless the test
-also has a Bug tag.
+    .LINK
+    Describe
+    about_Pester
+    New-PesterOption
 
-.LINK
-https://github.com/pester/Pester/wiki/Invoke-Pester
-Describe
-about_Pester
-New-PesterOption
-
-#>
+    #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
-        [Parameter(Position=0,Mandatory=0)]
+        [Parameter(Position = 0, Mandatory = 0)]
         [Alias('Path', 'relative_path')]
         [object[]]$Script = '.',
 
-        [Parameter(Position=1,Mandatory=0)]
+        [Parameter(Position = 1, Mandatory = 0)]
         [Alias("Name")]
         [string[]]$TestName,
 
-        [Parameter(Position=2,Mandatory=0)]
+        [Parameter(Position = 2, Mandatory = 0)]
         [switch]$EnableExit,
 
-        [Parameter(Position=4,Mandatory=0)]
+        [Parameter(Position = 4, Mandatory = 0)]
         [Alias('Tags')]
         [string[]]$Tag,
 
@@ -804,8 +1037,6 @@ New-PesterOption
 
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
-
-        [Switch]$DetailedCodeCoverage = $false,
 
         [Switch]$Strict,
 
@@ -835,23 +1066,22 @@ New-PesterOption
     }
 
     end {
-        if ($PSBoundParameters.ContainsKey('Quiet'))
-        {
+        if ($PSBoundParameters.ContainsKey('Quiet')) {
             & $script:SafeCommands['Write-Warning'] 'The -Quiet parameter has been deprecated; please use the new -Show parameter instead. To get no output use -Show None.'
             & $script:SafeCommands['Start-Sleep'] -Seconds 2
 
-            if (!$PSBoundParameters.ContainsKey('Show'))
-            {
+            if (!$PSBoundParameters.ContainsKey('Show')) {
                 $Show = [Pester.OutputTypes]::None
             }
         }
 
         $script:mockTable = @{}
         Remove-MockFunctionsAndAliases
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $PSCmdlet.SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
-        try
-        {
+        try {
+            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
             Write-PesterStart $pester $Script
 
             $invokeTestScript = {
@@ -863,68 +1093,37 @@ New-PesterOption
                     [System.Collections.IDictionary] $Parameters = @{}
                 )
 
-                if(-not [string]::IsNullOrEmpty($Path))
-                {
+                if (-not [string]::IsNullOrEmpty($Path)) {
                     & $Path @Parameters @Arguments
                 }
-                elseif(-not [string]::IsNullOrEmpty($Script))
-                {
+                elseif (-not [string]::IsNullOrEmpty($Script)) {
                     $scriptBlock = [scriptblock]::Create($Script)
+                    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
                     Invoke-Command -ScriptBlock ($scriptBlock)
                 }
             }
 
-            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $PSCmdlet.SessionState
+            Set-ScriptBlockScope -ScriptBlock $invokeTestScript -SessionState $sessionState
             $testScripts = @(ResolveTestScripts $Script)
 
 
-            if ($DetailedCodeCoverage)
-            {
-                $pester.FindCodeCoverage = $true
-                $pester.CodeCoverage = $CodeCoverage
-
-                # find describe codecoverage here
-                foreach ($testScript in $testScripts)
-                {
-                    try
-                    {
-                        do
-                        {
-                            & $invokeTestScript -Path $testScript.Path -Arguments $testScript.Arguments -Parameters $testScript.Parameters
-                        } until ($true)
-                    }
-                    catch
-                    { }
-                }
-
-
-                $pester.FindCodeCoverage = $false
-                $CodeCoverage = $pester.CodeCoverage
-            }
-
-
-            Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
-
-            foreach ($testScript in $testScripts)
-            {
+            foreach ($testScript in $testScripts) {
                 #Get test description for better output
-                if(-not [string]::IsNullOrEmpty($testScript.Path)){
+                if (-not [string]::IsNullOrEmpty($testScript.Path)) {
                     $testDescription = $testScript.Path
-                }elseif(-not [string]::IsNullOrEmpty($testScript.Script)){
+                }
+                elseif (-not [string]::IsNullOrEmpty($testScript.Script)) {
                     $testDescription = $testScript.Script
                 }
 
-                try
-                {
+                try {
                     $pester.EnterTestGroup($testDescription, 'Script')
                     Write-Describe $testDescription -CommandUsed Script
-                    do
-                    {
+                    do {
                         $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
                     } until ($true)
                 }
-                catch
-                {
+                catch {
                     $firstStackTraceLine = $null
                     if (($_ | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) -and $null -ne $_.ScriptStackTrace) {
                         $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $script:SafeCommands['Select-Object'] -First 1
@@ -938,8 +1137,7 @@ New-PesterOption
 
                     $pester.TestResult[-1] | Write-PesterResult
                 }
-                finally
-                {
+                finally {
                     Exit-MockScope
                     $pester.LeaveTestGroup($testDescription, 'Script')
                 }
@@ -947,19 +1145,15 @@ New-PesterOption
 
             $pester | Write-PesterReport
             $coverageReport = Get-CoverageReport -PesterState $pester
-            if ($DetailedCodeCoverage -eq $false)
-            {
-                Write-CoverageReport -CoverageReport $coverageReport
-            }
+            Write-CoverageReport -CoverageReport $coverageReport
             if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
-                -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
-                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport -DetailedCodeCoverage:$DetailedCodeCoverage
+                    -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
+                $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
             }
             Exit-CoverageAnalysis -PesterState $pester
         }
-        finally
-        {
+        finally {
             Exit-MockScope
         }
 
@@ -969,13 +1163,12 @@ New-PesterOption
             Export-PesterResults -PesterState $pester -Path $OutputFile -Format $OutputFormat
         }
 
-    if ($PassThru) {
-        # Remove all runtime properties like current* and Scope
-        $properties = @(
-            "TagFilter","ExcludeTagFilter","TestNameFilter","TotalCount","PassedCount","FailedCount","SkippedCount","PendingCount",'InconclusiveCount',"Time","TestResult"
+        if ($PassThru) {
+            # Remove all runtime properties like current* and Scope
+            $properties = @(
+                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "ScriptBlockFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
 
-                if ($CodeCoverage)
-                {
+                if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
                 }
             )
@@ -983,101 +1176,128 @@ New-PesterOption
             $pester | & $script:SafeCommands['Select-Object'] -Property $properties
         }
 
-        if ($EnableExit) { Exit-WithCode -FailedCount $pester.FailedCount }
+        if ($EnableExit) {
+            Exit-WithCode -FailedCount $pester.FailedCount
+        }
     }
 }
 
-function New-PesterOption
-{
-<#
-.SYNOPSIS
-Creates an object that contains advanced options for Invoke-Pester
-.DESCRIPTION
-By using New-PesterOption you can set options what allow easier integration with external applications or
-modifies output generated by Invoke-Pester.
-The result of New-PesterOption need to be assigned to the parameter 'PesterOption' of the Invoke-Pester function.
-.PARAMETER IncludeVSCodeMarker
-When this switch is set, an extra line of output will be written to the console for test failures, making it easier
-for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
-.PARAMETER TestSuiteName
-When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
-.INPUTS
-None
-You cannot pipe input to this command.
-.OUTPUTS
-System.Management.Automation.PSObject
-.EXAMPLE
-    PS > $Options = New-PesterOption -TestSuiteName "Tests - Set A"
+function New-PesterOption {
+    <#
+    .SYNOPSIS
+    Creates an object that contains advanced options for Invoke-Pester
+    .DESCRIPTION
+    By using New-PesterOption you can set options what allow easier integration with external applications or
+    modifies output generated by Invoke-Pester.
+    The result of New-PesterOption need to be assigned to the parameter 'PesterOption' of the Invoke-Pester function.
+    .PARAMETER IncludeVSCodeMarker
+    When this switch is set, an extra line of output will be written to the console for test failures, making it easier
+    for VSCode's parser to provide highlighting / tooltips on the line where the error occurred.
+    .PARAMETER TestSuiteName
+    When generating NUnit XML output, this controls the name assigned to the root "test-suite" element.  Defaults to "Pester".
+    .PARAMETER ScriptBlockFilter
+    Filters scriptblock based on the path and line number. This is intended for integration with external tools so we don't rely on names (strings) that can have expandable variables in them.
+    .PARAMETER Experimental
+    Enables experimental features of Pester to be enabled.
+    .PARAMETER ShowScopeHints
+    EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
 
-    PS > Invoke-Pester -PesterOption $Options -Outputfile ".\Results-Set-A.xml" -OutputFormat NUnitXML
+    .INPUTS
+    None
+    You cannot pipe input to this command.
+    .OUTPUTS
+    System.Management.Automation.PSObject
+    .EXAMPLE
+        PS > $Options = New-PesterOption -TestSuiteName "Tests - Set A"
 
-    The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
-    will be named "Tests - Set A".
-.LINK
-Invoke-Pester
-#>
+        PS > Invoke-Pester -PesterOption $Options -Outputfile ".\Results-Set-A.xml" -OutputFormat NUnitXML
+
+        The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
+        will be named "Tests - Set A".
+    .LINK
+    https://github.com/pester/Pester/wiki/New-PesterOption
+
+    .LINK
+    Invoke-Pester
+    #>
 
     [CmdletBinding()]
     param (
         [switch] $IncludeVSCodeMarker,
 
         [ValidateNotNullOrEmpty()]
-        [string] $TestSuiteName = 'Pester'
+        [string] $TestSuiteName = 'Pester',
+
+        [switch] $Experimental,
+
+        [switch] $ShowScopeHints,
+
+        [hashtable[]] $ScriptBlockFilter
     )
 
+    # in PowerShell 2 Add-Member can attach properties only to
+    # PSObjects, I could work around this by capturing all instances
+    # in checking them during runtime, but that would bring a lot of
+    # object management problems - so let's just not allow this in PowerShell 2
+    if ($Experimental -and $ShowScopeHints) {
+        if ($PSVersionTable.PSVersion.Major -lt 3) {
+            throw "Scope hints cannot be used on PowerShell 2 due to limitations of Add-Member."
+        }
+
+        $script:DisableScopeHints = $false
+    }
+    else {
+        $script:DisableScopeHints = $true
+    }
+
     return & $script:SafeCommands['New-Object'] psobject -Property @{
-        IncludeVSCodeMarker = [bool]$IncludeVSCodeMarker
+        IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
+        ShowScopeHints      = $ShowScopeHints
+        Experimental        = $Experimental
+        ScriptBlockFilter   = $ScriptBlockFilter
     }
 }
 
-function ResolveTestScripts
-{
+function ResolveTestScripts {
     param ([object[]] $Path)
 
     $resolvedScriptInfo = @(
-        foreach ($object in $Path)
-        {
-            if ($object -is [System.Collections.IDictionary])
-            {
+        foreach ($object in $Path) {
+            if ($object -is [System.Collections.IDictionary]) {
                 $unresolvedPath = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Path', 'p'
-                $script         = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Script'
-                $arguments      = @(Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a')
-                $parameters     = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
+                $script = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Script'
+                $arguments = @(Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Arguments', 'args', 'a')
+                $parameters = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
 
-                if ($null -eq $Parameters) { $Parameters = @{} }
+                if ($null -eq $Parameters) {
+                    $Parameters = @{}
+                }
 
-                if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S' -and ($script -isnot [string] -or $script -notmatch '\S'))
-                {
+                if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S' -and ($script -isnot [string] -or $script -notmatch '\S')) {
                     throw 'When passing hashtables to the -Path parameter, the Path key is mandatory, and must contain a single string.'
                 }
 
-                if ($null -ne $parameters -and $parameters -isnot [System.Collections.IDictionary])
-                {
+                if ($null -ne $parameters -and $parameters -isnot [System.Collections.IDictionary]) {
                     throw 'When passing hashtables to the -Path parameter, the Parameters key (if present) must be assigned an IDictionary object.'
                 }
             }
-            else
-            {
+            else {
                 $unresolvedPath = [string] $object
-                $script         = [string] $object
-                $arguments      = @()
-                $parameters     = @{}
+                $script = [string] $object
+                $arguments = @()
+                $parameters = @{}
             }
 
-            if(-not [string]::IsNullOrEmpty($unresolvedPath))
-            {
+            if (-not [string]::IsNullOrEmpty($unresolvedPath)) {
                 if ($unresolvedPath -notmatch '[\*\?\[\]]' -and
                     (& $script:SafeCommands['Test-Path'] -LiteralPath $unresolvedPath -PathType Leaf) -and
-                    (& $script:SafeCommands['Get-Item'] -LiteralPath $unresolvedPath) -is [System.IO.FileInfo])
-                {
+                    (& $script:SafeCommands['Get-Item'] -LiteralPath $unresolvedPath) -is [System.IO.FileInfo]) {
                     $extension = [System.IO.Path]::GetExtension($unresolvedPath)
-                    if ($extension -ne '.ps1')
-                    {
+                    if ($extension -ne '.ps1') {
                         & $script:SafeCommands['Write-Error'] "Script path '$unresolvedPath' is not a ps1 file."
                     }
-                    else
-                    {
+                    else {
                         & $script:SafeCommands['New-Object'] psobject -Property @{
                             Path       = $unresolvedPath
                             Script     = $null
@@ -1086,17 +1306,16 @@ function ResolveTestScripts
                         }
                     }
                 }
-                else
-                {
+                else {
                     # World's longest pipeline?
 
                     & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
-                    & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
-                    & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
-                    & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
-                    & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
-                    & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
-                    & $script:SafeCommands['ForEach-Object'] {
+                        & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
+                        & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
+                        & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
+                        & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
+                        & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
+                        & $script:SafeCommands['ForEach-Object'] {
                         & $script:SafeCommands['New-Object'] psobject -Property @{
                             Path       = $_
                             Script     = $null
@@ -1106,14 +1325,13 @@ function ResolveTestScripts
                     }
                 }
             }
-            elseif(-not [string]::IsNullOrEmpty($script))
-            {
+            elseif (-not [string]::IsNullOrEmpty($script)) {
                 & $script:SafeCommands['New-Object'] psobject -Property @{
-                        Path         = $null
-                        Script       = $script
-                        Arguments  = $arguments
-                        Parameters = $parameters
-                    }
+                    Path       = $null
+                    Script     = $script
+                    Arguments  = $arguments
+                    Parameters = $parameters
+                }
             }
         }
     )
@@ -1126,18 +1344,17 @@ function ResolveTestScripts
     $resolvedScriptInfo
 }
 
-function Get-DictionaryValueFromFirstKeyFound
-{
+function Get-DictionaryValueFromFirstKeyFound {
     param ([System.Collections.IDictionary] $Dictionary, [object[]] $Key)
 
-    foreach ($keyToTry in $Key)
-    {
-        if ($Dictionary.Contains($keyToTry)) { return $Dictionary[$keyToTry] }
+    foreach ($keyToTry in $Key) {
+        if ($Dictionary.Contains($keyToTry)) {
+            return $Dictionary[$keyToTry]
+        }
     }
 }
 
-function Set-ScriptBlockScope
-{
+function Set-ScriptBlockScope {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -1155,16 +1372,40 @@ function Set-ScriptBlockScope
 
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 
-    if ($PSCmdlet.ParameterSetName -eq 'FromSessionState')
-    {
+    if ($PSCmdlet.ParameterSetName -eq 'FromSessionState') {
         $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
     }
 
-    [scriptblock].GetProperty('SessionStateInternal', $flags).SetValue($ScriptBlock, $SessionStateInternal, $null)
+    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
+    $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
+
+    if (-not $script:DisableScopeHints) {
+        # hint can be attached on the internal state (preferable) when the state is there.
+        # if we are given unbound scriptblock with null internal state then we hope that
+        # the source cmdlet set the hint directly on the ScriptBlock,
+        # otherwise the origin is unknown and the cmdlet that allowed this scriptblock in
+        # should be found and add hint
+
+        $hint = $scriptBlockSessionState.Hint
+        if ($null -eq $hint) {
+            if ($null -ne $ScriptBlock.Hint) {
+                $hint = $ScriptBlock.Hint
+            }
+            else {
+                $hint = 'Unknown unbound ScriptBlock'
+            }
+        }
+        Write-Hint "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
+    }
+
+    $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
+
+    if (-not $script:DisableScopeHints) {
+        Set-ScriptBlockHint -ScriptBlock $ScriptBlock
+    }
 }
 
-function Get-ScriptBlockScope
-{
+function Get-ScriptBlockScope {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -1172,53 +1413,60 @@ function Get-ScriptBlockScope
         $ScriptBlock
     )
 
+
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
+    if (-not $script:DisableScopeHints) {
+        Write-Hint "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
+    }
+    $sessionStateInternal
 }
 
-
-function SafeGetCommand
-{
+function SafeGetCommand {
     <#
-        .SYNOPSIS
-        This command is used by Pester's Mocking framework.  You do not need to call it directly.
+    .SYNOPSIS
+    This command is used by Pester's Mocking framework.  You do not need to call it directly.
     #>
 
     return $script:SafeCommands['Get-Command']
 }
 
-function Set-PesterStatistics($Node)
-{
-    if ($null -eq $Node) { $Node = $pester.TestActions }
+function Set-PesterStatistics($Node) {
+    if ($null -eq $Node) {
+        $Node = $pester.TestActions
+    }
 
-    foreach ($action in $Node.Actions)
-    {
-        if ($action.Type -eq 'TestGroup')
-        {
+    foreach ($action in $Node.Actions) {
+        if ($action.Type -eq 'TestGroup') {
             Set-PesterStatistics -Node $action
 
-            $Node.TotalCount        += $action.TotalCount
-            $Node.Time              += $action.Time
-            $Node.PassedCount       += $action.PassedCount
-            $Node.FailedCount       += $action.FailedCount
-            $Node.SkippedCount      += $action.SkippedCount
-            $Node.PendingCount      += $action.PendingCount
+            $Node.TotalCount += $action.TotalCount
+            $Node.PassedCount += $action.PassedCount
+            $Node.FailedCount += $action.FailedCount
+            $Node.SkippedCount += $action.SkippedCount
+            $Node.PendingCount += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
-        elseif ($action.Type -eq 'TestCase')
-        {
+        elseif ($action.Type -eq 'TestCase') {
             $node.TotalCount++
 
-            switch ($action.Result)
-            {
-                Passed       { $Node.PassedCount++;       break; }
-                Failed       { $Node.FailedCount++;       break; }
-                Skipped      { $Node.SkippedCount++;      break; }
-                Pending      { $Node.PendingCount++;      break; }
-                Inconclusive { $Node.InconclusiveCount++; break; }
+            switch ($action.Result) {
+                Passed {
+                    $Node.PassedCount++; break;
+                }
+                Failed {
+                    $Node.FailedCount++; break;
+                }
+                Skipped {
+                    $Node.SkippedCount++; break;
+                }
+                Pending {
+                    $Node.PendingCount++; break;
+                }
+                Inconclusive {
+                    $Node.InconclusiveCount++; break;
+                }
             }
-
-            $Node.Time += $action.Time
         }
     }
 }
@@ -1226,11 +1474,10 @@ function Set-PesterStatistics($Node)
 function Contain-AnyStringLike ($Filter, $Collection) {
     foreach ($item in $Collection) {
         foreach ($value in $Filter) {
-           if ($item -like $value)
-           {
+            if ($item -like $value) {
                 return $true
-           }
-       }
+            }
+        }
     }
     return $false
 }
@@ -1239,40 +1486,44 @@ $snippetsDirectoryPath = "$PSScriptRoot\Snippets"
 if ((& $script:SafeCommands['Test-Path'] -Path Variable:\psise) -and
     ($null -ne $psISE) -and
     ($PSVersionTable.PSVersion.Major -ge 3) -and
-    (& $script:SafeCommands['Test-Path'] $snippetsDirectoryPath))
-{
+    (& $script:SafeCommands['Test-Path'] $snippetsDirectoryPath)) {
     Import-IseSnippet -Path $snippetsDirectoryPath
 }
 
 function Assert-VerifiableMocks {
+    <#
+    .SYNOPSIS
+    The function is for backward compatibility only. Please update your code and use 'Assert-VerifiableMock' instead.
 
-<#
-.SYNOPSIS
-The function is for backward compatibility only. Please update your code and use 'Assert-VerifiableMock' instead.
+    .DESCRIPTION
+    The function was reintroduced in the version 4.0.8 of Pester to avoid loading older version of Pester when Assert-VerifiableMocks is called.
 
-.DESCRIPTION
-The function was reintroduced in the version 4.0.8 of Pester to avoid loading older version of Pester when Assert-VerifiableMocks is called.
+    The function will be removed finally in the next major version of Pester.
 
-The function will be removed finally in the next major version of Pester.
+    .LINK
+    https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
 
-.LINK
-https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
-https://github.com/pester/Pester/issues/880
+    .LINK
+    https://github.com/pester/Pester/issues/880
 
-#>
+    #>
 
-[CmdletBinding()]
-param()
+    [CmdletBinding()]
+    param()
 
-Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+    Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
 
 }
 
+Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
+# in the future rename the function to Add-ShouldOperator
 Set-Alias -Name Add-ShouldOperator -Value Add-AssertionOperator
-& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult -Alias Add-ShouldOperator
+$script:ConflictingParameterNames = Initialize-ConflictingParameterNames
+
+& $script:SafeCommands['Export-ModuleMember'] Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-VerifiableMocks, Assert-MockCalled, Set-TestInconclusive, Set-ItResult
 & $script:SafeCommands['Export-ModuleMember'] New-Fixture, Get-TestDriveItem, Should, Invoke-Pester, Setup, InModuleScope, Invoke-Mock
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] SafeGetCommand, New-PesterOption
 & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-AssertionOperator, Get-ShouldOperator  -Alias Add-ShouldOperator

@@ -1,0 +1,9 @@
+{
+  "powershell.codeFormatting.preset": "Stroustrup",
+
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  "editor.tabSize": 4,
+  "editor.formatOnSave": true
+}

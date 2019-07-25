@@ -1,5 +1,5 @@
 function Should-Throw([scriptblock] $ActualValue, $ExpectedMessage, $ErrorId, [type]$ExceptionType, [switch] $Negate, [string] $Because, [switch] $PassThru) {
-<#
+    <#
 .SYNOPSIS
 Checks if an exception was thrown. Enclose input in a script block.
 
@@ -32,20 +32,22 @@ It does not throw an error, so the test passes.
     $actualExceptionLine = $null
 
     if ($null -eq $ActualValue) {
-        throw (New-Object -TypeName ArgumentNullException -ArgumentList "ActualValue","Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
+        throw (New-Object -TypeName ArgumentNullException -ArgumentList "ActualValue", "Scriptblock not found. Input to 'Throw' and 'Not Throw' must be enclosed in curly braces.")
     }
 
     try {
         do {
+            Write-ScriptBlockInvocationHint -Hint "Should -Throw" -ScriptBlock $ActualValue
             $null = & $ActualValue
         } until ($true)
-    } catch {
+    }
+    catch {
         $actualExceptionWasThrown = $true
         $actualError = $_
         $actualException = $_.Exception
         $actualExceptionMessage = $_.Exception.Message
         $actualErrorId = $_.FullyQualifiedErrorId
-        $actualExceptionLine = (Get-ExceptionLineInfo $_.InvocationInfo) -replace [System.Environment]::NewLine,"$([System.Environment]::NewLine)    "
+        $actualExceptionLine = (Get-ExceptionLineInfo $_.InvocationInfo) -replace [System.Environment]::NewLine, "$([System.Environment]::NewLine)    "
     }
 
     [bool] $succeeded = $false
@@ -60,9 +62,10 @@ It does not throw an error, so the test passes.
                 Succeeded      = $succeeded
                 FailureMessage = $failureMessage
             }
-        } else {
+        }
+        else {
             return New-Object psobject -Property @{
-                Succeeded      = $true
+                Succeeded = $true
             }
         }
     }
@@ -70,22 +73,19 @@ It does not throw an error, so the test passes.
     # the rest is for Should -Throw, we must fail the assertion when no exception is thrown
     # or when the exception does not match our filter
 
-    function Join-And ($Items, $Threshold=2) {
+    function Join-And ($Items, $Threshold = 2) {
 
-        if ($null -eq $items -or $items.count -lt $Threshold)
-        {
+        if ($null -eq $items -or $items.count -lt $Threshold) {
             $items -join ', '
         }
-        else
-        {
+        else {
             $c = $items.count
-            ($items[0..($c-2)] -join ', ') + ' and ' + $items[-1]
+            ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
         }
     }
 
     function Add-SpaceToNonEmptyString ([string]$Value) {
-        if ($Value)
-        {
+        if ($Value) {
             " $Value"
         }
     }
@@ -118,8 +118,7 @@ It does not throw an error, so the test passes.
         }
     }
 
-    if (-not $actualExceptionWasThrown)
-    {
+    if (-not $actualExceptionWasThrown) {
         $buts += "no exception was thrown"
     }
 
@@ -135,7 +134,7 @@ It does not throw an error, so the test passes.
     }
 
     $result = New-Object psobject -Property @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 
     if ($PassThru) {
@@ -147,7 +146,9 @@ It does not throw an error, so the test passes.
 
 function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
     #user did not specify any message filter, so any message matches
-    if ($null -eq $ExpectedValue ) { return $true }
+    if ($null -eq $ExpectedValue ) {
+        return $true
+    }
 
     return $ActualValue.ToString().IndexOf($ExpectedValue, [System.StringComparison]::InvariantCultureIgnoreCase) -ge 0
 }
@@ -155,7 +156,7 @@ function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
 function Get-ExceptionLineInfo($info) {
     # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
     $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join [System.Environment]::NewLine
-    return ($positionMessage -replace "^At ","from ")
+    return ($positionMessage -replace "^At ", "from ")
 }
 
 function ShouldThrowFailureMessage {
@@ -167,5 +168,5 @@ function NotShouldThrowFailureMessage {
 }
 
 Add-AssertionOperator -Name         Throw `
-                      -InternalName Should-Throw `
-                      -Test         ${function:Should-Throw}
+    -InternalName Should-Throw `
+    -Test         ${function:Should-Throw}

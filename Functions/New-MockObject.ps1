@@ -1,5 +1,5 @@
 function New-MockObject {
-<#
+    <#
 .SYNOPSIS
 This function instantiates a .NET object from a type.
 

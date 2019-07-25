@@ -1,7 +1,6 @@
-function Verify-Throw
-{
+function Verify-Throw {
     param (
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ScriptBlock]$ScriptBlock
     )
 
@@ -9,8 +8,7 @@ function Verify-Throw
     try {
         $null = & $ScriptBlock
     }
-    catch
-    {
+    catch {
         $exceptionThrown = $true
         $_
     }

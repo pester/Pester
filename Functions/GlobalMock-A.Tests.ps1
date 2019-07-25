@@ -6,18 +6,15 @@ Set-StrictMode -Version Latest
 
 $functionName = '01c1a57716fe4005ac1a7bf216f38ad0'
 
-if (Test-Path Function:\$functionName)
-{
+if (Test-Path Function:\$functionName) {
     Remove-Item Function:\$functionName -Force -ErrorAction Stop
 }
 
-function global:01c1a57716fe4005ac1a7bf216f38ad0
-{
+function global:01c1a57716fe4005ac1a7bf216f38ad0 {
     return 'Original Function'
 }
 
-function script:Testing
-{
+function script:Testing {
     return 'Script scope'
 }
 

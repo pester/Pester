@@ -71,13 +71,13 @@ function Get-ShouldOperator {
 
             if (($help | Measure-Object).Count -ne 1) {
                 Write-Warning ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
-            } else {
-                $aliases = (Get-AssertionOperatorEntry -Name $Name).Alias
-                $Alias = $aliases -join ', '
-                Add-Member -InputObject $Help -Name "Aliases" -Value $Alias -MemberType NoteProperty
+
+            } 
+            else {
                 $help
             }
-        } else {
+        }
+        else {
             $AssertionOperators.Keys | ForEach-Object {
                 $aliases = (Get-AssertionOperatorEntry $_).Alias
 
