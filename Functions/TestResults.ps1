@@ -34,10 +34,9 @@ function Export-PesterResults {
     )
 
 
-    switch ($Format)
-    {
-        'NUnitXml'{ 
-            Export-NUnitReport -PesterState $PesterState -Path $Path 
+    switch ($Format){
+        'NUnitXml'{
+            Export-NUnitReport -PesterState $PesterState -Path $Path
         }
         'JSON' {
             $properties = @(
