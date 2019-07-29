@@ -53,19 +53,15 @@ function Should {
 
     begin {
         $inputArray = [System.Collections.Generic.List[PSObject]]@()
-        # $errorRecords = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
         $lineNumber = $MyInvocation.ScriptLineNumber
         $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
         $file = $MyInvocation.ScriptName
     }
 
     process {
-        if (Test-IsShouldErrorRecord -Value $ActualValue) {
-            # $errorRecords += $ActualValue
-            return
-        }
-
         $inputArray.Add($ActualValue)
+
+        $ActualValue
     }
 
     end {
@@ -103,6 +99,7 @@ function Should {
                 LineText = $lineText
                 Negate = $negate
                 CallerSessionState = $PSCmdlet.SessionState
+                ShouldThrow = ($ErrorActionPreference -eq 'Stop')
             }
 
             $result = if ($inputArray.Count -eq 0) {
@@ -117,61 +114,9 @@ function Should {
                     }
                 }
 
-            if ($result -is [System.Management.Automation.ErrorRecord]) {
-                $Context.Test.ErrorRecord += $result
-            }
-            elseif ($result -is [array] -and $result[0] -is [System.Management.Automation.ErrorRecord]) {
-                $Context.Test.ErrorRecord += $result
-            }
-
-            # if ($errorRecords -and $ErrorActionPreference -eq 'Stop') {
-            #     throw $errorRecords[-1]
-            # }
-            # else {
-            #     $errorRecords
-            # }
-
             $result
         }
     }
-}
-
-function Test-IsShouldErrorRecord {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [AllowNull()]
-        [object]
-        $Value
-    )
-
-    try {
-        if ($Value -is [array] -and $Value) {
-            $Value = $Value[0]
-        }
-
-        $Value -is [System.Management.Automation.ErrorRecord] -and
-            $Value.FullyQualifiedErrorId -eq 'PesterAssertionFailed'
-    }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
-}
-
-function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText) {
-    # $expectedValueSplat = @(
-    #     if ($null -ne $shouldArgs.ExpectedValue)
-    #     {
-    #         ,$shouldArgs.ExpectedValue
-    #     }
-    # )
-
-    # $negate = -not $shouldArgs.PositiveAssertion
-
-    # $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
-    # if (-not $testResult.Succeeded) {
-    #     throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
-    # }
 }
 
 function Invoke-Assertion {
@@ -211,14 +156,25 @@ function Invoke-Assertion {
         [Parameter()]
         [AllowNull()]
         [object]
-        $ValueToTest
+        $ValueToTest,
+
+        [Parameter()]
+        [boolean]
+        $ShouldThrow
     )
     try {
-        # Write-Host "Bound Parameters: $($PSBoundParameters | Out-String)"
         $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
-        # Write-Host "Test result: $testResult"
+
         if (-not $testResult.Succeeded) {
-            New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText
+            $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText
+
+            if ($ShouldThrow) {
+                throw $errorRecord
+            }
+            else {
+                $currentTest = Get-CurrentTest
+                $currentTest.ErrorRecord.Add($errorRecord)
+            }
         }
         else {
             #extract data to return if there are any on the object
@@ -244,4 +200,20 @@ function Format-Because ([string] $Because) {
     }
 
     " because $($bcs -replace 'because\s'),"
+}
+
+function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText) {
+    # $expectedValueSplat = @(
+    #     if ($null -ne $shouldArgs.ExpectedValue)
+    #     {
+    #         ,$shouldArgs.ExpectedValue
+    #     }
+    # )
+
+    # $negate = -not $shouldArgs.PositiveAssertion
+
+    # $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
+    # if (-not $testResult.Succeeded) {
+    #     throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
+    # }
 }

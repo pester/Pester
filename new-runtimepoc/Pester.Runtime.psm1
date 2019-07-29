@@ -562,7 +562,7 @@ function Invoke-TestItem {
             # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
             $context = @{
                 # context visible in test
-                LocationContext = $testInfo
+                Context = $testInfo
             }
             # user provided data are merged with Pester provided context
             Merge-Hashtable -Source $Test.Data -Destination $context
@@ -1363,8 +1363,6 @@ function Invoke-ScriptBlock {
                     # between the variable not existing and not having value
                     $_________teardown2 = if ($null -ne $______parameters.Teardown) { $______parameters.Teardown } else { $true }
 
-                    $______testResult = $null
-
                     if (-not $______parameters.ContextInOuterScope) {
                         $______innerSplat = $______parameters.Context
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
@@ -1396,7 +1394,7 @@ function Invoke-ScriptBlock {
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
 
                     $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
-                    $______testResult = . $______parameters.ScriptBlock @______innerSplat
+                    . $______parameters.ScriptBlock @______innerSplat
 
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scrtptblock" }
                 }
@@ -1405,23 +1403,6 @@ function Invoke-ScriptBlock {
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" -ErrorRecord $_ }
                 }
                 finally {
-                    $testContext = $ExecutionContext.SessionState.PSVariable.Get('Context').Value
-
-                    # Write-Host "Scriptblock Test: $($testContext.Test | Out-String)"
-                    if ($null -ne $testContext) {
-                        if ($testContext.Test) {
-                            $______parameters.ErrorRecord += $testContext.Test.ErrorRecord
-                        }
-                    }
-
-                    if ($______testResult) {
-                        if ($______testResult -is [Management.Automation.ErrorRecord]) {
-                            $______parameters.ErrorRecord.Add($______testResult)
-                        }
-                        elseif ($______testResult -is [array] -and $______testResult[0] -is [Management.Automation.ErrorRecord]) {
-                            $______parameters.ErrorRecord += $______testResult
-                        }
-                    }
                     # this is needed for nonewscope so we can do two different
                     # teardowns while running this code in the middle again (which rewrites the teardown
                     # value in the object)
@@ -1560,21 +1541,7 @@ function Invoke-ScriptBlock {
         -ErrorRecord $parameters.ErrorRecord `
         -StandardOutput $standardOutput
 
-    if ($null -ne $ScriptBlock) {
-        # & $SafeCommands["Write-Host"] "ScriptBlock: $ScriptBlock\nResult: $($r | Out-String)"
-    }
-
     return $r
-}
-
-function New-TestExecutionResultObject {
-    [CmdletBinding()]
-    param()
-
-    New_PSObject -Type 'TestExecutionResult' -Property @{
-        Success        = $null
-        ErrorRecord    = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]@()
-    }
 }
 
 function New-InvocationResultObject {

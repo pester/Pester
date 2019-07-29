@@ -5,14 +5,17 @@ function Verify-AssertionFailed {
     )
 
     $assertionResult = $null
+    $originalErrorActionPreference = $script:ErrorActionPreference
     try {
-        $assertionResult = & $ScriptBlock
+        $script:ErrorActionPreference = 'Stop'
+        & $ScriptBlock
     }
     catch [Exception] {
         $assertionResult = $_
     }
-
-    $assertionResult
+    finally {
+        $script:ErrorActionPreference = $originalErrorActionPreference
+    }
 
     if ($assertionResult -isnot [System.Management.Automation.ErrorRecord]) {
         $result = if ($null -eq $assertionResult) {
