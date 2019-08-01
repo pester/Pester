@@ -65,21 +65,14 @@ function Get-ShouldOperator {
 
     END {
         if ($Name) {
-           
+
             $operator = $AssertionOperators.Values | Where-Object { $Name -eq $_.Name -or $_.Alias -contains $Name }
             $help = Get-Help $operator.InternalName -Examples -ErrorAction SilentlyContinue
 
             if (($help | Measure-Object).Count -ne 1) {
                 Write-Warning ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
-<<<<<<< HEAD
-            } else {
-                $aliases = (Get-AssertionOperatorEntry -Name $Name).Alias
-                $Alias = $aliases -join ', '
-                Add-Member -InputObject $Help -Name "Aliases" -Value $Alias -MemberType NoteProperty
-=======
             }
             else {
->>>>>>> aa293cb531c64c709f6c1b2ec9309fc31bea6396
                 $help
             }
         }
