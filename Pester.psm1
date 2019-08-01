@@ -1044,7 +1044,7 @@ function Invoke-Pester {
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('NUnitXml')]
+        [ValidateSet('NUnitXml','JSON')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Switch]$Quiet,

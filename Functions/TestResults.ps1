@@ -33,12 +33,20 @@ function Export-PesterResults {
         [string] $Format
     )
 
-    switch ($Format) {
-        'NUnitXml' {
+
+    switch ($Format){
+        'NUnitXml'{
             Export-NUnitReport -PesterState $PesterState -Path $Path
         }
+        'JSON' {
+            $properties = @(
+                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "ScriptBlockFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
+            )
 
-        default {
+            $PesterState | & $script:SafeCommands['Select-Object'] -Property $properties | ConvertTo-Json | Out-File -Path $Path -Encoding utf8
+        }
+        default
+        {
             throw "'$Format' is not a valid Pester export format."
         }
     }

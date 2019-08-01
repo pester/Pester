@@ -46,8 +46,8 @@ function Get-ShouldOperator {
         $AttributeCollection.Add($ParameterAttribute)
 
         $arrSet = $AssertionOperators.Values |
-            Select-Object -Property Name, Alias |
-            ForEach-Object { $_.Name; $_.Alias }
+        Select-Object -Property Name, Alias |
+        ForEach-Object { $_.Name; $_.Alias }
 
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
 
@@ -65,7 +65,6 @@ function Get-ShouldOperator {
 
     END {
         if ($Name) {
-
             $operator = $AssertionOperators.Values | Where-Object { $Name -eq $_.Name -or $_.Alias -contains $Name }
             $help = Get-Help $operator.InternalName -Examples -ErrorAction SilentlyContinue
 
