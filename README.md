@@ -1,6 +1,9 @@
 # Pester
 
-> 📦🔐 Pester is now signed. `-SkipPublisherCheck` is no longer necessary to install from PowerShell Gallery on Windows 10. 
+> 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10.
+
+> 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
+> There is also [contributor's guide](https://github.com/pester/Pester/wiki/Contributing-to-Pester) that will hopefully help you.
 
 Pester is the ubiquitous test and mock framework for PowerShell.
 
@@ -73,7 +76,7 @@ Not running Windows 10 or facing problems? See the [full installation and update
 
 Pester runs your tests and prints a nicely formatted output to the screen.
 
-![test run output](doc/readme/output.PNG)
+![test run output](images/readme/output.PNG)
 
 Command line output is not the only output option, Pester also integrates with Visual Studio Code, Visual Studio, and any tool that can consume nUnit XML output.
 
@@ -117,7 +120,7 @@ Learn more [about Mocking here](https://github.com/pester/Pester/wiki/Mock).
 
 Pester can measure how much of your code is covered by tests and export it to JaCoCo format that is easily understood by build servers.
 
-![JaCoCo code coverage report](doc/readme/jacoco.PNG)
+![JaCoCo code coverage report](images/readme/jacoco.PNG)
 
 Learn more about [code coverage here](https://github.com/pester/Pester/wiki/Code-Coverage).
 
@@ -130,26 +133,29 @@ Testing your scripts, and all pull requests on AppVeyor is extremely simple. Jus
 ```yml
 version: 1.0.{build}
 image:
-- Visual Studio 2017
-- Ubuntu
+  - Visual Studio 2017
+  - Ubuntu
 install:
-- ps: Install-Module Pester -Force -Scope CurrentUser
+  - ps: Install-Module Pester -Force -Scope CurrentUser
 build: off
 test_script:
-- ps: Invoke-Pester -EnableExit
+  - ps: Invoke-Pester -EnableExit
 ```
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
-In case you do not need to test your scripts against PowerShell Core, just simply remove entire line mentioning Ubuntu.
+If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
-Pester itself is build on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
+Pester itself is built on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
+[![PowerShell 2 & 3](https://nohwnd.visualstudio.com/Pester/_apis/build/status/PowerShell%202%20&%203?branchName=master)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6?branchName=master)
 
- [![windows build](https://img.shields.io/teamcity/http/build.powershell.org/s/Pester_TestPester.svg?label=windows+build)](https://build.powershell.org/project.html?projectId=Pester)
- [![linux/macos build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
+[![PowerShell 4, 5 & Core on Windows build](https://ci.appveyor.com/api/projects/status/dr0w3hwb2wncfov3?svg=true)](https://ci.appveyor.com/project/nohwnd/pester)
+
+[![Linux & MacOS build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
+
 [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester)
-[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
+[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 ## Further reading
 
@@ -159,8 +165,12 @@ Do you like what you see? Learn how to use Pester with our [wiki guide](https://
 
 Got questions or you just want to get in touch? Use our issues page or one of these channels:
 
-[![Pester Twitter](doc/readme/twitter-64.PNG)](https://twitter.com/PSPester)
-[![Pester on StackOverflow](doc/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
-[![Testing channel on Powershell Slack](doc/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
-[![Pester Gitter](doc/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Pester on PowerShell.org](doc/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
+[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester)
+
+[![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
+
+[![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
+
+[![Pester Gitter](images/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+[![Pester on PowerShell.org](images/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)

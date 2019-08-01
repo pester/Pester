@@ -14,14 +14,36 @@ Describe 'Testing Describe' {
 
         $isMandatory | Should -Be $false
 
-        { Describe Bogus } | Should -Throw 'No test script block is provided'
+        { Describe Bogus } | Should -Throw 'No test fixture is provided. (Have you put the open curly brace on the next line?)'
+    }
+
+    It 'Has a name that looks like a test fixture' {
+        $command = Get-Command Describe -Module Pester
+        $command | Should -Not -Be $null
+
+        $parameter = $command.Parameters['Fixture']
+        $parameter | Should -Not -Be $null
+
+        # Some environments (Nano/CoreClr) don't have all the type extensions
+        $attribute = $parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+        $isMandatory = $null -ne $attribute -and $attribute.Mandatory
+
+        $isMandatory | Should -Be $false
+
+        {
+            Describe {
+                "test block"
+            }
+        } | Should -Throw 'Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)'
     }
 }
 
 InModuleScope Pester {
     Describe 'Describe - Implementation' {
         # Function / mock used for call history tracking and assertion purposes only.
-        function MockMe { param ($Name) }
+        function MockMe {
+            param ($Name)
+        }
         Mock MockMe
 
         BeforeEach {
@@ -96,8 +118,8 @@ InModuleScope Pester {
 
             $cases = @(
                 @{ Name = 'TestOneTest'; Description = 'matches a wildcard' }
-                @{ Name = 'Test Two';    Description = 'matches exactly' }
-                @{ Name = 'test two';    Description = 'matches ignoring case' }
+                @{ Name = 'Test Two'; Description = 'matches exactly' }
+                @{ Name = 'test two'; Description = 'matches ignoring case' }
             )
 
             It -TestCases $cases 'Calls the test block when the test name <Description>' {
@@ -140,7 +162,7 @@ InModuleScope Pester {
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it does not run the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
+                @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 
@@ -175,7 +197,7 @@ InModuleScope Pester {
             }
 
             It 'Given a filter <filter> and a test with tags <tags> that do not match it runs the test, because <because>' -TestCases @(
-                @{ Filter = $filter; Tags = 'Low';  Because = 'none of the tags match' }
+                @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
                 param($Tags, $Filter, $Because)
 

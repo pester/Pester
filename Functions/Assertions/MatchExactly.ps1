@@ -1,5 +1,5 @@
 function Should-MatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Uses a regular expression to compare two objects.
 This comparison is case sensitive.
@@ -16,18 +16,17 @@ For a case insensitive test, see Match.
 #>
     [bool] $succeeded = $ActualValue -cmatch $RegularExpression
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
     $failureMessage = ''
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             $failureMessage = NotShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
-        else
-        {
+        else {
             $failureMessage = ShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
     }
@@ -47,6 +46,6 @@ function NotShouldMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
 }
 
 Add-AssertionOperator -Name         MatchExactly `
-                      -InternalName Should-MatchExactly `
-                      -Test         ${function:Should-MatchExactly} `
-                      -Alias        'CMATCH'
+    -InternalName Should-MatchExactly `
+    -Test         ${function:Should-MatchExactly} `
+    -Alias        'CMATCH'

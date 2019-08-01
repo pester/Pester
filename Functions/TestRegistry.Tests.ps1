@@ -18,6 +18,7 @@ Describe "General" {
 }
 
 $script:drivePath = $null
+
 Describe "TestRegistry scoping" {
     $script:drivePath = (Get-PSDrive "TestRegistry").Root -replace "HKEY_CURRENT_USER", "HKCU:"
 
@@ -37,6 +38,7 @@ Describe "TestRegistry scoping" {
         It "Finds the everything that was setup so far" {
             $itKey = New-Item -Path "TestRegistry:\ContextKey" -Name "ItKey"
             $itValue = New-ItemProperty -Path "TestRegistry:\ContextKey\ItKey" -Name "ItValue" -Value 3
+
             $describeKey.PSPath | Should -Exist
             $describeValue.PSPath | Should -Exist
             $contextKey.PSPath | Should -Exist
@@ -57,8 +59,12 @@ Describe "TestRegistry scoping" {
     }
 }
 
+# the describes might be skipped and then $script:drivePath would be null
+# but we cannot put it in a describe because then the describe would setup the
+# test registry
+$registryKeyVariableHasValue = $null -ne $script:drivePath
+$registryKeyWasRemoved = $registryKeyVariableHasValue -and -not (Test-Path $script:drivePath)
 
-$registryKeyWasRemoved = -not (Test-Path $script:drivePath)
 $testRegistryDriveWasRemoved = -not (Test-Path "TestRegistry:\")
 
 Describe "cleanup" {

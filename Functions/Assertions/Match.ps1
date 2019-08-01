@@ -1,5 +1,5 @@
 function Should-Match($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
-<#
+    <#
 .SYNOPSIS
 Uses a regular expression to compare two objects.
 This comparison is not case sensitive.
@@ -21,18 +21,17 @@ This test fails, because the pattern does not match a period symbol.
 #>
     [bool] $succeeded = $ActualValue -match $RegularExpression
 
-    if ($Negate) { $succeeded = -not $succeeded }
+    if ($Negate) {
+        $succeeded = -not $succeeded
+    }
 
     $failureMessage = ''
 
-    if (-not $succeeded)
-    {
-        if ($Negate)
-        {
+    if (-not $succeeded) {
+        if ($Negate) {
             $failureMessage = NotShouldMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
-        else
-        {
+        else {
             $failureMessage = ShouldMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
         }
     }
@@ -52,5 +51,5 @@ function NotShouldMatchFailureMessage($ActualValue, $RegularExpression, $Because
 }
 
 Add-AssertionOperator -Name         Match `
-                      -InternalName Should-Match `
-                      -Test         ${function:Should-Match}
+    -InternalName Should-Match `
+    -Test         ${function:Should-Match}

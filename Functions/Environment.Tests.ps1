@@ -91,25 +91,22 @@ InModuleScope -ModuleName Pester {
 
 
     Describe 'Get-TempDirectory' {
-        It 'returns the correct temp directory for Windows' {
-            Mock 'GetPesterOs' {
-                'Windows'
-            }
-            $expected = $env:TEMP = "C:\temp"
+        It 'returns the correct temp directory for Windows' -Skip:((GetPesterOs) -ne 'Windows') {
+            $expected = [System.IO.Path]::GetTempPath()
 
             $temp = Get-TempDirectory
             $temp | Should -Not -BeNullOrEmpty
             $temp | Should -Be $expected
         }
 
-        It "returns '/tmp' directory for MacOS" {
+        It "returns '/private/tmp' directory for MacOS" {
             Mock 'GetPesterOs' {
                 'MacOS'
             }
-            Get-TempDirectory | Should -Be '/tmp'
+            Get-TempDirectory | Should -Be '/private/tmp'
         }
 
-        It "returns '/tmp' directory for Linux" {
+        It "returns '/tmp' directory for Linux" -Skip:((GetPesterOs) -ne 'Linux') {
             Mock 'GetPesterOs' {
                 'Linux'
             }
@@ -119,23 +116,15 @@ InModuleScope -ModuleName Pester {
 
     if ('Windows' -eq (GetPesterOs)) {
         Describe 'Get-TempRegistry' {
-            Mock 'GetPesterOs'{
+            Mock 'GetPesterOs' {
                 return 'Windows'
             }
 
             It 'return the corret temp registry for Windows' {
 
-                $expected = 'HKCU:\Software\Pester'
+                $expected = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
                 $tempPath = Get-TempRegistry
                 $tempPath | Should -Be $expected
-            }
-
-            It 'should throw an error if TempRegistry fails'{
-                Mock New-TempRegistry {
-                    throw [Exception] 'Error'
-                }
-
-                { Get-TempRegistry } | Should -Throw 'Was not able to create a Pester Registry key for TestRegistry'
             }
         }
     }

@@ -200,7 +200,7 @@ InModuleScope Pester {
                 $assertionMessage = "Expected an exception, with message 'error2' to be thrown, but the message was 'error1'. from ##path##:1 char:" -replace "##path##", $testScriptPath
 
                 $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 } | Verify-AssertionFailed
-                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
+                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
             }
 
             It 'returns the correct assertion message when reason is specified' {
@@ -211,7 +211,7 @@ InModuleScope Pester {
                 $assertionMessage = "Expected an exception, with message 'error2' to be thrown, because reason, but the message was 'error1'. from ##path##:1 char:" -replace "##path##", $testScriptPath
 
                 $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 -Because 'reason' } | Verify-AssertionFailed
-                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
+                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
             }
 
             Context "parameter combintation, returns the correct assertion message" {
@@ -279,7 +279,7 @@ InModuleScope Pester {
                     $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage $expectedMess -ErrorId $expectedId -ExceptionType $expectedType } | Verify-AssertionFailed
                     # replace newlines, spacing, and everything after 'char:` because
                     # it's powershell version specific, and we are not formatting it ourselves
-                    $err.Exception.Message -replace "(`r|`n)" -replace '\s+',' ' -replace '(char:).*$','$1' | Verify-Equal $assertionMessage
+                    $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
                 }
             }
         }
@@ -336,8 +336,8 @@ InModuleScope Pester {
         Context 'Assertion messages' {
             It 'returns the correct assertion message when an exception is thrown' {
                 $err = { { throw } | Should -Not -Throw -Because 'reason' } | Verify-AssertionFailed
-                write-host ($err.Exception.Message -replace "(.*)",'')
-                $err.Exception.Message  -replace "(`r|`n)" -replace '\s+',' '  -replace ' "ScriptHalted"','' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, because reason, but an exception was thrown"
+                write-host ($err.Exception.Message -replace "(.*)", '')
+                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace ' "ScriptHalted"', '' -replace " from.*" | Verify-Equal "Expected no exception to be thrown, because reason, but an exception was thrown"
             }
         }
     }

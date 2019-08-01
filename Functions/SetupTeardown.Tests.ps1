@@ -17,6 +17,23 @@ Describe 'Describe-Scoped Test Case setup' {
     }
 }
 
+Describe 'Describe-Scoped Test Case setup using named ScriptBlock-parameter' {
+    BeforeEach -Scriptblock {
+        $testVariable = 'From BeforeEach'
+    }
+
+    $testVariable = 'Set in Describe'
+
+    It 'Assigns the correct value in first test' {
+        $testVariable | Should -Be 'From BeforeEach'
+        $testVariable = 'Set in It'
+    }
+
+    It 'Assigns the correct value in subsequent tests' {
+        $testVariable | Should -Be 'From BeforeEach'
+    }
+}
+
 Describe 'Context-scoped Test Case setup' {
     $testVariable = 'Set in Describe'
 
@@ -102,9 +119,9 @@ Describe 'Multiple Test Case teardown blocks' {
 }
 
 $script:DescribeBeforeAllCounter = 0
-$script:DescribeAfterAllCounter  = 0
-$script:ContextBeforeAllCounter  = 0
-$script:ContextAfterAllCounter   = 0
+$script:DescribeAfterAllCounter = 0
+$script:ContextBeforeAllCounter = 0
+$script:ContextAfterAllCounter = 0
 
 Describe 'Test Group Setup and Teardown' {
     It 'Executed the Describe BeforeAll regardless of definition order' {
@@ -160,8 +177,7 @@ Describe 'Finishing TestGroup Setup and Teardown tests' {
 }
 
 
-if ($PSVersionTable.PSVersion.Major -ge 3)
-{
+if ($PSVersionTable.PSVersion.Major -ge 3) {
     $thisTestScriptFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSCommandPath)
 
     Describe 'Script Blocks and file association (testing automatic variables)' {
