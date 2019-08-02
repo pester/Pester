@@ -332,11 +332,17 @@ InModuleScope Pester {
 
     Describe "Export to JSON" {
 
-        $TestResults = New-PesterState -Path TestDrive:\
-        $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-        $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -Seconds 1))
+        $DescribeMessage = 'Fake Describe Block'
+        $PassedTestCaseName = "Successful testcase"
+        $FailedTestCaseName = "Failed testcase"
 
-        [String]$testFile = "$TestDrive{0}Results{0}Tests.json" -f [System.IO.Path]::DirectorySeparatorChar
+        $TestResults = New-PesterState -Path TestDrive:\
+        $testResults.EnterTestGroup($DescribeMessage, 'Describe')
+        $TestResults.AddTestResult($PassedTestCaseName, 'Passed', (New-TimeSpan -Seconds 1))
+        $TestResults.AddTestResult($FailedTestCaseName, 'Failed', (New-TimeSpan -Seconds 2))
+
+
+        [String]$testFile = "$TestDrive{0}TestsResults.json" -f [System.IO.Path]::DirectorySeparatorChar
 
 
         it 'Should not throw when JSON export is select' {
@@ -352,17 +358,33 @@ InModuleScope Pester {
 
         }
 
-        It '.JSON File should contain correct data' {
+        Context '.JSON File should contain correct data' {
 
             Export-PesterResults -pesterState $testResults -Path $testFile -Format JSON
-
-
             $JsonResult = (Get-Content $testFile -raw) | ConvertFrom-Json
 
-        }
+            It 'JSON Object: Header should have correct format' {
 
-        it '.JSON file content should be identical as the Pester object' {
-            #The order cannot be respected. But the content must be present.
+
+                $JsonResult.TotalCount | Should be 2
+                $JsonResult.PassedCount | Should be 1
+                $JsonResult.FailedCount | Should be 1
+                $JsonResult.SkippedCount | Should be 0
+                $JsonResult.InconclusiveCount | Should be 0
+
+            }
+
+            It 'JSON Object: Passed test should be in TestResults and have correct data' {
+                $JsonResult.TestResult[0].Describe | Should be $DescribeMessage
+                $JsonResult.TestResult[0].Passed | Should be $true
+                $JsonResult.TestResult[0].Name | Should be $PassedTestCaseName
+            }
+
+            It 'JSON Object: Failed test should be in TestResults and have correct data' {
+                $JsonResult.TestResult[1].Describe | Should be $DescribeMessage
+                $JsonResult.TestResult[1].Passed | Should be $false
+                $JsonResult.TestResult[1].Name | Should be $FailedTestCaseName
+            }
         }
     }
 }
