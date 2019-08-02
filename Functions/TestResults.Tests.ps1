@@ -15,9 +15,9 @@ InModuleScope Pester {
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
-            $xmlTestCase.name     | Should -Be "Mocked Describe.Successful testcase"
-            $xmlTestCase.result   | Should -Be "Success"
-            $xmlTestCase.time     | Should -Be "1"
+            $xmlTestCase.name | Should -Be "Mocked Describe.Successful testcase"
+            $xmlTestCase.result | Should -Be "Success"
+            $xmlTestCase.time | Should -Be "1"
         }
 
         It "should write a failed test result" {
@@ -32,11 +32,11 @@ InModuleScope Pester {
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
-            $xmlTestCase.name                   | Should -Be "Mocked Describe.Failed testcase"
-            $xmlTestCase.result                 | Should -Be "Failure"
-            $xmlTestCase.time                   | Should -Be "2.5"
-            $xmlTestCase.failure.message        | Should -Be 'Assert failed: "Expected: Test. But was: Testing"'
-            $xmlTestCase.failure.'stack-trace'  | Should -Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
+            $xmlTestCase.name | Should -Be "Mocked Describe.Failed testcase"
+            $xmlTestCase.result | Should -Be "Failure"
+            $xmlTestCase.time | Should -Be "2.5"
+            $xmlTestCase.failure.message | Should -Be 'Assert failed: "Expected: Test. But was: Testing"'
+            $xmlTestCase.failure.'stack-trace' | Should -Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
         }
 
         It "should write the test summary" {
@@ -50,10 +50,10 @@ InModuleScope Pester {
             Export-NunitReport $testResults $testFile
             $xmlResult = [xml] (Get-Content $testFile)
             $xmlTestResult = $xmlResult.'test-results'
-            $xmlTestResult.total    | Should -Be 1
+            $xmlTestResult.total | Should -Be 1
             $xmlTestResult.failures | Should -Be 0
-            $xmlTestResult.date     | Should -Not -BeNullOrEmpty
-            $xmlTestResult.time     | Should -Not -BeNullOrEmpty
+            $xmlTestResult.date | Should -Not -BeNullOrEmpty
+            $xmlTestResult.time | Should -Not -BeNullOrEmpty
         }
 
         it "should write the test-suite information" {
@@ -80,12 +80,12 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.results.'test-suite'
-            $xmlTestResult.type            | Should -Be "TestFixture"
-            $xmlTestResult.name            | Should -Be "Mocked Describe"
-            $xmlTestResult.description     | Should -Be "Mocked Describe"
-            $xmlTestResult.result          | Should -Be "Success"
-            $xmlTestResult.success         | Should -Be "True"
-            $xmlTestResult.time            | Should -Be ([math]::Round($TestGroup.time.TotalSeconds,4))
+            $xmlTestResult.type | Should -Be "TestFixture"
+            $xmlTestResult.name | Should -Be "Mocked Describe"
+            $xmlTestResult.description | Should -Be "Mocked Describe"
+            $xmlTestResult.result | Should -Be "Success"
+            $xmlTestResult.success | Should -Be "True"
+            $xmlTestResult.time | Should -Be ([math]::Round($TestGroup.time.TotalSeconds, 4))
         }
 
         it "should write two test-suite elements for two describes" {
@@ -114,18 +114,18 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[0]
-            $xmlTestSuite1.name        | Should -Be "Describe #1"
+            $xmlTestSuite1.name | Should -Be "Describe #1"
             $xmlTestSuite1.description | Should -Be "Describe #1"
-            $xmlTestSuite1.result      | Should -Be "Success"
-            $xmlTestSuite1.success     | Should -Be "True"
-            $xmlTestSuite1.time        | Should -Be ([math]::Round($Describe1.time.TotalSeconds,4))
+            $xmlTestSuite1.result | Should -Be "Success"
+            $xmlTestSuite1.success | Should -Be "True"
+            $xmlTestSuite1.time | Should -Be ([math]::Round($Describe1.time.TotalSeconds, 4))
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.results.'test-suite'[1]
-            $xmlTestSuite2.name        | Should -Be "Describe #2"
+            $xmlTestSuite2.name | Should -Be "Describe #2"
             $xmlTestSuite2.description | Should -Be "Describe #2"
-            $xmlTestSuite2.result      | Should -Be "Failure"
-            $xmlTestSuite2.success     | Should -Be "False"
-            $xmlTestSuite2.time        | Should -Be ([math]::Round($Describe2.time.TotalSeconds,4))
+            $xmlTestSuite2.result | Should -Be "Failure"
+            $xmlTestSuite2.success | Should -Be "False"
+            $xmlTestSuite2.time | Should -Be ([math]::Round($Describe2.time.TotalSeconds, 4))
         }
 
         it "should write the environment information" {
@@ -135,13 +135,13 @@ InModuleScope Pester {
             $xmlResult = [xml] (Get-Content $testFile)
 
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
-            $xmlEnvironment.'os-Version'    | Should -Not -BeNullOrEmpty
-            $xmlEnvironment.platform        | Should -Not -BeNullOrEmpty
-            $xmlEnvironment.cwd             | Should -Be (Get-Location).Path
+            $xmlEnvironment.'os-Version' | Should -Not -BeNullOrEmpty
+            $xmlEnvironment.platform | Should -Not -BeNullOrEmpty
+            $xmlEnvironment.cwd | Should -Be (Get-Location).Path
             if ($env:Username) {
-                $xmlEnvironment.user        | Should -Be $env:Username
+                $xmlEnvironment.user | Should -Be $env:Username
             }
-            $xmlEnvironment.'machine-name'  | Should -Be $(hostname)
+            $xmlEnvironment.'machine-name' | Should -Be $(hostname)
         }
 
         it "Should validate test results against the nunit 2.5 schema" {
@@ -160,7 +160,7 @@ InModuleScope Pester {
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xml.Schemas.Add($null, $schemePath) > $null
-            { $xml.Validate( {throw $args.Exception }) } | Should -Not -Throw
+            { $xml.Validate( { throw $args.Exception }) } | Should -Not -Throw
         }
 
         it "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
@@ -177,7 +177,7 @@ InModuleScope Pester {
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xml.Schemas.Add($null, $schemePath) > $null
-            { $xml.Validate( {throw $args.Exception }) } | Should -Not -Throw
+            { $xml.Validate( { throw $args.Exception }) } | Should -Not -Throw
         }
 
         Context 'Exporting Parameterized Tests (Newer format)' {
@@ -192,7 +192,7 @@ InModuleScope Pester {
                 $null,
                 $null,
                 'Parameterized Testcase <A>',
-                @{Parameter = 'One'}
+                @{Parameter = 'One' }
             )
 
             $parameters = New-Object System.Collections.Specialized.OrderedDictionary
@@ -218,12 +218,12 @@ InModuleScope Pester {
             It 'should write parameterized test results correctly' {
                 $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
 
-                $xmlTestSuite.name        | Should -Be 'Mocked Describe.Parameterized Testcase <A>'
+                $xmlTestSuite.name | Should -Be 'Mocked Describe.Parameterized Testcase <A>'
                 $xmlTestSuite.description | Should -Be 'Parameterized Testcase <A>'
-                $xmlTestSuite.type        | Should -Be 'ParameterizedTest'
-                $xmlTestSuite.result      | Should -Be 'Failure'
-                $xmlTestSuite.success     | Should -Be 'False'
-                $xmlTestSuite.time        | Should -Be '2'
+                $xmlTestSuite.type | Should -Be 'ParameterizedTest'
+                $xmlTestSuite.result | Should -Be 'Failure'
+                $xmlTestSuite.success | Should -Be 'False'
+                $xmlTestSuite.time | Should -Be '2'
 
                 $testCase1 = $xmlTestSuite.results.'test-case'[0]
                 $testCase2 = $xmlTestSuite.results.'test-case'[1]
@@ -238,7 +238,7 @@ InModuleScope Pester {
             it 'Should validate test results against the nunit 2.5 schema' {
                 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
                 $null = $xmlResult.Schemas.Add($null, $schemaPath)
-                { $xmlResult.Validate( {throw $args.Exception }) } | Should -Not -Throw
+                { $xmlResult.Validate( { throw $args.Exception }) } | Should -Not -Throw
             }
         }
     }
@@ -328,5 +328,41 @@ InModuleScope Pester {
 
         Pop-Location
 
+    }
+
+    Describe "Export to JSON" {
+
+        $TestResults = New-PesterState -Path TestDrive:\
+        $testResults.EnterTestGroup('Mocked Describe', 'Describe')
+        $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -Seconds 1))
+
+        [String]$testFile = "$TestDrive{0}Results{0}Tests.json" -f [System.IO.Path]::DirectorySeparatorChar
+
+
+        it 'Should not throw when JSON export is select' {
+            { Export-PesterResults -pesterState $testResults -Path $testFile -Format JSON } | Should not throw
+        }
+        It 'Should create a .json file' {
+
+
+            Export-PesterResults -pesterState $testResults -Path $testFile -Format JSON
+
+            Test-Path $testFile | Should -Be $true
+
+
+        }
+
+        It '.JSON File should contain correct data' {
+
+            Export-PesterResults -pesterState $testResults -Path $testFile -Format JSON
+
+
+            $JsonResult = (Get-Content $testFile -raw) | ConvertFrom-Json
+
+        }
+
+        it '.JSON file content should be identical as the Pester object' {
+            #The order cannot be respected. But the content must be present.
+        }
     }
 }
