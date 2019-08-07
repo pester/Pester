@@ -1,4 +1,12 @@
 @{
+    HeaderMessage     = @'
+    ____            __
+   / __ \___  _____/ /____  _____
+  / /_/ / _ \/ ___/ __/ _ \/ ___/
+ / ____/  __(__  ) /_/  __/ /
+/_/    \___/____/\__/\___/_/
+Pester v{0}
+'@
     StartMessage      = "Executing all tests in '{0}'"
     FilterMessage     = ' matching test name {0}'
     TagMessage        = ' with Tags {0}'
