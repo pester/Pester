@@ -1,5 +1,13 @@
 $Script:ReportStrings = DATA {
     @{
+        HeaderMessage     = @'
+    ____            __
+   / __ \___  _____/ /____  _____
+  / /_/ / _ \/ ___/ __/ _ \/ ___/
+ / ____/  __(__  ) /_/  __/ /
+/_/    \___/____/\__/\___/_/
+Pester v{0}
+'@
         StartMessage      = "Executing all tests in '{0}'"
         FilterMessage     = ' matching test name {0}'
         TagMessage        = ' with Tags {0}'
@@ -93,7 +101,14 @@ function Write-PesterStart {
 
         $OFS = $ReportStrings.MessageOfs
 
-        $message = $ReportStrings.StartMessage -f (Format-PesterPath $Path -Delimiter $OFS)
+        $moduleInfo = $MyInvocation.MyCommand.ScriptBlock.Module
+        $moduleVersion = $moduleInfo.Version.ToString()
+        if ($moduleInfo.PrivateData.PSData.Prerelease) {
+            $moduleVersion += "-$($moduleInfo.PrivateData.PSData.Prerelease)"
+        }
+        $message = $ReportStrings.HeaderMessage -f $moduleVersion
+        $message += [Environment]::NewLine
+        $message += $ReportStrings.StartMessage -f (Format-PesterPath $Path -Delimiter $OFS)
         if ($PesterState.TestNameFilter) {
             $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
         }

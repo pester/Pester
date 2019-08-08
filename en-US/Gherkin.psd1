@@ -1,4 +1,12 @@
 @{
+    HeaderMessage     = @'
+    ____            __
+   / __ \___  _____/ /____  _____
+  / /_/ / _ \/ ___/ __/ _ \/ ___/
+ / ____/  __(__  ) /_/  __/ /
+/_/    \___/____/\__/\___/_/
+Pester v{0}
+'@
     StartMessage      = "Testing all features in '{0}'"
     FilterMessage     = " for scenarios matching '{0}'"
     TagMessage        = " with tags: '{0}'"
