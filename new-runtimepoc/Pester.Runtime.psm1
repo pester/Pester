@@ -597,9 +597,9 @@ function Invoke-TestItem {
                 -NoNewScope
 
             $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
-            $Test.Passed = $result.Success
+            $Test.ErrorRecord += ($result.ErrorRecord | Where-Object { $_.FullyQualifiedErrorId -notlike '*PesterAssertionFailed*' })
+            $Test.Passed = $Test.ErrorRecord.Count -eq 0
             $Test.StandardOutput = $result.StandardOutput
-            $Test.ErrorRecord = $result.ErrorRecord
         }
 
         # setting those values here so they are available for the teardown

@@ -139,25 +139,37 @@ InModuleScope Pester {
             It "Failing without ErrorAction" {
                 $user = Get-Object
 
-                $user |
-                    Should -Not -BeOfType PSCustomObject |
-                    Should -Be $null
+                $errors = @({
+                    $user |
+                        Should -Not -BeOfType PSCustomObject |
+                        Should -Be $null
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 2
             }
 
             It "With ErrorAction in first assertions section" {
                 $user = Get-Object
 
-                $user |
-                    Should -Not -BeOfType PSCustomObject -ErrorAction Stop |
-                    Should -Be $null
+                $errors = @({
+                    $user |
+                        Should -Not -BeOfType PSCustomObject -ErrorAction Stop |
+                        Should -Be $null
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 1
             }
 
             It "With ErrorAction in last assertion section" {
                 $user = Get-Object
 
-                $user |
-                    Should -Not -BeOfType PSCustomObject |
-                    Should -Be $null -ErrorAction Stop
+                $errors = @({
+                    $user |
+                        Should -Not -BeOfType PSCustomObject |
+                        Should -Be $null -ErrorAction Stop
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 2
             }
         }
 
@@ -168,20 +180,43 @@ InModuleScope Pester {
 
             It "ErrorAction on Single assertion" {
                 $user = Get-Object
-                $user | Should -Be $null -ErrorAction Stop
+                $errors = @({
+                    $user | Should -Be $null -ErrorAction Stop
 
-                $user |
-                    Should -BeOfType PSCustomObject |
-                    Should -Be $null
+                    $user |
+                        Should -BeOfType PSCustomObject |
+                        Should -Be $null
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 1
             }
 
             It 'No ErrorAction' {
                 $user = Get-Object
-                $user | Should -Be $null
+                $errors = @({
+                    $user | Should -Be $null
 
-                $user |
-                    Should -BeOfType PSCustomObject |
-                    Should -Be $null
+                    $user |
+                        Should -BeOfType PSCustomObject |
+                        Should -Be $null
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 3
+            }
+        }
+
+        Context 'Using should-throw' {
+
+            It 'should not throw without ErrorAction' {
+                { 4 | Should -Be 5 } | Should -Not -Throw
+            }
+
+            It 'should throw with ErrorAction Stop' {
+                { 4 | Should -Be 5 -ErrorAction Stop } | Should -Throw
+            }
+
+            It 'fails' {
+                4 | Should -Be 5
             }
         }
     }

@@ -4,26 +4,36 @@ function Verify-AssertionFailed {
         [ScriptBlock]$ScriptBlock
     )
 
-    $assertionResult = $null
-    $originalErrorActionPreference = $script:ErrorActionPreference
+    $err = $null
+    $assertionExceptionThrown = $false
     try {
-        $script:ErrorActionPreference = 'Stop'
-        & $ScriptBlock
+        $null = & $ScriptBlock
     }
     catch [Exception] {
-        $assertionResult = $_
-    }
-    finally {
-        $script:ErrorActionPreference = $originalErrorActionPreference
+        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
+        $err = $_
+        $err
     }
 
-    if ($assertionResult -isnot [System.Management.Automation.ErrorRecord]) {
-        $result = if ($null -eq $assertionResult) {
+    $test = & (Get-Module Pester) {
+        Get-CurrentTest
+    }
+
+    if (-not $assertionExceptionThrown -and $test.ErrorRecord.Count -gt 0) {
+        $assertionExceptionThrown = $null -ne ($test.ErrorRecord | Where-Object { $_.FullyQualifiedErrorId -eq 'PesterAssertionFailed' })
+        $test.ErrorRecord
+    }
+
+    $test.ErrorRecord.Clear()
+
+    if (-not $assertionExceptionThrown) {
+        $result = if ($null -eq $err) {
             "no assertion failure error was thrown!"
         }
         else {
-            "other error was thrown! $($assertionResult | Format-List -Force * | Out-String)"
+            "other error was thrown! $($err | Format-List -Force * | Out-String)"
         }
+
         throw [Exception]"Expected the script block { $ScriptBlock } to fail in Pester assertion, but $result"
     }
 }

@@ -168,12 +168,11 @@ function Invoke-Assertion {
         if (-not $testResult.Succeeded) {
             $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText
 
+            $currentTest = Get-CurrentTest
+            $currentTest.ErrorRecord.Add($errorRecord)
+
             if ($ShouldThrow) {
                 throw $errorRecord
-            }
-            else {
-                $currentTest = Get-CurrentTest
-                $currentTest.ErrorRecord.Add($errorRecord)
             }
         }
         else {
