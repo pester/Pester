@@ -102,19 +102,17 @@ function Should {
                 ShouldThrow = ($ErrorActionPreference -eq 'Stop')
             }
 
-            $result = if ($inputArray.Count -eq 0) {
-                    Invoke-Assertion @assertionParams -ValueToTest $null
+            if ($inputArray.Count -eq 0) {
+                Invoke-Assertion @assertionParams -ValueToTest $null
+            }
+            elseif ($entry.SupportsArrayInput) {
+                Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
+            }
+            else {
+                foreach ($object in $inputArray) {
+                    Invoke-Assertion @assertionParams -ValueToTest $object
                 }
-                elseif ($entry.SupportsArrayInput) {
-                    Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
-                }
-                else {
-                    foreach ($object in $inputArray) {
-                        Invoke-Assertion @assertionParams -ValueToTest $object
-                    }
-                }
-
-            $result
+            }
         }
     }
 }
@@ -168,12 +166,12 @@ function Invoke-Assertion {
         if (-not $testResult.Succeeded) {
             $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText
 
-            $currentTest = Get-CurrentTest
-            $currentTest.ErrorRecord.Add($errorRecord)
-
             if ($ShouldThrow) {
                 throw $errorRecord
             }
+
+            $currentTest = Get-CurrentTest
+            $null = $currentTest.ErrorRecord.Add($errorRecord)
         }
         else {
             #extract data to return if there are any on the object

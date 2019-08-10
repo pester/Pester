@@ -58,17 +58,21 @@ InModuleScope Pester {
         }
 
         # TODO: understand the purpose of this test, perhaps some better wording
-        It "can process functions with empty output as input" {
-            function ReturnNothing {
+        Context "can process functions with empty output as input" {
+            BeforeAll {
+                function ReturnNothing {
+                }
             }
 
-            # TODO: figure out why this is the case
-            # if ($PSVersionTable.PSVersion -eq "2.0") {
-                { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Not -Throw
-            # }
-            # else {
-            #     { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Throw
-            # }
+            It 'throws using ErrorAction Stop' {
+                { $(ReturnNothing) | Should -Not -BeNullOrEmpty -ErrorAction Stop } | Verify-Throw
+            }
+
+            It 'does not throw without ErrorAction Stop' {
+                $errors = @({ $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 1
+            }
         }
 
         # Assertion messages aren't convention-based anymore, but we should probably still make sure
@@ -184,7 +188,7 @@ InModuleScope Pester {
                     $user | Should -Be $null -ErrorAction Stop
 
                     $user |
-                        Should -BeOfType PSCustomObject |
+                        Should -Not -BeOfType PSCustomObject |
                         Should -Be $null
                 } | Verify-AssertionFailed)
 
@@ -197,7 +201,7 @@ InModuleScope Pester {
                     $user | Should -Be $null
 
                     $user |
-                        Should -BeOfType PSCustomObject |
+                        Should -Not -BeOfType PSCustomObject |
                         Should -Be $null
                 } | Verify-AssertionFailed)
 
@@ -208,15 +212,13 @@ InModuleScope Pester {
         Context 'Using should-throw' {
 
             It 'should not throw without ErrorAction' {
-                { 4 | Should -Be 5 } | Should -Not -Throw
+                $errors = @({ { 4 | Should -Be 5 } | Verify-AssertionFailed } | Should -Not -Throw)
+
+                $errors.Count | Should -Be 1
             }
 
             It 'should throw with ErrorAction Stop' {
                 { 4 | Should -Be 5 -ErrorAction Stop } | Should -Throw
-            }
-
-            It 'fails' {
-                4 | Should -Be 5
             }
         }
     }

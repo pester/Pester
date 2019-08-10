@@ -12,7 +12,7 @@ function Verify-AssertionFailed {
     catch [Exception] {
         $assertionExceptionThrown = ($_.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
         $err = $_
-        $err
+        Write-Output $err
     }
 
     $test = & (Get-Module Pester) {
@@ -20,8 +20,9 @@ function Verify-AssertionFailed {
     }
 
     if (-not $assertionExceptionThrown -and $test.ErrorRecord.Count -gt 0) {
-        $assertionExceptionThrown = $null -ne ($test.ErrorRecord | Where-Object { $_.FullyQualifiedErrorId -eq 'PesterAssertionFailed' })
-        $test.ErrorRecord
+        $pesterAssertionErrors = $test.ErrorRecord | Where-Object { $_.FullyQualifiedErrorId -eq 'PesterAssertionFailed' }
+        $assertionExceptionThrown = $null -ne $pesterAssertionErrors
+        Write-Output $test.ErrorRecord
     }
 
     $test.ErrorRecord.Clear()
