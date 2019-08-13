@@ -757,8 +757,8 @@ function Invoke-Pester {
     If this path is not provided, no log will be generated.
 
     .PARAMETER OutputFormat
-    The format of output. Two formats of output are supported: NUnitXML and
-    LegacyNUnitXML.
+    The format of output. Two formats of output are supported: NUnitXml and
+    JUnitXml.
 
     .PARAMETER Tag
     Runs only tests in Describe blocks with the specified Tag parameter values.
@@ -806,7 +806,7 @@ function Invoke-Pester {
     a custom object with detailed results of the code coverage test, including lines
     hit, lines missed, and helpful statistics.
 
-    However, NUnitXML and LegacyNUnitXML output (OutputXML, OutputFormat) do not include
+    However, NUnitXml and JUnitXml output (OutputXML, OutputFormat) do not include
     any code coverage information, because it's not supported by the schema.
 
     Enter the path to the files of code under test (not the test file).
@@ -1044,7 +1044,7 @@ function Invoke-Pester {
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [ValidateSet('NUnitXml')]
+        [ValidateSet('NUnitXml', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Switch]$Quiet,
@@ -1316,13 +1316,13 @@ function ResolveTestScripts {
                         & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
                         & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
                         & $script:SafeCommands['ForEach-Object'] {
-                        & $script:SafeCommands['New-Object'] psobject -Property @{
-                            Path       = $_
-                            Script     = $null
-                            Arguments  = $arguments
-                            Parameters = $parameters
+                            & $script:SafeCommands['New-Object'] psobject -Property @{
+                                Path       = $_
+                                Script     = $null
+                                Arguments  = $arguments
+                                Parameters = $parameters
+                            }
                         }
-                    }
                 }
             }
             elseif (-not [string]::IsNullOrEmpty($script)) {
