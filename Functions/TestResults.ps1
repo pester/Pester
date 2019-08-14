@@ -33,9 +33,9 @@ function Export-PesterResults {
         [string] $Format
     )
 
-    switch ($Format) {
-        'NUnitXml' {
-            Export-NUnitReport -PesterState $PesterState -Path $Path
+    switch -Wildcard ($Format) {
+        '*Xml' {
+            Export-XmlReport -PesterState $PesterState -Path $Path -Format $Format
         }
 
         default {
@@ -43,13 +43,16 @@ function Export-PesterResults {
         }
     }
 }
-function Export-NUnitReport {
+function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $PesterState,
 
         [parameter(Mandatory = $true)]
-        [String]$Path
+        [String]$Path,
+
+        [parameter(Mandatory = $true)]
+        [string] $Format
     )
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
@@ -69,7 +72,15 @@ function Export-NUnitReport {
         $xmlFile = [IO.File]::Create($Path)
         $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
-        Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+        switch ($Format) {
+            'NUnitXml' {
+                Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+            }
+
+            'JUnitXml' {
+                Write-JUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+            }
+        }
 
         $xmlWriter.Flush()
         $xmlFile.Flush()
@@ -219,6 +230,51 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     }
 
     $XmlWriter.WriteEndElement()
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+    # Write the XML Declaration
+    $XmlWriter.WriteStartDocument($false)
+
+    # Write Root Element
+    $xmlWriter.WriteStartElement('testsuites')
+
+    Write-JUnitTestResultAttributes @PSBoundParameters
+
+    foreach ($action in $PesterState.TestActions.Actions) {
+        $package = $action.Name
+        foreach ($a in $action.Actions) {
+            Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Node $a -Package $package
+        }
+    }
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+    $XmlWriter.WriteAttributeString('name', 'Pester')
+    $XmlWriter.WriteAttributeString('tests', ($PesterState.TotalCount - $PesterState.SkippedCount))
+    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('failures', $PesterState.FailedCount)
+    $XmlWriter.WriteAttributeString('disabled', $PesterState.PendingCount + $PesterState.InconclusiveCount)
+    $XmlWriter.WriteAttributeString('time', ($PesterState.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
+}
+
+function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+    $XmlWriter.WriteAttributeString('name', $Action.Name)
+    $XmlWriter.WriteAttributeString('tests', $Action.TotalCount)
+    $XmlWriter.WriteAttributeString('failures', $Action.FailedCount)
+    $XmlWriter.WriteAttributeString('disabled', $Action.SkippedCount + $Action.InconclusiveCount)
+    $XmlWriter.WriteAttributeString('package', $Package)
+    $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+}
+
+function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+    $XmlWriter.WriteStartElement('testsuite')
+
+    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Package
+
     $XmlWriter.WriteEndElement()
 }
 
