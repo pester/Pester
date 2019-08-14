@@ -261,6 +261,25 @@ function Write-JUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteAttributeString('time', ($PesterState.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
 }
 
+function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+    $XmlWriter.WriteStartElement('testsuite')
+
+    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Package
+    if ($Node.Actions.Type -eq 'TestCase') {
+        foreach ($t in $Node.Actions) {
+            Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter
+        }
+    }
+    else {
+        # testgroup
+        foreach ($t in $Node.Actions.Actions) {
+            Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter
+        }
+    }
+
+    $XmlWriter.WriteEndElement()
+}
+
 function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
     $XmlWriter.WriteAttributeString('name', $Action.Name)
     $XmlWriter.WriteAttributeString('tests', $Action.TotalCount)
@@ -270,10 +289,45 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 }
 
-function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
-    $XmlWriter.WriteStartElement('testsuite')
+function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter) {
+    $XmlWriter.WriteStartElement('testcase')
 
-    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Package
+    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter) {
+    #<testcase name=" status="Success" time="0.447" classname="" >
+    $XmlWriter.WriteAttributeString('name', $Action.Name)
+
+    $status = switch ($Action.Result) {
+        Passed {
+            'Success'
+        }
+
+        Failed {
+            'Failure'
+        }
+
+        default {
+            'Ignored'
+        }
+    }
+
+    $XmlWriter.WriteAttributeString('status', $Status)
+    $XmlWriter.WriteAttributeString('classname', '')
+    $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+
+    if ($status -ne 'Success') {
+        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -Status $status
+    }
+}
+
+function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Status) {
+    $XmlWriter.WriteStartElement($Status.ToLower())
+
+    $XmlWriter.WriteAttributeString('message', $Action.FailureMessage)
 
     $XmlWriter.WriteEndElement()
 }
