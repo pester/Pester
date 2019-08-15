@@ -49,9 +49,10 @@ function Export-XmlReport {
         $PesterState,
 
         [parameter(Mandatory = $true)]
-        [String]$Path,
+        [String] $Path,
 
         [parameter(Mandatory = $true)]
+        [ValidateSet('NUnitXml', 'JUnitXml')]
         [string] $Format
     )
 
@@ -157,7 +158,11 @@ function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] 
     $XmlWriter.WriteStartElement('environment')
 
     $environment = Get-RunTimeEnvironment
-    foreach ($keyValuePair in $environment.GetEnumerator() | Where-Object -FilterScript {$_.Name -ne 'junit-version'}) {
+    foreach ($keyValuePair in $environment.GetEnumerator()) {
+        if ($keyValuePair.Name -eq 'junit-version') {
+            continue
+        }
+
         $XmlWriter.WriteAttributeString($keyValuePair.Name, $keyValuePair.Value)
     }
 
@@ -301,7 +306,11 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
 
     $XmlWriter.WriteStartElement('properties')
 
-    foreach ($keyValuePair in $environment.GetEnumerator() | Where-Object -FilterScript {$_.Name -ne 'nunit-version'}) {
+    foreach ($keyValuePair in $environment.GetEnumerator()) {
+        if ($keyValuePair.Name -eq 'nunit-version') {
+            continue
+        }
+
         $XmlWriter.WriteStartElement('property')
         $XmlWriter.WriteAttributeString('name', $keyValuePair.Name)
         $XmlWriter.WriteAttributeString('value', $keyValuePair.Value)
