@@ -275,14 +275,29 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
     Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Package -Id $Id
 
-    $actions = $Node.Actions.Actions
-
-    if ($Node.Actions.Type -eq 'TestCase') {
-        $actions = $Node.Actions
+    $testCases = if ($Node.Type -eq 'TestCase') {
+        # it without context or describe
+        $Node | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $Node.Name
+    }
+    elseif ($Node.Actions.Type -eq 'TestCase') {
+        # it in context or describe
+        foreach ($a in $Node.Actions) {
+            $path = "$($Node.Name).$($a.Name)"
+            $a | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
+        }
+    }
+    else {
+        # it in context in describe
+        foreach ($action in $Node.Actions) {
+            foreach ($a in $action.Actions) {
+                $path = "$($Node.Name).$($action.Name).$($a.Name)"
+                $a | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
+            }
+        }
     }
 
-    foreach ($a in $actions) {
-        Write-JUnitTestCaseElements -Action $a -XmlWriter $XmlWriter
+    foreach ($t in $testCases) {
+        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $Package
     }
 
     $XmlWriter.WriteEndElement()
@@ -318,16 +333,16 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
     $XmlWriter.WriteStartElement('testcase')
 
-    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter
+    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter -ClassName $Package
 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter) {
-    $XmlWriter.WriteAttributeString('name', $Action.Name)
+function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
+    $XmlWriter.WriteAttributeString('name', $Action.Path)
 
     $statusElementName = switch ($Action.Result) {
         Passed {
@@ -344,7 +359,7 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
     }
 
     $XmlWriter.WriteAttributeString('status', $Action.Result)
-    $XmlWriter.WriteAttributeString('classname', '')
+    $XmlWriter.WriteAttributeString('classname', $ClassName)
     $XmlWriter.WriteAttributeString('assertions', '0')
     $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
