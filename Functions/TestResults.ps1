@@ -275,16 +275,14 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
     Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Package -Id $Id
 
+    $actions = $Node.Actions.Actions
+
     if ($Node.Actions.Type -eq 'TestCase') {
-        foreach ($t in $Node.Actions) {
-            Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter
-        }
+        $actions = $Node.Actions
     }
-    else {
-        # testgroup
-        foreach ($t in $Node.Actions.Actions) {
-            Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter
-        }
+
+    foreach ($a in $actions) {
+        Write-JUnitTestCaseElements -Action $a -XmlWriter $XmlWriter
     }
 
     $XmlWriter.WriteEndElement()
@@ -331,9 +329,9 @@ function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter)
 function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteAttributeString('name', $Action.Name)
 
-    $status = switch ($Action.Result) {
+    $statusElementName = switch ($Action.Result) {
         Passed {
-            'success'
+            $null
         }
 
         Failed {
@@ -350,13 +348,13 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
     $XmlWriter.WriteAttributeString('assertions', '0')
     $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
-    if ($status -ne 'success') {
-        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -Status $status
+    if ($null -ne $statusElementName) {
+        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -StatusElementName $statusElementName
     }
 }
 
-function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Status) {
-    $XmlWriter.WriteStartElement($Status.ToLower())
+function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
+    $XmlWriter.WriteStartElement($StatusElementName)
 
     $XmlWriter.WriteAttributeString('message', $Action.FailureMessage)
 
