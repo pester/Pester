@@ -391,19 +391,36 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         Passed {
             $XmlWriter.WriteAttributeString('result', 'Success')
             $XmlWriter.WriteAttributeString('executed', 'True')
+
             break
         }
+
         Skipped {
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
+
+            if ($TestResult.FailureMessage) {
+                $XmlWriter.WriteStartElement('reason')
+                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+                $XmlWriter.WriteEndElement() # Close reason tag
+            }
+
             break
         }
 
         Pending {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
+
+            if ($TestResult.FailureMessage) {
+                $XmlWriter.WriteStartElement('reason')
+                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+                $XmlWriter.WriteEndElement() # Close reason tag
+            }
+
             break
         }
+
         Inconclusive {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
