@@ -174,3 +174,7 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 [![Pester Gitter](images/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![Pester on PowerShell.org](images/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
+
+## Sponsored by
+
+Pester is sponsored by all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors) and by the [![The DevOps Collective](images/devopscollective.png)](https://devopscollective.org/)
