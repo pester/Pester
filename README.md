@@ -177,4 +177,6 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 
 ## Sponsored by
 
-Pester is sponsored by all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors) and by the [![The DevOps Collective](images/devopscollective.png)](https://devopscollective.org/)
+Pester is sponsored by all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors) and by the
+
+[![The DevOps Collective](images/devopscollective.png)](https://devopscollective.org/)
