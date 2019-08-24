@@ -147,15 +147,7 @@ If you do not need to test your scripts against PowerShell Core, just simply rem
 
 Pester itself is built on the community build server and Travis CI, and distributed mainly via PowerShell gallery.
 
-[![PowerShell 2 & 3](https://nohwnd.visualstudio.com/Pester/_apis/build/status/PowerShell%202%20&%203?branchName=master)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6?branchName=master)
-
-[![PowerShell 4, 5 & Core on Windows build](https://ci.appveyor.com/api/projects/status/dr0w3hwb2wncfov3?svg=true)](https://ci.appveyor.com/project/nohwnd/pester)
-
-[![Linux & MacOS build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester)
-
-[![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester)
-
-[![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+[![PowerShell 2 & 3](https://nohwnd.visualstudio.com/Pester/_apis/build/status/PowerShell%202%20&%203?branchName=master)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6?branchName=master) [![PowerShell 4, 5 & Core on Windows build](https://ci.appveyor.com/api/projects/status/dr0w3hwb2wncfov3?svg=true)](https://ci.appveyor.com/project/nohwnd/pester) [![Linux & MacOS build](https://img.shields.io/travis/pester/Pester/master.svg?label=linux/macos+build)](https://travis-ci.org/pester/Pester) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 ## Further reading
 
@@ -165,15 +157,7 @@ Do you like what you see? Learn how to use Pester with our [wiki guide](https://
 
 Got questions or you just want to get in touch? Use our issues page or one of these channels:
 
-[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester)
-
-[![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester)
-
-[![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS)
-
-[![Pester Gitter](images/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-[![Pester on PowerShell.org](images/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
+[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester) [![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester) [![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS) [![Pester Gitter](images/readme/gitter-64.PNG)](https://gitter.im/pester/Pester?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Pester on PowerShell.org](images/readme/pshorg-85x64.PNG)](https://powershell.org/forums/forum/pester/)
 
 ## Sponsored by
 
