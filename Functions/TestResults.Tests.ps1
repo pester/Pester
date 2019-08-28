@@ -39,6 +39,34 @@ InModuleScope Pester {
             $xmlTestCase.failure.'stack-trace'  | Should -Be 'at line: 28 in  C:\Pester\Result.Tests.ps1'
         }
 
+        It "should log the reason for a skipped test when provided" {
+            $message = "skipped for reasons"
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
+            $TestResults.AddTestResult("Successful testcase", 'Skipped', (New-TimeSpan -Seconds 1), $message)
+
+            #export and validate the message
+            [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
+            Export-NunitReport $testResults $testFile
+            $xmlResult = [xml] (Get-Content $testFile)
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
+            $xmlTestCase.reason.message   | Should -BeExactly $message
+        }
+
+        It "should log the reason for a pending test when provided" {
+            $message = "pending for reasons"
+            $TestResults = New-PesterState -Path TestDrive:\
+            $testResults.EnterTestGroup('Mocked Describe', 'Describe')
+            $TestResults.AddTestResult("Successful testcase", 'Pending', (New-TimeSpan -Seconds 1), $message)
+
+            #export and validate the message
+            [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
+            Export-NunitReport $testResults $testFile
+            $xmlResult = [xml] (Get-Content $testFile)
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
+            $xmlTestCase.reason.message   | Should -BeExactly $message
+        }
+
         It "should write the test summary" {
             #create state
             $TestResults = New-PesterState -Path TestDrive:\
