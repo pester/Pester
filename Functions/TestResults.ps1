@@ -279,7 +279,7 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         # it without context or describe
         $Node | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $Node.Name
     }
-    elseif ($Node.Actions.Type -eq 'TestCase') {
+    elseif ($Node.Actions[0].Type -eq 'TestCase') {
         # it in context or describe
         foreach ($a in $Node.Actions) {
             $path = "$($Node.Name).$($a.Name)"
@@ -371,7 +371,7 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
 function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
     $XmlWriter.WriteStartElement($StatusElementName)
 
-    $XmlWriter.WriteAttributeString('message', $Action.FailureMessage)
+    $XmlWriter.WriteAttributeString('message', $Action.FailureMessage) #TODO: Add stacktrace
 
     $XmlWriter.WriteEndElement()
 }
