@@ -63,7 +63,7 @@ function Export-XmlReport {
     $Path = GetFullPath -Path $Path
 
     $settings = & $SafeCommands['New-Object'] -TypeName Xml.XmlWriterSettings -Property @{
-        Indent              = $true
+        Indent = $true
         NewLineOnAttributes = $false
     }
 
@@ -249,11 +249,8 @@ function Write-JUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
 
     $testSuiteNumber = 0
     foreach ($action in $PesterState.TestActions.Actions) {
-        $package = $action.Name
-        foreach ($a in $action.Actions) {
-            Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Node $a -Package $package -Id $testSuiteNumber
-            $testSuiteNumber++
-        }
+        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Node $action -Id $testSuiteNumber
+        $testSuiteNumber++
     }
 
     $XmlWriter.WriteEndElement()
@@ -270,34 +267,34 @@ function Write-JUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $X
     $XmlWriter.WriteAttributeString('time', ($PesterState.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
 }
 
-function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id) {
+function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
     $XmlWriter.WriteStartElement('testsuite')
 
-    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Package -Id $Id
+    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Node.Name -Id $Id
 
-    $testCases = if ($Node.Type -eq 'TestCase') {
-        # it without context or describe
-        $Node | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $Node.Name
-    }
-    elseif ($Node.Actions[0].Type -eq 'TestCase') {
-        # it in context or describe
-        foreach ($a in $Node.Actions) {
-            $path = "$($Node.Name).$($a.Name)"
-            $a | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
-        }
-    }
-    else {
-        # it in context in describe
-        foreach ($action in $Node.Actions) {
-            foreach ($a in $action.Actions) {
-                $path = "$($Node.Name).$($action.Name).$($a.Name)"
-                $a | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
+    $testCases = foreach ($al1 in $node.Actions) {
+        if ($al1.Type -ne 'TestCase') {
+            foreach ($al2 in $al1.Actions) {
+                if ($al2.Type -ne 'TestCase') {
+                    foreach ($alt3 in $al2.Actions) {
+                        $path = "$($al1.Name).$($al2.Name).$($alt3.Name)"
+                        $alt3 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                    }
+                }
+                else {
+                    $path = "$($al1.Name).$($al2.Name)"
+                    $al2 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                }
             }
+        }
+        else {
+            $path = "$($al1.Name)"
+            $al1 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
         }
     }
 
     foreach ($t in $testCases) {
-        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $Package
+        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $Node.Name
     }
 
     $XmlWriter.WriteEndElement()
@@ -378,13 +375,13 @@ function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $Xml
 
 function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
     $node = & $SafeCommands['New-Object'] psobject -Property @{
-        Name              = $TestSuiteGroup.Name
-        TotalCount        = 0
-        Time              = [timespan]0
-        PassedCount       = 0
-        FailedCount       = 0
-        SkippedCount      = 0
-        PendingCount      = 0
+        Name = $TestSuiteGroup.Name
+        TotalCount = 0
+        Time = [timespan]0
+        PassedCount = 0
+        FailedCount = 0
+        SkippedCount = 0
+        PendingCount = 0
         InconclusiveCount = 0
     }
 
@@ -422,15 +419,15 @@ function Get-TestSuiteInfo ($TestSuite, $TestSuiteName) {
 
     $suite = @{
         resultMessage = 'Failure'
-        success       = if ($TestSuite.FailedCount -eq 0) {
+        success = if ($TestSuite.FailedCount -eq 0) {
             'True'
         }
         else {
             'False'
         }
-        totalTime     = Convert-TimeSpan $TestSuite.Time
-        name          = $TestSuiteName
-        description   = $TestSuiteName
+        totalTime = Convert-TimeSpan $TestSuite.Time
+        name = $TestSuiteName
+        description = $TestSuiteName
     }
 
     $suite.resultMessage = Get-GroupResult $TestSuite
@@ -610,7 +607,7 @@ function Get-RunTimeEnvironment() {
     }
     elseif ($IsMacOS -or $IsLinux) {
         $osSystemInformation = @{
-            Name    = "Unknown"
+            Name = "Unknown"
             Version = "0.0.0.0"
         }
         try {
@@ -629,7 +626,7 @@ function Get-RunTimeEnvironment() {
     }
     else {
         $osSystemInformation = @{
-            Name    = "Unknown"
+            Name = "Unknown"
             Version = "0.0.0.0"
         }
     }
@@ -645,13 +642,13 @@ function Get-RunTimeEnvironment() {
     @{
         'nunit-version' = '2.5.8.0'
         'junit-version' = '4'
-        'os-version'    = $osSystemInformation.Version
-        platform        = $osSystemInformation.Name
-        cwd             = (& $SafeCommands['Get-Location']).Path #run path
-        'machine-name'  = $computerName
-        user            = $username
-        'user-domain'   = $env:userDomain
-        'clr-version'   = $CLrVersion
+        'os-version' = $osSystemInformation.Version
+        platform = $osSystemInformation.Name
+        cwd = (& $SafeCommands['Get-Location']).Path #run path
+        'machine-name' = $computerName
+        user = $username
+        'user-domain' = $env:userDomain
+        'clr-version' = $CLrVersion
     }
 }
 
