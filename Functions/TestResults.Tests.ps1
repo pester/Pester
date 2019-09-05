@@ -48,7 +48,7 @@ InModuleScope Pester {
 
                 #export and validate the message
                 [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-                Export-NunitReport $testResults $testFile
+                Export-XmlReport $testResults $testFile 'NUnitXml'
                 $xmlResult = [xml] (Get-Content $testFile)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
                 $xmlTestCase.reason.message | Should -BeExactly $message
@@ -62,7 +62,7 @@ InModuleScope Pester {
 
                 #export and validate the message
                 [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-                Export-NunitReport $testResults $testFile
+                Export-XmlReport $testResults $testFile 'NUnitXml'
                 $xmlResult = [xml] (Get-Content $testFile)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
                 $xmlTestCase.reason.message | Should -BeExactly $message
