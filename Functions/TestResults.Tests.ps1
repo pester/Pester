@@ -292,11 +292,11 @@ InModuleScope Pester {
                 # there is a slight variation between what is recorded in the xml and what comes from the testresult
                 # e.g. xml = 0.202, testresult - 0.201
                 # therefore we only test for 1 digits after decimal point
-                ([decimal]$xmlTestSuite1.time).ToString('0.0') | Should -Be ($Describe1.time.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture))
+                ([decimal]$xmlTestSuite1.time).ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture) | Should -Be ($Describe1.time.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture))
 
                 $xmlTestSuite2 = $xmlResult.'testsuites'.'testsuite'[1]
                 $xmlTestSuite2.name | Should -Be "Describe #2"
-                ([decimal]$xmlTestSuite2.time).ToString('0.0') | Should -Be ($Describe2.time.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture))
+                ([decimal]$xmlTestSuite2.time).ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture) | Should -Be ($Describe2.time.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture))
             }
 
             it "should write the environment information in properties" {

@@ -1,3 +1,11 @@
+## 4.9.0 (September 8, 2019)
+
+- Add JUnit format for results [#1347](https://github.com/pester/Pester/pull/1347)
+- Add skip reason to nUnit output [#1353](https://github.com/pester/Pester/pull/1353)
+- Add header with Pester version to output [#1343](https://github.com/pester/Pester/pull/1343)
+- Fix detect variable and params conflicts [#1292](https://github.com/pester/Pester/pull/1292)
+- Fix signing of ps1xml files
+
 ## 4.8.1 (May 11, 2019)
 
 - Fix default parameter comparison on v2 [#1310](https://github.com/pester/Pester/pull/1310)
