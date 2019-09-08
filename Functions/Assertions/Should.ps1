@@ -53,9 +53,6 @@ function Should {
 
     begin {
         $inputArray = [System.Collections.Generic.List[PSObject]]@()
-        $lineNumber = $MyInvocation.ScriptLineNumber
-        $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
-        $file = $MyInvocation.ScriptName
     }
 
     process {
@@ -65,6 +62,10 @@ function Should {
     }
 
     end {
+        $lineNumber = $MyInvocation.ScriptLineNumber
+        $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
+        $file = $MyInvocation.ScriptName
+
         if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
             if ($inputArray.Count -eq 0) {
                 Invoke-LegacyAssertion $entry $parsedArgs $null $file $lineNumber $lineText

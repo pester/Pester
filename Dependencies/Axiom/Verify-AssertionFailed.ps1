@@ -4,8 +4,9 @@ function Verify-AssertionFailed {
         [ScriptBlock]$ScriptBlock
     )
 
-    $err = $null
     $assertionExceptionThrown = $false
+    $err = $null
+
     try {
         $null = & $ScriptBlock
     }
@@ -20,7 +21,12 @@ function Verify-AssertionFailed {
     }
 
     if (-not $assertionExceptionThrown -and $test.ErrorRecord.Count -gt 0) {
-        $pesterAssertionErrors = $test.ErrorRecord | Where-Object { $_.FullyQualifiedErrorId -eq 'PesterAssertionFailed' }
+        $pesterAssertionErrors = foreach ($record in $test.ErrorRecord) {
+            if ($record.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
+                $record
+            }
+        }
+
         $assertionExceptionThrown = $null -ne $pesterAssertionErrors
         Write-Output $test.ErrorRecord
     }

@@ -597,7 +597,11 @@ function Invoke-TestItem {
                 -NoNewScope
 
             $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
-            $Test.ErrorRecord += ($result.ErrorRecord | Where-Object { $_.FullyQualifiedErrorId -notlike '*PesterAssertionFailed*' })
+            $Test.ErrorRecord += foreach ($record in $result.ErrorRecord) {
+                                    if ($record.FullyQualifiedErrorId -notlike '*PesterAssertionFailed*') {
+                                        $record
+                                    }
+                                }
             $Test.Passed = $Test.ErrorRecord.Count -eq 0
             $Test.StandardOutput = $result.StandardOutput
         }
@@ -856,7 +860,6 @@ function New-TestObject {
         Executed          = $false
         ExecutedAt        = $null
         Passed            = $false
-        Result            = $null
         StandardOutput    = $null
         ErrorRecord       = [Collections.Generic.List[Object]]@()
         First             = $false
