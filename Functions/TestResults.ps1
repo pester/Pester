@@ -33,9 +33,9 @@ function Export-PesterResults {
         [string] $Format
     )
 
-    switch ($Format) {
-        'NUnitXml' {
-            Export-NUnitReport -PesterState $PesterState -Path $Path
+    switch -Wildcard ($Format) {
+        '*Xml' {
+            Export-XmlReport -PesterState $PesterState -Path $Path -Format $Format
         }
 
         default {
@@ -43,13 +43,17 @@ function Export-PesterResults {
         }
     }
 }
-function Export-NUnitReport {
+function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $PesterState,
 
         [parameter(Mandatory = $true)]
-        [String]$Path
+        [String] $Path,
+
+        [parameter(Mandatory = $true)]
+        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [string] $Format
     )
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
@@ -59,7 +63,7 @@ function Export-NUnitReport {
     $Path = GetFullPath -Path $Path
 
     $settings = & $SafeCommands['New-Object'] -TypeName Xml.XmlWriterSettings -Property @{
-        Indent              = $true
+        Indent = $true
         NewLineOnAttributes = $false
     }
 
@@ -69,7 +73,15 @@ function Export-NUnitReport {
         $xmlFile = [IO.File]::Create($Path)
         $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
-        Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+        switch ($Format) {
+            'NUnitXml' {
+                Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+            }
+
+            'JUnitXml' {
+                Write-JUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+            }
+        }
 
         $xmlWriter.Flush()
         $xmlFile.Flush()
@@ -147,6 +159,10 @@ function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] 
 
     $environment = Get-RunTimeEnvironment
     foreach ($keyValuePair in $environment.GetEnumerator()) {
+        if ($keyValuePair.Name -eq 'junit-version') {
+            continue
+        }
+
         $XmlWriter.WriteAttributeString($keyValuePair.Name, $keyValuePair.Value)
     }
 
@@ -222,15 +238,150 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     $XmlWriter.WriteEndElement()
 }
 
+function Write-JUnitReport($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+    # Write the XML Declaration
+    $XmlWriter.WriteStartDocument($false)
+
+    # Write Root Element
+    $xmlWriter.WriteStartElement('testsuites')
+
+    Write-JUnitTestResultAttributes @PSBoundParameters
+
+    $testSuiteNumber = 0
+    foreach ($action in $PesterState.TestActions.Actions) {
+        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Node $action -Id $testSuiteNumber
+        $testSuiteNumber++
+    }
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitTestResultAttributes($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+    $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
+    $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
+    $XmlWriter.WriteAttributeString('name', $PesterState.TestSuiteName)
+    $XmlWriter.WriteAttributeString('tests', $PesterState.PassedCount)
+    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('failures', $PesterState.FailedCount)
+    $XmlWriter.WriteAttributeString('disabled', $PesterState.PendingCount + $PesterState.InconclusiveCount + $PesterState.SkippedCount)
+    $XmlWriter.WriteAttributeString('time', ($PesterState.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
+}
+
+function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
+    $XmlWriter.WriteStartElement('testsuite')
+
+    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Node.Name -Id $Id
+
+    $testCases = foreach ($al1 in $node.Actions) {
+        if ($al1.Type -ne 'TestCase') {
+            foreach ($al2 in $al1.Actions) {
+                if ($al2.Type -ne 'TestCase') {
+                    foreach ($alt3 in $al2.Actions) {
+                        $path = "$($al1.Name).$($al2.Name).$($alt3.Name)"
+                        $alt3 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                    }
+                }
+                else {
+                    $path = "$($al1.Name).$($al2.Name)"
+                    $al2 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                }
+            }
+        }
+        else {
+            $path = "$($al1.Name)"
+            $al1 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+        }
+    }
+
+    foreach ($t in $testCases) {
+        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $Node.Name
+    }
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id) {
+    $environment = Get-RunTimeEnvironment
+
+    $XmlWriter.WriteAttributeString('name', $Action.Name)
+    $XmlWriter.WriteAttributeString('tests', $Action.TotalCount)
+    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('failures', $Action.FailedCount)
+    $XmlWriter.WriteAttributeString('hostname', $environment.'machine-name')
+    $XmlWriter.WriteAttributeString('id', $Id)
+    $XmlWriter.WriteAttributeString('skipped', $Action.SkippedCount)
+    $XmlWriter.WriteAttributeString('disabled', $Action.InconclusiveCount + $Action.PendingCount)
+    $XmlWriter.WriteAttributeString('package', $Package)
+    $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+
+    $XmlWriter.WriteStartElement('properties')
+
+    foreach ($keyValuePair in $environment.GetEnumerator()) {
+        if ($keyValuePair.Name -eq 'nunit-version') {
+            continue
+        }
+
+        $XmlWriter.WriteStartElement('property')
+        $XmlWriter.WriteAttributeString('name', $keyValuePair.Name)
+        $XmlWriter.WriteAttributeString('value', $keyValuePair.Value)
+        $XmlWriter.WriteEndElement()
+    }
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+    $XmlWriter.WriteStartElement('testcase')
+
+    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter -ClassName $Package
+
+    $XmlWriter.WriteEndElement()
+}
+
+function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
+    $XmlWriter.WriteAttributeString('name', $Action.Path)
+
+    $statusElementName = switch ($Action.Result) {
+        Passed {
+            $null
+        }
+
+        Failed {
+            'failure'
+        }
+
+        default {
+            'skipped'
+        }
+    }
+
+    $XmlWriter.WriteAttributeString('status', $Action.Result)
+    $XmlWriter.WriteAttributeString('classname', $ClassName)
+    $XmlWriter.WriteAttributeString('assertions', '0')
+    $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+
+    if ($null -ne $statusElementName) {
+        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -StatusElementName $statusElementName
+    }
+}
+
+function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
+    $XmlWriter.WriteStartElement($StatusElementName)
+
+    $XmlWriter.WriteAttributeString('message', $Action.FailureMessage) #TODO: Add stacktrace
+
+    $XmlWriter.WriteEndElement()
+}
+
 function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
     $node = & $SafeCommands['New-Object'] psobject -Property @{
-        Name              = $TestSuiteGroup.Name
-        TotalCount        = 0
-        Time              = [timespan]0
-        PassedCount       = 0
-        FailedCount       = 0
-        SkippedCount      = 0
-        PendingCount      = 0
+        Name = $TestSuiteGroup.Name
+        TotalCount = 0
+        Time = [timespan]0
+        PassedCount = 0
+        FailedCount = 0
+        SkippedCount = 0
+        PendingCount = 0
         InconclusiveCount = 0
     }
 
@@ -268,15 +419,15 @@ function Get-TestSuiteInfo ($TestSuite, $TestSuiteName) {
 
     $suite = @{
         resultMessage = 'Failure'
-        success       = if ($TestSuite.FailedCount -eq 0) {
+        success = if ($TestSuite.FailedCount -eq 0) {
             'True'
         }
         else {
             'False'
         }
-        totalTime     = Convert-TimeSpan $TestSuite.Time
-        name          = $TestSuiteName
-        description   = $TestSuiteName
+        totalTime = Convert-TimeSpan $TestSuite.Time
+        name = $TestSuiteName
+        description = $TestSuiteName
     }
 
     $suite.resultMessage = Get-GroupResult $TestSuite
@@ -456,7 +607,7 @@ function Get-RunTimeEnvironment() {
     }
     elseif ($IsMacOS -or $IsLinux) {
         $osSystemInformation = @{
-            Name    = "Unknown"
+            Name = "Unknown"
             Version = "0.0.0.0"
         }
         try {
@@ -475,7 +626,7 @@ function Get-RunTimeEnvironment() {
     }
     else {
         $osSystemInformation = @{
-            Name    = "Unknown"
+            Name = "Unknown"
             Version = "0.0.0.0"
         }
     }
@@ -490,13 +641,14 @@ function Get-RunTimeEnvironment() {
 
     @{
         'nunit-version' = '2.5.8.0'
-        'os-version'    = $osSystemInformation.Version
-        platform        = $osSystemInformation.Name
-        cwd             = (& $SafeCommands['Get-Location']).Path #run path
-        'machine-name'  = $computerName
-        user            = $username
-        'user-domain'   = $env:userDomain
-        'clr-version'   = $CLrVersion
+        'junit-version' = '4'
+        'os-version' = $osSystemInformation.Version
+        platform = $osSystemInformation.Name
+        cwd = (& $SafeCommands['Get-Location']).Path #run path
+        'machine-name' = $computerName
+        user = $username
+        'user-domain' = $env:userDomain
+        'clr-version' = $CLrVersion
     }
 }
 
