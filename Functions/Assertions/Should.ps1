@@ -66,53 +66,37 @@ function Should {
         $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
         $file = $MyInvocation.ScriptName
 
-        if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
-            if ($inputArray.Count -eq 0) {
-                Invoke-LegacyAssertion $entry $parsedArgs $null $file $lineNumber $lineText
-            }
-            elseif ($entry.SupportsArrayInput) {
-                Invoke-LegacyAssertion $entry $parsedArgs $inputArray.ToArray() $file $lineNumber $lineText
-            }
-            else {
-                foreach ($object in $inputArray) {
-                    Invoke-LegacyAssertion $entry $parsedArgs $object $file $lineNumber $lineText
-                }
-            }
+        $negate = $false
+        if ($PSBoundParameters.ContainsKey('Not')) {
+            $negate = [bool]$PSBoundParameters['Not']
+        }
+
+        $null = $PSBoundParameters.Remove('ActualValue')
+        $null = $PSBoundParameters.Remove($PSCmdlet.ParameterSetName)
+        $null = $PSBoundParameters.Remove('Not')
+
+        $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
+
+        $assertionParams = @{
+            AssertionEntry = $entry
+            BoundParameters = $PSBoundParameters
+            File = $file
+            LineNumber = $lineNumber
+            LineText = $lineText
+            Negate = $negate
+            CallerSessionState = $PSCmdlet.SessionState
+            ShouldThrow = ($ErrorActionPreference -eq 'Stop')
+        }
+
+        if ($inputArray.Count -eq 0) {
+            Invoke-Assertion @assertionParams -ValueToTest $null
+        }
+        elseif ($entry.SupportsArrayInput) {
+            Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
         }
         else {
-
-            $negate = $false
-            if ($PSBoundParameters.ContainsKey('Not')) {
-                $negate = [bool]$PSBoundParameters['Not']
-            }
-
-            $null = $PSBoundParameters.Remove('ActualValue')
-            $null = $PSBoundParameters.Remove($PSCmdlet.ParameterSetName)
-            $null = $PSBoundParameters.Remove('Not')
-
-            $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
-
-            $assertionParams = @{
-                AssertionEntry = $entry
-                BoundParameters = $PSBoundParameters
-                File = $file
-                LineNumber = $lineNumber
-                LineText = $lineText
-                Negate = $negate
-                CallerSessionState = $PSCmdlet.SessionState
-                ShouldThrow = ($ErrorActionPreference -eq 'Stop')
-            }
-
-            if ($inputArray.Count -eq 0) {
-                Invoke-Assertion @assertionParams -ValueToTest $null
-            }
-            elseif ($entry.SupportsArrayInput) {
-                Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
-            }
-            else {
-                foreach ($object in $inputArray) {
-                    Invoke-Assertion @assertionParams -ValueToTest $object
-                }
+            foreach ($object in $inputArray) {
+                Invoke-Assertion @assertionParams -ValueToTest $object
             }
         }
     }
@@ -198,20 +182,4 @@ function Format-Because ([string] $Because) {
     }
 
     " because $($bcs -replace 'because\s'),"
-}
-
-function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText) {
-    # $expectedValueSplat = @(
-    #     if ($null -ne $shouldArgs.ExpectedValue)
-    #     {
-    #         ,$shouldArgs.ExpectedValue
-    #     }
-    # )
-
-    # $negate = -not $shouldArgs.PositiveAssertion
-
-    # $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
-    # if (-not $testResult.Succeeded) {
-    #     throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
-    # }
 }
