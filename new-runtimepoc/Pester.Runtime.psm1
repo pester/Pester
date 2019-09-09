@@ -1061,12 +1061,9 @@ function Run-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSTypeName("DiscoveredBlock")]
-        [PSObject[]]
-        $Block,
+        [PSTypeName("DiscoveredBlock")][PSObject[]] $Block,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState]
-        $SessionState
+        [Management.Automation.SessionState] $SessionState
     )
 
     $state.Discovery = $false
@@ -1786,12 +1783,9 @@ function Invoke-Test {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSTypeName("BlockContainer")]
-        [PSObject[]]
-        $BlockContainer,
+        [PSTypeName("BlockContainer")][PSObject[]] $BlockContainer,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState]
-        $SessionState,
+        [Management.Automation.SessionState] $SessionState,
         $Filter,
         $Plugin,
         $PluginConfiguration
