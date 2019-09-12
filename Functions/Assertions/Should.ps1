@@ -57,8 +57,6 @@ function Should {
 
     process {
         $inputArray.Add($ActualValue)
-
-        $ActualValue
     }
 
     end {
@@ -97,6 +95,17 @@ function Should {
         else {
             foreach ($object in $inputArray) {
                 Invoke-Assertion @assertionParams -ValueToTest $object
+            }
+        }
+
+        if ($entry.Name -ne 'Throw') {
+            $inputArray
+        }
+        else {
+            foreach ($elem in $inputArray) {
+                if ($elem -is [System.Management.Automation.ErrorRecord]) {
+                    $elem
+                }
             }
         }
     }

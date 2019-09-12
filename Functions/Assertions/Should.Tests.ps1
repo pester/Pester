@@ -211,8 +211,42 @@ InModuleScope Pester {
 
         Context 'Using should-throw' {
 
-            It 'should not throw without ErrorAction' {
-                $errors = @({ { 4 | Should -Be 5 } | Verify-AssertionFailed } | Should -Not -Throw)
+            It 'verify Should -Not -Throw without ErrorAction' {
+                $errors = @({
+                    { throw } | Should -Not -Throw
+
+                    4 | Should -Be 5
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 2
+            }
+
+            It 'verify Should -Not -Throw with ErrorAction' {
+                $errors = @({
+                    { throw } | Should -Not -Throw -ErrorAction Stop
+
+                    4 | Should -Be 5
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 1
+            }
+
+            It 'verify Should -Throw without ErrorAction' {
+                $errors = @({
+                    $res = { throw } | Should -Throw
+
+                    4 | Should -Be 5
+                } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 1
+            }
+
+            It 'verify Should -Throw with ErrorAction' {
+                $errors = @({
+                    { 'Hello' } | Should -Throw -ErrorAction Stop
+
+                    4 | Should -Be 5
+                } | Verify-AssertionFailed)
 
                 $errors.Count | Should -Be 1
             }
