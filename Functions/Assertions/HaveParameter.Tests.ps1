@@ -2,87 +2,92 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
 
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-        function Invoke-DummyFunction {
-            param(
-                [Parameter(Mandatory = $true)]
-                $MandatoryParam,
+    $script:functionsBlock = {
+        if ($PSVersionTable.PSVersion.Major -ge 5) {
+            function Invoke-DummyFunction {
+                param(
+                    [Parameter(Mandatory = $true)]
+                    $MandatoryParam,
 
-                [ValidateNotNullOrEmpty()]
-                [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
+                    [ValidateNotNullOrEmpty()]
+                    [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
-                [Parameter()]
-                [ValidateScript(
-                    {
-                        if (-not (Test-Path $_)) {
-                            $errorItem = [System.Management.Automation.ErrorRecord]::new(
-                                ([System.ArgumentException]"Path not found"),
-                                'ParameterValue.FileNotFound',
-                                [System.Management.Automation.ErrorCategory]::ObjectNotFound,
-                                $_
-                            )
-                            $errorItem.ErrorDetails = "Invalid path '$_'."
-                            $PSCmdlet.ThrowTerminatingError($errorItem)
+                    [Parameter()]
+                    [ValidateScript(
+                        {
+                            if (-not (Test-Path $_)) {
+                                $errorItem = [System.Management.Automation.ErrorRecord]::new(
+                                    ([System.ArgumentException]"Path not found"),
+                                    'ParameterValue.FileNotFound',
+                                    [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+                                    $_
+                                )
+                                $errorItem.ErrorDetails = "Invalid path '$_'."
+                                $PSCmdlet.ThrowTerminatingError($errorItem)
+                            }
+                            else {
+                                return $true
+                            }
                         }
-                        else {
-                            return $true
-                        }
-                    }
-                )]
-                [String]$ParamWithScriptValidation = ".",
+                    )]
+                    [String]$ParamWithScriptValidation = ".",
 
-                [Parameter()]
-                [ValidateNotNullOrEmpty()]
-                [ArgumentCompleter(
-                    {
-                        param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
-                        & Get-ChildItem |
-                            Where-Object { $_.Name -like "$wordToComplete*" } |
-                            ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
-                    }
-                )]
-                [String]$ParamWithArgumentCompleter = "./.git"
-            )
+                    [Parameter()]
+                    [ValidateNotNullOrEmpty()]
+                    [ArgumentCompleter(
+                        {
+                            param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
+                            & Get-ChildItem |
+                                Where-Object { $_.Name -like "$wordToComplete*" } |
+                                ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
+                        }
+                    )]
+                    [String]$ParamWithArgumentCompleter = "./.git"
+                )
+            }
         }
-    }
-    else {
-        function Invoke-DummyFunction {
-            param(
-                [Parameter(Mandatory = $true)]
-                $MandatoryParam,
+        else {
+            function Invoke-DummyFunction {
+                param(
+                    [Parameter(Mandatory = $true)]
+                    $MandatoryParam,
 
-                [ValidateNotNullOrEmpty()]
-                [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
+                    [ValidateNotNullOrEmpty()]
+                    [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
-                # argument completer is PowerShell v5+ only
-                [Parameter()]
-                [ValidateScript(
-                    {
-                        if (-not (Test-Path $_)) {
-                            $errorItem = [System.Management.Automation.ErrorRecord]::new(
-                                ([System.ArgumentException]"Path not found"),
-                                'ParameterValue.FileNotFound',
-                                [System.Management.Automation.ErrorCategory]::ObjectNotFound,
-                                $_
-                            )
-                            $errorItem.ErrorDetails = "Invalid path '$_'."
-                            $PSCmdlet.ThrowTerminatingError($errorItem)
+                    # argument completer is PowerShell v5+ only
+                    [Parameter()]
+                    [ValidateScript(
+                        {
+                            if (-not (Test-Path $_)) {
+                                $errorItem = [System.Management.Automation.ErrorRecord]::new(
+                                    ([System.ArgumentException]"Path not found"),
+                                    'ParameterValue.FileNotFound',
+                                    [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+                                    $_
+                                )
+                                $errorItem.ErrorDetails = "Invalid path '$_'."
+                                $PSCmdlet.ThrowTerminatingError($errorItem)
+                            }
+                            else {
+                                return $true
+                            }
                         }
-                        else {
-                            return $true
-                        }
-                    }
-                )]
-                [String]$ParamWithScriptValidation = "."
-            )
+                    )]
+                    [String]$ParamWithScriptValidation = "."
+                )
+            }
         }
-    }
 
-    function Invoke-EmptyFunction {
-        param()
+        function Invoke-EmptyFunction {
+            param()
+        }
     }
 
     Describe "Should -HaveParameter" {
+        BeforeAll {
+            . $script:functionsBlock
+        }
 
         It "passes if the parameter <ParameterName> exists" -TestCases @(
             @{ParameterName = "MandatoryParam"}
@@ -269,9 +274,9 @@ InModuleScope Pester {
     }
 
     Describe "Should -Not -HavePameter" {
-        # BeforeAll {
-        #     . $script:functionsBlock
-        # }
+        BeforeAll {
+            . $script:functionsBlock
+        }
 
         It "passes if the parameter <ParameterName> does not exists" -TestCases @(
             @{ParameterName = "FirstParam"}
