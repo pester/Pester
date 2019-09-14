@@ -164,3 +164,33 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 Pester is sponsored by all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors) and by the
 
 [![The DevOps Collective](images/devopscollective.png)](https://devopscollective.org/)
+
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+<a href="https://github.com/pester/Pester/graphs/contributors"><img src="https://opencollective.com/Pester/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/Pester/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/Pester"><img src="https://opencollective.com/Pester/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/Pester/contribute)]
+
+<a href="https://opencollective.com/Pester/organization/0/website"><img src="https://opencollective.com/Pester/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/1/website"><img src="https://opencollective.com/Pester/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/2/website"><img src="https://opencollective.com/Pester/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/3/website"><img src="https://opencollective.com/Pester/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/4/website"><img src="https://opencollective.com/Pester/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/5/website"><img src="https://opencollective.com/Pester/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/6/website"><img src="https://opencollective.com/Pester/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/7/website"><img src="https://opencollective.com/Pester/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/8/website"><img src="https://opencollective.com/Pester/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/Pester/organization/9/website"><img src="https://opencollective.com/Pester/organization/9/avatar.svg"></a>
