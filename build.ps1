@@ -12,5 +12,5 @@ $scriptContentToBeMerged
 
 $mainModulePath = Join-Path $PSScriptRoot 'Pester.psm1'
 $contentOfMainModule = Get-Content -Path $mainModulePath
-$contentOfMainModule = $contentOfMainModule.Replace('# Functions', $mergedContent)
+$contentOfMainModule = $contentOfMainModule.Replace('#region Functions', "$([System.Environment]::Newline)$mergedContent")
 Set-Content -Path $mainModulePath -Value $contentOfMainModule
