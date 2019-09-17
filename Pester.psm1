@@ -616,16 +616,21 @@ function Get-AssertionDynamicParams {
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
+
+#region Functions
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
     & $script:SafeCommands['Resolve-Path'] |
     & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
     & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+#endregion
 
+#region Dependencies
 if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
     # sub-modules
     & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
         & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
 }
+#endregion
 
 Add-Type -TypeDefinition @"
 using System;
