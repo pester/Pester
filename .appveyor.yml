@@ -15,6 +15,7 @@ test_script:
       if ( $env:PSEdition -eq 'Desktop' ) {
       Set-StrictMode -Version Latest
       $global:PesterDebugPreference_ShowFullErrors = $true
+      ./build.ps1
       Import-Module ./Pester.psd1
       Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml
       (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
@@ -22,6 +23,7 @@ test_script:
       if ( $env:PSEdition -eq 'Core' ) {
       Set-StrictMode -Version Latest
       $global:PesterDebugPreference_ShowFullErrors = $true
+      ./build.ps1
       Import-Module ./Pester.psd1
       Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml
       (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
