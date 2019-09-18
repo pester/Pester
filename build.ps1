@@ -1,4 +1,4 @@
-$PowerShellScriptsToBeMerged = Get-ChildItem -Path (Join-Path $PSScriptRoot Functions) -Filter '*.ps1' -Exclude '*.Tests.ps1' -Recurse
+$PowerShellScriptsToBeMerged = Get-ChildItem -Path (Join-Path $PSScriptRoot Functions) -Filter '*.ps1' -Exclude '*.Tests.ps1', '*.ps1xml' -Recurse
 $mergedContent = ''
 foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
     $scriptContentToBeMerged = Get-Content -Path $powerShellScriptToBeMerged.FullName -Raw
@@ -42,7 +42,7 @@ Edit-Region -Path $mainModulePath -RegionName 'Functions' -ReplacementText $merg
 function Get-ContentOfMergedFolder($DirectoryPath) {
     [array] $mainModulePath = Get-ChildItem -Path $DirectoryPath -Filter '*.psm1'
     if ($mainModulePath.Length -ne 1) { throw "We assumed there is only one psm1 file in directory '$DirectoryPath'" }
-    $mainModuleContent = Get-Content $mainModulePath[0] -Raw
+    $mainModuleContent = Get-Content $mainModulePath[0].FullName -Raw
     $PowerShellScriptsToBeMerged = Get-ChildItem -Path $DirectoryPath -Filter '*.ps1'
     foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
         $NameOfScriptToBeMerged = $powerShellScriptToBeMerged.Name
@@ -67,8 +67,8 @@ function Get-ContentOfMergedFolder($DirectoryPath) {
 $dependenciesFolder = Join-Path $PSScriptRoot 'Dependencies'
 $axiomsCode = Get-ContentOfMergedFolder -DirectoryPath (Join-Path $dependenciesFolder 'Axiom')
 # Format module dependes on TypeClass module, hence why the TypeClass code has to go first
-$typeClassCode = Get-Content -Path (Join-Path $dependenciesFolder 'TypeClass' 'TypeClass.psm1') -Raw
-$formatCode = Get-Content -Path (Join-Path $dependenciesFolder 'Format' 'Format.psm1') -Raw
+$typeClassCode = Get-Content -Path (Join-Path $dependenciesFolder 'TypeClass\TypeClass.psm1') -Raw
+$formatCode = Get-Content -Path (Join-Path $dependenciesFolder 'Format\Format.psm1') -Raw
 $typeClassImport = 'Import-Module $PSScriptRoot\..\TypeClass\TypeClass.psm1 -DisableNameChecking'
 if (-not $formatCode.Contains($typeClassImport)) {
     throw "Expected the following string to be present in Format.psm1 for replacement '$typeClassImport'"
