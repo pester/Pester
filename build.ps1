@@ -41,7 +41,7 @@ Edit-Region -Path $mainModulePath -RegionName 'Functions' -ReplacementText $merg
 # Takes in a directory (Dependencies/Axiom)
 function Get-ContentOfMergedFolder($DirectoryPath) {
     [array] $mainModulePath = Get-ChildItem -Path $DirectoryPath -Filter '*.psm1'
-    $mainModulePath.Length | Should -Be 1 -Because "we assumed there is only one psm1 file in directory '$DirectoryPath'"
+    if ($mainModulePath.Length -ne 1) { throw "We assumed there is only one psm1 file in directory '$DirectoryPath'" }
     $mainModuleContent = Get-Content $mainModulePath[0] -Raw
     $PowerShellScriptsToBeMerged = Get-ChildItem -Path $DirectoryPath -Filter '*.ps1'
     foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
