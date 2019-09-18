@@ -22,7 +22,7 @@ function Edit-Region ($Path, $RegionName, $ReplacementText) {
         if ($line.Contains("#region $RegionName")) {
             $replacementFound = $true
         }
-        if ($line.Contains('#endregion')) {
+        if ($replacementFound -and $line.Contains('#endregion')) {
             $contentOfMainModule.Insert($i, $ReplacementText)
             $replacementFound = $false
             break;
@@ -37,6 +37,45 @@ function Edit-Region ($Path, $RegionName, $ReplacementText) {
 
 $mainModulePath = Join-Path $PSScriptRoot 'Pester.psm1'
 Edit-Region -Path $mainModulePath -RegionName 'Functions' -ReplacementText $mergedContent
-# Edit-Region -Path $mainModulePath  -RegionName 'Dependencies' -ReplacementText $mergedContent
+
+# Takes in a directory (Dependencies/Axiom)
+function Get-ContentOfMergedFolder($DirectoryPath) {
+    [array] $mainModulePath = Get-ChildItem -Path $DirectoryPath -Filter '*.psm1'
+    $mainModulePath.Length | Should -Be 1 -Because "we assumed there is only one psm1 file in directory '$DirectoryPath'"
+    $mainModuleContent = Get-Content $mainModulePath[0] -Raw
+    $PowerShellScriptsToBeMerged = Get-ChildItem -Path $DirectoryPath -Filter '*.ps1'
+    foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
+        $NameOfScriptToBeMerged = $powerShellScriptToBeMerged.Name
+        $scriptContentToBeMerged = Get-Content -Path $powerShellScriptToBeMerged.FullName -Raw
+        $replaceSearchText = ". `$PSScriptRoot\$NameOfScriptToBeMerged"
+        if (-not $mainModuleContent.Contains($replaceSearchText)) {
+            continue
+        }
+
+        if ($mainModuleContent.Contains($replaceSearchText)) {
+            $mainModuleContent = $mainModuleContent.Replace($replaceSearchText, @"
+    #region $($powerShellScriptToBeMerged.BaseName)
+    $scriptContentToBeMerged
+    #endregion
+
+"@)
+        }
+    }
+    $mainModuleContent
+}
+
+$dependenciesFolder = Join-Path $PSScriptRoot 'Dependencies'
+$axiomsCode = Get-ContentOfMergedFolder -DirectoryPath (Join-Path $dependenciesFolder 'Axiom')
+# Format module dependes on TypeClass module, hence why the TypeClass code has to go first
+$typeClassCode = Get-Content -Path (Join-Path $dependenciesFolder 'TypeClass' 'TypeClass.psm1') -Raw
+$formatCode = Get-Content -Path (Join-Path $dependenciesFolder 'Format' 'Format.psm1') -Raw
+$typeClassImport = 'Import-Module $PSScriptRoot\..\TypeClass\TypeClass.psm1 -DisableNameChecking'
+if (-not $formatCode.Contains($typeClassImport)) {
+    throw "Expected the following string to be present in Format.psm1 for replacement '$typeClassImport'"
+}
+$formatCode = $formatCode.Replace($typeClassImport, '')
+
+$dependenciesCode = "$axiomsCode$([System.Environment]::NewLine)$formatCode$([System.Environment]::NewLine)$typeClassCode"
+Edit-Region -Path $mainModulePath  -RegionName 'Dependencies' -ReplacementText $dependenciesCode
 
 # pwsh -c 'measure-command { ipmo C:\Users\christoph.bergmeiste\git\Pester\Pester.psd1 }'
