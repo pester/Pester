@@ -482,7 +482,7 @@ function Add-AssertionOperator {
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_)}) {
+    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_) }) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -509,7 +509,7 @@ function Assert-AssertionOperatorNameIsUnique {
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_)}) {
+    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_) }) {
         Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string)) {
@@ -617,14 +617,14 @@ function Get-AssertionDynamicParams {
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
-    & $script:SafeCommands['Resolve-Path'] |
-    & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
-    & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+& $script:SafeCommands['Resolve-Path'] |
+& $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+& $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
 if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
     # sub-modules
     & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
 }
 
 Add-Type -TypeDefinition @"
@@ -1075,7 +1075,7 @@ function Invoke-Pester {
             }
         }
 
-        $script:mockTable = @{}
+        $script:mockTable = @{ }
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
         $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
@@ -1089,8 +1089,9 @@ function Invoke-Pester {
                     [Parameter(Position = 0)]
                     [string] $Path,
                     [string] $Script,
+                    $Set_ScriptBlockHint,
                     [object[]] $Arguments = @(),
-                    [System.Collections.IDictionary] $Parameters = @{}
+                    [System.Collections.IDictionary] $Parameters = @{ }
                 )
 
                 if (-not [string]::IsNullOrEmpty($Path)) {
@@ -1098,7 +1099,7 @@ function Invoke-Pester {
                 }
                 elseif (-not [string]::IsNullOrEmpty($Script)) {
                     $scriptBlock = [scriptblock]::Create($Script)
-                    Set-ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
+                    & $Set_ScriptBlockHint -Hint "Unbound ScriptBlock from Invoke-Pester" -ScriptBlock $scriptBlock
                     Invoke-Command -ScriptBlock ($scriptBlock)
                 }
             }
@@ -1120,7 +1121,7 @@ function Invoke-Pester {
                     $pester.EnterTestGroup($testDescription, 'Script')
                     Write-Describe $testDescription -CommandUsed Script
                     do {
-                        $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters
+                        $testOutput = & $invokeTestScript -Path $testScript.Path -Script $testScript.Script -Arguments $testScript.Arguments -Parameters $testScript.Parameters -Set_ScriptBlockHint $script:SafeCommands['Set-ScriptBlockHint']
                     } until ($true)
                 }
                 catch {
@@ -1271,7 +1272,7 @@ function ResolveTestScripts {
                 $parameters = Get-DictionaryValueFromFirstKeyFound -Dictionary $object -Key 'Parameters', 'params'
 
                 if ($null -eq $Parameters) {
-                    $Parameters = @{}
+                    $Parameters = @{ }
                 }
 
                 if ($unresolvedPath -isnot [string] -or $unresolvedPath -notmatch '\S' -and ($script -isnot [string] -or $script -notmatch '\S')) {
@@ -1286,7 +1287,7 @@ function ResolveTestScripts {
                 $unresolvedPath = [string] $object
                 $script = [string] $object
                 $arguments = @()
-                $parameters = @{}
+                $parameters = @{ }
             }
 
             if (-not [string]::IsNullOrEmpty($unresolvedPath)) {
@@ -1310,19 +1311,19 @@ function ResolveTestScripts {
                     # World's longest pipeline?
 
                     & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
-                        & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
-                        & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
-                        & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
-                        & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
-                        & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
-                        & $script:SafeCommands['ForEach-Object'] {
-                            & $script:SafeCommands['New-Object'] psobject -Property @{
-                                Path       = $_
-                                Script     = $null
-                                Arguments  = $arguments
-                                Parameters = $parameters
-                            }
+                    & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
+                    & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
+                    & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
+                    & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
+                    & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
+                    & $script:SafeCommands['ForEach-Object'] {
+                        & $script:SafeCommands['New-Object'] psobject -Property @{
+                            Path       = $_
+                            Script     = $null
+                            Arguments  = $arguments
+                            Parameters = $parameters
                         }
+                    }
                 }
             }
             elseif (-not [string]::IsNullOrEmpty($script)) {
@@ -1514,6 +1515,8 @@ function Assert-VerifiableMocks {
     Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
 
 }
+
+$script:SafeCommands['Set-ScriptBlockHint'] = & $script:SafeCommands['Get-Command'] -Name Set-ScriptBlockHint -ErrorAction Stop
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 # in the future rename the function to Add-ShouldOperator
