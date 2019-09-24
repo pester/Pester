@@ -2,7 +2,7 @@ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
 $PowerShellScriptsToBeMerged = Get-ChildItem -Path (Join-Path $PSScriptRoot Functions) -Filter '*.ps1' -Exclude '*.Tests.ps1', '*.ps1xml' -Recurse
 $mergedContent = ''
 foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
-    $scriptContentToBeMerged = Get-Content -Path $powerShellScriptToBeMerged.FullName -Raw
+    $scriptContentToBeMerged = [System.IO.File]::ReadAllText($powerShellScriptToBeMerged)
     $mergedContent += @"
 #region $($powerShellScriptToBeMerged.BaseName)
 $scriptContentToBeMerged
@@ -43,11 +43,11 @@ Edit-Region -Path $mainModulePath -RegionName 'Functions' -ReplacementText $merg
 function Get-ContentOfMergedFolder($DirectoryPath) {
     [array] $mainModulePath = Get-ChildItem -Path $DirectoryPath -Filter '*.psm1'
     if ($mainModulePath.Length -ne 1) { throw "We assumed there is only one psm1 file in directory '$DirectoryPath'" }
-    $mainModuleContent = Get-Content $mainModulePath[0].FullName -Raw
+    $mainModuleContent = [System.IO.File]::ReadAllText($mainModulePath[0].FullName)
     $PowerShellScriptsToBeMerged = Get-ChildItem -Path $DirectoryPath -Filter '*.ps1'
     foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
         $NameOfScriptToBeMerged = $powerShellScriptToBeMerged.Name
-        $scriptContentToBeMerged = Get-Content -Path $powerShellScriptToBeMerged.FullName -Raw
+        $scriptContentToBeMerged = [System.IO.File]::ReadAllText($powerShellScriptToBeMerged.FullName)
         $replaceSearchText = ". `$PSScriptRoot\$NameOfScriptToBeMerged"
         if (-not $mainModuleContent.Contains($replaceSearchText)) {
             continue
@@ -68,8 +68,8 @@ function Get-ContentOfMergedFolder($DirectoryPath) {
 $dependenciesFolder = Join-Path $PSScriptRoot 'Dependencies'
 $axiomsCode = Get-ContentOfMergedFolder -DirectoryPath (Join-Path $dependenciesFolder 'Axiom')
 # Format module dependes on TypeClass module, hence why the TypeClass code has to go first
-$typeClassCode = Get-Content -Path (Join-Path $dependenciesFolder 'TypeClass\TypeClass.psm1') -Raw
-$formatCode = Get-Content -Path (Join-Path $dependenciesFolder 'Format\Format.psm1') -Raw
+$typeClassCode = [System.IO.File]::ReadAllText((Join-Path $dependenciesFolder 'TypeClass\TypeClass.psm1'))
+$formatCode = [System.IO.File]::ReadAllText((Join-Path $dependenciesFolder 'Format\Format.psm1'))
 $typeClassImport = 'Import-Module $PSScriptRoot\..\TypeClass\TypeClass.psm1 -DisableNameChecking'
 if (-not $formatCode.Contains($typeClassImport)) {
     throw "Expected the following string to be present in Format.psm1 for replacement '$typeClassImport'"
