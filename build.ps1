@@ -1,6 +1,5 @@
 $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
-$PowerShellScriptsToBeMerged = Get-ChildItem -Path (Join-Path $PSScriptRoot Functions) -Filter '*.ps1' -Exclude '*.Tests.ps1', '*.ps1xml' -Recurse
-$mergedContent = ''
+$PowerShellScriptsToBeMerged = Get-ChildItem -Path (Join-Path $PSScriptRoot Functions) -File -Filter '*.ps1' -Exclude '*.Tests.ps1', '*.ps1xml' -Recurse
 foreach ($powerShellScriptToBeMerged in $PowerShellScriptsToBeMerged) {
     $scriptContentToBeMerged = [System.IO.File]::ReadAllText($powerShellScriptToBeMerged.FullName)
     $mergedContent += @"
