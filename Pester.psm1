@@ -744,6 +744,15 @@ function Invoke-Pester {
     If you specify multiple TestName values, Invoke-Pester runs tests that have any
     of the values in the Describe name (it ORs the TestName values).
 
+    .PARAMETER ContextFilter
+    Runs only Context blocks that have the specified name or name pattern. Wildcard
+    characters are supported. Anything not in a Context block will still run. Use
+    the TestName and ItFilter parameters to filter the Describe and It blocks you
+    want to run.
+
+    If you specify multiple ContextFilter values, Invoke-Pester runs tests that have
+    any of the values in the Context name (it ORs the ContextFilter values).
+
     .PARAMETER ItFilter
     Runs only tests in It blocks that have the specified name or name pattern.
     Wildcard characters are supported.
@@ -929,6 +938,11 @@ function Invoke-Pester {
     This command runs only the tests in the Describe block named "Add Numbers".
 
     .Example
+    Invoke-Pester -ContextFilter '*dev'
+
+    This command only runs Context blocks whose name match the wildcard pattern "*dev".
+
+    .Example
     Invoke-Pester -ItFilter '*comments'
 
     This command only runs It blocks whose name match the wildcard pattern "*comments".
@@ -1032,6 +1046,8 @@ function Invoke-Pester {
         [Alias("Name")]
         [string[]]$TestName,
 
+        [string[]]$ContextFilter,
+
         [string[]]$ItFilter,
 
         [Parameter(Position = 2, Mandatory = 0)]
@@ -1092,7 +1108,7 @@ function Invoke-Pester {
         $script:mockTable = @{ }
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
-        $pester = New-PesterState -TestNameFilter $TestName -ItFilter $ItFilter -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $pester = New-PesterState -TestNameFilter $TestName -ContextFilter $ContextFilter -ItFilter $ItFilter -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try {
             Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester

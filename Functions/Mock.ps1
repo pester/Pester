@@ -711,7 +711,7 @@ function Test-MockCallScope {
     }
 
     $testGroups = $pester.TestGroups
-    [Array]::Reverse($testGroups)
+    [Array]::Reverse([object[]]$testGroups)
 
     $target = 0
     $isNumberedScope = [int]::TryParse($DesiredScope, [ref] $target)

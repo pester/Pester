@@ -78,5 +78,9 @@ about_TestDrive
         $script:mockTable = @{}
     }
 
+    if ($Pester.ContextFilter -and -not (Contain-AnyStringLike -Filter $Pester.ContextFilter -Collection $Name)) {
+        return
+    }
+
     DescribeImpl @PSBoundParameters -CommandUsed 'Context' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
 }
