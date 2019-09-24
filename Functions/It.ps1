@@ -165,6 +165,10 @@ function ItImpl {
         }
     }
 
+    if ( $Pester.ItFilter -and -not (Contain-AnyStringLike -Filter $Pester.ItFilter -Collection $Name)) {
+        return
+    }
+
     #the function is called with Pending or Skipped set the script block if needed
     if ($null -eq $Test) {
         $Test = {}

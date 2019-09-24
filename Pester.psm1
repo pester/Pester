@@ -744,6 +744,13 @@ function Invoke-Pester {
     If you specify multiple TestName values, Invoke-Pester runs tests that have any
     of the values in the Describe name (it ORs the TestName values).
 
+    .PARAMETER ItFilter
+    Runs only tests in It blocks that have the specified name or name pattern.
+    Wildcard characters are supported.
+
+    If you specify multiple ItFilter values, Invoke-Pester runs tests that have any
+    of the values in the It name (it ORs the ItFilter values).
+
     .PARAMETER EnableExit
     Will cause Invoke-Pester to exit with a exit code equal to the number of failed
     tests once all tests have been run. Use this to "fail" a build when any tests fail.
@@ -921,6 +928,11 @@ function Invoke-Pester {
 
     This command runs only the tests in the Describe block named "Add Numbers".
 
+    .Example
+    Invoke-Pester -ItFilter '*comments'
+
+    This command only runs It blocks whose name match the wildcard pattern "*comments".
+
     .EXAMPLE
     $results = Invoke-Pester -Script D:\MyModule -PassThru -Show None
     $failed = $results.TestResult | where Result -eq 'Failed'
@@ -1020,6 +1032,8 @@ function Invoke-Pester {
         [Alias("Name")]
         [string[]]$TestName,
 
+        [string[]]$ItFilter,
+
         [Parameter(Position = 2, Mandatory = 0)]
         [switch]$EnableExit,
 
@@ -1078,7 +1092,7 @@ function Invoke-Pester {
         $script:mockTable = @{ }
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $pester = New-PesterState -TestNameFilter $TestName -ItFilter $ItFilter -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try {
             Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester

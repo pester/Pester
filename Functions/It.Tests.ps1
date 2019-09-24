@@ -154,4 +154,32 @@ InModuleScope Pester {
             comment#> code' | Should -Be 'code  code'
         }
     }
+
+    Describe 'Filtering' {
+        It 'should only run It blocks that match filter' {
+            $testState = New-PesterState -Path $TestDrive -ItFilter @( 'One', 'Tw*' )
+
+            ItImpl -Pester $testState -Name 'One' { }
+            ItImpl -Pester $testSTate -Name 'Two' { }
+            ItImpl -Pester $testState -Name 'Three' { }
+
+            $testState.TestResult.Count | Should -Be 2 -Because 'one of the tests should not have run'
+            $testState.TestResult[0].Name | Should -Be 'One'
+            $testState.TestResult[1].Name | Should -Be 'Two'
+            $testState.TestResult | Where-Object { $_.Name -eq 'Three' } | Should -BeNullOrEmpty
+        }
+
+        It 'should run all It blocks if no filter' {
+            $testState = New-PesterState -Path $TestDrive
+
+            ItImpl -Pester $testState -Name 'One' { }
+            ItImpl -Pester $testSTate -Name 'Two' { }
+            ItImpl -Pester $testState -Name 'Three' { }
+
+            $testState.TestResult.Count | Should -Be 3 -Because 'all of the tests should have run'
+            $testState.TestResult[0].Name | Should -Be 'One'
+            $testState.TestResult[1].Name | Should -Be 'Two'
+            $testState.TestResult[2].Name | Should -Be 'Three'
+        }
+    }
 }

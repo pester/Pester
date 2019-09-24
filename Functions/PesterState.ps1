@@ -3,6 +3,7 @@ function New-PesterState {
         [String[]]$TagFilter,
         [String[]]$ExcludeTagFilter,
         [String[]]$TestNameFilter,
+        [string[]]$ItFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
         [Pester.OutputTypes]$Show = 'All',
@@ -27,11 +28,12 @@ function New-PesterState {
         }
     }
 
-    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $ItFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
             [String[]]$_testNameFilter,
+            [string[]]$_itFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
             [Pester.OutputTypes]$Show,
@@ -43,7 +45,7 @@ function New-PesterState {
         $TagFilter = $_tagFilter
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
-
+        $ItFilter = $_itFilter
 
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -330,6 +332,7 @@ function New-PesterState {
         $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
         "TestNameFilter",
+        "ItFilter",
         "ScriptBlockFilter",
         "TestResult",
         "SessionState",
