@@ -95,7 +95,7 @@ function Write-PesterStart {
         $Path = '.'
     )
     process {
-        if (-not ( $pester.Show | Has-Flag 'All, Fails, Header')) {
+        if (-not ( $pester.Show | Has-Flag 'Header')) {
             return
         }
 
