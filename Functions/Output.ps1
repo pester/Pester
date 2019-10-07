@@ -479,7 +479,7 @@ function ConvertTo-FailureLines {
         while ($exception) {
             $exceptionName = $exception.GetType().Name
             $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
-            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed') {
+            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed' -and $thisLines.Length -gt 0) {
                 $thisLines[0] = "$exceptionName`: $($thisLines[0])"
             }
             [array]::Reverse($thisLines)
