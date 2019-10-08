@@ -369,20 +369,34 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             Context 'Exceptions with no error message property set' {
+                $powershellVersion = $($PSVersionTable.PSVersion.Major)
                 try {
-                    throw [System.Exception]::new($null)
+                    $exceptionWithNullMessage = New-Object -TypeName "System.Management.Automation.ParentContainsErrorRecordException"
+                    throw $exceptionWithNullMessage
                 }
                 catch {
                     $exception = $_
                 }
                 $result = $exception | ConvertTo-FailureLines
 
-                It 'produces correct message lines' {
-                    $result.Message.Count | Should -Be 0
-                }
+                if ($powershellVersion -lt 5) {
+                    # Necessary because Microsoft changed the behaviour of System.Management.Automation.ParentContainsErrorRecordException at this point.
+                    It 'produces correct message lines' {
+                        $result.Message.Length | Should -Be 2
+                    }
 
-                It 'produces correct trace line' {
-                    $result.Trace.Count | Should -Be 1
+                    It 'produces correct trace line' {
+                        $result.Trace.Count | Should -Be 1
+                    }
+                }
+                else {
+                    It 'produces correct message lines' {
+                        $result.Message.Length | Should -Be 0
+                    }
+
+                    It 'produces correct trace line' {
+                        $result.Trace.Count | Should -Be 1
+                    }
                 }
             }
 
