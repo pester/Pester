@@ -379,7 +379,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 }
                 $result = $exception | ConvertTo-FailureLines
 
-                if ($powershellVersion -lt 5) {
+                if ($powershellVersion -lt 3) {
                     # Necessary because Microsoft changed the behaviour of System.Management.Automation.ParentContainsErrorRecordException at this point.
                     It 'produces correct message lines' {
                         $result.Message.Length | Should -Be 2
