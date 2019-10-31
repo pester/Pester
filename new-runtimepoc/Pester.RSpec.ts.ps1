@@ -15,39 +15,40 @@ $global:PesterDebugPreference = @{
 
 i -PassThru:$PassThru {
     b "Running generated tests" {
-        t "generating simple tests from foreach with external Id" {
-            $result = Invoke-Pester -ScriptBlock {
-                Describe "d1" {
-                    foreach ($id in 1..10) {
-                        It "it${id}" { $true } -AutomationId $id
-                    }
-                }
-            }
+        # # automation id is no-longer relevant I think
+        # t "generating simple tests from foreach with external Id" {
+        #     $result = Invoke-Pester -ScriptBlock {
+        #         Describe "d1" {
+        #             foreach ($id in 1..10) {
+        #                 It "it${id}" { $true } -AutomationId $id
+        #             }
+        #         }
+        #     }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 10
-            $result.Blocks[0].Tests[0].Passed | Verify-True
-        }
+        #     $result.Blocks[0].ErrorRecord | Verify-Null
+        #     $result.Blocks[0].Tests.Count | Verify-Equal 10
+        #     $result.Blocks[0].Tests[0].Passed | Verify-True
+        # }
 
-        t "generating parametrized tests from foreach with external id" {
-            $result = Invoke-Pester -ScriptBlock {
-                Describe "d1" {
-                    foreach ($id in 1..10) {
-                        It "it$id-<value>" -TestCases @(
-                            @{ Value = 1}
-                            @{ Value = 2}
-                            @{ Value = 3}
-                        ) {
-                            $true
-                        } -AutomationId $id
-                    }
-                }
-            }
+        # t "generating parametrized tests from foreach with external id" {
+        #     $result = Invoke-Pester -ScriptBlock {
+        #         Describe "d1" {
+        #             foreach ($id in 1..10) {
+        #                 It "it$id-<value>" -TestCases @(
+        #                     @{ Value = 1}
+        #                     @{ Value = 2}
+        #                     @{ Value = 3}
+        #                 ) {
+        #                     $true
+        #                 } -AutomationId $id
+        #             }
+        #         }
+        #     }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 30
-            $result.Blocks[0].Tests[0].Passed | Verify-True
-        }
+        #     $result.Blocks[0].ErrorRecord | Verify-Null
+        #     $result.Blocks[0].Tests.Count | Verify-Equal 30
+        #     $result.Blocks[0].Tests[0].Passed | Verify-True
+        # }
 
         t "generating simple tests from foreach without external Id" {
             $result = Invoke-Pester -ScriptBlock {
@@ -111,33 +112,34 @@ i -PassThru:$PassThru {
             $result.Blocks[0].Tests[0].Passed | Verify-True
         }
 
-        t "generating multiple parametrized tests from foreach with external id" {
-            $result = Invoke-Pester -ScriptBlock {
-                Describe "d1" {
-                    foreach ($id in 1..10) {
-                        It "first-it-$id-<value>" -TestCases @(
-                            @{ Value = 1}
-                            @{ Value = 2}
-                            @{ Value = 3}
-                        ) {
-                            $true
-                        } -AutomationId $Id
+    # automationId is not relevant right now
+    #     t "generating multiple parametrized tests from foreach with external id" {
+    #         $result = Invoke-Pester -ScriptBlock {
+    #             Describe "d1" {
+    #                 foreach ($id in 1..10) {
+    #                     It "first-it-$id-<value>" -TestCases @(
+    #                         @{ Value = 1}
+    #                         @{ Value = 2}
+    #                         @{ Value = 3}
+    #                     ) {
+    #                         $true
+    #                     } -AutomationId $Id
 
-                        It "second-it-$id-<value>" -TestCases @(
-                            @{ Value = 1}
-                            @{ Value = 2}
-                            @{ Value = 3}
-                        ) {
-                            $true
-                        } -AutomationId $id
-                    }
-                }
-            }
+    #                     It "second-it-$id-<value>" -TestCases @(
+    #                         @{ Value = 1}
+    #                         @{ Value = 2}
+    #                         @{ Value = 3}
+    #                     ) {
+    #                         $true
+    #                     } -AutomationId $id
+    #                 }
+    #             }
+    #         }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 60
-            $result.Blocks[0].Tests[0].Passed | Verify-True
-        }
+    #         $result.Blocks[0].ErrorRecord | Verify-Null
+    #         $result.Blocks[0].Tests.Count | Verify-Equal 60
+    #         $result.Blocks[0].Tests[0].Passed | Verify-True
+    #     }
     }
 
     b "BeforeAll paths" {
