@@ -103,6 +103,9 @@ Describe 'Multiple Test Case teardown blocks' {
     # this tests the execution order, not scoping, so I am using a reference object
     # to pass the state around without being affected by variable scoping and also to
     # avoid script scoped variables
+    BeforeAll {
+        $container = @{ Value = '' }
+    }
 
     AfterEach {
         $container.Value = 'Set in Describe AfterEach'

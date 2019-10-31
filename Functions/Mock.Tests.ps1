@@ -1,75 +1,76 @@
 ﻿Set-StrictMode -Version Latest
+BeforeAll {
+    function FunctionUnderTest {
+        [CmdletBinding()]
+        param (
+            [Parameter(Mandatory = $false)]
+            [string]
+            $param1
+        )
 
-function FunctionUnderTest {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $false)]
-        [string]
-        $param1
-    )
-
-    return "I am a real world test"
-}
-
-function FunctionUnderTestWithoutParams([string]$param1) {
-    return "I am a real world test with no params"
-}
-
-filter FilterUnderTest {
-    $_
-}
-
-function CommonParamFunction (
-    [string] ${Uncommon},
-    [switch]
-    ${Verbose},
-    [switch]
-    ${Debug},
-    [System.Management.Automation.ActionPreference]
-    ${ErrorAction},
-    [System.Management.Automation.ActionPreference]
-    ${WarningAction},
-    [System.String]
-    ${ErrorVariable},
-    [System.String]
-    ${WarningVariable},
-    [System.String]
-    ${OutVariable},
-    [System.Int32]
-    ${OutBuffer} ) {
-    return "Please strip me of my common parameters. They are far too common."
-}
-
-function PipelineInputFunction {
-    param(
-        [Parameter(ValueFromPipeline = $True)]
-        [int]$PipeInt1,
-        [Parameter(ValueFromPipeline = $True)]
-        [int[]]$PipeInt2,
-        [Parameter(ValueFromPipeline = $True)]
-        [string]$PipeStr,
-        [Parameter(ValueFromPipelineByPropertyName = $True)]
-        [int]$PipeIntProp,
-        [Parameter(ValueFromPipelineByPropertyName = $True)]
-        [int[]]$PipeArrayProp,
-        [Parameter(ValueFromPipelineByPropertyName = $True)]
-        [string]$PipeStringProp
-    )
-    begin {
-        $p = 0
+        return "I am a real world test"
     }
-    process {
-        foreach ($i in $input) {
-            $p += 1
-            write-output @{
-                index          = $p;
-                val            = $i;
-                PipeInt1       = $PipeInt1;
-                PipeInt2       = $PipeInt2;
-                PipeStr        = $PipeStr;
-                PipeIntProp    = $PipeIntProp;
-                PipeArrayProp  = $PipeArrayProp;
-                PipeStringProp = $PipeStringProp;
+
+    function FunctionUnderTestWithoutParams([string]$param1) {
+        return "I am a real world test with no params"
+    }
+
+    filter FilterUnderTest {
+        $_
+    }
+
+    function CommonParamFunction (
+        [string] ${Uncommon},
+        [switch]
+        ${Verbose},
+        [switch]
+        ${Debug},
+        [System.Management.Automation.ActionPreference]
+        ${ErrorAction},
+        [System.Management.Automation.ActionPreference]
+        ${WarningAction},
+        [System.String]
+        ${ErrorVariable},
+        [System.String]
+        ${WarningVariable},
+        [System.String]
+        ${OutVariable},
+        [System.Int32]
+        ${OutBuffer} ) {
+        return "Please strip me of my common parameters. They are far too common."
+    }
+
+    function PipelineInputFunction {
+        param(
+            [Parameter(ValueFromPipeline = $True)]
+            [int]$PipeInt1,
+            [Parameter(ValueFromPipeline = $True)]
+            [int[]]$PipeInt2,
+            [Parameter(ValueFromPipeline = $True)]
+            [string]$PipeStr,
+            [Parameter(ValueFromPipelineByPropertyName = $True)]
+            [int]$PipeIntProp,
+            [Parameter(ValueFromPipelineByPropertyName = $True)]
+            [int[]]$PipeArrayProp,
+            [Parameter(ValueFromPipelineByPropertyName = $True)]
+            [string]$PipeStringProp
+        )
+        begin {
+            $p = 0
+        }
+        process {
+            foreach ($i in $input) {
+                $p += 1
+                write-output @{
+                    index          = $p;
+                    val            = $i;
+                    PipeInt1       = $PipeInt1;
+                    PipeInt2       = $PipeInt2;
+                    PipeStr        = $PipeStr;
+                    PipeIntProp    = $PipeIntProp;
+                    PipeArrayProp  = $PipeArrayProp;
+                    PipeStringProp = $PipeStringProp;
+                }
             }
         }
     }
@@ -159,7 +160,7 @@ Describe 'When calling Mock on an alias that refers to a function Pester can''t 
 
 Describe 'When calling Mock on a filter' {
     BeforeAll {
-        Mock FilterUnderTest {return 'I am not FilterUnderTest'}
+        Mock FilterUnderTest { return 'I am not FilterUnderTest'}
         $result = 'Yes I am' | FilterUnderTest
     }
 
@@ -2221,7 +2222,9 @@ Describe "Mocking functions with conflicting parameters" {
     }
 
     Context "Get-Module" {
-        function f { Get-Module foo }
+        BeforeAll {
+            function f { Get-Module foo }
+        }
         It 'mocks Get-Module properly' {
             Mock Get-Module -Verifiable { 'mocked' }
             f
@@ -2551,9 +2554,11 @@ Describe "Running Mock with ModuleName in test scope" {
 
 Describe "Mocks can be defined outside of BeforeAll" {
 
-    # this is discouraged but useful for v4 to v5 migration
-    function a () { "a" }
-    Mock a { "mock" }
+    BeforeAll {
+        # this is discouraged but useful for v4 to v5 migration
+        function a () { "a" }
+        Mock a { "mock" }
+    }
 
     It "Finds the mock" {
         a | Should -Be "mock"

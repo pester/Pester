@@ -14,7 +14,7 @@ $global:PesterDebugPreference = @{
     WriteDebugMessagesFrom = "Plugin*"
 }
 
-$excludePath = "*/demo/*"
+$excludePath = "*/demo/*", "*/Examples/*", "*/Gherkin*"
  #$excludePath = ""
 $excludeTags = "Help", "VersionChecks", "Formatting"
 
@@ -25,7 +25,7 @@ $path = "~/Projects/pester_main"
 #$path = "C:\Projects\Pester_main\Functions\Mock.Tests.ps1"
 #$path  = "C:\Users\nohwnd\Desktop\mock.tests.ps1"
 # $path = "C:\Projects\pester_main\Functions\Assertions\Be.Tests.ps1"
-# $path = "/Users/jares/Projects/pester_main/Functions/SetupTeardown.Tests.ps1"
+$path = "/Users/jares/Projects/pester_main/Functions/Mock.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
