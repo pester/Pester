@@ -24,7 +24,8 @@ $path = "~/Projects/pester_main"
 # $path = "C:\Projects\pester_main\Examples\Validator\"
 #$path = "C:\Projects\Pester_main\Functions\Mock.Tests.ps1"
 #$path  = "C:\Users\nohwnd\Desktop\mock.tests.ps1"
-$path = "C:\projects\pester_main\Functions\Assertions\Be.Tests.ps1"
+# $path = "C:\Projects\pester_main\Functions\Assertions\Be.Tests.ps1"
+# $path = "/Users/jares/Projects/pester_main/Functions/SetupTeardown.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
@@ -37,11 +38,11 @@ $script:r = $null
 [Math]::Round((Measure-Command {
     if ($v5) {
         Write-Host -ForegroundColor Cyan Running in Version 5
-        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal -CI
+        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal # -CI
     }
     else {
         Write-Host -ForegroundColor Cyan Running in Version 4
         $script:r = Invoke-Pester -Path $path -ExcludeTag $excludeTags -PassThru
     }
 }).TotalMilliseconds, 2)
-$r
+# $r
