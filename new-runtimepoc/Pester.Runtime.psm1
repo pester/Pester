@@ -286,15 +286,15 @@ function Invoke-Block ($previousBlock) {
             try {
                 if (-not $block.ShouldRun) {
                     if ($PesterDebugPreference.WriteDebugMessages) {
-                        Write-PesterDebugMessage -Scope Runtime "Block is excluded from run, returning"
+                        Write-PesterDebugMessage -Scope Runtime "Block '$($block.Name)' is excluded from run, returning"
                     }
-                    return
+                    continue
                 }
 
                 $block.ExecutedAt = [DateTime]::Now
                 $block.Executed = $true
                 if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Runtime "Executing body of block $Name"
+                    Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
 
                 # TODO: no callbacks are provided because we are not transitioning between any states,
@@ -2036,7 +2036,7 @@ function Where-Failed {
         $Block
     )
 
-    $Block | View-Flat | Where { -not $_.Passed }
+    $Block | View-Flat | where { $test.ShouldRun -and (-not $test.Executed -or -not $test.Passed) }
 }
 
 function View-Flat {

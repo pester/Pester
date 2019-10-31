@@ -5,10 +5,12 @@ if ($PSVersionTable.PSVersion.Major -le 2) {
 }
 
 InModuleScope Pester {
-    function Clear-WhiteSpace ($Text) {
-        # clear whitespace in formatted xml so we can keep the XML in the test file
-        # formatted and easily see changes in source control
-        "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," " -replace "\s*<","<" -replace ">\s*", ">")".Trim()
+    BeforeAll {
+        function Clear-WhiteSpace ($Text) {
+            # clear whitespace in formatted xml so we can keep the XML in the test file
+            # formatted and easily see changes in source control
+            "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," " -replace "\s*<","<" -replace ">\s*", ">")".Trim()
+        }
     }
 
     Describe 'Code Coverage Analysis' {

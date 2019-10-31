@@ -785,6 +785,42 @@ i -PassThru:$PassThru {
 
             $result.Blocks[0].Tests[0].Executed | Verify-False
         }
+
+        t "continues to second block even if the first block is excluded" {
+            Reset-TestSuiteState
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" -Tag "DoNotRun" {
+                        New-Test "test1" { "a" }
+                    }
+                    New-Block "block2" {
+                        New-Test "test2" { "b" }
+                    }
+                }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
+
+            $actual.Blocks[0].Name | Verify-Equal "block1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-False
+
+            $actual.Blocks[1].Name | Verify-Equal "block2"
+            $actual.Blocks[1].Tests[0].Executed | Verify-True
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
+        }
+
+        t "continues to second test even if the first test is excluded" {
+            Reset-TestSuiteState
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                        New-Test "test1" { "a" } -Tag "DoNotRun"
+                        New-Test "test2" { "b" }
+                    }
+                }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
+
+            $actual.Blocks[0].Name | Verify-Equal "block1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-False
+
+            $actual.Blocks[0].Tests[1].Name | Verify-Equal "test2"
+            $actual.Blocks[0].Tests[1].Executed | Verify-True
+            $actual.Blocks[0].Tests[1].Passed | Verify-True
+        }
     }
 
     b "Block teardown and setup" {
