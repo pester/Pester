@@ -493,6 +493,7 @@ i -PassThru:$PassThru {
             # on them and use them for filtering the run in the next run
             # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
             $paths = $pre | Where-Failed | % { , ($_.Path) }
+            $paths.Length | Verify-Equal 2
 
             Write-Host "`n`n`n"
             # set the test3 to pass this time so we have some difference
@@ -1071,35 +1072,36 @@ i -PassThru:$PassThru {
             $actual.Blocks[0].Tests.Count | Verify-Equal 2
         }
 
-        t "Each parametrized test has unique id and they both successfully execute and have the correct data" {
-            $data = @(
-                @{ Value = 1 }
-                @{ Value = 2 }
-            )
+        # #is the Id still needed? does this test have any value?
+        # t "Each parametrized test has unique id and they both successfully execute and have the correct data" {
+        #     $data = @(
+        #         @{ Value = 1 }
+        #         @{ Value = 2 }
+        #     )
 
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-                    New-Block -Name "block1" {
-                        New-ParametrizedTest "test" {
+        #     $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+        #         New-BlockContainerObject -ScriptBlock {
+        #             New-Block -Name "block1" {
+        #                 New-ParametrizedTest "test" {
 
-                        } -Data $data
-                    }
-                }
-            )
+        #                 } -Data $data
+        #             }
+        #         }
+        #     )
 
-            $actual.Blocks[0].Tests[0].Id | Verify-Equal 0
-            $actual.Blocks[0].Tests[1].Id | Verify-Equal 1
+        #     $actual.Blocks[0].Tests[0].Id | Verify-Equal 0
+        #     $actual.Blocks[0].Tests[1].Id | Verify-Equal 1
 
-            $actual.Blocks[0].Tests[0].Executed | Verify-True
-            $actual.Blocks[0].Tests[1].Executed | Verify-True
+        #     $actual.Blocks[0].Tests[0].Executed | Verify-True
+        #     $actual.Blocks[0].Tests[1].Executed | Verify-True
 
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Blocks[0].Tests[1].Passed | Verify-True
+        #     $actual.Blocks[0].Tests[0].Passed | Verify-True
+        #     $actual.Blocks[0].Tests[1].Passed | Verify-True
 
-            $actual.Blocks[0].Tests[0].Data.Value | Verify-Equal 1
-            $actual.Blocks[0].Tests[1].Data.Value | Verify-Equal 2
+        #     $actual.Blocks[0].Tests[0].Data.Value | Verify-Equal 1
+        #     $actual.Blocks[0].Tests[1].Data.Value | Verify-Equal 2
 
-        }
+        # }
     }
 
     b "running from files" {
@@ -1417,157 +1419,159 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "generating tests" {
-        t "generating tests without external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
+    # # do these tests still have value? Is the Id needed, or it is useless with the new new runtime?
+    # b "generating tests" {
+    #     t "generating tests without external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
 
-                    New-Block -Name "block1" {
-                        foreach ($notUsed in 1..3) {
-                            New-Test "test 1" { } # no -Id here
-                        }
-                    }
-                }
-            )
-
-
-            $actual.Blocks[0].ErrorRecord | Verify-Null
-            $actual.Blocks[0].Tests[2].Id | Verify-Equal 2
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 3
-        }
-
-        t "generating paremetrized tests without external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-
-                    New-Block -Name "block1" {
-                        foreach ($notUsed in 1..3) {
-                            New-ParametrizedTest "test 1" -Data @{ Value = "a" } { }
-                        }
-                    }
-                }
-            )
-
-            $actual.Blocks[0].ErrorRecord | Verify-Null
-            $actual.Blocks[0].Tests[2].Id | Verify-Equal "2"
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 3
-        }
-
-        t "generating multiple tests from one foreach without external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-
-                    New-Block -Name "block1" {
-                        foreach ($notUsed in 1..3) {
-                            New-Test "test 1" { } # no -Id here
-                            New-Test "test 2" { } # no -Id here
-                        }
-                    }
-                }
-            )
-
-            $actual.Blocks[0].ErrorRecord | Verify-Null
-
-            $actual.Blocks[0].Tests[2].Name | Verify-Equal "test 1"
-            $actual.Blocks[0].Tests[2].Id | Verify-Equal 1
-
-            $actual.Blocks[0].Tests[3].Name | Verify-Equal "test 2"
-            $actual.Blocks[0].Tests[3].Id | Verify-Equal 1
-
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 6
-        }
-
-        t "generating tests with external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-
-                    New-Block -Name "block1" {
-                        foreach ($id in 80..82) {
-                            New-Test "test 1" { } -Id $id
-                        }
-                    }
-                }
-            )
-
-            $actual.Blocks[0].ErrorRecord | Verify-Null
-            $actual.Blocks[0].Tests[2].Id | Verify-Equal 82
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 3
-        }
-    }
-
-    b "generating blocks" {
-        t "generating blocks without external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-                    foreach ($notUsed in 1..3) {
-                        New-Block -Name "block1" {
-                            New-Test "test 1" { }
-                        } # no -Id here
-                    }
-                }
-            )
+    #                 New-Block -Name "block1" {
+    #                     foreach ($notUsed in 1..3) {
+    #                         New-Test "test 1" { } # no -Id here
+    #                     }
+    #                 }
+    #             }
+    #         )
 
 
-            $actual.Blocks[1].ErrorRecord | Verify-Null
-            $actual.Blocks[1].Id | Verify-Equal 1
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 3
-        }
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 2
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 3
+    #     }
 
-        t "generating multiple blocks from one foreach without external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
+    #     t "generating paremetrized tests without external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
 
-                    foreach ($notUsed in 1..3) {
-                        New-Block -Name "block1" {
-                            New-Test "test 1" { }
-                        } # no -Id here
+    #                 New-Block -Name "block1" {
+    #                     foreach ($notUsed in 1..3) {
+    #                         New-ParametrizedTest "test 1" -Data @{ Value = "a" } { }
+    #                     }
+    #                 }
+    #             }
+    #         )
 
-                        New-Block -Name "block2" {
-                            New-Test "test 2" { }
-                        } # no -Id here
-                    }
-                }
-            )
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal "2"
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 3
+    #     }
 
-            $actual.Blocks[0].ErrorRecord | Verify-Null
-            $actual.Blocks[0].Id | Verify-Equal 0 # block1-0
+    #     t "generating multiple tests from one foreach without external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
 
-            $actual.Blocks[1].ErrorRecord | Verify-Null
-            $actual.Blocks[1].Id | Verify-Equal 0 # block2-0
+    #                 New-Block -Name "block1" {
+    #                     foreach ($notUsed in 1..3) {
+    #                         New-Test "test 1" { } # no -Id here
+    #                         New-Test "test 2" { } # no -Id here
+    #                     }
+    #                 }
+    #             }
+    #         )
 
-            $actual.Blocks[2].ErrorRecord | Verify-Null
-            $actual.Blocks[2].Id | Verify-Equal 1 # block1-1
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
 
-            $actual.Blocks[3].ErrorRecord | Verify-Null
-            $actual.Blocks[3].Id | Verify-Equal 1 # block2-1
+    #         $actual.Blocks[0].Tests[2].Name | Verify-Equal "test 1"
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 1
 
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 6
-        }
+    #         $actual.Blocks[0].Tests[3].Name | Verify-Equal "test 2"
+    #         $actual.Blocks[0].Tests[3].Id | Verify-Equal 1
 
-        t "generating blocks with external id" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 6
+    #     }
 
-                    foreach ($id in 80..82) {
-                        New-Block -Name "block1" {
-                            New-Test "test 1" { }
-                        } -Id $id
-                    }
-                }
-            )
+    #     t "generating tests with external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
 
-            $actual.Blocks[0].ErrorRecord | Verify-Null
-            $actual.Blocks[2].Id | Verify-Equal 82
-            $passedTests = @($actual | View-Flat | where { $_.Passed })
-            $passedTests.Count | Verify-Equal 3
-        }
-    }
+    #                 New-Block -Name "block1" {
+    #                     foreach ($id in 80..82) {
+    #                         New-Test "test 1" { } -Id $id
+    #                     }
+    #                 }
+    #             }
+    #         )
+
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 82
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 3
+    #     }
+    # }
+
+    # # do these tests still have value? Is the Id needed, or it is useless with the new new runtime?
+    # b "generating blocks" {
+    #     t "generating blocks without external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
+    #                 foreach ($notUsed in 1..3) {
+    #                     New-Block -Name "block1" {
+    #                         New-Test "test 1" { }
+    #                     } # no -Id here
+    #                 }
+    #             }
+    #         )
+
+
+    #         $actual.Blocks[1].ErrorRecord | Verify-Null
+    #         $actual.Blocks[1].Id | Verify-Equal 1
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 3
+    #     }
+
+    #     t "generating multiple blocks from one foreach without external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
+
+    #                 foreach ($notUsed in 1..3) {
+    #                     New-Block -Name "block1" {
+    #                         New-Test "test 1" { }
+    #                     } # no -Id here
+
+    #                     New-Block -Name "block2" {
+    #                         New-Test "test 2" { }
+    #                     } # no -Id here
+    #                 }
+    #             }
+    #         )
+
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Id | Verify-Equal 0 # block1-0
+
+    #         $actual.Blocks[1].ErrorRecord | Verify-Null
+    #         $actual.Blocks[1].Id | Verify-Equal 0 # block2-0
+
+    #         $actual.Blocks[2].ErrorRecord | Verify-Null
+    #         $actual.Blocks[2].Id | Verify-Equal 1 # block1-1
+
+    #         $actual.Blocks[3].ErrorRecord | Verify-Null
+    #         $actual.Blocks[3].Id | Verify-Equal 1 # block2-1
+
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 6
+    #     }
+
+    #     t "generating blocks with external id" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
+
+    #                 foreach ($id in 80..82) {
+    #                     New-Block -Name "block1" {
+    #                         New-Test "test 1" { }
+    #                     } -Id $id
+    #                 }
+    #             }
+    #         )
+
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[2].Id | Verify-Equal 82
+    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
+    #         $passedTests.Count | Verify-Equal 3
+    #     }
+    # }
 
     b "expandable variables in names" {
         t "can run tests that have expandable variable in their name" {

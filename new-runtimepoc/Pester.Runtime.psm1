@@ -2039,7 +2039,7 @@ function Where-Failed {
         $Block
     )
 
-    $Block | View-Flat | where { $test.ShouldRun -and (-not $test.Executed -or -not $test.Passed) }
+    $Block | View-Flat | where { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
 }
 
 function View-Flat {
