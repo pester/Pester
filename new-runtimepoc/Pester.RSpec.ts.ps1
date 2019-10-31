@@ -183,16 +183,16 @@ i -PassThru:$PassThru {
                 $result = Invoke-Pester
 
                 $result.Count | Verify-Equal 2
-                $result[0].Path | Verify-Equal $file1
-                $result[1].Path | Verify-Equal $file2
+                $result[0].Path.FullName | Verify-Equal $file1
+                $result[1].Path.FullName | Verify-Equal $file2
             }
 
             t "Running tests from Paths runs them" {
                 $result = Invoke-Pester -Path $file1, $file2
 
                 $result.Count | Verify-Equal 2
-                $result[0].Path | Verify-Equal $file1
-                $result[1].Path | Verify-Equal $file2
+                $result[0].Path.FullName | Verify-Equal $file1
+                $result[1].Path.FullName | Verify-Equal $file2
             }
 
             t "Exluding full path excludes it tests from Paths runs them" {
