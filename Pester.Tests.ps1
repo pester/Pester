@@ -1,11 +1,7 @@
 ﻿Set-StrictMode -Version Latest
 BeforeAll {
-
-    Write-host "pooooop!" -ForegroundColor red # <- todo
-    $here = $PSScriptRoot
-
-    $manifestPath = (Join-Path $here 'Pester.psd1')
-    $changeLogPath = (Join-Path $here 'CHANGELOG.md')
+    $manifestPath = (Join-Path $PSScriptRoot 'Pester.psd1')
+    $changeLogPath = (Join-Path $PSScriptRoot 'CHANGELOG.md')
 }
 
 # DO NOT CHANGE THIS TAG NAME; IT AFFECTS THE CI BUILD.
@@ -84,10 +80,10 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 3) {
-    BeforeAll {
-        $error.Clear()
-    }
     Describe 'Clean treatment of the $error variable' {
+        BeforeAll {
+            $error.Clear()
+        }
         Context 'A Context' {
             It 'Performs a successful test' {
                 $true | Should -Be $true

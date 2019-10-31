@@ -1132,7 +1132,10 @@ function Run-Test {
 
                 $rootSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First) { selectNonNull $rootBlock.OneTimeTestSetup }
+                    # if ($rootBlock.ShouldRun) {
+                        # todo: should this always run?
+                        selectNonNull $rootBlock.OneTimeTestSetup
+                    # }
                 ) `
                     -Setup @() `
                     -ScriptBlock { } `
