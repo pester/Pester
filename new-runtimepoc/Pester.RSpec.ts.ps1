@@ -195,8 +195,8 @@ i -PassThru:$PassThru {
                 $result[1].Path.FullName | Verify-Equal $file2
             }
 
-            t "Exluding full path excludes it tests from Paths runs them" {
-                $result = Invoke-Pester -Path $file1, $file2 -ExcludePath $file2
+            dt "Exluding full path excludes it tests from Paths runs them" {
+                $result = @(Invoke-Pester -Path $file1, $file2 -ExcludePath $file2)
 
                 $result.Count | Verify-Equal 1
                 $result[0].Path | Verify-Equal $file1
