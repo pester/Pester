@@ -4,3 +4,4 @@ vendor/packages/
 .DS_Store
 .vscode/
 coverage.xml
+testResults.xml
