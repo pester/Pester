@@ -150,6 +150,19 @@ function tryGetValue {
     }
 }
 
+function tryAddValue {
+    [CmdletBinding()]
+    param(
+        $Hashtable,
+        $Key,
+        $Value
+    )
+
+    if (-not $Hashtable.ContainsKey($Key)) {
+        $null = $Hashtable.Add($Key, $Value)
+    }
+}
+
 function getOrUpdateValue {
     [CmdletBinding()]
     param(

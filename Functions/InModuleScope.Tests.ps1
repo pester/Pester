@@ -23,6 +23,7 @@ Describe "Module scope separation" {
 Describe "Executing test code inside a module" {
     # do not put this into BeforeAll this needs to be imported before calling InModuleScope
     # that is below, because it requires the module to be loaded
+    Get-Module TestModule | Remove-Module
     New-Module -Name TestModule {
         function InternalFunction {
             'I am the internal function'

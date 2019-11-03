@@ -120,7 +120,8 @@ function Resolve-CoverageInfo {
             $item.FullName
         }
         elseif (-not $item.PsIsContainer) {
-            & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
+            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
+            # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
         }
     }
 
