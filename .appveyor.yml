@@ -25,5 +25,5 @@ test_script:
       $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru } ; if ([bool]($r | Where-Object { $_.Failed -gt 0 })) { exit 1 }
       $global:PesterDebugPreference_ShowFullErrors = $true
       Import-Module ./Pester.psd1
-      Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*' -CI } # -OutputFile TestResults.xml  -OutputFormat NUnitXml
-      # (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
+      Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*' -CI }
+      (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
