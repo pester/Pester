@@ -168,6 +168,7 @@ i -PassThru:$PassThru {
 
     b "Invoke-Pester parameters" {
         try {
+            $path = $pwd
             $c = 'Describe "d1" { It "i1" -Tag i1 { $true }; It "i2" -Tag i2 { $true }}'
             $tempDir = Join-Path ([IO.Path]::GetTempPath()) "dir"
             New-Item -ItemType Directory -Path $tempDir -Force
@@ -233,7 +234,7 @@ i -PassThru:$PassThru {
             }
         }
         finally {
-            cd ~
+            cd $path
             Remove-Item $tempDir -Recurse -Force -Confirm:$false -ErrorAction Stop
         }
     }
