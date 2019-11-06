@@ -479,7 +479,9 @@ function Merge-CommandCoverage {
     foreach ($bp in $CommandCoverage) {
         if (0 -lt $bp.Breakpoint.HitCount) {
             $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
-            $hitBps.Add($key, $bp)
+            if (-not $hitBps.ContainsKey($key)) {
+                $hitBps.Add($key, $bp)
+            }
         }
     }
 
