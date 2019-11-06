@@ -27,8 +27,10 @@ jobs:
           $errorActionPreference = 'stop'
           Set-StrictMode -Version Latest
           $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru }
+          Write-Host "reporting result"
           $failed = $r | Where-Object { $_.Failed -gt 0 }
           $failed | Out-String
+          "Failed is: $($null -eq $failed )"
           if ([bool]$failed) { exit 1 }
           Import-Module .\Pester.psd1
           Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*' -CI | Out-Null
