@@ -34,4 +34,6 @@ jobs:
           "Failed is cast is: $([bool]$failed)"
           if ([bool]$failed) { Write-Host "exiting because something failed"; exit 1 }
           Import-Module .\Pester.psd1
+          write-host "got here"
           Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*' -CI | Out-Null
+          write-host "got here"
