@@ -26,6 +26,9 @@ jobs:
           $global:PesterDebugPreference_ShowFullErrors = $true
           $errorActionPreference = 'stop'
           Set-StrictMode -Version Latest
-          $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru } ; if ([bool]($r | Where-Object { $_.Failed -gt 0 })) { exit 1 }
+          $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru }
+          $failed = $r | Where-Object { $_.Failed -gt 0 }
+          $failed | Out-String
+          if ([bool]$failed) { exit 1 }
           Import-Module .\Pester.psd1
           Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*' -CI | Out-Null

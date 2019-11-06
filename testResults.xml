@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="0" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2019-07-05" time="12:36:18">
-  <environment user="nohwnd" cwd="C:\projects\pester_main" clr-version="4.0.30319.42000" user-domain="DESKTOP-VCRUK43" platform="Microsoft Windows 10 Pro N Insider Preview|C:\WINDOWS|\Device\Harddisk0\Partition4" nunit-version="2.5.8.0" os-version="10.0.18922" machine-name="DESKTOP-VCRUK43" />
-  <culture-info current-culture="cs-CZ" current-uiculture="en-US" />
-  <test-suite type="TestFixture" name="" executed="True" result="Success" success="True" time="0" asserts="0" description="">
-    <results />
-  </test-suite>
-</test-results>
