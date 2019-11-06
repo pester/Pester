@@ -30,7 +30,8 @@ jobs:
           Write-Host "reporting result"
           $failed = $r | Where-Object { $_.Failed -gt 0 }
           $failed | Out-String
-          "Failed is: $($null -eq $failed )"
-          if ([bool]$failed) { exit 1 }
+          "Failed is null: $($null -eq $failed )"
+          "Failed is cast is: $([bool]$failed)"
+          if ([bool]$failed) { Write-Host "exiting because something failed"; exit 1 }
           Import-Module .\Pester.psd1
           Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*' -CI | Out-Null
