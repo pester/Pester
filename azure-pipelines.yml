@@ -28,4 +28,4 @@ jobs:
           Set-StrictMode -Version Latest
           $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru } ; if ([bool]($r | Where-Object { $_.Failed -gt 0 })) { exit 1 }
           Import-Module .\Pester.psd1
-          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*' -CI | Out-Null
+          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*' -CI | Out-Null
