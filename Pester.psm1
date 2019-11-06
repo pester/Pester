@@ -746,12 +746,24 @@ function Invoke-Pester {
 
             @($r)
 
-            if ($ci) {
+            if ($CI) {
                 $legacyResult = $legacyResult = Get-LegacyResult $r
             }
 
             if ($CI) {
                 Export-NunitReport $legacyResult (Join-Path  "." "testResults.xml")
+            }
+
+            if ($CI) {
+                $breakpoints = $r.PluginData.Coverage.CommandCoverage
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
+                $totalMilliseconds = 0
+                foreach ($d in $r) {
+                    $totalMilliseconds += $d.Duration.TotalMilliseconds
+                }
+                # TODO: Is the duration correct?
+                $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
+                $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
             }
 
             if ($EnableExit -and $legacyResult.FailedCount -gt 0) {

@@ -465,10 +465,48 @@ function Get-CoverageHitCommands {
     $CommandCoverage | & $SafeCommands['Where-Object'] { $_.Breakpoint.HitCount -gt 0 }
 }
 
+function Merge-CommandCoverage {
+    param ([object[]] $CommandCoverage)
+
+    # todo: this is a quick implementation of merging lists of breakpoints together, this is needed
+    # because the code coverage is stored per container and so in the end a lot of commands are missed
+    # in the container while they are hit in other, what we want is to know how many of the commands were
+    # hit in at least one file. This simple implementation does not add together the number of hits on each breakpoint
+    # so the HitCommands is not accurate, it only keeps the first breakpoint that points to that command and it's hit count
+    # this should be improved in the future.
+
+    $hitBps = @{}
+    foreach ($bp in $CommandCoverage) {
+        if (0 -lt $bp.Breakpoint.HitCount) {
+            $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
+            $hitBps.Add($key, $bp)
+        }
+    }
+
+    $missedBps = @{}
+    foreach ($bp in $CommandCoverage) {
+        if (0 -eq $bp.Breakpoint.HitCount) {
+            $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
+            if (-not $hitBps.ContainsKey($key)) {
+                if (-not $missedBps.ContainsKey($key)) {
+                    $missedBps.Add($key, $bp)
+                }
+            }
+        }
+    }
+
+    # this is also not very efficient because in the next step we are splitting this collection again
+    # into hit and missed breakpoints
+    $c = $hitBps.Values + $missedBps.Values
+    $c
+}
+
 function Get-CoverageReport {
     # make sure this is an array, otherwise the counts start failing
     # on powershell 3
     param ([object[]] $CommandCoverage)
+
+    $CommandCoverage = Merge-CommandCoverage $CommandCoverage
 
     $properties = @(
         'File'

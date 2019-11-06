@@ -441,9 +441,9 @@ function Get-WriteScreenPlugin {
     -ContainerRunEnd  {
         param ($Context)
 
-        if ($Context.RootBlock.ErrorRecord.Count -gt 0) {
-            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.$rootBlock.BlockContainer.Content)' failed with:"
-            Write-ErrorToScreen $cursorColumn.RootBlock.ErrorRecord
+        if ($Context.Block.ErrorRecord.Count -gt 0) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.Block.BlockContainer.Content)' failed with:"
+            Write-ErrorToScreen $Context.Block.ErrorRecord
         }
     } `
     -EachBlockSetupStart {
