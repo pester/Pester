@@ -517,8 +517,6 @@ function Get-CoverageReport {
     # on powershell 3
     param ([object[]] $CommandCoverage)
 
-    $CommandCoverage = Merge-CommandCoverage $CommandCoverage
-
     $properties = @(
         'File'
         @{ Name = 'Line'; Expression = { $_.StartLine } }

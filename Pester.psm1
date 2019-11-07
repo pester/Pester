@@ -755,7 +755,7 @@ function Invoke-Pester {
             }
 
             if ($CI) {
-                $breakpoints = $r.PluginData.Coverage.CommandCoverage
+                $breakpoints = Merge-CommandCoverage $r.PluginData.Coverage.CommandCoverage
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = 0
                 foreach ($d in $r) {
