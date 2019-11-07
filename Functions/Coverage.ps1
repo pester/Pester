@@ -475,23 +475,32 @@ function Merge-CommandCoverage {
     # so the HitCommands is not accurate, it only keeps the first breakpoint that points to that command and it's hit count
     # this should be improved in the future.
 
+    # todo: move this implementation to the calling function so we don't need to split and merge the collection twice and we
+    # can also accumulate the hit count across the different breakpoints
+
     $hitBps = @{}
+    $hits = [System.Collections.ArrayList]@()
     foreach ($bp in $CommandCoverage) {
         if (0 -lt $bp.Breakpoint.HitCount) {
             $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
             if (-not $hitBps.ContainsKey($key)) {
+                # adding to a hashtable to make sure we can look up the keys quickly
+                # and also to an array list to make sure we can later dump them in the correct order
                 $hitBps.Add($key, $bp)
+                $null = $hits.Add($bp)
             }
         }
     }
 
     $missedBps = @{}
+    $misses = [System.Collections.ArrayList]@()
     foreach ($bp in $CommandCoverage) {
         if (0 -eq $bp.Breakpoint.HitCount) {
             $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
             if (-not $hitBps.ContainsKey($key)) {
                 if (-not $missedBps.ContainsKey($key)) {
                     $missedBps.Add($key, $bp)
+                    $null = $misses.Add($bp)
                 }
             }
         }
@@ -499,7 +508,7 @@ function Merge-CommandCoverage {
 
     # this is also not very efficient because in the next step we are splitting this collection again
     # into hit and missed breakpoints
-    $c = $hitBps.Values + $missedBps.Values
+    $c = $hits.GetEnumerator() + $misses.GetEnumerator()
     $c
 }
 

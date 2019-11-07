@@ -445,7 +445,6 @@ InModuleScope Pester {
 
         Context 'Function wildcard resolution' {
             BeforeAll {
-
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' }
 
                 @($breakpoints).Count | Should -Be 13 -Because 'it has the proper number of breakpoints defined'
