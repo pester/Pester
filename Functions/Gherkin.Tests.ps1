@@ -134,6 +134,12 @@ Describe "Gherkin Before Feature" -Tag Gherkin {
     $gherkin = $job | Wait-Job | Receive-Job
     Remove-Job $job
 
+    It 'Should contain test results for the background steps' {
+        $gherkin.Results.TestResult | Where-Object {
+            'Given there is a background', 'And it sets x to 20' -contains $_.Name
+        } | Select-Object -ExpandProperty Name -Unique | Should -HaveCount 2
+    }
+
     It 'Should output two passed scenarios, not the background plus scenarios (bug 911)' {
         @($gherkin.Results.PassedScenarios).Count | Should Be 2
     }
@@ -204,11 +210,11 @@ Scenario: The test data should be converted properly
 
                 $Pester = New-GherkinPesterState -SessionState $SessionState
                 # parse the feature file to extract the scenario data
-                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile -Pester $Pester
+                $Feature = Import-GherkinFeature -Path $featureFile -Pester $Pester
                 $Feature | Should -Not -Be $null;
-                $Background | Should -Be $null;
-                $Scenarios | Should -HaveCount 1;
-                $Scenario = $Scenarios[0]
+                $Feature.Background | Should -Be $null;
+                $Feature.Scenarios | Should -HaveCount 1;
+                $Scenario = $Feature.Scenarios[0]
                 $Scenario.Steps | Should -HaveCount 1;
 
                 # call the function under test
@@ -255,11 +261,11 @@ Scenario: The test data should be converted properly
 
                 $Pester = New-GherkinPesterState -SessionState $sessionState
                 # parse the feature file to extract the scenario data
-                $Feature, $Background, $Scenarios = Import-GherkinFeature -Path $featureFile -Pester $Pester
+                $Feature = Import-GherkinFeature -Path $featureFile -Pester $Pester
                 $Feature | Should -Not -Be $null;
-                $Background | Should -Be $null;
-                $Scenarios | Should -HaveCount 1;
-                $Scenario = $Scenarios[0]
+                $Feature.Background | Should -Be $null;
+                $Feature.Scenarios | Should -HaveCount 1;
+                $Scenario = $Feature.Scenarios[0]
                 $Scenario.Steps | Should -HaveCount 1;
 
                 # call the function under test

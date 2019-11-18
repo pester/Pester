@@ -28,7 +28,11 @@ function Invoke-GherkinHook {
             Tags for filtering hooks
     #>
     [CmdletBinding()]
-    param([string]$Hook, [string]$Name, [string[]]$Tags)
+    param(
+        [string]$Hook,
+        [string]$Name,
+        [string[]]$Tags
+    )
 
     if ($GherkinHooks.${Hook}) {
         foreach ($GherkinHook in $GherkinHooks.${Hook}) {
@@ -703,18 +707,14 @@ function Import-GherkinFeature {
         }
     )
 
-    $Scenarios = , $Scenarios | & $WhereObject { $null -ne $_}
+    $Scenarios = @($Scenarios | & $WhereObject { $null -ne $_})
 
-    # TODO: Either, add to this and set Background on the Feature and don't return three values, or just
-    # TODO: get rid of this line and return all the values separately as we are already doing...
-    # * I Prefer adding to this and not returning 3 distinct values
-    $Feature = $Feature | & $AddMember -MemberType NoteProperty -Name Scenarios -Value $Scenarios -Force -PassThru
+    $Feature = $Feature |
+        & $AddMember -MemberType NoteProperty -Name Scenarios -Value $Scenarios -Force -PassThru |
+        & $AddMember -MemberType NoteProperty -Name Background -Value $Background -Force -PassThru
 
-    if ($Scenarios -and $Scenarios.Length) {
-        $Feature, $Background, $Scenarios
-    }
-    else {
-        $null, $null, $null
+    if ($Feature.Scenarios -and $Feature.Scenarios.Length) {
+        $Feature
     }
 }
 
@@ -760,7 +760,7 @@ function Invoke-GherkinFeature {
     try {
         $Parent = & $SafeCommands['Split-Path'] $FeatureFile.FullName
         Import-GherkinSteps -StepPath $Parent -Pester $pester
-        $Feature, $Background, $ScenarioDefs = Import-GherkinFeature $FeatureFile.FullName $Pester -Expand:$Expand -NoMultiline:$NoMultiline
+        $Feature = Import-GherkinFeature $FeatureFile.FullName $Pester -Expand:$Expand -NoMultiline:$NoMultiline
     }
     catch [Gherkin.ParserException] {
         & $SafeCommands['Write-Error'] -Exception $_.Exception -Message "Skipped '$($FeatureFile.FullName)' because of parser error.`n$(($_.Exception.Errors | & $SafeCommands['Select-Object'] -Expand Message) -join "`n`n")"
@@ -784,20 +784,20 @@ function Invoke-GherkinFeature {
         $Script:GherkinIndentationLevel = 0
         $Feature | Write-Feature $Pester
 
-        foreach ($ScenarioDef in $ScenarioDefs) {
+        foreach ($ScenarioDef in $Feature.Scenarios) {
             # Reset indentation level for displaying scenario information on the console.
             $Script:GherkinIndentationLevel = 1
 
             if ($ScenarioDef -is [Gherkin.Ast.ScenarioOutline]) {
                 try {
                     $Pester.EnterTestGroup($ScenarioDef.Name, 'Scenario Outline')
-                    Invoke-GherkinExamples $Pester $Background $ScenarioDef -NoMultiline:$NoMultiline
+                    Invoke-GherkinExamples $Pester $Feature.Background $ScenarioDef -NoMultiline:$NoMultiline
                 } finally {
                     $Pester.LeaveTestGroup($ScenarioDef.Name, 'Scenario Outline')
                 }
             }
             else {
-                Invoke-GherkinScenario $Pester $Background $ScenarioDef -NoMultiline:$NoMultiline
+                Invoke-GherkinScenario $Pester $Feature.Background $ScenarioDef -NoMultiline:$NoMultiline
             }
         }
     }
@@ -931,7 +931,7 @@ function Invoke-GherkinScenario {
             $Script:PrintGherkinFeatureBackground = $False
 
             # Since feature background steps run as part of every scenario, the outcome of the background
-            # steps contributes to the outcome of th scenario as a whole.
+            # steps contributes to the outcome of the scenario as a whole.
             $Scenario.Result = $Background.Result
         }
 

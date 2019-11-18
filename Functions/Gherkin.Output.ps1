@@ -888,9 +888,9 @@ function Write-GherkinReport {
                 $Pester.TestResult |
                     Select-Object -ExpandProperty Time |
                     ForEach-Object -Begin {
-                        [TimeSpan]$TotalTime = [TimeSpan]::Zero
+                        $TotalTime = [TimeSpan]::Zero
                     } -Process {
-                        $TotalTime = $TotalTime.Add($_)
+                        $TotalTime += $_
                     } -End { $TotalTime }
             )
         ) -ForegroundColor $Script:ReportTheme.Foreground
