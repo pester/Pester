@@ -802,7 +802,7 @@ function Invoke-GherkinFeature {
         }
     }
     catch {
-        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n' | & $SafeCommands['Select-Object'] -First 1
+        $firstStackTraceLine = $_.ScriptStackTrace -split '\r?\n$' | & $SafeCommands['Select-Object'] -First 1
         $Pester.AddTestResult("Error occurred in test script '$($Feature.Path)'", 'Failed', $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
 
         # This is a hack to ensure that XML output is valid for now.  The test-suite names come from the Describe attribute of the TestResult
@@ -1107,7 +1107,7 @@ function Invoke-GherkinStep {
                     $StepDefinition = Find-StepDefinition $Pester $Step
 
                     if (!$StepDefinition) {
-                        $PesterErrorRecord = New-UndefinedStepErrorRecord $Step
+                        $Step | Set-StepUndefined
                     }
                     elseif ($ScenarioResult -eq 'Passed') {
                         $PesterErrorRecord = $null
@@ -1143,7 +1143,7 @@ function Invoke-GherkinStep {
                         }
                     }
                     else {
-                        $PesterErrorRecord = New-StepSkippedErrorRecord $Step
+                        $Step | Set-StepSkipped
                     }
                 }
                 catch {
@@ -1161,7 +1161,7 @@ function Invoke-GherkinStep {
                 }
 
                 # Convert the error to a Pester TestResult customized for Gherkin
-                $StepResult = ConvertTo-GherkinStepResult -ErrorRecord $PesterErrorRecord
+                $StepResult = ConvertTo-GherkinStepResult -ErrorRecord $PesterErrorRecord -Strict:$Pester.Strict
 
                 # Scenarios are either Passed, Failed, Pending, or Undefined.
                 # Skipped steps mean some other condition above has already occurred for an earlier step.

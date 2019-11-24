@@ -2,10 +2,15 @@
     param(
         [String] $Name,
         [Nullable[TimeSpan]] $Time,
-        [System.Management.Automation.ErrorRecord] $ErrorRecord
+        [System.Management.Automation.ErrorRecord] $ErrorRecord,
+        [switch]$Strict
     )
 
-    $StepResult = @{
+    $SelectObject = $SafeCommands['Select-Object']
+
+    $StackTraceFormatString = "at <{0}>, {1}: line {2}"
+
+    $StepResult = [PSCustomObject]@{
         Name           = $Name
         Time           = $Time
         FailureMessage = ''
@@ -22,74 +27,99 @@
         return
     }
 
-    $StepResult.ErrorRecord = $ErrorRecord
+    # Convert the exception messages
+    $Exception = $ErrorRecord.Exception
+    $ExceptionLines = @()
 
-    $ErrorId = $ErrorRecord.FullyQualifiedErrorId
-    switch ($ErrorId) {
-        { 'PesterAssertionFailed', 'PesterGherkinStepFailed', 'PesterGherkinStepPending' -contains $_ } {
-            $Details = $ErrorRecord.TargetObject
-
-            $FailureMessage = $ErrorRecord.Exception.Message
-            $File = $Details.File
-            $Line = $Details.Line
-            $Text = $Details.LineText
-            $LocationType = 'StepDefinition'
-
-            # Falling through to set the test result and stack trace
+    while ($Exception) {
+        if ('PesterGherkinStepUndefined','PesterGherkinStepPending' -notcontains $ErrorRecord.FullyQualifiedErrorId) {
+            $ExceptionName = "$($Exception.GetType().Name): "
         }
 
-        PesterAssertionFailed { break }
-        PesterGherkinStepPending { $StepResult.Result = 'Pending'; break }
-
-        { 'PesterGherkinStepUndefined', 'PesterGherkinStepSkipped' -contains $_ } {
-            $Step = ([Gherkin.Ast.Step]$ErrorRecord.TargetObject)
-
-            $FailureMessage = $ErrorRecord.Exception.Message
-            $File = $Step.Location.Path
-            $Line = $Step.Location.Line
-            $Text = '{0} {1}' -f $Step.Keyword, $Step.Text
-            $LocationType = 'Feature'
-
-            # Falling through to set the test result
+        if ($Exception.Message) {
+            $MessageLines = $Exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
-        PesterGherkinStepUndefined { $StepResult.Result = 'Inconclusive'; break }
-        PesterGherkinStepSkipped { $StepResult.Result = 'Skipped'; break }
+        if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed' -and @($MessageLines).Length -gt 0) {
+            $MessageLines[0] = "${ExceptionName}$($MessageLines[0])"
+        }
 
-        default {
-            $FailureMessage = $ErrorRecord.ToString()
-            $File = $ErrorRecord.InvocationInfo.ScriptName
-            $Line = $ErrorRecord.InvocationInfo.ScriptLineNumber
-            $Text = $ErrorRecord.InvocationInfo.Line
-            $LocationType = 'ScriptBlock'
+        [array]::Reverse($MessageLines)
+        $ExceptionLines += $MessageLines
+        $Exception = $Exception.InnerException
+    }
 
-            break
+    [array]::Reverse($ExceptionLines)
+
+    $StepResult.FailureMessage += $ExceptionLines
+
+    # Convert the Stack Trace, if present (there might be none if we are raising the error ourselves).
+    $StackTraceLines = @(
+        # TODO: this is a workaround see https://github.com/pester/Pester/pull/886
+        if ($null -ne $ErrorRecord.ScriptStackTrace) {
+            $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        } elseif ($ErrorRecord.TargetObject -and $ErrorRecord.TargetObject.ScriptStackTrace) {
+            $ErrorRecord.TargetObject.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
+    )
+
+    # For Gherkin tests, when an assertion fails, the failed assertion function calls show up in the stack
+    # trace before the step definition script block because the assertion's called in the ScriptBlock. BUT,
+    # we want the ScriptBlock in the stack trace (whith it's attendant line number) to report back to the
+    # user. So, here we filter out those lines from the ScriptStackTrace.
+    if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed' -and (-not $global:PesterDebugPreference_ShowFullErrors)) {
+        $StackTraceLines = $StackTraceLines | Where-Object {
+            $_ -notmatch '^at (Should<End>|Invoke-(Legacy)?Assertion), .*(\\|/)Functions(\\|/)(Assertions(\\|/)Should\.ps1|.*\.ps1): line \d*$'
         }
     }
 
-    $StepResult.FailureMessage = $FailureMessage
+    # Since we may need to take special action to make the stack trace nice,
+    # check here if we're running in "Strict" mode and set the result to Failed if we are.
+    if (!$Strict) {
+        switch ($ErrorRecord.FullyQualifiedErrorId) {
+            'PesterGherkinStepUndefined' { $StepResult.Result = 'Inconclusive'; break }
+            'PesterGherkinStepPending'   { $StepResult.Result = 'Pending'; break }
+            'PesterGherkinStepSkipped'   { $StepResult.Result = 'Skipped'; break }
+        }
+    }
 
-    # Build Stack Trace
-    # at <{LocationType}>, {Filepath}:line {x}
-    $StackTraceFormatString = '{3}  at <{0}>, {1}:line {2}'
-    $StackTraceLines = @($StackTraceFormatString -f $LocationType, $File, $Line, '')
+    $Count = 0
+
+    # Omit lines which are internal to Pester
+    $Patterns = [string[]]@(
+        '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*(\\|/)Functions(\\|/).*\.ps1: line \d*$',
+        '^at Assert-MockCalled, .*(\\|/)Functions(\\|/)Mock\.ps1: line \d*$',
+        '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*(\\|/)Functions(\\|/).*\.ps1): line \d*$'
+    )
+
+    foreach ($line in $StackTraceLines) {
+        $LineMatchesAPattern = $null -ne ($Patterns | Where-Object { $line -match $_ })
+
+        if ($LineMatchesAPattern) {
+            break
+        }
+
+        $Count ++
+    }
 
     # TODO: I'm not happy with this code--particularly, that it lives here. And I just had to add this hack
     # to check for 'Inconclusive' results so that the errors aren't added twice to the stack trace.
     $Location = if ($ErrorRecord.TargetObject -is [Gherkin.Ast.Step]) {
-        if ($StepResult.Result -ne 'Inconclusive') {
-            $ErrorRecord.TargetObject.Location
-        }
+        $ErrorRecord.TargetObject.Location
     }
     elseif ($ErrorRecord.TargetObject.ContainsKey('Step')) {
         $ErrorRecord.TargetObject.Step.Location
     }
 
-    if ($Location) {
-        $StackTraceLines += $StackTraceFormatString -f 'Feature', $Location.Path, $Location.Line, [Environment]::NewLine
-    }
+    $StepResult.StackTrace += @(
+        if (-not ($ExecutionContext.SessionState.PSVariable.GetValue('PesterDebugPreference_ShowFullErrors')) -and $Location) {
+            @($StackTraceLines | & $SelectObject -First $Count) + @($StackTraceFormatString -f 'Feature', $Location.Path, $Location.Line)
+        } else {
+            $StackTraceLines
+        }
+    ) -join "`n"
 
-    $StepResult.StackTrace = $StackTraceLines -join ''
+    $StepResult.ErrorRecord = $ErrorRecord
 
     $StepResult
 }
@@ -164,6 +194,7 @@ function Write-ExampleSet {
         }
     }
 }
+
 function Write-Feature {
     [CmdletBinding()]
     param (
@@ -290,7 +321,9 @@ function Write-Scenario {
                     $Result = $ContextNameParts[$ContextNameParts.Length - 1] -eq $Scenario.Name
                     $Result -and $_.Result -eq 'Failed'
                 } |
-                Write-FailedStepErrorText -IndentationLevel ($Script:GherkinIndentationLevel + 1)
+                ForEach-Object {
+                    Write-GherkinStepErrorText $_.FailureMessage $_.StackTrace ($Script:GherkinIndentationLevel + 1) $Script:ReportTheme.Fail
+                }
             }
 
         }
@@ -318,135 +351,126 @@ function Write-GherkinStepResult {
 
         if ($SkipOutput) { return }
 
+        $WhereObject = $SafeCommands['Where-Object']
+
         if (-not ($OutputType | Has-Flag 'Default, Summary')) {
+            $WriteStepParams = @{
+                StepResult = $StepResult
+                MultilineArgument = $MultilineArgument
+            }
+
+            $ErrorTextParams = @{
+                FailureMessage = $StepResult.FailureMessage
+                IndentationLevel = $Script:GherkinIndentationLevel + 2
+            }
+
             switch ($StepResult.Result) {
-                Passed { $StepResult | Write-PassedGherkinStep $MultilineArgument; break }
-                Skipped { $StepResult | Write-SkippedGherkinStep $MultilineArgument; break }
-                Failed { $StepResult | Write-FailedGherkinStep $MultilineArgument; break }
-                Pending { $StepResult | Write-PendingGherkinStep $MultilineArgument; break }
-                Inconclusive { $StepResult | Write-UndefinedGherkinStep $MultilineArgument; break }
+                Passed {
+                    $WriteStepParams.StepTextColor = $Script:ReportTheme.Pass
+                    $WriteStepParams.StepArgumentColor = $Script:ReportTheme.PassArgument
+                    $WriteStepParams.StepDurationColor = $Script:ReportTheme.PassTime
+
+                    Write-GherkinStepText @WriteStepParams
+
+                    break
+                }
+
+                Inconclusive {
+                    $WriteStepParams.StepTextColor = [ConsoleColor]$Script:ReportTheme.Undefined
+                    $WriteStepParams.StepDurationColor = $Script:ReportTheme.UndefinedTime
+
+                    Write-GherkinStepText @WriteStepParams
+
+                    $ErrorTextParams.FailureMessage = ">>> $($ErrorTextParams.FailureMessage)"
+                    $ErrorTextParams.StackTrace = $StepResult.StackTrace -split '\r?\n' | & $WhereObject {
+                        $ExecutionContext.SessionState.PSVariable.GetValue('PesterDebugPreference_ShowFullErrors') -or $_ -notmatch '^at Set-StepUndefined'
+                    }
+                    $ErrorTextParams.ForegroundColor = $Script:ReportTheme.Undefined
+
+                    Write-GherkinStepErrorText @ErrorTextParams
+
+                    break
+                }
+
+                Pending {
+                    $WriteStepParams.StepTextColor = $Script:ReportTheme.Pending
+                    $WriteStepParams.StepArgumentColor = $Script:ReportTheme.PendingArgument
+                    $WriteStepParams.StepDurationColor = $Script:ReportTheme.PendingTime
+
+                    Write-GherkinStepText @WriteStepParams
+
+                    $ErrorTextParams.StackTrace = $StepResult.StackTrace -split '\r?\n' | & $WhereObject {
+                        $ExecutionContext.SessionState.PSVariable.GetValue('PesterdebugPreference_ShowFullErrors') -or $_ -notmatch '^at Set-StepPending'
+                    }
+                    $ErrorTextParams.ForegroundColor = $Script:ReportTheme.Pending
+
+                    Write-GherkinStepErrortext @ErrorTextParams
+
+                    break
+                }
+
+                Skipped {
+                    $WriteStepParams.StepTextColor = $Script:ReportTheme.Skipped
+                    $WriteStepParams.StepArgumentColor = $Script:ReportTheme.SkippedArgument
+                    $WriteStepParams.StepDurationColor = $Script:ReportTheme.SkippedTime
+
+                    Write-GherkinStepText @WriteStepParams
+
+                    if ($ExecutionContext.SessionState.PSVariable.GetValue('PesterDebugPreference_ShowFullErrors')) {
+                        $ErrorTextParams.StackTrace = $StepResult.StackTrace -split '\r?\n'
+                        $ErrorTextParams.ForeGroundColor = $Script:ReportTheme.Skipped
+
+                        Write-GherkinStepErrorText @ErrorTextParams
+                    }
+
+                    break
+                }
+
+                Failed {
+                    $WriteStepParams.StepTextColor = $Script:ReportTheme.Fail
+                    $WriteStepParams.StepArgumentColor = $Script:ReportTheme.FailArgument
+                    $WriteStepParams.StepDurationColor = $Script:ReportTheme.FailTime
+
+                    Write-GherkinStepText @WriteStepParams
+
+                    $ErrorTextParams.StackTrace = $StepResult.StackTrace
+                    $ErrorTextParams.ForegroundColor = $Script:ReportTheme.Fail
+
+                    Write-GherkinStepErrortext @ErrorTextParams
+
+                    break
+                }
             }
         }
     }
 }
 
-function Write-PassedGherkinStep {
+function Write-GherkinStepErrorText {
     [CmdletBinding()]
     Param (
-        [Parameter(Position = 0)]
-        [Gherkin.Ast.StepArgument]$MultilineArgument,
+        [Parameter(Position = 0, Mandatory = $True)]
+        [string]$FailureMessage,
 
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult
+        [Parameter(Position = 1, Mandatory = $True)]
+        [string[]]$StackTrace,
+
+        [Parameter(Position = 2, Mandatory = $True)]
+        [int]$IndentationLevel,
+
+        [Parameter(Position = 3, Mandatory = $True)]
+        [ConsoleColor]$ForegroundColor
     )
 
     Process {
-        $WriteStepParams = @{
-            StepResult        = $StepResult
-            MultilineArgument = $MultilineArgument
-            StepTextColor     = $Script:ReportTheme.Pass
-            StepArgumentColor = $Script:ReportTheme.PassArgument
-            StepDurationColor = $Script:ReportTheme.PassTime
+        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
+
+        $StackTrace | ForEach-Object -Begin {
+            $OutputLines = @($FailureMessage -split '\r?\n' | ForEach-Object { "${Margin}$_" })
+        } -Process {
+            $OutputLines += $_ -replace '(?m)^', $Margin
+        } -End {
+            & $SafeCommands['Write-Host'] "$($OutputLines -join [Environment]::NewLine)" -ForegroundColor $ForegroundColor
         }
-
-        Write-GherkinStepText @WriteStepParams
-    }
-}
-
-function Write-FailedGherkinStep {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Position = 0)]
-        [Gherkin.Ast.StepArgument]$MultilineArgument,
-
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult
-    )
-
-    Process {
-        $IndentationLevel = $Script:GherkinIndentationLevel + 1
-        $WriteStepParams += @{
-            StepResult        = $StepResult
-            MultilineArgument = $MultilineArgument
-            StepTextColor     = $Script:ReportTheme.Fail
-            StepArgumentColor = $Script:ReportTheme.FailArgument
-            StepDurationColor = $Script:ReportTheme.FailTime
-        }
-
-        Write-GherkinStepText @WriteStepParams
-        Write-FailedStepErrorText $StepResult -IndentationLevel ($IndentationLevel + 1)
-    }
-}
-
-function Write-SkippedGherkinStep {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Position = 0)]
-        [Gherkin.Ast.StepArgument]$MultilineArgument,
-
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult
-    )
-
-    Process {
-        $WriteStepParams = @{
-            StepResult        = $StepResult
-            MultilineArgument = $MultilineArgument
-            StepTextColor     = $Script:ReportTheme.Skipped
-            StepArgumentColor = $Script:ReportTheme.SkippedArgument
-            StepDurationColor = $Script:ReportTheme.SkippedTime
-        }
-
-        Write-GherkinStepText @WriteStepParams
-    }
-}
-
-function Write-PendingGherkinStep {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Position = 0)]
-        [Gherkin.Ast.StepArgument]$MultilineArgument,
-
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult
-    )
-
-    Process {
-        $IndentationLevel = $Script:GherkinIndentationLevel + 1
-        $WriteStepParams = @{
-            StepResult        = $StepResult
-            MultilineArgument = $MultilineArgument
-            StepTextColor     = $Script:ReportTheme.Pending
-            StepArgumentColor = $Script:ReportTheme.PendingArgument
-            StepDurationColor = $Script:ReportTheme.PendingTime
-        }
-
-        Write-GherkinStepText @WriteStepParams
-        Write-PendingStepErrorText $StepResult -IndentationLevel ($IndentationLevel + 1)
-    }
-}
-
-function Write-UndefinedGherkinStep {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Position = 0)]
-        [Gherkin.Ast.StepArgument]$MultilineArgument,
-
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult
-    )
-
-    Process {
-        $IndentationLevel = $Script:GherkinIndentationLevel + 1
-        $WriteStepParams = @{
-            StepResult        = $StepResult
-            MultilineArgument = $MultilineArgument
-            StepTextColor     = $Script:ReportTheme.Undefined
-            StepDurationColor = $Script:ReportTheme.UndefinedTime
-        }
-
-        Write-GherkinStepText  @WriteStepParams
-        Write-UndefinedStepErrorText $StepResult -IndentationLevel $IndentationLevel
     }
 }
 
@@ -590,183 +614,6 @@ filter Write-GherkinMultilineArgument {
     }
 }
 
-filter Write-FailedStepErrorText {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult,
-
-        [int]$IndentationLevel
-    )
-
-    Process {
-        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
-
-        $StepResult |
-        Format-StepResultErrorRecord |
-        ForEach-Object { $_.Message -split '\r?\n' } |
-        Select-Object -First 1 |
-        ForEach-Object {
-            "${Margin}Error: $_"
-            $StepResult.StackTrace -replace '(?m)^', $Margin
-        } |
-        & $SafeCommands['Write-Host'] -ForegroundColor $Script:ReportTheme.Fail
-    }
-}
-
-filter Write-PendingStepErrorText {
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult,
-
-        [int]$IndentationLevel
-    )
-
-    Process {
-        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
-
-        $StepResult |
-        Format-StepResultErrorRecord |
-        ForEach-Object { $_.Message -split '\r?\n' } |
-        Select-Object -First 1 |
-        ForEach-Object {
-            "${Margin}$($_ -replace 'Exception:\s*')"
-            $StepResult.StackTrace -replace '(?m)^', $Margin
-        } |
-        & $SafeCommands['Write-Host'] -ForegroundColor $Script:ReportTheme.Pending
-    }
-}
-
-filter Write-UndefinedStepErrorText {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult,
-
-        [int]$IndentationLevel
-    )
-
-    Process {
-        $Margin = $Script:ReportStrings.Margin * $IndentationLevel
-        $WriteHost = $SafeCommands['Write-Host']
-        $Undefined = $Script:ReportTheme.Undefined
-
-        & $WriteHost -ForegroundColor $Undefined $($StepResult.FailureMessage -replace '(?m)^', "${Margin}  >>> ")
-        & $WriteHost -ForegroundColor $Undefined $($StepResult.StackTrace -replace '(?m)^', "$Margin  ")
-    }
-}
-
-function Format-StepResultErrorRecord {
-    [CmdletBinding()]
-    [OutputType([string])]
-    Param (
-        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
-        [PSObject]$StepResult
-    )
-
-    Process {
-        $ErrorRecord = $StepResult.ErrorRecord
-
-        $ErrorLines = [PSCustomObject]@{
-            Message = @()
-            Trace   = @()
-        }
-
-        ## convert the exception messages
-        $Exception = $ErrorRecord.Exception
-        $ExceptionLines = @()
-
-        while ($Exception) {
-            $ExceptionName = $Exception.GetType().Name
-            $MessageLines = $Exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
-
-            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed') {
-                $MessageLines[0] = "${ExceptionName}: $($MessageLines[0])"
-            }
-
-            [array]::Reverse($MessageLines)
-            $ExceptionLines += $MessageLines
-            $Exception = $Exception.InnerException
-        }
-
-        [array]::Reverse($ExceptionLines)
-
-        $ErrorLines.Message += $ExceptionLines
-
-        if ('PesterAssertionFailed', 'PesterGherkinStepFailed' -contains $ErrorRecord.FullyQualifiedErrorId) {
-            $ErrorLines.Message += "$($ErrorRecord.TargetObject.Line)`: $($ErrorRecord.TargetObject.LineText.Trim())".Split([string[]]($([System.Environment]::NewLine), '\n', "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
-            $ErrorLines.Trace += @($StepResult.StackTrace -split '\r?\n')
-        }
-
-        $ErrorLines
-
-        # ! Leaving this here because I may need this if it becomes evident that showing the portion of the
-        # ! stack trace which is internal to Pester would be helpful. I could see this, esp. for Gherkin, and
-        # ! esp. when it comes to using Mocks with Gherkin...
-
-        # if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) ) {
-        #     if ($ErrorRecord.FullyQualifiedErrorID -eq 'PesterAssertionFailed') {
-        #         $lines.Trace += "at line: $($ErrorRecord.TargetObject.Line) in $($ErrorRecord.TargetObject.File)"
-        #     }
-        #     else {
-        #         $lines.Trace += "at line: $($ErrorRecord.InvocationInfo.ScriptLineNumber) in $($ErrorRecord.InvocationInfo.ScriptName)"
-        #     }
-        #     return $lines
-        # }
-
-        ## convert the stack trace if present (there might be none if we are raising the error ourselves)
-        # # todo: this is a workaround see https://github.com/pester/Pester/pull/886
-        # if ($null -ne $ErrorRecord.ScriptStackTrace) {
-        #     $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
-        # }
-
-        # $count = 0
-
-        # # omit the lines internal to Pester
-
-        # If ((GetPesterOS) -ne 'Windows') {
-
-        #     [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*/Functions/.*.ps1: line [0-9]*$'
-        #     [String]$pattern2 = '^at Should<End>, .*/Functions/Assertions/Should.ps1: line [0-9]*$'
-        #     [String]$pattern3 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
-        #     [String]$pattern4 = '^at Invoke-Assertion, .*/Functions/.*.ps1: line [0-9]*$'
-        #     [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
-        # }
-        # Else {
-
-        #     [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$'
-        #     [String]$pattern2 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
-        #     [String]$pattern3 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-        #     [String]$pattern4 = '^at Invoke-Assertion, .*\\Functions\\.*.ps1: line [0-9]*$'
-        #     [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
-        # }
-
-        # foreach ( $line in $traceLines ) {
-        #     if ( $line -match $pattern1 ) {
-        #         break
-        #     }
-        #     $count ++
-        # }
-
-        # if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
-        #     $lines.Trace += $traceLines
-        # }
-        # else {
-        #     $lines.Trace += $traceLines |
-        #         & $SafeCommands['Select-Object'] -First $count |
-        #         & $SafeCommands['Where-Object'] {
-        #         $_ -notmatch $pattern2 -and
-        #         $_ -notmatch $pattern3 -and
-        #         $_ -notmatch $pattern4 -and
-        #         $_ -notmatch $pattern5
-        #     }
-        # }
-
-        # return $lines
-    }
-}
-
 function Write-GherkinReport {
     [CmdletBinding()]
     Param (
@@ -882,7 +729,6 @@ function Write-GherkinReport {
             }
         }
 
-        #& $WriteHost ($Script:ReportStrings.Timing -f $Pester.Time) -ForegroundColor $Script:ReportTheme.Foreground
         & $WriteHost (
             $Script:ReportStrings.Timing -f (
                 $Pester.TestResult |
