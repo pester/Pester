@@ -6,7 +6,9 @@
         [switch]$Strict
     )
 
+    $GetMember = $SafeCommands['Get-Member']
     $SelectObject = $SafeCommands['Select-Object']
+    $WhereObject = $SafeCommands['Where-Object']
 
     $StackTraceFormatString = "at <{0}>, {1}: line {2}"
 
@@ -55,11 +57,16 @@
 
     # Convert the Stack Trace, if present (there might be none if we are raising the error ourselves).
     $StackTraceLines = @(
-        # TODO: this is a workaround see https://github.com/pester/Pester/pull/886
-        if ($null -ne $ErrorRecord.ScriptStackTrace) {
-            $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
-        } elseif ($ErrorRecord.TargetObject -and $ErrorRecord.TargetObject.ScriptStackTrace) {
-            $ErrorRecord.TargetObject.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+        # For PowerShell v2, the ErrorRecord will not have a ScriptStackTrace property
+        if ( -not ($ErrorRecord | & $GetMember -Name ScriptStackTrace) ) {
+            $StackTraceFormatString -f 'ScriptBlock', $ErrorRecord.TargetObject.File, $ErrorRecord.TargetObject.Line
+        } else {
+            # TODO: this is a workaround see https://github.com/pester/Pester/pull/886
+            if ($null -ne $ErrorRecord.ScriptStackTrace) {
+                $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            } elseif ($ErrorRecord.TargetObject -and $ErrorRecord.TargetObject.ScriptStackTrace) {
+                $ErrorRecord.TargetObject.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
+            }
         }
     )
 
@@ -68,7 +75,7 @@
     # we want the ScriptBlock in the stack trace (whith it's attendant line number) to report back to the
     # user. So, here we filter out those lines from the ScriptStackTrace.
     if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed' -and (-not $global:PesterDebugPreference_ShowFullErrors)) {
-        $StackTraceLines = $StackTraceLines | Where-Object {
+        $StackTraceLines = $StackTraceLines | & $WhereObject {
             $_ -notmatch '^at (Should<End>|Invoke-(Legacy)?Assertion), .*(\\|/)Functions(\\|/)(Assertions(\\|/)Should\.ps1|.*\.ps1): line \d*$'
         }
     }
@@ -93,7 +100,7 @@
     )
 
     foreach ($line in $StackTraceLines) {
-        $LineMatchesAPattern = $null -ne ($Patterns | Where-Object { $line -match $_ })
+        $LineMatchesAPattern = $null -ne ($Patterns | & $WhereObject { $line -match $_ })
 
         if ($LineMatchesAPattern) {
             break
@@ -102,20 +109,13 @@
         $Count ++
     }
 
-    # TODO: I'm not happy with this code--particularly, that it lives here. And I just had to add this hack
-    # to check for 'Inconclusive' results so that the errors aren't added twice to the stack trace.
-    $Location = if ($ErrorRecord.TargetObject -is [Gherkin.Ast.Step]) {
-        $ErrorRecord.TargetObject.Location
-    }
-    elseif ($ErrorRecord.TargetObject.ContainsKey('Step')) {
-        $ErrorRecord.TargetObject.Step.Location
-    }
-
     $StepResult.StackTrace += @(
-        if (-not ($ExecutionContext.SessionState.PSVariable.GetValue('PesterDebugPreference_ShowFullErrors')) -and $Location) {
-            @($StackTraceLines | & $SelectObject -First $Count) + @($StackTraceFormatString -f 'Feature', $Location.Path, $Location.Line)
-        } else {
-            $StackTraceLines
+        if (-not ($ExecutionContext.SessionState.PSVariable.GetValue('PesterDebugPreference_ShowFullErrors'))) {
+            if ($ErrorRecord.TargetObject -and $ErrorRecord.TargetObject.ContainsKey('FeaturePath')) {
+                $FeatureLine = $ErrorRecord.TargetObject.Step.Location.Line
+                $FeaturePath = $ErrorRecord.TargetObject.FeaturePath
+                @($StackTraceLines | & $SelectObject -First $Count) + @($StackTraceFormatString -f 'Feature', $FeaturePath, $FeatureLine)
+            }
         }
     ) -join "`n"
 
@@ -462,14 +462,17 @@ function Write-GherkinStepErrorText {
     )
 
     Process {
+        $ForEachObject = $SafeCommands['ForEach-Object']
+        $WriteHost = $SafeCommands['Write-Host']
+
         $Margin = $Script:ReportStrings.Margin * $IndentationLevel
 
-        $StackTrace | ForEach-Object -Begin {
-            $OutputLines = @($FailureMessage -split '\r?\n' | ForEach-Object { "${Margin}$_" })
+        $StackTrace | & $ForEachObject -Begin {
+            $OutputLines = @($FailureMessage -split '\r?\n' | & $ForEachObject { "${Margin}$_" })
         } -Process {
             $OutputLines += $_ -replace '(?m)^', $Margin
         } -End {
-            & $SafeCommands['Write-Host'] "$($OutputLines -join [Environment]::NewLine)" -ForegroundColor $ForegroundColor
+            & $WriteHost "$($OutputLines -join [Environment]::NewLine)" -ForegroundColor $ForegroundColor
         }
     }
 }
@@ -541,12 +544,13 @@ function Write-GherkinStepText {
     )
 
     Process {
+        $ForEachObject = $SafeCommands['ForEach-Object']
         $WriteHost = $SafeCommands['Write-Host']
         $Margin = $Script:ReportStrings.Margin * ($Script:GherkinIndentationLevel + 1)
 
         $StepResult |
         Get-GherkinStepTextParts |
-        ForEach-Object {
+        & $ForEachObject {
             $FgColor = switch ($_.Type) {
                 'Text' { $StepTextColor; break }
                 'Argument' { $StepArgumentColor; break }

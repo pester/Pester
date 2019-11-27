@@ -198,10 +198,10 @@ function Invoke-Gherkin {
             in a scenario outline example scenario failed.
 
         .PARAMETER PassThru
-            Returns a custom object (PSCustomObject) that contains the test results.
-            By default, Invoke-Gherkin writes to the host program, not to the output stream (stdout).
-            If you try to save the result in a variable, the variable is empty unless you
-            use the PassThru parameter.
+            Returns a custom object (PSCustomObject) that contains the test results. By default,
+            Invoke-Gherkin writes to the host program, not to the output stream (stdout). If you try to save
+            the result in a variable, the variable is empty unless you use the PassThru parameter.
+
             To suppress the host output, use the Quiet parameter.
 
         .EXAMPLE
@@ -492,11 +492,7 @@ function Import-GherkinFeature {
 
     $Scenarios = @(
         :scenarios foreach ($Child in $Feature.Children) {
-            $null = & $AddMember -MemberType NoteProperty -InputObject $Child.Location -Name Path -Value $Path
-
-            foreach ($Step in $Child.Steps) {
-                $null = & $AddMember -MemberType NoteProperty -InputObject $Step.Location -Name Path -Value $Path
-            }
+            $Child = $Child | & $AddMember -MemberType NoteProperty -Name FeaturePath -value $Path -PassThru
 
             switch ($Child) {
                 { $Child -is [Gherkin.Ast.Scenario] -or $Child -is [Gherkin.Ast.ScenarioOutline] } {
@@ -659,7 +655,7 @@ function Import-GherkinFeature {
                             & $AddMember -MemberType NoteProperty -Name Scenarios -Value $ExampleSetScenarios -PassThru |
                             & $AddMember -MemberType NoteProperty -Name ScenarioOutline -Value $ScenarioDef -PassThru
                     }
-                )
+                ) | & $WhereObject { $_.Scenarios }
 
                 $ScenarioDef = $ScenarioDef | & $AddMember -MemberType NoteProperty -Name Examples -Value $ScenarioDefExamples -Force -PassThru
 
@@ -877,7 +873,7 @@ function Find-StepDefinition {
     ) | & $SortObject MatchCount | & $SelectObject -First 1
 
     if ($StepDefinitionRegex) {
-        [PSCustomObject]@{
+        New-Object PSObject -Property @{
             PSTypeName  = 'Pester.Gherkin.StepDefinition'
             Regex       = $StepDefinitionRegex
             ScriptBlock = $Script:GherkinStepDefinitions.$StepDefinitionRegex
@@ -1084,6 +1080,7 @@ function Invoke-GherkinStep {
     )
 
     Begin {
+        $GetMember = $SafeCommands['Get-Member']
         $NewObject = $SafeCommands['New-Object']
         $ScenarioResult = 'Passed'
     }
@@ -1107,7 +1104,13 @@ function Invoke-GherkinStep {
                     $StepDefinition = Find-StepDefinition $Pester $Step
 
                     if (!$StepDefinition) {
-                        $Step | Set-StepUndefined
+                        $FeaturePath = if ($ScenarioDef | & $GetMember -Name ExampleSet) {
+                            $ScenarioDef.ExampleSet.ScenarioOutline.FeaturePath
+                        } else {
+                            $ScenarioDef.FeaturePath
+                        }
+
+                        $Step | Set-StepUndefined $FeaturePath
                     }
                     elseif ($ScenarioResult -eq 'Passed') {
                         $PesterErrorRecord = $null
@@ -1132,9 +1135,16 @@ function Invoke-GherkinStep {
                             if ('PesterAssertionFailed', 'PesterGherkinStepPending' -contains $_.FullyQualifiedErrorId) {
                                 $PesterErrorRecord = $_
                                 $PesterErrorRecord.TargetObject.Step = $Step
+                                $PesterErrorrecord.TargetObject.FeaturePath = $ScenarioDef.FeaturePath
                             }
                             else {
-                                $PesterErrorRecord = New-StepFailedErrorRecord $Step $_
+                                $FeaturePath = if ($ScenarioDef | & $GetMember -Name ExampleSet) {
+                                    $ScenarioDef.ExampleSet.ScenarioOutline.FeaturePath
+                                } else {
+                                    $ScenarioDef.FeaturePath
+                                }
+
+                                $PesterErrorRecord = New-StepFailedErrorRecord $Step $FeaturePath $_
                             }
                         }
                         finally {
@@ -1143,7 +1153,13 @@ function Invoke-GherkinStep {
                         }
                     }
                     else {
-                        $Step | Set-StepSkipped
+                        $FeaturePath = if ($ScenarioDef | & $GetMember -Name ExampleSet) {
+                            $ScenarioDef.ExampleSet.ScenarioOutline.FeaturePath
+                        } else {
+                            $ScenarioDef.FeaturePath
+                        }
+
+                        $Step | Set-StepSkipped $FeaturePath
                     }
                 }
                 catch {
@@ -1158,6 +1174,7 @@ function Invoke-GherkinStep {
                 # Normally, PesterErrorRecord is an ErrorRecord. Sometimes, it's an exception which HAS an ErrorRecord
                 if ($PesterErrorRecord.ErrorRecord) {
                     $PesterErrorRecord = $PesterErrorRecord.ErrorRecord
+                    $PesterErrorRecord.TargetObject.FeaturePath = $ScenarioDef.FeaturePath
                 }
 
                 # Convert the error to a Pester TestResult customized for Gherkin

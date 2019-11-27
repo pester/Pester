@@ -27,7 +27,10 @@ function New-StepFailedErrorRecord {
         [Parameter(Position = 0, Mandatory = $True)]
         [Gherkin.Ast.Step]$Step,
 
-        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
+        [Parameter(Position = 1, Mandatory = $True)]
+        [string]$FeaturePath,
+
+        [Parameter(Position = 2, Mandatory = $True, ValueFromPipeline = $True)]
         [System.Management.Automation.ErrorRecord]$ErrorRecord
     )
 
@@ -43,11 +46,12 @@ function New-StepFailedErrorRecord {
         Message = $Message
         ErrorCategory = $ErrorRecord.CategoryInfo.Category
         TargetObject = @{
-            File = $ErrorRecord.InvocationInfo.ScriptName
-            Line = $ErrorRecord.InvocationInfo.ScriptLineNumber
-            LineText = $ErrorRecord.InvocationInfo.Line
+            File             = $ErrorRecord.InvocationInfo.ScriptName
+            Line             = $ErrorRecord.InvocationInfo.ScriptLineNumber
+            LineText         = $ErrorRecord.InvocationInfo.Line
+            FeaturePath      = $FeaturePath
             ScriptStackTrace = $ErrorRecord.ScriptStackTrace
-            Step = $Step
+            Step             = $Step
         }
     }
 
@@ -96,6 +100,9 @@ function New-StepSkippedErrorRecord {
         [int]$Line,
 
         [Parameter(Position = 3, Mandatory = $True)]
+        [string]$FeaturePath,
+
+        [Parameter(Position = 4, Mandatory = $True)]
         [Gherkin.Ast.Step]$Step
     )
 
@@ -104,10 +111,11 @@ function New-StepSkippedErrorRecord {
         Message       = 'Step skipped due to previous failing, pending, or undefined steps.'
         ErrorCategory = [System.Management.Automation.ErrorCategory]::ObjectNotFound
         TargetObject = @{
-            File     = $StepDefinitionFilePath
-            Line     = $Line
-            LineText = $LineText
-            Step     = $Step
+            File        = $StepDefinitionFilePath
+            Line        = $Line
+            LineText    = $LineText
+            FeaturePath = $FeaturePath
+            Step        = $Step
         }
     }
 
@@ -128,6 +136,9 @@ function New-UndefinedStepErrorRecord {
         [int]$Line,
 
         [Parameter(Position = 3, Mandatory = $True)]
+        [string]$FeaturePath,
+
+        [Parameter(Position = 4, Mandatory = $True)]
         [Gherkin.Ast.Step]$Step
     )
 
@@ -136,10 +147,11 @@ function New-UndefinedStepErrorRecord {
         Message       = 'No matching step definition found.'
         ErrorCategory = [System.Management.Automation.ErrorCategory]::ObjectNotFound
         TargetObject = @{
-            File     = $StepDefinitionFilePath
-            Line     = $Line
-            LineText = $LineText
-            Step     = $Step
+            File        = $StepDefinitionFilePath
+            Line        = $Line
+            LineText    = $LineText
+            FeaturePath = $FeaturePath
+            Step        = $Step
         }
     }
 
@@ -192,8 +204,8 @@ function Set-StepSkipped {
         the Pester test framework, more so than debugging user tests. Otherwise, all that
         would be necessary is to call New-StepSkippedErrorRecord.
 
-    .EXAMPLE Mark a Gherkin step as Undefined
-        $Step | Set-StepSkipped
+    .EXAMPLE Mark a Gherkin step as Skipped
+        $Step | Set-StepSkipped $Scenario.FeaturePath
 
         This is called in the Gherkin Pester test runner to set a step as skipped,
         which provides a stack trace to aid in debugging Pester more than the test suite itself.
@@ -202,7 +214,10 @@ function Set-StepSkipped {
     #>
     [CmdletBinding()]
     Param(
-        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [Parameter(Position = 0, Mandatory = $True)]
+        [string]$FeaturePath,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
         [Gherkin.Ast.Step]$Step
     )
 
@@ -212,6 +227,7 @@ function Set-StepSkipped {
         Line                   = $MyInvocation.ScriptLineNumber
         LineText               = $MyInvocation.Line.TrimEnd([System.Environment]::NewLine)
         Step                   = $Step
+        FeaturePath            = $FeaturePath
     }
 
     throw (New-StepSkippedErrorRecord @SkippedStepDetails)
@@ -229,7 +245,7 @@ function Set-StepUndefined {
         would be necessary is to call New-UndefiniedStepErrorRecord.
 
     .EXAMPLE Mark a Gherkin step as Undefined
-        $Step | Set-StepUndefined
+        $Step | Set-StepUndefined $Scenario.FeaturePath
 
         This is called in the Gherkin Pester test runner to set a step as undefined,
         which provides a stack trace to aid in debugging Pester more than the test suite itself.
@@ -238,7 +254,10 @@ function Set-StepUndefined {
     #>
     [CmdletBinding()]
     Param(
-        [Parameter(Position = 0, Mandatory = $True, ValueFromPipeline = $True)]
+        [Parameter(Position = 0, Mandatory = $true)]
+        [string]$FeaturePath,
+
+        [Parameter(Position = 1, Mandatory = $True, ValueFromPipeline = $True)]
         [Gherkin.Ast.Step]$Step
     )
 
@@ -248,6 +267,7 @@ function Set-StepUndefined {
         Line                   = $MyInvocation.ScriptLineNumber
         LineText               = $MyInvocation.Line.TrimEnd([System.Environment]::NewLine)
         Step                   = $Step
+        FeaturePath            = $FeaturePath
     }
 
     throw (New-UndefinedStepErrorRecord @UndefinedStepDetails)
