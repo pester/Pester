@@ -30,14 +30,14 @@ function GetFullPath ([string]$Path) {
 
 function Export-PesterResults {
     param (
-        $PesterState,
+        $Result,
         [string] $Path,
         [string] $Format
     )
 
     switch ($Format) {
         'NUnitXml' {
-            Export-NUnitReport -PesterState $PesterState -Path $Path
+            Export-NUnitReport -Result $Result -Path $Path
         }
 
         default {
@@ -48,7 +48,7 @@ function Export-PesterResults {
 function Export-NUnitReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $PesterState,
+        $Result,
 
         [parameter(Mandatory = $true)]
         [String]$Path
@@ -71,7 +71,7 @@ function Export-NUnitReport {
         $xmlFile = [IO.File]::Create($Path)
         $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
-        Write-NUnitReport -XmlWriter $xmlWriter -PesterState $PesterState
+        Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
 
         $xmlWriter.Flush()
         $xmlFile.Flush()
@@ -172,7 +172,7 @@ function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitEnvironmentInformation($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteStartElement('environment')
 
     $environment = Get-RunTimeEnvironment
@@ -183,7 +183,7 @@ function Write-NUnitEnvironmentInformation($PesterState, [System.Xml.XmlWriter] 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitCultureInformation($PesterState, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitCultureInformation($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteStartElement('culture-info')
 
     $XmlWriter.WriteAttributeString('current-culture', ([System.Threading.Thread]::CurrentThread.CurrentCulture).Name)

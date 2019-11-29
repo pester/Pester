@@ -747,11 +747,11 @@ function Invoke-Pester {
             @($r)
 
             if ($CI) {
-                $legacyResult = $legacyResult = Get-LegacyResult $r
+                $legacyResult = Get-LegacyResult $r
             }
 
             if ($CI) {
-                Export-NunitReport $legacyResult (Join-Path  "." "testResults.xml")
+                Export-NunitReport $r (Join-Path  "." "testResults.xml")
             }
 
             if ($CI) {
@@ -1005,7 +1005,7 @@ function Contain-AnyStringLike ($Filter, $Collection) {
 function Get-LegacyResult {
     param($RunResult)
 
-    $o = @{
+    $acc = @{
         Time              = [timespan]::Zero
         FrameworkTime     = [timespan]::Zero
         PassedCount       = 0
@@ -1013,26 +1013,50 @@ function Get-LegacyResult {
         SkippedCount      = 0
         PendingCount      = 0
         InconclusiveCount = 0
+        TestResult        = [System.Collections.ArrayList]@()
     }
 
     $RunResult | Fold-Container -OnTest {
         param($test)
+
         if ($test.Passed) {
-            $o.PassedCount++
+            $acc.PassedCount++
+            $result = "Passed"
         }
         elseif ($test.ShouldRun -and (-not $test.Executed -or -not $test.Passed)) {
-            $o.FailedCount++
+            $acc.FailedCount++
+            $result = "Failed"
         }
         else {
-            $o.SkippedCount++
+            $acc.SkippedCount++
+            $result = "Skipped"
         }
 
-        $o.FrameworkTime += $test.FrameworkDuration
+        $acc.FrameworkTime += $test.FrameworkDuration
+        $acc.TestResult += [PSCustomObject]@{
+            Passed = $test.Passed
+            Result = $result
+            Time = [timespan]::zero + $test.Duration + $test.FrameworkDuration
+            Name = $test.Name
+
+            # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
+            # considered to be Context and joined by '\'
+            Describe = $test.Path[0]
+            Context = if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'}
+
+            Show = "All" # todo: populate this from something like "$test.Block.Root.PluginData.WriteScreen.Show" ?
+            Parameters = $test.Data
+            ParameterizedSuiteName = $test.DisplayName
+
+            FailureMessage = if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[0].Exception) { $test.ErrorRecord[0].Exception.Message }
+            ErrorRecord = if (any $test.ErrorRecord) { $test.ErrorRecord[0] }
+            StackTrace = if (any $test.ErrorRecord) { $test.ErrorRecord[0].ScriptStackTrace } # this should rather be a DisplayStackTrace (the reduced trace that we are printing)
+        }
     }
 
-    $o.Time = (sum $RunResult Duration ([timespan]::Zero)) + (sum $RunResult FrameworkDuration ([timespan]::Zero)) + (sum $RunResult DiscoveryDuration ([timespan]::Zero))
+    $acc.Time = (sum $RunResult Duration ([timespan]::Zero)) + (sum $RunResult FrameworkDuration ([timespan]::Zero)) + (sum $RunResult DiscoveryDuration ([timespan]::Zero))
 
-    $o
+    $acc
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
