@@ -83,15 +83,15 @@ InModuleScope Pester {
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
-            { abc } | Should Be "aBc"
-            { abc } | Should -Be "aBc"
-            { abc } | Should -EQ "aBc"
+            {abc} | Should Be "aBc"
+            {abc} | Should -Be "aBc"
+            {abc} | Should -EQ "aBc"
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value (case sensitive)" {
-            { abc } | Should BeExactly "abc"
-            { abc } | Should -BeExactly "abc"
-            { abc } | Should -CEQ "abc"
+            {abc} | Should BeExactly "abc"
+            {abc} | Should -BeExactly "abc"
+            {abc} | Should -CEQ "abc"
         }
 
         It 'Does not overflow on IEnumerable' {
