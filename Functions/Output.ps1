@@ -322,7 +322,7 @@ function ConvertTo-FailureLines {
         while ($exception) {
             $exceptionName = $exception.GetType().Name
             $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
-            if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed') {
+            if (0 -lt @($thisLines).Count -and  $ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed') {
                 $thisLines[0] = "$exceptionName`: $($thisLines[0])"
             }
             [array]::Reverse($thisLines)
@@ -356,22 +356,22 @@ function ConvertTo-FailureLines {
         # omit the lines internal to Pester
 
         if ((GetPesterOS) -ne 'Windows') {
-
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*/Functions/.*.ps1: line [0-9]*$'
-            [String]$pattern2 = '^at Should<End>, .*/Functions/Assertions/Should.ps1: line [0-9]*$'
-            [String]$pattern3 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
-            [String]$pattern4 = '^at Invoke-Assertion, .*/Functions/.*.ps1: line [0-9]*$'
-            [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
-            [String]$pattern6 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
+            [String]$pattern2 = '^at (Invoke-ScriptBlock|Invoke-Block|<ScriptBlock>|Run-Test|Invoke-Test), .*/Pester.Runtime.psm1: line [0-9]*$'
+            [String]$pattern3 = '^at Should<End>, .*/Functions/Assertions/Should.ps1: line [0-9]*$'
+            [String]$pattern4 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
+            [String]$pattern5 = '^at Invoke-Assertion, .*/Functions/.*.ps1: line [0-9]*$'
+            [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
+            [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
         }
         else {
-
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$'
-            [String]$pattern2 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
-            [String]$pattern3 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-            [String]$pattern4 = '^at Invoke-Assertion, .*\\Functions\\.*.ps1: line [0-9]*$'
-            [String]$pattern5 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
-            [String]$pattern6 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
+            [String]$pattern2 = '^at (Invoke-ScriptBlock|Invoke-Block|<ScriptBlock>|Run-Test|Invoke-Test), .*\\Pester.Runtime.psm1: line [0-9]*$'
+            [String]$pattern3 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
+            [String]$pattern4 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+            [String]$pattern5 = '^at Invoke-Assertion, .*\\Functions\\.*.ps1: line [0-9]*$'
+            [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
+            [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
         }
 
         foreach ( $line in $traceLines ) {
@@ -380,7 +380,6 @@ function ConvertTo-FailureLines {
             }
             $count ++
         }
-        Write-Host -fore Magenta "DBG: Debug preference is $($PesterDebugPreference.ShowFullErrors)" # todo write-host
         if ($PesterDebugPreference.ShowFullErrors) {
             $lines.Trace += $traceLines
         }
@@ -392,7 +391,8 @@ function ConvertTo-FailureLines {
                 $_ -notmatch $pattern3 -and
                 $_ -notmatch $pattern4 -and
                 $_ -notmatch $pattern5 -and
-                $_ -notmatch $pattern6
+                $_ -notmatch $pattern6 -and
+                $_ -notmatch $pattern7
             }
         }
 

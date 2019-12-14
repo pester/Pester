@@ -20,13 +20,14 @@ $excludePath = "*/demo/*", "*/Examples/*", "*/Gherkin*"
 $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 
 $path = "/Projects/pester_main"
-$path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
-$path = "C:\projects\pester_main\Functions\Output.Tests.ps1"
+$path = "~/Pester"
+# $path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
+$path = "~/Pester/Functions/Output.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
 # $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru } ; if ([bool]($r | Where-Object { $_.Failed -gt 0 })) { exit 1 }
-# $global:PesterDebugPreference_ShowFullErrors = $true
+# $global:PesterDebugPreference.ShowFullErrors = $true
 # Import-Module ./Pester.psd1
 # Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*' -CI
 
