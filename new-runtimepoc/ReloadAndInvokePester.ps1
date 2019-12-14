@@ -41,4 +41,5 @@ $script:r = $null
         $script:r = Invoke-Pester -Path $path -ExcludeTag $excludeTags -PassThru
     }
 }).TotalMilliseconds, 2)
-# $r
+
+$global:r = $r

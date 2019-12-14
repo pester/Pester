@@ -86,27 +86,42 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
 function Write-PesterStart {
     param(
         [Parameter(mandatory = $true, valueFromPipeline = $true)]
-        $PesterState,
-        $Path = '.'
+        $Context
     )
     process {
-        if (-not ( $pester.Show | Has-Flag 'All, Fails, Header')) {
-            return
-        }
+        # if (-not ( $Context.Show | Has-Flag 'All, Fails, Header')) {
+        #     return
+        # }
 
         $OFS = $ReportStrings.MessageOfs
 
-        $message = $ReportStrings.StartMessage -f (Format-PesterPath $Path -Delimiter $OFS)
-        if ($PesterState.TestNameFilter) {
-            $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
+        $hash = @{
+            Files = [System.Collections.ArrayList]@()
+            ScriptBlocks = 0
         }
-        if ($PesterState.ScriptBlockFilter) {
-            $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
-            $message += $ReportStrings.FilterMessage -f $m
+
+        foreach ($c in $Context.Containers) {
+            switch ($c.Type) {
+                "File" { $null = $hash.Files.Add($c.Content.FullName) }
+                "ScriptBlock" { $null = $hash.ScriptBlocks++ }
+                Default { throw "$($c.Type) is not supported."}
+            }
         }
-        if ($PesterState.TagFilter) {
-            $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
-        }
+
+        $message = $ReportStrings.StartMessage -f (Format-PesterPath $hash.Files -Delimiter $OFS)
+
+        $message = "$message$(if (0 -lt $hash.ScriptBlocks) { ", and in $($hash.ScriptBlocks) scriptblocks." })"
+        # todo write out filters that are applied
+        # if ($PesterState.TestNameFilter) {
+        #     $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
+        # }
+        # if ($PesterState.ScriptBlockFilter) {
+        #     $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
+        #     $message += $ReportStrings.FilterMessage -f $m
+        # }
+        # if ($PesterState.TagFilter) {
+        #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
+        # }
 
         & $SafeCommands['Write-Host'] $message -Foreground $ReportTheme.Foreground
     }
@@ -365,8 +380,8 @@ function ConvertTo-FailureLines {
             }
             $count ++
         }
-
-        if ($ExecutionContext.SessionState.PSVariable.GetValue("PesterDebugPreference_ShowFullErrors")) {
+        Write-Host -fore Magenta "DBG: Debug preference is $($PesterDebugPreference.ShowFullErrors)" # todo write-host
+        if ($PesterDebugPreference.ShowFullErrors) {
             $lines.Trace += $traceLines
         }
         else {
@@ -403,11 +418,11 @@ function Get-WriteScreenPlugin {
     -Start {
         param ($Context)
 
-        if ($null -eq $Context.Conatiners -or @($Context.Containers).Count -eq 0) {
+        if ($null -eq $Context.Containers -or @($Context.Containers).Count -eq 0) {
             return
         }
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running all tests in $($Context.Containers.Content -join ', ')"
+        # Write-PesterStart $Context
     } `
     -DiscoveryStart {
         param ($Context)
