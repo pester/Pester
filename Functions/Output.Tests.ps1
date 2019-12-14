@@ -60,8 +60,6 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
 $thisScriptRegex = [regex]::Escape($MyInvocation.MyCommand.Path)
 
-#TODO: skipped until the output gets the same
-if ($false) {
 Describe 'ConvertTo-PesterResult' {
     $getPesterResult = InModuleScope Pester { ${function:ConvertTo-PesterResult} }
 
@@ -102,6 +100,7 @@ Describe 'ConvertTo-PesterResult' {
 
         $pesterResult.FailureMessage | Should -Be $errorRecord.Exception.Message
     }
+
     Context 'failed tests in another file' {
         BeforeAll {
             $errorRecord = $null
@@ -438,5 +437,4 @@ InModuleScope -ModuleName Pester -ScriptBlock {
     }
 }
     }
-}
 }

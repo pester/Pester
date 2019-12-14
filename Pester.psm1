@@ -1042,15 +1042,15 @@ function Get-LegacyResult {
             # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
             # considered to be Context and joined by '\'
             Describe = $test.Path[0]
-            Context = if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'}
+            Context = $(if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'})
 
             Show = "All" # todo: populate this from something like "$test.Block.Root.PluginData.WriteScreen.Show" ?
             Parameters = $test.Data
             ParameterizedSuiteName = $test.DisplayName
 
-            FailureMessage = if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[0].Exception) { $test.ErrorRecord[0].Exception.Message }
-            ErrorRecord = if (any $test.ErrorRecord) { $test.ErrorRecord[0] }
-            StackTrace = if (any $test.ErrorRecord) { $test.ErrorRecord[0].ScriptStackTrace } # this should rather be a DisplayStackTrace (the reduced trace that we are printing)
+            FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[0].Exception) { $test.ErrorRecord[0].Exception.Message })
+            ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[0] })
+            StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[0].ScriptStackTrace }) # this should rather be a DisplayStackTrace (the reduced trace that we are printing)
         }
     }
 

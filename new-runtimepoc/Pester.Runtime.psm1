@@ -2,10 +2,12 @@ Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
 
 if (notDefined PesterDebugPreference) {
+    # todo: instead of replacing the whole hashtable when not defined I should merge the defaults with the hashtable that is defined, that way the runtime can rely on the properties always being there, and there is probably already a function to do that because I use it in Mocks I think -- nhw
     $global:PesterDebugPreference = @{
         ShowFullErrors         = $false
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = $null
+        ShowNavigationMarkers  = $false
     }
 }
 else {

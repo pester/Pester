@@ -12,20 +12,16 @@ $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
     WriteDebugMessages     = $false
     WriteDebugMessagesFrom = "Runtime*"
+    ShowNavigationMarkers = $true
 }
 
 $excludePath = "*/demo/*", "*/Examples/*", "*/Gherkin*"
  #$excludePath = ""
 $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 
-$path = "~/Projects/pester_main"
-#$path = "./Functions/Assertions/PesterThrow.Tests.ps1"
-#$path = "C:\projects\pester_main\demo\mocking\CountingMocks.Tests.ps1"
-# $path = "C:\Projects\pester_main\Examples\Validator\"
-#$path = "C:\Projects\Pester_main\Functions\Mock.Tests.ps1"
-#$path  = "C:\Users\nohwnd\Desktop\mock.tests.ps1"
-# $path = "C:\Projects\pester_main\Functions\Assertions\Be.Tests.ps1"
-#$path = "/Users/jares/Projects/pester_main/Pester.Tests.ps1"
+$path = "/Projects/pester_main"
+$path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
+$path = "C:\projects\pester_main\Functions\Output.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
