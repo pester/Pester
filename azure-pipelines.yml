@@ -23,7 +23,7 @@ jobs:
     timeoutInMinutes: 3
     steps:
       - powershell: |
-          $global:PesterDebugPreference.ShowFullErrors = $true
+          $global:PesterDebugPreference = @{ ShowFullErrors = $true }
           $errorActionPreference = 'stop'
           Set-StrictMode -Version Latest
           $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru }
