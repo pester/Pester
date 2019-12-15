@@ -1418,7 +1418,7 @@ function Invoke-ScriptBlock {
                     $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
                     . $______parameters.ScriptBlock @______innerSplat
 
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scrtptblock" }
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scriptblock" }
                 }
                 catch {
                     $______parameters.ErrorRecord.Add($_)

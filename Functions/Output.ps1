@@ -366,7 +366,7 @@ function ConvertTo-FailureLines {
         }
         else {
             [String]$pattern1 = '^at (Invoke-Test|Context|Describe|InModuleScope|Invoke-Pester), .*\\Functions\\.*.ps1: line [0-9]*$'
-            [String]$pattern2 = '^at (Invoke-ScriptBlock|Invoke-Block|<ScriptBlock>|Run-Test|Invoke-Test), .*\\Pester.Runtime.psm1: line [0-9]*$'
+            [String]$pattern2 = '^at (Invoke-ScriptBlock|Invoke-TestItem|Invoke-Block|<ScriptBlock>|Run-Test|Invoke-Test), .*\\Pester.Runtime.psm1: line [0-9]*$'
             [String]$pattern3 = '^at Should<End>, .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
             [String]$pattern4 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
             [String]$pattern5 = '^at Invoke-Assertion, .*\\Functions\\.*.ps1: line [0-9]*$'

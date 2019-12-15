@@ -332,6 +332,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
         Context 'nested exceptions thrown in file' {
             BeforeAll {
+                $testPath = Join-Path $TestDrive test.ps1
                 Set-Content -Path $testPath -Value @'
                     try
                     {
@@ -369,7 +370,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             if ((GetPesterOS) -ne 'Windows') {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -377,7 +378,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             else {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 10"
+                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -392,7 +393,6 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
         Context 'Exceptions with no error message property set' {
             BeforeAll {
-                $powershellVersion = $($PSVersionTable.PSVersion.Major)
                 try {
                     $exceptionWithNullMessage = New-Object -TypeName "System.Management.Automation.ParentContainsErrorRecordException"
                     throw $exceptionWithNullMessage
@@ -400,26 +400,27 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 catch {
                     $exception = $_
                 }
-                $result = $exception | ConvertTo-FailureLines
+                $r = $exception | ConvertTo-FailureLines
             }
 
+            $powershellVersion = $($PSVersionTable.PSVersion.Major)
             if ($powershellVersion -lt 3) {
                 # Necessary because Microsoft changed the behaviour of System.Management.Automation.ParentContainsErrorRecordException at this point.
                 It 'produces correct message lines' {
-                    $result.Message.Length | Should -Be 2
+                    $r.Message.Length | Should -Be 2
                 }
 
                 It 'produces correct trace line' {
-                    $result.Trace.Count | Should -Be 1
+                    $r.Trace.Count | Should -Be 1
                 }
             }
             else {
                 It 'produces correct message lines' {
-                    $result.Message.Length | Should -Be 0
+                    $r.Message.Length | Should -Be 0
                 }
 
                 It 'produces correct trace line' {
-                    $result.Trace.Count | Should -Be 1
+                    $r.Trace.Count | Should -Be 1
                 }
             }
         }

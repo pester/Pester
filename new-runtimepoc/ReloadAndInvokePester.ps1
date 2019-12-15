@@ -22,7 +22,7 @@ $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 $path = "/Projects/pester_main"
 $path = "~/Pester"
 # $path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
-$path = "~/Pester/Functions/Output.Tests.ps1"
+$path = "C:\projects\pester_main\Functions\Describe.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
