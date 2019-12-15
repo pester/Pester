@@ -60,7 +60,7 @@ function Export-NUnitReport {
 
     $Path = GetFullPath -Path $Path
 
-    $settings =  [Xml.XmlWriterSettings] @{
+    $settings = [Xml.XmlWriterSettings] @{
         Indent              = $true
         NewLineOnAttributes = $false
     }
@@ -68,7 +68,7 @@ function Export-NUnitReport {
     $xmlFile = $null
     $xmlWriter = $null
     try {
-        $xmlFile = [IO.File]::Create($Path)
+        $xmlFile = [IO.MemoryStream]::new()#[IO.File]::Create($Path)
         $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
         Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
@@ -97,10 +97,11 @@ function Export-NUnitReport {
 function ConvertTo-NUnitReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Result
+        $Result,
+        [Switch] $AsString
     )
 
-    $settings =  [Xml.XmlWriterSettings] @{
+    $settings = [Xml.XmlWriterSettings] @{
         Indent              = $true
         NewLineOnAttributes = $false
     }
@@ -118,7 +119,12 @@ function ConvertTo-NUnitReport {
     }
     finally {
         $xmlWriter.Close()
-        [xml] $stringWriter.ToString()
+        if (-not $AsString) {
+            [xml] $stringWriter.ToString()
+        }
+        else {
+            $stringWriter.ToString()
+        }
     }
 }
 
@@ -143,9 +149,9 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', '0')
-    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount)
-    $XmlWriter.WriteAttributeString('ignored', $Result.SkippedCount)
-    $XmlWriter.WriteAttributeString('skipped', '0')
+    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count
+    $XmlWriter.WriteAttributeString('ignored', '0')
+    $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('invalid', '0')
     $date = & $SafeCommands['Get-Date']
     $XmlWriter.WriteAttributeString('date', (& $SafeCommands['Get-Date'] -Date $date -Format 'yyyy-MM-dd'))
@@ -238,7 +244,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         }
 
         foreach ($testCase in $suite.Group) {
-            $suiteName = if ($testGroupId) {$parameterizedSuiteInfo.Name } else { "" }
+            $suiteName = if ($testGroupId) { $parameterizedSuiteInfo.Name } else { "" }
             Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path $newPath -ParameterizedSuiteName $suiteName
         }
 
@@ -261,10 +267,11 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
     # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
     # grouping the tests together if we used just the name, and not the linenumber (which remains static)
     $name = $TestSuiteGroup.Group[0].Name
-    $node =[PSCustomObject] @{
+    $node = [PSCustomObject] @{
         Name              = $name
         TotalCount        = 0
-        Duration              = [timespan]0
+        Duration          = [timespan]0
+        FrameworkDuration = [timespan]0
         PassedCount       = 0
         FailedCount       = 0
         SkippedCount      = 0
@@ -279,9 +286,11 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
 
         $result = if ($testCase.Executed -and $testCase.Passed) {
             'Passed'
-        } elseif (-not $testCase.ShouldRun) {
+        }
+        elseif (-not $testCase.ShouldRun) {
             'Skipped'
-        } elseif (-not $testCase.Passed -or ($testCase.ShouldRun -and -not $testCase.Executed)) {
+        }
+        elseif (-not $testCase.Passed -or ($testCase.ShouldRun -and -not $testCase.Executed)) {
             'Failed'
         }
 
@@ -304,6 +313,7 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
         }
 
         $node.Duration += $testCase.Duration
+        $node.FrameworkDuration += $testCase.FrameworkDuration
     }
 
     return Get-TestSuiteInfo -TestSuite $node
@@ -322,7 +332,7 @@ function Get-TestSuiteInfo ($TestSuite, $TestSuiteName) {
         else {
             'False'
         }
-        totalTime     = Convert-TimeSpan $TestSuite.Duration
+        totalTime     = Convert-TimeSpan ($TestSuite.Duration + $TestSuite.FrameworkDuration)
         name          = $TestSuiteName
         description   = $TestSuiteName
     }
@@ -432,17 +442,19 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     $XmlWriter.WriteAttributeString('description', $TestResult.Name)
 
     $XmlWriter.WriteAttributeString('name', $testName)
-    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Duration))
+    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Time))
     $XmlWriter.WriteAttributeString('asserts', '0')
     $XmlWriter.WriteAttributeString('success', $TestResult.Passed)
 
-    # todo: move this directly onto the TestObject, and BlockObject so we don't have to re-implement it in two places, and it is also easy to see for the people using the result object. I am implementing it here as a big if statement to avoid re-writing the switch below, because it will become relevant again once the result is in the Result property
+    # todo: move figuring out the result directly onto the TestObject, and BlockObject so we don't have to re-implement it in two places, and it is also easy to see for the people using the result object. I am implementing it here as a big if statement to avoid re-writing the switch below, because it will become relevant again once the result is in the Result property
 
     $result = if ($TestResult.Executed -and $TestResult.Passed) {
         'Passed'
-    } elseif (-not $TestResult.ShouldRun) {
+    }
+    elseif (-not $TestResult.ShouldRun) {
         'Skipped'
-    } elseif (-not $TestResult.Passed -or ($TestResult.ShouldRun -and -not $TestResult.Executed)) {
+    }
+    elseif (-not $TestResult.Passed -or ($TestResult.ShouldRun -and -not $TestResult.Executed)) {
         'Failed'
     }
 
@@ -469,7 +481,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
 
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
-                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+                $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
                 $XmlWriter.WriteEndElement() # Close reason tag
             }
 
@@ -483,19 +495,34 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             # TODO: remove monkey patching the error message when parent setup failed so this test never run
             # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
 
-            $failureMessage =if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
+            $failureMessage = if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
                 "This test should run but it did not. Most likely a setup in some parent block failed."
-            } else {
-                $c = 0
-                foreach ($err in $TestResult.ErrorRecord) {
-                    "[$(($c++))] $($err.ToString())$([Environment]::NewLine)"
+            }
+            else {
+                $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+
+                if ($multipleErrors) {
+                    $c = 0
+                    $(foreach ($err in $TestResult.ErrorRecord) {
+                        "[$(($c++))] $($err.DisplayErrorMessage)"
+                    }) -join [Environment]::NewLine
+                }
+                else {
+                    $TestResult.ErrorRecord.DisplayErrorMessage
                 }
             }
 
-            $stackTrace = &{
-                $c = 0
-                foreach ($err in $TestResult.ErrorRecord) {
-                    "[$(($c++))] $($err.ScriptStackTrace.ToString())$([Environment]::NewLine)"
+            $stackTrace = & {
+                $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+
+                if ($multipleErrors) {
+                    $c = 0
+                    $(foreach ($err in $TestResult.ErrorRecord) {
+                        "[$(($c++))] $($err.DisplayStackTrace)"
+                    }) -join [Environment]::NewLine
+                }
+                else {
+                    [string] $TestResult.ErrorRecord.DisplayStackTrace
                 }
             }
 

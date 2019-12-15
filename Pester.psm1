@@ -1,8 +1,8 @@
-﻿Get-Module Pester.Utility, Pester.Runtime, Pester.RSpec | Remove-Module
+﻿Get-Module Pester.Utility, Pester.Runtime | Remove-Module
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.Utility.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
-Import-Module $PSScriptRoot\new-runtimepoc\Pester.RSpec.psm1 -DisableNameChecking
 
+. $PSScriptRoot\new-runtimepoc\Pester.RSpec.ps1
 . $PSScriptRoot\Functions\Pester.SafeCommands.ps1
 
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
@@ -685,7 +685,7 @@ function Invoke-Pester {
 
             $pluginConfiguration = @{}
 
-            $plugins = @()
+            $plugins = @(Get-RSpecObjectDecoratorPlugin)
             if ($Output -ne "None") {
                 $plugins += Get-WriteScreenPlugin
             }
@@ -740,6 +740,9 @@ function Invoke-Pester {
 
             $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter
 
+            foreach ($c in $r) {
+                Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
+            }
 
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
 
@@ -1019,24 +1022,22 @@ function Get-LegacyResult {
     $RunResult | Fold-Container -OnTest {
         param($test)
 
-        if ($test.Passed) {
+        if ("Passed" -eq $test.Result) {
             $acc.PassedCount++
-            $result = "Passed"
         }
-        elseif ($test.ShouldRun -and (-not $test.Executed -or -not $test.Passed)) {
+        elseif ("Failed" -eq $test.Result) {
             $acc.FailedCount++
-            $result = "Failed"
         }
-        else {
+        elseif ("Skipped" -eq $test.Result) {
             $acc.SkippedCount++
-            $result = "Skipped"
         }
+        else { throw "Result '$($test.Result)' is not supported test result." }
 
         $acc.FrameworkTime += $test.FrameworkDuration
         $acc.TestResult += [PSCustomObject]@{
             Passed = $test.Passed
-            Result = $result
-            Time = [timespan]::zero + $test.Duration + $test.FrameworkDuration
+            Result = $test.Result
+            Time = $test.Time
             Name = $test.Name
 
             # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
@@ -1048,9 +1049,9 @@ function Get-LegacyResult {
             Parameters = $test.Data
             ParameterizedSuiteName = $test.DisplayName
 
-            FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[0].Exception) { $test.ErrorRecord[0].Exception.Message })
-            ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[0] })
-            StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[0].ScriptStackTrace }) # this should rather be a DisplayStackTrace (the reduced trace that we are printing)
+            FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
+            ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
+            StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
         }
     }
 
@@ -1072,3 +1073,4 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 & $script:SafeCommands['Export-ModuleMember'] New-PesterOptions
 # & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport

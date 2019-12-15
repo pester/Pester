@@ -1,3 +1,13 @@
+Add-Type -TypeDefinition "
+using System.Management.Automation;
+
+public static class MemberFactory {
+    public static PSNoteProperty CreateNoteProperty(string name, object value) {
+        return new PSNoteProperty(name, value);
+    }
+}
+"
+
 function Find-RSpecTestFile {
     [CmdletBinding()]
     param (
@@ -73,6 +83,42 @@ function Filter-Excluded ($Files, $ExludePath) {
     }
 }
 
-Export-ModuleMember -Function @(
-    "Find-RSpecTestFile"
-)
+function Add-RSpecTestObjectProperties {
+    param ($TestObject)
+
+    # adds properties that are specific to RSpec to the result object
+    # this includes figuring out the result
+    # formatting the failure message and stacktrace
+
+    $result = if ($TestObject.Passed) {
+        "Passed"
+    }
+    elseif ($TestObject.ShouldRun -and (-not $TestObject.Executed -or -not $TestObject.Passed)) {
+        "Failed"
+    }
+    else {
+        "Skipped"
+    }
+
+    $TestObject.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("Result", $result))
+
+    # TODO: rename this to Duration, and rename duration to UserCodeDuration or something like that
+    $time = [timespan]::zero + $TestObject.Duration + $TestObject.FrameworkDuration
+    $TestObject.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("Time", $time))
+
+    foreach ($e in $TestObject.ErrorRecord) {
+        $r = ConvertTo-FailureLines $e
+        $e.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
+        $e.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("DisplayStackTrace", [string]($r.Trace -join [Environment]::NewLine)))
+    }
+}
+
+
+function Get-RSpecObjectDecoratorPlugin () {
+    Pester.Runtime\New-PluginObject -Name "RSpecObjectDecoratorPlugin" `
+        -EachTestTeardownEnd {
+        param ($Context)
+
+        Add-RSpecTestObjectProperties $Context.Test
+    }
+}
