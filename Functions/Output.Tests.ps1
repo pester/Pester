@@ -307,7 +307,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace.Count | Should -be 4
+                        $r.Trace.Count | Should -be 3
                     }
                 }
             }
@@ -317,7 +317,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace.Count | Should -be 4
+                        $r.Trace.Count | Should -be 3
                     }
                 }
             }
@@ -371,7 +371,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace.Count | Should -be 2
+                        $r.Trace.Count | Should -be 1
                     }
                 }
             }
@@ -379,7 +379,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace.Count | Should -be 2
+                        $r.Trace.Count | Should -be 1
                     }
                 }
             }
@@ -403,25 +403,13 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $r = $exception | ConvertTo-FailureLines
             }
 
-            $powershellVersion = $($PSVersionTable.PSVersion.Major)
-            if ($powershellVersion -lt 3) {
-                # Necessary because Microsoft changed the behaviour of System.Management.Automation.ParentContainsErrorRecordException at this point.
-                It 'produces correct message lines' {
-                    $r.Message.Length | Should -Be 2
-                }
 
-                It 'produces correct trace line' {
-                    $r.Trace.Count | Should -Be 1
-                }
+            It 'produces correct message lines' {
+                $r.Message.Length | Should -Be 0
             }
-            else {
-                It 'produces correct message lines' {
-                    $r.Message.Length | Should -Be 0
-                }
 
-                It 'produces correct trace line' {
-                    $r.Trace.Count | Should -Be 1
-                }
+            It 'produces correct trace line' {
+                $r.Trace.Count | Should -Be 0
             }
         }
     }
