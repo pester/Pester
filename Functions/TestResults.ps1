@@ -68,7 +68,7 @@ function Export-NUnitReport {
     $xmlFile = $null
     $xmlWriter = $null
     try {
-        $xmlFile = [IO.MemoryStream]::new()#[IO.File]::Create($Path)
+        $xmlFile = [IO.File]::Create($Path)
         $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
         Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
