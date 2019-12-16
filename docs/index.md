@@ -43,5 +43,5 @@ Get-Help about_Pester
 
 #
 [Pester README.md](../README.md)  
-[Pester API documentation](index.html)
+[Pester API documentation](./api/api.html)
 #
