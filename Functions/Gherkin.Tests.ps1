@@ -698,3 +698,25 @@ Describe "A generated NUnit report" -Tag Gherkin {
     }
 
 }
+
+Describe "When hook has tags no errors should be thrown" -Tag Gherkin {
+    # Calling this in a job so we don't monkey with the active pester state that's already running
+    $job = Start-Job -ArgumentList $scriptRoot -ScriptBlock {
+        param ($scriptRoot)
+        Get-Module Pester | Remove-Module -Force
+        Import-Module $scriptRoot\Pester.psd1 -Force
+
+        New-Object psobject -Property @{
+            Results = Invoke-Gherkin (Join-Path $scriptRoot Examples\Gherkin\HookTag.feature) -PassThru -Show None -ErrorAction Stop
+        }
+    }
+
+    $gherkin = $job | Wait-Job | Receive-Job
+    Remove-Job $job
+
+    It 'Should have results' {
+        $gherkin | Should -Not -BeNullOrEmpty -Because "test were run with ErrorAction = Stop and no errors should be thrown"
+        $gherkin.Results | Should -Not -BeNullOrEmpty -Because "test were run with ErrorAction = Stop and no errors should be thrown"
+    }
+
+}
