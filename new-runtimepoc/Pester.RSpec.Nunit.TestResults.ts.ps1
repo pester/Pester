@@ -321,10 +321,6 @@ i -PassThru:$PassThru {
                 }) -Output None
 
             $xmlResult = ConvertTo-NUnitReport $r
-            $str = $r | ConvertTo-NUnitReport -AsString
-            $str | Out-File C:\temp\nunin\ts2.xml
-
-
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
 
             $xmlTestSuite1.name | Verify-Equal "Describe #1"
