@@ -195,8 +195,8 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Containers[0].Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
             }
 
             t "Find tests in blocks that are next to each other" {
@@ -212,10 +212,10 @@ i -PassThru:$PassThru {
                     })
 
                 $actual.Blocks.Count | Verify-Equal 2
-                $actual.Containers[0].Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Containers[0].Blocks[1].Tests.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[1].Tests[0].Name | Verify-Equal "test2"
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[1].Tests.Count | Verify-Equal 1
+                $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
             }
 
             t "Find tests in blocks that are inside of each other" {
@@ -230,12 +230,12 @@ i -PassThru:$PassThru {
                     })
 
                 $actual.Blocks.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
 
-                $actual.Containers[0].Blocks[0].Blocks.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+                $actual.Blocks[0].Blocks.Count | Verify-Equal 1
+                $actual.Blocks[0].Blocks[0].Tests.Count | Verify-Equal 1
+                $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
             }
         }
 
@@ -281,17 +281,17 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Containers[0].Blocks[0].Name | Verify-Equal "block1"
-                $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+                $actual.Blocks[0].Name | Verify-Equal "block1"
+                $actual.Blocks[0].Tests[0].Executed | Verify-True
+                $actual.Blocks[0].Tests[0].Passed | Verify-True
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-                $actual.Containers[0].Blocks[1].Name | Verify-Equal "block2"
-                $actual.Containers[0].Blocks[1].Tests[0].Executed | Verify-True
-                $actual.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
-                $actual.Containers[0].Blocks[1].Tests[0].Name | Verify-Equal "test2"
-                $actual.Containers[0].Blocks[1].Tests[0].StandardOutput | Verify-Equal "b"
+                $actual.Blocks[1].Name | Verify-Equal "block2"
+                $actual.Blocks[1].Tests[0].Executed | Verify-True
+                $actual.Blocks[1].Tests[0].Passed | Verify-True
+                $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
+                $actual.Blocks[1].Tests[0].StandardOutput | Verify-Equal "b"
             }
 
             t "Executes 2 tests deeper in blocks" {
@@ -305,17 +305,17 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $actual.Containers[0].Blocks[0].Name | Verify-Equal "block1"
-                $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+                $actual.Blocks[0].Name | Verify-Equal "block1"
+                $actual.Blocks[0].Tests[0].Executed | Verify-True
+                $actual.Blocks[0].Tests[0].Passed | Verify-True
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Name | Verify-Equal "block2"
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
-                $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
+                $actual.Blocks[0].Blocks[0].Name | Verify-Equal "block2"
+                $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+                $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+                $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+                $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
             }
 
             t "Executes container only if it contains anything that should run" {
@@ -340,8 +340,8 @@ i -PassThru:$PassThru {
                 # should add once during discovery
                 $d.Call | Verify-Equal 1
 
-                $actual[0].Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual[1].Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+                $actual[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual[1].Blocks[0].Tests[0].Executed | Verify-True
             }
         }
 
@@ -476,18 +476,18 @@ i -PassThru:$PassThru {
             $pre = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
             # validate the precondition
-            $pre.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
-            $pre.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-            $pre.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
-            $pre.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+            $pre.Blocks[0].Tests[0].Executed | Verify-True
+            $pre.Blocks[0].Tests[0].Passed | Verify-True
+            $pre.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $pre.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-            $pre.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Executed | Verify-True
-            $pre.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Passed | Verify-False
-            $pre.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+            $pre.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+            $pre.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
+            $pre.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
 
-            $pre.Containers[0].Blocks[1].Tests[0].Executed | Verify-True
-            $pre.Containers[0].Blocks[1].Tests[0].Passed | Verify-False
-            $pre.Containers[0].Blocks[1].Tests[0].Name | Verify-Equal "test3"
+            $pre.Blocks[1].Tests[0].Executed | Verify-True
+            $pre.Blocks[1].Tests[0].Passed | Verify-False
+            $pre.Blocks[1].Tests[0].Name | Verify-Equal "test3"
 
             # here I have the failed tests, I need to accumulate paths
             # on them and use them for filtering the run in the next run
@@ -564,7 +564,7 @@ i -PassThru:$PassThru {
                         }
                     }
                 })
-            $actual.Containers[0].Blocks[0].StandardOutput | Verify-Equal 'one time setup'
+            $actual.Blocks[0].StandardOutput | Verify-Equal 'one time setup'
         }
 
         t "given a test with teardown it executes the teardown right before after the test and has the variables avaliable from the test" {
@@ -588,7 +588,7 @@ i -PassThru:$PassThru {
                     }
                 })
 
-            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "test"
         }
     }
 
@@ -623,8 +623,8 @@ i -PassThru:$PassThru {
                     }
                 })
 
-            $actual.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
-            $actual.Containers[0].Blocks[0].StandardOutput | Verify-Equal "from setup"
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].StandardOutput | Verify-Equal "from setup"
         }
 
         t "given a test with each time setup it executes the setup inside of the test and does not affect the whole block" {
@@ -655,8 +655,8 @@ i -PassThru:$PassThru {
                     }
                 })
 
-            $actual.Containers[0].Blocks[0].Passed | Verify-True
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "setups and teardowns don't run if there are no tests" {
@@ -732,7 +732,7 @@ i -PassThru:$PassThru {
             # the test should execute but non of the above setups should run
             # those setups are running only for the tests in the current block
 
-            $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+            $result.Blocks[0].Tests[0].Executed | Verify-True
 
             $container.OneTimeSetup | Verify-Equal 1
             $container.EachSetup | Verify-Equal 2
@@ -757,12 +757,12 @@ i -PassThru:$PassThru {
                     }
                 })
 
-            $result.Containers[0].Blocks[0].Passed | Verify-False
-            $result.Containers[0].Blocks[0].Executed | Verify-False
-            $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+            $result.Blocks[0].Passed | Verify-False
+            $result.Blocks[0].Executed | Verify-False
+            $result.Blocks[0].Tests[0].Executed | Verify-False
 
-            $result.Containers[0].Blocks[1].Executed | Verify-True
-            $result.Containers[0].Blocks[1].Tests[0].Executed | Verify-True
+            $result.Blocks[1].Executed | Verify-True
+            $result.Blocks[1].Tests[0].Executed | Verify-True
         }
     }
 
@@ -784,7 +784,7 @@ i -PassThru:$PassThru {
                     }
                 }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
 
-            $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+            $result.Blocks[0].Tests[0].Executed | Verify-False
         }
 
         t "continues to second block even if the first block is excluded" {
@@ -798,12 +798,12 @@ i -PassThru:$PassThru {
                     }
                 }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
 
-            $actual.Containers[0].Blocks[0].Name | Verify-Equal "block1"
-            $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+            $actual.Blocks[0].Name | Verify-Equal "block1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-False
 
-            $actual.Containers[0].Blocks[1].Name | Verify-Equal "block2"
-            $actual.Containers[0].Blocks[1].Tests[0].Executed | Verify-True
-            $actual.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+            $actual.Blocks[1].Name | Verify-Equal "block2"
+            $actual.Blocks[1].Tests[0].Executed | Verify-True
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
         }
 
         t "continues to second test even if the first test is excluded" {
@@ -815,12 +815,12 @@ i -PassThru:$PassThru {
                     }
                 }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
 
-            $actual.Containers[0].Blocks[0].Name | Verify-Equal "block1"
-            $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+            $actual.Blocks[0].Name | Verify-Equal "block1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-False
 
-            $actual.Containers[0].Blocks[0].Tests[1].Name | Verify-Equal "test2"
-            $actual.Containers[0].Blocks[0].Tests[1].Executed | Verify-True
-            $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Blocks[0].Tests[1].Name | Verify-Equal "test2"
+            $actual.Blocks[0].Tests[1].Executed | Verify-True
+            $actual.Blocks[0].Tests[1].Passed | Verify-True
         }
     }
 
@@ -1023,7 +1023,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
+            $actual.Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
         }
 
         t "tests do not share data" {
@@ -1049,7 +1049,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
+            $actual.Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
         }
     }
     b "New-ParametrizedTest" {
@@ -1069,7 +1069,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+            $actual.Blocks[0].Tests.Count | Verify-Equal 2
         }
 
         # #is the Id still needed? does this test have any value?
@@ -1089,17 +1089,17 @@ i -PassThru:$PassThru {
         #         }
         #     )
 
-        #     $actual.Containers[0].Blocks[0].Tests[0].Id | Verify-Equal 0
-        #     $actual.Containers[0].Blocks[0].Tests[1].Id | Verify-Equal 1
+        #     $actual.Blocks[0].Tests[0].Id | Verify-Equal 0
+        #     $actual.Blocks[0].Tests[1].Id | Verify-Equal 1
 
-        #     $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
-        #     $actual.Containers[0].Blocks[0].Tests[1].Executed | Verify-True
+        #     $actual.Blocks[0].Tests[0].Executed | Verify-True
+        #     $actual.Blocks[0].Tests[1].Executed | Verify-True
 
-        #     $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-        #     $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+        #     $actual.Blocks[0].Tests[0].Passed | Verify-True
+        #     $actual.Blocks[0].Tests[1].Passed | Verify-True
 
-        #     $actual.Containers[0].Blocks[0].Tests[0].Data.Value | Verify-Equal 1
-        #     $actual.Containers[0].Blocks[0].Tests[1].Data.Value | Verify-Equal 2
+        #     $actual.Blocks[0].Tests[0].Data.Value | Verify-Equal 1
+        #     $actual.Blocks[0].Tests[1].Data.Value | Verify-Equal 2
 
         # }
     }
@@ -1120,7 +1120,7 @@ i -PassThru:$PassThru {
 
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -Path $tempPath)
 
-                $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+                $actual.Blocks[0].Tests[0].Passed | Verify-False
             }
             finally {
                 if (Test-Path $tempPath) {
@@ -1144,8 +1144,8 @@ i -PassThru:$PassThru {
 
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -Path $tempPath), (New-BlockContainerObject -Path $tempPath)
 
-                $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
-                $actual.Containers[0].Blocks[1].Tests[0].Passed | Verify-False
+                $actual.Blocks[0].Tests[0].Passed | Verify-False
+                $actual.Blocks[1].Tests[0].Passed | Verify-False
             }
             finally {
                 if (Test-Path $tempPath) {
@@ -1177,9 +1177,9 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
-            $actual.Containers[0].Blocks[1].Tests[0].StandardOutput | Verify-Null
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
         }
 
         t "adding multiple each test setups runs them in parent first, child last order " {
@@ -1206,9 +1206,9 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent"
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent->child"
-            $actual.Containers[0].Blocks[1].Tests[0].StandardOutput | Verify-Null
+            $actual.Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent->child"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
         }
 
         t "adding each test teardown runs it after each test in that block and in any child blocks" {
@@ -1232,9 +1232,9 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
-            $actual.Containers[0].Blocks[1].Tests[0].StandardOutput | Verify-Null
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "me"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
         }
 
         t "adding multiple each test teardowns runs them in child first, parent last order " {
@@ -1261,9 +1261,9 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent"
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "child->parent"
-            $actual.Containers[0].Blocks[1].Tests[0].StandardOutput | Verify-Null
+            $actual.Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "parent"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput -join "->" | Verify-Equal "child->parent"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Null
         }
     }
 
@@ -1293,32 +1293,32 @@ i -PassThru:$PassThru {
             # everything in that first block should have
             # been running but all the inner things did not run
             # and failed
-            $actual.Containers[0].Blocks[0].First | Verify-True
-            $actual.Containers[0].Blocks[0].Passed | Verify-False
-            $actual.Containers[0].Blocks[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Executed | Verify-True
+            $actual.Blocks[0].First | Verify-True
+            $actual.Blocks[0].Passed | Verify-False
+            $actual.Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Executed | Verify-True
 
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
-            $actual.Containers[0].Blocks[0].Tests[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+            $actual.Blocks[0].Tests[0].Passed | Verify-False
+            $actual.Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Tests[0].Executed | Verify-False
 
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Passed | Verify-False
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Executed | Verify-False
+            $actual.Blocks[0].Blocks[0].Passed | Verify-False
+            $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Executed | Verify-False
 
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Passed | Verify-False
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+            $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-False
+            $actual.Blocks[0].Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-False
 
 
             # only the first block failed, but the second passed
-            $actual.Containers[0].Blocks[1].Passed | Verify-True
-            $actual.Containers[0].Blocks[1].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[1].Executed | Verify-True
+            $actual.Blocks[1].Passed | Verify-True
+            $actual.Blocks[1].ShouldRun | Verify-True
+            $actual.Blocks[1].Executed | Verify-True
 
-            $actual.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
-            $actual.Containers[0].Blocks[1].Tests[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[1].Tests[0].Executed | Verify-True
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
+            $actual.Blocks[1].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[1].Tests[0].Executed | Verify-True
         }
 
         t "failing in onetime block teardown will fail the block" {
@@ -1344,27 +1344,27 @@ i -PassThru:$PassThru {
             )
 
             # the tests passed but, the block itself failed
-            $actual.Containers[0].Blocks[0].Passed | Verify-False
-            $actual.Containers[0].Blocks[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Executed | Verify-True
+            $actual.Blocks[0].Passed | Verify-False
+            $actual.Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Executed | Verify-True
 
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Containers[0].Blocks[0].Tests[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
 
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Passed | Verify-True
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Executed | Verify-True
+            $actual.Blocks[0].Blocks[0].Passed | Verify-True
+            $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Executed | Verify-True
 
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].ShouldRun | Verify-True
-            $actual.Containers[0].Blocks[0].Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
 
-            $actual.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
 
             # ...but the last block
-            $actual.Containers[0].Blocks[1].Last | Verify-True
-            $actual.Containers[0].Blocks[1].Passed | Verify-True
+            $actual.Blocks[1].Last | Verify-True
+            $actual.Blocks[1].Passed | Verify-True
         }
     }
 
@@ -1434,8 +1434,8 @@ i -PassThru:$PassThru {
     #         )
 
 
-    #         $actual.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[0].Tests[2].Id | Verify-Equal 2
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 2
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 3
     #     }
@@ -1452,8 +1452,8 @@ i -PassThru:$PassThru {
     #             }
     #         )
 
-    #         $actual.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[0].Tests[2].Id | Verify-Equal "2"
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal "2"
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 3
     #     }
@@ -1471,13 +1471,13 @@ i -PassThru:$PassThru {
     #             }
     #         )
 
-    #         $actual.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
 
-    #         $actual.Containers[0].Blocks[0].Tests[2].Name | Verify-Equal "test 1"
-    #         $actual.Containers[0].Blocks[0].Tests[2].Id | Verify-Equal 1
+    #         $actual.Blocks[0].Tests[2].Name | Verify-Equal "test 1"
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 1
 
-    #         $actual.Containers[0].Blocks[0].Tests[3].Name | Verify-Equal "test 2"
-    #         $actual.Containers[0].Blocks[0].Tests[3].Id | Verify-Equal 1
+    #         $actual.Blocks[0].Tests[3].Name | Verify-Equal "test 2"
+    #         $actual.Blocks[0].Tests[3].Id | Verify-Equal 1
 
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 6
@@ -1495,8 +1495,8 @@ i -PassThru:$PassThru {
     #             }
     #         )
 
-    #         $actual.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[0].Tests[2].Id | Verify-Equal 82
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 82
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 3
     #     }
@@ -1516,8 +1516,8 @@ i -PassThru:$PassThru {
     #         )
 
 
-    #         $actual.Containers[0].Blocks[1].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[1].Id | Verify-Equal 1
+    #         $actual.Blocks[1].ErrorRecord | Verify-Null
+    #         $actual.Blocks[1].Id | Verify-Equal 1
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 3
     #     }
@@ -1538,17 +1538,17 @@ i -PassThru:$PassThru {
     #             }
     #         )
 
-    #         $actual.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[0].Id | Verify-Equal 0 # block1-0
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[0].Id | Verify-Equal 0 # block1-0
 
-    #         $actual.Containers[0].Blocks[1].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[1].Id | Verify-Equal 0 # block2-0
+    #         $actual.Blocks[1].ErrorRecord | Verify-Null
+    #         $actual.Blocks[1].Id | Verify-Equal 0 # block2-0
 
-    #         $actual.Containers[0].Blocks[2].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[2].Id | Verify-Equal 1 # block1-1
+    #         $actual.Blocks[2].ErrorRecord | Verify-Null
+    #         $actual.Blocks[2].Id | Verify-Equal 1 # block1-1
 
-    #         $actual.Containers[0].Blocks[3].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[3].Id | Verify-Equal 1 # block2-1
+    #         $actual.Blocks[3].ErrorRecord | Verify-Null
+    #         $actual.Blocks[3].Id | Verify-Equal 1 # block2-1
 
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 6
@@ -1566,8 +1566,8 @@ i -PassThru:$PassThru {
     #             }
     #         )
 
-    #         $actual.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Containers[0].Blocks[2].Id | Verify-Equal 82
+    #         $actual.Blocks[0].ErrorRecord | Verify-Null
+    #         $actual.Blocks[2].Id | Verify-Equal 82
     #         $passedTests = @($actual | View-Flat | where { $_.Passed })
     #         $passedTests.Count | Verify-Equal 3
     #     }
@@ -1587,7 +1587,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "can run tests that have expandable variable in their name that changes values between discovery and run" {
@@ -1601,7 +1601,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "can run blocks that have expandable variable in their name" {
@@ -1617,7 +1617,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "can run blocks that have expandable variable in their name that changes value between discovery and run" {
@@ -1631,7 +1631,7 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
         }
     }
 
@@ -1648,8 +1648,8 @@ i -PassThru:$PassThru {
                 }
             )
 
-            $actual.Containers[0].Blocks[0].Tests[0].Name | Verify-Equal  "Hello <name>."
-            $actual.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal  "Hello Jakub."
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal  "Hello <name>."
+            $actual.Blocks[0].Tests[0].ExpandedName | Verify-Equal  "Hello Jakub."
         }
     }
 
@@ -1677,10 +1677,10 @@ i -PassThru:$PassThru {
             # I was able to measure the block and the test execution time and so if I come up with a way again
             # I don't want to write the same code one more time
             $actual = $container.Result
-            $testReported = $actual.Containers[0].Blocks[0].Tests[0].Duration + $actual.Containers[0].Blocks[0].Tests[0].FrameworkDuration
+            $testReported = $actual.Blocks[0].Tests[0].Duration + $actual.Blocks[0].Tests[0].FrameworkDuration
             #$testDifference = $container.Test - $testReported
-            Write-Host Reported test duration $actual.Containers[0].Blocks[0].Tests[0].Duration.TotalMilliseconds
-            Write-Host Reported test overhead $actual.Containers[0].Blocks[0].Tests[0].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported test duration $actual.Blocks[0].Tests[0].Duration.TotalMilliseconds
+            Write-Host Reported test overhead $actual.Blocks[0].Tests[0].FrameworkDuration.TotalMilliseconds
             Write-Host Reported test total $testReported.TotalMilliseconds
             #Write-Host Measured test total $container.Test.TotalMilliseconds
             #Write-Host Test difference $testDifference.TotalMilliseconds
@@ -1688,10 +1688,10 @@ i -PassThru:$PassThru {
            # $testDifference.TotalMilliseconds -lt 5 | Verify-True
 
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
-            $blockReported =  $actual.Containers[0].Blocks[0].Duration + $actual.Containers[0].Blocks[0].FrameworkDuration
+            $blockReported =  $actual.Blocks[0].Duration + $actual.Blocks[0].FrameworkDuration
             #$blockDifference = $container.Block - $blockReported
-            Write-Host Reported block duration $actual.Containers[0].Blocks[0].Duration.TotalMilliseconds
-            Write-Host Reported block overhead $actual.Containers[0].Blocks[0].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported block duration $actual.Blocks[0].Duration.TotalMilliseconds
+            Write-Host Reported block overhead $actual.Blocks[0].FrameworkDuration.TotalMilliseconds
             Write-Host Reported block total $blockReported.TotalMilliseconds
             #Write-Host Measured block total $container.Block.TotalMilliseconds
             #Write-Host Block difference $blockDifference.TotalMilliseconds
@@ -1742,10 +1742,10 @@ i -PassThru:$PassThru {
             }
 
             $actual = $container.Result
-            $testReported = $actual.Containers[0].Blocks[1].Tests[1].Duration + $actual.Containers[0].Blocks[1].Tests[1].FrameworkDuration
+            $testReported = $actual.Blocks[1].Tests[1].Duration + $actual.Blocks[1].Tests[1].FrameworkDuration
             # $testDifference = $container.Test - $testReported
-            Write-Host Reported test duration $actual.Containers[0].Blocks[1].Tests[1].Duration.TotalMilliseconds
-            Write-Host Reported test overhead $actual.Containers[0].Blocks[1].Tests[1].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported test duration $actual.Blocks[1].Tests[1].Duration.TotalMilliseconds
+            Write-Host Reported test overhead $actual.Blocks[1].Tests[1].FrameworkDuration.TotalMilliseconds
             Write-Host Reported test total $testReported.TotalMilliseconds
             # Write-Host Measured test total $container.Test.TotalMilliseconds
             # Write-Host Test difference $testDifference.TotalMilliseconds
@@ -1753,10 +1753,10 @@ i -PassThru:$PassThru {
             # $testDifference.TotalMilliseconds -lt 5 | Verify-True
 
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
-            $blockReported =  $actual.Containers[0].Blocks[1].Duration + $actual.Containers[0].Blocks[1].FrameworkDuration
+            $blockReported =  $actual.Blocks[1].Duration + $actual.Blocks[1].FrameworkDuration
             # $blockDifference = $container.Block - $blockReported
-            Write-Host Reported block duration $actual.Containers[0].Blocks[1].Duration.TotalMilliseconds ms
-            Write-Host Reported block overhead $actual.Containers[0].Blocks[1].FrameworkDuration.TotalMilliseconds ms
+            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds ms
+            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds ms
             Write-Host Reported block total $blockReported.TotalMilliseconds ms
             # Write-Host Measured block total $container.Block.TotalMilliseconds ms
             # Write-Host Block difference $blockDifference.TotalMilliseconds ms
