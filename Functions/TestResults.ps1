@@ -145,24 +145,23 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', 'Pester')
-    $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.SkippedCount))
+    $XmlWriter.WriteAttributeString('total', ($Result.TestsCount - $Result.SkippedCount))
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', '0')
-    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count
+    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count once it is added
     $XmlWriter.WriteAttributeString('ignored', '0')
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('invalid', '0')
-    $date = & $SafeCommands['Get-Date']
-    $XmlWriter.WriteAttributeString('date', (& $SafeCommands['Get-Date'] -Date $date -Format 'yyyy-MM-dd'))
-    $XmlWriter.WriteAttributeString('time', (& $SafeCommands['Get-Date'] -Date $date -Format 'HH:mm:ss'))
+    $XmlWriter.WriteAttributeString('date', $Result.ExecutedAt.ToString('yyyy-MM-dd'))
+    $XmlWriter.WriteAttributeString('time', $Result.ExecutedAt.ToString('HH:mm:ss'))
 }
 
-function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWriter) {
-    Write-NUnitEnvironmentInformation @PSBoundParameters
-    Write-NUnitCultureInformation @PSBoundParameters
+function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $XmlWriter) {
+    Write-NUnitEnvironmentInformation -Result $RunResult -XmlWriter $XmlWriter
+    Write-NUnitCultureInformation -Result $RunResult -XmlWriter $XmlWriter
 
-    $suiteInfo = Get-TestSuiteInfo -TestSuite $Result -TestSuiteName $Result.TestSuiteName
+    $suiteInfo = Get-TestSuiteInfo -TestSuite $Result -Path "Pester"
 
     $XmlWriter.WriteStartElement('test-suite')
 
@@ -170,8 +169,18 @@ function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWri
 
     $XmlWriter.WriteStartElement('results')
 
-    foreach ($action in $Result.Blocks) {
-        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $action
+    $cwdReplacement = [regex]::Escape($pwd.Path)
+    foreach ($container in $Result.Containers) {
+        if ("File" -eq $container.Type) {
+            $path = ($action.Path -replace "$cwdReplacement[\\/](.*)", '.\$1')
+        }
+        elseif ("ScriptBlock" -eq $container.Type) {
+            $path = "<ScriptBlock>$($container.Content.File):$($container.Content.StartPosition.StartLine)"
+        }
+        else  {
+            throw "Container type '$($container.Type)' is not supported."
+        }
+        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $path
     }
 
     $XmlWriter.WriteEndElement()
@@ -199,7 +208,7 @@ function Write-NUnitCultureInformation($Result, [System.Xml.XmlWriter] $XmlWrite
 }
 
 function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
-    $suiteInfo = Get-TestSuiteInfo $Node
+    $suiteInfo = Get-TestSuiteInfo -TestSuite $Node -Path $Path
 
     $XmlWriter.WriteStartElement('test-suite')
 
@@ -207,22 +216,8 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
     $XmlWriter.WriteStartElement('results')
 
-    $separator = if ($Path) {
-        '.'
-    }
-    else {
-        ''
-    }
-    $newName = if ($Node.Hint -ne 'Script') {
-        $suiteInfo.Name
-    }
-    else {
-        ''
-    }
-    $newPath = "${Path}${separator}${newName}"
-
     foreach ($action in $Node.Blocks) {
-        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $newPath
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.Path -join '.')
     }
 
     $suites = @(
@@ -245,7 +240,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 
         foreach ($testCase in $suite.Group) {
             $suiteName = if ($testGroupId) { $parameterizedSuiteInfo.Name } else { "" }
-            Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path $newPath -ParameterizedSuiteName $suiteName
+            Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path ($testCase.Path -join '.') -ParameterizedSuiteName $suiteName
         }
 
         if ($testGroupId) {
@@ -266,9 +261,8 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
     # unique Id (the line number) and also a readable name
     # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
     # grouping the tests together if we used just the name, and not the linenumber (which remains static)
-    $name = $TestSuiteGroup.Group[0].Name
     $node = [PSCustomObject] @{
-        Name              = $name
+        Path = $TestSuiteGroup.Group[0].Path
         TotalCount        = 0
         Duration          = [timespan]0
         FrameworkDuration = [timespan]0
@@ -316,12 +310,42 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
         $node.FrameworkDuration += $testCase.FrameworkDuration
     }
 
-    return Get-TestSuiteInfo -TestSuite $node
+    return Get-TestSuiteInfo -TestSuite $node -Path $node.Path
 }
 
-function Get-TestSuiteInfo ($TestSuite, $TestSuiteName) {
-    if (-not $PSBoundParameters.ContainsKey('TestSuiteName')) {
-        $TestSuiteName = $TestSuite.Name
+function Get-TestSuiteInfo ($TestSuite, $Path) {
+    # if (-not $Path) {
+    #     $Path = $TestSuite.Name
+    # }
+
+    # if (-not $Path) {
+    #     $pathProperty = $TestSuite.PSObject.Properties.Item("path")
+    #     if ($pathProperty) {
+    #         $path = $pathProperty.Value
+    #         if ($path -is [System.IO.FileInfo]) {
+    #             $Path = $path.FullName
+    #         }
+    #         else {
+    #             $Path = $pathProperty.Value -join "."
+    #         }
+    #     }
+    # }
+
+    # all the blocks except Test have discovery duration, so take that into account
+    # TODO: make this just Duration when we have the aggregate property
+    $time = $TestSuite.Duration + $TestSuite.FrameworkDuration
+    $discoveryDurationProperty = $TestSuite.PSObject.Properties.Item("DiscoveryDuration")
+    if ($discoveryDurationProperty) {
+        $time += $discoveryDurationProperty.Value
+    }
+
+    if (1 -lt @($Path).Count) {
+        $name = $Path -join '.'
+        $description = $Path[-1]
+    }
+    else {
+        $name = $Path
+        $description = $Path
     }
 
     $suite = @{
@@ -332,9 +356,9 @@ function Get-TestSuiteInfo ($TestSuite, $TestSuiteName) {
         else {
             'False'
         }
-        totalTime     = Convert-TimeSpan ($TestSuite.Duration + $TestSuite.FrameworkDuration)
-        name          = $TestSuiteName
-        description   = $TestSuiteName
+        totalTime     = Convert-TimeSpan $time
+        name          = $name
+        description   = $description
     }
 
     $suite.resultMessage = Get-GroupResult $TestSuite
@@ -403,7 +427,7 @@ function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWrit
 }
 
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
-    $testName = $TestResult.Name
+    $testName = $TestResult.Path -join '.'
 
     # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time
     if ($testName -eq $ParameterizedSuiteName) {
@@ -425,19 +449,11 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
                 }
             )
 
-            $paramString = $params -join ','
+            $paramString = "($($params -join ','))"
         }
-
-        $testName = "$testName($paramString)"
     }
 
-    $separator = if ($Path) {
-        '.'
-    }
-    else {
-        ''
-    }
-    $testName = "${Path}${separator}${testName}"
+    $testName = "$ParameterizedSuiteName$paramString"
 
     $XmlWriter.WriteAttributeString('description', $TestResult.Name)
 
@@ -581,7 +597,7 @@ function Get-RunTimeEnvironment() {
         'nunit-version' = '2.5.8.0'
         'os-version'    = $osSystemInformation.Version
         platform        = $osSystemInformation.Name
-        cwd             = (& $SafeCommands['Get-Location']).Path #run path
+        cwd             = $pwd.Path
         'machine-name'  = $computerName
         user            = $username
         'user-domain'   = $env:userDomain

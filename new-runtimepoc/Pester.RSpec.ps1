@@ -120,6 +120,8 @@ function New-RSpecTestRunObject {
         PSBoundParameters = $BoundParameters
 
         Duration = [TimeSpan]::Zero
+        FrameworkDuration = [TimeSpan]::Zero
+        DiscoveryDuration = [TimeSpan]::Zero
         Passed = [Collections.ArrayList]@()
         PassedCount = 0
         Failed = [Collections.ArrayList]@()
@@ -130,9 +132,7 @@ function New-RSpecTestRunObject {
         TestsCount = 0
     }
 
-    $cs = @($BlockContainer)
-
-    $tests = View-Flat -Block $BlockContainer
+    $tests = @(View-Flat -Block $BlockContainer)
 
     foreach ($t in $tests) {
         switch ($t.Result) {
@@ -147,15 +147,20 @@ function New-RSpecTestRunObject {
             }
             default { throw "Result $($t.Result) is not supported."}
         }
+    }
 
+    foreach ($c in $BlockContainer) {
+        $run.Duration += $c.Duration
+        $run.FrameworkDuration += $c.FrameworkDuration
+        $run.DiscoveryDuration += $c.DiscoveryDuration
     }
 
     $run.PassedCount = $run.Passed.Count
     $run.FailedCount = $run.Failed.Count
     $run.SkippedCount = $run.Skipped.Count
 
-    $run.Tests = [Collections.ArrayList]@($Tests)
-    $run.TestsCount = $Tests.Count
+    $run.Tests = [Collections.ArrayList]@($tests)
+    $run.TestsCount = $tests.Count
 
     $run
 }

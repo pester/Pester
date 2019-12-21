@@ -134,6 +134,9 @@ i -PassThru:$PassThru {
             $result.Failed | Verify-NotNull
             $result.SkippedCount | Verify-Equal 1
             $result.Skipped | Verify-NotNull
+            $result.Duration | Verify-Equal ($result.Containers[0].Duration + $result.Containers[1].Duration)
+            $result.FrameworkDuration | Verify-Equal ($result.Containers[0].FrameworkDuration + $result.Containers[1].FrameworkDuration)
+            $result.DiscoveryDuration | Verify-Equal ($result.Containers[0].DiscoveryDuration + $result.Containers[1].DiscoveryDuration)
         }
     }
 }

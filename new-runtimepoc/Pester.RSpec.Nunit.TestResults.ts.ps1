@@ -133,10 +133,10 @@ i -PassThru:$PassThru {
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestResult = $xmlResult.'test-results'
-            $xmlTestResult.total    | Verify-Equal 1
+            $xmlTestResult.total | Verify-Equal 1
             $xmlTestResult.failures | Verify-Equal 0
-            $xmlTestResult.date     | Verify-Equal (Get-Date -Format "yyyy-MM-dd" $r.ExecutedAt)
-            $xmlTestResult.time     | Verify-Equal (Get-Date -Format "HH:mm:ss" $r.ExecutedAt)
+            $xmlTestResult.date | Verify-Equal (Get-Date -Format "yyyy-MM-dd" $r.ExecutedAt)
+            $xmlTestResult.time | Verify-Equal (Get-Date -Format "HH:mm:ss" $r.ExecutedAt)
         }
 
         t "should write the test-suite information" {
@@ -154,12 +154,12 @@ i -PassThru:$PassThru {
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'
-            $xmlTestResult.type            | Verify-Equal "TestFixture"
-            $xmlTestResult.name            | Verify-Equal "Mocked Describe"
-            $xmlTestResult.description     | Verify-Equal "Mocked Describe"
-            $xmlTestResult.result          | Verify-Equal "Success"
-            $xmlTestResult.success         | Verify-Equal "True"
-            $xmlTestResult.time            | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
+            $xmlTestResult.type | Verify-Equal "TestFixture"
+            $xmlTestResult.name | Verify-Equal "Mocked Describe"
+            $xmlTestResult.description | Verify-Equal "Mocked Describe"
+            $xmlTestResult.result | Verify-Equal "Success"
+            $xmlTestResult.success | Verify-Equal "True"
+            $xmlTestResult.time | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
         }
 
         t "should write two test-suite elements for two describes" {
@@ -179,32 +179,32 @@ i -PassThru:$PassThru {
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'[0]
-            $xmlTestSuite1.name        | Verify-Equal "Describe #1"
+            $xmlTestSuite1.name | Verify-Equal "Describe #1"
             $xmlTestSuite1.description | Verify-Equal "Describe #1"
-            $xmlTestSuite1.result      | Verify-Equal "Success"
-            $xmlTestSuite1.success     | Verify-Equal "True"
-            $xmlTestSuite1.time        | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
+            $xmlTestSuite1.result | Verify-Equal "Success"
+            $xmlTestSuite1.success | Verify-Equal "True"
+            $xmlTestSuite1.time | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'[1]
-            $xmlTestSuite2.name        | Verify-Equal "Describe #2"
+            $xmlTestSuite2.name | Verify-Equal "Describe #2"
             $xmlTestSuite2.description | Verify-Equal "Describe #2"
-            $xmlTestSuite2.result      | Verify-Equal "Failure"
-            $xmlTestSuite2.success     | Verify-Equal "False"
-            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Containers[0].Blocks[1].Duration + $r.Containers[0].Blocks[1].FrameworkDuration)
+            $xmlTestSuite2.result | Verify-Equal "Failure"
+            $xmlTestSuite2.success | Verify-Equal "False"
+            $xmlTestSuite2.time | Verify-XmlTime ($r.Containers[0].Blocks[1].Duration + $r.Containers[0].Blocks[1].FrameworkDuration)
         }
 
         t "should write the environment information" {
-            $r = Invoke-Pester -ScriptBlock {} -Output None
+            $r = Invoke-Pester -ScriptBlock { } -Output None
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
-            $xmlEnvironment.'os-Version'    | Verify-NotNull
-            $xmlEnvironment.platform        | Verify-NotNull
-            $xmlEnvironment.cwd             | Verify-Equal (Get-Location).Path
+            $xmlEnvironment.'os-Version' | Verify-NotNull
+            $xmlEnvironment.platform | Verify-NotNull
+            $xmlEnvironment.cwd | Verify-Equal (Get-Location).Path
             if ($env:Username) {
-                $xmlEnvironment.user        | Verify-Equal $env:Username
+                $xmlEnvironment.user | Verify-Equal $env:Username
             }
-            $xmlEnvironment.'machine-name'  | Verify-Equal $(hostname)
+            $xmlEnvironment.'machine-name' | Verify-Equal $(hostname)
         }
 
         t "Should validate test results against the nunit 2.5 schema" {
@@ -226,7 +226,7 @@ i -PassThru:$PassThru {
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( {throw $args.Exception })
+            $xmlResult.Validate( { throw $args.Exception })
         }
 
         t "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
@@ -244,7 +244,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
 
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate({throw $args.Exception })
+            $xmlResult.Validate( { throw $args.Exception })
         }
     }
 
@@ -254,7 +254,7 @@ i -PassThru:$PassThru {
                 Describe "Mocked Describe" {
                     It "Parameterized Testcase <value>" -TestCases @(
                         @{ Value = 1 }
-                        [ordered] @{ Value = 2; StringParameter = "two"; NullParameter = $null; NumberParameter = -42.67  }
+                        [ordered] @{ Value = 2; StringParameter = "two"; NullParameter = $null; NumberParameter = -42.67 }
                     ) {
                         param ($Value)
                         $Value | Should -Be 1
@@ -262,14 +262,14 @@ i -PassThru:$PassThru {
                 }
             } -Output None
 
-            $xmlResult = $r | ConvertTo-NUnitReport
-            $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
-            $xmlTestSuite.name        | Verify-Equal 'Mocked Describe.Parameterized Testcase <value>'
+            $xmlResult = $r | ConvertTo-NUnitReport ; $str = $r | ConvertTo-NUnitReport -AsString | clip # TODO: remove
+            $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
+            $xmlTestSuite.name | Verify-Equal 'Mocked Describe.Parameterized Testcase <value>'
             $xmlTestSuite.description | Verify-Equal 'Parameterized Testcase <value>'
-            $xmlTestSuite.type        | Verify-Equal 'ParameterizedTest'
-            $xmlTestSuite.result      | Verify-Equal 'Failure'
-            $xmlTestSuite.success     | Verify-Equal 'False'
-            $xmlTestSuite.time        | Verify-XmlTime (
+            $xmlTestSuite.type | Verify-Equal 'ParameterizedTest'
+            $xmlTestSuite.result | Verify-Equal 'Failure'
+            $xmlTestSuite.success | Verify-Equal 'False'
+            $xmlTestSuite.time | Verify-XmlTime (
                 $r.Containers[0].Blocks[0].Tests[0].Duration +
                 $r.Containers[0].Blocks[0].Tests[0].FrameworkDuration +
                 $r.Containers[0].Blocks[0].Tests[1].Duration +
@@ -280,50 +280,62 @@ i -PassThru:$PassThru {
 
             $testCase1.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase <value>(1)'
             $testCase1.Time | Verify-XmlTime ($r.Containers[0].Blocks[0].Tests[0].Duration +
-            $r.Containers[0].Blocks[0].Tests[0].FrameworkDuration)
+                $r.Containers[0].Blocks[0].Tests[0].FrameworkDuration)
 
             $testCase2.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase <value>(2,"two",null,-42.67)'
             $testCase2.Time | Verify-XmlTime ($r.Containers[0].Blocks[0].Tests[1].Duration +
-            $r.Containers[0].Blocks[0].Tests[1].FrameworkDuration)
+                $r.Containers[0].Blocks[0].Tests[1].FrameworkDuration)
 
             # verify against schema
             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $null = $xmlResult.Schemas.Add($null, $schemaPath)
-            $xmlResult.Validate( {throw $args.Exception })
+            $xmlResult.Validate( { throw $args.Exception })
         }
     }
 
     b "Exporting multiple containers" {
         t "should write report for multiple containers" {
-            $r = Invoke-Pester -ScriptBlock @({
-                Describe "Describe #1" {
-                    It "Successful testcase" {
-                        $true | Should -Be $true
+            $r = Invoke-Pester -ScriptBlock @( {
+                    Describe "Describe #1" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
                     }
-                }
-            }, {
-                Describe "Describe #2" {
-                    It "Failed testcase" {
-                        $false | Should -Be $true
+                }, {
+                    Describe "Describe #2" {
+                        It "Failed testcase" {
+                            $false | Should -Be $true
+                        }
                     }
-                }
-            }) -Output None
+                }) -Output None
 
             $xmlResult = ConvertTo-NUnitReport $r
             $str = $r | ConvertTo-NUnitReport -AsString
-            `
-            $xmlTestSuite1.name        | Verify-Equal "Describe #1"
-            $xmlTestSuite1.description | Verify-Equal "Describe #1"
-            $xmlTestSuite1.result      | Verify-Equal "Success"
-            $xmlTestSuite1.success     | Verify-Equal "True"
-            $xmlTestSuite1.time        | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
+            $str | Out-File C:\temp\nunin\ts2.xml
 
-            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'[1]
-            $xmlTestSuite2.name        | Verify-Equal "Describe #2"
+
+            $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
+
+            $xmlTestSuite1.name | Verify-Equal "Describe #1"
+            $xmlTestSuite1.description | Verify-Equal "Describe #1"
+            $xmlTestSuite1.result | Verify-Equal "Success"
+            $xmlTestSuite1.success | Verify-Equal "True"
+            $xmlTestSuite1.time | Verify-XmlTime (
+                $r.Containers[0].Blocks[0].Duration +
+                $r.Containers[0].Blocks[0].FrameworkDuration +
+                $r.Containers[0].Blocks[0].DiscoveryDuration
+            )
+
+            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[1]
+            $xmlTestSuite2.name | Verify-Equal "Describe #2"
             $xmlTestSuite2.description | Verify-Equal "Describe #2"
-            $xmlTestSuite2.result      | Verify-Equal "Failure"
-            $xmlTestSuite2.success     | Verify-Equal "False"
-            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Containers[0].Blocks[1].Duration + $r.Containers[0].Blocks[1].FrameworkDuration)
+            $xmlTestSuite2.result | Verify-Equal "Failure"
+            $xmlTestSuite2.success | Verify-Equal "False"
+            $xmlTestSuite2.time | Verify-XmlTime (
+                $r.Containers[1].Blocks[0].Duration +
+                $r.Containers[1].Blocks[0].FrameworkDuration +
+                $r.Containers[1].Blocks[0].DiscoveryDuration
+            )
         }
     }
 }
