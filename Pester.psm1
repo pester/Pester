@@ -749,7 +749,7 @@ function Invoke-Pester {
                 PSBoundParameters = $PSBoundParameters
             }
 
-            New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r)
+            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r)
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
 
 
@@ -758,7 +758,7 @@ function Invoke-Pester {
             }
 
             if ($CI) {
-                Export-NunitReport $r (Join-Path  "." "testResults.xml")
+                Export-NunitReport $run (Join-Path  "." "testResults.xml")
             }
 
             if ($CI) {
