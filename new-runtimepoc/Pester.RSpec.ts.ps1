@@ -25,9 +25,9 @@ i -PassThru:$PassThru {
         #         }
         #     }
 
-        #     $result.Blocks[0].ErrorRecord | Verify-Null
-        #     $result.Blocks[0].Tests.Count | Verify-Equal 10
-        #     $result.Blocks[0].Tests[0].Passed | Verify-True
+        #     $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+        #     $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+        #     $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         # }
 
         # t "generating parametrized tests from foreach with external id" {
@@ -45,9 +45,9 @@ i -PassThru:$PassThru {
         #         }
         #     }
 
-        #     $result.Blocks[0].ErrorRecord | Verify-Null
-        #     $result.Blocks[0].Tests.Count | Verify-Equal 30
-        #     $result.Blocks[0].Tests[0].Passed | Verify-True
+        #     $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+        #     $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 30
+        #     $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         # }
 
         t "generating simple tests from foreach without external Id" {
@@ -59,9 +59,9 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 10
-            $result.Blocks[0].Tests[0].Passed | Verify-True
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "generating parametrized tests from foreach without external id" {
@@ -79,9 +79,9 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 30
-            $result.Blocks[0].Tests[0].Passed | Verify-True
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 30
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "generating multiple parametrized tests from foreach without external id" {
@@ -107,9 +107,9 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 60
-            $result.Blocks[0].Tests[0].Passed | Verify-True
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 60
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
     # automationId is not relevant right now
@@ -136,9 +136,9 @@ i -PassThru:$PassThru {
     #             }
     #         }
 
-    #         $result.Blocks[0].ErrorRecord | Verify-Null
-    #         $result.Blocks[0].Tests.Count | Verify-Equal 60
-    #         $result.Blocks[0].Tests[0].Passed | Verify-True
+    #         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+    #         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 60
+    #         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
     #     }
     }
 
@@ -183,44 +183,44 @@ i -PassThru:$PassThru {
 
                 $result = Invoke-Pester
 
-                $result.Count | Verify-Equal 2
-                $result[0].Path.FullName | Verify-Equal $file1
-                $result[1].Path.FullName | Verify-Equal $file2
+                $result.Containers.Count | Verify-Equal 2
+                $result.Containers[0].Path.FullName | Verify-Equal $file1
+                $result.Containers[1].Path.FullName | Verify-Equal $file2
             }
 
             t "Running tests from Paths runs them" {
                 $result = Invoke-Pester -Path $file1, $file2
 
-                $result.Count | Verify-Equal 2
-                $result[0].Path.FullName | Verify-Equal $file1
-                $result[1].Path.FullName | Verify-Equal $file2
+                $result.Containers.Count | Verify-Equal 2
+                $result.Containers[0].Path.FullName | Verify-Equal $file1
+                $result.Containers[1].Path.FullName | Verify-Equal $file2
             }
 
-            dt "Exluding full path excludes it tests from Paths runs them" {
-                $result = @(Invoke-Pester -Path $file1, $file2 -ExcludePath $file2)
+            t "Exluding full path excludes it tests from Paths runs them" {
+                $result = Invoke-Pester -Path $file1, $file2 -ExcludePath $file2
 
-                $result.Count | Verify-Equal 1
-                $result[0].Path | Verify-Equal $file1
+                $result.Containers.Count | Verify-Equal 1
+                $result.Containers[0].Path | Verify-Equal $file1
             }
 
             t "Including tag runs just the test with that tag" {
                 $result = Invoke-Pester -Path $file1 -Tag i1
 
-                $result.Blocks[0].Tests[0].Executed | Verify-True
-                $result.Blocks[0].Tests[1].Executed | Verify-False
+                $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+                $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-False
             }
 
             t "Excluding tag skips the test with that tag" {
                 $result = Invoke-Pester -Path $file1 -ExcludeTag i1
 
-                $result.Blocks[0].Tests[0].Executed | Verify-False
-                $result.Blocks[0].Tests[1].Executed | Verify-True
+                $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+                $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-True
             }
 
             t "Scriptblock invokes inlined test" {
                 $result = Invoke-Pester -Path $file1 -ScriptBlock { Describe "d1" { It "i1" { $true }} }
 
-                $result.Blocks[0].Tests[0].Executed | Verify-True
+                $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
             }
 
             t "Result object is output by default" {

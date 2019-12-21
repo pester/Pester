@@ -59,10 +59,6 @@ function Verify-PSType {
     if ($TypeName -ne $Actual.PSObject.TypeNames[0]) {
         throw "Expected object have PSTypeName '$TypeName' but it was '$($Actual.PSObject.TypeNames[0])'!"
     }
-
-    if ($null -ne $Value -and $Value -ne $Actual.$PropertyName) {
-        throw "Expected property $PropertyName to have value '$Value', but it was '$($Actual.$PropertyName)'!"
-    }
 }
 
 # template
@@ -74,9 +70,9 @@ function Verify-PSType {
     #             }
     #         }
 
-    #         $result.Blocks[0].ErrorRecord | Verify-Null
-    #         $result.Blocks[0].Tests.Count | Verify-Equal 10
-    #         $result.Blocks[0].Tests[0].Passed | Verify-True
+    #         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+    #         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+    #         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
     #     }
     # }
 
@@ -91,7 +87,7 @@ i -PassThru:$PassThru {
     # }
 
     b "New-RSpecTestRunObject" {
-        dt "Result object shows counts from all containers" {
+        t "Result object shows counts from all containers" {
             try {
                 $temp = [IO.Path]::GetTempPath()
 
@@ -130,7 +126,6 @@ i -PassThru:$PassThru {
             $result.Containers[0] | Verify-PSType "ExecutedBlockContainer"
             $result | Verify-Property "PSBoundParameters"
             $result.PSBoundParameters.Keys.Count | Verify-Equal 4 # ScriptBlock, Path, Output, ExcludeTag
-            #TODO?: $result | Verify-Property "Parameters" | Verify-Equal 27 # fully populated list of parameters
             $result.TestsCount | Verify-Equal 3
             $result.Tests | Verify-NotNull
             $result.PassedCount | Verify-Equal 1

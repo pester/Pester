@@ -116,7 +116,7 @@ function New-RSpecTestRunObject {
     $run = [PSCustomObject]@{
         PSTypeName = 'PesterRSpecTestRun'
         ExecutedAt = $ExecutedAt
-        Containers = @($BlockContainer)
+        Containers = [Collections.ArrayList]@($BlockContainer)
         PSBoundParameters = $BoundParameters
 
         Duration = [TimeSpan]::Zero

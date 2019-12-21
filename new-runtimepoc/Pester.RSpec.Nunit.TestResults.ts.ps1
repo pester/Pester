@@ -65,7 +65,7 @@ i -PassThru:$PassThru {
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
             $xmlTestCase.result | Verify-Equal "Success"
-            $xmlTestCase.time | Verify-XmlTime $r.Blocks[0].Tests[0].Time
+            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Time
         }
 
         t "should write a failed test result" {
@@ -81,7 +81,7 @@ i -PassThru:$PassThru {
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
             $xmlTestCase.result | Verify-Equal "Failure"
-            $xmlTestCase.time | Verify-XmlTime $r.Blocks[0].Tests[0].Time
+            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Time
 
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
@@ -110,7 +110,7 @@ i -PassThru:$PassThru {
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
             $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
             $xmlTestCase.result | Verify-Equal "Failure"
-            $xmlTestCase.time | Verify-XmlTime $r.Blocks[0].Tests[0].Time
+            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Time
 
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
@@ -159,7 +159,7 @@ i -PassThru:$PassThru {
             $xmlTestResult.description     | Verify-Equal "Mocked Describe"
             $xmlTestResult.result          | Verify-Equal "Success"
             $xmlTestResult.success         | Verify-Equal "True"
-            $xmlTestResult.time            | Verify-XmlTime ($r.Blocks[0].Duration + $r.Blocks[0].FrameworkDuration)
+            $xmlTestResult.time            | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
         }
 
         t "should write two test-suite elements for two describes" {
@@ -183,14 +183,14 @@ i -PassThru:$PassThru {
             $xmlTestSuite1.description | Verify-Equal "Describe #1"
             $xmlTestSuite1.result      | Verify-Equal "Success"
             $xmlTestSuite1.success     | Verify-Equal "True"
-            $xmlTestSuite1.time        | Verify-XmlTime ($r.Blocks[0].Duration + $r.Blocks[0].FrameworkDuration)
+            $xmlTestSuite1.time        | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'[1]
             $xmlTestSuite2.name        | Verify-Equal "Describe #2"
             $xmlTestSuite2.description | Verify-Equal "Describe #2"
             $xmlTestSuite2.result      | Verify-Equal "Failure"
             $xmlTestSuite2.success     | Verify-Equal "False"
-            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Blocks[1].Duration + $r.Blocks[1].FrameworkDuration)
+            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Containers[0].Blocks[1].Duration + $r.Containers[0].Blocks[1].FrameworkDuration)
         }
 
         t "should write the environment information" {
@@ -270,21 +270,21 @@ i -PassThru:$PassThru {
             $xmlTestSuite.result      | Verify-Equal 'Failure'
             $xmlTestSuite.success     | Verify-Equal 'False'
             $xmlTestSuite.time        | Verify-XmlTime (
-                $r.Blocks[0].Tests[0].Duration +
-                $r.Blocks[0].Tests[0].FrameworkDuration +
-                $r.Blocks[0].Tests[1].Duration +
-                $r.Blocks[0].Tests[1].FrameworkDuration)
+                $r.Containers[0].Blocks[0].Tests[0].Duration +
+                $r.Containers[0].Blocks[0].Tests[0].FrameworkDuration +
+                $r.Containers[0].Blocks[0].Tests[1].Duration +
+                $r.Containers[0].Blocks[0].Tests[1].FrameworkDuration)
 
             $testCase1 = $xmlTestSuite.results.'test-case'[0]
             $testCase2 = $xmlTestSuite.results.'test-case'[1]
 
             $testCase1.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase <value>(1)'
-            $testCase1.Time | Verify-XmlTime ($r.Blocks[0].Tests[0].Duration +
-            $r.Blocks[0].Tests[0].FrameworkDuration)
+            $testCase1.Time | Verify-XmlTime ($r.Containers[0].Blocks[0].Tests[0].Duration +
+            $r.Containers[0].Blocks[0].Tests[0].FrameworkDuration)
 
             $testCase2.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase <value>(2,"two",null,-42.67)'
-            $testCase2.Time | Verify-XmlTime ($r.Blocks[0].Tests[1].Duration +
-            $r.Blocks[0].Tests[1].FrameworkDuration)
+            $testCase2.Time | Verify-XmlTime ($r.Containers[0].Blocks[0].Tests[1].Duration +
+            $r.Containers[0].Blocks[0].Tests[1].FrameworkDuration)
 
             # verify against schema
             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -294,7 +294,7 @@ i -PassThru:$PassThru {
     }
 
     b "Exporting multiple containers" {
-        dt "should write report for multiple containers" {
+        t "should write report for multiple containers" {
             $r = Invoke-Pester -ScriptBlock @({
                 Describe "Describe #1" {
                     It "Successful testcase" {
@@ -316,14 +316,14 @@ i -PassThru:$PassThru {
             $xmlTestSuite1.description | Verify-Equal "Describe #1"
             $xmlTestSuite1.result      | Verify-Equal "Success"
             $xmlTestSuite1.success     | Verify-Equal "True"
-            $xmlTestSuite1.time        | Verify-XmlTime ($r.Blocks[0].Duration + $r.Blocks[0].FrameworkDuration)
+            $xmlTestSuite1.time        | Verify-XmlTime ($r.Containers[0].Blocks[0].Duration + $r.Containers[0].Blocks[0].FrameworkDuration)
 
             $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'[1]
             $xmlTestSuite2.name        | Verify-Equal "Describe #2"
             $xmlTestSuite2.description | Verify-Equal "Describe #2"
             $xmlTestSuite2.result      | Verify-Equal "Failure"
             $xmlTestSuite2.success     | Verify-Equal "False"
-            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Blocks[1].Duration + $r.Blocks[1].FrameworkDuration)
+            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Containers[0].Blocks[1].Duration + $r.Containers[0].Blocks[1].FrameworkDuration)
         }
     }
 }
