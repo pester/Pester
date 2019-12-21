@@ -453,7 +453,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         }
     }
 
-    $testName = "$ParameterizedSuiteName$paramString"
+    $testName = "$testName$paramString"
 
     $XmlWriter.WriteAttributeString('description', $TestResult.Name)
 
