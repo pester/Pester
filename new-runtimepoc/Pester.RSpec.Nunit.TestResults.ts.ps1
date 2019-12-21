@@ -292,4 +292,38 @@ i -PassThru:$PassThru {
             $xmlResult.Validate( {throw $args.Exception })
         }
     }
+
+    b "Exporting multiple containers" {
+        dt "should write report for multiple containers" {
+            $r = Invoke-Pester -ScriptBlock @({
+                Describe "Describe #1" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }, {
+                Describe "Describe #2" {
+                    It "Failed testcase" {
+                        $false | Should -Be $true
+                    }
+                }
+            }) -Output None
+
+            $xmlResult = ConvertTo-NUnitReport $r
+            $str = $r | ConvertTo-NUnitReport -AsString
+            `
+            $xmlTestSuite1.name        | Verify-Equal "Describe #1"
+            $xmlTestSuite1.description | Verify-Equal "Describe #1"
+            $xmlTestSuite1.result      | Verify-Equal "Success"
+            $xmlTestSuite1.success     | Verify-Equal "True"
+            $xmlTestSuite1.time        | Verify-XmlTime ($r.Blocks[0].Duration + $r.Blocks[0].FrameworkDuration)
+
+            $xmlTestSuite2 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'[1]
+            $xmlTestSuite2.name        | Verify-Equal "Describe #2"
+            $xmlTestSuite2.description | Verify-Equal "Describe #2"
+            $xmlTestSuite2.result      | Verify-Equal "Failure"
+            $xmlTestSuite2.success     | Verify-Equal "False"
+            $xmlTestSuite2.time        |  Verify-XmlTime ($r.Blocks[1].Duration + $r.Blocks[1].FrameworkDuration)
+        }
+    }
 }

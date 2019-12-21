@@ -1,6 +1,16 @@
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
 
+Add-Type -TypeDefinition "
+using System.Management.Automation;
+
+public static class MemberFactory {
+    public static PSNoteProperty CreateNoteProperty(string name, object value) {
+        return new PSNoteProperty(name, value);
+    }
+}
+"
+
 if (notDefined PesterDebugPreference) {
     # todo: instead of replacing the whole hashtable when not defined I should merge the defaults with the hashtable that is defined, that way the runtime can rely on the properties always being there, and there is probably already a function to do that because I use it in Mocks I think -- nhw
     $global:PesterDebugPreference = @{
@@ -150,29 +160,40 @@ function ConvertTo-ExecutedBlockContainer {
     $content = tryGetProperty $container Content
     $type = tryGetProperty $container Type
 
-    $properties = @(
-        @{n = "Content"; e = { $content } }
-        @{n = "Type"; e = { $type } },
-        @{n = "PSTypename"; e = { "ExecutedBlockContainer" } }
-        '*'
-    )
-
-    if ("file" -eq $Block.BlockContainer.Type) {
-        $properties += @{n = "Path"; e = { $content}}
+    $properties = @{
+        Content = $content
+        Type = $type
     }
 
-    $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
+    if ("file" -eq $Block.BlockContainer.Type) {
+        $properties.Add("Path", $content)
+    }
+
+    $excluded = @(
         "Parent"
         "Name"
         "Tag"
         "First"
         "Last"
         "StandardOutput"
-        "Path"
+        "Path" # <- this is abc.gef on Block, not filepath
         "Order"
-    ) -Property $properties
+    )
 
-    $b
+    foreach ($b in @($Block)) {
+        $o = @{}
+        foreach ($p in $Block.PSObject.Properties) {
+            if ($p.Name -notin $excluded) {
+                $o.Add($p.Name, $p.Value)
+            }
+        }
+
+        foreach ($p in $properties.GetEnumerator()) {
+            $o.Add($p.Key, $p.Value)
+        }
+
+        New_PSObject -Type "ExecutedBlockContainer" -Property $o
+    }
 }
 
 

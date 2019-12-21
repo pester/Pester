@@ -607,7 +607,7 @@ function Write-ErrorToScreen {
     }
     else {
         $isFormattedError = $null -ne $Err.DisplayErrorMessage
-        "$($Err.DisplayErrorMessage)$(if ($isFormattedError) { if ($null -ne $Err.DisplayStackTrace) {"$([Environment]::NewLine)$($Err.DisplayStackTrace)"}} else { if  ($null -ne $Err.ScriptStackTrace) {"$([Environment]::NewLine)$($Err.ScriptStackTrace)"}})"
+        "$(if ($isFormattedError){ $Err.DisplayErrorMessage } else { $Err.Exception })$(if ($isFormattedError) { if ($null -ne $Err.DisplayStackTrace) {"$([Environment]::NewLine)$($Err.DisplayStackTrace)"}} else { if  ($null -ne $Err.ScriptStackTrace) {"$([Environment]::NewLine)$($Err.ScriptStackTrace)"}})"
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $error_margin -join [Environment]::NewLine

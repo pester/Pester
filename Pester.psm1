@@ -664,6 +664,7 @@ function Invoke-Pester {
         [ScriptBlock[]] $ScriptBlock
     )
     begin {
+        $start = [DateTime]::Now
         if ($CI) {
             $EnableExit = $true
         }
@@ -722,8 +723,8 @@ function Invoke-Pester {
                 $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
             }
 
-            if (any $Path) {
-                if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
+            if ((any $Path)) {
+                if ((none ($ScriptBlock)) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
@@ -733,7 +734,7 @@ function Invoke-Pester {
 
             Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{ Containers = $containers } -ThrowOnFailure
 
-            if (none $containers) {
+            if ((none $containers)) {
                 throw "No test files were found and no scriptblocks were provided."
                 return
             }
@@ -744,10 +745,13 @@ function Invoke-Pester {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
             }
 
+            $parameters = @{
+                PSBoundParameters = $PSBoundParameters
+            }
+
+            New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r)
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
 
-
-            @($r)
 
             if ($CI) {
                 $legacyResult = Get-LegacyResult $r

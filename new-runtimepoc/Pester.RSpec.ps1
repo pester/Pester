@@ -1,13 +1,3 @@
-Add-Type -TypeDefinition "
-using System.Management.Automation;
-
-public static class MemberFactory {
-    public static PSNoteProperty CreateNoteProperty(string name, object value) {
-        return new PSNoteProperty(name, value);
-    }
-}
-"
-
 function Find-RSpecTestFile {
     [CmdletBinding()]
     param (
@@ -113,12 +103,70 @@ function Add-RSpecTestObjectProperties {
     }
 }
 
+function New-RSpecTestRunObject {
+    param(
+        [Parameter(Mandatory)]
+        [DateTime] $ExecutedAt,
+        [Parameter(Mandatory)]
+        [Hashtable] $Parameters,
+        [Hashtable] $BoundParameters,
+        # [PSTypeName('ExecutedBlockContainer')]
+        [object[]] $BlockContainer)
+
+    $run = [PSCustomObject]@{
+        PSTypeName = 'PesterRSpecTestRun'
+        ExecutedAt = $ExecutedAt
+        Containers = @($BlockContainer)
+        PSBoundParameters = $BoundParameters
+
+        Duration = [TimeSpan]::Zero
+        Passed = [Collections.ArrayList]@()
+        PassedCount = 0
+        Failed = [Collections.ArrayList]@()
+        FailedCount = 0
+        Skipped = [Collections.ArrayList]@()
+        SkippedCount = 0
+        Tests = [Collections.ArrayList]@()
+        TestsCount = 0
+    }
+
+    $cs = @($BlockContainer)
+
+    $tests = View-Flat -Block $BlockContainer
+
+    foreach ($t in $tests) {
+        switch ($t.Result) {
+            "Passed" {
+                $null = $run.Passed.Add($t)
+            }
+            "Failed" {
+                $null = $run.Failed.Add($t)
+            }
+            "Skipped" {
+                $null = $run.Skipped.Add($t)
+            }
+            default { throw "Result $($t.Result) is not supported."}
+        }
+
+    }
+
+    $run.PassedCount = $run.Passed.Count
+    $run.FailedCount = $run.Failed.Count
+    $run.SkippedCount = $run.Skipped.Count
+
+    $run.Tests = [Collections.ArrayList]@($Tests)
+    $run.TestsCount = $Tests.Count
+
+    $run
+}
 
 function Get-RSpecObjectDecoratorPlugin () {
     Pester.Runtime\New-PluginObject -Name "RSpecObjectDecoratorPlugin" `
         -EachTestTeardownEnd {
         param ($Context)
 
+        # TODO: consider moving this into the core if those results are just what we need, but look first at Gherkin and how many of those results are RSpec specific and how many are Gherkin specific
+        #TODO: also this is a plugin because it needs to run before the error processing kicks in, this mixes concerns here imho, and needs to be revisited, because the error writing logic is now dependent on this plugin
         Add-RSpecTestObjectProperties $Context.Test
     }
 }
