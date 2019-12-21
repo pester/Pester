@@ -750,6 +750,7 @@ function Invoke-Pester {
             }
 
             $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r)
+            $run
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
 
 
