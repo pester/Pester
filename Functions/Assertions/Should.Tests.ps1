@@ -116,30 +116,5 @@ InModuleScope Pester {
             $value = $user | Should -Not -Be $null
             $value.Name | Should -Be "Jakub"
         }
-
-        #     It 'verify Should -Throw without ErrorAction' {
-        #         $errors = @({
-        #             $res = { throw } | Should -Throw
-
-        #             4 | Should -Be 5
-        #         } | Verify-AssertionFailed)
-
-        #         $errors.Count | Should -Be 1
-        #     }
-
-        #     It 'verify Should -Throw with ErrorAction' {
-        #         $errors = @({
-        #             { 'Hello' } | Should -Throw -ErrorAction Stop
-
-        #             4 | Should -Be 5
-        #         } | Verify-AssertionFailed)
-
-        #         $errors.Count | Should -Be 1
-        #     }
-
-        #     It 'should throw with ErrorAction Stop' {
-        #         { 4 | Should -Be 5 -ErrorAction Stop } | Should -Throw
-        #     }
-        # }
     }
 }
