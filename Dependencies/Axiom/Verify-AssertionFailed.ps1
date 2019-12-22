@@ -11,26 +11,9 @@ function Verify-AssertionFailed {
         $null = & $ScriptBlock
     }
     catch [Exception] {
-        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -eq 'PesterAssertionFailed')
+        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -like 'PesterAssertionFailed,*')
         $err = $_
         $err
-    }
-
-    $test = & (Get-Module Pester) {
-        Get-CurrentTest
-    }
-
-    if (-not $assertionExceptionThrown -and $test.ErrorRecord.Count -gt 0) {
-        $pesterAssertionErrors = foreach ($record in $test.ErrorRecord) {
-            if ($record.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
-                $record
-            }
-        }
-
-        $assertionExceptionThrown = $null -ne $pesterAssertionErrors
-        $test.ErrorRecord
-
-        $test.ErrorRecord.Clear()
     }
 
     if (-not $assertionExceptionThrown) {
@@ -40,7 +23,6 @@ function Verify-AssertionFailed {
         else {
             "other error was thrown! $($err | Format-List -Force * | Out-String)"
         }
-
         throw [Exception]"Expected the script block { $ScriptBlock } to fail in Pester assertion, but $result"
     }
 }

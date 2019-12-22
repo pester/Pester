@@ -101,159 +101,45 @@ InModuleScope Pester {
         #>
     }
 
-    Describe 'Compound Assertions' {
-        $script:functionBlock = {
-            function Get-Object {
-                [PSCustomObject]@{
-                    Name = 'Rene'
-                    Age = 28
-                }
-            }
+    Describe 'Returning values from Should' {
+        It 'Should -Throw return the thrown error' {
+            $err = { throw "abc" } | Should -Throw
+            $err | Verify-NotNull
+            $err.Exception.Message | Verify-Equal "abc"
         }
 
-        Context "ErrorAction specification" {
-            BeforeAll {
-                . $script:functionBlock
+        It 'Should -Be returns the given object' {
+            $user = [PSCustomObject]@{
+                Name = "Jakub"
             }
 
-            It "with ErrorAction" {
-                $user = Get-Object
-                $user | Should -Not -Be $null -ErrorAction Stop
-            }
-
-            It 'without ErrorAction' {
-                $user = Get-Object
-                $user | Should -Not -Be $null
-            }
+            $value = $user | Should -Not -Be $null
+            $value.Name | Should -Be "Jakub"
         }
 
-        Context "Chained assertions" {
-            BeforeAll {
-                . $script:functionBlock
-            }
+        #     It 'verify Should -Throw without ErrorAction' {
+        #         $errors = @({
+        #             $res = { throw } | Should -Throw
 
-            It "Succeeding without ErrorAction " {
-                $user = Get-Object
+        #             4 | Should -Be 5
+        #         } | Verify-AssertionFailed)
 
-                $user |
-                    Should -BeOfType PSCustomObject |
-                    Should -Not -Be $null
-            }
+        #         $errors.Count | Should -Be 1
+        #     }
 
-            It "Failing without ErrorAction" {
-                $user = Get-Object
+        #     It 'verify Should -Throw with ErrorAction' {
+        #         $errors = @({
+        #             { 'Hello' } | Should -Throw -ErrorAction Stop
 
-                $errors = @({
-                    $user |
-                        Should -Not -BeOfType PSCustomObject |
-                        Should -Be $null
-                } | Verify-AssertionFailed)
+        #             4 | Should -Be 5
+        #         } | Verify-AssertionFailed)
 
-                $errors.Count | Should -Be 2
-            }
+        #         $errors.Count | Should -Be 1
+        #     }
 
-            It "With ErrorAction in first assertions section" {
-                $user = Get-Object
-
-                $errors = @({
-                    $user |
-                        Should -Not -BeOfType PSCustomObject -ErrorAction Stop |
-                        Should -Be $null
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 1
-            }
-
-            It "With ErrorAction in last assertion section" {
-                $user = Get-Object
-
-                $errors = @({
-                    $user |
-                        Should -Not -BeOfType PSCustomObject |
-                        Should -Be $null -ErrorAction Stop
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 2
-            }
-        }
-
-        Context "Mixing" {
-            BeforeAll {
-                . $script:functionBlock
-            }
-
-            It "ErrorAction on Single assertion" {
-                $user = Get-Object
-                $errors = @({
-                    $user | Should -Be $null -ErrorAction Stop
-
-                    $user |
-                        Should -Not -BeOfType PSCustomObject |
-                        Should -Be $null
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 1
-            }
-
-            It 'No ErrorAction' {
-                $user = Get-Object
-                $errors = @({
-                    $user | Should -Be $null
-
-                    $user |
-                        Should -Not -BeOfType PSCustomObject |
-                        Should -Be $null
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 3
-            }
-        }
-
-        Context 'Using should-throw' {
-
-            It 'verify Should -Not -Throw without ErrorAction' {
-                $errors = @({
-                    { throw } | Should -Not -Throw
-
-                    4 | Should -Be 5
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 2
-            }
-
-            It 'verify Should -Not -Throw with ErrorAction' {
-                $errors = @({
-                    { throw } | Should -Not -Throw -ErrorAction Stop
-
-                    4 | Should -Be 5
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 1
-            }
-
-            It 'verify Should -Throw without ErrorAction' {
-                $errors = @({
-                    $res = { throw } | Should -Throw
-
-                    4 | Should -Be 5
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 1
-            }
-
-            It 'verify Should -Throw with ErrorAction' {
-                $errors = @({
-                    { 'Hello' } | Should -Throw -ErrorAction Stop
-
-                    4 | Should -Be 5
-                } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 1
-            }
-
-            It 'should throw with ErrorAction Stop' {
-                { 4 | Should -Be 5 -ErrorAction Stop } | Should -Throw
-            }
-        }
+        #     It 'should throw with ErrorAction Stop' {
+        #         { 4 | Should -Be 5 -ErrorAction Stop } | Should -Throw
+        #     }
+        # }
     }
 }
