@@ -157,7 +157,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         }
     }
 
-    foreach ($c in $BlockContainer) {
+    foreach ($c in $TestRun.Containers) {
         $TestRun.Duration += $c.Duration
         $TestRun.FrameworkDuration += $c.FrameworkDuration
         $TestRun.DiscoveryDuration += $c.DiscoveryDuration
