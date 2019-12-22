@@ -9,12 +9,12 @@ function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
     return (& $failureMessageFunction $value $expected)
 }
 
-function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
+function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText, $Terminating) {
     $exception = [Exception] $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
+    $targetObject = @{ Message = $Message; File = $File; Line = $Line; LineText = $LineText; Terminating = $Terminating }
     $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
     return $errorRecord
 }
@@ -75,6 +75,35 @@ function Should {
 
         $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
 
+        $errorActionIsDefined = $PSBoundParameters.ContainsKey("ErrorAction")
+        $shouldThrowBecauseOfErrorAction = $errorActionIsDefined -and 'Stop' -eq $PSBoundParameters["ErrorAction"]
+        if ($errorActionIsDefined) {
+            $shouldThrow = $shouldThrowBecauseOfErrorAction
+        }
+        else {
+            # grab the value of ErrorActionPreference from the caller sessionState,
+            # doing just $ErrorActionPreference would resolve it to Pester internal session state
+            $eap = $PSCmdlet.SessionState.PSVariable.GetValue("ErrorActionPreference")
+            $shouldThrowBecauseOfEap = 'Stop' -eq $eap
+            $shouldThrow = $shouldThrowBecauseOfEap
+        }
+
+        if (-not $shouldThrow) {
+            # this is slightly hacky, here we are reaching out the the caller session state and
+            # look for $______parameters which we know we are using inside of the Pester runtime to
+            # keep the current invocation context, when we find it, we are able to add non-terminating
+            # errors without throwing and terminating the test
+            $pesterRuntimeInvocationContext =  $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
+            $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
+            $addErrorCallback = if ($isInsidePesterRuntime) {
+                # call back into the context we grabbed from the runtime and add this error without throwing
+                {
+                    param($err)
+                    $null = $pesterRuntimeInvocationContext.ErrorRecord.Add($err)
+                }
+            }
+        }
+
         $assertionParams = @{
             AssertionEntry = $entry
             BoundParameters = $PSBoundParameters
@@ -83,7 +112,8 @@ function Should {
             LineText = $lineText
             Negate = $negate
             CallerSessionState = $PSCmdlet.SessionState
-            ShouldThrow = ($ErrorActionPreference -eq 'Stop')
+            ShouldThrow = -not $isInsidePesterRuntime -or $shouldThrowBecauseOfEap
+            AddErrorCallback = $addErrorCallback
         }
 
         if ($inputArray.Count -eq 0) {
@@ -152,20 +182,33 @@ function Invoke-Assertion {
 
         [Parameter()]
         [boolean]
-        $ShouldThrow
+        $ShouldThrow,
+
+        [ScriptBlock]
+        $AddErrorCallback
     )
     try {
         $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
         if (-not $testResult.Succeeded) {
-            $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText
+            $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText -Terminating $ShouldThrow
 
-            if ($ShouldThrow) {
+            if ($null -eq $AddErrorCallback -or $ShouldThrow) {
+                # throw this error to fail the test immediately
                 throw $errorRecord
             }
 
-            $currentTest = Get-CurrentTest
-            $null = $currentTest.ErrorRecord.Add($errorRecord)
+            try {
+                # throw and catch to not fail the test, but still have stackTrace
+                # alternatively we could call Get-PSStackTrace and format it ourselves
+                # in case this turns out too be slow
+                throw $errorRecord
+            } catch {
+              $err = $_
+            }
+
+            # collect the error via the provided callback
+            & $AddErrorCallback $err
         }
         else {
             #extract data to return if there are any on the object

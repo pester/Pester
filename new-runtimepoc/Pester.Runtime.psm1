@@ -629,13 +629,9 @@ function Invoke-TestItem {
                 -NoNewScope
 
             $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
-            $Test.ErrorRecord += foreach ($record in $result.ErrorRecord) {
-                                    if ($record.FullyQualifiedErrorId -notlike '*PesterAssertionFailed*') {
-                                        $record
-                                    }
-                                }
-            $Test.Passed = $Test.ErrorRecord.Count -eq 0
+            $Test.Passed = $result.Success
             $Test.StandardOutput = $result.StandardOutput
+            $Test.ErrorRecord = $result.ErrorRecord
         }
 
         # setting those values here so they are available for the teardown
@@ -1460,7 +1456,6 @@ function Invoke-ScriptBlock {
                     }
 
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
-
                     $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
                     . $______parameters.ScriptBlock @______innerSplat
 
@@ -1551,7 +1546,6 @@ function Invoke-ScriptBlock {
     }
 
     #$break = $true
-
     $err = $null
     try {
         $parameters = @{

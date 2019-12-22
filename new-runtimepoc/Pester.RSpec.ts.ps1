@@ -8,7 +8,7 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 Import-Module $PSScriptRoot\..\Pester.psd1
 
 $global:PesterDebugPreference = @{
-    ShowFullErrors         = $true
+    ShowFullErrors         = $false
     WriteDebugMessages     = $false
     WriteDebugMessagesFrom = "Mock"
 }
@@ -236,6 +236,113 @@ i -PassThru:$PassThru {
         finally {
             cd $path
             Remove-Item $tempDir -Recurse -Force -Confirm:$false -ErrorAction Stop
+        }
+    }
+
+    b "Terminating and non-terminating Should" {
+        t "Non-terminating assertion fails the test after running to completion" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should -Be 2 # just write this error
+                        "but still output this"
+                    }
+                }
+            } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-False
+            $test.ErrorRecord[0].Exception | Verify-NotNull
+            $test.ErrorRecord[0].ScriptStackTrace | Verify-NotNull
+            $test.ErrorRecord[0].DisplayErrorMessage | Verify-NotNull
+            $test.ErrorRecord[0].DisplayStackTrace | Verify-NotNull
+            $test.StandardOutput | Verify-Equal "but still output this"
+        }
+
+        t "Assertion fails immediately when ErrorActionPreference is set to Stop" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "i1" {
+                        $ErrorActionPreference = 'Stop'
+                        1 | Should -Be 2 # throw because of eap
+                        "do no output this"
+                    }
+                }
+            } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.ErrorRecord[0].Exception | Verify-NotNull
+            $test.ErrorRecord[0].ScriptStackTrace | Verify-NotNull
+            $test.ErrorRecord[0].DisplayErrorMessage | Verify-NotNull
+            $test.ErrorRecord[0].DisplayStackTrace | Verify-NotNull
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "Assertion fails immediately when -ErrorAction is set to Stop" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should -Be 2 -ErrorAction Stop
+                        "do no output this"
+                    }
+                }
+            } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.ErrorRecord[0].Exception | Verify-NotNull
+            $test.ErrorRecord[0].ScriptStackTrace | Verify-NotNull
+            $test.ErrorRecord[0].DisplayErrorMessage | Verify-NotNull
+            $test.ErrorRecord[0].DisplayStackTrace | Verify-NotNull
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "Guard assertion" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "User with guard" {
+                        $user = $null # we failed to get user
+                        $user | Should -Not -BeNullOrEmpty -ErrorAction Stop -Because "otherwise this test makes no sense"
+                        $user.Name | Should -Be Jakub
+                        $user.Age | Should -Be 31
+                    }
+                }
+            } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.ErrorRecord[0].Exception.Message | Verify-Equal "Expected a value, because otherwise this test makes no sense, but got `$null or empty."
+            $test.ErrorRecord[0].ScriptStackTrace | Verify-NotNull
+            $test.ErrorRecord[0].DisplayErrorMessage | Verify-NotNull
+            $test.ErrorRecord[0].DisplayStackTrace | Verify-NotNull
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "Chaining assertions" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "User with guard" {
+                        $user = [PSCustomObject]@{ Name = "Tomas"; Age = 22 }
+                        $user | Should -Not -BeNullOrEmpty -ErrorAction Stop -Because "otherwise this test makes no sense"
+                        $user.Name | Should -Be Jakub
+                        $user.Age | Should -Be 31
+                    }
+                }
+            } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord.Count | Verify-Equal 2
         }
     }
 }
