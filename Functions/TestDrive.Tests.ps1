@@ -103,74 +103,74 @@ InModuleScope Pester {
     }
 }
 
+# Tests problematic symlinks, but needs to run as admin
+# InModuleScope Pester {
 
-InModuleScope Pester {
-
-    Describe "Clear-TestDrive" {
+#     Describe "Clear-TestDrive" {
 
 
-        $skipTest = $false
-        $psVersion = (GetPesterPSVersion)
+#         $skipTest = $false
+#         $psVersion = (GetPesterPSVersion)
 
-        # Symlink cmdlets were introduced in PowerShell v5 and deleting them
-        # requires running as admin, so skip tests when those conditions are
-        # not met
-        if ((GetPesterOs) -eq "Windows") {
-            if ($psVersion -lt 5) {
-                $skipTest = $true
-            }
+#         # Symlink cmdlets were introduced in PowerShell v5 and deleting them
+#         # requires running as admin, so skip tests when those conditions are
+#         # not met
+#         if ((GetPesterOs) -eq "Windows") {
+#             if ($psVersion -lt 5) {
+#                 $skipTest = $true
+#             }
 
-            if ($psVersion -ge 5) {
+#             if ($psVersion -ge 5) {
 
-                $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-                $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
-                $isNotAdmin = -not $windowsPrincipal.IsInRole("Administrators")
+#                 $windowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+#                 $windowsPrincipal = new-object 'Security.Principal.WindowsPrincipal' $windowsIdentity
+#                 $isNotAdmin = -not $windowsPrincipal.IsInRole("Administrators")
 
-                $skipTest = $isNotAdmin
-            }
-        }
+#                 $skipTest = $isNotAdmin
+#             }
+#         }
 
-        It "Deletes symbolic links in TestDrive" -skip:$skipTest {
+#         It "Deletes symbolic links in TestDrive" -skip:$skipTest {
 
-            # using non-powershell paths here because we need to interop with cmd below
-            $root = (Get-PsDrive 'TestDrive').Root
-            $source = "$root\source"
-            $symlink = "$root\symlink"
+#             # using non-powershell paths here because we need to interop with cmd below
+#             $root = (Get-PsDrive 'TestDrive').Root
+#             $source = "$root\source"
+#             $symlink = "$root\symlink"
 
-            $null = New-Item -Type Directory -Path $source
+#             $null = New-Item -Type Directory -Path $source
 
-            if ($PSVersionTable.PSVersion.Major -ge 5) {
-                # native support for symlinks was added in PowerShell 5, but right now
-                # we are skipping anything below v5, so either all tests need to be made
-                # compatible with cmd creating symlinks, or this should be removed
-                $null = New-Item -Type SymbolicLink -Path $symlink -Value $source
-            }
-            else {
-                $null = cmd /c mklink /D $symlink $source
-            }
+#             if ($PSVersionTable.PSVersion.Major -ge 5) {
+#                 # native support for symlinks was added in PowerShell 5, but right now
+#                 # we are skipping anything below v5, so either all tests need to be made
+#                 # compatible with cmd creating symlinks, or this should be removed
+#                 $null = New-Item -Type SymbolicLink -Path $symlink -Value $source
+#             }
+#             else {
+#                 $null = cmd /c mklink /D $symlink $source
+#             }
 
-            @(Get-ChildItem -Path $root).Length | Should -Be 2 -Because "a pre-requisite is that directory and symlink to it is in place"
+#             @(Get-ChildItem -Path $root).Length | Should -Be 2 -Because "a pre-requisite is that directory and symlink to it is in place"
 
-            Clear-TestDrive
+#             Clear-TestDrive
 
-            @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
-        }
+#             @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted including symlinks"
+#         }
 
-        It "Clear-TestDrive removes problematic symlinks" -skip:$skipTest {
-            # this set of symlinks is problematic when removed
-            # via a script and doesn't repro when typed interactively
-            $null = New-Item -Type Directory TestDrive:/d1
-            $null = New-Item -Type Directory TestDrive:/test
-            $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link1 -Target TestDrive:/d1
-            $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2 -Target TestDrive:/d1
-            $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2a -Target TestDrive:/test/link2
+#         It "Clear-TestDrive removes problematic symlinks" -skip:$skipTest {
+#             # this set of symlinks is problematic when removed
+#             # via a script and doesn't repro when typed interactively
+#             $null = New-Item -Type Directory TestDrive:/d1
+#             $null = New-Item -Type Directory TestDrive:/test
+#             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link1 -Target TestDrive:/d1
+#             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2 -Target TestDrive:/d1
+#             $null = New-Item -Type SymbolicLink -Path TestDrive:/test/link2a -Target TestDrive:/test/link2
 
-            $root = (Get-PSDrive 'TestDrive').Root
-            @(Get-ChildItem -Recurse -Path $root).Length | Should -Be 5 -Because "a pre-requisite is that directores and symlinks are in place"
+#             $root = (Get-PSDrive 'TestDrive').Root
+#             @(Get-ChildItem -Recurse -Path $root).Length | Should -Be 5 -Because "a pre-requisite is that directores and symlinks are in place"
 
-            Clear-TestDrive
+#             Clear-TestDrive
 
-            @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted"
-        }
-    }
-}
+#             @(Get-ChildItem -Path $root).Length | Should -Be 0 -Because "everything should be deleted"
+#         }
+#     }
+# }

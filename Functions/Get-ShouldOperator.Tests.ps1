@@ -31,7 +31,9 @@ InModuleScope Pester {
         }
 
         Context 'Name parameter' {
-            $BGT = Get-ShouldOperator -Name BeGreaterThan
+            BeforeAll {
+                $BGT = Get-ShouldOperator -Name BeGreaterThan
+            }
 
             It 'Should return a help examples object' {
                 # BeOfType doesn't work here. PowerShell's help system is weird

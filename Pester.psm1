@@ -1,8 +1,8 @@
-﻿Get-Module Pester.Utility, Pester.Runtime, Pester.RSpec | Remove-Module
+﻿Get-Module Pester.Utility, Pester.Runtime | Remove-Module
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.Utility.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
-Import-Module $PSScriptRoot\new-runtimepoc\Pester.RSpec.psm1 -DisableNameChecking
 
+. $PSScriptRoot\new-runtimepoc\Pester.RSpec.ps1
 . $PSScriptRoot\Functions\Pester.SafeCommands.ps1
 
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
@@ -654,18 +654,17 @@ function Invoke-Pester {
         [string[]]$ExcludeTag,
 
         [Parameter(ParameterSetName = "Simple")]
-        [switch]$PassThru,
-
-        [Parameter(ParameterSetName = "Simple")]
         [Switch]$CI,
 
         [Parameter(ParameterSetName = "Simple")]
         [ValidateSet("Normal", "None")]
         $Output = 'Normal',
 
+        [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock
     )
     begin {
+        $start = [DateTime]::Now
         if ($CI) {
             $EnableExit = $true
         }
@@ -687,7 +686,7 @@ function Invoke-Pester {
 
             $pluginConfiguration = @{}
 
-            $plugins = @()
+            $plugins = @(Get-RSpecObjectDecoratorPlugin)
             if ($Output -ne "None") {
                 $plugins += Get-WriteScreenPlugin
             }
@@ -698,7 +697,21 @@ function Invoke-Pester {
                 Get-MockPlugin
             )
 
-            if ($CodeCoverage) {
+            if ($CI) {
+                $CodeCoverage = @{ Path = foreach ($p in $Path) {
+                    # this is a bit ugly, but the logic here is
+                    # that we check if the path exists,
+                    # and if it does and is a file then we return the
+                    # parent directory, otherwise we got a directory
+                    # and return just it
+                    $i = Get-Item $p
+                    if ($i.PSIsContainer) {
+                        Join-Path $i.FullName "*"
+                    }
+                    else {
+                        Join-Path $i.Directory.FullName "*"
+                    }
+                }}
                 $plugins += (Get-CoveragePlugin)
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
@@ -710,30 +723,61 @@ function Invoke-Pester {
                 $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
             }
 
-            if (any $Path) {
-                if (none ($ScriptBlock) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
+            if ((any $Path)) {
+                if ((none ($ScriptBlock)) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $containers += @(Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+                    $containers += @(Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | where { $_ } | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
                 }
             }
 
-            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{ Containers = $containers } -ThrowOnFailure
+            # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
+            $pluginData = @{}
+            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
+                Containers = $containers
+                Configuration = $pluginConfiguration
+                GlobalPluginData = $pluginData
+            } -ThrowOnFailure
 
-            if (none $containers) {
+            if ((none $containers)) {
                 throw "No test files were found and no scriptblocks were provided."
                 return
             }
 
             $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter
 
+            foreach ($c in $r) {
+                Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
+            }
 
-            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
+            $parameters = @{
+                PSBoundParameters = $PSBoundParameters
+            }
+            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData
+
+            PostProcess-RSpecTestRun -TestRun $run
+            $run
+            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
+                TestRun = $run
+                Configuration = $pluginConfiguration
+            } -ThrowOnFailure
 
 
-            if ($PassThru) {
-                $r
+            if ($CI) {
+                $legacyResult = Get-LegacyResult $r
+            }
+
+            if ($CI) {
+                Export-NunitReport $run (Join-Path  "." "testResults.xml")
+            }
+
+            if ($CI) {
+                $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
+                $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
+                $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
+                $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
             }
 
             if ($EnableExit -and $legacyResult.FailedCount -gt 0) {
@@ -975,7 +1019,7 @@ function Contain-AnyStringLike ($Filter, $Collection) {
 function Get-LegacyResult {
     param($RunResult)
 
-    $o = @{
+    $acc = @{
         Time              = [timespan]::Zero
         FrameworkTime     = [timespan]::Zero
         PassedCount       = 0
@@ -983,26 +1027,48 @@ function Get-LegacyResult {
         SkippedCount      = 0
         PendingCount      = 0
         InconclusiveCount = 0
+        TestResult        = [System.Collections.ArrayList]@()
     }
 
     $RunResult | Fold-Container -OnTest {
         param($test)
-        if ($test.Passed) {
-            $o.PassedCount++
-        }
-        elseif ($test.ShouldRun -and (-not $test.Executed -or -not $test.Passed)) {
-            $o.FailedCount++
-        }
-        else {
-            $o.SkippedCount++
-        }
 
-        $o.FrameworkTime += $test.FrameworkDuration
+        if ("Passed" -eq $test.Result) {
+            $acc.PassedCount++
+        }
+        elseif ("Failed" -eq $test.Result) {
+            $acc.FailedCount++
+        }
+        elseif ("Skipped" -eq $test.Result) {
+            $acc.SkippedCount++
+        }
+        else { throw "Result '$($test.Result)' is not supported test result." }
+
+        $acc.FrameworkTime += $test.FrameworkDuration
+        $acc.TestResult += [PSCustomObject]@{
+            Passed = $test.Passed
+            Result = $test.Result
+            Time = $test.Time
+            Name = $test.Name
+
+            # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
+            # considered to be Context and joined by '\'
+            Describe = $test.Path[0]
+            Context = $(if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'})
+
+            Show = "All" # todo: populate this from something like "$test.Block.Root.PluginData.WriteScreen.Show" ?
+            Parameters = $test.Data
+            ParameterizedSuiteName = $test.DisplayName
+
+            FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
+            ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
+            StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
+        }
     }
 
-    $o.Time = (sum $RunResult Duration ([timespan]::Zero)) + (sum $RunResult FrameworkDuration ([timespan]::Zero)) + (sum $RunResult DiscoveryDuration ([timespan]::Zero))
+    $acc.Time = (sum $RunResult Duration ([timespan]::Zero)) + (sum $RunResult FrameworkDuration ([timespan]::Zero)) + (sum $RunResult DiscoveryDuration ([timespan]::Zero))
 
-    $o
+    $acc
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
@@ -1016,5 +1082,6 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll, Anywhere
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
 & $script:SafeCommands['Export-ModuleMember'] New-PesterOptions
-& $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
+# & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
+& $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport

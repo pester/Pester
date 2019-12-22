@@ -1,11 +1,23 @@
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
 
+Add-Type -TypeDefinition "
+using System.Management.Automation;
+
+public static class MemberFactory {
+    public static PSNoteProperty CreateNoteProperty(string name, object value) {
+        return new PSNoteProperty(name, value);
+    }
+}
+"
+
 if (notDefined PesterDebugPreference) {
+    # todo: instead of replacing the whole hashtable when not defined I should merge the defaults with the hashtable that is defined, that way the runtime can rely on the properties always being there, and there is probably already a function to do that because I use it in Mocks I think -- nhw
     $global:PesterDebugPreference = @{
         ShowFullErrors         = $false
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = $null
+        ShowNavigationMarkers  = $false
     }
 }
 else {
@@ -148,22 +160,40 @@ function ConvertTo-ExecutedBlockContainer {
     $content = tryGetProperty $container Content
     $type = tryGetProperty $container Type
 
-    $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
+    $properties = @{
+        Content = $content
+        Type = $type
+    }
+
+    if ("file" -eq $Block.BlockContainer.Type) {
+        $properties.Add("Path", $content)
+    }
+
+    $excluded = @(
         "Parent"
         "Name"
         "Tag"
         "First"
         "Last"
         "StandardOutput"
-        "Path"
-    ) -Property @(
-        @{n = "Content"; e = { $content } }
-        @{n = "Type"; e = { $type } },
-        @{n = "PSTypename"; e = { "ExecutedBlockContainer" } }
-        '*'
+        "Path" # <- this is abc.gef on Block, not filepath
+        "Order"
     )
 
-    $b
+    foreach ($b in @($Block)) {
+        $o = @{}
+        foreach ($p in $Block.PSObject.Properties) {
+            if ($p.Name -notin $excluded) {
+                $o.Add($p.Name, $p.Value)
+            }
+        }
+
+        foreach ($p in $properties.GetEnumerator()) {
+            $o.Add($p.Key, $p.Value)
+        }
+
+        New_PSObject -Type "ExecutedBlockContainer" -Property $o
+    }
 }
 
 
@@ -279,15 +309,15 @@ function Invoke-Block ($previousBlock) {
             try {
                 if (-not $block.ShouldRun) {
                     if ($PesterDebugPreference.WriteDebugMessages) {
-                        Write-PesterDebugMessage -Scope Runtime "Block is excluded from run, returning"
+                        Write-PesterDebugMessage -Scope Runtime "Block '$($block.Name)' is excluded from run, returning"
                     }
-                    return
+                    continue
                 }
 
                 $block.ExecutedAt = [DateTime]::Now
                 $block.Executed = $true
                 if ($PesterDebugPreference.WriteDebugMessages) {
-                    Write-PesterDebugMessage -Scope Runtime "Executing body of block $Name"
+                    Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
 
                 # TODO: no callbacks are provided because we are not transitioning between any states,
@@ -373,7 +403,7 @@ function Invoke-Block ($previousBlock) {
                         -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
                         -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
 
-                    $block.Passed = $result.Success
+                    $block.OwnPassed = $result.Success
                     $block.StandardOutput = $result.StandardOutput
 
                     $block.ErrorRecord = $result.ErrorRecord
@@ -438,7 +468,7 @@ function New-Test {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable] $Data = @{ },
+        [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
         [Switch] $Focus
     )
@@ -458,19 +488,21 @@ function New-Test {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
         }
 
-        $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
-        if (-not $hasExternalId) {
-            $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
+        # TODO: this id stuff is probably not needed, we don't need to relay tests together here, it was useful before for new runtime that was executing the code twice, but now we are just going by the test order so we don't need the id anymore
+        # $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+        # if (-not $hasExternalId) {
+        #     $Id = 0
+        #     $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
 
-            if ($null -eq $PreviouslyGeneratedTests) {
-                # TODO: this enables tests that are not in a block to run. those are outdated tests in my
-                # test suite, so this should be imho removed later, and the tests rewritten
-                $PreviouslyGeneratedTests = @{ }
+        #     if ($null -eq $PreviouslyGeneratedTests) {
+        #         # TODO: this enables tests that are not in a block to run. those are outdated tests in my
+        #         # test suite, so this should be imho removed later, and the tests rewritten
+        #         $PreviouslyGeneratedTests = @{ }
 
-            }
+        #     }
 
-            $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
-        }
+        #     $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
+        # }
 
         $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
         $test.FrameworkData.Runtime.Phase = 'Discovery'
@@ -842,7 +874,7 @@ function New-TestObject {
         [String] $Name,
         [String[]] $Path,
         [String[]] $Tag,
-        [HashTable] $Data,
+        [System.Collections.IDictionary] $Data,
         [String] $Id,
         [ScriptBlock] $ScriptBlock,
         [Switch] $Focus
@@ -905,6 +937,7 @@ function New-BlockObject {
         Id                   = $Id
         ItemType                 = 'Block'
         Tests                = [Collections.Generic.List[Object]]@()
+        # TODO: consider renaming this to just Container
         BlockContainer       = $null
         Root                 = $null
         IsRoot               = $null
@@ -932,7 +965,19 @@ function New-BlockObject {
         FrameworkDuration    = [timespan]::Zero
         OwnDuration          = [timespan]::Zero
         DiscoveryDuration    = [timespan]::Zero
-        AggregatedPassed     = $false
+        OwnPassed     = $false
+        TotalCount = 0
+        PassedCount = 0
+        FailedCount = 0
+        SkippedCount = 0
+        PendingCount = 0
+        InconclusiveCount = 0
+        OwnTotalCount = 0
+        OwnPassedCount = 0
+        OwnFailedCount = 0
+        OwnSkippedCount = 0
+        OwnPendingCount = 0
+        OwnInconclusiveCount = 0
     }
 }
 
@@ -969,7 +1014,10 @@ function Discover-Test {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
-    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{ BlockContainers = $BlockContainer } -ThrowOnFailure
+    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
+        BlockContainers = $BlockContainer
+        Configuration = $state.PluginConfiguration
+    } -ThrowOnFailure
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
@@ -988,7 +1036,10 @@ function Discover-Test {
 
         Reset-PerContainerState -RootBlock $root
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{ BlockContainer = $container } -ThrowOnFailure
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
+            BlockContainer = $container
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
@@ -1001,6 +1052,7 @@ function Discover-Test {
             BlockContainer = $container
             Block          = $root
             Duration       = $perContainerDiscoveryDuration.Elapsed
+            Configuration = $state.PluginConfiguration
         } -ThrowOnFailure
 
         $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
@@ -1050,6 +1102,7 @@ function Discover-Test {
         AnyFocusedTests = $focusedTests.Count -gt 0
         FocusedTests    = $focusedTests
         Duration        = $totalDiscoveryDuration.Elapsed
+        Configuration = $state.PluginConfiguration
     } -ThrowOnFailure
 
     if ($PesterDebugPreference.WriteDebugMessages) {
@@ -1082,7 +1135,10 @@ function Run-Test {
         $rootBlock.Executed = $true
         $rootBlock.ExecutedAt = [DateTime]::now
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{ Block = $rootBlock } -ThrowOnFailure
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
+            Block = $rootBlock
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
 
         try {
             # if ($null -ne $rootBlock.OneTimeBlockSetup) {
@@ -1114,7 +1170,10 @@ function Run-Test {
 
                 $rootSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First) { selectNonNull $rootBlock.OneTimeTestSetup }
+                    # if ($rootBlock.ShouldRun) {
+                        # todo: should this always run?
+                        selectNonNull $rootBlock.OneTimeTestSetup
+                    # }
                 ) `
                     -Setup @() `
                     -ScriptBlock { } `
@@ -1132,10 +1191,10 @@ function Run-Test {
 
             $null = Invoke-Block -previousBlock $rootBlock
 
-            $rootBlock.Passed = $true
+            $rootBlock.OwnPassed = $true
         }
         catch {
-            $rootBlock.Passed = $false
+            $rootBlock.OwnPassed = $false
             $rootBlock.ErrorRecord.Add($_)
         }
 
@@ -1147,6 +1206,7 @@ function Run-Test {
         Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
             Result = $result
             Block  = $rootBlock
+            Configuration = $state.PluginConfiguration
         } -ThrowOnFailure
 
         # set this again so the plugins have some data but that we also include the plugin invocation to the
@@ -1173,9 +1233,14 @@ function Invoke-PluginStep {
         [Switch] $ThrowOnFailure
     )
 
+    # there are actually two ways to invoke plugin steps, this unified cmdlet that allows us to run the steps
+    # in isolation, and then another where we are using Invoke-ScriptBlock directly when we need the plugin to run
+    # for example as a teardown step of a test.
+
     Switch-Timer -Scope Framework
-    # useful for measuring the plugin execution without overhead of the debug messages
-    # $sw = [Diagnostics.Stopwatch]::StartNew()
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+    }
 
     # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
     $isEndStep = $Step -like "*End"
@@ -1212,6 +1277,7 @@ function Invoke-PluginStep {
 
         try {
             if ($PesterDebugPreference.WriteDebugMessages) {
+                $stepSw = [Diagnostics.Stopwatch]::StartNew()
                 Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
             }
 
@@ -1226,14 +1292,14 @@ function Invoke-PluginStep {
             } while ($false)
 
             if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope Plugin "Finished $($p.Name) step $Step"
+                Write-PesterDebugMessage -Scope Plugin "Success $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms"
             }
         }
         catch {
             $failed = $true
             $err.Add($_)
             if ($PesterDebugPreference.WriteDebugMessages) {
-                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step" -ErrorRecord $_
+                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms" -ErrorRecord $_
             }
         }
     }
@@ -1241,7 +1307,9 @@ function Invoke-PluginStep {
     $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
 
 
-    # Write-Host "Invoking step $Step took $($sw.ElapsedMilliseconds) ms"
+    if ($PesterDebugPreference.WriteDebugMessages) {
+        Write-PesterDebugMessage -Scope Plugin "Invoking plugins in step $Step took $($sw.ElapsedMilliseconds) ms"
+    }
     if ($ThrowOnFailure) {
         Assert-Success $r -Message "Invoking step $step failed"
     }
@@ -1396,7 +1464,7 @@ function Invoke-ScriptBlock {
                     $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
                     . $______parameters.ScriptBlock @______innerSplat
 
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scrtptblock" }
+                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scriptblock" }
                 }
                 catch {
                     $______parameters.ErrorRecord.Add($_)
@@ -1925,25 +1993,90 @@ function PostProcess-ExecutedBlock {
 
     process {
         foreach ($b in $Block) {
-            $thisBlockFailed = -not $b.Passed
-            $tests = $b.Tests
-            $anyTestFailed = any ($(foreach ($t in $tests) { if ($t.Executed -and -not $t.Passed) { $t } }))
-            $testDuration = sum $tests 'Duration' ([TimeSpan]::Zero)
+            $thisBlockFailed = -not $b.OwnPassed
+
+            $b.OwnTotalCount = 0
+            $b.OwnFailedCount = 0
+            $b.OwnPassedCount = 0
+            $b.OwnSkippedCount = 0
+
+            $testDuration = [TimeSpan]::Zero
+
+            foreach ($t in $b.Tests) {
+                $testDuration += $t.Duration
+
+                $b.OwnTotalCount++
+                if (-not $t.ShouldRun) {
+                    $b.OwnSkippedCount++
+                }
+                elseif (($t.Executed -and -not $t.Passed) -or ($t.ShouldRun -and -not $t.Executed)) {
+                    # TODO:  this condition works but needs to be revisited. when the parent fails the test is marked as failed, because it should have run but it did not,and but there is no error in the test result, in such case all tests should probably add error or a flag that indicates that the parent failed, or a log or something, but error is probably the best
+                    $b.OwnFailedCount++
+                }
+                elseif ($t.Executed -and $t.Passed) {
+                    $b.OwnPassedCount++
+                }
+                else {
+                    throw "Test '$($t.Name)' is in invalid state. $($t | Format-List -Force * | Out-String)"
+                }
+            }
+
+            $anyTestFailed = 0 -lt $b.OwnFailedCount
 
             $childBlocks = $b.Blocks
             $anyChildBlockFailed = $false
             $aggregatedChildDuration = [TimeSpan]::Zero
-            if (any $childBlocks) {
-                foreach ($cb in $childBlocks) {
-                    PostProcess-ExecutedBlock -Block $cb
-                }
-                $aggregatedChildDuration = sum $childBlocks 'Duration' ([TimeSpan]::Zero)
-                $anyChildBlockFailed = any ($(foreach ($b in $childBlocks) { if ($b.Executed -and -not $b.Passed) { $b } }))
+            if (none $childBlocks) {
+                # one thing to consider here is what happens when a block fails, in the current
+                # excecution model the block can fail when a setup or teardown fails, with failed
+                # setup it is easy all the tests in the block are considered failed, with teardown
+                # not so much, when all tests pass and the teardown itself fails what should be the result?
+
+
+
+                # todo: there are two concepts mixed with the "own", because the duration and the test counts act differently. With the counting we are using own as "the count of the tests in this block", but with duration the "own" means "self", that is how long this block itself has run, without the tests. This information might not be important but this should be cleared up before shipping. Same goes with the relation to failure, ownPassed means that the block itself passed (that is no setup or teardown failed in it), even though the underlying tests might fail.
+
+
+                $b.OwnDuration = $b.Duration - $testDuration
+
+                $b.Passed = -not ($thisBlockFailed -or $anyTestFailed)
+
+                # we have no child blocks so the own counts are the same as the total counts
+                $b.TotalCount = $b.OwnTotalCount
+                $b.FailedCount = $b.OwnFailedCount
+                $b.PassedCount = $b.OwnPassedCount
+                $b.SkippedCount = $b.OwnSkippedCount
             }
+            else {
+                # when we have children we first let them process themselves and
+                # then we add the results together (the recusion could reach to the parent and add the totals)
+                # but that is difficult with the duration, so this way is less error prone
+                PostProcess-ExecutedBlock -Block $childBlocks
 
+                foreach ($child in $childBlocks) {
+                    # check that no child block failed, the Passed is aggregate failed, so it will be false
+                    # when any test fails in the child, or if the block itself fails
+                    if (-not $child.Passed) {
+                        $anyChildBlockFailed = $true
+                    }
 
-            $b.AggregatedPassed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
-            $b.OwnDuration = $b.Duration - $testDuration - $aggregatedChildDuration
+                    $aggregatedChildDuration += $child.Duration
+
+                    $b.TotalCount += $child.TotalCount
+                    $b.PassedCount += $child.PassedCount
+                    $b.FailedCount += $child.FailedCount
+                    $b.SkippedCount += $child.SkippedCount
+                }
+
+                # then we add counts from this block to the counts from the children blocks
+                $b.TotalCount += $b.OwnTotalCount
+                $b.PassedCount += $b.OwnPassedCount
+                $b.FailedCount += $b.OwnFailedCount
+                $b.SkippedCount += $b.OwnSkippedCount
+
+                $b.Passed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
+                $b.OwnDuration = $b.Duration - $testDuration - $aggregatedChildDuration
+            }
         }
     }
 }
@@ -1955,7 +2088,7 @@ function Where-Failed {
         $Block
     )
 
-    $Block | View-Flat | Where { -not $_.Passed }
+    $Block | View-Flat | where { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
 }
 
 function View-Flat {
@@ -2273,23 +2406,20 @@ function New-ParametrizedTest () {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
-        [HashTable[]] $Data = @{ },
-        [Switch] $Focus,
-        [String] $Id
+        # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
+        [System.Collections.IDictionary[]] $Data = @{ },
+        [Switch] $Focus
     )
 
     Switch-Timer -Scope Framework
-    $counter = 0
-    $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
+    # TODO: there used to be counter, that was added to the id, seems like I am missing TestGroup on the test cases, so I can reconcile them back if they were generated from testcases
+    # $counter = 0
+
+    # using the start line of the scriptblock as the id of the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
+    $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
-        # no when there is no external id we rely on the internal
-        # logic to do it's test duplication prevention thing,
-        # otherwise we attach our id, so the user can provide their own external ids
-        # this would fail when the count of the test cases would change between discovery
-        # and run, so this might need an option to provide explicit ids for the test cases if the logic
-        # here proves to be not sufficient
-        $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
-        New-Test -Id $innerId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
+    #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
+        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
     }
 }
 

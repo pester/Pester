@@ -15,39 +15,40 @@ $global:PesterDebugPreference = @{
 
 i -PassThru:$PassThru {
     b "Running generated tests" {
-        t "generating simple tests from foreach with external Id" {
-            $result = Invoke-Pester -ScriptBlock {
-                Describe "d1" {
-                    foreach ($id in 1..10) {
-                        It "it${id}" { $true } -AutomationId $id
-                    }
-                }
-            } -PassThru
+        # # automation id is no-longer relevant I think
+        # t "generating simple tests from foreach with external Id" {
+        #     $result = Invoke-Pester -ScriptBlock {
+        #         Describe "d1" {
+        #             foreach ($id in 1..10) {
+        #                 It "it${id}" { $true } -AutomationId $id
+        #             }
+        #         }
+        #     }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 10
-            $result.Blocks[0].Tests[0].Passed | Verify-True
-        }
+        #     $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+        #     $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+        #     $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+        # }
 
-        t "generating parametrized tests from foreach with external id" {
-            $result = Invoke-Pester -ScriptBlock {
-                Describe "d1" {
-                    foreach ($id in 1..10) {
-                        It "it$id-<value>" -TestCases @(
-                            @{ Value = 1}
-                            @{ Value = 2}
-                            @{ Value = 3}
-                        ) {
-                            $true
-                        } -AutomationId $id
-                    }
-                }
-            } -PassThru
+        # t "generating parametrized tests from foreach with external id" {
+        #     $result = Invoke-Pester -ScriptBlock {
+        #         Describe "d1" {
+        #             foreach ($id in 1..10) {
+        #                 It "it$id-<value>" -TestCases @(
+        #                     @{ Value = 1}
+        #                     @{ Value = 2}
+        #                     @{ Value = 3}
+        #                 ) {
+        #                     $true
+        #                 } -AutomationId $id
+        #             }
+        #         }
+        #     }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 30
-            $result.Blocks[0].Tests[0].Passed | Verify-True
-        }
+        #     $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+        #     $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 30
+        #     $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+        # }
 
         t "generating simple tests from foreach without external Id" {
             $result = Invoke-Pester -ScriptBlock {
@@ -56,11 +57,11 @@ i -PassThru:$PassThru {
                         It "it$id" { $true }
                     }
                 }
-            } -PassThru
+            }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 10
-            $result.Blocks[0].Tests[0].Passed | Verify-True
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "generating parametrized tests from foreach without external id" {
@@ -76,11 +77,11 @@ i -PassThru:$PassThru {
                         }
                     }
                 }
-            } -PassThru
+            }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 30
-            $result.Blocks[0].Tests[0].Passed | Verify-True
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 30
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "generating multiple parametrized tests from foreach without external id" {
@@ -104,40 +105,41 @@ i -PassThru:$PassThru {
                         }
                     }
                 }
-            } -PassThru
+            }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 60
-            $result.Blocks[0].Tests[0].Passed | Verify-True
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 60
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
-        t "generating multiple parametrized tests from foreach with external id" {
-            $result = Invoke-Pester -ScriptBlock {
-                Describe "d1" {
-                    foreach ($id in 1..10) {
-                        It "first-it-$id-<value>" -TestCases @(
-                            @{ Value = 1}
-                            @{ Value = 2}
-                            @{ Value = 3}
-                        ) {
-                            $true
-                        } -AutomationId $Id
+    # automationId is not relevant right now
+    #     t "generating multiple parametrized tests from foreach with external id" {
+    #         $result = Invoke-Pester -ScriptBlock {
+    #             Describe "d1" {
+    #                 foreach ($id in 1..10) {
+    #                     It "first-it-$id-<value>" -TestCases @(
+    #                         @{ Value = 1}
+    #                         @{ Value = 2}
+    #                         @{ Value = 3}
+    #                     ) {
+    #                         $true
+    #                     } -AutomationId $Id
 
-                        It "second-it-$id-<value>" -TestCases @(
-                            @{ Value = 1}
-                            @{ Value = 2}
-                            @{ Value = 3}
-                        ) {
-                            $true
-                        } -AutomationId $id
-                    }
-                }
-            } -PassThru
+    #                     It "second-it-$id-<value>" -TestCases @(
+    #                         @{ Value = 1}
+    #                         @{ Value = 2}
+    #                         @{ Value = 3}
+    #                     ) {
+    #                         $true
+    #                     } -AutomationId $id
+    #                 }
+    #             }
+    #         }
 
-            $result.Blocks[0].ErrorRecord | Verify-Null
-            $result.Blocks[0].Tests.Count | Verify-Equal 60
-            $result.Blocks[0].Tests[0].Passed | Verify-True
-        }
+    #         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+    #         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 60
+    #         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+    #     }
     }
 
     b "BeforeAll paths" {
@@ -146,7 +148,7 @@ i -PassThru:$PassThru {
                 InScript = $null
                 InBeforeAll = $null
             }
-            $result = Invoke-Pester -ScriptBlock {
+            $null = Invoke-Pester -ScriptBlock {
                 $container.InScript = $PSScriptRoot
                 BeforeAll {
                     $container.InBeforeAll = $PSScriptRoot
@@ -158,9 +160,82 @@ i -PassThru:$PassThru {
                         $true
                     }
                 }
-            } -PassThru
+            }
 
             $container.InBeforeAll | Verify-Equal $container.InScript
+        }`
+    }
+
+    b "Invoke-Pester parameters" {
+        try {
+            $path = $pwd
+            $c = 'Describe "d1" { It "i1" -Tag i1 { $true }; It "i2" -Tag i2 { $true }}'
+            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "dir"
+            New-Item -ItemType Directory -Path $tempDir -Force
+            $file1 = Join-Path $tempDir "file1.Tests.ps1"
+            $file2 = Join-Path $tempDir "file2.Tests.ps1"
+
+            $c | Set-Content $file1
+            $c | Set-Content $file2
+            cd $tempDir
+
+            t "Running without any params runs all files from the local folder" {
+
+                $result = Invoke-Pester
+
+                $result.Containers.Count | Verify-Equal 2
+                $result.Containers[0].Path.FullName | Verify-Equal $file1
+                $result.Containers[1].Path.FullName | Verify-Equal $file2
+            }
+
+            t "Running tests from Paths runs them" {
+                $result = Invoke-Pester -Path $file1, $file2
+
+                $result.Containers.Count | Verify-Equal 2
+                $result.Containers[0].Path.FullName | Verify-Equal $file1
+                $result.Containers[1].Path.FullName | Verify-Equal $file2
+            }
+
+            t "Exluding full path excludes it tests from Paths runs them" {
+                $result = Invoke-Pester -Path $file1, $file2 -ExcludePath $file2
+
+                $result.Containers.Count | Verify-Equal 1
+                $result.Containers[0].Path | Verify-Equal $file1
+            }
+
+            t "Including tag runs just the test with that tag" {
+                $result = Invoke-Pester -Path $file1 -Tag i1
+
+                $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+                $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-False
+            }
+
+            t "Excluding tag skips the test with that tag" {
+                $result = Invoke-Pester -Path $file1 -ExcludeTag i1
+
+                $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
+                $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-True
+            }
+
+            t "Scriptblock invokes inlined test" {
+                $result = Invoke-Pester -Path $file1 -ScriptBlock { Describe "d1" { It "i1" { $true }} }
+
+                $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
+            }
+
+            t "Result object is output by default" {
+                $result = Invoke-Pester -Path $file1
+
+                $result | Verify-NotNull
+            }
+
+            t "CI generates code coverage and xml output" {
+                # todo:
+            }
+        }
+        finally {
+            cd $path
+            Remove-Item $tempDir -Recurse -Force -Confirm:$false -ErrorAction Stop
         }
     }
 }
