@@ -244,6 +244,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
+                        $ErrorActionPreference = 'Continue'
                         1 | Should -Be 2 # just write this error
                         "but still output this"
                     }
