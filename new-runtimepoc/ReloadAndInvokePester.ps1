@@ -1,6 +1,5 @@
 get-module pester | remove-module
 
-
 $v5 = $true
 if ($v5) {
     Import-Module ./Pester.psd1
@@ -11,7 +10,7 @@ if ($v5) {
 $global:PesterDebugPreference = @{
     ShowFullErrors         = $true
     WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "Runtime*"
+    WriteDebugMessagesFrom = "Plugin"
     ShowNavigationMarkers = $true
 }
 
@@ -23,6 +22,8 @@ $path = "/Projects/pester_main"
 $path = "~/Pester"
 # $path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
 $path = "C:\projects\pester_main\Functions\Output.Tests.ps1"
+cd c:\temp\cc
+$path = "C:\temp\cc"
 
 
 Set-StrictMode -Version Latest

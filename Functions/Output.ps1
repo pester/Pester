@@ -26,7 +26,7 @@ $script:ReportStrings = DATA {
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
-        TestsSkipped      = 'Skipped: {0}, '
+        TestsSkipped      = 'Skipped: {0} '
         TestsPending      = 'Pending: {0}, '
         TestsInconclusive = 'Inconclusive: {0} '
     }
@@ -192,61 +192,61 @@ function Remove-Comments ($Text) {
 function Write-PesterReport {
     param (
         [Parameter(mandatory = $true, valueFromPipeline = $true)]
-        $PesterState
+        $RunResult
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
-    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime $PesterState.Time)) -Foreground $ReportTheme.Foreground
+    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration + $RunResult.FrameworkDuration + $RunResult.DiscoveryDuration))) -Foreground $ReportTheme.Foreground
 
-    $Success, $Failure = if ($PesterState.FailedCount -gt 0) {
+    $Success, $Failure = if ($RunResult.FailedCount -gt 0) {
         $ReportTheme.Foreground, $ReportTheme.Fail
     }
     else {
         $ReportTheme.Pass, $ReportTheme.Information
     }
-    $Skipped = if ($PesterState.SkippedCount -gt 0) {
+    $Skipped = if ($RunResult.SkippedCount -gt 0) {
         $ReportTheme.Skipped
     }
     else {
         $ReportTheme.Information
     }
-    $Pending = if ($PesterState.PendingCount -gt 0) {
-        $ReportTheme.Pending
-    }
-    else {
-        $ReportTheme.Information
-    }
-    $Inconclusive = if ($PesterState.InconclusiveCount -gt 0) {
-        $ReportTheme.Inconclusive
-    }
-    else {
-        $ReportTheme.Information
-    }
+    # $Pending = if ($RunResult.PendingCount -gt 0) {
+    #     $ReportTheme.Pending
+    # }
+    # else {
+    #     $ReportTheme.Information
+    # }
+    # $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
+    #     $ReportTheme.Inconclusive
+    # }
+    # else {
+    #     $ReportTheme.Information
+    # }
 
-    Try {
-        $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
-    }
-    Catch {
-        $PesterStatePassedScenariosCount = 0
-    }
+    # Try {
+    #     $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
+    # }
+    # Catch {
+    #     $PesterStatePassedScenariosCount = 0
+    # }
 
-    Try {
-        $PesterStateFailedScenariosCount = $PesterState.FailedScenarios.Count
-    }
-    Catch {
-        $PesterStateFailedScenariosCount = 0
-    }
+    # Try {
+    #     $PesterStateFailedScenariosCount = $PesterState.FailedScenarios.Count
+    # }
+    # Catch {
+    #     $PesterStateFailedScenariosCount = 0
+    # }
 
-    if ($ReportStrings.ContextsPassed) {
-        & $SafeCommands['Write-Host'] ($ReportStrings.ContextsPassed -f $PesterStatePassedScenariosCount) -Foreground $Success -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
-    }
+    # if ($ReportStrings.ContextsPassed) {
+    #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsPassed -f $PesterStatePassedScenariosCount) -Foreground $Success -NoNewLine
+    #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
+    # }
     if ($ReportStrings.TestsPassed) {
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $PesterState.PassedCount) -Foreground $Success -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $PesterState.FailedCount) -Foreground $Failure -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $PesterState.SkippedCount) -Foreground $Skipped -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $PesterState.PendingCount) -Foreground $Pending -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $PesterState.InconclusiveCount) -Foreground $Inconclusive
+        & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
+        & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
+        & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
+        # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
+        # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     }
 }
 
@@ -420,7 +420,7 @@ function Get-WriteScreenPlugin {
         -Start {
         param ($Context)
 
-        if ($null -eq $Context.Containers -or @($Context.Containers).Count -eq 0) {
+        if ($null -eq $Context.TestRun.Containers -or @($Context.TestRun.Containers).Count -eq 0) {
             return
         }
 
@@ -581,9 +581,8 @@ function Get-WriteScreenPlugin {
     } `
         -End {
         param ( $Context )
-        $r = $Context.Result
-        $legacyResult = Get-LegacyResult $r
-        Write-PesterReport $legacyResult
+
+        Write-PesterReport $Context.TestRun
     }
 
 }

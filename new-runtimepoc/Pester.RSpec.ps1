@@ -110,14 +110,20 @@ function New-RSpecTestRunObject {
         [Parameter(Mandatory)]
         [Hashtable] $Parameters,
         [Hashtable] $BoundParameters,
+        $Plugins,
+        [Hashtable] $PluginConfiguration,
+        [Hashtable] $PluginData,
         # [PSTypeName('ExecutedBlockContainer')]
         [object[]] $BlockContainer)
 
-    $run = [PSCustomObject]@{
+   [PSCustomObject]@{
         PSTypeName = 'PesterRSpecTestRun'
         ExecutedAt = $ExecutedAt
         Containers = [Collections.ArrayList]@($BlockContainer)
         PSBoundParameters = $BoundParameters
+        Plugins = $Plugins
+        PluginConfiguration = $PluginConfiguration
+        PluginData = $PluginData
 
         Duration = [TimeSpan]::Zero
         FrameworkDuration = [TimeSpan]::Zero
@@ -131,38 +137,38 @@ function New-RSpecTestRunObject {
         Tests = [Collections.ArrayList]@()
         TestsCount = 0
     }
+}
 
-    $tests = @(View-Flat -Block $BlockContainer)
+function PostProcess-RspecTestRun ($TestRun) {
+    $tests = @(View-Flat -Block $TestRun.Containers)
 
     foreach ($t in $tests) {
         switch ($t.Result) {
             "Passed" {
-                $null = $run.Passed.Add($t)
+                $null = $TestRun.Passed.Add($t)
             }
             "Failed" {
-                $null = $run.Failed.Add($t)
+                $null = $TestRun.Failed.Add($t)
             }
             "Skipped" {
-                $null = $run.Skipped.Add($t)
+                $null = $TestRun.Skipped.Add($t)
             }
             default { throw "Result $($t.Result) is not supported."}
         }
     }
 
     foreach ($c in $BlockContainer) {
-        $run.Duration += $c.Duration
-        $run.FrameworkDuration += $c.FrameworkDuration
-        $run.DiscoveryDuration += $c.DiscoveryDuration
+        $TestRun.Duration += $c.Duration
+        $TestRun.FrameworkDuration += $c.FrameworkDuration
+        $TestRun.DiscoveryDuration += $c.DiscoveryDuration
     }
 
-    $run.PassedCount = $run.Passed.Count
-    $run.FailedCount = $run.Failed.Count
-    $run.SkippedCount = $run.Skipped.Count
+    $TestRun.PassedCount = $TestRun.Passed.Count
+    $TestRun.FailedCount = $TestRun.Failed.Count
+    $TestRun.SkippedCount = $TestRun.Skipped.Count
 
-    $run.Tests = [Collections.ArrayList]@($tests)
-    $run.TestsCount = $tests.Count
-
-    $run
+    $TestRun.Tests = [Collections.ArrayList]@($tests)
+    $TestRun.TestsCount = $tests.Count
 }
 
 function Get-RSpecObjectDecoratorPlugin () {

@@ -5,11 +5,14 @@ function Enter-CoverageAnalysis {
     )
 
     $coverageInfo =
-    foreach ($object in $CodeCoverage) {
-        Get-CoverageInfoFromUserInput -InputObject $object
-    }
+        foreach ($object in $CodeCoverage) {
+            Get-CoverageInfoFromUserInput -InputObject $object
+        }
 
-    #TODO: where do I return this to to store it??
+    if ($null -eq $coverageInfo) {
+        # no files were found for coverage
+        return @()
+    }
     @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
 }
 
@@ -529,9 +532,11 @@ function Get-CoverageReport {
         'Command'
         @{ Name = 'HitCount'; Expression = { $_.Breakpoint.HitCount } }
     )
+
     $missedCommands = @(Get-CoverageMissedCommands -CommandCoverage @($CommandCoverage) | & $SafeCommands['Select-Object'] $properties)
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage @($CommandCoverage) | & $SafeCommands['Select-Object'] $properties)
     $analyzedFiles = @(@($CommandCoverage) | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
+
 
     [pscustomobject] @{
         NumberOfCommandsAnalyzed = $CommandCoverage.Count
@@ -611,7 +616,9 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
-        [long] $TotalMilliseconds
+        [long] $TotalMilliseconds,
+        [Switch]
+        $AsString
     )
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
@@ -806,7 +813,13 @@ function Get-JaCoCoReportXml {
 
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
     $jaCoCoReportDocType = '<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">'
-    return $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
+    $xml = $jaCocoReportXml.OuterXml.Insert(54, $jaCoCoReportDocType)
+    if (-not$AsString) {
+        return $xml
+    }
+    else {
+        return Format-Xml $xml
+    }
 }
 
 function Add-XmlElement {
@@ -840,3 +853,31 @@ function Add-JaCoCoCounter {
             covered = $Data.$Type.Covered
         })
 }
+
+function Format-Xml {
+    <#
+    .SYNOPSIS
+    Format the incoming object as the text of an XML document.
+    #>
+        param(
+            ## Text of an XML document.
+            [Parameter(ValueFromPipeline = $true)]
+            [string[]]$Text
+        )
+
+        begin {
+            $data = New-Object System.Collections.ArrayList
+        }
+        process {
+            [void] $data.Add($Text -join "`n")
+        }
+        end {
+            $doc=New-Object System.Xml.XmlDataDocument
+            $doc.LoadXml($data -join "`n")
+            $sw=New-Object System.Io.Stringwriter
+            $writer=New-Object System.Xml.XmlTextWriter($sw)
+            $writer.Formatting = [System.Xml.Formatting]::Indented
+            $doc.WriteContentTo($writer)
+            $sw.ToString()
+        }
+    }

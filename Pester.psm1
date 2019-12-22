@@ -732,7 +732,13 @@ function Invoke-Pester {
                 }
             }
 
-            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{ Containers = $containers } -ThrowOnFailure
+            # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
+            $pluginData = @{}
+            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
+                Containers = $containers
+                Configuration = $pluginConfiguration
+                GlobalPluginData = $pluginData
+            } -ThrowOnFailure
 
             if ((none $containers)) {
                 throw "No test files were found and no scriptblocks were provided."
@@ -748,10 +754,14 @@ function Invoke-Pester {
             $parameters = @{
                 PSBoundParameters = $PSBoundParameters
             }
+            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData
 
-            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r)
+            PostProcess-RSpecTestRun -TestRun $run
             $run
-            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{ Result = $r } -ThrowOnFailure
+            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
+                TestRun = $run
+                Configuration = $pluginConfiguration
+            } -ThrowOnFailure
 
 
             if ($CI) {
@@ -763,14 +773,10 @@ function Invoke-Pester {
             }
 
             if ($CI) {
-                $breakpoints = Merge-CommandCoverage $r.PluginData.Coverage.CommandCoverage
+                $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
-                $totalMilliseconds = 0
-                foreach ($d in $r) {
-                    $totalMilliseconds += $d.Duration.TotalMilliseconds
-                }
-                # TODO: Is the duration correct?
-                $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
+                $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
+                $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -AsString
                 $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
             }
 
