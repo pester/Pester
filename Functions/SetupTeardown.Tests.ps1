@@ -35,8 +35,9 @@ Describe 'Describe-Scoped Test Case setup using named ScriptBlock-parameter' {
 }
 
 Describe 'Context-scoped Test Case setup' {
-    $testVariable = 'Set in Describe'
-
+    BeforeAll {
+        $testVariable = 'Set in Describe'
+    }
     Context 'The context' {
         BeforeEach {
             $testVariable = 'From BeforeEach'
@@ -53,7 +54,9 @@ Describe 'Context-scoped Test Case setup' {
 }
 
 Describe 'Multiple Test Case setup blocks' {
-    $testVariable = 'Set in Describe'
+    BeforeAll {
+        $testVariable = 'Set in Describe'
+    }
 
     BeforeEach {
         $testVariable = 'Set in Describe BeforeEach'
@@ -79,7 +82,9 @@ Describe 'Multiple Test Case setup blocks' {
 }
 
 Describe 'Describe-scoped Test Case teardown' {
-    $testVariable = 'Set in Describe'
+    BeforeAll {
+        $testVariable = 'Set in Describe'
+    }
 
     AfterEach {
         $testVariable = 'Set in AfterEach'
@@ -98,7 +103,9 @@ Describe 'Multiple Test Case teardown blocks' {
     # this tests the execution order, not scoping, so I am using a reference object
     # to pass the state around without being affected by variable scoping and also to
     # avoid script scoped variables
-    $container = @{ Value = 'Set in Describe' }
+    BeforeAll {
+        $container = @{ Value = '' }
+    }
 
     AfterEach {
         $container.Value = 'Set in Describe AfterEach'
@@ -121,11 +128,13 @@ Describe 'Multiple Test Case teardown blocks' {
     }
 }
 
-$container = @{
-    DescribeBeforeAllCounter = 0
-    DescribeAfterAllCounter = 0
-    ContextBeforeAllCounter = 0
-    ContextAfterAllCounter = 0
+BeforeAll {
+    $container = @{
+        DescribeBeforeAllCounter = 0
+        DescribeAfterAllCounter = 0
+        ContextBeforeAllCounter = 0
+        ContextAfterAllCounter = 0
+    }
 }
 
 Describe 'Test Group Setup and Teardown' {

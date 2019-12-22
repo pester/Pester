@@ -122,16 +122,7 @@ about_should
         [Alias('Ignore')]
         [Switch] $Skip,
 
-        [Switch]$Focus,
-
-        # to avoid conflicts when tests are externally generated,
-        # e.g. by producing them from foreach, a unique ID should be
-        # provided by the loop, typically this could be a counter
-        # or if you expect the source to change between discovery and
-        # run time, you should use a different unique Id, such as name of
-        # the service that you check the status on. The ids have to be static
-        # between Discovery and run time, so generating a guid is not a good choice.
-        [String] $AutomationId
+        [Switch]$Focus
     )
 
     if ($Pending -or $Skip) {
@@ -141,9 +132,9 @@ about_should
     }
 
     if (any $TestCases) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus -Id $AutomationId
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus -Id $AutomationId
+        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus
     }
 }

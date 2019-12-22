@@ -1,23 +1,22 @@
 function Get-CoveragePlugin {
-    New-PluginObject -Name "Coverage" -OneTimeBlockSetupStart {
+    New-PluginObject -Name "Coverage" -Start {
         param($Context)
-
-
         $config = $Context.Configuration['Coverage']
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config
-        $Context.Block.Root.PluginData.Add('Coverage', @{
+        $Context.GlobalPluginData.Add('Coverage', @{
             CommandCoverage = $breakpoints
             CoverageReport = $null
         })
+    } -End {
+        param($Context)
 
-    } -OneTimeBlockTeardownEnd {
-        if ($Context.Block.Root.PluginData.ContainsKey('Coverage')) {
-            $breakpoints = $Context.Block.Root.PluginData.Coverage.CommandCoverage
-
-            $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
-            $Context.Block.Root.PluginData.Coverage.CoverageReport = $coverageReport
-
-            Exit-CoverageAnalysis -CommandCoverage $breakpoints
+        if (-not $Context.TestRun.PluginData.ContainsKey("Coverage")) {
+            return
         }
+
+        $coverageData = $Context.TestRun.PluginData.Coverage
+        $breakpoints = $coverageData.CommandCoverage
+
+        Exit-CoverageAnalysis -CommandCoverage $breakpoints
     }
 }

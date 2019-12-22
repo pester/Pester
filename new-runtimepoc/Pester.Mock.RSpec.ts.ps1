@@ -25,9 +25,9 @@ i -PassThru:$PassThru {
                         f
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
+            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
         }
 
         t "mock does not leak into the subsequent It" {
@@ -43,10 +43,10 @@ i -PassThru:$PassThru {
                         f
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
-            $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "real"
+            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
+            $actual.Containers[0].Blocks[0].Tests[1].StandardOutput | Verify-Equal "real"
         }
 
         t "mock defined in beforeall is used in every it" {
@@ -65,10 +65,10 @@ i -PassThru:$PassThru {
                         f
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
-            $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "mock"
+            $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
+            $actual.Containers[0].Blocks[0].Tests[1].StandardOutput | Verify-Equal "mock"
         }
 
 
@@ -90,10 +90,10 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 1 -Exactly
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
 
         t "mock defined in before all can be counted from all tests with -Describe" {
@@ -114,10 +114,10 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 2 -Exactly -Scope Describe
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
 
         t "mock defined in before all can and counted from after all automatically counts all calls in the current block" {
@@ -140,10 +140,10 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 2 -Exactly
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
     }
 
@@ -168,9 +168,9 @@ i -PassThru:$PassThru {
                         Should -Invoke f -Times 1 -Exactly
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal 'mock'
+            $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal 'mock'
         }
     }
 
@@ -195,10 +195,10 @@ i -PassThru:$PassThru {
                         Get-Variable -Name PSVersionTable | Should -Be "default"
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
-            $actual.Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
     }
 
@@ -241,9 +241,9 @@ i -PassThru:$PassThru {
                         }
                     }
                 }
-            } -PassThru
+            }
 
-            $actual.Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
         }
     }
 }

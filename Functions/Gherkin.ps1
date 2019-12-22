@@ -303,7 +303,7 @@ function Invoke-Gherkin {
         }
         $script:GherkinFailedLast = @($pester.FailedScenarios.Name)
         if ($EnableExit) {
-            Exit-WithCode -FailedCount $pester.FailedCount
+            # Exit-WithCode -FailedCount $pester.FailedCount
         }
     }
 }

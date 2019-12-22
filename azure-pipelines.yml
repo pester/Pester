@@ -23,9 +23,17 @@ jobs:
     timeoutInMinutes: 3
     steps:
       - powershell: |
-          $global:PesterDebugPreference_ShowFullErrors = $true
+          $global:PesterDebugPreference = @{ ShowFullErrors = $true }
           $errorActionPreference = 'stop'
           Set-StrictMode -Version Latest
-          $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru } ; if ([bool]($r | Where-Object { $_.Failed -gt 0 })) { exit 1 }
+          $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru }
+          Write-Host "reporting result"
+          $failed = $r | Where-Object { $_.Failed -gt 0 }
+          $failed | Out-String
+          "Failed is null: $($null -eq $failed )"
+          "Failed is cast is: $([bool]$failed)"
+          if ([bool]$failed) { Write-Host "exiting because something failed"; exit 1 }
           Import-Module .\Pester.psd1
-          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*' -CI
+          write-host "got here"
+          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -ExcludePath '*/demo/*', '*/Examples/*', '*/Gherkin*' -CI | Out-Null
+          write-host "got here as well"

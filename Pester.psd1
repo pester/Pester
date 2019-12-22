@@ -49,6 +49,9 @@
         'New-MockObject'
         'Add-ShouldOperator'
         'Get-ShouldOperator'
+        'Export-NUnitReport'
+        'ConvertTo-NUnitReport'
+
 
         # Gherkin Support:
         'Invoke-Gherkin'

@@ -2,7 +2,9 @@ Set-StrictMode -Version Latest
 
 Describe "Module scope separation" {
     Context "When users define variables with the same name as Pester parameters" {
-        $test = "This is a test."
+        BeforeAll {
+            $test = "This is a test."
+        }
 
         It "does not hide user variables" {
             $test | Should -Be 'This is a test.'
@@ -19,6 +21,9 @@ Describe "Module scope separation" {
 }
 
 Describe "Executing test code inside a module" {
+    # do not put this into BeforeAll this needs to be imported before calling InModuleScope
+    # that is below, because it requires the module to be loaded
+    Get-Module TestModule | Remove-Module
     New-Module -Name TestModule {
         function InternalFunction {
             'I am the internal function'
@@ -55,7 +60,11 @@ Describe "Executing test code inside a module" {
         InModuleScope TestModule $ScriptBlock | Should -BeExactly "I am an unbound ScriptBlock"
     }
 
-    Remove-Module TestModule -Force
+    AfterAll {
+        # keep this in AfterAll so we remove the module after tests are invoked
+        # and not while the tests are discovered
+        Remove-Module TestModule -Force
+    }
 }
 
 Describe "Get-ScriptModule behavior" {
