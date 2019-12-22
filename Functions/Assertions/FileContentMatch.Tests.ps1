@@ -1,5 +1,9 @@
 ﻿Set-StrictMode -Version Latest
 
+BeforeAll {
+    $ErrorActionPreference = 'Stop'
+}
+
 InModuleScope Pester {
     Describe "Should -FileContentMatch" {
         Context "when testing file contents" {

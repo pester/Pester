@@ -1,5 +1,9 @@
 Set-StrictMode -Version Latest
 
+BeforeAll {
+    $ErrorActionPreference = 'Stop'
+}
+
 InModuleScope Pester {
     Describe "Should -BeGreaterThan" {
         It "passes if value greater than expected" {

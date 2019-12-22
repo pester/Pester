@@ -1,5 +1,9 @@
 Set-StrictMode -Version Latest
 
+BeforeAll {
+    $ErrorActionPreference = 'Stop'
+}
+
 InModuleScope Pester {
     Describe "Should -Match" {
         It "returns true for things that match" {
