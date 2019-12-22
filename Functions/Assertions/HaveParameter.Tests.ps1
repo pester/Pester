@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
 
     BeforeAll {
-            $script:functionsBlock = {
+        $functionsBlock = {
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 function Invoke-DummyFunction {
                     param(
@@ -88,7 +88,7 @@ InModuleScope Pester {
 
     Describe "Should -HaveParameter" {
         BeforeAll {
-            . $script:functionsBlock
+            . $functionsBlock
         }
 
         It "passes if the parameter <ParameterName> exists" -TestCases @(
@@ -277,7 +277,7 @@ InModuleScope Pester {
 
     Describe "Should -Not -HavePameter" {
         BeforeAll {
-            . $script:functionsBlock
+            . $functionsBlock
         }
 
         It "passes if the parameter <ParameterName> does not exists" -TestCases @(
