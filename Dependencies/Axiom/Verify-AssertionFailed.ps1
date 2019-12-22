@@ -11,7 +11,7 @@ function Verify-AssertionFailed {
         $null = & $ScriptBlock
     }
     catch [Exception] {
-        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -like 'PesterAssertionFailed,*')
+        $assertionExceptionThrown = ($_.FullyQualifiedErrorId -like 'PesterAssertionFailed')
         $err = $_
         $err
     }

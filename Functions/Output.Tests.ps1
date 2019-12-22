@@ -77,7 +77,7 @@ Describe 'ConvertTo-PesterResult' {
             #on which line the test failed.
             $errorRecord = $null
             try {
-                $script = {}; 'something' | should -be 'nothing'
+                $script = {}; 'something' | Should -Be 'nothing' -ErrorAction Stop
             }
             catch {
                 $errorRecord = $_
@@ -117,7 +117,7 @@ Describe 'ConvertTo-PesterResult' {
             $errorRecord = $null
 
             $testPath = Join-Path $TestDrive test.ps1
-            Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two'"
+            Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two' -ErrorAction Stop"
 
             $escapedTestPath = [regex]::Escape((Get-Item $testPath).FullName)
 
@@ -219,7 +219,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
         It 'failed should produces correct message lines.' {
             try {
-                'One' | Should -be 'Two'
+                'One' | Should -be 'Two' -ErrorAction Stop
             }
             catch {
                 $e = $_

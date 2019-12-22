@@ -187,39 +187,35 @@ function Invoke-Assertion {
         [ScriptBlock]
         $AddErrorCallback
     )
-    try {
-        $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
-        if (-not $testResult.Succeeded) {
-            $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText -Terminating $ShouldThrow
+    $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
-            if ($null -eq $AddErrorCallback -or $ShouldThrow) {
-                # throw this error to fail the test immediately
-                throw $errorRecord
-            }
+    if (-not $testResult.Succeeded) {
+        $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText -Terminating $ShouldThrow
 
-            try {
-                # throw and catch to not fail the test, but still have stackTrace
-                # alternatively we could call Get-PSStackTrace and format it ourselves
-                # in case this turns out too be slow
-                throw $errorRecord
-            } catch {
-              $err = $_
-            }
-
-            # collect the error via the provided callback
-            & $AddErrorCallback $err
+        if ($null -eq $AddErrorCallback -or $ShouldThrow) {
+            # throw this error to fail the test immediately
+            throw $errorRecord
         }
-        else {
-            #extract data to return if there are any on the object
-            $data = $testResult.psObject.Properties.Item('Data')
-            if ($data) {
-                $data.Value
-            }
+
+        try {
+            # throw and catch to not fail the test, but still have stackTrace
+            # alternatively we could call Get-PSStackTrace and format it ourselves
+            # in case this turns out too be slow
+            throw $errorRecord
+        } catch {
+            $err = $_
         }
+
+        # collect the error via the provided callback
+        & $AddErrorCallback $err
     }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
+    else {
+        #extract data to return if there are any on the object
+        $data = $testResult.psObject.Properties.Item('Data')
+        if ($data) {
+            $data.Value
+        }
     }
 }
 
