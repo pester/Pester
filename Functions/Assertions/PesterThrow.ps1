@@ -5,7 +5,8 @@ function Should-Throw {
         [string] $ErrorId,
         [type] $ExceptionType,
         [switch] $Negate,
-        [string] $Because
+        [string] $Because,
+        [switch] $PassThru
     )
 
     <#
@@ -146,7 +147,9 @@ It does not throw an error, so the test passes.
         Succeeded = $true
     }
 
-    $result | Add-Member -MemberType NoteProperty -Name 'Data' -Value $actualError
+    if ($PassThru) {
+        $result | Add-Member -MemberType NoteProperty -Name 'Data' -Value $actualError
+    }
 
     return $result
 }

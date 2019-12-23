@@ -20,8 +20,13 @@ InModuleScope Pester {
                 $err.Exception | Verify-Type ([System.ArgumentException])
             }
 
-            It "returns error by default" {
+            It "returns nothing when -PassThru is not specified" {
                 $err = { throw } | Should -Throw
+                $err | Verify-Null
+            }
+
+            It "returns error when -PassThru is specified" {
+                $err = { throw } | Should -Throw -PassThru
                 $err | Verify-NotNull
                 $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
             }
