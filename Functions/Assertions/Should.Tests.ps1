@@ -102,19 +102,13 @@ InModuleScope Pester {
     }
 
     Describe 'Returning values from Should' {
-        It 'Should -Throw return the thrown error' {
-            $err = { throw "abc" } | Should -Throw
-            $err | Verify-NotNull
-            $err.Exception.Message | Verify-Equal "abc"
-        }
-
-        It 'Should -Be returns the given object' {
+        It 'Should -Be swallows the given object' {
             $user = [PSCustomObject]@{
                 Name = "Jakub"
             }
 
-            $value = $user | Should -Not -Be $null
-            $value.Name | Should -Be "Jakub"
+            $returnedValue = $user | Should -Not -Be $null # just some test so we call the assertion
+            $returnedValue | Should -BeNullOrEmpty # make sure the previous assertion returned nothing
         }
     }
 }

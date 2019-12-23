@@ -127,17 +127,6 @@ function Should {
                 Invoke-Assertion @assertionParams -ValueToTest $object
             }
         }
-
-        if ($entry.Name -ne 'Throw') {
-            $inputArray
-        }
-        else {
-            foreach ($elem in $inputArray) {
-                if ($elem -is [System.Management.Automation.ErrorRecord]) {
-                    $elem
-                }
-            }
-        }
     }
 }
 
