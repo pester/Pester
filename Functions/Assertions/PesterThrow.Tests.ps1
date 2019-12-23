@@ -1,5 +1,9 @@
 Set-StrictMode -Version Latest
 
+BeforeAll {
+    $ErrorActionPreference = 'Stop'
+}
+
 InModuleScope Pester {
     Describe "Should -Throw" {
         Context "Basic functionality" {
@@ -14,6 +18,11 @@ InModuleScope Pester {
             It "throws ArgumentException if null ScriptBlock is provided" {
                 $err = { $null | Should -Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([System.ArgumentException])
+            }
+
+            It "returns nothing when -PassThru is not specified" {
+                $err = { throw } | Should -Throw
+                $err | Verify-Null
             }
 
             It "returns error when -PassThru is specified" {

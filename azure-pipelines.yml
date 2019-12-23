@@ -26,6 +26,7 @@ jobs:
           $global:PesterDebugPreference = @{ ShowFullErrors = $true }
           $errorActionPreference = 'stop'
           Set-StrictMode -Version Latest
+          $env:CI = 1
           $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru }
           Write-Host "reporting result"
           $failed = $r | Where-Object { $_.Failed -gt 0 }

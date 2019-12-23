@@ -9,12 +9,12 @@ function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
     return (& $failureMessageFunction $value $expected)
 }
 
-function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText) {
+function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText, $Terminating) {
     $exception = [Exception] $Message
     $errorID = 'PesterAssertionFailed'
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
+    $targetObject = @{ Message = $Message; File = $File; Line = $Line; LineText = $LineText; Terminating = $Terminating }
     $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
     return $errorRecord
 }
@@ -64,77 +64,140 @@ function Should {
         $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
         $file = $MyInvocation.ScriptName
 
-        if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
-            if ($inputArray.Count -eq 0) {
-                Invoke-LegacyAssertion $entry $parsedArgs $null $file $lineNumber $lineText
-            }
-            elseif ($entry.SupportsArrayInput) {
-                Invoke-LegacyAssertion $entry $parsedArgs $inputArray.ToArray() $file $lineNumber $lineText
-            }
-            else {
-                foreach ($object in $inputArray) {
-                    Invoke-LegacyAssertion $entry $parsedArgs $object $file $lineNumber $lineText
-                }
-            }
+        $negate = $false
+        if ($PSBoundParameters.ContainsKey('Not')) {
+            $negate = [bool]$PSBoundParameters['Not']
+        }
+
+        $null = $PSBoundParameters.Remove('ActualValue')
+        $null = $PSBoundParameters.Remove($PSCmdlet.ParameterSetName)
+        $null = $PSBoundParameters.Remove('Not')
+
+        $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
+
+        $errorActionIsDefined = $PSBoundParameters.ContainsKey("ErrorAction")
+        $shouldThrowBecauseOfErrorAction = $errorActionIsDefined -and 'Stop' -eq $PSBoundParameters["ErrorAction"]
+        if ($errorActionIsDefined) {
+            $shouldThrow = $shouldThrowBecauseOfErrorAction
         }
         else {
-            $negate = $false
-            if ($PSBoundParameters.ContainsKey('Not')) {
-                $negate = [bool]$PSBoundParameters['Not']
-            }
+            # grab the value of ErrorActionPreference from the caller sessionState,
+            # doing just $ErrorActionPreference would resolve it to Pester internal session state
+            $eap = $PSCmdlet.SessionState.PSVariable.GetValue("ErrorActionPreference")
+            $shouldThrowBecauseOfEap = 'Stop' -eq $eap
+            $shouldThrow = $shouldThrowBecauseOfEap
+        }
 
-            $null = $PSBoundParameters.Remove('ActualValue')
-            $null = $PSBoundParameters.Remove($PSCmdlet.ParameterSetName)
-            $null = $PSBoundParameters.Remove('Not')
-
-            $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
-
-            if ($inputArray.Count -eq 0) {
-                Invoke-Assertion $entry $PSBoundParameters $null $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
-            }
-            elseif ($entry.SupportsArrayInput) {
-                Invoke-Assertion $entry $PSBoundParameters $inputArray.ToArray() $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
-            }
-            else {
-                foreach ($object in $inputArray) {
-                    Invoke-Assertion $entry $PSBoundParameters $object $file $lineNumber $lineText -Negate:$negate -CallerSessionState $PSCmdlet.SessionState
+        if (-not $shouldThrow) {
+            # this is slightly hacky, here we are reaching out the the caller session state and
+            # look for $______parameters which we know we are using inside of the Pester runtime to
+            # keep the current invocation context, when we find it, we are able to add non-terminating
+            # errors without throwing and terminating the test
+            $pesterRuntimeInvocationContext =  $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
+            $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
+            $addErrorCallback = if ($isInsidePesterRuntime) {
+                # call back into the context we grabbed from the runtime and add this error without throwing
+                {
+                    param($err)
+                    $null = $pesterRuntimeInvocationContext.ErrorRecord.Add($err)
                 }
             }
         }
-    }
-}
 
-function Invoke-LegacyAssertion($assertionEntry, $shouldArgs, $valueToTest, $file, $lineNumber, $lineText) {
-    # $expectedValueSplat = @(
-    #     if ($null -ne $shouldArgs.ExpectedValue)
-    #     {
-    #         ,$shouldArgs.ExpectedValue
-    #     }
-    # )
+        $assertionParams = @{
+            AssertionEntry = $entry
+            BoundParameters = $PSBoundParameters
+            File = $file
+            LineNumber = $lineNumber
+            LineText = $lineText
+            Negate = $negate
+            CallerSessionState = $PSCmdlet.SessionState
+            ShouldThrow = -not $isInsidePesterRuntime -or $shouldThrowBecauseOfEap
+            AddErrorCallback = $addErrorCallback
+        }
 
-    $negate = -not $shouldArgs.PositiveAssertion
-
-    $testResult = (& $assertionEntry.Test $valueToTest $shouldArgs.ExpectedValue -Negate:$negate)
-    if (-not $testResult.Succeeded) {
-        throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
+        if ($inputArray.Count -eq 0) {
+            Invoke-Assertion @assertionParams -ValueToTest $null
+        }
+        elseif ($entry.SupportsArrayInput) {
+            Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
+        }
+        else {
+            foreach ($object in $inputArray) {
+                Invoke-Assertion @assertionParams -ValueToTest $object
+            }
+        }
     }
 }
 
 function Invoke-Assertion {
+    [CmdletBinding()]
     param (
-        [object] $AssertionEntry,
-        [System.Collections.IDictionary] $BoundParameters,
-        [object] $valuetoTest,
-        [string] $File,
-        [int] $LineNumber,
-        [string] $LineText,
-        [switch] $Negate,
-        [Management.Automation.SessionState] $CallerSessionState
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [object]
+        $AssertionEntry,
+
+        [Parameter(Mandatory)]
+        [System.Collections.IDictionary]
+        $BoundParameters,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $File,
+
+        [Parameter(Mandatory)]
+        [int]
+        $LineNumber,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $LineText,
+
+        [Parameter(Mandatory)]
+        [Management.Automation.SessionState]
+        $CallerSessionState,
+
+        [Parameter()]
+        [switch]
+        $Negate,
+
+        [Parameter()]
+        [AllowNull()]
+        [object]
+        $ValueToTest,
+
+        [Parameter()]
+        [boolean]
+        $ShouldThrow,
+
+        [ScriptBlock]
+        $AddErrorCallback
     )
 
-    $testResult = & $AssertionEntry.Test -ActualValue $valuetoTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
+    $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
+
     if (-not $testResult.Succeeded) {
-        throw ( New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText )
+        $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText -Terminating $ShouldThrow
+
+        if ($null -eq $AddErrorCallback -or $ShouldThrow) {
+            # throw this error to fail the test immediately
+            throw $errorRecord
+        }
+
+        try {
+            # throw and catch to not fail the test, but still have stackTrace
+            # alternatively we could call Get-PSStackTrace and format it ourselves
+            # in case this turns out too be slow
+            throw $errorRecord
+        } catch {
+            $err = $_
+        }
+
+        # collect the error via the provided callback
+        & $AddErrorCallback $err
     }
     else {
         #extract data to return if there are any on the object

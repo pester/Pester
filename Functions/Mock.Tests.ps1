@@ -1,5 +1,6 @@
 ﻿Set-StrictMode -Version Latest
 BeforeAll {
+    $ErrorActionPreference = 'Stop'
     function FunctionUnderTest {
         [CmdletBinding()]
         param (

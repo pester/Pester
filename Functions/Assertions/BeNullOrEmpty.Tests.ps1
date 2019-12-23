@@ -1,5 +1,9 @@
 Set-StrictMode -Version Latest
 
+BeforeAll {
+    $ErrorActionPreference = 'Stop'
+}
+
 InModuleScope Pester {
     Describe "Should -BeNullOrEmpty" {
         It "should return true if null" {
@@ -19,7 +23,7 @@ InModuleScope Pester {
         }
 
         It "should throw if not-empty hashtable" {
-            { @{ Name = 'pester' } | Should -BeNullOrEmpty } | Should -Throw
+            { @{ Name = 'pester' } | Should -BeNullOrEmpty -ErrorAction Stop } | Should -Throw
         }
 
         It 'Should return false for non-empty strings or arrays' {

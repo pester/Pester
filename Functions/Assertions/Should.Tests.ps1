@@ -58,16 +58,20 @@ InModuleScope Pester {
         }
 
         # TODO: understand the purpose of this test, perhaps some better wording
-        It "can process functions with empty output as input" {
-            function ReturnNothing {
+        Context "can process functions with empty output as input" {
+            BeforeAll {
+                function ReturnNothing {
+                }
             }
 
-            # TODO: figure out why this is the case
-            if ($PSVersionTable.PSVersion -eq "2.0") {
-                { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Not -Throw
+            It 'throws using ErrorAction Stop' {
+                { $(ReturnNothing) | Should -Not -BeNullOrEmpty -ErrorAction Stop } | Verify-Throw
             }
-            else {
-                { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Should -Throw
+
+            It 'does not throw without ErrorAction Stop' {
+                $errors = @({ $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Verify-AssertionFailed)
+
+                $errors.Count | Should -Be 1
             }
         }
 
@@ -95,5 +99,16 @@ InModuleScope Pester {
             [string]$missingFunctions | Should BeNullOrEmpty
         }
         #>
+    }
+
+    Describe 'Returning values from Should' {
+        It 'Should -Be swallows the given object' {
+            $user = [PSCustomObject]@{
+                Name = "Jakub"
+            }
+
+            $returnedValue = $user | Should -Not -Be $null # just some test so we call the assertion
+            $returnedValue | Should -BeNullOrEmpty # make sure the previous assertion returned nothing
+        }
     }
 }

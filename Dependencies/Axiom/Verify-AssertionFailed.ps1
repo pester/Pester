@@ -6,6 +6,7 @@ function Verify-AssertionFailed {
 
     $assertionExceptionThrown = $false
     $err = $null
+
     try {
         $null = & $ScriptBlock
     }
