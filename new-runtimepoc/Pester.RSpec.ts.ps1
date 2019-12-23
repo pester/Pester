@@ -332,6 +332,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "User with guard" {
+                        $ErrorActionPreference = 'Continue'
                         $user = [PSCustomObject]@{ Name = "Tomas"; Age = 22 }
                         $user | Should -Not -BeNullOrEmpty -ErrorAction Stop -Because "otherwise this test makes no sense"
                         $user.Name | Should -Be Jakub
