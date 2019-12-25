@@ -229,8 +229,30 @@ i -PassThru:$PassThru {
                 $result | Verify-NotNull
             }
 
-            t "CI generates code coverage and xml output" {
-                # todo:
+            d "CI generates code coverage and xml output" {
+                $temp = [IO.Path]::GetTempPath()
+                $path = "$temp/$([Guid]::NewGuid().Guid)"
+                $pesterPath = (Get-Module Pester).Path
+
+                try {
+                    New-Item -Path $path -ItemType Container | Out-Null
+
+                    $job = Start-Job {
+                        param ($PesterPath, $File, $Path)
+                        Import-Module $PesterPath
+                        Set-Location $Path
+                        Invoke-Pester $File -CI -Output None
+                    } -ArgumentList $pesterPath, $file1, $path
+
+                    $job | Wait-Job
+
+
+                    Test-Path "$path/testResults.xml" | Verify-True
+                    Test-Path "$path/coverage.xml" | Verify-True
+                }
+                finally {
+                    Remove-Item -Recurse -Force $path
+                }
             }
         }
         finally {

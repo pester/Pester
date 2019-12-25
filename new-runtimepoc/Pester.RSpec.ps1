@@ -183,6 +183,9 @@ function Get-RSpecObjectDecoratorPlugin () {
 }
 
 function New-PesterConfiguration {
+    [CmdletBinding()]
+    param()
+
     New_PSObject -Type "PesterConfiguration" @{
         Should = New_PSObject -Type "PesterShouldConfiguration" @{
             ErrorAction = 'Continue'

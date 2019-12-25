@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version Latest
 BeforeAll {
-    $ErrorActionPreference = 'Stop'
+    $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
     function FunctionUnderTest {
         [CmdletBinding()]
         param (
