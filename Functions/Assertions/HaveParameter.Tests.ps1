@@ -1,10 +1,10 @@
 Set-StrictMode -Version Latest
 
-BeforeAll {
-    $ErrorActionPreference = 'Stop'
-}
-
 InModuleScope Pester {
+
+    BeforeAll {
+        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+    }
 
     BeforeAll {
         $functionsBlock = {

@@ -23,6 +23,7 @@ test_script:
   - pwsh: |
       if ( $env:PSEdition -eq 'Core' ) {
       Set-StrictMode -Version Latest
+      $ErrorActionPreference = 'Stop'
       $env:CI = 1
       $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru } ; if ([bool]($r | Where-Object { $_.Failed -gt 0 })) { exit 1 }
       $global:PesterDebugPreference = @{ ShowFullErrors = $true }

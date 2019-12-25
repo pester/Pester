@@ -50,7 +50,7 @@ function Verify-TestFailed {
 
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = 'stop'
+$ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {
 

@@ -1,10 +1,11 @@
 Set-StrictMode -Version Latest
 
-BeforeAll {
-    $ErrorActionPreference = 'Stop'
-}
-
 InModuleScope Pester {
+
+    BeforeAll {
+        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+    }
+
     Describe "Should -Match" {
         It "returns true for things that match" {
             'foobar' | Should -Match 'ob'

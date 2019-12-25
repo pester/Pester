@@ -661,9 +661,23 @@ function Invoke-Pester {
         $Output = 'Normal',
 
         [Parameter(ParameterSetName = "Simple")]
-        [ScriptBlock[]] $ScriptBlock
+        [ScriptBlock[]] $ScriptBlock,
+
+        [Parameter(ParameterSetName = "Simple")] #TODO, move this to Advanced and make sure that everything from the simple parameter set is translated to the Configuration object
+        $Configuration
     )
     begin {
+        $defaultConfig = New-PesterConfiguration
+        $Configuration = if (-not $Configuration) {
+            $defaultConfig
+        }
+        else {
+            #TODO: merge the user provided config with ours, but for the moment we can assume the user provided the whole object and just modified what they like
+            ## Merge-Configuration -DefaultConfiguration $defaultConfig -Configuration $Configuration
+            $Configuration
+        }
+
+
         $start = [DateTime]::Now
         if ($CI) {
             $EnableExit = $true
@@ -745,7 +759,7 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter
+            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter -Configuration $Configuration
 
             foreach ($c in $r) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
@@ -1084,4 +1098,4 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 & $script:SafeCommands['Export-ModuleMember'] New-PesterOptions
 # & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
-& $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport
+& $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport, New-PesterConfiguration

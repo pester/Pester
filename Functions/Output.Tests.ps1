@@ -1,7 +1,7 @@
 ﻿Set-StrictMode -Version Latest
 
 BeforeAll {
-    $ErrorActionPreference = 'Stop'
+    $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
 }
 
 InModuleScope -ModuleName Pester -ScriptBlock {

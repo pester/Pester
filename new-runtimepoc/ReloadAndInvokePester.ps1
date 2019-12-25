@@ -23,7 +23,7 @@ $path = "~/Pester"
 # $path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
 $path = "C:\projects\pester_main\Functions\Output.Tests.ps1"
 cd c:\temp\cc
-$path = "C:\temp\cc"
+$path = "C:\projects\pester_main\Functions\Mock.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
