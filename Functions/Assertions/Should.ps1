@@ -77,17 +77,8 @@ function Should {
 
         $errorActionIsDefined = $PSBoundParameters.ContainsKey("ErrorAction")
         $shouldThrowBecauseOfErrorAction = $errorActionIsDefined -and 'Stop' -eq $PSBoundParameters["ErrorAction"]
-        if ($errorActionIsDefined) {
-            $shouldThrow = $shouldThrowBecauseOfErrorAction
-        }
-        else {
-            # grab the value of ErrorActionPreference from the caller sessionState,
-            # doing just $ErrorActionPreference would resolve it to Pester internal session state
-            $eap = $PSCmdlet.SessionState.PSVariable.GetValue("ErrorActionPreference")
-            $shouldThrowBecauseOfEap = 'Stop' -eq $eap
-            $shouldThrow = $shouldThrowBecauseOfEap
-        }
 
+        $shouldThrow = $shouldThrowBecauseOfErrorAction
         if (-not $shouldThrow) {
             # this is slightly hacky, here we are reaching out the the caller session state and
             # look for $______parameters which we know we are using inside of the Pester runtime to
@@ -95,11 +86,18 @@ function Should {
             # errors without throwing and terminating the test
             $pesterRuntimeInvocationContext =  $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
             $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
-            $addErrorCallback = if ($isInsidePesterRuntime) {
-                # call back into the context we grabbed from the runtime and add this error without throwing
-                {
-                    param($err)
-                    $null = $pesterRuntimeInvocationContext.ErrorRecord.Add($err)
+            if (-not $isInsidePesterRuntime) {
+                $shouldThrow = $true
+            }
+            else {
+                $shouldThrowBecauseOfPesterConfiguration = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction
+                $shouldThrow = $shouldThrowBecauseOfPesterConfiguration
+                if (-not $shouldThrow) {
+                    # call back into the context we grabbed from the runtime and add this error without throwing
+                    $addErrorCallback = {
+                        param($err)
+                        $null = $pesterRuntimeInvocationContext.ErrorRecord.Add($err)
+                    }
                 }
             }
         }
@@ -112,7 +110,7 @@ function Should {
             LineText = $lineText
             Negate = $negate
             CallerSessionState = $PSCmdlet.SessionState
-            ShouldThrow = -not $isInsidePesterRuntime -or $shouldThrowBecauseOfEap
+            ShouldThrow = $shouldThrow
             AddErrorCallback = $addErrorCallback
         }
 

@@ -51,6 +51,7 @@
         'Get-ShouldOperator'
         'Export-NUnitReport'
         'ConvertTo-NUnitReport'
+        'New-PesterConfiguration'
 
 
         # Gherkin Support:

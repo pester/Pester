@@ -262,13 +262,34 @@ i -PassThru:$PassThru {
             $test.StandardOutput | Verify-Equal "but still output this"
         }
 
-        t "Assertion fails immediately when ErrorActionPreference is set to Stop" {
+        t "Assertion does not fail immediately when ErrorActionPreference is set to Stop" {
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
                         $ErrorActionPreference = 'Stop'
                         1 | Should -Be 2 # throw because of eap
-                        "do no output this"
+                        "but still output this"
+                    }
+                }
+            } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-False
+            $test.ErrorRecord[0].Exception | Verify-NotNull
+            $test.ErrorRecord[0].ScriptStackTrace | Verify-NotNull
+            $test.ErrorRecord[0].DisplayErrorMessage | Verify-NotNull
+            $test.ErrorRecord[0].DisplayStackTrace | Verify-NotNull
+            $test.StandardOutput | Verify-Equal "but still output this"
+        }
+
+        t "Assertion fails immediately when -ErrorAction is set to Stop" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should -Be 2 -ErrorAction Stop
+                        "do not output this"
                     }
                 }
             } -Output None
@@ -284,15 +305,40 @@ i -PassThru:$PassThru {
             $test.StandardOutput | Verify-Null
         }
 
-        t "Assertion fails immediately when -ErrorAction is set to Stop" {
+        t "Assertion fails immediately when ErrorAction is set to Stop via Default Parameters" {
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
-                        1 | Should -Be 2 -ErrorAction Stop
-                        "do no output this"
+                        $fuu = "abcl"
+                        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+                        1 | Should -Be 2
+                        "do not output this"
                     }
                 }
             } -Output None
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.ErrorRecord[0].Exception | Verify-NotNull
+            $test.ErrorRecord[0].ScriptStackTrace | Verify-NotNull
+            $test.ErrorRecord[0].DisplayErrorMessage | Verify-NotNull
+            $test.ErrorRecord[0].DisplayStackTrace | Verify-NotNull
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "Assertion fails immediately when ErrorAction is set to Stop via global configuration" {
+            $config = New-PesterConfiguration
+            $config.Should.ErrorAction = 'Stop'
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should -Be 2
+                        "do not output this"
+                    }
+                }
+            } -Output None -Configuration $config
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull

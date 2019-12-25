@@ -38,6 +38,7 @@ $state = [PSCustomObject] @{
 
     Plugin              = $null
     PluginConfiguration = $null
+    Configuration       = $null
 
     TotalStopWatch      = $null
     UserCodeStopWatch   = $null
@@ -64,6 +65,7 @@ function Reset-TestSuiteState {
 
     $state.Plugin = $null
     $state.PluginConfiguration = $null
+    $state.Configuration = $null
 
     $state.CurrentBlock = $null
     $state.CurrentTest = $null
@@ -401,7 +403,8 @@ function Invoke-Block ($previousBlock) {
                         -ReduceContextToInnerScope `
                         -MoveBetweenScopes `
                         -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                        -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+                        -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
+                        -Configuration $state.Configuration
 
                     $block.OwnPassed = $result.Success
                     $block.StandardOutput = $result.StandardOutput
@@ -626,7 +629,8 @@ function Invoke-TestItem {
                 -MoveBetweenScopes `
                 -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
                 -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
-                -NoNewScope
+                -NoNewScope `
+                -Configuration $state.Configuration
 
             $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
             $Test.Passed = $result.Success
@@ -1365,7 +1369,8 @@ function Invoke-ScriptBlock {
         [Switch] $NoNewScope,
         [Switch] $MoveBetweenScopes,
         [ScriptBlock] $OnUserScopeTransition = { },
-        [ScriptBlock] $OnFrameworkScopeTransition = { }
+        [ScriptBlock] $OnFrameworkScopeTransition = { },
+        $Configuration
     )
 
     # this is what the code below does
@@ -1563,6 +1568,7 @@ function Invoke-ScriptBlock {
                 param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
                 Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
             }
+            Configuration = $Configuration
         }
 
         # here we are moving into the user scope if the provided
@@ -1850,7 +1856,8 @@ function Invoke-Test {
         [Management.Automation.SessionState] $SessionState,
         $Filter,
         $Plugin,
-        $PluginConfiguration
+        $PluginConfiguration,
+        $Configuration
     )
 
     # don't scope InvokedNonInteractively to script we want the functions
@@ -1860,6 +1867,7 @@ function Invoke-Test {
 
     $state.Plugin = $Plugin
     $state.PluginConfiguration = $PluginConfiguration
+    $state.Configuration = $Configuration
 
     # # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 

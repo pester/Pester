@@ -181,3 +181,11 @@ function Get-RSpecObjectDecoratorPlugin () {
         Add-RSpecTestObjectProperties $Context.Test
     }
 }
+
+function New-PesterConfiguration {
+    New_PSObject -Type "PesterConfiguration" @{
+        Should = New_PSObject -Type "PesterShouldConfiguration" @{
+            ErrorAction = 'Continue'
+        }
+    }
+}
