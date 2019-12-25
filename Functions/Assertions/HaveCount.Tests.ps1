@@ -1,10 +1,11 @@
 Set-StrictMode -Version Latest
 
-BeforeAll {
-    $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-}
-
 InModuleScope Pester {
+
+    BeforeAll {
+        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+    }
+
     Describe "Should -HaveCount" {
         It "passes if collection has the expected amount of items" {
             @(1, 'a', 3) | Should -HaveCount 3

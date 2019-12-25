@@ -1,10 +1,11 @@
 Set-StrictMode -Version Latest
 
-BeforeAll {
-    $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-}
-
 InModuleScope Pester {
+    
+    BeforeAll {
+        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+    }
+
     Describe "Should -BeGreaterThan" {
         It "passes if value greater than expected" {
             2 | Should -BeGreaterThan 1

@@ -1,10 +1,11 @@
 Set-StrictMode -Version Latest
 
-BeforeAll {
-    $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-}
-
 InModuleScope Pester {
+
+    BeforeAll {
+        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+    }
+
     Describe "Should -BeNullOrEmpty" {
         It "should return true if null" {
             $null | Should -BeNullOrEmpty

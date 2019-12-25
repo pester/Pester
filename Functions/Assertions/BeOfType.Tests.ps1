@@ -1,10 +1,11 @@
 Set-StrictMode -Version Latest
 
-BeforeAll {
-    $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-}
-
 InModuleScope Pester {
+
+    BeforeAll {
+        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
+    }
+
     Describe "Should -BeOfType" {
         It "passes if value is of the expected type" {
             1 | Should -BeOfType Int
