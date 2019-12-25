@@ -229,7 +229,7 @@ i -PassThru:$PassThru {
                 $result | Verify-NotNull
             }
 
-            d "CI generates code coverage and xml output" {
+            t "CI generates code coverage and xml output" {
                 $temp = [IO.Path]::GetTempPath()
                 $path = "$temp/$([Guid]::NewGuid().Guid)"
                 $pesterPath = (Get-Module Pester).Path

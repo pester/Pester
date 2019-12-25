@@ -20,7 +20,7 @@ $global:PesterDebugPreference = @{
 
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = 'stop'
+$ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {
     b "Counting tests" {

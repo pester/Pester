@@ -24,7 +24,7 @@ jobs:
     steps:
       - powershell: |
           $global:PesterDebugPreference = @{ ShowFullErrors = $true }
-          $errorActionPreference = 'stop'
+          $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
           $env:CI = 1
           $r = Get-ChildItem *.ts.ps1 -Recurse | foreach { & $_.FullName -PassThru }
