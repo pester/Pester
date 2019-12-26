@@ -216,11 +216,11 @@ function Write-PesterDebugMessage {
         [Management.Automation.ErrorRecord] $ErrorRecord
     )
 
-    if (-not $PesterDebugPreference.WriteDebugMessages) {
+    if (-not $PesterPreference.Debug.WriteDebugMessages) {
         return
     }
 
-    $messagePreference = tryGetProperty $PesterDebugPreference WriteDebugMessagesFrom
+    $messagePreference = $PesterPreference.Debug.WriteDebugMessagesFrom
     if ($Scope -notlike $messagePreference ) {
         return
     }
@@ -313,10 +313,11 @@ function New_PSObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [HashTable] $Property,
+        [Collections.IDictionary] $Property,
         [String] $Type
     )
 
+    # TODO: is calling the function unnecessary overhead?
     if (-not (Test-NullOrWhiteSpace $Type) ) {
         # -and -not $Property.ContainsKey("PSTypeName")) {
         $Property.Add("PSTypeName", $Type)

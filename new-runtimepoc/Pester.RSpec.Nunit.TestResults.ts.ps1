@@ -7,8 +7,10 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 
 Import-Module $PSScriptRoot\..\Pester.psd1
 
-$global:PesterDebugPreference = @{
-    ShowFullErrors = $false
+$global:PesterPreference = @{
+    Debug = @{
+        ShowFullErrors = $false
+    }
 }
 
 function Verify-XmlTime {

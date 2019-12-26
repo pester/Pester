@@ -7,10 +7,12 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 
 Import-Module $PSScriptRoot\..\Pester.psd1
 
-$global:PesterDebugPreference = @{
-    ShowFullErrors         = $true
-    WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "Mock"
+$global:PesterPreference = @{
+    Debug = @{
+        ShowFullErrors         = $true
+        WriteDebugMessages     = $false
+        WriteDebugMessagesFrom = "Mock"
+    }
 }
 
 

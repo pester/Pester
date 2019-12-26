@@ -34,7 +34,7 @@ function New-MockBehavior {
 
     $scriptBlockIsClosure = Test-IsClosure -ScriptBlock $MockWith
     if ($scriptBlockIsClosure) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock -Message "The provided mock body is a closure, not touching it so the captured variables are preserved."
         }
         # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
@@ -42,7 +42,7 @@ function New-MockBehavior {
         $mockWithCopy = $MockWith
     }
     else {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         }
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
@@ -312,7 +312,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
 
     $definedFunction = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $defineFunctionAndAliases -Arguments @($parameters) -NoNewScope
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock -Message "Defined new hook with bootstrap function $($parameters.BootstrapFunctionName)$(if ($parameters.Aliases.Count -gt 0) {" and aliases $($parameters.Aliases -join ", ")"})."
     }
 
@@ -331,7 +331,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Add_Member               = $SafeCommands["Add-Member"]
         Get_Item               = $SafeCommands["Get-Item"]
         # returning empty scriptblock when we should not write debug to avoid patching it in mock prototype
-        Write_PesterDebugMessage = if ($PesterDebugPreference.WriteDebugMessages) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { {} }
+        Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { {} }
 
         # used as temp variable
         PSCmdlet                 = $null
@@ -506,7 +506,7 @@ function Remove-MockHook {
     }
 
     foreach ($h in $Hooks) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommmandName)."
         }
 
@@ -549,33 +549,33 @@ function Resolve-Command {
         return $command
     }
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName."
     }
     if ($ModuleName) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         }
         $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
         }
         $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( $module.SessionState )
         $command = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($command.Module -eq $module) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages) {
                     Write-PesterDebugMessage -Scope Mock "Found the command $($CommandName) in module $($module.Name) version $($module.Version)$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
                 }
             }
             else {
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages) {
                     Write-PesterDebugMessage -Scope Mock "Found the command $($CommandName) in a different module$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
                 }
             }
         }
         else {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages) {
                 Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in module $($module.Name) version $($module.Version)."
             }
         }
@@ -586,18 +586,18 @@ function Resolve-Command {
 
         # TODO: this resolves the command in the caller scope if the command was not found in the module scope, but that does not make sense does it? When the user specifies that he want's to use Module it should use just Module. Disabling the fall through makes tests fail.
 
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "Searching for command $ComandName in the caller scope."
         }
         Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $SessionState
         $command = & $findAndResolveCommand -Name $CommandName
         if ($command) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages) {
                 Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {"and it resolved to $($command.Name)"})."
             }
         }
         else {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages) {
                 Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in the caller scope."
             }
         }
@@ -609,7 +609,7 @@ function Resolve-Command {
 
 
     if ($command.Name -like 'PesterMock_*') {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "The resolved command is a mock bootstrap function, pointing the mock to the same command info an session state as the original mock."
         }
         $module = $command.Mock.OriginalSessionState.Module
@@ -733,7 +733,7 @@ function Invoke-MockInternal {
 
         End {
             if ($MockCallState['ShouldExecuteOriginalCommand']) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages) {
                     Write-PesterDebugMessage -Scope Mock "Invoking the original command."
                 }
 
@@ -764,7 +764,7 @@ function Invoke-MockInternal {
                 # In order to mock Set-Variable correctly we need to write the variable
                 # two scopes above
                 if ("Set-Variable" -eq $Hook.OriginalCommand.Name) {
-                    if ($PesterDebugPreference.WriteDebugMessages) {
+                    if ($PesterPreference.Debug.WriteDebugMessages) {
                         Write-PesterDebugMessage -Scope Mock "Original command is Set-Variable, patching the call."
                     }
                     if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
@@ -788,7 +788,7 @@ function Invoke-MockInternal {
                 else {
                     $arguments = $MockCallState['BeginArgumentList']
                 }
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages) {
                     Write-ScriptBlockInvocationHint -Hint "Mock - Original Command" -ScriptBlock $scriptBlock
                 }
                 & $scriptBlock -Command $Hook.OriginalCommand `
@@ -815,25 +815,25 @@ function FindMock {
         CommandName = $CommandName
         ModuleName  = $ModuleName
     }
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock "Looking for mock $($ModuleName)||$CommandName."
     }
     $MockTable["$($ModuleName)||$CommandName"]
 
     if ($null -ne $mock) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "Found mock $(if (-not [string]::IsNullOrEmpty($ModuleName)) {"with module name $($ModuleName)"})||$CommandName."
         }
         $result.MockFound = $true
     }
     else {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "No mock found, re-trying without module name ||$CommandName."
         }
         $mock = $MockTable["||$CommandName"]
         $result.ModuleName = $null
         if ($null -ne $mock) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages) {
                 Write-PesterDebugMessage -Scope Mock "Found mock without module name, setting the target module to empty."
             }
             $result.MockFound = $true
@@ -857,7 +857,7 @@ function FindMatchingBehavior {
         $Hook
     )
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock "Finding a mock behavior."
     }
     $count = $Behaviors.Count
@@ -882,7 +882,7 @@ function FindMatchingBehavior {
             }
 
             if (Test-ParameterFilter @params) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages) {
                     Write-PesterDebugMessage -Scope Mock "{ $($b.ScriptBlock) } passed parameter filter and will be used for the mock call."
                 }
                 return $b
@@ -891,13 +891,13 @@ function FindMatchingBehavior {
     }
 
     if ($foundDefaultBehavior) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock "{ $($defaultBehavior.ScriptBlock) } is a default behavior and will be used for the mock call."
         }
         return $defaultBehavior
     }
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock "No parametrized or default behaviors were found filter."
     }
     return $null
@@ -929,7 +929,7 @@ function ExecuteBehavior {
 
     $ModuleName = $Behavior.ModuleName
     $CommandName = $Behavior.CommandName
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock $ModuleName - $CommandName."
     }
 
@@ -986,7 +986,7 @@ function ExecuteBehavior {
         'Session State'                  = $Hook.CallerSessionState
         'R e p o r t S c o p e'          = {
             param ($CommandName, $ModuleName, $ScriptBlock)
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages) {
                 Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock
             }
         }
@@ -994,11 +994,11 @@ function ExecuteBehavior {
     }
 
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.ScriptBlock, and not $scriptBlock
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock ($behavior.ScriptBlock)
     }
     & $scriptBlock @splat
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock "Behavior for $ModuleName - $CommandName was executed."
     }
 }
@@ -1022,7 +1022,7 @@ function Invoke-InMockScope {
     )
 
     Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $SessionState
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-ScriptBlockInvocationHint -Hint "Mock - InMockScope" -ScriptBlock $ScriptBlock
     }
     if ($NoNewScope) {
@@ -1072,7 +1072,7 @@ function Test-ParameterFilter {
         Set-StrictMode -Off
         $ScriptBlock
     "
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlockString }."
         Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     }
@@ -1080,17 +1080,17 @@ function Test-ParameterFilter {
     Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $SessionState
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages) {
         Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
     }
     $result = & $cmd @BoundParameters @arguments
     if ($result) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
         }
     }
     else {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages) {
             Write-PesterDebugMessage -Scope Mock -Message "Mock filter did not pass."
         }
     }

@@ -88,7 +88,7 @@ Describe "Get-Hello" {
 
 ## Debugging
 
-Pester is looking for a global `PesterDebugPreference` variable, that can confgure it to print complete error messages, and define which debugging info should be printed. The debugging can be enabled and disabled using `WriteDebugMessages` flag, and the debugging messages can be defined as an array of options (right now: RuntimeCore, Runtime, Mock, Discovery, SessionState or '*' for all ).
+Pester is looking for a global `PesterPreference` variable, that can confgure it to print complete error messages, and define which debugging info should be printed. The debugging can be enabled and disabled using `$PesterPreference.Debug.WriteDebugMessages` flag, and the debugging messages can be defined as an array of options (right now: RuntimeCore, Runtime, Mock, Discovery, SessionState or '*' for all ).
 
 I for example debug like this:
 
@@ -97,10 +97,12 @@ $PSModuleAutoloadingPreference = "none"
 Get-Module Pester | Remove-Module
 
 Import-Module $PSSCriptRoot\..\Pester_main\Pester.psd1
-$global:PesterDebugPreference = @{
-    ShowFullErrors         = $true
-    WriteDebugMessages     = $true
-    WriteDebugMessagesFrom = "Mock"
+$global:PesterPreference = @{
+    Debug = @{
+        ShowFullErrors         = $true
+        WriteDebugMessages     = $true
+        WriteDebugMessagesFrom = "Mock"
+    }
 }
 
 $excludedTags = 'VersionChecks', 'Help', 'StyleChecks'

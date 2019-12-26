@@ -195,12 +195,12 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             # never pass. This might obscure some of our own errors
             # because it shortens the stack trace, use $error[0] to debug this
             # not just the screen output
-            $showFullErrors = $global:PesterDebugPreference.ShowFullErrors
-            $global:PesterDebugPreference.ShowFullErrors = $false
+            $showFullErrors = $global:PesterPreference.Debug.ShowFullErrors
+            $global:PesterPreference.Debug.ShowFullErrors = $false
         }
 
         AfterAll {
-            $global:PesterDebugPreference.ShowFullErrors = $showFullErrors
+            $global:PesterPreference.Debug.ShowFullErrors = $showFullErrors
         }
 
         It 'produces correct message lines.' {

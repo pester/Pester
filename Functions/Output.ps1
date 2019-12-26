@@ -369,7 +369,7 @@ function ConvertTo-FailureLines {
             [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
         }
 
-        if ($PesterDebugPreference.ShowFullErrors) {
+        if ($PesterPreference.Debug.ShowFullErrors) {
             $lines.Trace += $traceLines
         }
         else {
@@ -482,7 +482,7 @@ function Get-WriteScreenPlugin {
 
         $text = $ReportStrings.$commandUsed -f $block.Name
 
-        if ($PesterDebugPreference.ShowNavigationMarkers) {
+        if ($PesterPreference.Debug.ShowNavigationMarkers) {
             $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
         }
 
@@ -508,7 +508,7 @@ function Get-WriteScreenPlugin {
         $out = $_test.ExpandedName
         $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
-        if ($PesterDebugPreference.ShowNavigationMarkers) {
+        if ($PesterPreference.Debug.ShowNavigationMarkers) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.ScriptBlock.StartPosition.StartLine)"
         }
         # TODO: Add output options
