@@ -89,10 +89,10 @@ i -PassThru:$PassThru {
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
             $message[-3] | Verify-Equal "Expected: 'Test'"
             $message[-2] | Verify-Equal "But was:  'Testing'"
-            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:75"
+            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:77"
 
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:75"
+            $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:77"
         }
 
         t "should write a failed test result when there are multiple errors" {
@@ -119,8 +119,8 @@ i -PassThru:$PassThru {
             $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
 
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:100"
-            $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:104"
+            $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:102"
+            $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:106"
 
         }
 
