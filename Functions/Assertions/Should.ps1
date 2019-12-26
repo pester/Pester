@@ -41,9 +41,18 @@ function Should {
     about_Pester
 #>
 
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Legacy')]
     param (
-        [Parameter(ValueFromPipeline = $true, ValueFromRemainingArguments = $true)]
+        [Parameter(ParameterSetName = 'Legacy', Position = 0)]
+        [object] $__LegacyArg1,
+
+        [Parameter(ParameterSetName = 'Legacy', Position = 1)]
+        [object] $__LegacyArg2,
+
+        [Parameter(ParameterSetName = 'Legacy', Position = 2)]
+        [object] $__LegacyArg3,
+
+        [Parameter(ValueFromPipeline = $true)]
         [object] $ActualValue
     )
 
@@ -52,6 +61,10 @@ function Should {
     }
 
     begin {
+        if ($PSCmdlet.ParameterSetName -eq 'Legacy') {
+            throw "Legacy Should syntax (e.g. Should Be without dashes) is no longer supported. Please migrate to the modern syntax (e.g. Should -Be with dashes). See https://pester.dev/docs/migrations/v3-to-v4#update-to-the-new-assertions-syntax"
+        }
+
         $inputArray = [System.Collections.Generic.List[PSObject]]@()
     }
 
@@ -140,8 +153,6 @@ function Invoke-Assertion {
         [System.Collections.IDictionary]
         $BoundParameters,
 
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
         [string]
         $File,
 

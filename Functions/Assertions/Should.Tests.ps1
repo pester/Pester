@@ -57,24 +57,6 @@ InModuleScope Pester {
             }
         }
 
-        # TODO: understand the purpose of this test, perhaps some better wording
-        Context "can process functions with empty output as input" {
-            BeforeAll {
-                function ReturnNothing {
-                }
-            }
-
-            It 'throws using ErrorAction Stop' {
-                { $(ReturnNothing) | Should -Not -BeNullOrEmpty -ErrorAction Stop } | Verify-Throw
-            }
-
-            It 'does not throw without ErrorAction Stop' {
-                $errors = @({ $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Verify-AssertionFailed)
-
-                $errors.Count | Should -Be 1
-            }
-        }
-
         # Assertion messages aren't convention-based anymore, but we should probably still make sure
         # that our tests are complete (including negative tests) to verify the proper messages get
         # returned.  Those will need to exist in other tests files.
@@ -109,6 +91,13 @@ InModuleScope Pester {
 
             $returnedValue = $user | Should -Not -Be $null # just some test so we call the assertion
             $returnedValue | Should -BeNullOrEmpty # make sure the previous assertion returned nothing
+        }
+    }
+
+    Describe "Legacy syntax" {
+        It "Throws informative error message when Legacy syntax is used" {
+            $err = { 1 | Should be 1 } | Should -Throw -PassThru
+            $err | Should -Match "legacy should syntax.*no longer supported"
         }
     }
 }
