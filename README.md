@@ -1,5 +1,7 @@
 # Pester
 
+> 🌵 We are migrating documentation and wiki content to a new place [https://pester.dev/docs/quick-start](https://pester.dev/docs/quick-start). The wiki is now locked and will be deprecated in favor of the new solution. Please help us out with the migration in the [📑docs repository](https://github.com/pester/docs/issues).
+
 > 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10.
 
 > 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
