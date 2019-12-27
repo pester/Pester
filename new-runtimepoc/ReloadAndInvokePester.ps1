@@ -10,8 +10,8 @@ if ($v5) {
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
-        WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = "Plugin"
+        WriteDebugMessages     = $true
+        WriteDebugMessagesFrom = "*"
         ShowNavigationMarkers = $true
     }
 }
@@ -21,11 +21,6 @@ $excludePath = "*/demo/*", "*/Examples/*", "*/Gherkin*"
 $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 
 $path = "/Projects/pester_main"
-$path = "~/Pester"
-# $path = "C:\projects\pester_main\Functions\Coverage.Tests.ps1"
-$path = "C:\projects\pester_main\Functions\Output.Tests.ps1"
-cd c:\temp\cc
-$path = "C:\projects\pester_main\Functions\Mock.Tests.ps1"
 
 
 Set-StrictMode -Version Latest
@@ -38,7 +33,7 @@ $script:r = $null
 [Math]::Round((Measure-Command {
     if ($v5) {
         Write-Host -ForegroundColor Cyan Running in Version 5
-        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal -CI
+        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal # -CI
     }
     else {
         Write-Host -ForegroundColor Cyan Running in Version 4

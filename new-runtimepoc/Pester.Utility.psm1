@@ -202,6 +202,26 @@ function Merge-Hashtable ($Source, $Destination) {
     }
 }
 
+
+function Merge-HashtableOrObject ($Source, $Destination) {
+    if ($Source -isnot [Collections.IDictionary] -and $Source -isnot [PSObject]) {
+        throw "Source must be a hashtable, IDictionary or a PSObject."
+    }
+
+    if ($Destination -isnot [Collections.IDictionary] -and $Destination -isnot [PSObject]) {
+        throw "Destination must be a hashtable, IDictionary or a PSObject."
+    }
+
+    foreach ($p in $Source.GetEnumerator()) {
+        # only add non existing keys so in case of conflict
+        # the framework name wins, as if we had explicit parameters
+        # on a scriptblock, then the parameter would also win
+        if (-not $Destination.ContainsKey($p.Key)) {
+            $Destination.Add($p.Key, $p.Value)
+        }
+    }
+}
+
 function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (

@@ -13,7 +13,7 @@ public static class MemberFactory {
 
 if (notDefined PesterPreference) {
     # TODO: instead of replacing the whole hashtable when not defined I should merge the defaults with the hashtable that is defined, that way the runtime can rely on the properties always being there, and there is probably already a function to do that because I use it in Mocks I think -- nhw
-    $global:PesterPreference = @{
+    $PesterPreference = @{
         Debug = @{
             ShowFullErrors         = $false
             WriteDebugMessages     = $false
