@@ -205,11 +205,11 @@ function Merge-Hashtable ($Source, $Destination) {
 
 function Merge-HashtableOrObject ($Source, $Destination) {
     if ($Source -isnot [Collections.IDictionary] -and $Source -isnot [PSObject]) {
-        throw "Source must be a hashtable, IDictionary or a PSObject."
+        throw "Source must be a Hashtable, IDictionary or a PSObject."
     }
 
     if ($Destination -isnot [Collections.IDictionary] -and $Destination -isnot [PSObject]) {
-        throw "Destination must be a hashtable, IDictionary or a PSObject."
+        throw "Destination must be a Hashtable, IDictionary or a PSObject."
     }
 
     foreach ($p in $Source.GetEnumerator()) {

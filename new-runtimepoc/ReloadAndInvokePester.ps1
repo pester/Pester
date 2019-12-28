@@ -10,7 +10,7 @@ if ($v5) {
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
-        WriteDebugMessages     = $true
+        WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "*"
         ShowNavigationMarkers = $true
     }
@@ -21,6 +21,7 @@ $excludePath = "*/demo/*", "*/Examples/*", "*/Gherkin*"
 $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 
 $path = "/Projects/pester_main"
+$path = "~/Pester"
 
 
 Set-StrictMode -Version Latest
