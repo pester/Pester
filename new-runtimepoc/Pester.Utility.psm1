@@ -2,6 +2,15 @@
 $_write_host = Get-Command -CommandType Cmdlet -Name Write-Host
 
 Add-Type -TypeDefinition @"
+using System.Management.Automation;
+public static class MemberFactory {
+    public static PSNoteProperty CreateNoteProperty(string name, object value) {
+        return new PSNoteProperty(name, value);
+    }
+}
+"@
+
+Add-Type -TypeDefinition @"
 using System.Collections;
 
 public abstract class Option<T>
@@ -163,8 +172,8 @@ public class PesterConfiguration
     public static PesterConfiguration Default { get { return new PesterConfiguration(); } }
     public PesterConfiguration(IDictionary configuration)
     {
-        Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull(nameof(Should)));
-        Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull(nameof(Debug)));
+        Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("Should"));
+        Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull("Debug"));
     }
 
     public PesterConfiguration()
@@ -191,7 +200,7 @@ public class ShouldConfiguration : ConfigurationSection
     {
         if (configuration != null)
         {
-            ErrorAction = configuration.GetObjectOrNull<string>(nameof(ErrorAction)) ?? ErrorAction;
+            ErrorAction = configuration.GetObjectOrNull<string>("ErrorAction") ?? ErrorAction;
         }
     }
 
@@ -227,10 +236,10 @@ public class DebugConfiguration : ConfigurationSection
     {
         if (configuration != null)
         {
-            ShowFullErrors = configuration.GetValueOrNull<bool>(nameof(ShowFullErrors)) ?? ShowFullErrors;
-            WriteDebugMessages = configuration.GetValueOrNull<bool>(nameof(WriteDebugMessages)) ?? WriteDebugMessages;
-            WriteDebugMessagesFrom = configuration.GetObjectOrNull<string>(nameof(WriteDebugMessagesFrom)) ?? WriteDebugMessagesFrom;
-            ShowNavigationMarkers = configuration.GetValueOrNull<bool>(nameof(ShowNavigationMarkers)) ?? ShowNavigationMarkers;
+            ShowFullErrors = configuration.GetValueOrNull<bool>("ShowFullErrors") ?? ShowFullErrors;
+            WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
+            WriteDebugMessagesFrom = configuration.GetObjectOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
+            ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
         }
     }
 
