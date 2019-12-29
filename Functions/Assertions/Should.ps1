@@ -90,7 +90,7 @@ function Should {
                 $shouldThrow = $true
             }
             else {
-                $shouldThrowBecauseOfPesterConfiguration = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction
+                $shouldThrowBecauseOfPesterConfiguration = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
                 $shouldThrow = $shouldThrowBecauseOfPesterConfiguration
                 if (-not $shouldThrow) {
                     # call back into the context we grabbed from the runtime and add this error without throwing

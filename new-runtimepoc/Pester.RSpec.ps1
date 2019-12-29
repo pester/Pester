@@ -186,13 +186,5 @@ function New-PesterConfiguration {
     [CmdletBinding()]
     param()
 
-    New_PSObject -Type "PesterConfiguration" ([ordered] @{
-        Should = New_PSObject -Type "PesterShouldConfiguration" @{
-            ErrorAction = 'Continue'
-        }
-
-        Debug = {
-
-        }
-    })
+    [PesterConfiguration]@{}
 }

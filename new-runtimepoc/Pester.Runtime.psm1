@@ -1,32 +1,11 @@
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
 
-Add-Type -TypeDefinition "
-using System.Management.Automation;
-
-public static class MemberFactory {
-    public static PSNoteProperty CreateNoteProperty(string name, object value) {
-        return new PSNoteProperty(name, value);
-    }
-}
-"
-
 if (notDefined PesterPreference) {
-    # TODO: instead of replacing the whole hashtable when not defined I should merge the defaults with the hashtable that is defined, that way the runtime can rely on the properties always being there, and there is probably already a function to do that because I use it in Mocks I think -- nhw
-    $PesterPreference = @{
-        Debug = @{
-            ShowFullErrors         = $false
-            WriteDebugMessages     = $false
-            WriteDebugMessagesFrom = $null
-            ShowNavigationMarkers  = $false
-        }
-    }
+    $PesterPreference = [PesterConfiguration]::Default
 }
 else {
-    $property = $PesterPreference.Debug.PSObject.Properties.Item("WriteDebugMessages")
-    if ($null -ne $property) {
-        $PesterPreference.Debug.WriteDebugMessages = $false
-    }
+    $PesterPreference = [PesterConfiguration] $PesterPreference
 }
 
 $state = [PSCustomObject] @{
