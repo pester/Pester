@@ -18,6 +18,7 @@ function InModuleScope {
 .PARAMETER ScriptBlock
    The code to be executed within the script module.
 .EXAMPLE
+    ```ps
     # The script module:
     function PublicFunction
     {
@@ -42,6 +43,7 @@ function InModuleScope {
             }
         }
     }
+    ```
 
     Normally you would not be able to access "PrivateFunction" from
     the PowerShell session, because the module only exported
@@ -64,7 +66,7 @@ function InModuleScope {
         # User has executed a test script directly instead of calling Invoke-Pester
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in InModuleScope" -SessionState $PSCmdlet.SessionState
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -ExcludeTagFilter @() -SessionState $sessionState
-        $script:mockTable = @{}
+        $script:mockTable = @{ }
     }
 
     $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
@@ -115,8 +117,8 @@ function Get-ScriptModule {
     if ($scriptModules.Count -eq 0) {
         $actualTypes = @(
             $modules |
-                & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
-                & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
+            & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
+            & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
         )
 
         $actualTypes = $actualTypes -join ', '

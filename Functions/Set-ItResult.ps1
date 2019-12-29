@@ -23,32 +23,38 @@ function Set-ItResult {
     to provide information to the user why the test is neither successful nor failed.
 
     .EXAMPLE
+    ```ps
     Describe "Example" {
         It "Inconclusive result test" {
             Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
         }
     }
+    ```
 
     the output should be
 
+    ```
     [?] Inconclusive result test, is inconclusive, because we want it to be inconclusive
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
-
+    ```
 
     .EXAMPLE
+    ```ps
     Describe "Example" {
         It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
         }
     }
+    ```
 
     the output should be
 
+    ```
     [!] Skipped test, is skipped, because we want it to be skipped
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
-
+    ```
 #>
     [CmdletBinding()]
     param(

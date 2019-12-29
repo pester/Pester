@@ -9,9 +9,9 @@ function New-Fixture {
     and another one that contains its tests. The files are by default
     placed in the current directory and are called and populated as such:
 
-
     The script defining the function: .\Clean.ps1:
 
+    ```
     function Clean {
 
     }
@@ -28,6 +28,7 @@ function New-Fixture {
             $true | Should -Be $false
         }
     }
+    ```
 
 
     .PARAMETER Name

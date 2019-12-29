@@ -396,6 +396,7 @@ function Add-AssertionOperator {
 .DESCRIPTION
     This function allows you to create custom Should assertions.
 .EXAMPLE
+    ```ps
     function BeAwesome($ActualValue, [switch] $Negate)
     {
 
@@ -426,6 +427,7 @@ function Add-AssertionOperator {
 
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
+    ```
 .PARAMETER Name
     The name of the assertion. This will become a Named Parameter of Should.
 .PARAMETER Test
@@ -912,6 +914,7 @@ function Invoke-Pester {
 
     .Example
     Invoke-Pester -Script @{Script = $scriptText}
+
     This command runs all tests passed as string in $scriptText variable with no aditional parameters and arguments. This notation can be combined with
     Invoke-Pester -Script D:\MyModule, @{ Path = '.\Tests\Utility\ModuleUnit.Tests.ps1'; Parameters = @{ Name = 'User01' }; Arguments = srvNano16  }
     if needed. This command can be used when tests and scripts are stored not on the FileSystem, but somewhere else, and it is impossible to provide a path to it.
@@ -922,6 +925,7 @@ function Invoke-Pester {
     This command runs only the tests in the Describe block named "Add Numbers".
 
     .EXAMPLE
+    ```ps
     $results = Invoke-Pester -Script D:\MyModule -PassThru -Show None
     $failed = $results.TestResult | where Result -eq 'Failed'
 
@@ -945,6 +949,7 @@ function Invoke-Pester {
     ErrorRecord            : Expected: value to not be empty
     ParameterizedSuiteName :
     Parameters             : {}
+    ```
 
     This examples uses the PassThru parameter to return a custom object with the
     Pester test results. By default, Invoke-Pester writes to the host program, but not
@@ -1209,9 +1214,11 @@ function New-PesterOption {
     .OUTPUTS
     System.Management.Automation.PSObject
     .EXAMPLE
-        PS > $Options = New-PesterOption -TestSuiteName "Tests - Set A"
+        ```ps
+        $Options = New-PesterOption -TestSuiteName "Tests - Set A"
 
-        PS > Invoke-Pester -PesterOption $Options -Outputfile ".\Results-Set-A.xml" -OutputFormat NUnitXML
+        Invoke-Pester -PesterOption $Options -Outputfile ".\Results-Set-A.xml" -OutputFormat NUnitXML
+        ```
 
         The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
         will be named "Tests - Set A".

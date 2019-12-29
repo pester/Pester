@@ -12,9 +12,11 @@ An .NET assembly for the particular type must be available in the system and loa
 The .NET type to create an object based on.
 
 .EXAMPLE
-PS> $obj = New-MockObject -Type 'System.Diagnostics.Process'
-PS> $obj.GetType().FullName
+```ps
+$obj = New-MockObject -Type 'System.Diagnostics.Process'
+$obj.GetType().FullName
     System.Diagnostics.Process
+```
 #>
 
     param (

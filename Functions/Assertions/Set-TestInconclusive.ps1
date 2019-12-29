@@ -12,6 +12,7 @@ function Set-TestInconclusive {
     Value assigned to the Message parameter will be displayed in the the test result.
 
     .EXAMPLE
+    ```ps
     Describe "Example" {
 
         It "My test" {
@@ -19,11 +20,14 @@ function Set-TestInconclusive {
         }
 
     }
+    ```
 
     The test result.
 
+    ```
     Describing Example
         [?] My test, is inconclusive because we forced it to be inconclusive 58ms
+    ```
 
     .LINK
     https://github.com/pester/Pester/wiki/Set%E2%80%90TestInconclusive

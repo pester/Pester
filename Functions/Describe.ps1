@@ -25,6 +25,7 @@ it is possible to specify a -Tag parameter which will only execute Describe bloc
 containing the same Tag.
 
 .EXAMPLE
+```ps
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -50,6 +51,7 @@ Describe "Add-Numbers" {
         $sum | Should -Be "twothree"
     }
 }
+```
 
 .LINK
 It
@@ -85,7 +87,7 @@ about_TestDrive
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
-        $script:mockTable = @{}
+        $script:mockTable = @{ }
     }
 
     DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))

@@ -5,7 +5,7 @@ else {
     & $SafeCommands["Import-Module"] -Name "${Script:PesterRoot}/lib/Gherkin/legacy/Gherkin.dll"
 }
 
-$GherkinSteps = @{}
+$GherkinSteps = @{ }
 $GherkinHooks = @{
     BeforeEachFeature  = @()
     BeforeEachScenario = @()
@@ -238,7 +238,7 @@ function Invoke-Gherkin {
         $Location = & $SafeCommands["Get-Location"]
         [Environment]::CurrentDirectory = & $SafeCommands["Get-Location"] -PSProvider FileSystem
 
-        $script:GherkinSteps = @{}
+        $script:GherkinSteps = @{ }
         $script:GherkinHooks = @{
             BeforeEachFeature  = @()
             BeforeEachScenario = @()
@@ -264,19 +264,19 @@ function Invoke-Gherkin {
         }
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Gherkin" -SessionState $PSCmdlet.SessionState
         $pester = New-PesterState -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -TestNameFilter $ScenarioName -SessionState $sessionState -Strict:$Strict  -Show $Show -PesterOption $PesterOption |
-            & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
-            & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
+        & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Features -Value (& $SafeCommands["New-Object"] System.Collections.Generic.List[PSObject] ) -PassThru |
+        & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name FailedScenarios -PassThru -Value {
             $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-                & $SafeCommands["Where-Object"] { $_.Group |
-                    & $SafeCommands["Where-Object"] { -not $_.Passed } } |
-                & $SafeCommands["Select-Object"] -ExpandProperty Name
+            & $SafeCommands["Where-Object"] { $_.Group |
+                & $SafeCommands["Where-Object"] { -not $_.Passed } } |
+            & $SafeCommands["Select-Object"] -ExpandProperty Name
             $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
         } |
-            & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
+        & $SafeCommands["Add-Member"] -MemberType ScriptProperty -Name PassedScenarios -PassThru -Value {
             $Names = $this.TestResult | & $SafeCommands["Group-Object"] Describe |
-                & $SafeCommands["Where-Object"] { -not ($_.Group |
-                        & $SafeCommands["Where-Object"] { -not $_.Passed }) } |
-                & $SafeCommands["Select-Object"] -ExpandProperty Name
+            & $SafeCommands["Where-Object"] { -not ($_.Group |
+                    & $SafeCommands["Where-Object"] { -not $_.Passed }) } |
+            & $SafeCommands["Select-Object"] -ExpandProperty Name
             $this.Features | Select-Object -ExpandProperty Scenarios | & $SafeCommands["Where-Object"] { $Names -contains $_.Name }
         }
 
@@ -557,10 +557,10 @@ function Invoke-GherkinScenario {
         # Thus we use the translation of 'scenario' instead of $Scenario.Keyword
         Write-Context (New-Object PSObject -Property @{Name = "$(Get-Translation 'scenario' $Language): $($Scenario.Name)"; Description = $Scenario.Description })
 
-        $script:mockTable = @{}
+        $script:mockTable = @{ }
 
         # Create a clean variable scope in each scenario
-        $script:GherkinScenarioScope = New-Module Scenario {       $a = 4
+        $script:GherkinScenarioScope = New-Module Scenario { $a = 4
         }
         $script:GherkinSessionState = Set-SessionStateHint -PassThru -Hint Scenario -SessionState $Script:GherkinScenarioScope.SessionState
 
@@ -618,11 +618,13 @@ function Find-GherkinStep {
             The path to search for step implementations.
 
         .EXAMPLE
+            ```ps
             Find-GherkinStep -Step 'And the module is imported'
 
             Step                       Source                      Implementation
             ----                       ------                      --------------
             And the module is imported .\module.Steps.ps1: line 39 ...
+            ```
     #>
 
     [CmdletBinding()]
@@ -714,7 +716,7 @@ function Invoke-GherkinStep {
 
     $PesterErrorRecord = $null
     $Elapsed = $null
-    $NamedArguments = @{}
+    $NamedArguments = @{ }
 
     try {
         #  Pick the match with the least grouping wildcards in it...
@@ -814,8 +816,8 @@ function Get-StepParameters {
     param($Step, $CommandName)
     $Null = $Step.Text -match $CommandName
 
-    $NamedArguments = @{}
-    $Parameters = @{}
+    $NamedArguments = @{ }
+    $Parameters = @{ }
     foreach ($kv in $Matches.GetEnumerator()) {
         switch ($kv.Name -as [int]) {
             0 {
@@ -891,7 +893,7 @@ function ConvertTo-HashTableArray {
         if ( $null -ne ${InputObject Rows} ) {
             & $SafeCommands["Write-Verbose"] "Processing $(${InputObject Rows}.Length) Rows"
             foreach (${InputObject row} in ${InputObject Rows}) {
-                ${Pester Result} = @{}
+                ${Pester Result} = @{ }
                 for ($n = 0; $n -lt ${Column Names}.Length; $n++) {
                     ${Pester Result}.Add(${Column Names}[$n], ${InputObject row}.Cells[$n].Value)
                 }
