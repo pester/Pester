@@ -193,7 +193,7 @@ public class ShouldConfiguration : ConfigurationSection
 
     public ShouldConfiguration() : base("Should configuration.")
     {
-        ErrorAction = new StringOption("Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.", "Stop");
+        ErrorAction = new StringOption("Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.", "Continue");
     }
 
     public ShouldConfiguration(IDictionary configuration) : this()
