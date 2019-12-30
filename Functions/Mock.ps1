@@ -101,33 +101,41 @@ Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $V
 When this mock is used, if the Mock is never invoked and Assert-VerifiableMock is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
+```ps
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
 Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
+```
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
 .EXAMPLE
+```ps
 Mock Get-ChildItem { return @{FullName="B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
 Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
 
 Get-ChildItem $env:temp\me
+```
 
 Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the most recent Mock created.
 
 .EXAMPLE
+```ps
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem c:\windows
+```
 
 Here, A_File.TXT will be returned. Since no filter was specified, it will apply to any call to Get-ChildItem that does not pass another filter.
 
 .EXAMPLE
+```ps
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem $env:temp\me
+```
 
 Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardless of their creation order.
 
@@ -138,6 +146,7 @@ Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
 will return a hashtable with a FullName property returning "A_File.TXT"
 
 .EXAMPLE
+```ps
 Get-Module -Name ModuleMockExample | Remove-Module
 New-Module -Name ModuleMockExample  -ScriptBlock {
     function Hidden { "Internal Module Function" }
@@ -161,10 +170,10 @@ Describe "ModuleMockExample" {
         Exported | Should -Be "Mocked"
     }
 }
+```
 
 This example shows how calls to commands made from inside a module can be
 mocked by using the -ModuleName parameter.
-
 
 .LINK
 Assert-MockCalled
@@ -402,20 +411,24 @@ invoked. If any mocks have been found that specified -Verifiable and
 have not been invoked, an exception will be thrown.
 
 .EXAMPLE
+```ps
 Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
 
 { ...some code that never calls Set-Content some_path -Value "Expected Value"... }
 
 Assert-VerifiableMock
+```
 
 This will throw an exception and cause the test to fail.
 
 .EXAMPLE
+```ps
 Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
 
 Set-Content some_path -Value "Expected Value"
 
 Assert-VerifiableMock
+```
 
 This will not throw an exception because the mock was invoked.
 
@@ -506,42 +519,51 @@ all calls to the mocked command in the current Feature / Scenario block, as well
 as all child scopes of that block.
 
 .EXAMPLE
+```ps
 C:\PS>Mock Set-Content {}
 
 {... Some Code ...}
 
 C:\PS>Assert-MockCalled Set-Content
+```
 
 This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
 
 .EXAMPLE
+```ps
 C:\PS>Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
 
 {... Some Code ...}
 
 C:\PS>Assert-MockCalled Set-Content 2 { $path -eq "$env:temp\test.txt" }
+```
 
 This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
 
 .EXAMPLE
+```ps
 C:\PS>Mock Set-Content {}
 
 {... Some Code ...}
 
 C:\PS>Assert-MockCalled Set-Content 0
+```
 
 This will throw an exception if some code calls Set-Content at all
 
 .EXAMPLE
+```ps
 C:\PS>Mock Set-Content {}
 
 {... Some Code ...}
 
 C:\PS>Assert-MockCalled Set-Content -Exactly 2
+```
 
 This will throw an exception if some code does not call Set-Content Exactly two times.
 
 .EXAMPLE
+```ps
 Describe 'Assert-MockCalled Scope behavior' {
     Mock Set-Content { }
 
@@ -551,10 +573,12 @@ Describe 'Assert-MockCalled Scope behavior' {
         Assert-MockCalled Set-Content -Exactly 0 -Scope It
     }
 }
+```
 
 Checks for calls only within the current It block.
 
 .EXAMPLE
+```ps
 Describe 'Describe' {
     Mock -ModuleName SomeModule Set-Content { }
 
@@ -564,6 +588,7 @@ Describe 'Describe' {
         Assert-MockCalled -ModuleName SomeModule Set-Content
     }
 }
+```
 
 Checks for calls to the mock within the SomeModule module.  Note that both the Mock
 and Assert-MockCalled commands use the same module name.

@@ -47,6 +47,7 @@ parameter with the syntax 'Adds numbers <A> and <B>' (assuming you have keys nam
 in your TestCases hashtables.)
 
 .EXAMPLE
+```ps
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -72,8 +73,10 @@ Describe "Add-Numbers" {
         $sum | Should -Be "twothree"
     }
 }
+```
 
 .EXAMPLE
+```ps
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -93,6 +96,7 @@ Describe "Add-Numbers" {
         $sum | Should -Be $expectedResult
     }
 }
+```
 
 .LINK
 https://github.com/pester/Pester/wiki/It
@@ -109,7 +113,7 @@ about_should
         [string] $Name,
 
         [Parameter(Position = 1)]
-        [ScriptBlock] $Test = {},
+        [ScriptBlock] $Test = { },
 
         [System.Collections.IDictionary[]] $TestCases,
 
@@ -167,7 +171,7 @@ function ItImpl {
 
     #the function is called with Pending or Skipped set the script block if needed
     if ($null -eq $Test) {
-        $Test = {}
+        $Test = { }
     }
 
     #mark empty Its as Pending
@@ -189,7 +193,7 @@ function ItImpl {
         }
     }
 
-    $pendingSkip = @{}
+    $pendingSkip = @{ }
 
     if ($PSCmdlet.ParameterSetName -eq 'Skip') {
         $pendingSkip['Skip'] = $Skip
@@ -257,7 +261,7 @@ function Invoke-Test {
     )
 
     if ($null -eq $Parameters) {
-        $Parameters = @{}
+        $Parameters = @{ }
     }
 
     try {

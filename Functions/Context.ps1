@@ -23,6 +23,7 @@ Script that is executed. This may include setup specific to the context
 and one or more It blocks that validate the expected outcomes.
 
 .EXAMPLE
+```ps
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -39,6 +40,7 @@ Describe "Add-Numbers" {
         It "..." { ... }
     }
 }
+```
 
 .LINK
 https://github.com/pester/Pester/wiki/Context
@@ -75,7 +77,7 @@ about_TestDrive
         # User has executed a test script directly instead of calling Invoke-Pester
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Context" -SessionState $PSCmdlet.SessionState
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState SessionState
-        $script:mockTable = @{}
+        $script:mockTable = @{ }
     }
 
     DescribeImpl @PSBoundParameters -CommandUsed 'Context' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
