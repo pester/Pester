@@ -520,44 +520,44 @@ as all child scopes of that block.
 
 .EXAMPLE
 ```ps
-C:\PS>Mock Set-Content {}
+PS C:\> Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content
+PS C:\> Assert-MockCalled Set-Content
 ```
 
 This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
 
 .EXAMPLE
 ```ps
-C:\PS>Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
+PS C:\> Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content 2 { $path -eq "$env:temp\test.txt" }
+PS C:\> Assert-MockCalled Set-Content 2 { $path -eq "$env:temp\test.txt" }
 ```
 
 This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
 
 .EXAMPLE
 ```ps
-C:\PS>Mock Set-Content {}
+PS C:\> Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content 0
+PS C:\> Assert-MockCalled Set-Content 0
 ```
 
 This will throw an exception if some code calls Set-Content at all
 
 .EXAMPLE
 ```ps
-C:\PS>Mock Set-Content {}
+PS C:\> Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Assert-MockCalled Set-Content -Exactly 2
+PS C:\> Assert-MockCalled Set-Content -Exactly 2
 ```
 
 This will throw an exception if some code does not call Set-Content Exactly two times.
