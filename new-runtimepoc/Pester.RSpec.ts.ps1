@@ -401,7 +401,7 @@ i -PassThru:$PassThru {
             $test.StandardOutput | Verify-Null
         }
 
-        dt "Chaining assertions" {
+        t "Chaining assertions" {
             $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {

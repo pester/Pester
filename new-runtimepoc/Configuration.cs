@@ -60,11 +60,6 @@ namespace Pester {
         {
             return new StringOption(string.Empty, value, value);
         }
-
-        public static implicit operator string(StringOption option)
-        {
-            return option.Value;
-        }
     }
 
     public class BoolOption : Option<bool>
@@ -106,11 +101,6 @@ namespace Pester {
         {
             return new IntOption(string.Empty, value, value);
         }
-
-        public static implicit operator int(IntOption option)
-        {
-            return option.Value;
-        }
     }
 
     public class DecimalOption : Option<decimal>
@@ -128,11 +118,6 @@ namespace Pester {
         public static implicit operator DecimalOption(decimal value)
         {
             return new DecimalOption(string.Empty, value, value);
-        }
-
-        public static implicit operator decimal(DecimalOption option)
-        {
-            return option.Value;
         }
     }
 
