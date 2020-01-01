@@ -3,10 +3,6 @@ Set-StrictMode -Version Latest
 InModuleScope Pester {
 
     BeforeAll {
-        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-    }
-
-    BeforeAll {
         $functionsBlock = {
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 function Invoke-DummyFunction {

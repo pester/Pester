@@ -2,10 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
 
-    BeforeAll {
-        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-    }
-
     Describe "Should -BeLikeExactly" {
         It "passes for things that are like wildcard" {
             "foobar" | Should -BeLikeExactly "*ob*"

@@ -1,5 +1,6 @@
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
+. $PSScriptRoot\Pester.Types.ps1
 
 if (notDefined PesterPreference) {
     $PesterPreference = [PesterConfiguration]::Default

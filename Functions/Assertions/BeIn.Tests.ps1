@@ -2,10 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
 
-    BeforeAll {
-        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-    }
-
     Describe "Should -BeIn" {
         It "passes if value is in the collection" {
             'a' | Should -BeIn @(1, 'a', 3)

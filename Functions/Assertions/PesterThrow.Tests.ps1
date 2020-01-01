@@ -2,10 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
 
-    BeforeAll {
-        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-    }
-
     Describe "Should -Throw" {
         Context "Basic functionality" {
             It "given scriptblock that throws an exception it passes" {

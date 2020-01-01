@@ -1,9 +1,11 @@
-﻿Get-Module Pester.Utility, Pester.Runtime | Remove-Module
-Import-Module $PSScriptRoot\new-runtimepoc\Pester.Utility.psm1 -DisableNameChecking
-Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
+﻿. $PSScriptRoot/new-runtimepoc/Pester.Types.ps1
+Get-Module Pester.Utility, Pester.Runtime | Remove-Module
+Import-Module $PSScriptRoot/new-runtimepoc/Pester.Utility.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot/new-runtimepoc/Pester.Runtime.psm1 -DisableNameChecking
 
-. $PSScriptRoot\new-runtimepoc\Pester.RSpec.ps1
-. $PSScriptRoot\Functions\Pester.SafeCommands.ps1
+
+. $PSScriptRoot/new-runtimepoc/Pester.RSpec.ps1
+. $PSScriptRoot/Functions/Pester.SafeCommands.ps1
 
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
@@ -663,22 +665,22 @@ function Invoke-Pester {
         [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock,
 
-        [Parameter(ParameterSetName = "Simple")] #TODO, move this to Advanced and make sure that everything from the simple parameter set is translated to the Configuration object
-        $Configuration
+        [Parameter(ParameterSetName = "Advanced")]
+        [PesterConfiguration] $Configuration
     )
     begin {
-        $defaultConfig = New-PesterConfiguration
-        $Configuration = if (-not $Configuration) {
-            $defaultConfig
-        }
-        else {
-            #TODO: merge the user provided config with ours, but for the moment we can assume the user provided the whole object and just modified what they like
-            ## Merge-Configuration -DefaultConfiguration $defaultConfig -Configuration $Configuration
-            $Configuration
-        }
-
-
         $start = [DateTime]::Now
+        $Configuration = if (-not $Configuration) {
+            $p = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+            if ($p) {
+                $p
+            }
+            else {
+                [PesterConfiguration]::Default
+            }
+        }
+
+
         if ($CI) {
             $EnableExit = $true
         }

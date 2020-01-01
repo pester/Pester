@@ -2,10 +2,6 @@
 
 InModuleScope Pester {
 
-    BeforeAll {
-        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-    }
-
     Describe "Should -FileContentMatch" {
         Context "when testing file contents" {
             BeforeAll {

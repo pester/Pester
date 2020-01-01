@@ -2,11 +2,6 @@ Set-StrictMode -Version Latest
 
 InModuleScope Pester {
 
-    BeforeAll {
-        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
-    }
-
-
     Describe "Should -Be" {
         It "returns true if the 2 arguments are equal" {
             1 | Should -Be 1

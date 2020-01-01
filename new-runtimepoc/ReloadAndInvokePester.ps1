@@ -21,7 +21,7 @@ $excludePath = "*/demo/*", "*/Examples/*", "*/Gherkin*"
 $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 
 $path = "/Projects/pester_main"
-$path = "~/Pester"
+# $path = "~/Pester"
 
 
 Set-StrictMode -Version Latest
