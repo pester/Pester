@@ -253,11 +253,11 @@ function Write-PesterDebugMessage {
         [Management.Automation.ErrorRecord] $ErrorRecord
     )
 
-    if (-not $PesterPreference.Debug.WriteDebugMessages) {
+    if (-not $PesterPreference.Debug.WriteDebugMessages.Value) {
         return
     }
 
-    $messagePreference = $PesterPreference.Debug.WriteDebugMessagesFrom.Value
+    $messagePreference = $PesterPreference.Debug.WriteDebugMessages.ValueFrom.Value
     if ($Scope -notlike $messagePreference ) {
         return
     }

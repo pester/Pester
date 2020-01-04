@@ -682,8 +682,17 @@ function Invoke-Pester {
 
 
         if ($CI) {
-            $EnableExit = $true
+            $Configuration.Exit = $true
+
+            $Configuration.CodeCoverage.Enabled = $true
+            $Configuration.CodeCoverage.OutputFormat ="JaCoCo"
+            $Configuration.CodeCoverage.OutputPath = (Join-Path $pwd.Path 'coverage.xml' )
+
+            $Configuration.TestResult.Enabled = $true
+            $Configuration.TestResult.OutputFormat = "NUnit2.5"
+            $Configuration.TestResult.OutputPath = (Join-Path $pwd.Path 'testResults.xml' )
         }
+
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
@@ -796,14 +805,14 @@ function Invoke-Pester {
                 $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
             }
 
-            if ($EnableExit -and $legacyResult.FailedCount -gt 0) {
+            if ($Configuration.Exit.Value -and $legacyResult.FailedCount -gt 0) {
                 exit ($legacyResult.FailedCount)
             }
         }
         catch {
             Write-ErrorToScreen $_
-            if ($EnableExit) {
-                exit 999
+            if ($Configuration.Exit.Value) {
+                exit -1
             }
         }
     }

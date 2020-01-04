@@ -355,8 +355,8 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion fails immediately when ErrorAction is set to Stop via global configuration" {
-            $config = New-PesterConfiguration
-            $config.Should.ErrorAction = 'Stop'
+
+            $global:PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Stop' } }
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
@@ -364,7 +364,7 @@ i -PassThru:$PassThru {
                         "do not output this"
                     }
                 }
-            } -Output None -Configuration $config
+            } -Output None
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull

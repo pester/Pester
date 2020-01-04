@@ -1,4 +1,3 @@
-
 using Pester;
 using System.Collections;
 
@@ -19,7 +18,8 @@ using System.Collections;
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
 
-namespace Pester {
+namespace Pester
+{
     public abstract class Option<T>
     {
         public Option(Option<T> option, T value) : this(option.Description, option.Default, value)
@@ -46,6 +46,10 @@ namespace Pester {
 
     public class StringOption : Option<string>
     {
+        public StringOption(StringOption option, string value) : base(option, value)
+        {
+
+        }
         public StringOption(string description, string defaultValue) : base(description, defaultValue, defaultValue)
         {
 
@@ -280,23 +284,198 @@ namespace Pester {
             }
         }
     }
+
+    public class CodeCoverageConfiguration : ConfigurationSection
+    {
+        public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
+        public CodeCoverageConfiguration() : base("CodeCoverage configuration.")
+        {
+            Enabled = new BoolOption("Enable CodeCoverage.", false);
+            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo", "JaCoCo");
+            OutputPath = new StringOption("Path relative to the current directory where code coverage report is saved.", "coverage.xml");
+        }
+
+        public CodeCoverageConfiguration(IDictionary configuration) : this()
+        {
+            if (configuration != null)
+            {
+                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
+                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
+                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
+            }
+        }
+
+        private BoolOption _enabled;
+        private StringOption _outputFormat;
+        private StringOption _outputPath;
+
+        public BoolOption Enabled
+        {
+            get { return _enabled; }
+            set
+            {
+                if (_enabled == null)
+                {
+                    _enabled = value;
+                }
+                else
+                {
+                    _enabled = new BoolOption(_enabled, value.Value);
+                }
+            }
+        }
+
+        public StringOption OutputFormat
+        {
+            get { return _outputFormat; }
+            set
+            {
+                if (_outputFormat == null)
+                {
+                    _outputFormat = value;
+                }
+                else
+                {
+                    _outputFormat = new StringOption(_outputFormat, value.Value);
+                }
+            }
+        }
+
+        public StringOption OutputPath
+        {
+            get { return _outputPath; }
+            set
+            {
+                if (_outputPath == null)
+                {
+                    _outputPath = value;
+                }
+                else
+                {
+                    _outputPath = new StringOption(_outputPath, value.Value);
+                }
+            }
+        }
+    }
+
+    public class TestResultConfiguration : ConfigurationSection
+    {
+        public static TestResultConfiguration Default { get { return new TestResultConfiguration(); } }
+        public TestResultConfiguration() : base("TestResult configuration.")
+        {
+            Enabled = new BoolOption("Enable TestResult.", false);
+            OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnit2.5", "NUnit2.5");
+            OutputPath = new StringOption("Path relative to the current directory where test result report is saved.", "testResults.xml");
+        }
+
+        public TestResultConfiguration(IDictionary configuration) : this()
+        {
+            if (configuration != null)
+            {
+                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
+                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
+                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
+            }
+        }
+
+        private BoolOption _enabled;
+        private StringOption _outputFormat;
+        private StringOption _outputPath;
+
+        public BoolOption Enabled
+        {
+            get { return _enabled; }
+            set
+            {
+                if (_enabled == null)
+                {
+                    _enabled = value;
+                }
+                else
+                {
+                    _enabled = new BoolOption(_enabled, value.Value);
+                }
+            }
+        }
+
+        public StringOption OutputFormat
+        {
+            get { return _outputFormat; }
+            set
+            {
+                if (_outputFormat == null)
+                {
+                    _outputFormat = value;
+                }
+                else
+                {
+                    _outputFormat = new StringOption(_outputFormat, value.Value);
+                }
+            }
+        }
+
+        public StringOption OutputPath
+        {
+            get { return _outputPath; }
+            set
+            {
+                if (_outputPath == null)
+                {
+                    _outputPath = value;
+                }
+                else
+                {
+                    _outputPath = new StringOption(_outputPath, value.Value);
+                }
+            }
+        }
+    }
 }
 
 public class PesterConfiguration
 {
+    private BoolOption _exit;
     public static PesterConfiguration Default { get { return new PesterConfiguration(); } }
     public PesterConfiguration(IDictionary configuration)
     {
-        Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("Should"));
-        Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull("Debug"));
+        if (configuration != null)
+        {
+            Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
+            CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull("CodeCoverage"));
+            TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull("TestResult"));
+            Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("Should"));
+            Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull("Debug"));
+        }
     }
 
     public PesterConfiguration()
     {
+        Exit = false;
+        CodeCoverage = new CodeCoverageConfiguration();
+        TestResult = new TestResultConfiguration();
         Should = new ShouldConfiguration();
         Debug = new DebugConfiguration();
     }
 
+
+    public BoolOption Exit
+    {
+        get { return _exit; }
+        set
+        {
+            if (_exit == null)
+            {
+                _exit = value;
+            }
+            else
+            {
+                _exit = new BoolOption(_exit.Description, _exit.Default, value.Value);
+            }
+        }
+    }
+
+    public CodeCoverageConfiguration CodeCoverage { get; set; }
+    public TestResultConfiguration TestResult { get; set; }
     public ShouldConfiguration Should { get; set; }
     public DebugConfiguration Debug { get; set; }
 }

@@ -17,10 +17,43 @@ $global:PesterPreference = @{
 
 i -PassThru:$PassThru {
     b "Default configuration" {
+        # General configuration
+        t "Exit is `$false" {
+            [PesterConfiguration]::Default.Exit.Value | Verify-False
+        }
+
+        # CodeCoverage configuration
+        t "CodeCoverage.Enabled is `$false" {
+            [PesterConfiguration]::Default.CodeCoverage.Enabled.Value | Verify-False
+        }
+
+        t "CodeCoverage.OutputFormat is JaCoCo" {
+            [PesterConfiguration]::Default.CodeCoverage.OutputFormat.Value | Verify-Equal JaCoCo
+        }
+
+        t "CodeCoverage.OutputPath is coverage.xml" {
+            [PesterConfiguration]::Default.CodeCoverage.OutputPath.Value | Verify-Equal "coverage.xml"
+        }
+
+        # TestResult configuration
+        t "TestResult.Enabled is `$false" {
+            [PesterConfiguration]::Default.TestResult.Enabled.Value | Verify-False
+        }
+
+        t "TestResult.OutputFormat is NUnit2.5" {
+            [PesterConfiguration]::Default.TestResult.OutputFormat.Value | Verify-Equal "NUnit2.5"
+        }
+
+        t "TestResult.OutputPath is testResults.xml" {
+            [PesterConfiguration]::Default.TestResult.OutputPath.Value | Verify-Equal "testResults.xml"
+        }
+
+        # Should configuration
         t "Should.ErrorAction is Stop" {
             [PesterConfiguration]::Default.Should.ErrorAction.Value | Verify-Equal 'Stop'
         }
 
+        # Debug configuration
         t "Debug.ShowFullErrors is `$false" {
             [PesterConfiguration]::Default.Debug.ShowFullErrors.Value | Verify-False
         }
