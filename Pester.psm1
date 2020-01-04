@@ -1007,13 +1007,13 @@ function Invoke-Pester {
     also has a Bug tag.
 
     .LINK
-    https://github.com/pester/Pester/wiki/Invoke-Pester
+    https://pester.dev/docs/commands/Invoke-Pester
 
     .LINK
-    Describe
-    about_Pester
-    New-PesterOption
+    https://pester.dev/docs/commands/Describe
 
+    .LINK
+    https://pester.dev/docs/commands/New-PesterOption
     #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
@@ -1223,10 +1223,10 @@ function New-PesterOption {
         The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
         will be named "Tests - Set A".
     .LINK
-    https://github.com/pester/Pester/wiki/New-PesterOption
+    https://pester.dev/docs/commands/New-PesterOption
 
     .LINK
-    Invoke-Pester
+    https://pester.dev/docs/commands/Invoke-Pester
     #>
 
     [CmdletBinding()]
