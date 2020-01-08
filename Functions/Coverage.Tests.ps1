@@ -276,7 +276,7 @@ InModuleScope Pester {
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
                         <sourcefile name="TestScript2.ps1">
-                            <line nr="1" mi="0" ci="1" />
+                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
                             <counter type="METHOD" missed="0" covered="1" />
@@ -300,7 +300,7 @@ InModuleScope Pester {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript3.ps1">
-                            <line nr="1" mi="0" ci="1" />
+                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
                             <counter type="METHOD" missed="0" covered="1" />
