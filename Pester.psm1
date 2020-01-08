@@ -619,14 +619,14 @@ function Get-AssertionDynamicParams {
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
-& $script:SafeCommands['Resolve-Path'] |
-& $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
-& $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+    & $script:SafeCommands['Resolve-Path'] |
+    & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+    & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
 if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
     # sub-modules
     & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
 }
 
 Add-Type -TypeDefinition @"
@@ -849,6 +849,13 @@ function Invoke-Pester {
 
     If this path is not provided, no file will be generated.
 
+    .PARAMETER CodeCoverageOutputFileEncoding
+    The encoding in which Invoke-Pester will save the code coverage results file
+    as. Defaults to 'utf8'.
+
+    Supported encodings in the respective PowerShell version are the same as
+    those supported by the cmdlet Out-File in that PowerShell version.
+
     .PARAMETER CodeCoverageOutputFileFormat
     The name of a code coverage report file format.
 
@@ -1040,6 +1047,10 @@ function Invoke-Pester {
 
         [string] $CodeCoverageOutputFile,
 
+        [Parameter()]
+        [ValidateSet('ascii', 'bigendianunicode', 'oem', 'unicode', 'utf7', 'utf8', 'utf8BOM', 'utf8NoBOM', 'utf32')]
+        [string] $CodeCoverageOutputFileEncoding = 'utf8',
+
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
@@ -1155,7 +1166,7 @@ function Invoke-Pester {
             if ((& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFile -ValueOnly -ErrorAction $script:IgnoreErrorPreference) `
                     -and (& $script:SafeCommands['Get-Variable'] -Name CodeCoverageOutputFileFormat -ValueOnly -ErrorAction $script:IgnoreErrorPreference) -eq 'JaCoCo') {
                 $jaCoCoReport = Get-JaCoCoReportXml -PesterState $pester -CoverageReport $coverageReport
-                $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding utf8
+                $jaCoCoReport | & $SafeCommands['Out-File'] $CodeCoverageOutputFile -Encoding $CodeCoverageOutputFileEncoding
             }
             Exit-CoverageAnalysis -PesterState $pester
         }
@@ -1318,19 +1329,19 @@ function ResolveTestScripts {
                     # World's longest pipeline?
 
                     & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
-                    & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
-                    & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
-                    & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
-                    & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
-                    & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
-                    & $script:SafeCommands['ForEach-Object'] {
-                        & $script:SafeCommands['New-Object'] psobject -Property @{
-                            Path       = $_
-                            Script     = $null
-                            Arguments  = $arguments
-                            Parameters = $parameters
+                        & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
+                        & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
+                        & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
+                        & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
+                        & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
+                        & $script:SafeCommands['ForEach-Object'] {
+                            & $script:SafeCommands['New-Object'] psobject -Property @{
+                                Path       = $_
+                                Script     = $null
+                                Arguments  = $arguments
+                                Parameters = $parameters
+                            }
                         }
-                    }
                 }
             }
             elseif (-not [string]::IsNullOrEmpty($script)) {
