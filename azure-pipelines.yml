@@ -18,7 +18,7 @@ jobs:
         - ps2
     workspace:
       clean: all
-    timeoutInMinutes: 3
+    timeoutInMinutes: 5
     steps:
       - script: |
           rem build in 32-bit version of PowerShell 2 because the 64-bit version
@@ -36,7 +36,7 @@ jobs:
         - ps3
     workspace:
       clean: all
-    timeoutInMinutes: 3
+    timeoutInMinutes: 5
     steps:
       - powershell: |
           $global:PesterDebugPreference_ShowFullErrors = $true
