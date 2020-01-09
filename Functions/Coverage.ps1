@@ -747,6 +747,8 @@ function Get-JaCoCoReportXml {
                         nr = $line
                         mi = $class.Lines.$line.Instruction.Missed
                         ci = $class.Lines.$line.Instruction.Covered
+                        mb = 0
+                        cb = 0
                     })
             }
 

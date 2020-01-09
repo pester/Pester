@@ -256,27 +256,27 @@ InModuleScope Pester {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript.ps1">
-                            <line nr="5" mi="0" ci="1" />
-                            <line nr="6" mi="0" ci="1" />
-                            <line nr="9" mi="0" ci="1" />
-                            <line nr="11" mi="0" ci="1" />
-                            <line nr="12" mi="0" ci="1" />
-                            <line nr="15" mi="1" ci="1" />
-                            <line nr="17" mi="0" ci="2" />
-                            <line nr="22" mi="1" ci="0" />
-                            <line nr="25" mi="0" ci="1" />
-                            <line nr="32" mi="0" ci="1" />
-                            <line nr="37" mi="0" ci="1" />
-                            <line nr="42" mi="1" ci="0" />
-                            <line nr="46" mi="0" ci="1" />
-                            <line nr="47" mi="0" ci="1" />
+                            <line nr="5" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="9" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="11" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="15" mi="1" ci="1" mb="0" cb="0" />
+                            <line nr="17" mi="0" ci="2" mb="0" cb="0" />
+                            <line nr="22" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="32" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="37" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="42" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="46" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="47" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="3" covered="13" />
                             <counter type="LINE" missed="2" covered="12" />
                             <counter type="METHOD" missed="2" covered="5" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
                         <sourcefile name="TestScript2.ps1">
-                            <line nr="1" mi="0" ci="1" />
+                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
                             <counter type="METHOD" missed="0" covered="1" />
@@ -300,7 +300,7 @@ InModuleScope Pester {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript3.ps1">
-                            <line nr="1" mi="0" ci="1" />
+                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
                             <counter type="METHOD" missed="0" covered="1" />
@@ -336,7 +336,7 @@ InModuleScope Pester {
         Context 'Single function with missed commands' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionTwo'} -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionTwo' } -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should -Be 1
@@ -371,7 +371,7 @@ InModuleScope Pester {
         Context 'Single function with no missed commands' {
             $testState = New-PesterState -Path $root
 
-            Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionOne'} -PesterState $testState
+            Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionOne' } -PesterState $testState
 
             It 'Has the proper number of breakpoints defined' {
                 $testState.CommandCoverage.Count | Should -Be 9
@@ -487,7 +487,7 @@ InModuleScope Pester {
             Context 'Single class' {
                 $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'} -PesterState $testState
+                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass' } -PesterState $testState
 
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 3
@@ -518,7 +518,7 @@ InModuleScope Pester {
             Context 'Class wildcard resolution' {
                 $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*'} -PesterState $testState
+                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*' } -PesterState $testState
 
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 3
@@ -549,7 +549,7 @@ InModuleScope Pester {
             Context 'Class and function filter' {
                 $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo'} -PesterState $testState
+                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo' } -PesterState $testState
 
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 1
@@ -581,7 +581,7 @@ InModuleScope Pester {
             Context 'Single class when not supported' {
                 $testState = New-PesterState -Path $root
 
-                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'} -PesterState $testState
+                Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass' } -PesterState $testState
 
                 It 'Has the proper number of breakpoints defined' {
                     $testState.CommandCoverage.Count | Should -Be 0
