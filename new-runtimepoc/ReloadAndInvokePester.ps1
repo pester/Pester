@@ -11,7 +11,7 @@ $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = "*"
+        WriteDebugMessagesFrom = "*" 
         ShowNavigationMarkers = $true
     }
 }

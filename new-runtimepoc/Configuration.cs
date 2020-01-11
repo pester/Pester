@@ -1,5 +1,7 @@
 using Pester;
 using System.Collections;
+using System.Collections.Generic;
+using System.Management.Automation;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
@@ -122,6 +124,52 @@ namespace Pester
         public static implicit operator DecimalOption(decimal value)
         {
             return new DecimalOption(string.Empty, value, value);
+        }
+    }
+
+    public class StringArrayOption : Option<string[]>
+    {
+        public StringArrayOption(StringArrayOption option, string[] value) : base(option, value)
+        {
+
+        }
+
+        public StringArrayOption(string description, string[] defaultValue) : base(description, defaultValue, defaultValue)
+        {
+
+        }
+
+        public StringArrayOption(string description, string[] defaultValue, string[] value) : base(description, defaultValue, value)
+        {
+
+        }
+
+        public static implicit operator StringArrayOption(string[] value)
+        {
+            return new StringArrayOption(string.Empty, value, value);
+        }
+    }
+
+    public class ScriptBlockArrayOption : Option<ScriptBlock[]>
+    {
+        public ScriptBlockArrayOption(ScriptBlockArrayOption option, ScriptBlock[] value) : base(option, value)
+        {
+
+        }
+
+        public ScriptBlockArrayOption(string description, ScriptBlock[] defaultValue) : base(description, defaultValue, defaultValue)
+        {
+
+        }
+
+        public ScriptBlockArrayOption(string description, ScriptBlock[] defaultValue, ScriptBlock[] value) : base(description, defaultValue, value)
+        {
+
+        }
+
+        public static implicit operator ScriptBlockArrayOption(ScriptBlock[] value)
+        {
+            return new ScriptBlockArrayOption(string.Empty, value, value);
         }
     }
 
@@ -435,12 +483,15 @@ namespace Pester
 public class PesterConfiguration
 {
     private BoolOption _exit;
+    private StringArrayOption _path;
+    private ScriptBlockArrayOption _scriptBlock;
     public static PesterConfiguration Default { get { return new PesterConfiguration(); } }
     public PesterConfiguration(IDictionary configuration)
     {
         if (configuration != null)
         {
             Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
+            Path = configuration.GetObjectOrNull<string[]>("Path") ?? Path;
             CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull("CodeCoverage"));
             TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull("TestResult"));
             Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("Should"));
@@ -451,6 +502,8 @@ public class PesterConfiguration
     public PesterConfiguration()
     {
         Exit = false;
+        Path = new string[0];
+        ScriptBlock = new ScriptBlock[0];
         CodeCoverage = new CodeCoverageConfiguration();
         TestResult = new TestResultConfiguration();
         Should = new ShouldConfiguration();
@@ -469,7 +522,39 @@ public class PesterConfiguration
             }
             else
             {
-                _exit = new BoolOption(_exit.Description, _exit.Default, value.Value);
+                _exit = new BoolOption(_exit, value.Value);
+            }
+        }
+    }
+
+    public StringArrayOption Path
+    {
+        get { return _path; }
+        set
+        {
+            if (_path == null)
+            {
+                _path = value;
+            }
+            else
+            {
+                _path = new StringArrayOption(_path, value.Value);
+            }
+        }
+    }
+
+    public ScriptBlockArrayOption ScriptBlock
+    {
+        get { return _scriptBlock; }
+        set
+        {
+            if (_scriptBlock == null)
+            {
+                _scriptBlock = value;
+            }
+            else
+            {
+                _scriptBlock = new ScriptBlockArrayOption(_scriptBlock, value.Value);
             }
         }
     }

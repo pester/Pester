@@ -22,6 +22,28 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Exit.Value | Verify-False
         }
 
+        t "Path is empty string array" {
+            $value = [PesterConfiguration]::Default.Path.Value
+
+            # do not do $value | Verify-NotNull
+            # because nothing will reach the assetion
+            Verify-NotNull -Actual $value
+            Verify-Type ([string[]]) -Actual $value
+            $value.Count | Verify-Equal 0
+        }
+
+
+        t "ScriptBlock is empty ScriptBlock array" {
+            $value = [PesterConfiguration]::Default.ScriptBlock.Value
+
+            # do not do $value | Verify-NotNull
+            # because nothing will reach the assetion
+            Verify-NotNull -Actual $value
+            Verify-Type ([ScriptBlock[]]) -Actual $value
+            $value.Count | Verify-Equal 0
+        }
+
+
         # CodeCoverage configuration
         t "CodeCoverage.Enabled is `$false" {
             [PesterConfiguration]::Default.CodeCoverage.Enabled.Value | Verify-False

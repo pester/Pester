@@ -687,10 +687,12 @@ function Invoke-Pester {
             $Configuration.CodeCoverage.Enabled = $true
             $Configuration.CodeCoverage.OutputFormat ="JaCoCo"
             $Configuration.CodeCoverage.OutputPath = (Join-Path $pwd.Path 'coverage.xml' )
+            #TODO: add the rest of the options, including filter for the code coverage (now it is all *.ps1 except *.Tests.ps1), add Paths option, and OutputEncoding
 
             $Configuration.TestResult.Enabled = $true
             $Configuration.TestResult.OutputFormat = "NUnit2.5"
             $Configuration.TestResult.OutputPath = (Join-Path $pwd.Path 'testResults.xml' )
+            #TODO: Add test results encoding option
         }
 
         # Ensure when running Pester that we're using RSpec strings
@@ -722,7 +724,7 @@ function Invoke-Pester {
                 Get-MockPlugin
             )
 
-            if ($CI) {
+            if ($Configuration.CodeCoverage.Enabled) {
                 $CodeCoverage = @{ Path = foreach ($p in $Path) {
                     # this is a bit ugly, but the logic here is
                     # that we check if the path exists,
@@ -788,25 +790,20 @@ function Invoke-Pester {
                 Configuration = $pluginConfiguration
             } -ThrowOnFailure
 
-
-            if ($CI) {
-                $legacyResult = Get-LegacyResult $r
+            if ($Configuration.TestResult.Enabled) {
+                Export-NunitReport $run $Configuration.TestResult.OutputPath.Value
             }
 
-            if ($CI) {
-                Export-NunitReport $run (Join-Path  "." "testResults.xml")
-            }
-
-            if ($CI) {
+            if ($Configuration.CodeCoverage.Enabled) {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
-                $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
+                $jaCoCoReport | & $SafeCommands['Out-File'] $Configuration.CodeCoverage.OutputPath.Value -Encoding UTF8
             }
 
-            if ($Configuration.Exit.Value -and $legacyResult.FailedCount -gt 0) {
-                exit ($legacyResult.FailedCount)
+            if ($Configuration.Exit.Value -and $run.FailedCount -gt 0) {
+                exit ($run.FailedCount)
             }
         }
         catch {
