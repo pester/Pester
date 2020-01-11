@@ -248,4 +248,30 @@ i -PassThru:$PassThru {
             $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
         }
     }
+
+    b "should in mock" {
+        t "should will throw even when Should ErrorAction preference is set to Continue and fails the test" {
+
+            $pesterPreference = [PesterConfiguration]@{Should = @{ ErrorAction = 'Continue' } }
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "a" {
+                    It "it" {
+
+                        function f ($Name) { "real function" }
+                        Mock f -MockWith { "default mock" }
+                        Mock f -ParameterFilter { $Name | Should -Be "a" } -MockWith { "mock with filter" }
+
+                        f "b"
+                        "won't reach this"
+                    }
+                }
+            } -Output None
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.StandardOutput | Verify-Null # the "won't reach this" should not run because the mock filter will throw before it
+            $err = $t.ErrorRecord[0]  -split "`n"
+            $err[-2] | Verify-Equal "Expected: 'a'"
+            $err[-1] | Verify-Equal "But was:  'b'"
+        }
+    }
 }

@@ -1066,8 +1066,10 @@ function Test-ParameterFilter {
 
     $paramBlock = Get-ParamBlockFromBoundParameters -BoundParameters $BoundParameters -Metadata $Metadata
 
+    #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
     $scriptBlockString = "
         $paramBlock
+        `$______isInMockParameterFilter = `$true
 
         Set-StrictMode -Off
         $ScriptBlock
