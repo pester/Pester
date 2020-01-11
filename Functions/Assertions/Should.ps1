@@ -75,23 +75,35 @@ function Should {
 
         $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
 
+        $shouldThrow = $null
         $errorActionIsDefined = $PSBoundParameters.ContainsKey("ErrorAction")
-        $shouldThrowBecauseOfErrorAction = $errorActionIsDefined -and 'Stop' -eq $PSBoundParameters["ErrorAction"]
+        if ($errorActionIsDefined) {
+            $shouldThrow = 'Stop' -eq $PSBoundParameters["ErrorAction"]
+        }
 
-        $shouldThrow = $shouldThrowBecauseOfErrorAction
-        if (-not $shouldThrow) {
+        if ($null -eq $shouldThrow -or -not $shouldThrow) {
+            # we are sure that we either:
+            #    - should not throw because of explicit ErrorAction, and need to figure out a place where to collect the error
+            #    - or we don't know what to do yet and need to figure out what to do based on the context and settings
+
+            # first check if we are in the context of Pester, if not we will always throw:
             # this is slightly hacky, here we are reaching out the the caller session state and
             # look for $______parameters which we know we are using inside of the Pester runtime to
             # keep the current invocation context, when we find it, we are able to add non-terminating
             # errors without throwing and terminating the test
-            $pesterRuntimeInvocationContext =  $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
+            $pesterRuntimeInvocationContext = $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
             $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
             if (-not $isInsidePesterRuntime) {
                 $shouldThrow = $true
             }
             else {
-                $shouldThrowBecauseOfPesterConfiguration = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction
-                $shouldThrow = $shouldThrowBecauseOfPesterConfiguration
+                if ($null -eq $shouldThrow) {
+                    # ErrorAction was not specified explictily, figure out what to do from the configuration
+                    $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
+                }
+
+                # here the $ShouldThrow is set from one of multiple places, either as override from -ErrorAction or
+                # the settings, or based on the Pester runtime availability
                 if (-not $shouldThrow) {
                     # call back into the context we grabbed from the runtime and add this error without throwing
                     $addErrorCallback = {
@@ -103,15 +115,15 @@ function Should {
         }
 
         $assertionParams = @{
-            AssertionEntry = $entry
-            BoundParameters = $PSBoundParameters
-            File = $file
-            LineNumber = $lineNumber
-            LineText = $lineText
-            Negate = $negate
+            AssertionEntry     = $entry
+            BoundParameters    = $PSBoundParameters
+            File               = $file
+            LineNumber         = $lineNumber
+            LineText           = $lineText
+            Negate             = $negate
             CallerSessionState = $PSCmdlet.SessionState
-            ShouldThrow = $shouldThrow
-            AddErrorCallback = $addErrorCallback
+            ShouldThrow        = $shouldThrow
+            AddErrorCallback   = $addErrorCallback
         }
 
         if ($inputArray.Count -eq 0) {
@@ -190,7 +202,8 @@ function Invoke-Assertion {
             # alternatively we could call Get-PSStackTrace and format it ourselves
             # in case this turns out too be slow
             throw $errorRecord
-        } catch {
+        }
+        catch {
             $err = $_
         }
 

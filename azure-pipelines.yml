@@ -23,7 +23,7 @@ jobs:
     timeoutInMinutes: 3
     steps:
       - powershell: |
-          $global:PesterDebugPreference = @{ ShowFullErrors = $true }
+          $global:PesterPreference = @{ Debug = @{ ShowFullErrors = $true } }
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
           $env:CI = 1

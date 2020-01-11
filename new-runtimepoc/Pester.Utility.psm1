@@ -1,5 +1,9 @@
 
+# TODO: Consider removing usage of Write-Host in favor of a solution that does not use any cmdlet
 $_write_host = Get-Command -CommandType Cmdlet -Name Write-Host
+# TODO: Remove this types import once this becomes just ps1
+. $PSScriptRoot/Pester.Types.ps1
+
 
 function or {
     [CmdletBinding()]
@@ -202,6 +206,39 @@ function Merge-Hashtable ($Source, $Destination) {
     }
 }
 
+
+function Merge-HashtableOrObject ($Source, $Destination) {
+    if ($Source -isnot [Collections.IDictionary] -and $Source -isnot [PSObject]) {
+        throw "Source must be a Hashtable, IDictionary or a PSObject."
+    }
+
+    if ($Destination -isnot [PSObject]) {
+        throw "Destination must be a PSObject."
+    }
+
+
+    $sourceIsPSObject = $Source -is [PSObject]
+    $sourceIsDictionary = $Source -is [Collections.IDictionary]
+    $destinationIsPSObject = $Destination -is [PSObject]
+    $destinationIsDictionary = $Destination -is [Collections.IDictionary]
+
+    $items = if ($sourceIsDictionary) { $Source.GetEnumerator() } else { $Source.PSObject.Properties }
+    foreach ($p in $items) {
+        if ($null -eq $Destination.PSObject.Properties.Item($p.Key)) {
+            $Destination.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty($p.Key, $p.Value))
+        }
+        else {
+            if ($p.Value -is [hashtable] -or $p.Value -is [PSObject]) {
+                Merge-HashtableOrObject -Source $p.Value -Destination $Destination.($p.Key)
+            }
+            else {
+                $Destination.($p.Key) = $p.Value
+            }
+
+        }
+    }
+}
+
 function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
@@ -216,11 +253,11 @@ function Write-PesterDebugMessage {
         [Management.Automation.ErrorRecord] $ErrorRecord
     )
 
-    if (-not $PesterDebugPreference.WriteDebugMessages) {
+    if (-not $PesterPreference.Debug.WriteDebugMessages.Value) {
         return
     }
 
-    $messagePreference = tryGetProperty $PesterDebugPreference WriteDebugMessagesFrom
+    $messagePreference = $PesterPreference.Debug.WriteDebugMessages.ValueFrom.Value
     if ($Scope -notlike $messagePreference ) {
         return
     }
@@ -313,10 +350,11 @@ function New_PSObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [HashTable] $Property,
+        [Collections.IDictionary] $Property,
         [String] $Type
     )
 
+    # TODO: is calling the function unnecessary overhead?
     if (-not (Test-NullOrWhiteSpace $Type) ) {
         # -and -not $Property.ContainsKey("PSTypeName")) {
         $Property.Add("PSTypeName", $Type)

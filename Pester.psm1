@@ -1,9 +1,11 @@
-﻿Get-Module Pester.Utility, Pester.Runtime | Remove-Module
-Import-Module $PSScriptRoot\new-runtimepoc\Pester.Utility.psm1 -DisableNameChecking
-Import-Module $PSScriptRoot\new-runtimepoc\Pester.Runtime.psm1 -DisableNameChecking
+﻿. $PSScriptRoot/new-runtimepoc/Pester.Types.ps1
+Get-Module Pester.Utility, Pester.Runtime | Remove-Module
+Import-Module $PSScriptRoot/new-runtimepoc/Pester.Utility.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot/new-runtimepoc/Pester.Runtime.psm1 -DisableNameChecking
 
-. $PSScriptRoot\new-runtimepoc\Pester.RSpec.ps1
-. $PSScriptRoot\Functions\Pester.SafeCommands.ps1
+
+. $PSScriptRoot/new-runtimepoc/Pester.RSpec.ps1
+. $PSScriptRoot/Functions/Pester.SafeCommands.ps1
 
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
@@ -663,25 +665,36 @@ function Invoke-Pester {
         [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock,
 
-        [Parameter(ParameterSetName = "Simple")] #TODO, move this to Advanced and make sure that everything from the simple parameter set is translated to the Configuration object
-        $Configuration
+        [Parameter(ParameterSetName = "Advanced")]
+        [PesterConfiguration] $Configuration
     )
     begin {
-        $defaultConfig = New-PesterConfiguration
-        $Configuration = if (-not $Configuration) {
-            $defaultConfig
-        }
-        else {
-            #TODO: merge the user provided config with ours, but for the moment we can assume the user provided the whole object and just modified what they like
-            ## Merge-Configuration -DefaultConfiguration $defaultConfig -Configuration $Configuration
-            $Configuration
-        }
-
-
         $start = [DateTime]::Now
-        if ($CI) {
-            $EnableExit = $true
+        $Configuration = if (-not $Configuration) {
+            $p = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+            if ($p) {
+                $p
+            }
+            else {
+                [PesterConfiguration]::Default
+            }
         }
+
+
+        if ($CI) {
+            $Configuration.Exit = $true
+
+            $Configuration.CodeCoverage.Enabled = $true
+            $Configuration.CodeCoverage.OutputFormat ="JaCoCo"
+            $Configuration.CodeCoverage.OutputPath = (Join-Path $pwd.Path 'coverage.xml' )
+            #TODO: add the rest of the options, including filter for the code coverage (now it is all *.ps1 except *.Tests.ps1), add Paths option, and OutputEncoding
+
+            $Configuration.TestResult.Enabled = $true
+            $Configuration.TestResult.OutputFormat = "NUnit2.5"
+            $Configuration.TestResult.OutputPath = (Join-Path $pwd.Path 'testResults.xml' )
+            #TODO: Add test results encoding option
+        }
+
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
 
@@ -711,7 +724,7 @@ function Invoke-Pester {
                 Get-MockPlugin
             )
 
-            if ($CI) {
+            if ($Configuration.CodeCoverage.Enabled.Value) {
                 $CodeCoverage = @{ Path = foreach ($p in $Path) {
                     # this is a bit ugly, but the logic here is
                     # that we check if the path exists,
@@ -777,37 +790,33 @@ function Invoke-Pester {
                 Configuration = $pluginConfiguration
             } -ThrowOnFailure
 
-
-            if ($CI) {
-                $legacyResult = Get-LegacyResult $r
+            if ($Configuration.TestResult.Enabled) {
+                Export-NunitReport $run $Configuration.TestResult.OutputPath.Value
             }
 
-            if ($CI) {
-                Export-NunitReport $run (Join-Path  "." "testResults.xml")
-            }
-
-            if ($CI) {
+            if ($Configuration.CodeCoverage.Enabled.Value) {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
-                $jaCoCoReport | & $SafeCommands['Out-File'] 'coverage.xml' -Encoding UTF8
+                $jaCoCoReport | & $SafeCommands['Out-File'] $Configuration.CodeCoverage.OutputPath.Value -Encoding UTF8
             }
 
-            if ($EnableExit -and $legacyResult.FailedCount -gt 0) {
-                exit ($legacyResult.FailedCount)
+            if ($Configuration.Exit.Value -and $run.FailedCount -gt 0) {
+                exit ($run.FailedCount)
             }
         }
         catch {
             Write-ErrorToScreen $_
-            if ($EnableExit) {
-                exit 999
+            if ($Configuration.Exit.Value) {
+                exit -1
             }
         }
     }
 }
 
 function New-PesterOption {
+    #TODO: move those options, right now I am just not exposing this function and added the testSuiteName
     <#
     .SYNOPSIS
     Creates an object that contains advanced options for Invoke-Pester
@@ -1095,7 +1104,6 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll, Anywhere
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-& $script:SafeCommands['Export-ModuleMember'] New-PesterOptions
 # & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
 & $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport, New-PesterConfiguration

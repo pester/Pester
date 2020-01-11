@@ -13,10 +13,12 @@ Import-Module $PSScriptRoot\Pester.Runtime.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
-$global:PesterDebugPreference = @{
-    ShowFullErrors         = $true
-    WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "Timing*"
+$global:PesterPreference = @{
+    Debug = @{
+        ShowFullErrors         = $true
+        WriteDebugMessages     = $false
+        WriteDebugMessagesFrom = "Timing*"
+    }
 }
 
 function Verify-TestPassed {
@@ -392,13 +394,22 @@ i -PassThru:$PassThru {
                 $actual | Verify-True
             }
 
-            t "Given a test without tags it excludes it when it does not match any other filter" {
+            t "Given a test without tags it returns `$null when it does not match any other filter" {
+                # the null is returned because we filter blocks as well as tests via this function
+                # then based on the result we judge what to do, for test $null or $false mean exclude
+                # but for block only $false means exclude. The reason being that block must be explicitly
+                # excluded ($false) to prevent it from running, but it is not needed to explicitly include it
+                # to run (that would force us for example to tag all blocks and their parent blocks with
+                # the same tag as all the tests they contain). On the other hand a test needs to be explicitly
+                # included to run, because otherwise running test with tag "tag1" would run all tests with that tag
+                # as well as all untagged tests.
+
                 $t = New-TestObject -Name "test1" -Path "p"
 
                 $f = New-FilterObject -Tag "a"
 
                 $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-False
+                $actual | Verify-Null
             }
 
             t "Given a test without tags it include it when it matches path filter" {

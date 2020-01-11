@@ -7,10 +7,12 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 
 Import-Module $PSScriptRoot\..\Pester.psd1
 
-$global:PesterDebugPreference = @{
-    ShowFullErrors         = $true
-    WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "Mock"
+$global:PesterPreference = @{
+    Debug = @{
+        ShowFullErrors         = $true
+        WriteDebugMessages     = $false
+        WriteDebugMessagesFrom = "Mock"
+    }
 }
 
 i -PassThru:$PassThru {
@@ -266,7 +268,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
-                        $ErrorActionPreference = 'Continue'
+                        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Continue' }
                         1 | Should -Be 2 # just write this error
                         "but still output this"
                     }
@@ -288,6 +290,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
+                        $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Continue' }
                         $ErrorActionPreference = 'Stop'
                         1 | Should -Be 2 # throw because of eap
                         "but still output this"
@@ -307,6 +310,7 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion fails immediately when -ErrorAction is set to Stop" {
+            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
@@ -351,8 +355,8 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion fails immediately when ErrorAction is set to Stop via global configuration" {
-            $config = New-PesterConfiguration
-            $config.Should.ErrorAction = 'Stop'
+
+             
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
@@ -360,7 +364,7 @@ i -PassThru:$PassThru {
                         "do not output this"
                     }
                 }
-            } -Output None -Configuration $config
+            } -Output None
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -374,6 +378,7 @@ i -PassThru:$PassThru {
         }
 
         t "Guard assertion" {
+            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "User with guard" {
@@ -397,10 +402,10 @@ i -PassThru:$PassThru {
         }
 
         t "Chaining assertions" {
+            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "User with guard" {
-                        $ErrorActionPreference = 'Continue'
                         $user = [PSCustomObject]@{ Name = "Tomas"; Age = 22 }
                         $user | Should -Not -BeNullOrEmpty -ErrorAction Stop -Because "otherwise this test makes no sense"
                         $user.Name | Should -Be Jakub
@@ -413,6 +418,12 @@ i -PassThru:$PassThru {
             $test | Verify-NotNull
             $test.Result | Verify-Equal "Failed"
             $test.ErrorRecord.Count | Verify-Equal 2
+        }
+
+        t "Should throws when called outside of Pester" {
+            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
+            $err = { 1 | Should -Be 2 } | Verify-Throw
+            $err.Exception.Message | Verify-Equal "Expected 2, but got 1."
         }
     }
 }

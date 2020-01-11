@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- It does not really matter which framework we are targetting or the version of the 
+  System.Management.Automation nuget we use, we are only using this project to get intellisense
+  and code checking from VS, but the code is compiled on module load by importing the .cs files
+  via Add-Type. -->
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Remove all powershell to keep only .cs files shown in the project, it can be done in other ways 
+    but this way we don't have to edit the project when we add more .cs files to the folder -->
+    <None Remove="**\*.ps1"/>
+    <None Remove="**\*.psm1"/>
+    <None Remove="**\*.psd1"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management.Automation" Version="6.2.3" />
+  </ItemGroup>
+
+</Project>

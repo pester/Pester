@@ -1,6 +1,7 @@
 Set-StrictMode -Version Latest
 
 InModuleScope Pester {
+
     Describe -Tag "Acceptance" "Should" {
         It "can use the Be assertion" {
             1 | Should -Be 1

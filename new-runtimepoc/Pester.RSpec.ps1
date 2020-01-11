@@ -90,16 +90,16 @@ function Add-RSpecTestObjectProperties {
         "Skipped"
     }
 
-    $TestObject.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("Result", $result))
+    $TestObject.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
 
     # TODO: rename this to Duration, and rename duration to UserCodeDuration or something like that
     $time = [timespan]::zero + $TestObject.Duration + $TestObject.FrameworkDuration
-    $TestObject.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("Time", $time))
+    $TestObject.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
 
     foreach ($e in $TestObject.ErrorRecord) {
         $r = ConvertTo-FailureLines $e
-        $e.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
-        $e.PSObject.Properties.Add([MemberFactory]::CreateNoteProperty("DisplayStackTrace", [string]($r.Trace -join [Environment]::NewLine)))
+        $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
+        $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayStackTrace", [string]($r.Trace -join [Environment]::NewLine)))
     }
 }
 
@@ -186,9 +186,5 @@ function New-PesterConfiguration {
     [CmdletBinding()]
     param()
 
-    New_PSObject -Type "PesterConfiguration" @{
-        Should = New_PSObject -Type "PesterShouldConfiguration" @{
-            ErrorAction = 'Continue'
-        }
-    }
+    [PesterConfiguration]@{}
 }

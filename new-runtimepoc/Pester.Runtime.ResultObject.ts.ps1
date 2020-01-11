@@ -12,10 +12,12 @@ Import-Module $PSScriptRoot\Pester.Runtime.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameChecking
 
-$global:PesterDebugPreference = @{
-    ShowFullErrors         = $true
-    WriteDebugMessages     = $false
-    WriteDebugMessagesFrom = "Timing*"
+$global:PesterPreference = @{
+    Debug = @{
+        ShowFullErrors         = $true
+        WriteDebugMessages     = $false
+        WriteDebugMessagesFrom = "Timing*"
+    }
 }
 
 

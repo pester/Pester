@@ -208,7 +208,7 @@ about_Mocking
         return
     }
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
     $SessionState = $PSCmdlet.SessionState
@@ -220,13 +220,13 @@ about_Mocking
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
 
     if ($contextInfo.IsMockBootstrapFunction) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Mock resolves to an existing hook, will only define mock behavior."
         }
         $hook = $contextInfo.Hook
     }
     else {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Mock does not have a hook yet, creating a new one."
         }
         $hook = Create-MockHook -ContextInfo $contextInfo -InvokeMockCallback $invokeMockCallBack
@@ -236,7 +236,7 @@ about_Mocking
     $behaviors = getOrUpdateValue $mockData.Behaviors $contextInfo.Command.Name ([System.Collections.Generic.List[Object]]@())
 
     $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { " $($behavior.ModuleName) -"})$($behavior.CommandName)."
     }
     $behaviors.Add($behavior)
@@ -248,7 +248,7 @@ function Get-AllMockBehaviors {
         [Parameter(Mandatory)]
         [String] $CommandName
     )
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Getting all defined mock behaviors in this and parent scopes for command $CommandName."
     }
     # this is used for invoking mocks
@@ -260,24 +260,24 @@ function Get-AllMockBehaviors {
 
     $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
         $bs = tryGetValue $currentTest.PluginData.Mock.Behaviors $CommandName
         if ($null -ne $bs -and $bs.Count -gt 0) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in the test."
             }
             $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
             $behaviors.AddRange($bss)
         }
         else {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found no behaviors for '$CommandName' in this test."
             }
         }
     }
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
     }
     $block = Get-CurrentBlock
@@ -291,7 +291,7 @@ function Get-AllMockBehaviors {
             $bs = tryGetValue $b.PluginData.Mock.Behaviors $CommandName
             # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
             if ($null -ne $bs -or $bs.Count -ne 0) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($b.Name)'."
                 }
                 $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
@@ -301,12 +301,12 @@ function Get-AllMockBehaviors {
     }
 
     if (none $behaviors) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
         }
     }
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -LazyMessage {
             "Found behaviors ($($behaviors.Count)) for '$CommandName': "
             foreach ($b in $behaviors) {
@@ -324,7 +324,7 @@ function Get-VerifiableBehaviors {
     [CmdletBinding()]
     param(
     )
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Getting all verifiable mock behaviors in this scope."
     }
 
@@ -333,7 +333,7 @@ function Get-VerifiableBehaviors {
 
     $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
         $bs = $currentTest.PluginData.Mock.Behaviors.Values
@@ -531,12 +531,12 @@ function Get-MockDataForCurrentScope {
     }
 
     if ($inTest) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Returning mock table from test scope."
         }
     }
     else {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a block, one time setup or similar. Returning mock table from test block."
         }
     }
@@ -938,7 +938,7 @@ function Invoke-Mock {
         $Hook
     )
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock."
     }
 

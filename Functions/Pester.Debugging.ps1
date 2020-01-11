@@ -53,7 +53,7 @@ function Write-ScriptBlockInvocationHint {
     }
 
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope SessionState -LazyMessage {
             $scope = Get-ScriptBlockHint $ScriptBlock
             $count = Count-Scopes -ScriptBlock $ScriptBlock

@@ -1,30 +1,12 @@
 Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
+. $PSScriptRoot\Pester.Types.ps1
 
-Add-Type -TypeDefinition "
-using System.Management.Automation;
-
-public static class MemberFactory {
-    public static PSNoteProperty CreateNoteProperty(string name, object value) {
-        return new PSNoteProperty(name, value);
-    }
-}
-"
-
-if (notDefined PesterDebugPreference) {
-    # todo: instead of replacing the whole hashtable when not defined I should merge the defaults with the hashtable that is defined, that way the runtime can rely on the properties always being there, and there is probably already a function to do that because I use it in Mocks I think -- nhw
-    $global:PesterDebugPreference = @{
-        ShowFullErrors         = $false
-        WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = $null
-        ShowNavigationMarkers  = $false
-    }
+if (notDefined PesterPreference) {
+    $PesterPreference = [PesterConfiguration]::Default
 }
 else {
-    $property = $PesterDebugPreference.PSObject.Properties.Item("WriteDebugMessages")
-    if ($null -ne $property) {
-        $PesterDebugPreference.WriteDebugMessages = $false
-    }
+    $PesterPreference = [PesterConfiguration] $PesterPreference
 }
 
 $state = [PSCustomObject] @{
@@ -58,7 +40,7 @@ $state = [PSCustomObject] @{
 
 function Reset-TestSuiteState {
     # resets the module state to the default
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Resetting all state to default."
     }
     $state.Discovery = $false
@@ -78,7 +60,7 @@ function Reset-PerContainerState {
         [Parameter(Mandatory = $true)]
         [PSTypeName("DiscoveredBlock")] $RootBlock
     )
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Resetting per container state."
     }
     $state.CurrentBlock = $RootBlock
@@ -100,7 +82,7 @@ function Find-Test {
     # persisted afterwards so we don't have to reset it to $false
     $InvokedNonInteractively = $true
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Running just discovery."
     }
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
@@ -220,7 +202,7 @@ function New-Block {
 
     Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
     $path = @(foreach ($h in (Get-ScopeHistory)) { $h.Name })
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
     }
 
@@ -240,7 +222,7 @@ function New-Block {
         $Id
     }
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
     }
 
@@ -262,18 +244,18 @@ function New-Block {
     Add-Block -Block $block
     Set-CurrentBlock -Block $block
     try {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovering in body of block $Name"
         }
         & $ScriptBlock
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope DiscoveryCore "Finished discovering in body of block $Name"
         }
     }
     finally {
         Set-CurrentBlock -Block $previousBlock
         $null = Pop-Scope
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Left block $Name"
         }
         $block.DiscoveryDuration = ($state.FrameworkStopWatch.Elapsed - $overheadStartTime) + ($state.UserCodeStopWatch.Elapsed - $blockStartTime)
@@ -285,7 +267,7 @@ function Invoke-Block ($previousBlock) {
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
     $blockStartTime = $state.UserCodeStopWatch.Elapsed
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
     }
 
@@ -310,7 +292,7 @@ function Invoke-Block ($previousBlock) {
             Set-CurrentBlock -Block $block
             try {
                 if (-not $block.ShouldRun) {
-                    if ($PesterDebugPreference.WriteDebugMessages) {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Runtime "Block '$($block.Name)' is excluded from run, returning"
                     }
                     continue
@@ -318,7 +300,7 @@ function Invoke-Block ($previousBlock) {
 
                 $block.ExecutedAt = [DateTime]::Now
                 $block.Executed = $true
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
 
@@ -410,7 +392,7 @@ function Invoke-Block ($previousBlock) {
                     $block.StandardOutput = $result.StandardOutput
 
                     $block.ErrorRecord = $result.ErrorRecord
-                    if ($PesterDebugPreference.WriteDebugMessages) {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
                     }
                 }
@@ -447,12 +429,12 @@ function Invoke-Block ($previousBlock) {
             }
             finally {
                 Set-CurrentBlock -Block $previousBlock
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Left block $Name"
                 }
                 $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
                 $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
                     Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
                     Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
@@ -481,13 +463,13 @@ function New-Test {
     $testStartTime = $state.UserCodeStopWatch.Elapsed
     Switch-Timer -Scope Framework
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering test $Name"
     }
     Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
     try {
         $path = foreach ($h in (Get-ScopeHistory)) { $h.Name }
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
         }
 
@@ -511,24 +493,24 @@ function New-Test {
         $test.FrameworkData.Runtime.Phase = 'Discovery'
 
         Add-Test -Test $test
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
         }
     }
     finally {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
         }
         $state.CurrentTest = $null
         $null = Pop-Scope
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Left test $Name"
         }
 
         # keep this at the end so we report even the test teardown in the framework overhead for the test
         $test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Timing -Message "Test duration $($test.Duration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing -Message "Framework duration $($test.FrameworkDuration.TotalMilliseconds)ms"
         }
@@ -547,12 +529,12 @@ function Invoke-TestItem {
     $testStartTime = $state.UserCodeStopWatch.Elapsed
     Switch-Timer -Scope Framework
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering test $($Test.Name)"
     }
 
     try {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($Test.Path -join '.')"
         }
 
@@ -560,7 +542,7 @@ function Invoke-TestItem {
         Set-CurrentTest -Test $Test
 
         if (-not $Test.ShouldRun) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Runtime "Test is excluded from run, returning"
             }
             return
@@ -572,7 +554,7 @@ function Invoke-TestItem {
         $Test.ExpandedName = & $state.ExpandName -Name $Test.Name -Data $Test.Data
 
         $block = $Test.Block
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
         }
 
@@ -665,18 +647,18 @@ function Invoke-TestItem {
 
     }
     finally {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Leaving path $($Test.Path -join '.')"
         }
         $state.CurrentTest = $null
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Left test $($Test.Name)"
         }
 
         # keep this at the end so we report even the test teardown in the framework overhead for the test
         $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Timing -Message "Test duration $($Test.Duration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing -Message "Framework duration $($Test.FrameworkDuration.TotalMilliseconds)ms"
         }
@@ -1010,7 +992,7 @@ function Discover-Test {
     )
     $totalDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
@@ -1023,7 +1005,7 @@ function Discover-Test {
     $found = foreach ($container in $BlockContainer) {
         $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
         }
 
@@ -1056,13 +1038,13 @@ function Discover-Test {
         } -ThrowOnFailure
 
         $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests" }
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
         }
     }
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
     }
 
@@ -1081,7 +1063,7 @@ function Discover-Test {
     }
 
     if ($focusedTests.Count -gt 0) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         }
         $Filter = New-FilterObject -Path $focusedTests
@@ -1105,7 +1087,7 @@ function Discover-Test {
         Configuration = $state.PluginConfiguration
     } -ThrowOnFailure
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
     }
 }
@@ -1164,7 +1146,7 @@ function Run-Test {
 
             $rootSetupResult = $null
             if ($null -ne $rootBlock.OneTimeTestSetup) {
-                if ($PesterDebugPreference.WriteDebugMessages) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "One time setup from root block is executing"
                 }
 
@@ -1213,7 +1195,7 @@ function Run-Test {
         # overall time to keep the actual timing correct
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Timing "Container duration $($result.Duration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
         }
@@ -1238,7 +1220,7 @@ function Invoke-PluginStep {
     # for example as a teardown step of a test.
 
     Switch-Timer -Scope Framework
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $sw = [Diagnostics.Stopwatch]::StartNew()
     }
 
@@ -1254,7 +1236,7 @@ function Invoke-PluginStep {
 
 
     if ($null -eq $pluginsWithGivenStep -or 0 -eq @($pluginsWithGivenStep).Count) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope PluginCore "No plugins with step $Step were provided"
         }
         return
@@ -1269,14 +1251,14 @@ function Invoke-PluginStep {
     $standardOutput =
     foreach ($p in $pluginsWithGivenStep) {
         if ($failed -and -not $isEndStep) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Plugin "Skipping $($p.Name) step $Step because some previous plugin failed"
             }
             continue
         }
 
         try {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $stepSw = [Diagnostics.Stopwatch]::StartNew()
                 Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
             }
@@ -1291,14 +1273,14 @@ function Invoke-PluginStep {
                 & $p.$Step @ctx
             } while ($false)
 
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Plugin "Success $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms"
             }
         }
         catch {
             $failed = $true
             $err.Add($_)
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms" -ErrorRecord $_
             }
         }
@@ -1307,7 +1289,7 @@ function Invoke-PluginStep {
     $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
 
 
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Plugin "Invoking plugins in step $Step took $($sw.ElapsedMilliseconds) ms"
     }
     if ($ThrowOnFailure) {
@@ -1563,7 +1545,7 @@ function Invoke-ScriptBlock {
             ErrorRecord                   = [Collections.Generic.List[Management.Automation.ErrorRecord]]@()
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
-            EnableWriteDebug              = $PesterDebugPreference.WriteDebugMessages
+            EnableWriteDebug              = $PesterPreference.Debug.WriteDebugMessages.Value
             WriteDebug                    = {
                 param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
                 Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
@@ -1674,7 +1656,7 @@ function Switch-Timer {
         [ValidateSet("Framework", "UserCode")]
         $Scope
     )
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         if ($state.UserCodeStopWatch.IsRunning) {
             Write-PesterDebugMessage -Scope TimingCore "Switching from UserCode to $Scope"
         }
@@ -1775,7 +1757,7 @@ function Test-ShouldRun {
     $anyIncludeFilters = $false
     $fullTestPath = $Test.Path -join "."
     if ($null -eq $Filter) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because there is no filter."
         }
         return $true
@@ -1787,7 +1769,7 @@ function Test-ShouldRun {
         foreach ($f in $tagFilter) {
             foreach ($t in $Test.Tag) {
                 if ($t -like $f) {
-                    if ($PesterDebugPreference.WriteDebugMessages) {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is excluded, because it's tag '$t' matches exclude tag filter '$f'."
                     }
                     return $false
@@ -1801,7 +1783,7 @@ function Test-ShouldRun {
     if (any $tagFilter) {
         $anyIncludeFilters = $true
         if (none $test.Tag) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint might be excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
             }
         }
@@ -1809,7 +1791,7 @@ function Test-ShouldRun {
             foreach ($f in $tagFilter) {
                 foreach ($t in $Test.Tag) {
                     if ($t -like $f) {
-                        if ($PesterDebugPreference.WriteDebugMessages) {
+                        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                             Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because it's tag '$t' matches tag filter '$f'."
                         }
                         return $true
@@ -1824,13 +1806,13 @@ function Test-ShouldRun {
         $anyIncludeFilters = $true
         $include = $allPaths -contains $fullTestPath
         if ($include) {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because it matches full path filter."
             }
             return $true
         }
         else {
-            if ($PesterDebugPreference.WriteDebugMessages) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint might be excluded, because its full path does not match the path filter."
             }
         }
@@ -2355,7 +2337,7 @@ function Add-FrameworkDependency {
     # this should be rarely needed, but is useful when you wrap Pester pieces
     # into your own functions, and want to have them available during both
     # discovery and execution
-    if ($PesterDebugPreference.WriteDebugMessages) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Adding framework dependency '$Dependency'"
     }
     Import-Dependency -Dependency $Dependency -SessionState $SessionState
@@ -2373,7 +2355,7 @@ function Add-Dependency {
 
     # adds dependency that is dotsourced after discovery and before execution
     if (-not (Is-Discovery)) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Adding run-time dependency '$Dependency'"
         }
         Import-Dependency -Dependency $Dependency -SessionState $SessionState
@@ -2393,7 +2375,7 @@ function Anywhere {
     # it differently because this is a bad-practice mitigation tool and should probably
     # write a warning to make you use Before* blocks instead
     if (-not (Is-Discovery)) {
-        if ($PesterDebugPreference.WriteDebugMessages) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Invoking free floating piece of code"
         }
         Import-Dependency $ScriptBlock

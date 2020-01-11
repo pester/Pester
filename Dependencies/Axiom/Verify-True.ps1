@@ -4,6 +4,10 @@ function Verify-True {
         $Actual
     )
 
+    if ($null -eq $Actual) {
+        throw [Exception]"Expected `$true but got '`$null'."
+    }
+
     if (-not $Actual) {
         throw [Exception]"Expected `$true but got '$Actual'."
     }
