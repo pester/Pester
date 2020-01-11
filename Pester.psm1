@@ -816,6 +816,7 @@ function Invoke-Pester {
 }
 
 function New-PesterOption {
+    #TODO: move those options, right now I am just not exposing this function and added the testSuiteName
     <#
     .SYNOPSIS
     Creates an object that contains advanced options for Invoke-Pester
@@ -1103,7 +1104,6 @@ $SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.I
 & $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
 & $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll, Anywhere
 & $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-& $script:SafeCommands['Export-ModuleMember'] New-PesterOptions
 # & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
 & $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
 & $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport, New-PesterConfiguration

@@ -414,6 +414,7 @@ namespace Pester
             Enabled = new BoolOption("Enable TestResult.", false);
             OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnit2.5", "NUnit2.5");
             OutputPath = new StringOption("Path relative to the current directory where test result report is saved.", "testResults.xml");
+            TestSuiteName = new StringOption("Set the name assigned to the root 'test-suite' element.", "Pester");
         }
 
         public TestResultConfiguration(IDictionary configuration) : this()
@@ -429,6 +430,7 @@ namespace Pester
         private BoolOption _enabled;
         private StringOption _outputFormat;
         private StringOption _outputPath;
+        private StringOption _testSuiteName;
 
         public BoolOption Enabled
         {
@@ -474,6 +476,22 @@ namespace Pester
                 else
                 {
                     _outputPath = new StringOption(_outputPath, value.Value);
+                }
+            }
+        }
+
+        public StringOption TestSuiteName
+        {
+            get { return _testSuiteName; }
+            set
+            {
+                if (_testSuiteName ==null)
+                {
+                    _testSuiteName = value;
+                }
+                else
+                {
+                    _testSuiteName = new StringOption(_testSuiteName, value.Value);
                 }
             }
         }
