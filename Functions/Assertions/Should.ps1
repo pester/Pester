@@ -98,8 +98,12 @@ function Should {
             }
             else {
                 if ($null -eq $shouldThrow) {
-                    # ErrorAction was not specified explictily, figure out what to do from the configuration
-                    $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
+                    if ($null -ne $PSCmdlet.SessionState.PSVariable.GetValue('______isInMockParameterFilter')) {
+                        $shouldThrow = $true
+                    } else {
+                        # ErrorAction was not specified explictily, figure out what to do from the configuration
+                        $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
+                    }
                 }
 
                 # here the $ShouldThrow is set from one of multiple places, either as override from -ErrorAction or
@@ -152,8 +156,6 @@ function Invoke-Assertion {
         [System.Collections.IDictionary]
         $BoundParameters,
 
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
         [string]
         $File,
 
