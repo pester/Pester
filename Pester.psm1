@@ -724,7 +724,7 @@ function Invoke-Pester {
                 Get-MockPlugin
             )
 
-            if ($Configuration.CodeCoverage.Enabled) {
+            if ($Configuration.CodeCoverage.Enabled.Value) {
                 $CodeCoverage = @{ Path = foreach ($p in $Path) {
                     # this is a bit ugly, but the logic here is
                     # that we check if the path exists,
@@ -794,7 +794,7 @@ function Invoke-Pester {
                 Export-NunitReport $run $Configuration.TestResult.OutputPath.Value
             }
 
-            if ($Configuration.CodeCoverage.Enabled) {
+            if ($Configuration.CodeCoverage.Enabled.Value) {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
