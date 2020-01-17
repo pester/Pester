@@ -588,7 +588,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Failure')
             $XmlWriter.WriteAttributeString('executed', 'True')
             $XmlWriter.WriteStartElement('failure')
-            $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+            $xmlWriter.WriteElementString('message', $TestResult.FailureMessage.Replace("`e",'&27;'))
             $XmlWriter.WriteElementString('stack-trace', $TestResult.StackTrace)
             $XmlWriter.WriteEndElement() # Close failure tag
             break
