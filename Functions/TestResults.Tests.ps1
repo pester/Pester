@@ -45,7 +45,8 @@ InModuleScope Pester {
                 $TestResults = New-PesterState -Path TestDrive:\
                 $testResults.EnterTestGroup('Mocked Describe', 'Describe')
                 $time = [TimeSpan]25000000 #2.5 seconds
-                $TestResults.AddTestResult("Failed testcase", 'Failed', $time, "Assert failed: ""Expected: ``[34mTest``[0m. But was: Testing""", 'at line: 28 in  C:\Pester\Result.Tests.ps1')
+                $escape = [string][char]27 # escape, also `e in PowerShell 6+
+                $TestResults.AddTestResult("Failed testcase", 'Failed', $time, "Assert failed: ""Expected: $escape[34mTest$escape[0m. But was: Testing""", 'at line: 28 in  C:\Pester\Result.Tests.ps1')
 
                 #export and validate the file
                 [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
