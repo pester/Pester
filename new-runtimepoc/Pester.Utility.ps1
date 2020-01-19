@@ -243,7 +243,7 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("RuntimeCore", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore")]
+        [ValidateSet("RuntimeCore", "RuntimeFilter", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore")]
         [String] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
@@ -254,11 +254,11 @@ function Write-PesterDebugMessage {
     )
 
     if (-not $PesterPreference.Debug.WriteDebugMessages.Value) {
-        return
+        throw "This should never happen. All calls to Write-PesterDebugMessage should be wrapped in `if` to avoid perfomace hit of allocating the message and calling the function. Inspect the call stack to know where this call came from. This can also happen if `$PesterPreference is different from the `$PesterPreference that utilities see because of incorrect scoping."
     }
 
-    $messagePreference = $PesterPreference.Debug.WriteDebugMessages.ValueFrom.Value
-    if ($Scope -notlike $messagePreference ) {
+    $messagePreference = $PesterPreference.Debug.WriteDebugMessagesFrom.Value
+    if ($Scope -notlike $messagePreference) {
         return
     }
 
@@ -270,6 +270,7 @@ function Write-PesterDebugMessage {
         else {
             switch ($Scope) {
                 "RuntimeCore" { "Cyan" }
+                "RuntimeFilter" { "Cyan" }
                 "Runtime" { "DarkGray" }
                 "Mock" { "DarkYellow" }
                 "Discovery" { "DarkMagenta" }
@@ -279,6 +280,7 @@ function Write-PesterDebugMessage {
                 "TimingCore" { "Gray" }
                 "PluginCore" { "Blue" }
                 "Plugin" { "Blue" }
+                default { "Cyan" }
             }
         }
 

@@ -1,4 +1,4 @@
-Import-Module $PSScriptRoot\Pester.Utility.psm1 -DisableNameChecking
+. $PSScriptRoot\Pester.Utility.ps1
 . $PSScriptRoot\..\Functions\Pester.SafeCommands.ps1
 . $PSScriptRoot\Pester.Types.ps1
 
@@ -1012,7 +1012,7 @@ function Discover-Test {
         # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
-        $root = New-BlockObject -Name "Root"
+        $root = New-BlockObject -Name "Root" -Path "Root"
         $root.First = $true
         $root.Last = $true
 
@@ -1744,7 +1744,7 @@ function Test-ShouldRun {
         $Hint
     )
 
-    # TODO: this filters both blocks and tests, the $Test parameter needs to be renamed
+    # TODO: this filters both blocks and tests, the $Test parameter needs to be renamed, and it would be nice to merge the logging here a bit.
 
     # so the logic here is that you first try all exclude filters, and if any exludes then you return false
     # then you try all other filters and if then do not match you fall to the next one (giving it chance to )
@@ -1758,7 +1758,7 @@ function Test-ShouldRun {
     $fullTestPath = $Test.Path -join "."
     if ($null -eq $Filter) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because there is no filter."
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included, because there is no filter."
         }
         return $true
     }
@@ -1766,25 +1766,36 @@ function Test-ShouldRun {
     # test is excluded when any of the exclude tags match
     $tagFilter = tryGetProperty $Filter ExcludeTag
     if (any $tagFilter) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There is '$($tagFilter -join ", ")' exclude tag filter."
+        }
         foreach ($f in $tagFilter) {
             foreach ($t in $Test.Tag) {
                 if ($t -like $f) {
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                        Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is excluded, because it's tag '$t' matches exclude tag filter '$f'."
+                        Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is excluded, because it's tag '$t' matches exclude tag filter '$f'."
                     }
                     return $false
                 }
             }
         }
     }
+    else {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There are no exclude tag filters."
+        }
+    }
 
     # test is included when it has tags and the any of the tags match
     $tagFilter = tryGetProperty $Filter Tag
     if (any $tagFilter) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There is '$($tagFilter -join ", ")' include tag filter."
+        }
         $anyIncludeFilters = $true
         if (none $test.Tag) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint might be excluded, beause there is a tag filter $($tagFilter -join ", ") and the test has no tags."
+                Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint might be excluded, because there is a tag filter '$($tagFilter -join ", ")' and the item has no tags."
             }
         }
         else {
@@ -1792,12 +1803,17 @@ function Test-ShouldRun {
                 foreach ($t in $Test.Tag) {
                     if ($t -like $f) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because it's tag '$t' matches tag filter '$f'."
+                            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included, because it's tag '$t' matches tag filter '$f'."
                         }
                         return $true
                     }
                 }
             }
+        }
+    }
+    else {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There are no include tag filters."
         }
     }
 
@@ -1807,23 +1823,29 @@ function Test-ShouldRun {
         $include = $allPaths -contains $fullTestPath
         if ($include) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint is included, because it matches full path filter."
+                Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included, because it matches full path filter."
             }
             return $true
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Runtime "($fullTestPath) $Hint might be excluded, because its full path does not match the path filter."
+                Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint might be excluded, because its full path does not match the path filter."
             }
         }
     }
 
     if ($anyIncludeFilters) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint did not match any of the include filters, but also was not explicitly excluded. The next step will decide what happens."
+        }
         # there were filters but the item did not match any of them
         # but also was not explicitly excluded
         $null
     }
     else {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included because there were no filters."
+        }
         # there were no filters
         $true
     }
@@ -1841,6 +1863,10 @@ function Invoke-Test {
         $PluginConfiguration,
         $Configuration
     )
+
+    # set the incoming value for all the child scopes
+    # TODO: revisit this because this will probably act weird as we jump between session states
+    $PesterPreference = $Configuration
 
     # don't scope InvokedNonInteractively to script we want the functions
     # that are called by this to see the value but it should not be
@@ -1917,19 +1943,72 @@ function PostProcess-DiscoveredBlock {
 
     $tests = $Block.Tests
 
+
+    $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
+
+    $Block.Exclude = $blockIsExcluded =
+
     # block should run when the result is $true, or $null but not when it $false
     # because $false means that the block was explicitly excluded from the run
     # but $null means that the block did not match the filter but still can have some
     # children that might match the filter
-    $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
-    $Block.Exclude = $blockIsExcluded = $parentBlockIsExcluded -or ($false -eq (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block"))
+
+    # this is just logging friendly way of writing $parentBlockIsExcluded -or ($false -eq $shouldRun)
+    $Block.Exclude = $blockIsExcluded = if ($parentBlockIsExcluded) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                $path = $Block.Path -join "."
+                Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is excluded because parent block was excluded."
+            }
+            $true
+        }
+        else {
+            $shouldRun = (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block")
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                $path = $Block.Path -join "."
+                if ($null -eq $shouldRun) {
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is included because it was not explictly excluded."
+                }
+                elseif ($true -eq $shouldRun) {
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is included because it matched a filter or there were no filters."
+                }
+                else {
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is excluded because it was explicitly excluded."
+                }
+            }
+            $false -eq $shouldRun
+        }
+
     $blockShouldRun = $false
     if ($tests.Count -gt 0) {
         foreach ($t in $tests) {
             $t.Block = $Block
             # test should run when the result is $true, but not when it is $null or $false
-            # because tests don't have any children, so not matching the filter means they should not run
-            $t.ShouldRun = -not $blockIsExcluded -and ([bool] (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test"))
+            # because tests don't have any children, so not matching the filter means they should not run,
+            # because we don't have to give a chance to child items to match a filter
+            # -not $blockIsExcluded -and ($true -eq (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test"))
+            $t.ShouldRun = if ($blockIsExcluded) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    $path = $t.Path -join "."
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because parent block was excluded."
+                }
+                $false
+            }
+            else {
+                $shouldRun = (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test")
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    $path = $t.Path -join "."
+                    if ($null -eq $shouldRun) {
+                        Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because it did not match any filter."
+                    }
+                    elseif ($true -eq $shouldRun) {
+                        Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is included because it matched a filter or there were no filters."
+                    }
+                    else {
+                        Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because it was explicitly excluded by a filter."
+                    }
+                }
+                $true -eq $shouldRun
+            }
         }
 
         if (-not $blockIsExcluded) {
