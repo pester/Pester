@@ -30,7 +30,7 @@ function Set-TestInconclusive {
     ```
 
     .LINK
-    https://github.com/pester/Pester/wiki/Set%E2%80%90TestInconclusive
+    https://pester.dev/docs/commands/Set-TestInconclusive
 #>
     [CmdletBinding()]
     param (

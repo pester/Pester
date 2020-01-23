@@ -79,7 +79,9 @@ function Get-TestDriveItem {
     what is located under TestDrive.
 
     .LINK
-    https://github.com/pester/Pester/wiki/TestDrive
+    https://pester.dev/docs/usage/testdrive
+
+	.LINK
     about_TestDrive
 #>
 

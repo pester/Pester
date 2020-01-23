@@ -176,13 +176,29 @@ This example shows how calls to commands made from inside a module can be
 mocked by using the -ModuleName parameter.
 
 .LINK
+https://pester.dev/docs/commands/Mock
+
+.LINK
 Assert-MockCalled
+
+.LINK
 Assert-VerifiableMock
+
+.LINK
 Describe
+
+.LINK
 Context
+
+.LINK
 It
+
+.LINK
 about_Should
+
+.LINK
 about_Mocking
+
 #>
     [CmdletBinding()]
     param(

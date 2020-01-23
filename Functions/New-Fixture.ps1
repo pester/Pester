@@ -53,12 +53,24 @@ function New-Fixture {
 
     Creates a new folder named Cleaner in the current directory and creates the scripts in it.
 
+	.LINK
+	https://pester.dev/docs/commands/New-Fixture
+
     .LINK
     Describe
+
+	.LINK
     Context
+
+	.LINK
     It
-    about_Pester
-    about_Should
+    
+	.LINK
+	about_Pester
+
+	.LINK
+	about_Should
+
     #>
 
     param (

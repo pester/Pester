@@ -12,10 +12,8 @@ function BeforeEach {
         with each other, please refer to the about_BeforeEach_AfterEach help file.
 
     .LINK
-        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+        https://pester.dev/docs/commands/BeforeEach
 
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -43,10 +41,8 @@ function AfterEach {
         with each other, please refer to the about_BeforeEach_AfterEach help file.
 
     .LINK
-        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+        https://pester.dev/docs/commands/AfterEach
 
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -71,11 +67,9 @@ function BeforeAll {
         to the entire Context or Describe block, regardless of the order of the
         statements in the Context or Describe.
 
-    .LINK
-        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
+        .LINK
+        https://pester.dev/docs/commands/BeforeAll
 
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -100,11 +94,8 @@ function AfterAll {
     to the entire Context or Describe block, regardless of the order of the
     statements in the Context or Describe.
 
-    .LINK
-        https://github.com/pester/Pester/wiki/BeforeEach-and-AfterEach
-
-    .LINK
-    about_BeforeEach_AfterEach
+.LINK
+    https://pester.dev/docs/commands/AfterAll
 #>
     [CmdletBinding()]
     param

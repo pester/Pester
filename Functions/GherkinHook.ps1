@@ -17,7 +17,11 @@ function BeforeEachFeature {
 
         .LINK
         AfterEachFeature
+
+		.LINK
         BeforeEachScenario
+
+		.LINK
         AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
@@ -58,9 +62,13 @@ function AfterEachFeature {
         The ScriptBlock to run for the hook
 
         .LINK
-            BeforeEachFeature
-            BeforeEachScenario
-            AfterEachScenario
+        BeforeEachFeature
+
+		.LINK
+        BeforeEachScenario
+
+		.LINK
+        AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
     param(
@@ -103,7 +111,11 @@ function BeforeEachScenario {
 
         .LINK
         AfterEachFeature
+
+		.LINK
         BeforeEachScenario
+
+		.LINK
         AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
@@ -144,9 +156,13 @@ function AfterEachScenario {
         The ScriptBlock to run for the hook
 
         .LINK
-            BeforeEachFeature
-            BeforeEachScenario
-            AfterEachScenario
+        BeforeEachFeature
+            
+		.LINK
+		BeforeEachScenario
+
+		.LINK
+        AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
     param(

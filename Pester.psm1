@@ -1520,7 +1520,7 @@ function Assert-VerifiableMocks {
     The function will be removed finally in the next major version of Pester.
 
     .LINK
-    https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
+    https://pester.dev/docs/migrations/v3-to-v4
 
     .LINK
     https://github.com/pester/Pester/issues/880
@@ -1530,7 +1530,7 @@ function Assert-VerifiableMocks {
     [CmdletBinding()]
     param()
 
-    Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+    Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://pester.dev/docs/migrations/v3-to-v4"
 
 }
 

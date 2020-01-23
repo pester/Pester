@@ -16,7 +16,7 @@ function In {
     The script to be executed in the path provided.
 
     .LINK
-    https://github.com/pester/Pester/wiki/In
+    https://pester.dev/docs/commands/In
 
     #>
     [CmdletBinding()]

@@ -26,7 +26,9 @@ function Get-ShouldOperator {
     -Name is a dynamic parameter that tab completes all available options.
 
     .LINK
-    https://github.com/Pester/Pester
+    https://pester.dev/docs/commands/Get-ShouldOperator
+
+	.LINK
     about_Should
     #>
     [CmdletBinding()]
