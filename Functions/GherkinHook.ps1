@@ -16,13 +16,13 @@ function BeforeEachFeature {
         The ScriptBlock to run for the hook
 
         .LINK
-        AfterEachFeature
+        https://pester.dev/docs/commands/AfterEachFeature
 
 		.LINK
-        BeforeEachScenario
+        https://pester.dev/docs/commands/BeforeEachScenario
 
 		.LINK
-        AfterEachScenario
+        https://pester.dev/docs/commands/AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
     param(
@@ -62,13 +62,13 @@ function AfterEachFeature {
         The ScriptBlock to run for the hook
 
         .LINK
-        BeforeEachFeature
+        https://pester.dev/docs/commands/BeforeEachFeature
 
 		.LINK
-        BeforeEachScenario
+        https://pester.dev/docs/commands/BeforeEachScenario
 
 		.LINK
-        AfterEachScenario
+        https://pester.dev/docs/commands/AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
     param(
@@ -109,14 +109,15 @@ function BeforeEachScenario {
         .PARAMETER Script
         The ScriptBlock to run for the hook
 
+		.LINK
+        https://pester.dev/docs/commands/AfterEachScenario
+
+		.LINK
+        https://pester.dev/docs/commands/BeforeEachFeature
+
         .LINK
-        AfterEachFeature
+        https://pester.dev/docs/commands/AfterEachFeature
 
-		.LINK
-        BeforeEachScenario
-
-		.LINK
-        AfterEachScenario
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
     param(
@@ -155,14 +156,14 @@ function AfterEachScenario {
         .PARAMETER Script
         The ScriptBlock to run for the hook
 
-        .LINK
-        BeforeEachFeature
-            
 		.LINK
-		BeforeEachScenario
+		https://pester.dev/docs/commands/BeforeEachScenario
+
+        .LINK
+        https://pester.dev/docs/commands/BeforeEachFeature
 
 		.LINK
-        AfterEachScenario
+        https://pester.dev/docs/commands/AfterEachFeature
     #>
     [CmdletBinding(DefaultParameterSetName = "All")]
     param(

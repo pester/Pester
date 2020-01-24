@@ -70,11 +70,6 @@ Scenario: basic feature support
 ```
 
 .LINK
-about_gherkin
-
-.LINK
-Invoke-GherkinStep
-
 https://sites.google.com/site/unclebobconsultingllc/the-truth-about-bdd
 
 #>

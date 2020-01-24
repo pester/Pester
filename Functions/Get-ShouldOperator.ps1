@@ -24,12 +24,10 @@ function Get-ShouldOperator {
     Get-ShouldOperator -Name Be
     Return help examples for the Be assertion operator.
     -Name is a dynamic parameter that tab completes all available options.
-
-    .LINK
-    https://pester.dev/docs/commands/Get-ShouldOperator
-
+	    
 	.LINK
-    about_Should
+    https://pester.dev/docs/commands/Should
+
     #>
     [CmdletBinding()]
     param ()

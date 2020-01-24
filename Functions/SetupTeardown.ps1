@@ -12,7 +12,7 @@ function BeforeEach {
         with each other, please refer to the about_BeforeEach_AfterEach help file.
 
     .LINK
-        https://pester.dev/docs/commands/BeforeEach
+        https://pester.dev/docs/commands/AfterEach
 
     #>
     [CmdletBinding()]
@@ -41,7 +41,7 @@ function AfterEach {
         with each other, please refer to the about_BeforeEach_AfterEach help file.
 
     .LINK
-        https://pester.dev/docs/commands/AfterEach
+        https://pester.dev/docs/commands/BeforeEach
 
     #>
     [CmdletBinding()]
@@ -68,7 +68,7 @@ function BeforeAll {
         statements in the Context or Describe.
 
         .LINK
-        https://pester.dev/docs/commands/BeforeAll
+        https://pester.dev/docs/commands/AfterAll
 
     #>
     [CmdletBinding()]
@@ -95,7 +95,7 @@ function AfterAll {
     statements in the Context or Describe.
 
 .LINK
-    https://pester.dev/docs/commands/AfterAll
+    https://pester.dev/docs/commands/BeforeAll
 #>
     [CmdletBinding()]
     param

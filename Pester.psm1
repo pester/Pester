@@ -1014,9 +1014,6 @@ function Invoke-Pester {
     also has a Bug tag.
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
-
-    .LINK
     https://pester.dev/docs/commands/Describe
 
     .LINK
@@ -1233,8 +1230,6 @@ function New-PesterOption {
 
         The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
         will be named "Tests - Set A".
-    .LINK
-    https://pester.dev/docs/commands/New-PesterOption
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester

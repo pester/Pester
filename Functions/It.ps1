@@ -99,19 +99,16 @@ Describe "Add-Numbers" {
 ```
 
 .LINK
-https://pester.dev/docs/commands/It
+https://pester.dev/docs/commands/Describe
 
 .LINK
-Describe
+https://pester.dev/docs/commands/Context
 
 .LINK
-Context
+https://pester.dev/docs/commands/Set-TestInconclusive
 
 .LINK
-Set-TestInconclusive
-
-.LINK
-about_should
+https://pester.dev/docs/commands/Should
 
 #>
     [CmdletBinding(DefaultParameterSetName = 'Normal')]

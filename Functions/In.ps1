@@ -15,9 +15,6 @@ function In {
     .PARAMETER execute
     The script to be executed in the path provided.
 
-    .LINK
-    https://pester.dev/docs/commands/In
-
     #>
     [CmdletBinding()]
     param(

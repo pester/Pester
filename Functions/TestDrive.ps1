@@ -81,8 +81,6 @@ function Get-TestDriveItem {
     .LINK
     https://pester.dev/docs/usage/testdrive
 
-	.LINK
-    about_TestDrive
 #>
 
     #moved here from Pester.psm1
