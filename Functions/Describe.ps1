@@ -54,12 +54,22 @@ Describe "Add-Numbers" {
 ```
 
 .LINK
-It
-Context
-Invoke-Pester
-about_Should
-about_Mocking
-about_TestDrive
+https://pester.dev/docs/commands/It
+
+.LINK
+https://pester.dev/docs/commands/Context
+
+.LINK
+https://pester.dev/docs/commands/Invoke-Pester
+
+.LINK
+https://pester.dev/docs/commands/Should
+
+.LINK
+https://pester.dev/docs/usage/mocking
+
+.LINK
+https://pester.dev/docs/usage/testdrive
 
 #>
 

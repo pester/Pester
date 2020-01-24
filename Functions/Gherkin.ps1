@@ -182,6 +182,8 @@ function Invoke-Gherkin {
         .LINK
             Invoke-Pester
             https://kevinmarquette.github.io/2017-03-17-Powershell-Gherkin-specification-validation/
+
+		.LINK
             https://kevinmarquette.github.io/2017-04-30-Powershell-Gherkin-advanced-features/
     #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]

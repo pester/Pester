@@ -66,12 +66,6 @@ function Should {
     need to be verified. Each Should keywords need to be located in a new line.
     Test will be passed only when all assertion will be met (logical conjuction).
 
-    .LINK
-    https://github.com/pester/Pester/wiki/Should
-
-    .LINK
-    about_Should
-    about_Pester
 #>
 
     [CmdletBinding(DefaultParameterSetName = 'Legacy')]

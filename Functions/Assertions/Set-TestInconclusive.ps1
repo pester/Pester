@@ -29,8 +29,6 @@ function Set-TestInconclusive {
         [?] My test, is inconclusive because we forced it to be inconclusive 58ms
     ```
 
-    .LINK
-    https://github.com/pester/Pester/wiki/Set%E2%80%90TestInconclusive
 #>
     [CmdletBinding()]
     param (

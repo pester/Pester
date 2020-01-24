@@ -1014,9 +1014,6 @@ function Invoke-Pester {
     also has a Bug tag.
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
-
-    .LINK
     https://pester.dev/docs/commands/Describe
 
     .LINK
@@ -1233,8 +1230,6 @@ function New-PesterOption {
 
         The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
         will be named "Tests - Set A".
-    .LINK
-    https://pester.dev/docs/commands/New-PesterOption
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
@@ -1520,7 +1515,7 @@ function Assert-VerifiableMocks {
     The function will be removed finally in the next major version of Pester.
 
     .LINK
-    https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4
+    https://pester.dev/docs/migrations/v3-to-v4
 
     .LINK
     https://github.com/pester/Pester/issues/880
@@ -1530,7 +1525,7 @@ function Assert-VerifiableMocks {
     [CmdletBinding()]
     param()
 
-    Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://github.com/pester/Pester/wiki/Migrating-from-Pester-3-to-Pester-4"
+    Throw "This command has been renamed to 'Assert-VerifiableMock' (without the 's' at the end), please update your code. For more information see: https://pester.dev/docs/migrations/v3-to-v4"
 
 }
 
