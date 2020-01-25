@@ -977,20 +977,28 @@ function ExecuteBehavior {
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
-        Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $Hook.CallerSessionState
-        $splat = @{
-        'Script Block'                   = $Behavior.ScriptBlock
-        '___ArgumentList___'             = $ArgumentList
-        '___BoundParameters___'          = $BoundParameters
-        'Meta data'                      = $Hook.Metadata
-        'Session State'                  = $Hook.CallerSessionState
-        'R e p o r t S c o p e'          = {
-            param ($CommandName, $ModuleName, $ScriptBlock)
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock
-            }
+    if  ($null -eq $Hook) {
+        throw "Hook should not be null."
+    }
+
+    if  ($null -eq $Hook.SessionState) {
+        throw "Hook.SessionState should not be null."
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $Hook.CallerSessionState
+    $splat = @{
+    'Script Block'                   = $Behavior.ScriptBlock
+    '___ArgumentList___'             = $ArgumentList
+    '___BoundParameters___'          = $BoundParameters
+    'Meta data'                      = $Hook.Metadata
+    'Session State'                  = $Hook.CallerSessionState
+    'R e p o r t S c o p e'          = {
+        param ($CommandName, $ModuleName, $ScriptBlock)
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock
         }
-        'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
+    }
+    'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
     }
 
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.ScriptBlock, and not $scriptBlock
