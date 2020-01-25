@@ -777,8 +777,8 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Skipping tests" {
-        t "tests can be skipped based on tags" {
+    b "Not running tests by tags" {
+        t "tests can be not run based on tags" {
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Test "test1" -Tag run {}
                     New-Test "test2" {}
@@ -832,6 +832,131 @@ i -PassThru:$PassThru {
             $actual.Blocks[0].Tests[1].Name | Verify-Equal "test2"
             $actual.Blocks[0].Tests[1].Executed | Verify-True
             $actual.Blocks[0].Tests[1].Passed | Verify-True
+        }
+    }
+
+    b "Not running tests by -Skip" {
+        t "skippping single test will set its result correctly" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "block1" {
+                    New-Test "test1" { "a" } -Skip
+                }
+            })
+
+            $actual.Blocks[0].Tests[0].Skip | Verify-True
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Skipped | Verify-True
+            $actual.SkippedCount | Verify-Equal 1
+        }
+
+        t "skippping block will skip all tests in it" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "skipped block" -Skip {
+                    New-Test "test1" { "a" }
+                }
+            })
+
+            $actual.Blocks[0].Skip | Verify-True
+            $actual.Blocks[0].Tests[0].Skip | Verify-True
+        }
+
+        t "skippping block will skip child blocks in it" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "skipped block" -Skip {
+                    New-Block "skipped block" -Skip {
+                        New-Test "test1" { "a" }
+                    }
+                }
+            })
+
+            $actual.Blocks[0].Skip | Verify-True
+            $actual.Blocks[0].Blocks[0].Skip | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Skip | Verify-True
+        }
+
+        t "skipping a block will skip block setup and teardows" {
+            $container = @{
+                OneTimeTestSetup = 0
+                OneTimeTestTeardown = 0
+                EachTestSetup = 0
+                EachTestTeardown = 0
+                TestRun = 0
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "parent block" {
+                    New-Block "parent block" -Skip {
+                        # putting this in child block because each test setup is not supported in root block
+                        New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                        New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+
+                        New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+                        New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+
+                        New-Test "test1" {
+                            $container.TestRun++
+                            "a"
+                        }
+                    }
+                }
+            })
+
+            # $actual.Blocks[0].Skip | Verify-True
+            $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
+            $container.TestRun | Verify-Equal 0
+            $container.OneTimeTestSetup | Verify-Equal 0
+            $container.OneTimeTestTeardown | Verify-Equal 0
+            $container.EachTestSetup | Verify-Equal 0
+            $container.EachTestTeardown | Verify-Equal 0
+        }
+
+        t "skipping all items in a block will skip the parent block" {
+            # this is not implemented, but is a possible feature
+            # which could be implemented together with "if any test is explicitly unskipped in child
+            # then the block should run, this will be needed for running tests explicitly by path I think
+            # it also should be taken into consideration whether or not adding a lazySkip is a good idea and how it would
+            # affect implementation of this. Right now skipping the block goes from parent down, and skipping all items in a block
+            # will not prevent the parent block setups from running
+
+        #     $container = @{
+        #         OneTimeTestSetup = 0
+        #         OneTimeTestTeardown = 0
+        #         EachTestSetup = 0
+        #         EachTestTeardown = 0
+        #         TestRun = 0
+        #     }
+
+        #     $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+        #         New-Block "parent block" {
+        #             New-Block "parent block" {
+        #                 # putting this in child block because each test setup is not supported in root block
+        #                 New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+        #                 New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+
+        #                 New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+        #                 New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+
+        #                 New-Test "test1" -Skip {
+        #                     $container.TestRun++
+        #                     "a"
+        #                 }
+
+        #                 New-Test "test2" -Skip {
+        #                     $container.TestRun++
+        #                     "a"
+        #                 }
+        #             }
+        #         }
+        #     })
+
+        #     # $actual.Blocks[0].Skip | Verify-True
+        #     $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
+        #     $container.TestRun | Verify-Equal 0
+        #     $container.OneTimeTestSetup | Verify-Equal 0
+        #     $container.OneTimeTestTeardown | Verify-Equal 0
+        #     $container.EachTestSetup | Verify-Equal 0
+        #     $container.EachTestTeardown | Verify-Equal 0
         }
     }
 

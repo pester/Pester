@@ -194,7 +194,8 @@ function New-Block {
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
-        [string] $Id
+        [String] $Id,
+        [Switch] $Skip
     )
 
     Switch-Timer -Scope Framework
@@ -240,7 +241,7 @@ function New-Block {
     # TODO: in the new-new-runtime we should be able to remove this because the invocation will be sequential
     $FrameworkData.Add("PreviouslyGeneratedTests", @{ })
 
-    $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id
+    $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id -Skip:$Skip
     # we attach the current block to the parent
     Add-Block -Block $block
     Set-CurrentBlock -Block $block
@@ -304,7 +305,6 @@ function Invoke-Block ($previousBlock) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
-
                 # TODO: no callbacks are provided because we are not transitioning between any states,
                 # it might be nice to add a parameter to indicate that we run in the same scope
                 # so we can avoid getting and setting the scope on scriptblock that already has that
@@ -365,13 +365,13 @@ function Invoke-Block ($previousBlock) {
 
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
-                        -OuterSetup $( if (-not (Is-Discovery)) {
+                        -OuterSetup $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
                             combineNonNull @(
                                 $previousBlock.EachBlockSetup
                                 $block.OneTimeTestSetup
                             )
                         }) `
-                        -OuterTeardown $( if (-not (Is-Discovery)) {
+                        -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
                             combineNonNull @(
                                 $block.OneTimeTestTeardown
                                 $previousBlock.EachBlockTeardown
@@ -560,7 +560,7 @@ function Invoke-TestItem {
             Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
         }
 
-        If ($Test.Skip) {
+        if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Runtime "Test is skipped."
             }
@@ -933,19 +933,22 @@ function New-BlockObject {
         [HashTable] $FrameworkData = @{ },
         [HashTable] $PluginData = @{ },
         [Switch] $Focus,
-        [String] $Id
+        [String] $Id,
+        [Switch] $Skip
     )
 
     New_PSObject -Type DiscoveredBlock @{
+        ItemType               = 'Block'
+        Id                   = $Id
         Name                 = $Name
         Path                 = $Path
         Tag                  = $Tag
         ScriptBlock          = $ScriptBlock
         FrameworkData        = $FrameworkData
         PluginData           = $PluginData
-        Focus                = $Focus
-        Id                   = $Id
-        ItemType                 = 'Block'
+        Focus                = [bool] $Focus
+        Skip                 = [bool] $Skip
+
         Tests                = [Collections.Generic.List[Object]]@()
         # TODO: consider renaming this to just Container
         BlockContainer       = $null
@@ -1953,6 +1956,7 @@ function PostProcess-DiscoveredBlock {
     # children that might match the filter
     $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
     $Block.Exclude = $blockIsExcluded = $parentBlockIsExcluded -or ($false -eq (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block"))
+    $Block.Skip = $Block.Skip -or (-not $Block.IsRoot -and $Block.Parent.Skip)
     $blockShouldRun = $false
     if ($tests.Count -gt 0) {
         foreach ($t in $tests) {
@@ -1960,6 +1964,7 @@ function PostProcess-DiscoveredBlock {
             # test should run when the result is $true, but not when it is $null or $false
             # because tests don't have any children, so not matching the filter means they should not run
             $t.ShouldRun = -not $blockIsExcluded -and ([bool] (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test"))
+            $t.Skip = $t.Skip -or $Block.Skip
         }
 
         if (-not $blockIsExcluded) {
