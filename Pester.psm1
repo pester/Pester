@@ -1,6 +1,6 @@
 ﻿. $PSScriptRoot/new-runtimepoc/Pester.Types.ps1
-Get-Module Pester.Utility, Pester.Runtime | Remove-Module
-Import-Module $PSScriptRoot/new-runtimepoc/Pester.Utility.psm1 -DisableNameChecking
+Get-Module Pester.Runtime | Remove-Module
+. $PSScriptRoot/new-runtimepoc/Pester.Utility.ps1
 Import-Module $PSScriptRoot/new-runtimepoc/Pester.Runtime.psm1 -DisableNameChecking
 
 
@@ -679,6 +679,9 @@ function Invoke-Pester {
                 [PesterConfiguration]::Default
             }
         }
+
+        # set the preference in all the subsequent calls in this session state
+        $PesterPreference = $Configuration
 
 
         if ($CI) {
