@@ -549,14 +549,13 @@ function Get-WriteScreenPlugin {
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                # TODO: Add include VSCodeMarker
-                # if($pester.IncludeVSCodeMarker) {
-                #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.stackTrace -replace '(?m)^',$error_margin)
-                #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.failureMessage -replace '(?m)^',$error_margin)
-                # }
-                # else {
-                Write-ErrorToScreen $_test.ErrorRecord
-                # }
+                if($PesterPreference.Debug.WriteVSCodeMarker.Value) {
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.ErrorRecord[-1].DisplayStackTrace -replace '(?m)^',$error_margin)
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.ErrorRecord[-1].DisplayErrorMessage -replace '(?m)^',$error_margin)
+                }
+                else {
+                    Write-ErrorToScreen $_test.ErrorRecord
+                }
                 break
             }
 

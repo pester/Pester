@@ -665,6 +665,11 @@ function Invoke-Pester {
         [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock,
 
+        #TODO remove temporary
+        [Parameter(ParameterSetName = "Simple")]
+        $Lines,
+
+
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration
     )
@@ -746,7 +751,7 @@ function Invoke-Pester {
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
 
-            $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
+            $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag -Line $Lines
 
             $containers = @()
             if (any $ScriptBlock) {

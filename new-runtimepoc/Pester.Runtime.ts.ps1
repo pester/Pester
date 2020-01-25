@@ -438,6 +438,24 @@ i -PassThru:$PassThru {
                 $actual = Test-ShouldRun -Test $t -Filter $f
                 $actual | Verify-Null
             }
+
+            dt "Given a test with file path and line number it includes it when it matches the lines filter" {
+                $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" })
+
+                $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine)"
+
+                $actual = Test-ShouldRun -Test $t -Filter $f
+                $actual | Verify-True
+            }
+
+            dt "Given a test with file path and line number it maybes it when it does not match the lines filter" {
+                $t = New-TestObject -Name "test1" -ScriptBlock { "test" }
+
+                $f = New-FilterObject -Line "C:\file.tests.ps1:10"
+
+                $actual = Test-ShouldRun -Test $t -Filter $f
+                $actual | Verify-Null
+            }
         }
     }
 

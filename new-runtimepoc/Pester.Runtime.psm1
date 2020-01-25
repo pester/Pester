@@ -1099,7 +1099,7 @@ function Discover-Test {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         }
-        $Filter = New-FilterObject -Path $focusedTests
+        $Filter =   -Path $focusedTests
     }
 
     foreach ($f in $found) {
@@ -1716,58 +1716,6 @@ function Switch-Timer {
     }
 }
 
-function Find-CurrentTest {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock,
-        [String] $Id
-    )
-
-    $block = Get-CurrentBlock
-
-    # this could be optimized by remembering the last position where we were in the array
-    # and by not checking for the next items, but it still takes 9ms if we have 1000 tests in this block
-    $testCandidates = @(foreach ($t in $block.Tests) { if ($t.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $t.Id -eq $Id ) { $t } })
-
-    if ($testCandidates.Length -eq 1) {
-        $testCandidates[0]
-    }
-    elseif ($testCandidates.Length -gt 1) {
-        throw "Found more than one test that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
-    }
-    else {
-        throw "Did not find the test '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
-    }
-}
-
-function Find-CurrentBlock {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        $Block,
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $true)]
-        [String] $Id
-    )
-
-    $blockCanditates = @(foreach ($b in $block.Blocks) { if ($b.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $b.Id -eq $Id) { $b } })
-    if ($blockCanditates.Length -eq 1) {
-        $blockCanditates[0]
-    }
-    elseif ($blockCanditates.Length -gt 1) {
-        throw "Found more than one block that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
-    }
-    else {
-        throw "Did not find the block '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
-    }
-}
-
 function Test-ShouldRun {
     [CmdletBinding()]
     param (
@@ -1813,11 +1761,8 @@ function Test-ShouldRun {
             }
         }
     }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There are no exclude tag filters."
-        }
-    }
+
+    # - place exclude filters above this line and include below this line
 
     # test is included when it has tags and the any of the tags match
     $tagFilter = tryGetProperty $Filter Tag
@@ -1844,11 +1789,6 @@ function Test-ShouldRun {
             }
         }
     }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There are no include tag filters."
-        }
-    }
 
     $allPaths = foreach ($p in @(tryGetProperty $Filter Path)) { $p -join '.' }
     if (any $allPaths) {
@@ -1863,6 +1803,20 @@ function Test-ShouldRun {
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint might be excluded, because its full path does not match the path filter."
+            }
+        }
+    }
+
+    $lineFilter = tryGetProperty $Filter Line
+    $line = "$($Test.ScriptBlock.File):$($Test.ScriptBlock.StartPosition.StartLine)"
+    if (any $lineFilter) {
+        $anyIncludeFilters = $true
+        foreach ($l in $lineFilter) {
+            if ($l -eq $line) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included, because its path:line '$line' matches line filter '$lineFilter'."
+                }
+                return $true
             }
         }
     }
@@ -2233,13 +2187,15 @@ function New-FilterObject {
     param (
         [String[][]] $Path,
         [String[]] $Tag,
-        [String[]] $ExcludeTag
+        [String[]] $ExcludeTag,
+        [String[]] $Line
     )
 
     New_PSObject -Type "Filter" -Property @{
         Path       = $Path
         Tag        = $Tag
         ExcludeTag = $ExcludeTag
+        Line       = $Line
     }
 }
 
