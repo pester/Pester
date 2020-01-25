@@ -90,10 +90,6 @@ about_TestDrive
         Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Describe" } -Focus:$Focus -Skip:$Skip
     }
     else {
-        # if ($invokedInteractively) {
-        #     return
-        # }
-        # $invokedInteractively = $true
         Invoke-Interactively -CommandUsed 'Describe' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
     }
 }
