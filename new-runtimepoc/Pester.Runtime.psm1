@@ -560,6 +560,22 @@ function Invoke-TestItem {
             Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
         }
 
+        # no callbacks are provided because we are not transitioning between any states
+        $frameworkSetupResult = Invoke-ScriptBlock `
+            -OuterSetup @(
+            if ($Test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
+        ) `
+            -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
+            -ScriptBlock { } `
+            -Context @{
+            Context = @{
+                # context visible to Plugins
+                Block         = $block
+                Test          = $Test
+                Configuration = $state.PluginConfiguration
+            }
+        }
+
         if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Runtime "Test is skipped."
@@ -577,22 +593,6 @@ function Invoke-TestItem {
             $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
         }
         else {
-
-            # no callbacks are provided because we are not transitioning between any states
-            $frameworkSetupResult = Invoke-ScriptBlock `
-                -OuterSetup @(
-                if ($Test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
-            ) `
-                -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
-                -ScriptBlock { } `
-                -Context @{
-                Context = @{
-                    # context visible to Plugins
-                    Block         = $block
-                    Test          = $Test
-                    Configuration = $state.PluginConfiguration
-                }
-            }
 
             if ($frameworkSetupResult.Success) {
                 $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
