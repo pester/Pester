@@ -230,7 +230,7 @@ i -PassThru:$PassThru {
 
                 Describe "Describe #2" {
                     It "Failed testcase" {
-                        $false | Should -Be $true
+                        $false | Should -Be $true 5
                     }
                 }
             } -Output None
@@ -239,7 +239,9 @@ i -PassThru:$PassThru {
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args.Exception })
+            $xmlResult.Validate( {
+                throw $args[1].Exception
+            })
         }
 
         t "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
@@ -257,7 +259,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
 
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args.Exception })
+            $xmlResult.Validate( { throw $args[1].Exception })
         }
     }
 
@@ -302,7 +304,7 @@ i -PassThru:$PassThru {
             # verify against schema
             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $null = $xmlResult.Schemas.Add($null, $schemaPath)
-            $xmlResult.Validate( { throw $args.Exception })
+            $xmlResult.Validate( { throw $args[1].Exception })
         }
     }
 

@@ -148,7 +148,7 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('total', ($Result.TestsCount - $Result.NotRunCount))
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
-    $XmlWriter.WriteAttributeString('not-run', $Result.NotRun)
+    $XmlWriter.WriteAttributeString('not-run', $Result.NotRunCount)
     $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count once it is added
     $XmlWriter.WriteAttributeString('ignored', '0')
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)

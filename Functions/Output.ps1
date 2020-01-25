@@ -28,8 +28,8 @@ $script:ReportStrings = DATA {
         TestsFailed       = 'Failed: {0}, '
         TestsSkipped      = 'Skipped: {0} '
         TestsPending      = 'Pending: {0}, '
-        TestsNotRun       = 'NotRun: {0}, '
-        TestsInconclusive = 'Inconclusive: {0} '
+        TestsInconclusive = 'Inconclusive: {0}, '
+        TestsNotRun       = 'NotRun: {0}'
     }
 }
 
