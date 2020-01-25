@@ -85,185 +85,69 @@ about_TestDrive
         }
     }
 
-    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Describe" } -Focus:$Focus -Skip:$Skip
 
-    ### TODO: let's not focus on the interactive mode right now
-    # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
-    # {
-
-    #     # User has executed a test script directly instead of calling Invoke-Pester
-    #     Remove-MockFunctionsAndAliases
-    #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
-
-
-    #     Pester.Runtime\Invoke-Test -Test (New-BlockContainerObject -ScriptBlock { New-Block -Name $Name -ScriptBlock $Fixture -FrameworkData $FrameworkData })
-    # }
-    # else {
-    #     Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -FrameworkData $FrameworkData
-    # }
-    ### TODO: end
-
-    # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
-    # {
-    #     # User has executed a test script directly instead of calling Invoke-Pester
-    #     Remove-MockFunctionsAndAliases
-    #     $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
-    #     $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
-    #     $script:mockTable = @{}
-    # }
-
-    # if ($Pester.FindCodeCoverage)
-    # {
-    #     foreach($cc in $CodeCoverage)
-    #     {
-    #         $Pester.CodeCoverage += $cc
-    #     }
-    # }
-    # else
-    # {
-    #     DescribeImpl @PSBoundParameters -CommandUsed 'Describe' -Pester $Pester -DescribeOutputBlock ${function:Write-Describe} -TestOutputBlock ${function:Write-PesterResult} -NoTestRegistry:('Windows' -ne (GetPesterOs))
-    # }
+    if ($ExecutionContext.SessionState.PSVariable.Get("invokedViaInvokePester")) {
+        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Describe" } -Focus:$Focus -Skip:$Skip
+    }
+    else {
+        Invoke-Interactively -CommandUsed 'Describe' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
+    }
 }
 
-# function DescribeImpl {
-#     param(
-#         [Parameter(Mandatory = $true, Position = 0)]
-#         [string] $Name,
+function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundParameters) {
+    # interactive execution (by F5 in an editor, by F8 on selection, or by pasting to console)
+    if (-not [String]::IsNullOrEmpty($ScriptName)) {
 
-#         [Alias('Tags')]
-#         $Tag=@(),
+        if ($null -ne $script:lastExecutedAt -and ([datetime]::now - $script:lastExecutedAt).TotalMilliseconds -lt 100 -and $script:lastExecutedFile -eq $ScriptName) {
+            # skip file if the same file was executed less than 100 ms ago. This is here because we will run the file from the first
+            # describe and the subsequent describes in the same file would try to re-run the file. 100ms window should be good enough
+            # to be transparent for the interactive use, yet big enough to advance from the end of the command to the next, even on slow systems
+            # use the file name as well to allow running multiple files in sequence
 
-#         [object[]] $CodeCoverage = @(),
+            $script:lastExecutedFile = $ScriptName
+            $script:lastExecutedAt = [datetime]::Now
 
-#         [Parameter(Position = 1)]
-#         [ValidateNotNull()]
-#         [ScriptBlock] $Fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)"),
+            return
+        }
 
-#         [string] $CommandUsed = 'Describe',
+        # we are invoking a file, try call Invoke-Pester on the whole file,
+        # but make sure we are invoking it in the caller session state, because
+        # paths don't stay attached to session state
+        $invokePester =  {
+            param($private:Path)
+            Invoke-Pester -Path $Path | Out-Null
+        }
 
-#         $Pester,
+        Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
+        & $invokePester $ScriptName
+        $script:lastExecutedFile = $ScriptName
+        $script:lastExecutedAt = [datetime]::Now
+    }
+    else {
+        throw "Only files can be run interactively"
 
-#         [scriptblock] $DescribeOutputBlock,
+        # there is a number of problems with this that I don't know how to solve right now
+        # - the scripblock below will be discovered which shows a weird message in the console (maybe just suppress?)
+        # every block will get it's own summary if we ar running multiple of them (can we somehow get to the actuall executed code?) or know which one is the last one?
 
-#         [scriptblock] $TestOutputBlock,
+        # use an intermediate module to carry the bound paremeters
+        # but don't touch the session state the scriptblock is attached
+        # to, this way we are still running the provided scriptblocks where
+        # they are coming from (in the SessionState they are attached to),
+        # this could be replaced by providing params if the current api allowed it
+        $sb = & {
+            # only local variables are copied in closure
+            # make a new scope so we copy only what is needed
+            param($BoundParameters, $CommandUsed)
+            {
+                & $CommandUsed @BoundParameters
+            }.GetNewClosure()
+        } $BoundParameters $CommandUsed
 
-#         [switch] $NoTestDrive,
-
-#         [switch] $NoTestRegistry
-#     )
-
-#     Assert-DescribeInProgress -CommandName $CommandUsed
-
-#     if (($Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 2) -or
-#         (-not $Pester.RunningViaInvokePester -and $Pester.TestGroupStack.Count -eq 1))
-#     {
-#         if ($Pester.TestNameFilter -and $Name)
-#         {
-#             if (-not (Contain-AnyStringLike -Filter $Pester.TestNameFilter -Collection $Name))
-#             {
-#                 return
-#             }
-#         }
-#         if ($Pester.TagFilter) {
-#             if (-not (Contain-AnyStringLike -Filter $Pester.TagFilter -Collection $Tag))
-#             {
-#                 return
-#             }
-#         }
-
-#         if ($Pester.ExcludeTagFilter) {
-#             if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
-#                 return
-#             }
-#         }
-#     }
-#     else
-#     {
-#         if ($PSBoundParameters.ContainsKey('Tag'))
-#         {
-#             Write-Warning "${CommandUsed} '$Name': Tags are only effective on the outermost test group, for now."
-#         }
-#     }
-
-#     $Pester.EnterTestGroup($Name, $CommandUsed)
-
-#     if ($null -ne $DescribeOutputBlock)
-#     {
-#         & $DescribeOutputBlock $Name $CommandUsed
-#     }
-
-#     $testRegistryAdded = $false
-#     try
-#     {
-#         try
-#         {
-#
-#             if (-not $NoTestRegistry)
-#             {
-#                 if (-not (Test-Path TestRegistry:\))
-#                 {
-#                     New-TestRegistry
-#                     $testRegistryAdded = $true
-#                 }
-#                 else
-#                 {
-#                     $TestRegistryContent = Get-TestRegistryChildItem
-#                 }
-#             }
-
-#             Add-SetupAndTeardown -ScriptBlock $Fixture
-#             Invoke-TestGroupSetupBlocks
-
-#             do
-#             {
-#                 Write-ScriptBlockInvocationHint -Hint "Describe Fixture" -ScriptBlock $Fixture
-#                 $null = & $Fixture
-#             } until ($true)
-#         }
-#         finally
-#         {
-#             Invoke-TestGroupTeardownBlocks
-
-#
-
-#             if (-not $NoTestRegistry)
-#             {
-#                 if ($testRegistryAdded)
-#                 {
-#                     Remove-TestRegistry
-#                 }
-#                 else
-#                 {
-#                     Clear-TestRegistry -Exclude ($TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
-#                 }
-#             }
-#         }
-#     }
-#     catch
-#     {
-#         $firstStackTraceLine = $_.InvocationInfo.PositionMessage.Trim() -split "$([System.Environment]::NewLine)" | & $SafeCommands['Select-Object'] -First 1
-#         $Pester.AddTestResult("Error occurred in $CommandUsed block", "Failed", $null, $_.Exception.Message, $firstStackTraceLine, $null, $null, $_)
-#         if ($null -ne $TestOutputBlock)
-#         {
-#             & $TestOutputBlock $Pester.TestResult[-1]
-#         }
-#     }
-
-#     Exit-MockScope
-
-#     $Pester.LeaveTestGroup($Name, $CommandUsed)
-# }
-
+        Invoke-Pester -ScriptBlock $sb | Out-Null
+    }
+}
 
 function Assert-DescribeInProgress {
     # TODO: Enforce block structure in the Runtime.Pester if needed, in the meantime this is just a placeholder
 }
-# # Name is now misleading; rename later.  (Many files touched to change this.)
-# function Assert-DescribeInProgress
-# {
-#     param ($CommandName)
-#     if ($null -eq $Pester)
-#     {
-#         throw "The $CommandName command may only be used from a Pester test script."
-#     }
-# }

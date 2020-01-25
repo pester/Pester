@@ -675,6 +675,8 @@ function Invoke-Pester {
     )
     begin {
         $start = [DateTime]::Now
+        # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
+        $invokedViaInvokePester = $true
         $Configuration = if (-not $Configuration) {
             $p = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
             if ($p) {
