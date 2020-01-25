@@ -5,8 +5,8 @@ matrix:
     - os: osx
       osx_image: xcode9.1
       before_install:
-        # - brew update
-        # - brew tap caskroom/cask
+        - brew update
+        - brew tap caskroom/cask
         - brew cask install powershell
     - os: linux
       dist: trusty
