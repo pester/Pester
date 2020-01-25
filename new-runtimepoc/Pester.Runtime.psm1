@@ -115,6 +115,7 @@ function ConvertTo-DiscoveredBlockContainer {
         "Last"
         "StandardOutput"
         "Passed"
+        "Skipped"
         "Executed"
         "Path",
         "StartedAt",
@@ -455,7 +456,8 @@ function New-Test {
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
-        [Switch] $Focus
+        [Switch] $Focus,
+        [Switch] $Skip
     )
     # keep this at the top so we report as much time
     # of the actual test run as possible
@@ -489,7 +491,7 @@ function New-Test {
         #     $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
         # }
 
-        $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus
+        $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus -Skip:$Skip
         $test.FrameworkData.Runtime.Phase = 'Discovery'
 
         Add-Test -Test $test
@@ -558,66 +560,85 @@ function Invoke-TestItem {
             Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
         }
 
-        # no callbacks are provided because we are not transitioning between any states
-        $frameworkSetupResult = Invoke-ScriptBlock `
-            -OuterSetup @(
-            if ($Test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
-        ) `
-            -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
-            -ScriptBlock { } `
-            -Context @{
-            Context = @{
-                # context visible to Plugins
-                Block         = $block
-                Test          = $Test
-                Configuration = $state.PluginConfiguration
+        If ($Test.Skip) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Runtime "Test is skipped."
             }
-        }
 
-        if ($frameworkSetupResult.Success) {
-            $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
-            # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
-            $context = @{
-                # context visible in test
-                Context = $testInfo
-            }
-            # user provided data are merged with Pester provided context
-            Merge-Hashtable -Source $Test.Data -Destination $context
-
-            $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
-            $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
-
-            $result = Invoke-ScriptBlock `
-                -Setup @(
-                if (any $eachTestSetups) {
-                    # we collect the child first but want the parent to run first
-                    [Array]::Reverse($eachTestSetups)
-                    @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
-                }
-                # setting the execution info here so I don't have to invoke change the
-                # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
-                # that is not needed, and would complicate figuring out in which session
-                # state we should run.
-                # this should run every time.
-                { $Test.FrameworkData.Runtime.ExecutionStep = 'Test' }
-            ) `
-                -ScriptBlock $Test.ScriptBlock `
-                -Teardown @(
-                if (any $eachTestTeardowns) {
-                    @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
-                } ) `
-                -Context $context `
-                -ReduceContextToInnerScope `
-                -MoveBetweenScopes `
-                -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
-                -NoNewScope `
-                -Configuration $state.Configuration
-
+            # setting the test as passed here, this is by choice
+            # skipped test are ultimately passed tests that were not executed
+            # I expect that if someone works with the raw result object and
+            # filters on .Passed -eq $false they should get the count of failed tests
+            # not failed + skipped. It might be wise to revert those booleans to "enum"
+            # because they are exclusive, but keeping the info in the object stupid
+            # and aggregating it as needed was also a design choice
+            $Test.Passed = $true
+            $Test.Skipped = $true
             $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
-            $Test.Passed = $result.Success
-            $Test.StandardOutput = $result.StandardOutput
-            $Test.ErrorRecord = $result.ErrorRecord
+        }
+        else {
+
+            # no callbacks are provided because we are not transitioning between any states
+            $frameworkSetupResult = Invoke-ScriptBlock `
+                -OuterSetup @(
+                if ($Test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
+            ) `
+                -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
+                -ScriptBlock { } `
+                -Context @{
+                Context = @{
+                    # context visible to Plugins
+                    Block         = $block
+                    Test          = $Test
+                    Configuration = $state.PluginConfiguration
+                }
+            }
+
+            if ($frameworkSetupResult.Success) {
+                $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
+                # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
+                $context = @{
+                    # context visible in test
+                    Context = $testInfo
+                }
+                # user provided data are merged with Pester provided context
+                Merge-Hashtable -Source $Test.Data -Destination $context
+
+                $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
+                $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
+
+                $result = Invoke-ScriptBlock `
+                    -Setup @(
+                    if (any $eachTestSetups) {
+                        # we collect the child first but want the parent to run first
+                        [Array]::Reverse($eachTestSetups)
+                        @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
+                    }
+                    # setting the execution info here so I don't have to invoke change the
+                    # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
+                    # that is not needed, and would complicate figuring out in which session
+                    # state we should run.
+                    # this should run every time.
+                    { $Test.FrameworkData.Runtime.ExecutionStep = 'Test' }
+                ) `
+                    -ScriptBlock $Test.ScriptBlock `
+                    -Teardown @(
+                    if (any $eachTestTeardowns) {
+                        @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
+                    } ) `
+                    -Context $context `
+                    -ReduceContextToInnerScope `
+                    -MoveBetweenScopes `
+                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
+                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
+                    -NoNewScope `
+                    -Configuration $state.Configuration
+
+                $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
+                $Test.Passed = $result.Success
+                $Test.StandardOutput = $result.StandardOutput
+                $Test.ErrorRecord = $result.ErrorRecord
+            }
         }
 
         # setting those values here so they are available for the teardown
@@ -859,31 +880,38 @@ function New-TestObject {
         [System.Collections.IDictionary] $Data,
         [String] $Id,
         [ScriptBlock] $ScriptBlock,
-        [Switch] $Focus
+        [Switch] $Focus,
+        [Switch] $Skip
     )
 
     New_PSObject -Type DiscoveredTest @{
+        ItemType          = 'Test'
+        Id                = $Id
+        ScriptBlock       = $ScriptBlock
         Name              = $Name
         Path              = $Path
         Tag               = $Tag
         Focus             = [Bool]$Focus
+        Skip              = [Bool]$Skip
         Data              = $Data
-        ItemType = 'Test'
+
         ExpandedName      = $null
         Block             = $null
-        Executed          = $false
-        ExecutedAt        = $null
-        Passed            = $false
-        StandardOutput    = $null
-        ErrorRecord       = [Collections.Generic.List[Object]]@()
+
         First             = $false
         Last              = $false
         Exclude           = $false
         ShouldRun         = $false
+
+        Executed          = $false
+        ExecutedAt        = $null
+        Passed            = $false
+        Skipped           = $false
+        StandardOutput    = $null
+        ErrorRecord       = [Collections.Generic.List[Object]]@()
+
         Duration          = [timespan]::Zero
         FrameworkDuration = [timespan]::Zero
-        Id                = $Id
-        ScriptBlock       = $ScriptBlock
         PluginData        = @{ }
         FrameworkData     = @{
             Runtime = @{
@@ -953,12 +981,14 @@ function New-BlockObject {
         FailedCount = 0
         SkippedCount = 0
         PendingCount = 0
+        NotRunCount = 0
         InconclusiveCount = 0
         OwnTotalCount = 0
         OwnPassedCount = 0
         OwnFailedCount = 0
         OwnSkippedCount = 0
         OwnPendingCount = 0
+        OwnNotRunCount = 0
         OwnInconclusiveCount = 0
     }
 }
@@ -1983,6 +2013,7 @@ function PostProcess-ExecutedBlock {
             $b.OwnFailedCount = 0
             $b.OwnPassedCount = 0
             $b.OwnSkippedCount = 0
+            $b.OwnNotRunCount = 0
 
             $testDuration = [TimeSpan]::Zero
 
@@ -1991,6 +2022,9 @@ function PostProcess-ExecutedBlock {
 
                 $b.OwnTotalCount++
                 if (-not $t.ShouldRun) {
+                    $b.OwnNotRunCount++
+                }
+                elseif  ($t.ShouldRun -and $t.Skipped) {
                     $b.OwnSkippedCount++
                 }
                 elseif (($t.Executed -and -not $t.Passed) -or ($t.ShouldRun -and -not $t.Executed)) {
@@ -2030,6 +2064,7 @@ function PostProcess-ExecutedBlock {
                 $b.FailedCount = $b.OwnFailedCount
                 $b.PassedCount = $b.OwnPassedCount
                 $b.SkippedCount = $b.OwnSkippedCount
+                $b.NotRunCount = $b.OwnNotRunCount
             }
             else {
                 # when we have children we first let them process themselves and
@@ -2050,6 +2085,7 @@ function PostProcess-ExecutedBlock {
                     $b.PassedCount += $child.PassedCount
                     $b.FailedCount += $child.FailedCount
                     $b.SkippedCount += $child.SkippedCount
+                    $b.NotRunCount += $child.NotRunCount
                 }
 
                 # then we add counts from this block to the counts from the children blocks
@@ -2057,6 +2093,7 @@ function PostProcess-ExecutedBlock {
                 $b.PassedCount += $b.OwnPassedCount
                 $b.FailedCount += $b.OwnFailedCount
                 $b.SkippedCount += $b.OwnSkippedCount
+                $b.NotRunCount += $b.OwnNotRunCount
 
                 $b.Passed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
                 $b.OwnDuration = $b.Duration - $testDuration - $aggregatedChildDuration
@@ -2392,7 +2429,8 @@ function New-ParametrizedTest () {
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [System.Collections.IDictionary[]] $Data = @{ },
-        [Switch] $Focus
+        [Switch] $Focus,
+        [Switch] $Skip
     )
 
     Switch-Timer -Scope Framework
@@ -2403,7 +2441,7 @@ function New-ParametrizedTest () {
     $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
     #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
-        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus
+        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus -Skip:$Skip
     }
 }
 

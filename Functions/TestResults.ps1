@@ -145,10 +145,10 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', 'Pester')
-    $XmlWriter.WriteAttributeString('total', ($Result.TestsCount - $Result.SkippedCount))
+    $XmlWriter.WriteAttributeString('total', ($Result.TestsCount - $Result.NotRunCount))
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
-    $XmlWriter.WriteAttributeString('not-run', '0')
+    $XmlWriter.WriteAttributeString('not-run', $Result.NotRun)
     $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count once it is added
     $XmlWriter.WriteAttributeString('ignored', '0')
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
