@@ -119,22 +119,25 @@ about_should
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
-        [Alias('Ignore')]
         [Switch] $Skip,
+
+        # [Parameter(ParameterSetName = 'Skip')]
+        # [String] $SkipBecause,
 
         [Switch]$Focus
     )
 
-    if ($Pending -or $Skip) {
-        # keep the api, just skip the test without reporting
-        # it until I add support for different test results
-        return
+    if ($PSBoundParameters.ContainsKey('Pending')) {
+        $PSBoundParameters.Remove('Pending')
+
+        $Skip = $Pending
+        # $SkipBecause = "This test is pending."
     }
 
     if (any $TestCases) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus
+        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
 }

@@ -97,7 +97,7 @@ i -PassThru:$PassThru {
                     Path = "$temp/file1.Tests.ps1"
                     Content = {
                         Describe "file1" {
-                            It "i1" {
+                            It "fail" {
                                 1 | Should -Be 2
                             }
                         }
@@ -108,15 +108,19 @@ i -PassThru:$PassThru {
 
                 $result = Invoke-Pester -ScriptBlock {
                     Describe "d1" {
-                        It "i1" {
+                        It "pass" {
                             1 | Should -Be 1
                         }
 
-                        It "skip this" -Tag "Slow" {
+                        It "skip" -Skip {
+                            1 | Should -Be 1
+                        }
+
+                        It "not run" -Tag "Slow" {
                             1 | Should -Be 1
                         }
                     }
-                } -Path $file1.Path -Output None -ExcludeTag "Slow"
+                } -Path $file1.Path -ExcludeTag "Slow" -Output None
             }
             finally {
                 Remove-Item -Path $file1.Path
@@ -126,19 +130,28 @@ i -PassThru:$PassThru {
             $result | Verify-Property "Containers"
             $result.Containers.Count | Verify-Equal 2
             $result.Containers[0] | Verify-PSType "ExecutedBlockContainer"
-            $result | Verify-Property "PSBoundParameters"
-            $result.PSBoundParameters.Keys.Count | Verify-Equal 4 # ScriptBlock, Path, Output, ExcludeTag
-            $result.TestsCount | Verify-Equal 3
+
+            $result.TestsCount | Verify-Equal 4
             $result.Tests | Verify-NotNull
+
             $result.PassedCount | Verify-Equal 1
             $result.Passed | Verify-NotNull
+
             $result.FailedCount | Verify-Equal 1
             $result.Failed | Verify-NotNull
+
             $result.SkippedCount | Verify-Equal 1
             $result.Skipped | Verify-NotNull
+
+            $result.NotRunCount | Verify-Equal 1
+            $result.NotRun | Verify-NotNull
+
             $result.Duration | Verify-Equal ($result.Containers[0].Duration + $result.Containers[1].Duration)
             $result.FrameworkDuration | Verify-Equal ($result.Containers[0].FrameworkDuration + $result.Containers[1].FrameworkDuration)
             $result.DiscoveryDuration | Verify-Equal ($result.Containers[0].DiscoveryDuration + $result.Containers[1].DiscoveryDuration)
+
+            $result | Verify-Property "PSBoundParameters"
+            $result.PSBoundParameters.Keys.Count | Verify-Equal 4 # ScriptBlock, Path, Output, ExcludeTag
         }
     }
 }

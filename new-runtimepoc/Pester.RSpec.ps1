@@ -80,14 +80,17 @@ function Add-RSpecTestObjectProperties {
     # this includes figuring out the result
     # formatting the failure message and stacktrace
 
-    $result = if ($TestObject.Passed) {
+    $result = if ($TestObject.Skipped) {
+        "Skipped"
+    }
+    elseif ($TestObject.Passed) {
         "Passed"
     }
     elseif ($TestObject.ShouldRun -and (-not $TestObject.Executed -or -not $TestObject.Passed)) {
         "Failed"
     }
     else {
-        "Skipped"
+        "NotRun"
     }
 
     $TestObject.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
@@ -134,6 +137,8 @@ function New-RSpecTestRunObject {
         FailedCount = 0
         Skipped = [Collections.ArrayList]@()
         SkippedCount = 0
+        NotRun = [Collections.ArrayList]@()
+        NotRunCount = 0
         Tests = [Collections.ArrayList]@()
         TestsCount = 0
     }
@@ -144,6 +149,9 @@ function PostProcess-RspecTestRun ($TestRun) {
 
     foreach ($t in $tests) {
         switch ($t.Result) {
+            "NotRun" {
+                $null = $TestRun.NotRun.Add($t)
+            }
             "Passed" {
                 $null = $TestRun.Passed.Add($t)
             }
@@ -166,6 +174,7 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.PassedCount = $TestRun.Passed.Count
     $TestRun.FailedCount = $TestRun.Failed.Count
     $TestRun.SkippedCount = $TestRun.Skipped.Count
+    $TestRun.NotRunCount = $TestRun.NotRun.Count
 
     $TestRun.Tests = [Collections.ArrayList]@($tests)
     $TestRun.TestsCount = $tests.Count

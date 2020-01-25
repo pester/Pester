@@ -1,4 +1,5 @@
 ﻿function Verify-Equal {
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
@@ -13,6 +14,7 @@
         if ($Expected -is [string] -and $Actual -is [string]) {
             $message += "`nExpected length: $($Expected.Length)`nActual length: $($Actual.Length)"
         }
+        $message += "`n$($PSCmdlet.MyInvocation.PositionMessage)"
         throw [Exception]$message
     }
 

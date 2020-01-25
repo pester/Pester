@@ -356,7 +356,7 @@ i -PassThru:$PassThru {
 
         t "Assertion fails immediately when ErrorAction is set to Stop via global configuration" {
 
-             
+
             $r = Invoke-Pester -ScriptBlock {
                 Describe "d1" {
                     It "i1" {
@@ -424,6 +424,61 @@ i -PassThru:$PassThru {
             $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
             $err = { 1 | Should -Be 2 } | Verify-Throw
             $err.Exception.Message | Verify-Equal "Expected 2, but got 1."
+        }
+    }
+
+
+    b "-Skip on Describe, Context and It" {
+        t "It can be skipped" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "a" {
+                    It "b" -Skip {
+                        $true
+                    }
+                }
+            }
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
+        }
+
+        t "Describe can be skipped" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "a" -Skip {
+                    It "b" {
+                        $true
+                    }
+                }
+            }
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
+        }
+
+        t "Context can be skipped" {
+            $r = Invoke-Pester -ScriptBlock {
+                Context "a" -Skip {
+                    It "b" {
+                        $true
+                    }
+                }
+            }
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
+        }
+
+        t "Skip will propagate through multiple levels" {
+            $r = Invoke-Pester -ScriptBlock {
+                Describe "a" -Skip {
+                    Describe "a" {
+                        Describe "a" {
+                            It "b" {
+                                $true
+                            }
+                        }
+                    }
+                }
+            }
+
+            $r.Containers[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
     }
 }

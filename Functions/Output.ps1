@@ -28,7 +28,8 @@ $script:ReportStrings = DATA {
         TestsFailed       = 'Failed: {0}, '
         TestsSkipped      = 'Skipped: {0} '
         TestsPending      = 'Pending: {0}, '
-        TestsInconclusive = 'Inconclusive: {0} '
+        TestsInconclusive = 'Inconclusive: {0}, '
+        TestsNotRun       = 'NotRun: {0}'
     }
 }
 
@@ -46,6 +47,9 @@ $script:ReportTheme = DATA {
         SkippedTime      = 'DarkGray'
         Pending          = 'Gray'
         PendingTime      = 'DarkGray'
+        NotRun           = 'Gray'
+        NotRunTime       = 'DarkGray'
+        Total            = 'Gray'
         Inconclusive     = 'Gray'
         InconclusiveTime = 'DarkGray'
         Incomplete       = 'Yellow'
@@ -204,12 +208,28 @@ function Write-PesterReport {
     else {
         $ReportTheme.Pass, $ReportTheme.Information
     }
+
     $Skipped = if ($RunResult.SkippedCount -gt 0) {
         $ReportTheme.Skipped
     }
     else {
         $ReportTheme.Information
     }
+
+    $NotRun = if ($RunResult.NotRunCount -gt 0) {
+        $ReportTheme.NotRun
+    }
+    else {
+        $ReportTheme.Information
+    }
+
+    $Total = if ($RunResult.TestsCount -gt 0) {
+        $ReportTheme.Total
+    }
+    else {
+        $ReportTheme.Information
+    }
+
     # $Pending = if ($RunResult.PendingCount -gt 0) {
     #     $ReportTheme.Pending
     # }
@@ -245,6 +265,9 @@ function Write-PesterReport {
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
+        & $SafeCommands['Write-Host'] ($ReportStrings.TestsTotal -f $RunResult.TestsCount) -Foreground $Total -NoNewLine
+        & $SafeCommands['Write-Host'] ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
+
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     }
@@ -514,8 +537,7 @@ function Get-WriteScreenPlugin {
         # TODO: Add output options
         # if (-not ($OutputType | Has-Flag 'Default, Summary'))
         # {
-        # TODO: Add result and switch on it
-        $result = if ($_test.Passed) { "Passed" } else { "Failed" }
+        $result = $_test.Result
         switch ($result) {
             Passed {
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine

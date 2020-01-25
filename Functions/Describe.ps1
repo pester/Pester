@@ -72,7 +72,8 @@ about_TestDrive
         [ValidateNotNull()]
         [ScriptBlock] $Fixture,
 
-        [Switch] $Focus
+        [Switch] $Focus,
+        [Switch] $Skip
     )
 
     if ($Fixture -eq $null) {
@@ -84,7 +85,7 @@ about_TestDrive
         }
     }
 
-    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Describe" } -Focus:$Focus
+    Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Describe" } -Focus:$Focus -Skip:$Skip
 
     ### TODO: let's not focus on the interactive mode right now
     # if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference))
