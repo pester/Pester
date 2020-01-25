@@ -973,6 +973,7 @@ function New-BlockObject {
         ErrorRecord          = [Collections.Generic.List[Object]]@()
         ShouldRun            = $false
         Exclude              = $false
+        Include              = $false
         ExecutedAt           = $null
         Duration             = [timespan]::Zero
         FrameworkDuration    = [timespan]::Zero
@@ -1933,13 +1934,12 @@ function PostProcess-DiscoveredBlock {
 
     $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
 
-    $Block.Exclude = $blockIsExcluded =
-
     # block should run when the result is $true, or $null but not when it $false
     # because $false means that the block was explicitly excluded from the run
     # but $null means that the block did not match the filter but still can have some
     # children that might match the filter
 
+    $Block.Include = $false
     # this is just logging friendly way of writing $parentBlockIsExcluded -or ($false -eq $shouldRun)
     $Block.Exclude = $blockIsExcluded = if ($parentBlockIsExcluded) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1962,8 +1962,12 @@ function PostProcess-DiscoveredBlock {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is excluded because it was explicitly excluded."
                 }
             }
+
+            # block is explicitly included and it's children should be included as well
+            $Block.Include = $true -eq $shouldRun
             $false -eq $shouldRun
         }
+
 
     $blockShouldRun = $false
     if ($tests.Count -gt 0) {
@@ -1979,6 +1983,13 @@ function PostProcess-DiscoveredBlock {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because parent block was excluded."
                 }
                 $false
+            }
+            elseif ($t.Block.Include) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    $path = $t.Path -join "."
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is included because parent block was included."
+                }
+                $true
             }
             else {
                 $shouldRun = (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test")

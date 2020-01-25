@@ -505,7 +505,7 @@ function Get-WriteScreenPlugin {
 
         $text = $ReportStrings.$commandUsed -f $block.Name
 
-        if ($PesterPreference.Debug.ShowNavigationMarkers) {
+        if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
         }
 
@@ -531,7 +531,7 @@ function Get-WriteScreenPlugin {
         $out = $_test.ExpandedName
         $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
-        if ($PesterPreference.Debug.ShowNavigationMarkers) {
+        if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.ScriptBlock.StartPosition.StartLine)"
         }
         # TODO: Add output options
