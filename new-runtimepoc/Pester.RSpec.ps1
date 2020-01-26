@@ -1,9 +1,11 @@
-function Find-RSpecTestFile {
+function Find-File {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [String[]] $Path,
-        [String[]] $ExcludePath
+        [String[]] $ExcludePath,
+        [Parameter(Mandatory=$true)]
+        [string] $Extension
     )
 
 
@@ -19,7 +21,7 @@ function Find-RSpecTestFile {
 
                 if ($item.PSIsContainer) {
                     # this is an existing directory search it for tests file
-                    Get-ChildItem -Recurse -Path $p -Filter *.Tests.ps1 -File
+                    Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
                     continue
                 }
 
@@ -40,10 +42,10 @@ function Find-RSpecTestFile {
 
             # this is a path that does not exist so let's hope it is
             # a wildcarded path that will resolve to some files
-            Get-ChildItem -Recurse -Path $p -Filter *.Tests.ps1 -File
+            Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
         }
 
-    Filter-Excluded -Files $files -ExludePath $ExcludePath
+    Filter-Excluded -Files $files -ExludePath $ExcludePath | where { $_ }
 }
 
 function Filter-Excluded ($Files, $ExludePath) {

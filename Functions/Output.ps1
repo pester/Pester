@@ -392,7 +392,7 @@ function ConvertTo-FailureLines {
             [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
         }
 
-        if ($PesterPreference.Debug.ShowFullErrors) {
+        if ($PesterPreference.Debug.ShowFullErrors.Value) {
             $lines.Trace += $traceLines
         }
         else {

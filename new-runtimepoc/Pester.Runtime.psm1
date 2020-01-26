@@ -1409,7 +1409,7 @@ function Invoke-ScriptBlock {
         param($______parameters)
 
         try {
-            if ($______parameters.ContextInOuterScope) {
+             if ($______parameters.ContextInOuterScope) {
                 $______outerSplat = $______parameters.Context
                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
                 foreach ($______current in $______outerSplat.GetEnumerator()) {
@@ -1809,10 +1809,10 @@ function Test-ShouldRun {
     }
 
     $lineFilter = tryGetProperty $Filter Line
-    $line = "$($Test.ScriptBlock.File):$($Test.ScriptBlock.StartPosition.StartLine)"
+    $line = "$($Test.ScriptBlock.File):$($Test.ScriptBlock.StartPosition.StartLine)" -replace '\\','/'
     if (any $lineFilter) {
         $anyIncludeFilters = $true
-        foreach ($l in $lineFilter) {
+        foreach ($l in $lineFilter -replace '\\','/') {
             if ($l -eq $line) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included, because its path:line '$line' matches line filter '$lineFilter'."
@@ -1832,7 +1832,12 @@ function Test-ShouldRun {
     }
     else {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included because there were no filters."
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included because there were no include filters."
+        }
+
+        # last attempt to fix this, we need to differentiate explicit include, maybe, and exclude
+        if ($Hint -eq 'Block') {
+            return $null
         }
         # there were no filters
         $true

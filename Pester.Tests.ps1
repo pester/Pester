@@ -209,7 +209,7 @@ Describe 'Style rules' -Tag StyleRules {
 }
 
 InModuleScope Pester {
-    Describe 'Find-RSpecTestFile' {
+    Describe 'Find-File' {
         BeforeAll {
             New-Item -ItemType File 'TestDrive:\SomeFile.ps1'
             New-Item -ItemType File 'TestDrive:\SomeFile.Tests.ps1'
@@ -218,13 +218,13 @@ InModuleScope Pester {
         }
 
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
-            $result = @(Find-RSpecTestFile 'TestDrive:\SomeOtherFile.ps1')
+            $result = @(Find-File 'TestDrive:\SomeOtherFile.ps1' -Extension ".Tests.ps1")
             $result.Count | Should -Be 1
             $result[0].UnresolvedPath | Should -Be 'TestDrive:\SomeOtherFile.ps1'
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
-            $result = @(Find-RSpecTestFile 'TestDrive:\*.ps1')
+            $result = @(Find-File 'TestDrive:\*.ps1' -Extension ".Tests.ps1")
             $result.Count | Should -Be 2
 
             $paths = $result | Select-Object -ExpandProperty FullName
@@ -234,7 +234,7 @@ InModuleScope Pester {
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
-            $result = @(Find-RSpecTestFile 'TestDrive:\')
+            $result = @(Find-File 'TestDrive:\' -Extension ".Tests.ps1")
 
             $result.Count | Should -Be 2
 
@@ -245,7 +245,7 @@ InModuleScope Pester {
         }
 
         # It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
-        #     $result = @(Find-RSpecTestFile 'TestDrive:\SomeFile.ps1')
+        #     $result = @(Find-File 'TestDrive:\SomeFile.ps1' -Extension ".Tests.ps1")
 
         #     $result.Count | Should -Be 1
         #     $result[0].UnresolvedPath | Should -Be 'TestDrive:\SomeFile.ps1'
