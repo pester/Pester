@@ -578,7 +578,8 @@ function Invoke-TestItem {
 
         if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Runtime "Test is skipped."
+                $path = $Test.Path -join '.'
+                Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
             }
 
             # setting the test as passed here, this is by choice
@@ -1100,7 +1101,7 @@ function Discover-Test {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         }
-        $Filter =   -Path $focusedTests
+        $Filter =  New-FilterObject -Path $focusedTests
     }
 
     foreach ($f in $found) {
@@ -1922,7 +1923,11 @@ function PostProcess-DiscoveredBlock {
         [PSTypeName("DiscoveredBlock")][PSObject] $RootBlock
     )
 
-    # TODO: this is quite slow, make it faster
+    # TODO: this whole code is quite slow, make it faster
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $path = $Block.Path -join "."
+    }
 
     # traverses the block structure after a block was found and
     # link childs to their parents, filter blocks and tests to
@@ -1943,12 +1948,22 @@ function PostProcess-DiscoveredBlock {
     # because $false means that the block was explicitly excluded from the run
     # but $null means that the block did not match the filter but still can have some
     # children that might match the filter
+    $parentBlockIsSkipped = (-not $Block.IsRoot -and $Block.Parent.Skip)
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        if ($Block.Skip) {
+            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped."
+        }
+        elseif ($parentBlockIsSkipped) {
+            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped because a parent block was skipped."
+        }
+    }
+
+    $Block.Skip = $Block.Skip -or $parentBlockIsSkipped
 
     $Block.Include = $false
     # this is just logging friendly way of writing $parentBlockIsExcluded -or ($false -eq $shouldRun)
     $Block.Exclude = $blockIsExcluded = if ($parentBlockIsExcluded) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                $path = $Block.Path -join "."
                 Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is excluded because parent block was excluded."
             }
             $true
@@ -1956,7 +1971,6 @@ function PostProcess-DiscoveredBlock {
         else {
             $shouldRun = (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block")
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                $path = $Block.Path -join "."
                 if ($null -eq $shouldRun) {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is included because it was not explictly excluded."
                 }
@@ -1978,6 +1992,18 @@ function PostProcess-DiscoveredBlock {
     if ($tests.Count -gt 0) {
         foreach ($t in $tests) {
             $t.Block = $Block
+
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                if ($t.Skip) {
+                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
+                }
+                elseif ($Block.Skip) {
+                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped because a parent block was skipped."
+                }
+            }
+
+            $t.Skip = $t.Skip -or $Block.Skip
+
             # test should run when the result is $true, but not when it is $null or $false
             # because tests don't have any children, so not matching the filter means they should not run,
             # because we don't have to give a chance to child items to match a filter
