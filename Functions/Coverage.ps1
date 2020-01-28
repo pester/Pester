@@ -46,7 +46,7 @@ function Get-CoverageInfoFromUserInput {
         $Path = $InputObject -as [string]
 
         # Auto-detect IncludeTests-value from path-input
-        $IncludeTests = $Path -match '\.tests\.ps1$'
+        $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension)"
 
         $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
     }
@@ -104,12 +104,12 @@ function Resolve-CoverageInfo {
 
     $path = $UnresolvedCoverageInfo.Path
 
-    $testsPattern = '\.tests\.ps1$'
+    $testsPattern = "*$($UnresolvedCoverageInfo.TestExtension)"
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
 
     try {
         $resolvedPaths = & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
-            & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notmatch $testsPattern }
+            & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notlike $testsPattern }
     }
     catch {
         & $SafeCommands['Write-Error'] "Could not resolve coverage path '$path': $($_.Exception.Message)"
