@@ -62,7 +62,7 @@ Learn more about the [usage and syntax](https://github.com/Pester/Pester/wiki) o
 ## Installation
 
 Pester is compatible with Windows PowerShell 2.x - 5.x on Windows 10, 8, 7, Vista and even 2003.
-Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Windows, Linux, macOS but with some [limitations](https://github.com/pester/Pester/wiki/Pester-on-PSCore-limitations).
+Since version 4.0.9 Pester is compatible also with PowerShell Core 6.x on Windows, Linux, macOS but with some [limitations](https://pester.dev/docs/introduction/powershell-core-limitations/).
 
 Pester comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
