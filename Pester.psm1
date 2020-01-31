@@ -770,7 +770,7 @@ function Invoke-Pester {
                         # no paths specific to CodeCoverage were provided, resolve them from
                         # tests by using the whole directory in which the test or the
                         # provided directory. We might need another option to disable this convention.
-                        $directories = @(foreach ($p in $PesterPreference.Path.Value) {
+                        $directories = @(foreach ($p in $PesterPreference.Run.Path.Value) {
                             # this is a bit ugly, but the logic here is
                             # that we check if the path exists,
                             # and if it does and is a file then we return the
