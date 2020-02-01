@@ -770,7 +770,7 @@ function Invoke-Pester {
                         # no paths specific to CodeCoverage were provided, resolve them from
                         # tests by using the whole directory in which the test or the
                         # provided directory. We might need another option to disable this convention.
-                        $directories = @(foreach ($p in $PesterPreference.Run.Path.Value) {
+                        @(foreach ($p in $PesterPreference.Run.Path.Value) {
                             # this is a bit ugly, but the logic here is
                             # that we check if the path exists,
                             # and if it does and is a file then we return the
@@ -784,8 +784,6 @@ function Invoke-Pester {
                                 Join-Path $i.Directory.FullName "*"
                             }
                         })
-
-                        Find-File -Path $directories -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension ".ps1"
                     })
 
                 $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
@@ -801,7 +799,8 @@ function Invoke-Pester {
                     OutputPath = $outputPath
                     OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
                     ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
-                    Path = $paths
+                    Path = @($paths)
+                    TestExtension = $PesterPreference.Run.TestExtension.Value
                 }
 
                 $plugins += (Get-CoveragePlugin)

@@ -5,7 +5,7 @@ function Enter-CoverageAnalysis {
     )
 
     $coverageInfo =
-        foreach ($object in $CodeCoverage) {
+        foreach ($object in $CodeCoverage.Path) {
             Get-CoverageInfoFromUserInput -InputObject $object
         }
 
@@ -45,10 +45,10 @@ function Get-CoverageInfoFromUserInput {
     else {
         $Path = $InputObject -as [string]
 
-        # Auto-detect IncludeTests-value from path-input
-        $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension)"
+        # Auto-detect IncludeTests-value from path-input if user provides path that is a test
+        $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension.Value)"
 
-        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
+        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests -TestExtension $PesterPreference.Run.TestExtension.Value
     }
 
     Resolve-CoverageInfo -UnresolvedCoverageInfo $unresolvedCoverageInfo

@@ -214,10 +214,6 @@ namespace Pester
             if (!dictionary.Contains(key))
                 return null;
             var value = dictionary[key];
-            if (value.GetType() == typeof(T))
-            {
-                return new T[] { (T)value };
-            }
 
             if (value.GetType() == typeof(T[]))
             {
@@ -231,6 +227,11 @@ namespace Pester
                     return ((object[])value).Cast<T>().ToArray();
                 }
                 catch { }
+            }
+
+            if (value.GetType() == typeof(T))
+            {
+                return new T[] { (T)value };
             }
 
             return null;
