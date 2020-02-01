@@ -24,8 +24,8 @@ function Get-ShouldOperator {
     Get-ShouldOperator -Name Be
     Return help examples for the Be assertion operator.
     -Name is a dynamic parameter that tab completes all available options.
-	    
-	.LINK
+
+    .LINK
     https://pester.dev/docs/commands/Should
 
     #>
@@ -46,8 +46,8 @@ function Get-ShouldOperator {
         $AttributeCollection.Add($ParameterAttribute)
 
         $arrSet = $AssertionOperators.Values |
-            Select-Object -Property Name, Alias |
-            ForEach-Object { $_.Name; $_.Alias }
+        Select-Object -Property Name, Alias |
+        ForEach-Object { $_.Name; $_.Alias }
 
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
 

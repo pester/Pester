@@ -56,14 +56,14 @@ function New-Fixture {
     .LINK
     https://pester.dev/docs/commands/Describe
 
-	.LINK
+    .LINK
     https://pester.dev/docs/commands/Context
 
-	.LINK
+    .LINK
     https://pester.dev/docs/commands/It
-    
-	.LINK
-	https://pester.dev/docs/commands/Should
+
+    .LINK
+    https://pester.dev/docs/commands/Should
 
     #>
 
