@@ -69,7 +69,7 @@ function Clear-TestRegistry {
     # if the setup fails before we mark test registry added
     # we would be trying to teardown something that does not
     # exist and fail in Get-TestRegistryPath
-    if (-not (& $SafeCommands['Test-Path'] "TestRegistry")) {
+    if (-not (& $SafeCommands['Test-Path'] "TestRegistry:\")) {
         return
     }
 
