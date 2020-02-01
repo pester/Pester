@@ -1,4 +1,4 @@
-function New-TestRegistry {
+ function New-TestRegistry {
     param(
         [Switch]
         $PassThru,
@@ -66,6 +66,13 @@ function Clear-TestRegistry {
         $Exclude
     )
 
+    # if the setup fails before we mark test registry added
+    # we would be trying to teardown something that does not
+    # exist and fail in Get-TestRegistryPath
+    if (-not (& $SafeCommands['Test-Path'] "TestRegistry")) {
+        return
+    }
+
     $path = Get-TestRegistryPath
 
     if ($null -ne $path -and (& $SafeCommands['Test-Path'] -Path $Path)) {
@@ -79,7 +86,6 @@ function Clear-TestRegistry {
 
 function Get-TestRegistryChildItem {
     $path = Get-TestRegistryPath
-
     & $SafeCommands['Get-ChildItem'] -Recurse -Path $path
 }
 
@@ -89,7 +95,15 @@ function New-RandomTempRegistry {
         $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
 
-    & $SafeCommands['New-Item'] -Path $Path
+    try {
+        & $SafeCommands['New-Item'] -Path $Path
+    }
+    catch [System.IO.IOException] {
+        # when running in parallel this occasionally triggers
+        # IOException: No more data is available
+        # let's just retry the operation
+        & $SafeCommands['New-Item'] -Path $Path
+    }
 }
 
 function Remove-TestRegistry {

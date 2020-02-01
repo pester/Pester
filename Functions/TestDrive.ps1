@@ -37,9 +37,9 @@ function Clear-TestDrive ([String[]]$Exclude) {
 
         #Get-ChildItem -Exclude did not seem to work with full paths
         & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
-            & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
-            & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
-            & $SafeCommands['Remove-Item'] -Force -Recurse
+        & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
+        & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
+        & $SafeCommands['Remove-Item'] -Force -Recurse
 
     }
 }
@@ -118,8 +118,8 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
-        where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-        foreach-object { $_.Delete() }
+    where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+    foreach-object { $_.Delete() }
 }
 
 function Remove-TestDrive {
@@ -139,10 +139,12 @@ function Remove-TestDrive {
         $Drive | & $SafeCommands['Remove-PSDrive'] -Force #This should fail explicitly as it impacts future pester runs
     }
 
-    Remove-TestDriveSymbolicLinks -Path $Path
+    if ($null -ne $Path) {
+        Remove-TestDriveSymbolicLinks -Path $Path
 
-    if (& $SafeCommands['Test-Path'] -Path $Path) {
-        & $SafeCommands['Remove-Item'] -Path $Path -Force -Recurse
+        if (& $SafeCommands['Test-Path'] -Path $Path) {
+            & $SafeCommands['Remove-Item'] -Path $Path -Force -Recurse
+        }
     }
 
     if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction $script:IgnoreErrorPreference) {
@@ -166,7 +168,7 @@ function Setup {
     Assert-DescribeInProgress -CommandName Setup
 
     $TestDriveName = & $SafeCommands['Get-PSDrive'] TestDrive |
-        & $SafeCommands['Select-Object'] -ExpandProperty Root
+    & $SafeCommands['Select-Object'] -ExpandProperty Root
 
     if ($Dir) {
         $item = & $SafeCommands['New-Item'] -Name $Path -Path "${TestDriveName}\" -Type Container -Force

@@ -95,6 +95,8 @@ https://pester.dev/docs/usage/testdrive
     if ($null -eq (& $SafeCommands['Get-Variable'] -Name Pester -ValueOnly -ErrorAction $script:IgnoreErrorPreference)) {
         # User has executed a test script directly instead of calling Invoke-Pester
         Remove-MockFunctionsAndAliases
+        Remove-TestRegistry
+        Remove-TestDrive
         $sessionState = Set-SessionStateHint -PassThru -Hint "Caller - Captured in Describe" -SessionState $PSCmdlet.SessionState
         $Pester = New-PesterState -Path (& $SafeCommands['Resolve-Path'] .) -TestNameFilter $null -TagFilter @() -SessionState $sessionState
         $script:mockTable = @{ }
