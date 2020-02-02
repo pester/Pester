@@ -678,22 +678,27 @@ function Invoke-Pester {
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
         Remove-MockFunctionsAndAliases
 
-        # this will totally ignore PesterPreference when Configuration is provided which might not be what we want
-        # maybe merge non-defaults to a new struct and also -IgnorePesterPreference to avoid using $PesterPreference
-        # from the context
-        if (-not $Configuration) {
-            $callerPreference = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
-            if ($callerPreference) {
-                $Configuration = $callerPreference
-            }
-            else {
-                $Configuration = [PesterConfiguration]::Default
-            }
-        }
+        # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
+
+        $callerPreference = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+        $hasCallerPreference = $null -ne $callerPreference
+        $hasConfiguration = $null -ne $Configuration
 
         # preference is inherited in all subsequent calls in this session state
         # but we still pass it explicitly where practical
-        $PesterPreference = $Configuration
+        if ($hasCallerPreference -and -not $hasConfiguration) {
+            [PesterConfiguration] $PesterPreference = $callerPreference
+        }
+        elseif (-not $hasCallerPreference -and $hasConfiguration) {
+            [PesterConfiguration] $PesterPreference = $Configuration
+        }
+        elseif ($hasCallerPreference -and $hasConfiguration) {
+            [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
+        }
+        else {
+            [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Default
+        }
+
         Get-Variable 'Configuration' -Scope Local | Remove-Variable
 
         # Ensure when running Pester that we're using RSpec strings
@@ -836,7 +841,7 @@ function Invoke-Pester {
             }
 
             if ((any $PesterPreference.Run.Path.Value)) {
-                if ((none ($PesterPreference.Run.ScriptBlock.Value)) -or ((any $PesterPreference.Run.ScriptBlock.Value) -and '.' -ne $PesterPreference.Run.Path.Value[0])) {
+                if ((none $PesterPreference.Run.ScriptBlock.Value) -or ((any $PesterPreference.Run.ScriptBlock.Value) -and '.' -ne $PesterPreference.Run.Path.Value[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
@@ -866,7 +871,7 @@ function Invoke-Pester {
             $parameters = @{
                 PSBoundParameters = $PSBoundParameters
             }
-            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData
+            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData -Configuration $PesterPreference
 
             PostProcess-RSpecTestRun -TestRun $run
             $run

@@ -40,6 +40,7 @@ function i {
     $script:failed = 0
     $script:total = 0
 
+    Write-Host # VSCode puts the first line to a weird place if we don't start with newline
     & $ScriptBlock
 
     $passed = $script:total - $script:failed

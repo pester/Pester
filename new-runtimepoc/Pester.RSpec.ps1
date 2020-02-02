@@ -45,10 +45,10 @@ function Find-File {
             Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
         }
 
-    Filter-Excluded -Files $files -ExludePath $ExcludePath | where { $_ }
+    Filter-Excluded -Files $files -ExcludePath $ExcludePath | where { $_ }
 }
 
-function Filter-Excluded ($Files, $ExludePath) {
+function Filter-Excluded ($Files, $ExcludePath) {
 
     if ($null -eq $ExcludePath -or @($ExcludePath).Length -eq 0) {
         return @($Files)
@@ -126,6 +126,7 @@ function New-RSpecTestRunObject {
         $Plugins,
         [Hashtable] $PluginConfiguration,
         [Hashtable] $PluginData,
+        [PesterConfiguration] $Configuration,
         # [PSTypeName('ExecutedBlockContainer')]
         [object[]] $BlockContainer)
 
@@ -137,6 +138,7 @@ function New-RSpecTestRunObject {
         Plugins = $Plugins
         PluginConfiguration = $PluginConfiguration
         PluginData = $PluginData
+        Configuration = $Configuration
 
         Duration = [TimeSpan]::Zero
         FrameworkDuration = [TimeSpan]::Zero
