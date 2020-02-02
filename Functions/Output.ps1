@@ -327,7 +327,8 @@ function Write-CoverageReport {
 function ConvertTo-FailureLines {
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $ErrorRecord
+        $ErrorRecord,
+        [switch] $ForceFullError
     )
     process {
         $lines = [PSCustomObject] @{
@@ -371,31 +372,29 @@ function ConvertTo-FailureLines {
             $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
-
-        # omit the lines internal to Pester
-        if ((GetPesterOS) -ne 'Windows') {
-            [String]$pattern1 = '^at .*, .*/Pester.Runtime.psm1: line [0-9]*$'
-            [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*/Functions/.*.ps1: line [0-9]*$'
-            [String]$pattern3 = '^at (Invoke-Pester), .*/.*.psm1: line [0-9]*$'
-            [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*/Functions/Assertions/Should.ps1: line [0-9]*$'
-            [String]$pattern5 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
-            [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
-            [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
-        }
-        else {
-            [String]$pattern1 = '^at .*, .*\\Pester.Runtime.psm1: line [0-9]*$'
-            [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*\\Functions\\.*.ps1: line [0-9]*$'
-            [String]$pattern3 = '^at (Invoke-Pester), .*\\.*.psm1: line [0-9]*$'
-            [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
-            [String]$pattern5 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-            [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
-            [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
-        }
-
-        if ($PesterPreference.Debug.ShowFullErrors) {
+        if ($ForceFullError -or $PesterPreference.Debug.ShowFullErrors.Value) {
             $lines.Trace += $traceLines
         }
         else {
+            # omit the lines internal to Pester
+            if ((GetPesterOS) -ne 'Windows') {
+                [String]$pattern1 = '^at .*, .*/Pester.Runtime.psm1: line [0-9]*$'
+                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*/Functions/.*.ps1: line [0-9]*$'
+                [String]$pattern3 = '^at (Invoke-Pester), .*/.*.psm1: line [0-9]*$'
+                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*/Functions/Assertions/Should.ps1: line [0-9]*$'
+                [String]$pattern5 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
+                [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
+                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
+            }
+            else {
+                [String]$pattern1 = '^at .*, .*\\Pester.Runtime.psm1: line [0-9]*$'
+                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*\\Functions\\.*.ps1: line [0-9]*$'
+                [String]$pattern3 = '^at (Invoke-Pester), .*\\.*.psm1: line [0-9]*$'
+                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
+                [String]$pattern5 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
+                [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
+                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
+            }
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
             # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
@@ -439,27 +438,29 @@ function ConvertTo-HumanTime {
 
 function Get-WriteScreenPlugin {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
+    # The plugin is not imported when output None is specified so the usual level of output is Minimal.
     Pester.Runtime\New-PluginObject -Name "WriteScreen" `
         -Start {
         param ($Context)
-
-        if ($null -eq $Context.TestRun.Containers -or @($Context.TestRun.Containers).Count -eq 0) {
-            return
-        }
 
         # Write-PesterStart $Context
     } `
         -DiscoveryStart {
         param ($Context)
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting test discovery in $(@($Context.BlockContainers).Length) files."
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting test discovery in $(@($Context.BlockContainers).Length) files."
     } `
         -ContainerDiscoveryStart {
         param ($Context)
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($Context.BlockContainer.Content)."
+        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($Context.BlockContainer.Content)."
+        }
     } `
         -ContainerDiscoveryEnd {
         param ($Context)
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+        }
     } `
         -DiscoveryEnd {
         param ($Context)
@@ -474,8 +475,10 @@ function Get-WriteScreenPlugin {
         -ContainerRunStart {
         param ($Context)
 
-        if ("file" -eq $Context.Block.BlockContainer.Type) {
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($Context.Block.BlockContainer.Content)'"
+        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+            if ("file" -eq $Context.Block.BlockContainer.Type) {
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($Context.Block.BlockContainer.Content)'"
+            }
         }
     } `
         -ContainerRunEnd {
@@ -491,9 +494,7 @@ function Get-WriteScreenPlugin {
         # the $context does not mean Context block, it's just a generic name
         # for the invocation context of this callback
 
-        $noOutput = $Context.PluginOption.Output -eq "none"
-
-        if ($noOutput) {
+        if ('Normal' -ne $PesterPreference.Output.Verbosity.Value) {
             return
         }
 
@@ -505,7 +506,7 @@ function Get-WriteScreenPlugin {
 
         $text = $ReportStrings.$commandUsed -f $block.Name
 
-        if ($PesterPreference.Debug.ShowNavigationMarkers) {
+        if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
         }
 
@@ -513,35 +514,38 @@ function Get-WriteScreenPlugin {
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
     } -EachTestTeardownEnd {
         param ($Context)
+
         # we are currently in scope of describe so $Test is hardtyped and conflicts
         $_test = $Context.Test
-        # TODO: Add quiet options
-        # $quiet = $pester.Show -eq [Pester.OutputTypes]::None
-        # $OutputType = [Pester.OutputTypes] $TestResult.Result
-        # $writeToScreen = $pester.Show | Has-Flag $OutputType
-        # $skipOutput = $quiet -or (-not $writeToScreen)
 
-        # if ($skipOutput)
-        # {
-        #     return
-        # }
-        $level = $_test.Path.Length
-        $margin = $ReportStrings.Margin * ($level)
-        $error_margin = $margin + $ReportStrings.Margin
-        $out = $_test.ExpandedName
+        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+            $level = $_test.Path.Length
+            $margin = $ReportStrings.Margin * ($level)
+            $error_margin = $margin + $ReportStrings.Margin
+            $out = $_test.ExpandedName
+        }
+
+        if ('Minimal' -eq $PesterPreference.Output.Verbosity.Value) {
+            $level = 0
+            $margin = ''
+            $error_margin = $ReportStrings.Margin
+            $out = "$($_test.Block.Path -join '.').$($_test.ExpandedName)"
+        }
+
+
         $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
-        if ($PesterPreference.Debug.ShowNavigationMarkers) {
+        if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.ScriptBlock.StartPosition.StartLine)"
         }
-        # TODO: Add output options
-        # if (-not ($OutputType | Has-Flag 'Default, Summary'))
-        # {
+
         $result = $_test.Result
         switch ($result) {
             Passed {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                }
                 break
             }
 
@@ -549,13 +553,14 @@ function Get-WriteScreenPlugin {
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                # TODO: Add include VSCodeMarker
-                # if($pester.IncludeVSCodeMarker) {
-                #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.stackTrace -replace '(?m)^',$error_margin)
-                #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.failureMessage -replace '(?m)^',$error_margin)
+                # review how we should write errors for VS code based on https://github.com/PowerShell/vscode-powershell/pull/2447
+                # and use the env variable mentioned there
+                # if($PesterPreference.Debug.WriteVSCodeMarker.Value) {
+                #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.ErrorRecord[-1].DisplayStackTrace -replace '(?m)^',$error_margin)
+                #     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_test.ErrorRecord[-1].DisplayErrorMessage -replace '(?m)^',$error_margin)
                 # }
                 # else {
-                Write-ErrorToScreen $_test.ErrorRecord
+                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin
                 # }
                 break
             }
@@ -593,12 +598,22 @@ function Get-WriteScreenPlugin {
                 }
             }
         }
-        # }
     } -EachBlockTeardownEnd {
         param ($Context)
         if (-not $Context.Block.OwnPassed) {
-            & $SafeCommands['Write-Host'] -ForegroundColor Red "Block '$($Context.Block.Path -join ".")' failed"
-            Write-ErrorToScreen $Context.Block.ErrorRecord
+            if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                $level = $Context.Block.Path.Length
+                $margin = $ReportStrings.Margin * ($level)
+                $error_margin = $margin + $ReportStrings.Margin
+            }
+
+            $level = 0
+            $margin = 0
+            $error_margin = $ReportStrings.Margin
+
+            foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
+            & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+            Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
         }
     } `
         -End {
@@ -613,7 +628,9 @@ function Write-ErrorToScreen {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        $Err
+        $Err,
+        [Parameter(Mandatory)]
+        $ErrorMargin
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -631,6 +648,6 @@ function Write-ErrorToScreen {
         "$(if ($isFormattedError){ $Err.DisplayErrorMessage } else { $Err.Exception })$(if ($isFormattedError) { if ($null -ne $Err.DisplayStackTrace) {"$([Environment]::NewLine)$($Err.DisplayStackTrace)"}} else { if  ($null -ne $Err.ScriptStackTrace) {"$([Environment]::NewLine)$($Err.ScriptStackTrace)"}})"
     }
 
-    $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $error_margin -join [Environment]::NewLine
-    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $withMargin
+    $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
+    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
 }

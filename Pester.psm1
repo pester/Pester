@@ -659,8 +659,8 @@ function Invoke-Pester {
         [Switch]$CI,
 
         [Parameter(ParameterSetName = "Simple")]
-        [ValidateSet("Normal", "None")]
-        $Output = 'Normal',
+        [ValidateSet("Normal", "Minimal", "None")]
+        $Output,
 
         [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock,
@@ -672,33 +672,29 @@ function Invoke-Pester {
         $start = [DateTime]::Now
         # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
         $invokedViaInvokePester = $true
-        $Configuration = if (-not $Configuration) {
-            $p = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
-            if ($p) {
-                $p
+
+        # TODO: Remove all references to mock table, there should not be many.
+        $script:mockTable = @{}
+        # todo: move mock cleanup to BeforeAllBlockContainer when there is any
+        Remove-MockFunctionsAndAliases
+
+        # this will totally ignore PesterPreference when Configuration is provided which might not be what we want
+        # maybe merge non-defaults to a new struct and also -IgnorePesterPreference to avoid using $PesterPreference
+        # from the context
+        if (-not $Configuration) {
+            $callerPreference = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+            if ($callerPreference) {
+                $Configuration = $callerPreference
             }
             else {
-                [PesterConfiguration]::Default
+                $Configuration = [PesterConfiguration]::Default
             }
         }
 
-        # set the preference in all the subsequent calls in this session state
+        # preference is inherited in all subsequent calls in this session state
+        # but we still pass it explicitly where practical
         $PesterPreference = $Configuration
-
-
-        if ($CI) {
-            $Configuration.Exit = $true
-
-            $Configuration.CodeCoverage.Enabled = $true
-            $Configuration.CodeCoverage.OutputFormat ="JaCoCo"
-            $Configuration.CodeCoverage.OutputPath = (Join-Path $pwd.Path 'coverage.xml' )
-            #TODO: add the rest of the options, including filter for the code coverage (now it is all *.ps1 except *.Tests.ps1), add Paths option, and OutputEncoding
-
-            $Configuration.TestResult.Enabled = $true
-            $Configuration.TestResult.OutputFormat = "NUnit2.5"
-            $Configuration.TestResult.OutputPath = (Join-Path $pwd.Path 'testResults.xml' )
-            #TODO: Add test results encoding option
-        }
+        Get-Variable 'Configuration' -Scope Local | Remove-Variable
 
         # Ensure when running Pester that we're using RSpec strings
         & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
@@ -711,56 +707,140 @@ function Invoke-Pester {
 
     end {
         try {
-            $script:mockTable = @{}
-            # todo: move mock cleanup to BeforeAllBlockContainer when there is any
-            Remove-MockFunctionsAndAliases
+            if ('Simple' -eq $PSCmdlet.ParameterSetName) {
+                # populate preference from parameters and remove them so we
+                # don't inherit them to child functions by accident
+
+                if ($Path) {
+                    if ($null -ne $Path) {
+                        $PesterPreference.Run.Path = $Path
+                    }
+                    Get-Variable 'Path' -Scope Local | Remove-Variable
+                }
+
+                if (any $ScriptBlock) {
+                    $PesterPreference.Run.ScriptBlock = $ScriptBlock
+                    Get-Variable 'ScriptBlock' -Scope Local | Remove-Variable
+                }
+
+                if ($ExcludePath) {
+                    if ($null -ne $ExcludePath) {
+                        $PesterPreference.Run.ExcludePath = $ExcludePath
+                    }
+                    Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
+                }
+
+                if (any $Tag) {
+                    if ($null -ne $Tag) {
+                        $PesterPreference.Filter.Tag = $Tag
+                    }
+                    Get-Variable 'Tag' -Scope Local | Remove-Variable
+                }
+
+                if (any $ExcludeTag) {
+                    if ($null -ne $ExcludeTag) {
+                        $PesterPreference.Filter.ExcludeTag = $ExcludeTag
+                    }
+                    Get-Variable 'ExcludeTag' -Scope Local | Remove-Variable
+                }
+
+                if ($CI) {
+                    $PesterPreference.Run.Exit = $true
+                    $PesterPreference.CodeCoverage.Enabled = $true
+                    $PesterPreference.TestResult.Enabled = $true
+                    Get-Variable 'CI' -Scope Local | Remove-Variable
+                }
+
+                if ($Output) {
+                    if ($null -ne $Output) {
+                        $PesterPreference.Output.Verbosity = $Output
+                    }
+
+                    Get-Variable 'Output' -Scope Local | Remove-Variable
+                }
+            }
+
             $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
 
             $pluginConfiguration = @{}
-
-            $plugins = @(Get-RSpecObjectDecoratorPlugin)
-            if ($Output -ne "None") {
+            $plugins = @()
+            if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin
             }
 
             $plugins +=
             @(
+                # decorator plugin needs to be added after output
+                # because on teardown they will run in opposite order
+                # and that way output can consume the fixed object that decorator
+                # decorated, not nice but works
+                Get-RSpecObjectDecoratorPlugin
                 Get-TestDrivePlugin
                 Get-MockPlugin
             )
 
-            if ($Configuration.CodeCoverage.Enabled.Value) {
-                $CodeCoverage = @{ Path = foreach ($p in $Path) {
-                    # this is a bit ugly, but the logic here is
-                    # that we check if the path exists,
-                    # and if it does and is a file then we return the
-                    # parent directory, otherwise we got a directory
-                    # and return just it
-                    $i = Get-Item $p
-                    if ($i.PSIsContainer) {
-                        Join-Path $i.FullName "*"
+            if ($PesterPreference.CodeCoverage.Enabled.Value) {
+                $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
+                        $PesterPreference.CodeCoverage.Path.Value
                     }
                     else {
-                        Join-Path $i.Directory.FullName "*"
+                        # no paths specific to CodeCoverage were provided, resolve them from
+                        # tests by using the whole directory in which the test or the
+                        # provided directory. We might need another option to disable this convention.
+                        @(foreach ($p in $PesterPreference.Run.Path.Value) {
+                            # this is a bit ugly, but the logic here is
+                            # that we check if the path exists,
+                            # and if it does and is a file then we return the
+                            # parent directory, otherwise we got a directory
+                            # and return just it
+                            $i = Get-Item $p
+                            if ($i.PSIsContainer) {
+                                Join-Path $i.FullName "*"
+                            }
+                            else {
+                                Join-Path $i.Directory.FullName "*"
+                            }
+                        })
+                    })
+
+                $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
+                        $PesterPreference.CodeCoverage.OutputPath.Value
                     }
-                }}
+                    else {
+                        Join-Path $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
+                    }
+
+                $CodeCoverage = @{
+                    Enabled = $PesterPreference.CodeCoverage.Enabled.Value
+                    OutputFormat = $PesterPreference.CodeCoverage.OutputFormat.Value
+                    OutputPath = $outputPath
+                    OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
+                    ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
+                    Path = @($paths)
+                    TestExtension = $PesterPreference.Run.TestExtension.Value
+                }
+
                 $plugins += (Get-CoveragePlugin)
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
 
-            $filter = New-FilterObject -Tag $Tag -ExcludeTag $ExcludeTag
+            $filter = New-FilterObject `
+                -Tag $PesterPreference.Filter.Tag.Value `
+                -ExcludeTag $PesterPreference.Filter.ExcludeTag.Value `
+                -Line $PesterPreference.Filter.Line.Value `
+                -Path $PesterPreference.Filter.Name.Value
 
             $containers = @()
-            if (any $ScriptBlock) {
-                $containers += @( $ScriptBlock | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
+            if (any $PesterPreference.Run.ScriptBlock.Value) {
+                $containers += @( $PesterPreference.Run.ScriptBlock.Value | foreach { Pester.Runtime\New-BlockContainerObject -ScriptBlock $_ })
             }
 
-            if ((any $Path)) {
-                if ((none ($ScriptBlock)) -or ((any $ScriptBlock) -and '.' -ne $Path[0])) {
+            if ((any $PesterPreference.Run.Path.Value)) {
+                if ((none ($PesterPreference.Run.ScriptBlock.Value)) -or ((any $PesterPreference.Run.ScriptBlock.Value) -and '.' -ne $PesterPreference.Run.Path.Value[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $containers += @(Find-RSpecTestFile -Path $Path -ExcludePath $ExcludePath | where { $_ } | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
+                    $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value | foreach { Pester.Runtime\New-BlockContainerObject -File $_ })
                 }
             }
 
@@ -777,7 +857,7 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Pester.Runtime\Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter -Configuration $Configuration
+            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
 
             foreach ($c in $r) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
@@ -795,25 +875,25 @@ function Invoke-Pester {
                 Configuration = $pluginConfiguration
             } -ThrowOnFailure
 
-            if ($Configuration.TestResult.Enabled) {
-                Export-NunitReport $run $Configuration.TestResult.OutputPath.Value
+            if ($PesterPreference.TestResult.Enabled.Value) {
+                Export-NunitReport $run $PesterPreference.TestResult.OutputPath.Value
             }
 
-            if ($Configuration.CodeCoverage.Enabled.Value) {
+            if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
-                $jaCoCoReport | & $SafeCommands['Out-File'] $Configuration.CodeCoverage.OutputPath.Value -Encoding UTF8
+                $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
             }
 
-            if ($Configuration.Exit.Value -and $run.FailedCount -gt 0) {
+            if ($PesterPreference.Run.Exit.Value -and $run.FailedCount -gt 0) {
                 exit ($run.FailedCount)
             }
         }
         catch {
             Write-ErrorToScreen $_
-            if ($Configuration.Exit.Value) {
+            if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }
         }

@@ -4,8 +4,7 @@ function Enter-CoverageAnalysis {
         [object[]] $CodeCoverage
     )
 
-    $coverageInfo =
-        foreach ($object in $CodeCoverage) {
+    $coverageInfo = foreach ($object in $CodeCoverage) {
             Get-CoverageInfoFromUserInput -InputObject $object
         }
 
@@ -45,8 +44,8 @@ function Get-CoverageInfoFromUserInput {
     else {
         $Path = $InputObject -as [string]
 
-        # Auto-detect IncludeTests-value from path-input
-        $IncludeTests = $Path -match '\.tests\.ps1$'
+        # Auto-detect IncludeTests-value from path-input if user provides path that is a test
+        $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension.Value)"
 
         $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
     }
@@ -104,20 +103,19 @@ function Resolve-CoverageInfo {
 
     $path = $UnresolvedCoverageInfo.Path
 
-    $testsPattern = '\.tests\.ps1$'
+    $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
 
     try {
         $resolvedPaths = & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
-            & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notmatch $testsPattern }
+            & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notlike $testsPattern }
     }
     catch {
         & $SafeCommands['Write-Error'] "Could not resolve coverage path '$path': $($_.Exception.Message)"
         return
     }
 
-    $filePaths =
-    foreach ($resolvedPath in $resolvedPaths) {
+    $filePaths = foreach ($resolvedPath in $resolvedPaths) {
         $item = & $SafeCommands['Get-Item'] -LiteralPath $resolvedPath
         if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension) {
             $item.FullName

@@ -15,32 +15,62 @@ $global:PesterPreference = @{
     }
 }
 
+function Verify-PathEqual {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $true)]
+        $Actual,
+        [Parameter(Mandatory = $true, Position = 0)]
+        $Expected
+    )
+
+    if ([string]::IsNullOrEmpty($Expected)) {
+        throw "Expected is null or empty."
+    }
+
+    if ([string]::IsNullOrEmpty($Actual)) {
+        throw "Actual is null or empty."
+    }
+
+    $e = ($expected -replace "\\",'/').Trim('/')
+    $a = ($actual -replace "\\",'/').Trim('/')
+
+    if ($e -ne $a) {
+        throw "Expected path '$e' to be equal to '$a'."
+    }
+}
+
 i -PassThru:$PassThru {
     b "Default configuration" {
+
         # General configuration
         t "Exit is `$false" {
-            [PesterConfiguration]::Default.Exit.Value | Verify-False
+            [PesterConfiguration]::Default.Run.Exit.Value | Verify-False
         }
 
-        t "Path is empty string array" {
-            $value = [PesterConfiguration]::Default.Path.Value
+        t "Path is string array, with '.'" {
+            $value = [PesterConfiguration]::Default.Run.Path.Value
 
             # do not do $value | Verify-NotNull
             # because nothing will reach the assetion
             Verify-NotNull -Actual $value
             Verify-Type ([string[]]) -Actual $value
-            $value.Count | Verify-Equal 0
+            $value.Count | Verify-Equal 1
+            $value[0] | Verify-Equal '.'
         }
 
-
         t "ScriptBlock is empty ScriptBlock array" {
-            $value = [PesterConfiguration]::Default.ScriptBlock.Value
+            $value = [PesterConfiguration]::Default.Run.ScriptBlock.Value
 
             # do not do $value | Verify-NotNull
             # because nothing will reach the assetion
             Verify-NotNull -Actual $value
             Verify-Type ([ScriptBlock[]]) -Actual $value
             $value.Count | Verify-Equal 0
+        }
+
+        t "TestExtension is *.Tests.ps1" {
+            [PesterConfiguration]::Default.Run.TestExtension.Value | Verify-Equal ".Tests.ps1"
         }
 
 
@@ -57,6 +87,20 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.CodeCoverage.OutputPath.Value | Verify-Equal "coverage.xml"
         }
 
+        t "CodeCoverage.OutputEncoding is UTF8" {
+            [PesterConfiguration]::Default.CodeCoverage.OutputEncoding.Value | Verify-Equal "UTF8"
+        }
+
+        t "CodeCoverage.Path is empty array" {
+            $value = [PesterConfiguration]::Default.CodeCoverage.Path.Value
+            Verify-NotNull $value
+            $value.Count | Verify-Equal 0
+        }
+
+        t "CodeCoverage.ExcludeTests is `$true" {
+            [PesterConfiguration]::Default.CodeCoverage.ExcludeTests.Value | Verify-True
+        }
+
         # TestResult configuration
         t "TestResult.Enabled is `$false" {
             [PesterConfiguration]::Default.TestResult.Enabled.Value | Verify-False
@@ -68,6 +112,14 @@ i -PassThru:$PassThru {
 
         t "TestResult.OutputPath is testResults.xml" {
             [PesterConfiguration]::Default.TestResult.OutputPath.Value | Verify-Equal "testResults.xml"
+        }
+
+        t "TestResult.OutputEncoding is UTF8" {
+            [PesterConfiguration]::Default.TestResult.OutputEncoding.Value | Verify-Equal "UTF8"
+        }
+
+        t "TestResult.TestSuiteName is Pester" {
+            [PesterConfiguration]::Default.TestResult.TestSuiteName.Value | Verify-Equal "Pester"
         }
 
         # Should configuration
@@ -84,8 +136,101 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Debug.WriteDebugMessages.Value | Verify-False
         }
 
-        t "Debug.WriteDebugMessagesFrom is *" {
+        t "Debug.WriteDebugMessagesFrom is '*'" {
             [PesterConfiguration]::Default.Debug.WriteDebugMessagesFrom.Value | Verify-Equal '*'
+        }
+
+        t "Debug.ShowNavigationMarkers is `$false" {
+            [PesterConfiguration]::Default.Debug.ShowNavigationMarkers.Value | Verify-False
+        }
+
+        t "Debug.WriteVSCodeMarker is `$false" {
+            [PesterConfiguration]::Default.Debug.WriteVSCodeMarker.Value | Verify-False
+        }
+    }
+
+    b "Advanced interface - Run paths"  {
+        t "Running from multiple paths" {
+            $container1 = "$PSScriptRoot/TestProjects/BasicTests/folder1"
+            $container2 = "$PSScriptRoot/TestProjects/BasicTests/folder2"
+
+            $c = [PesterConfiguration]@{
+                Run = @{
+                    Path = $container1, $container2
+                }
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            ($r.Containers[0].Path.Directory) | Verify-PathEqual $container1
+            ($r.Containers[1].Path.Directory) | Verify-PathEqual $container2
+        }
+
+        t "Filtering based on tags" {
+            $c = [PesterConfiguration]@{
+                Run = @{
+                    Path = "$PSScriptRoot/TestProjects/BasicTests"
+                }
+                Filter = @{
+                    ExcludeTag = 'Slow'
+                }
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $tests = $r.Containers.Blocks.Tests
+
+            $allTags = $tests.Tag | where { $null -ne $_ }
+            $allTags | Verify-NotNull
+            'slow' -in $allTags | Verify-True
+
+            $runTags = ($tests | where { $_.ShouldRun }).Tag
+            'slow' -notin $runTags | Verify-True
+        }
+
+        t "Filtering test based on line" {
+            $c = [PesterConfiguration]@{
+                Run = @{
+                    Path = "$PSScriptRoot/TestProjects/BasicTests"
+                }
+                Filter = @{
+                    Line = "$PSScriptRoot/TestProjects/BasicTests/folder1/file1.Tests.ps1:6"
+                }
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+
+            $tests.Count | Verify-Equal 1
+            $tests[0].Name | Verify-Equal "fails"
+        }
+
+        t "Filtering test based on line" {
+            $c = [PesterConfiguration]@{
+                Run = @{
+                    Path = "$PSScriptRoot/TestProjects/BasicTests"
+                }
+                Filter = @{
+                    Line = "$PSScriptRoot/TestProjects/BasicTests/folder1/file1.Tests.ps1:1"
+                }
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+
+            $tests.Count | Verify-Equal 2
+            $tests[0].Name | Verify-Equal "passing"
+            $tests[1].Name | Verify-Equal "fails"
         }
     }
 }

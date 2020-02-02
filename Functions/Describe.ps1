@@ -124,7 +124,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         $script:lastExecutedAt = [datetime]::Now
     }
     else {
-        throw "Only files can be run interactively"
+        throw "Pester can run only saved files interactively. Please save your file to a disk."
 
         # there is a number of problems with this that I don't know how to solve right now
         # - the scripblock below will be discovered which shows a weird message in the console (maybe just suppress?)

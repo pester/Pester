@@ -578,7 +578,8 @@ function Invoke-TestItem {
 
         if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Runtime "Test is skipped."
+                $path = $Test.Path -join '.'
+                Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
             }
 
             # setting the test as passed here, this is by choice
@@ -641,18 +642,23 @@ function Invoke-TestItem {
             }
         }
 
+
         # setting those values here so they are available for the teardown
         # BUT they are then set again at the end of the block to make them accurate
         # so the value on the screen vs the value in the object is slightly different
         # with the value in the result being the correct one
         $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+
+        $frameworkEachTestTeardowns = @( selectNonNull $state.Plugin.EachTestTeardownEnd )
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd })
+        [array]::Reverse($frameworkEachTestTeardowns)
+        [array]::Reverse($frameworkOneTimeTestTeardowns)
+
         $frameworkTeardownResult = Invoke-ScriptBlock `
             -ScriptBlock { } `
-            -Teardown @( selectNonNull $state.Plugin.EachTestTeardownEnd ) `
-            -OuterTeardown @(
-            if ($Test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd }
-        ) `
+            -Teardown $frameworkEachTestTeardowns `
+            -OuterTeardown $frameworkOneTimeTestTeardowns `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -973,6 +979,7 @@ function New-BlockObject {
         ErrorRecord          = [Collections.Generic.List[Object]]@()
         ShouldRun            = $false
         Exclude              = $false
+        Include              = $false
         ExecutedAt           = $null
         Duration             = [timespan]::Zero
         FrameworkDuration    = [timespan]::Zero
@@ -1099,7 +1106,7 @@ function Discover-Test {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         }
-        $Filter = New-FilterObject -Path $focusedTests
+        $Filter =  New-FilterObject -Path $focusedTests
     }
 
     foreach ($f in $found) {
@@ -1113,7 +1120,7 @@ function Discover-Test {
     }
 
     Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-        BlockContainers = $BlockContainers
+        BlockContainers = $found.Block
         AnyFocusedTests = $focusedTests.Count -gt 0
         FocusedTests    = $focusedTests
         Duration        = $totalDiscoveryDuration.Elapsed
@@ -1408,7 +1415,7 @@ function Invoke-ScriptBlock {
         param($______parameters)
 
         try {
-            if ($______parameters.ContextInOuterScope) {
+             if ($______parameters.ContextInOuterScope) {
                 $______outerSplat = $______parameters.Context
                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
                 foreach ($______current in $______outerSplat.GetEnumerator()) {
@@ -1716,58 +1723,6 @@ function Switch-Timer {
     }
 }
 
-function Find-CurrentTest {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock,
-        [String] $Id
-    )
-
-    $block = Get-CurrentBlock
-
-    # this could be optimized by remembering the last position where we were in the array
-    # and by not checking for the next items, but it still takes 9ms if we have 1000 tests in this block
-    $testCandidates = @(foreach ($t in $block.Tests) { if ($t.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $t.Id -eq $Id ) { $t } })
-
-    if ($testCandidates.Length -eq 1) {
-        $testCandidates[0]
-    }
-    elseif ($testCandidates.Length -gt 1) {
-        throw "Found more than one test that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
-    }
-    else {
-        throw "Did not find the test '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
-    }
-}
-
-function Find-CurrentBlock {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        $Block,
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $true)]
-        [String] $Id
-    )
-
-    $blockCanditates = @(foreach ($b in $block.Blocks) { if ($b.ScriptBlock.StartPosition.StartLine -eq $ScriptBlock.StartPosition.StartLine -and $b.Id -eq $Id) { $b } })
-    if ($blockCanditates.Length -eq 1) {
-        $blockCanditates[0]
-    }
-    elseif ($blockCanditates.Length -gt 1) {
-        throw "Found more than one block that starts on line $($ScriptBlock.StartPosition.StartLine) and has Id '$Id' (name: $Name). How is that possible are you putting all your code in one line?"
-    }
-    else {
-        throw "Did not find the block '$($Name)' with Id '$Id' that starts on line $($ScriptBlock.StartPosition.StartLine), how is this possible?"
-    }
-}
-
 function Test-ShouldRun {
     [CmdletBinding()]
     param (
@@ -1813,11 +1768,8 @@ function Test-ShouldRun {
             }
         }
     }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There are no exclude tag filters."
-        }
-    }
+
+    # - place exclude filters above this line and include below this line
 
     # test is included when it has tags and the any of the tags match
     $tagFilter = tryGetProperty $Filter Tag
@@ -1844,11 +1796,6 @@ function Test-ShouldRun {
             }
         }
     }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) There are no include tag filters."
-        }
-    }
 
     $allPaths = foreach ($p in @(tryGetProperty $Filter Path)) { $p -join '.' }
     if (any $allPaths) {
@@ -1867,6 +1814,20 @@ function Test-ShouldRun {
         }
     }
 
+    $lineFilter = tryGetProperty $Filter Line
+    $line = "$($Test.ScriptBlock.File):$($Test.ScriptBlock.StartPosition.StartLine)" -replace '\\','/'
+    if (any $lineFilter) {
+        $anyIncludeFilters = $true
+        foreach ($l in $lineFilter -replace '\\','/') {
+            if ($l -eq $line) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included, because its path:line '$line' matches line filter '$lineFilter'."
+                }
+                return $true
+            }
+        }
+    }
+
     if ($anyIncludeFilters) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint did not match any of the include filters, but also was not explicitly excluded. The next step will decide what happens."
@@ -1877,7 +1838,12 @@ function Test-ShouldRun {
     }
     else {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included because there were no filters."
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullTestPath) $Hint is included because there were no include filters."
+        }
+
+        # last attempt to fix this, we need to differentiate explicit include, maybe, and exclude
+        if ($Hint -eq 'Block') {
+            return $null
         }
         # there were no filters
         $true
@@ -1962,7 +1928,11 @@ function PostProcess-DiscoveredBlock {
         [PSTypeName("DiscoveredBlock")][PSObject] $RootBlock
     )
 
-    # TODO: this is quite slow, make it faster
+    # TODO: this whole code is quite slow, make it faster
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $path = $Block.Path -join "."
+    }
 
     # traverses the block structure after a block was found and
     # link childs to their parents, filter blocks and tests to
@@ -1979,17 +1949,26 @@ function PostProcess-DiscoveredBlock {
 
     $parentBlockIsExcluded = -not $Block.IsRoot -and $Block.Parent.Exclude
 
-    $Block.Exclude = $blockIsExcluded =
-
     # block should run when the result is $true, or $null but not when it $false
     # because $false means that the block was explicitly excluded from the run
     # but $null means that the block did not match the filter but still can have some
     # children that might match the filter
+    $parentBlockIsSkipped = (-not $Block.IsRoot -and $Block.Parent.Skip)
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        if ($Block.Skip) {
+            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped."
+        }
+        elseif ($parentBlockIsSkipped) {
+            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped because a parent block was skipped."
+        }
+    }
 
+    $Block.Skip = $Block.Skip -or $parentBlockIsSkipped
+
+    $Block.Include = $false
     # this is just logging friendly way of writing $parentBlockIsExcluded -or ($false -eq $shouldRun)
     $Block.Exclude = $blockIsExcluded = if ($parentBlockIsExcluded) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                $path = $Block.Path -join "."
                 Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is excluded because parent block was excluded."
             }
             $true
@@ -1997,7 +1976,6 @@ function PostProcess-DiscoveredBlock {
         else {
             $shouldRun = (Test-ShouldRun -Test $Block -Filter $Filter -Hint "Block")
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                $path = $Block.Path -join "."
                 if ($null -eq $shouldRun) {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is included because it was not explictly excluded."
                 }
@@ -2008,13 +1986,29 @@ function PostProcess-DiscoveredBlock {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($path) Block is excluded because it was explicitly excluded."
                 }
             }
+
+            # block is explicitly included and it's children should be included as well
+            $Block.Include = $true -eq $shouldRun
             $false -eq $shouldRun
         }
+
 
     $blockShouldRun = $false
     if ($tests.Count -gt 0) {
         foreach ($t in $tests) {
             $t.Block = $Block
+
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                if ($t.Skip) {
+                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
+                }
+                elseif ($Block.Skip) {
+                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped because a parent block was skipped."
+                }
+            }
+
+            $t.Skip = $t.Skip -or $Block.Skip
+
             # test should run when the result is $true, but not when it is $null or $false
             # because tests don't have any children, so not matching the filter means they should not run,
             # because we don't have to give a chance to child items to match a filter
@@ -2025,6 +2019,13 @@ function PostProcess-DiscoveredBlock {
                     Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because parent block was excluded."
                 }
                 $false
+            }
+            elseif ($t.Block.Include) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    $path = $t.Path -join "."
+                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is included because parent block was included."
+                }
+                $true
             }
             else {
                 $shouldRun = (Test-ShouldRun -Test $t -Filter $Filter -Hint "Test")
@@ -2233,13 +2234,15 @@ function New-FilterObject {
     param (
         [String[][]] $Path,
         [String[]] $Tag,
-        [String[]] $ExcludeTag
+        [String[]] $ExcludeTag,
+        [String[]] $Line
     )
 
     New_PSObject -Type "Filter" -Property @{
         Path       = $Path
         Tag        = $Tag
         ExcludeTag = $ExcludeTag
+        Line       = $Line
     }
 }
 

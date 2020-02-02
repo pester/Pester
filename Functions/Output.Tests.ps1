@@ -191,16 +191,23 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
     Describe ConvertTo-FailureLines {
         BeforeAll {
-            # disable the debugging prefrerence otherwise this would
-            # never pass. This might obscure some of our own errors
-            # because it shortens the stack trace, use $error[0] to debug this
-            # not just the screen output
-            $showFullErrors = $global:PesterPreference.Debug.ShowFullErrors
-            $global:PesterPreference.Debug.ShowFullErrors = $false
+
+            $showFullErrors = & (Get-Module Pester) {
+                # disable the debugging prefrerence inside of pester module
+                # otherwise this wouldm never pass. This might obscure some of
+                # our own errors because it shortens the stack trace, use $error[0]
+                # to debug suff around here not just the screen output
+                $PesterPreference.Debug.ShowFullErrors # <- outputs the value
+                $PesterPreference.Debug.ShowFullErrors = $false # <- sets the value
+            }
+
         }
 
         AfterAll {
-            $global:PesterPreference.Debug.ShowFullErrors = $showFullErrors
+            & (Get-Module Pester) {
+                param ($p)
+                $global:PesterPreference.Debug.ShowFullErrors = $p
+            } $showFullErrors
         }
 
         It 'produces correct message lines.' {
