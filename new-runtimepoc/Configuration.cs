@@ -1,8 +1,8 @@
 using Pester;
-using System;
 using System.Collections;
 using System.Linq;
 using System.Management.Automation;
+using System.Runtime.CompilerServices;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
@@ -26,15 +26,70 @@ using System.Management.Automation;
 
 namespace Pester
 {
-    public abstract class Option<T>
+    internal static class Cloner
+    {
+        public static T ShallowClone<T>(T obj) where T : new()
+        {
+            var cfg = new T();
+            var properties = typeof(T).GetProperties().ToList();
+
+            foreach (var p in properties.Where(p => p.CanRead && p.CanWrite))
+            {
+                var value = p.GetValue(obj);
+                p.SetValue(cfg, value);
+            }
+
+            return cfg;
+        }
+    }
+
+    internal static class Merger
+    {
+        public static T Merge<T>(T configuration, T @override) where T : new()
+        {
+            var cfg = new T();
+            var properties = typeof(T).GetProperties().ToList();
+
+            foreach (var p in properties.Where(p => p.CanRead && p.CanWrite))
+            {
+                object value;
+                var overrideValue = p.GetValue(@override);
+                if (!((Option)overrideValue).IsOriginalValue())
+                {
+                    value = overrideValue;
+                }
+                else
+                {
+                    value = p.GetValue(configuration);
+                }
+
+                p.SetValue(cfg, value);
+            }
+
+            return cfg;
+        }
+    }
+
+    public abstract class Option
+    {
+        protected bool _isOriginalValue;
+
+        public bool IsOriginalValue()
+        {
+            return _isOriginalValue;
+        }
+    }
+
+    public abstract class Option<T> : Option
     {
         public Option(Option<T> option, T value) : this(option.Description, option.Default, value)
         {
-
+            _isOriginalValue = false;
         }
 
         public Option(string description, T defaultValue, T value)
         {
+            _isOriginalValue = true;
             Default = defaultValue;
             Value = value;
             Description = description;
@@ -56,6 +111,7 @@ namespace Pester
         {
 
         }
+
         public StringOption(string description, string defaultValue) : base(description, defaultValue, defaultValue)
         {
 
@@ -97,6 +153,11 @@ namespace Pester
 
     public class IntOption : Option<int>
     {
+        public IntOption(IntOption option, int value) : base(option, value)
+        {
+
+        }
+
         public IntOption(string description, int defaultValue) : base(description, defaultValue, defaultValue)
         {
 
@@ -115,6 +176,11 @@ namespace Pester
 
     public class DecimalOption : Option<decimal>
     {
+        public DecimalOption(DecimalOption option, decimal value) : base(option, value)
+        {
+
+        }
+
         public DecimalOption(string description, decimal defaultValue) : base(description, defaultValue, defaultValue)
         {
 
@@ -252,9 +318,15 @@ namespace Pester
 
     public class ShouldConfiguration : ConfigurationSection
     {
-        public static ShouldConfiguration Default { get { return new ShouldConfiguration(); } }
 
         private StringOption _errorAction;
+
+        public static ShouldConfiguration Default { get { return new ShouldConfiguration(); } }
+
+        public static ShouldConfiguration ShallowClone(ShouldConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
 
         public ShouldConfiguration() : base("Should configuration.")
         {
@@ -280,7 +352,7 @@ namespace Pester
                 }
                 else
                 {
-                    _errorAction = new StringOption(_errorAction.Description, _errorAction.Default, value.Value);
+                    _errorAction = new StringOption(_errorAction, value.Value);
                 }
             }
         }
@@ -289,6 +361,12 @@ namespace Pester
     public class DebugConfiguration : ConfigurationSection
     {
         public static DebugConfiguration Default { get { return new DebugConfiguration(); } }
+
+        public static DebugConfiguration ShallowClone(DebugConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
+
         public DebugConfiguration() : base("Debug configuration for Pester. ⚠ Use at your own risk!")
         {
             ShowFullErrors = new BoolOption("Show full errors including Pester internal stack.", false);
@@ -327,7 +405,7 @@ namespace Pester
                 }
                 else
                 {
-                    _showFullErrors = new BoolOption(_showFullErrors.Description, _showFullErrors.Default, value.Value);
+                    _showFullErrors = new BoolOption(_showFullErrors, value.Value);
                 }
             }
         }
@@ -359,7 +437,7 @@ namespace Pester
                 }
                 else
                 {
-                    _writeDebugMessagesFrom = new StringOption(_writeDebugMessagesFrom.Description, _writeDebugMessagesFrom.Default, value.Value);
+                    _writeDebugMessagesFrom = new StringOption(_writeDebugMessagesFrom, value.Value);
                 }
             }
         }
@@ -375,7 +453,7 @@ namespace Pester
                 }
                 else
                 {
-                    _showNavigationMarkers = new BoolOption(_showNavigationMarkers.Description, _showNavigationMarkers.Default, value.Value);
+                    _showNavigationMarkers = new BoolOption(_showNavigationMarkers, value.Value);
                 }
             }
         }
@@ -391,7 +469,7 @@ namespace Pester
                 }
                 else
                 {
-                    _writeVsCodeMarker = new BoolOption(_writeVsCodeMarker.Description, _writeVsCodeMarker.Default, value.Value);
+                    _writeVsCodeMarker = new BoolOption(_writeVsCodeMarker, value.Value);
                 }
             }
         }
@@ -407,6 +485,11 @@ namespace Pester
         private BoolOption _excludeTests;
 
         public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
+
+        public static CodeCoverageConfiguration ShallowClone(CodeCoverageConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
         public CodeCoverageConfiguration() : base("CodeCoverage configuration.")
         {
             Enabled = new BoolOption("Enable CodeCoverage.", false);
@@ -530,7 +613,19 @@ namespace Pester
 
     public class TestResultConfiguration : ConfigurationSection
     {
+        private BoolOption _enabled;
+        private StringOption _outputFormat;
+        private StringOption _outputPath;
+        private StringOption _testSuiteName;
+        private StringOption _outputEncoding;
+
         public static TestResultConfiguration Default { get { return new TestResultConfiguration(); } }
+
+        public static TestResultConfiguration ShallowClone(TestResultConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
+
         public TestResultConfiguration() : base("TestResult configuration.")
         {
             Enabled = new BoolOption("Enable TestResult.", false);
@@ -551,12 +646,6 @@ namespace Pester
                 TestSuiteName = configuration.GetObjectOrNull<string>(nameof(TestSuiteName)) ?? TestSuiteName;
             }
         }
-
-        private BoolOption _enabled;
-        private StringOption _outputFormat;
-        private StringOption _outputPath;
-        private StringOption _testSuiteName;
-        private StringOption _outputEncoding;
 
         public BoolOption Enabled
         {
@@ -646,6 +735,12 @@ namespace Pester
         private StringArrayOption _excludePath;
         private ScriptBlockArrayOption _scriptBlock;
         private StringOption _testExtension;
+
+        public static RunConfiguration Default { get { return new RunConfiguration(); } }
+        public static RunConfiguration ShallowClone(RunConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
 
         public RunConfiguration(IDictionary configuration) : this()
         {
@@ -756,6 +851,12 @@ namespace Pester
         private StringArrayOption _line;
         private StringArrayOption _name;
 
+        public static FilterConfiguration Default { get { return new FilterConfiguration(); } }
+        public static FilterConfiguration ShallowClone(FilterConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
+
         public FilterConfiguration(IDictionary configuration) : this()
         {
             if (configuration != null)
@@ -772,7 +873,6 @@ namespace Pester
             ExcludeTag = new StringArrayOption("Tags of Describe, Context or It to be excluded from the run.", new string[0]);
             Line = new StringArrayOption(@"Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'", new string[0]);
             Name = new StringArrayOption("Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'", new string[0]);
-
         }
 
         public StringArrayOption Tag
@@ -821,6 +921,7 @@ namespace Pester
                 }
             }
         }
+
         public StringArrayOption Name
         {
             get { return _name; }
@@ -841,6 +942,12 @@ namespace Pester
     public class OutputConfiguration : ConfigurationSection
     {
         private StringOption _verbosity;
+
+        public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
+        public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
+        {
+            return Cloner.ShallowClone(configuration);
+        }
 
         public OutputConfiguration(IDictionary configuration) : this()
         {
@@ -876,6 +983,32 @@ namespace Pester
 public class PesterConfiguration
 {
     public static PesterConfiguration Default { get { return new PesterConfiguration(); } }
+
+    public static PesterConfiguration ShallowClone(PesterConfiguration configuration)
+    {
+        var cfg = Default;
+        cfg.Run = RunConfiguration.ShallowClone(configuration.Run);
+        cfg.Filter = FilterConfiguration.ShallowClone(configuration.Filter);
+        cfg.CodeCoverage = CodeCoverageConfiguration.ShallowClone(configuration.CodeCoverage);
+        cfg.TestResult = TestResultConfiguration.ShallowClone(configuration.TestResult);
+        cfg.Should = ShouldConfiguration.ShallowClone(configuration.Should);
+        cfg.Debug = DebugConfiguration.ShallowClone(configuration.Debug);
+        cfg.Output = OutputConfiguration.ShallowClone(configuration.Output);
+        return cfg;
+    }
+
+    public static PesterConfiguration Merge(PesterConfiguration configuration, PesterConfiguration @override)
+    {
+        var cfg = Default;
+        cfg.Run = Merger.Merge(configuration.Run, @override.Run);
+        cfg.Filter = Merger.Merge(configuration.Filter, @override.Filter);
+        cfg.CodeCoverage = Merger.Merge(configuration.CodeCoverage, @override.CodeCoverage);
+        cfg.TestResult = Merger.Merge(configuration.TestResult, @override.TestResult);
+        cfg.Should = Merger.Merge(configuration.Should, @override.Should);
+        cfg.Debug = Merger.Merge(configuration.Debug, @override.Debug);
+        cfg.Output = Merger.Merge(configuration.Output, @override.Output);
+        return cfg;
+    }
 
     public PesterConfiguration(IDictionary configuration)
     {

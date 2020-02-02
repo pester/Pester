@@ -149,6 +149,67 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Cloning" {
+        t "Configuration can be shallow cloned to avoid modifying user values" {
+            $user = [PesterConfiguration]::Default
+            $user.Output.Verbosity = "Minimal"
+
+            $cloned = [PesterConfiguration]::ShallowClone($user)
+            $cloned.Output.Verbosity = "None"
+
+            $user.Output.Verbosity.Value | Verify-Equal "Minimal"
+            $cloned.Output.Verbosity.Value | Verify-Equal "None"
+        }
+    }
+
+    b "Merging" {
+        t "configurations can be merged" {
+            $user = [PesterConfiguration]::Default
+            $user.Output.Verbosity = "Minimal"
+            $user.Filter.Tag = "abc"
+
+            $override = [PesterConfiguration]::Default
+            $override.Output.Verbosity = "None"
+            $override.Run.Path = "C:\test.ps1"
+
+            $result = [PesterConfiguration]::Merge($user, $override)
+
+            $result.Output.Verbosity.Value | Verify-Equal "None"
+            $result.Run.Path.Value | Verify-Equal "C:\test.ps1"
+            $result.Filter.Tag.Value | Verify-Equal "abc"
+        }
+
+        t "merged object is a new instance" {
+            $user = [PesterConfiguration]::Default
+            $user.Output.Verbosity = "Minimal"
+
+            $override = [PesterConfiguration]::Default
+            $override.Output.Verbosity = "None"
+
+            $result = [PesterConfiguration]::Merge($user, $override)
+
+            [object]::ReferenceEquals($override, $result) | Verify-False
+            [object]::ReferenceEquals($user, $result) | Verify-False
+        }
+
+        t "values are overwritten even if they are set to the same value as default" {
+            $user = [PesterConfiguration]::Default
+            $user.Output.Verbosity = "Minimal"
+            $user.Filter.Tag = "abc"
+
+            $override = [PesterConfiguration]::Default
+            $override.Output.Verbosity = [PesterConfiguration]::Default.Output.Verbosity
+
+            $result = [PesterConfiguration]::Merge($user, $override)
+
+            # has the same value as default but was written so it will override
+            $result.Output.Verbosity.Value | Verify-Equal "Normal"
+            # has value different from default but was not written in override so the
+            # override does not touch it
+            $result.Filter.Tag.Value | Verify-Equal "abc"
+        }
+    }
+
     b "Advanced interface - Run paths"  {
         t "Running from multiple paths" {
             $container1 = "$PSScriptRoot/TestProjects/BasicTests/folder1"
@@ -231,6 +292,32 @@ i -PassThru:$PassThru {
             $tests.Count | Verify-Equal 2
             $tests[0].Name | Verify-Equal "passing"
             $tests[1].Name | Verify-Equal "fails"
+        }
+    }
+
+    b "merging configuraiton in Invoke-Pester" {
+        t "merges pester preference with provided configuration" {
+            $PesterPreference = [PesterConfiguration] @{
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock = $sb
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.Verbosity.Value  | Verify-Equal 'None'
+            $r.Configuration.Run.ScriptBlock.Value | Verify-Equal $sb
         }
     }
 }

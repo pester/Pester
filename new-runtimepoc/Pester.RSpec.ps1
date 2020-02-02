@@ -126,6 +126,7 @@ function New-RSpecTestRunObject {
         $Plugins,
         [Hashtable] $PluginConfiguration,
         [Hashtable] $PluginData,
+        [PesterConfiguration] $Configuration,
         # [PSTypeName('ExecutedBlockContainer')]
         [object[]] $BlockContainer)
 
@@ -137,6 +138,7 @@ function New-RSpecTestRunObject {
         Plugins = $Plugins
         PluginConfiguration = $PluginConfiguration
         PluginData = $PluginData
+        Configuration = $Configuration
 
         Duration = [TimeSpan]::Zero
         FrameworkDuration = [TimeSpan]::Zero

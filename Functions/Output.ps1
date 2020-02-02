@@ -566,35 +566,43 @@ function Get-WriteScreenPlugin {
             }
 
             Skipped {
-                $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                }
                 break
             }
 
             Pending {
-                $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
+                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
+                }
                 break
             }
 
             Inconclusive {
-                $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                }
 
                 break
             }
 
             default {
-                # TODO:  Add actual Incomplete status as default rather than checking for null time.
-                if ($null -eq $_test.Duration) {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
+                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                    # TODO:  Add actual Incomplete status as default rather than checking for null time.
+                    if ($null -eq $_test.Duration) {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
+                    }
                 }
             }
         }
