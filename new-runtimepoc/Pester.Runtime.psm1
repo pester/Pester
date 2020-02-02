@@ -642,18 +642,23 @@ function Invoke-TestItem {
             }
         }
 
+
         # setting those values here so they are available for the teardown
         # BUT they are then set again at the end of the block to make them accurate
         # so the value on the screen vs the value in the object is slightly different
         # with the value in the result being the correct one
         $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+
+        $frameworkEachTestTeardowns = @( selectNonNull $state.Plugin.EachTestTeardownEnd )
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd })
+        [array]::Reverse($frameworkEachTestTeardowns)
+        [array]::Reverse($frameworkOneTimeTestTeardowns)
+
         $frameworkTeardownResult = Invoke-ScriptBlock `
             -ScriptBlock { } `
-            -Teardown @( selectNonNull $state.Plugin.EachTestTeardownEnd ) `
-            -OuterTeardown @(
-            if ($Test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd }
-        ) `
+            -Teardown $frameworkEachTestTeardowns `
+            -OuterTeardown $frameworkOneTimeTestTeardowns `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -1115,7 +1120,7 @@ function Discover-Test {
     }
 
     Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-        BlockContainers = $BlockContainers
+        BlockContainers = $found.Block
         AnyFocusedTests = $focusedTests.Count -gt 0
         FocusedTests    = $focusedTests
         Duration        = $totalDiscoveryDuration.Elapsed

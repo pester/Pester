@@ -659,8 +659,8 @@ function Invoke-Pester {
         [Switch]$CI,
 
         [Parameter(ParameterSetName = "Simple")]
-        [ValidateSet("Normal", "None")]
-        $Output = 'Normal',
+        [ValidateSet("Normal", "Minimal", "None")]
+        $Output,
 
         [Parameter(ParameterSetName = "Simple")]
         [ScriptBlock[]] $ScriptBlock,
@@ -712,22 +712,35 @@ function Invoke-Pester {
                 # don't inherit them to child functions by accident
 
                 if ($Path) {
-                    $PesterPreference.Run.Path = $Path
+                    if ($null -ne $Path) {
+                        $PesterPreference.Run.Path = $Path
+                    }
                     Get-Variable 'Path' -Scope Local | Remove-Variable
                 }
 
+                if (any $ScriptBlock) {
+                    $PesterPreference.Run.ScriptBlock = $ScriptBlock
+                    Get-Variable 'ScriptBlock' -Scope Local | Remove-Variable
+                }
+
                 if ($ExcludePath) {
-                    $PesterPreference.Run.ExcludePath = $ExcludePath
+                    if ($null -ne $ExcludePath) {
+                        $PesterPreference.Run.ExcludePath = $ExcludePath
+                    }
                     Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
                 }
 
                 if (any $Tag) {
-                    $PesterPreference.Filter.Tag = $Tag
+                    if ($null -ne $Tag) {
+                        $PesterPreference.Filter.Tag = $Tag
+                    }
                     Get-Variable 'Tag' -Scope Local | Remove-Variable
                 }
 
                 if (any $ExcludeTag) {
-                    $PesterPreference.Filter.ExcludeTag = $ExcludeTag
+                    if ($null -ne $ExcludeTag) {
+                        $PesterPreference.Filter.ExcludeTag = $ExcludeTag
+                    }
                     Get-Variable 'ExcludeTag' -Scope Local | Remove-Variable
                 }
 
@@ -738,26 +751,29 @@ function Invoke-Pester {
                 }
 
                 if ($Output) {
-                    $PesterPreference.Output.Verbosity = $Output
-                    Get-Variable 'Output' -Scope Local | Remove-Variable
-                }
+                    if ($null -ne $Output) {
+                        $PesterPreference.Output.Verbosity = $Output
+                    }
 
-                if (any $ScriptBlock) {
-                    $PesterPreference.Run.ScriptBlock = $ScriptBlock
-                    Get-Variable 'ScriptBlock' -Scope Local | Remove-Variable
+                    Get-Variable 'Output' -Scope Local | Remove-Variable
                 }
             }
 
             $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
 
             $pluginConfiguration = @{}
-            $plugins = @(Get-RSpecObjectDecoratorPlugin)
+            $plugins = @()
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin
             }
 
             $plugins +=
             @(
+                # decorator plugin needs to be added after output
+                # because on teardown they will run in opposite order
+                # and that way output can consume the fixed object that decorator
+                # decorated, not nice but works
+                Get-RSpecObjectDecoratorPlugin
                 Get-TestDrivePlugin
                 Get-MockPlugin
             )

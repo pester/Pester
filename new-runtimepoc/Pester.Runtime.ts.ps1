@@ -1092,6 +1092,63 @@ i -PassThru:$PassThru {
             $container.OneTimeBlockTeardown | Verify-Equal 1
         }
 
+        t "Given multiple plugins the teardowns are called in opposite order than the setups" {
+            $container = [PSCustomObject] @{
+                OneTimeBlockSetup    = ""
+                EachBlockSetup       = ""
+                OneTimeTestSetup     = ""
+                EachTestSetup        = ""
+                EachTestTeardown     = ""
+                OneTimeTestTeardown  = ""
+                EachBlockTeardown    = ""
+                OneTimeBlockTeardown = ""
+            }
+            $p = @(
+                New-PluginObject -Name "a" `
+                -OneTimeBlockSetupStart { $container.OneTimeBlockSetup += "a" } `
+                -EachBlockSetupStart { $container.EachBlockSetup += "a" } `
+                -OneTimeTestSetupStart { $container.OneTimeTestSetup += "a" } `
+                -EachTestSetupStart { $container.EachTestSetup += "a" } `
+                -EachTestTeardownEnd { $container.EachTestTeardown += "a" } `
+                -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown += "a" } `
+                -EachBlockTeardownEnd { $container.EachBlockTeardown += "a" } `
+                -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown += "a" }
+
+                New-PluginObject -Name "b" `
+                -OneTimeBlockSetupStart { $container.OneTimeBlockSetup += "b" } `
+                -EachBlockSetupStart { $container.EachBlockSetup += "b" } `
+                -OneTimeTestSetupStart { $container.OneTimeTestSetup += "b" } `
+                -EachTestSetupStart { $container.EachTestSetup += "b" } `
+                -EachTestTeardownEnd { $container.EachTestTeardown += "b" } `
+                -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown += "b" } `
+                -EachBlockTeardownEnd { $container.EachBlockTeardown += "b" } `
+                -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown += "b" }
+            )
+
+            $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block 'block1' {
+                        New-Test "test1" {}
+                        New-Test "test2" {}
+                    }
+
+                    New-Block 'block2' {
+                        New-Test "test3" {}
+                    }
+                }) -Plugin $p
+
+            $container.OneTimeBlockSetup | Verify-Equal "ab"
+            $container.EachBlockSetup | Verify-Equal "abab"
+
+            $container.OneTimeTestSetup | Verify-Equal "abab"
+            $container.EachTestSetup | Verify-Equal "ababab"
+
+            $container.EachTestTeardown | Verify-Equal "bababa"
+            $container.OneTimeTestTeardown | Verify-Equal "baba"
+
+            $container.EachBlockTeardown | Verify-Equal "baba"
+            $container.OneTimeBlockTeardown | Verify-Equal "ba"
+        }
+
         t "Plugin has access to test info" {
             $container = [PSCustomObject]@{
                 Test = $null

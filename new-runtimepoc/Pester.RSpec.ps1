@@ -108,6 +108,14 @@ function Add-RSpecTestObjectProperties {
     }
 }
 
+function Add-RSpecBlockObjectProperties ($BlockObject) {
+    foreach ($e in $BlockObject.ErrorRecord) {
+        $r = ConvertTo-FailureLines $e
+        $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
+        $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayStackTrace", [string]($r.Trace -join [Environment]::NewLine)))
+    }
+}
+
 function New-RSpecTestRunObject {
     param(
         [Parameter(Mandatory)]
@@ -190,6 +198,9 @@ function Get-RSpecObjectDecoratorPlugin () {
         # TODO: consider moving this into the core if those results are just what we need, but look first at Gherkin and how many of those results are RSpec specific and how many are Gherkin specific
         #TODO: also this is a plugin because it needs to run before the error processing kicks in, this mixes concerns here imho, and needs to be revisited, because the error writing logic is now dependent on this plugin
         Add-RSpecTestObjectProperties $Context.Test
+    } -EachBlockTeardownEnd {
+        param($Context)
+        Add-RSpecBlockObjectProperties $Context.Block
     }
 }
 
