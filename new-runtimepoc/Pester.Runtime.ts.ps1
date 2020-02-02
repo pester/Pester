@@ -354,8 +354,8 @@ i -PassThru:$PassThru {
             t "Given null filter and a tagged test it includes it" {
                 $t = New-TestObject -Name "test1" -Path "p" -Tag a
 
-                $actual = Test-ShouldRun -Test $t -Filter $null
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $null
+                $actual.Include | Verify-True
             }
 
             t "Given a test with tag it excludes it when it matches the exclude filter" {
@@ -363,8 +363,8 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -ExcludeTag "a"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-False
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Exclude | Verify-True
             }
 
             t "Given a test without tags it includes it when it does not match exclude filter " {
@@ -372,8 +372,8 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -ExcludeTag "a"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
             }
 
             t "Given a test with tags it includes it when it does not match exclude filter " {
@@ -381,8 +381,8 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -ExcludeTag "a"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
             }
 
             t "Given a test with tag it includes it when it matches the tag filter" {
@@ -390,26 +390,18 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -Tag "a"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
             }
 
             t "Given a test without tags it returns `$null when it does not match any other filter" {
-                # the null is returned because we filter blocks as well as tests via this function
-                # then based on the result we judge what to do, for test $null or $false mean exclude
-                # but for block only $false means exclude. The reason being that block must be explicitly
-                # excluded ($false) to prevent it from running, but it is not needed to explicitly include it
-                # to run (that would force us for example to tag all blocks and their parent blocks with
-                # the same tag as all the tests they contain). On the other hand a test needs to be explicitly
-                # included to run, because otherwise running test with tag "tag1" would run all tests with that tag
-                # as well as all untagged tests.
-
                 $t = New-TestObject -Name "test1" -Path "p"
 
                 $f = New-FilterObject -Tag "a"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-Null
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-False
+                $actual.Exclude | Verify-False
             }
 
             t "Given a test without tags it include it when it matches path filter" {
@@ -417,8 +409,8 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -Tag "a" -Path "p"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
             }
 
             t "Given a test with path it includes it when it matches path filter " {
@@ -426,8 +418,8 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -Path "p"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
             }
 
             t "Given a test with path it maybes it when it does not match path filter " {
@@ -435,8 +427,9 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -Path "r"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-Null
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-False
+                $actual.Exclude | Verify-False
             }
 
             t "Given a test with file path and line number it includes it when it matches the lines filter" {
@@ -444,8 +437,8 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine)"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-True
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
             }
 
             t "Given a test with file path and line number it maybes it when it does not match the lines filter" {
@@ -453,8 +446,9 @@ i -PassThru:$PassThru {
 
                 $f = New-FilterObject -Line "C:\file.tests.ps1:10"
 
-                $actual = Test-ShouldRun -Test $t -Filter $f
-                $actual | Verify-Null
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-False
+                $actual.Exclude | Verify-False
             }
         }
     }

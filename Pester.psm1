@@ -687,16 +687,16 @@ function Invoke-Pester {
         # preference is inherited in all subsequent calls in this session state
         # but we still pass it explicitly where practical
         if ($hasCallerPreference -and -not $hasConfiguration) {
-            $PesterPreference = $callerPreference
+            [PesterConfiguration] $PesterPreference = $callerPreference
         }
         elseif (-not $hasCallerPreference -and $hasConfiguration) {
-            $PesterPreference = $Configuration
+            [PesterConfiguration] $PesterPreference = $Configuration
         }
         elseif ($hasCallerPreference -and $hasConfiguration) {
-            $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
+            [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
         }
         else {
-            $PesterPreference = [PesterConfiguration]::Default
+            [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Default
         }
 
         Get-Variable 'Configuration' -Scope Local | Remove-Variable
