@@ -152,6 +152,12 @@ namespace Pester
         {
             return new StringArrayOption(string.Empty, value, value);
         }
+
+        public static implicit operator StringArrayOption(string value)
+        {
+            var array = new[] { value };
+            return new StringArrayOption(string.Empty, array, array);
+        }
     }
 
     public class ScriptBlockArrayOption : Option<ScriptBlock[]>
@@ -174,6 +180,12 @@ namespace Pester
         public static implicit operator ScriptBlockArrayOption(ScriptBlock[] value)
         {
             return new ScriptBlockArrayOption(string.Empty, value, value);
+        }
+
+        public static implicit operator ScriptBlockArrayOption(ScriptBlock value)
+        {
+            var array = new[] { value };
+            return new ScriptBlockArrayOption(string.Empty, array, array);
         }
     }
 
@@ -642,7 +654,7 @@ namespace Pester
                 Exit = configuration.GetValueOrNull<bool>(nameof(Exit)) ?? Exit;
                 Path = configuration.GetArrayOrNull<string>(nameof(Path)) ?? Path;
                 ExcludePath = configuration.GetArrayOrNull<string>(nameof(ExcludePath)) ?? ExcludePath;
-                ScriptBlock = configuration.GetObjectOrNull<ScriptBlock[]>(nameof(ScriptBlock)) ?? ScriptBlock;
+                ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>(nameof(ScriptBlock)) ?? ScriptBlock;
                 TestExtension = configuration.GetObjectOrNull<string>(nameof(TestExtension)) ?? TestExtension;
             }
         }

@@ -629,8 +629,7 @@ function Write-ErrorToScreen {
     param (
         [Parameter(Mandatory)]
         $Err,
-        [Parameter(Mandatory)]
-        $ErrorMargin
+        [string] $ErrorMargin
     )
 
     $multipleErrors = 1 -lt $Err.Count

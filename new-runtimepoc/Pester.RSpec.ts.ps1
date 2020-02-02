@@ -442,9 +442,6 @@ i -PassThru:$PassThru {
         }
 
         t "Describe can be skipped" {
-            $PesterPreference = [PesterConfiguration]::Default
-            $PesterPreference.Debug.WriteDebugMessagesFrom = "*Skip"
-            $PesterPreference.Debug.WriteDebugMessages = $true
             $r = Invoke-Pester -ScriptBlock {
                 Describe "a" -Skip {
                     It "b" {
