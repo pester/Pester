@@ -4,8 +4,7 @@ function Enter-CoverageAnalysis {
         [object[]] $CodeCoverage
     )
 
-    $coverageInfo =
-        foreach ($object in $CodeCoverage.Path) {
+    $coverageInfo = foreach ($object in $CodeCoverage) {
             Get-CoverageInfoFromUserInput -InputObject $object
         }
 
@@ -48,7 +47,7 @@ function Get-CoverageInfoFromUserInput {
         # Auto-detect IncludeTests-value from path-input if user provides path that is a test
         $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension.Value)"
 
-        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests -TestExtension $PesterPreference.Run.TestExtension.Value
+        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
     }
 
     Resolve-CoverageInfo -UnresolvedCoverageInfo $unresolvedCoverageInfo
@@ -104,7 +103,7 @@ function Resolve-CoverageInfo {
 
     $path = $UnresolvedCoverageInfo.Path
 
-    $testsPattern = "*$($UnresolvedCoverageInfo.TestExtension)"
+    $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
 
     try {
@@ -116,8 +115,7 @@ function Resolve-CoverageInfo {
         return
     }
 
-    $filePaths =
-    foreach ($resolvedPath in $resolvedPaths) {
+    $filePaths = foreach ($resolvedPath in $resolvedPaths) {
         $item = & $SafeCommands['Get-Item'] -LiteralPath $resolvedPath
         if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension) {
             $item.FullName
