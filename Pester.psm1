@@ -747,6 +747,7 @@ function Invoke-Pester {
                 if ($CI) {
                     $PesterPreference.Run.Exit = $true
                     $PesterPreference.CodeCoverage.Enabled = $true
+                    $PesterPreference.TestResult.Enabled = $true
                     Get-Variable 'CI' -Scope Local | Remove-Variable
                 }
 
