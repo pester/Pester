@@ -1094,19 +1094,36 @@ function Discover-Test {
     foreach ($f in $found) {
         Fold-Container -Container $f.Block `
             -OnTest {
-            # add all focused tests
-            param($t) if ($t.Focus) { $focusedTests.Add($t.Path) } } `
-            -OnBlock { param($b) if ($b.Focus) {
-                # add all tests in the current block, no matter if they are focused or not
-                Fold-Block -Block $b -OnTest { param ($t) $focusedTests.Add($t.Path) }
-            } }
+                # add all focused tests
+                param($t)
+                if ($t.Focus) {
+                    if ($null -eq $t.ScriptBlock.File) {
+                        # because we use the line filter and can only identify files due to the syntax
+                        throw "Focusing tests is only supported in files."
+                    }
+                    $focusedTests.Add("$($t.ScriptBlock.File):$($t.ScriptBlock.StartPosition.StartLine)")
+                }
+            } `
+            -OnBlock {
+                param($b) if ($b.Focus) {
+                    # add all tests in the current block, no matter if they are focused or not
+                    Fold-Block -Block $b -OnTest {
+                        param ($t)
+                        if ($null -eq $t.ScriptBlock.File) {
+                            # because we use the line filter and can only identify files due to the syntax
+                            throw "Focusing tests is only supported in files."
+                        }
+                        $focusedTests.Add("$($t.ScriptBlock.File):$($t.ScriptBlock.StartPosition.StartLine)")
+                    }
+                }
+            }
     }
 
     if ($focusedTests.Count -gt 0) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
         }
-        $Filter =  New-FilterObject -Path $focusedTests
+        $Filter =  New-FilterObject -Line $focusedTests
     }
 
     foreach ($f in $found) {
