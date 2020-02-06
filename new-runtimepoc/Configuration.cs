@@ -1,8 +1,9 @@
 using Pester;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
-using System.Runtime.CompilerServices;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
@@ -214,6 +215,21 @@ namespace Pester
 
         }
 
+        public StringArrayOption(string[] value) : base("", new string[0], value)
+        {
+
+        }
+
+        public StringArrayOption(string value) : base("", new string[0], new string[] { value })
+        {
+
+        }
+
+        public StringArrayOption(object[] value) : base("", new string[0], value.Cast<string>().ToArray())
+        {
+
+        }
+
         public static implicit operator StringArrayOption(string[] value)
         {
             return new StringArrayOption(string.Empty, value, value);
@@ -239,6 +255,21 @@ namespace Pester
         }
 
         public ScriptBlockArrayOption(string description, ScriptBlock[] defaultValue, ScriptBlock[] value) : base(description, defaultValue, value)
+        {
+
+        }
+
+        public ScriptBlockArrayOption(object[] value) : base("", new ScriptBlock[0], value.Cast<ScriptBlock>().ToArray())
+        {
+
+        }
+
+        public ScriptBlockArrayOption(ScriptBlock[] value) : base("", new ScriptBlock[0], value) 
+        {
+
+        }
+
+        public ScriptBlockArrayOption(ScriptBlock value) : this(new ScriptBlock[] { value })
         {
 
         }
