@@ -4,11 +4,11 @@
     <id>Pester</id>
     <version>$version$</version>
     <title>Pester</title>
-    <summary>A BDD style testing tool for PowerShell</summary>
-    <description>Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of PowerShell code being tested. Pester tests can execute any command or script that is accessible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.</description>
+    <summary>Pester is the ubiquitous test and mock framework for PowerShell</summary>
+    <description>Pester is testing framework for PowerShell, written in PowerShell.</description>
     <tags>powershell unit testing bdd tdd mocking admin</tags>
     <authors>Pester Team</authors>
-    <iconUrl>http://pesterbdd.com/images/Pester.png</iconUrl>
+    <iconUrl>https://raw.githubusercontent.com/pester/pester/master/images/pester.PNG</iconUrl>
     <projectUrl>https://github.com/Pester/Pester</projectUrl>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
   </metadata>

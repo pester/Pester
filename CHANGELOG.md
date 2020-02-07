@@ -1,3 +1,7 @@
+## 4.10.1 (February 7, 2020)
+
+- Fix link in nuspec
+
 ## 4.10.0 (February 2, 2020)
 
 - Remove all banners
