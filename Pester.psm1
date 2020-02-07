@@ -662,9 +662,6 @@ function Invoke-Pester {
         [ValidateSet("Normal", "Minimal", "None")]
         $Output,
 
-        [Parameter(ParameterSetName = "Simple")]
-        [ScriptBlock[]] $ScriptBlock,
-
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration
     )
