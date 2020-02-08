@@ -127,6 +127,7 @@ about_should
         # [Switch]$Focus
     )
 
+    $Focus = $false
     if ($PSBoundParameters.ContainsKey('Pending')) {
         $PSBoundParameters.Remove('Pending')
 
