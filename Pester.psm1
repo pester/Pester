@@ -720,11 +720,6 @@ function Invoke-Pester {
                     Get-Variable 'Path' -Scope Local | Remove-Variable
                 }
 
-                if (any $ScriptBlock) {
-                    $PesterPreference.Run.ScriptBlock = $ScriptBlock
-                    Get-Variable 'ScriptBlock' -Scope Local | Remove-Variable
-                }
-
                 if ($ExcludePath) {
                     if ($null -ne $ExcludePath) {
                         $PesterPreference.Run.ExcludePath = $ExcludePath

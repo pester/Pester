@@ -22,5 +22,5 @@ jobs:
       clean: all
     timeoutInMinutes: 3
     steps:
-      - powershell: ./test.ps1
+      - powershell: ./test.ps1 -ci
 

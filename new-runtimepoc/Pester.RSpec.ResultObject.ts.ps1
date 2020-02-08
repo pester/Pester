@@ -91,7 +91,7 @@ i -PassThru:$PassThru {
     b "New-RSpecTestRunObject" {
         t "Result object shows counts from all containers" {
             try {
-                $temp = [IO.Path]::GetTempPath()
+                $temp = [IO.Path]::GetTempPath().TrimEnd('\\').TrimEnd("/")
 
                 $file1 = @{
                     Path = "$temp/file1.Tests.ps1"
@@ -106,7 +106,7 @@ i -PassThru:$PassThru {
 
                 $file1.Content | Set-Content -Path $file1.Path
 
-                $result = Invoke-Pester -ScriptBlock {
+                $sb = {
                     Describe "d1" {
                         It "pass" {
                             1 | Should -Be 1
@@ -120,7 +120,15 @@ i -PassThru:$PassThru {
                             1 | Should -Be 1
                         }
                     }
-                } -Path $file1.Path -ExcludeTag "Slow" -Output None
+                }
+                $result = Invoke-Pester -Configuration @{
+                    Run = @{
+                        ScriptBlock = $sb
+                        Path = $file1.Path
+                    }
+                    Filter = @{ ExcludeTag = "Slow" }
+                    Output = @{ Verbosity = "None" }
+                }
             }
             finally {
                 Remove-Item -Path $file1.Path
@@ -151,7 +159,7 @@ i -PassThru:$PassThru {
             $result.DiscoveryDuration | Verify-Equal ($result.Containers[0].DiscoveryDuration + $result.Containers[1].DiscoveryDuration)
 
             $result | Verify-Property "PSBoundParameters"
-            $result.PSBoundParameters.Keys.Count | Verify-Equal 4 # ScriptBlock, Path, Output, ExcludeTag
+            $result.PSBoundParameters.Keys.Count | Verify-Equal 1 # Configuration
         }
     }
 }
