@@ -64,7 +64,7 @@ about_TestDrive
         [ValidateNotNull()]
         [ScriptBlock] $Fixture,
 
-        [Switch] $Focus,
+        # [Switch] $Focus,
         [Switch] $Skip
     )
 

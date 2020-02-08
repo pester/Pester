@@ -119,12 +119,12 @@ about_should
         [Switch] $Pending,
 
         [Parameter(ParameterSetName = 'Skip')]
-        [Switch] $Skip,
+        [Switch] $Skip
 
         # [Parameter(ParameterSetName = 'Skip')]
         # [String] $SkipBecause,
 
-        [Switch]$Focus
+        # [Switch]$Focus
     )
 
     if ($PSBoundParameters.ContainsKey('Pending')) {
