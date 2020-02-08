@@ -55,13 +55,14 @@ i -PassThru:$PassThru {
 
     b "Write nunit test results" {
         t "should write a successful test result" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
                         $true | Should -Be $true
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -71,13 +72,14 @@ i -PassThru:$PassThru {
         }
 
         t "should write a failed test result" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Mocked Describe" {
                     It "Failed testcase" {
                         "Testing" | Should -Be "Test"
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -85,18 +87,19 @@ i -PassThru:$PassThru {
             $xmlTestCase.result | Verify-Equal "Failure"
             $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Time
 
+            $failureLine = $sb.StartPosition.StartLine+3
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
             $message[-3] | Verify-Equal "Expected: 'Test'"
             $message[-2] | Verify-Equal "But was:  'Testing'"
-            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:77"
+            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
 
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:77"
+            $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
-        t "should write a failed test result when there are multiple errors" {
-            $r = Invoke-Pester -ScriptBlock {
+         t "should write a failed test result when there are multiple errors" {
+            $sb = {
                 Describe "Mocked Describe" {
                     It "Failed testcase" {
                         "Testing" | Should -Be "Test"
@@ -106,7 +109,8 @@ i -PassThru:$PassThru {
                         throw "teardown failed"
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -118,20 +122,22 @@ i -PassThru:$PassThru {
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
             $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
 
+            $sbStartLine = $sb.StartPosition.StartLine
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:102"
-            $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:106"
+            $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
+            $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
 
         }
 
         t "should write the test summary" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
                         $true | Should -Be $true
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestResult = $xmlResult.'test-results'
@@ -142,7 +148,7 @@ i -PassThru:$PassThru {
         }
 
         t "should write the test-suite information" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
                         $true | Should -Be $true
@@ -152,7 +158,8 @@ i -PassThru:$PassThru {
                         $true | Should -Be $true
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
@@ -168,7 +175,7 @@ i -PassThru:$PassThru {
         }
 
         t "should write two test-suite elements for two describes" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Describe #1" {
                     It "Successful testcase" {
                         $true | Should -Be $true
@@ -180,7 +187,8 @@ i -PassThru:$PassThru {
                         $false | Should -Be $true
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
@@ -207,7 +215,8 @@ i -PassThru:$PassThru {
         }
 
         t "should write the environment information" {
-            $r = Invoke-Pester -ScriptBlock { } -Output None
+            $sb = { }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
@@ -221,7 +230,7 @@ i -PassThru:$PassThru {
         }
 
         t "Should validate test results against the nunit 2.5 schema" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Describe #1" {
                     It "Successful testcase" {
                         $true | Should -Be $true
@@ -233,26 +242,28 @@ i -PassThru:$PassThru {
                         $false | Should -Be $true 5
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( {
-                throw $args[1].Exception
-            })
+                    throw $args[1].Exception
+                })
         }
 
         t "handles special characters in block descriptions well -!@#$%^&*()_+`1234567890[];'',./""- " {
 
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe 'Describe -!@#$%^&*()_+`1234567890[];'',./"- #1' {
                     It "Successful testcase -!@#$%^&*()_+`1234567890[];'',./""-" {
                         $true | Should -Be $true
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
@@ -265,7 +276,7 @@ i -PassThru:$PassThru {
 
     b 'Exporting Parameterized Tests (Newer format)' {
         t 'should write parameterized test results correctly' {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "Mocked Describe" {
                     It "Parameterized Testcase <value>" -TestCases @(
                         @{ Value = 1 }
@@ -275,7 +286,8 @@ i -PassThru:$PassThru {
                         $Value | Should -Be 1
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
@@ -310,7 +322,7 @@ i -PassThru:$PassThru {
 
     b "Exporting multiple containers" {
         t "should write report for multiple containers" {
-            $r = Invoke-Pester -ScriptBlock @( {
+            $sb = @( {
                     Describe "Describe #1" {
                         It "Successful testcase" {
                             $true | Should -Be $true
@@ -322,7 +334,8 @@ i -PassThru:$PassThru {
                             $false | Should -Be $true
                         }
                     }
-                }) -Output None
+                })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = ConvertTo-NUnitReport $r
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]

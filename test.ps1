@@ -1,13 +1,14 @@
-param ([switch]$SkipPTests)
+param (
+    # force P to fail when I leave `dt` in the tests
+    [switch]$CI,
+    [switch]$SkipPTests
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
-    # force P to fail when I leave `dt` in the tests
-    $env:CI = 1
-
     $result = @(Get-ChildItem *.ts.ps1 -Recurse |
         foreach {
             $r = & $_.FullName -PassThru
@@ -26,7 +27,9 @@ if (-not $SkipPTests) {
             Write-Host -ForegroundColor Red "$($r.Count) tests failed in '$($r.FullName)'."
         }
 
-        exit 1
+        if ($CI) {
+            exit 1
+        }
     }
     else {
         Write-Host -ForegroundColor Green "P tests passed!"
@@ -43,7 +46,7 @@ Get-Module Pester | Remove-Module
 Import-Module ./Pester.psd1
 Invoke-Pester `
     -Path . `
-    -CI `
+    -CI:$CI `
     -Output Minimal `
     -ExcludeTag VersionChecks, StyleRules, Help `
     -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*', '*/TestProjects/*' | Out-Null
