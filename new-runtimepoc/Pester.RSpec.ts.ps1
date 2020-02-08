@@ -13,13 +13,17 @@ $global:PesterPreference = @{
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "Mock"
     }
+    Output = @{
+        Verbosity = "None"
+    }
 }
+$PSDefaultParameterValues = @{}
 
 i -PassThru:$PassThru {
     b "Running generated tests" {
         # # automation id is no-longer relevant I think
         # t "generating simple tests from foreach with external Id" {
-        #     $result = Invoke-Pester -ScriptBlock {
+        #     $sb = {
         #         Describe "d1" {
         #             foreach ($id in 1..10) {
         #                 It "it${id}" { $true } -AutomationId $id
@@ -33,7 +37,7 @@ i -PassThru:$PassThru {
         # }
 
         # t "generating parametrized tests from foreach with external id" {
-        #     $result = Invoke-Pester -ScriptBlock {
+        #     $sb = {
         #         Describe "d1" {
         #             foreach ($id in 1..10) {
         #                 It "it$id-<value>" -TestCases @(
@@ -53,13 +57,14 @@ i -PassThru:$PassThru {
         # }
 
         t "generating simple tests from foreach without external Id" {
-            $result = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     foreach ($id in 1..10) {
                         It "it$id" { $true }
                     }
                 }
             }
+            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
             $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
@@ -67,7 +72,7 @@ i -PassThru:$PassThru {
         }
 
         t "generating parametrized tests from foreach without external id" {
-            $result = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     foreach ($id in 1..10) {
                         It "it-$id-<value>" -TestCases @(
@@ -80,6 +85,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
+            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
             $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 30
@@ -87,7 +93,7 @@ i -PassThru:$PassThru {
         }
 
         t "generating multiple parametrized tests from foreach without external id" {
-            $result = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     foreach ($id in 1..10) {
                         It "first-it-$id-<value>" -TestCases @(
@@ -108,6 +114,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
+            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
             $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 60
@@ -116,7 +123,7 @@ i -PassThru:$PassThru {
 
     # automationId is not relevant right now
     #     t "generating multiple parametrized tests from foreach with external id" {
-    #         $result = Invoke-Pester -ScriptBlock {
+    #         $sb = {
     #             Describe "d1" {
     #                 foreach ($id in 1..10) {
     #                     It "first-it-$id-<value>" -TestCases @(
@@ -150,7 +157,7 @@ i -PassThru:$PassThru {
                 InScript = $null
                 InBeforeAll = $null
             }
-            $null = Invoke-Pester -ScriptBlock {
+            $sb = {
                 $container.InScript = $PSScriptRoot
                 BeforeAll {
                     $container.InBeforeAll = $PSScriptRoot
@@ -163,6 +170,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
+            $null = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $container.InBeforeAll | Verify-Equal $container.InScript
         }`
@@ -220,7 +228,7 @@ i -PassThru:$PassThru {
             }
 
             t "Scriptblock invokes inlined test" {
-                $result = Invoke-Pester -Path $file1 -ScriptBlock { Describe "d1" { It "i1" { $true }} }
+                $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ Path = $file1 ; ScriptBlock = { Describe "d1" { It "i1" { $true } } } } })
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
             }
@@ -265,7 +273,7 @@ i -PassThru:$PassThru {
 
     b "Terminating and non-terminating Should" {
         t "Non-terminating assertion fails the test after running to completion" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "i1" {
                         $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Continue' }
@@ -273,7 +281,9 @@ i -PassThru:$PassThru {
                         "but still output this"
                     }
                 }
-            } -Output None
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -287,7 +297,7 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion does not fail immediately when ErrorActionPreference is set to Stop" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "i1" {
                         $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Continue' }
@@ -296,7 +306,8 @@ i -PassThru:$PassThru {
                         "but still output this"
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -310,15 +321,18 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion fails immediately when -ErrorAction is set to Stop" {
-            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "i1" {
                         1 | Should -Be 2 -ErrorAction Stop
                         "do not output this"
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb }
+                Should = @{ ErrorAction = 'Continue' }
+            })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -332,16 +346,16 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion fails immediately when ErrorAction is set to Stop via Default Parameters" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "i1" {
-                        $fuu = "abcl"
                         $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
                         1 | Should -Be 2
                         "do not output this"
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -355,16 +369,16 @@ i -PassThru:$PassThru {
         }
 
         t "Assertion fails immediately when ErrorAction is set to Stop via global configuration" {
-
-
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "i1" {
                         1 | Should -Be 2
                         "do not output this"
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -378,8 +392,7 @@ i -PassThru:$PassThru {
         }
 
         t "Guard assertion" {
-            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "User with guard" {
                         $user = $null # we failed to get user
@@ -388,7 +401,11 @@ i -PassThru:$PassThru {
                         $user.Age | Should -Be 31
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb }
+                Should = @{ ErrorAction = 'Continue' }
+            })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -402,8 +419,7 @@ i -PassThru:$PassThru {
         }
 
         t "Chaining assertions" {
-            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "d1" {
                     It "User with guard" {
                         $user = [PSCustomObject]@{ Name = "Tomas"; Age = 22 }
@@ -412,7 +428,11 @@ i -PassThru:$PassThru {
                         $user.Age | Should -Be 31
                     }
                 }
-            } -Output None
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb }
+                Should = @{ ErrorAction = 'Continue' }
+            })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -430,43 +450,46 @@ i -PassThru:$PassThru {
 
     b "-Skip on Describe, Context and It" {
         t "It can be skipped" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" {
                     It "b" -Skip {
                         $true
                     }
                 }
             }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
 
         t "Describe can be skipped" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" -Skip {
                     It "b" {
                         $true
                     }
                 }
             }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
 
         t "Context can be skipped" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Context "a" -Skip {
                     It "b" {
                         $true
                     }
                 }
             }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
 
         t "Skip will propagate through multiple levels" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" -Skip {
                     Describe "a" {
                         Describe "a" {
@@ -477,6 +500,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }

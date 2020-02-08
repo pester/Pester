@@ -662,9 +662,6 @@ function Invoke-Pester {
         [ValidateSet("Normal", "Minimal", "None")]
         $Output,
 
-        [Parameter(ParameterSetName = "Simple")]
-        [ScriptBlock[]] $ScriptBlock,
-
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration
     )
@@ -721,11 +718,6 @@ function Invoke-Pester {
                         $PesterPreference.Run.Path = $Path
                     }
                     Get-Variable 'Path' -Scope Local | Remove-Variable
-                }
-
-                if (any $ScriptBlock) {
-                    $PesterPreference.Run.ScriptBlock = $ScriptBlock
-                    Get-Variable 'ScriptBlock' -Scope Local | Remove-Variable
                 }
 
                 if ($ExcludePath) {

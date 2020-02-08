@@ -596,7 +596,13 @@ function Invoke-TestItem {
         else {
 
             if ($frameworkSetupResult.Success) {
-                $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
+                try  {
+                    $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
+                } catch
+                {
+                    throw $_;
+                }
+
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
                     # context visible in test

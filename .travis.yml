@@ -21,4 +21,5 @@ matrix:
             - powershell
 
 script:
-  - pwsh -f test.ps1
+  - pwsh -c "./test.ps1 -ci"
+

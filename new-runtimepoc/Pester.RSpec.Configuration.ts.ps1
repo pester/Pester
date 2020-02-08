@@ -149,6 +149,42 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Assignment" {
+        t "ScriptBlockArrayOption can be assigned a single ScriptBlock" {
+            $config = [PesterConfiguration]::Default
+            $sb = { "sb" }
+            $config.Run.ScriptBlock = $sb
+
+            $config.Run.ScriptBlock.Value | Verify-Equal $sb
+        }
+
+        t "ScriptBlockArrayOption can be assigned an array of ScriptBlocks" {
+            $config = [PesterConfiguration]::Default
+            $sb = { "sb" }, { "sb" }
+            $config.Run.ScriptBlock = $sb
+
+            Verify-Same $sb[0] -Actual $config.Run.ScriptBlock.Value[0]
+            Verify-Same $sb[1] -Actual $config.Run.ScriptBlock.Value[1]
+        }
+
+        t "StringArrayOption can be assigned a single String" {
+            $config = [PesterConfiguration]::Default
+            $path = "C:\"
+            $config.Run.Path = $path
+
+            $config.Run.Path.Value | Verify-Equal $path
+        }
+
+        t "StringArrayOption can be assigned an array of Strings" {
+            $config = [PesterConfiguration]::Default
+            $path = "C:\",  "D:\"
+            $config.Run.Path = $path
+
+            Verify-Same $path[0] -Actual $config.Run.Path.Value[0]
+            Verify-Same $path[1] -Actual $config.Run.Path.Value[1]
+        }
+    }
+
     b "Cloning" {
         t "Configuration can be shallow cloned to avoid modifying user values" {
             $user = [PesterConfiguration]::Default

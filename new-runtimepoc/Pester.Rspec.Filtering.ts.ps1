@@ -19,31 +19,33 @@ $global:PesterPreference = @{
 i -PassThru:$PassThru {
     b "Filtering on tags" {
         t "Running tests with tag 't' will run if at least one tag on test matches" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" {
                     It "b" -Tag "t", "c" { }
                     It "no tag" { }
                 }
-            } -Tag "t"
-
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ Tag = "t" } })
 
             $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
         }
 
         t "Running tests with tag 't' will run all tests in the tagged describe" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb =  {
                 Describe "a" -Tag "t" {
                     It "b" -Tag "b", "c" { }
                     It "no tag" { }
                 }
-            } -Tag "t"
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ Tag = "t" } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
         }
 
         t "Running tests with tag 't' will run all tests in the tagged describe and child describes" {
-            $r = Invoke-Pester -ScriptBlock {
+
+            $sb = {
                 Describe "a" -Tag "t" {
                     Describe "b" {
                         It "b" -Tag "b", "c" { }
@@ -51,7 +53,8 @@ i -PassThru:$PassThru {
                     }
                     It "no tag" { }
                 }
-            } -Tag "t"
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ Tag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
@@ -59,7 +62,7 @@ i -PassThru:$PassThru {
         }
 
         t "Excluding tests with tag 't' will run will exclude them from run" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" {
                     Describe "b" {
                         It "b" -Tag "t", "c" { }
@@ -67,7 +70,8 @@ i -PassThru:$PassThru {
                     }
                     It "no tag" { }
                 }
-            } -ExcludeTag "t"
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ ExcludeTag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
@@ -75,7 +79,7 @@ i -PassThru:$PassThru {
         }
 
         t "Excluding blocks with tag 't' will run will exclude them from run" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" {
                     Describe "b" -Tag "t" {
                         It "b" -Tag "c" { }
@@ -83,7 +87,8 @@ i -PassThru:$PassThru {
                     }
                     It "no tag" { }
                 }
-            } -ExcludeTag "t"
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ ExcludeTag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
@@ -91,7 +96,7 @@ i -PassThru:$PassThru {
         }
 
         t "Excluding blocks with tag 't' in parent will run will exclude them from run" {
-            $r = Invoke-Pester -ScriptBlock {
+            $sb = {
                 Describe "a" -Tag "t" {
                     Describe "b" {
                         It "b" -Tag "c" { }
@@ -99,7 +104,8 @@ i -PassThru:$PassThru {
                     }
                     It "no tag" { }
                 }
-            } -ExcludeTag "t"
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ ExcludeTag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
