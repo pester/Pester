@@ -76,6 +76,7 @@ about_TestDrive
         [Switch] $Skip
     )
 
+    $Focus = $false
     if ($Fixture -eq $null) {
         if ($Name.Contains("`n")) {
             throw "Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)"

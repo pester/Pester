@@ -524,14 +524,15 @@ function Get-WriteScreenPlugin {
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
         }
-
-        if ('Minimal' -eq $PesterPreference.Output.Verbosity.Value) {
+        elseif ('Minimal' -eq $PesterPreference.Output.Verbosity.Value) {
             $level = 0
             $margin = ''
             $error_margin = $ReportStrings.Margin
             $out = "$($_test.Block.Path -join '.').$($_test.ExpandedName)"
         }
-
+        else { 
+            throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
+        }
 
         $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
