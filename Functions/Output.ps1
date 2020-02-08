@@ -17,7 +17,7 @@ $script:ReportStrings = DATA {
         Describe          = 'Describing {0}'
         Script            = 'Executing script {0}'
         Context           = 'Context {0}'
-        Margin            = '  '
+        Margin            = ' '
         Timing            = 'Tests completed in {0}'
 
         # If this is set to an empty string, the count won't be printed
@@ -477,6 +477,9 @@ function Get-WriteScreenPlugin {
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
             if ("file" -eq $Context.Block.BlockContainer.Type) {
+                # write two spaces to separate each file
+                & $SafeCommands["Write-Host"]
+                & $SafeCommands["Write-Host"]
                 & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($Context.Block.BlockContainer.Content)'"
             }
         }
@@ -501,6 +504,7 @@ function Get-WriteScreenPlugin {
         $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
         $block = $Context.Block
+        # -1 moves the block closer to the start of theline
         $level = $block.Path.Length - 1
         $margin = $ReportStrings.Margin * $level
 
@@ -510,7 +514,11 @@ function Get-WriteScreenPlugin {
             $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
         }
 
-        & $SafeCommands['Write-Host']
+        if (0 -eq $level -and -not $block.First) {
+            # write extra line before top-level describe / context if it is not first
+            # in that case there are already two spaces before the name of the file
+            & $SafeCommands['Write-Host']
+        }
         & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
     } -EachTestTeardownEnd {
         param ($Context)
@@ -530,7 +538,7 @@ function Get-WriteScreenPlugin {
             $error_margin = $ReportStrings.Margin
             $out = "$($_test.Block.Path -join '.').$($_test.ExpandedName)"
         }
-        else { 
+        else {
             throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 

@@ -1801,6 +1801,9 @@ function Test-ShouldRun {
                 }
             }
         }
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match the exclude tag filter, moving on to the next filter."
+        }
     }
 
     # - place exclude filters above this line and include below this line
@@ -2089,14 +2092,9 @@ function PostProcess-DiscoveredBlock {
                 }
                 $t.ShouldRun = $false
             }
-            elseif ($t.Block.Include) {
-                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    $path = $t.Path -join "."
-                    Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is included because parent block was included."
-                }
-                $t.ShouldRun = $true
-            }
             else {
+                # run the exlude filters before checking if the parent is included
+                # otherwise you would include tests that could match the exclude rule
                 $shouldRun = (Test-ShouldRun -Item $t -Filter $Filter)
                 $t.Explicit = $shouldRun.Explicit
 

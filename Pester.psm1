@@ -646,21 +646,21 @@ function Invoke-Pester {
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
         [Parameter(Position = 0, Mandatory = 0,  ParameterSetName = "Simple")]
-        [String[]]$Path = '.',
+        [String[]] $Path = '.',
         [Parameter(ParameterSetName = "Simple")]
-        [String[]]$ExcludePath = @(),
+        [String[]] $ExcludePath = @(),
 
         [Parameter(ParameterSetName = "Simple")]
-        [string[]]$Tag,
+        [string[]] $Tag,
         [Parameter(ParameterSetName = "Simple")]
-        [string[]]$ExcludeTag,
+        [string[]] $ExcludeTag,
 
         [Parameter(ParameterSetName = "Simple")]
-        [Switch]$CI,
+        [Switch] $CI,
 
         [Parameter(ParameterSetName = "Simple")]
         [ValidateSet("Normal", "Minimal", "None")]
-        $Output,
+        [String] $Output,
 
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration

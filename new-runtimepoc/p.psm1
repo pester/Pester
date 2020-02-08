@@ -44,9 +44,10 @@ function i {
     & $ScriptBlock
 
     $passed = $script:total - $script:failed
-    Write-Host -NoNewline "`npassed $($passed), " -ForegroundColor Green
-    Write-Host -NoNewline "failed $($script:failed), " -ForegroundColor Red
-    Write-Host "total $($script:total)" -ForegroundColor Gray
+    Write-Host
+    Write-Host -NoNewline "passed $($passed), " -ForegroundColor Black -BackgroundColor Green
+    Write-Host -NoNewline "failed $($script:failed), " -ForegroundColor Black -BackgroundColor Red
+    Write-Host "total $($script:total) " -ForegroundColor Black -BackgroundColor DarkGray
 
     if ($PassThru) {
         [PSCustomObject]@{
@@ -74,7 +75,7 @@ function b {
     }
     else {
         if (-not $script:filter -or $script:filter -like "$name*") {
-            Write-Host "| - $Name" -ForegroundColor Cyan
+            Write-Host "| - $Name " -ForegroundColor Black -BackgroundColor Cyan
             $null = & $ScriptBlock
         }
     }
@@ -106,7 +107,7 @@ function t {
             try {
                 $script:total++
                 $null = & $ScriptBlock
-                Write-Host "[+] - $Name" -ForegroundColor Green
+                Write-Host "[+] - $Name " -ForegroundColor Black -BackgroundColor Green -NoNewline ; Write-Host
             }
             catch {
                 $script:failed++
@@ -118,12 +119,33 @@ function t {
                 # otherwise show the assertion message and stacktrace to keep the noise
                 # on test failure low
                 if ([Exception] -ne $_.Exception.GetType()) {
-                    Write-Host "ERROR: - $Name -> $($_| Out-String)`n$(Get-FullStackTrace $_)"  -ForegroundColor Red
+                    Write-Host "ERROR: - $Name -> $($_| Out-String) "  -ForegroundColor Black -BackgroundColor Red
+                    $(Get-FullStackTrace $_) -split [Environment]::NewLine | foreach {
+                        Write-Host " " -NoNewline
+                        Write-Host " $_ "  -NoNewline -ForegroundColor Black -BackgroundColor Red
+                        Write-Host
+                    }
                 }
                 else {
                     # print just the error and full stack trace with numbers fixed so I can jump to them
                     # in VSCode
-                    Write-Host "[-] - $Name -> $($_)`n$(Get-FullStackTrace $_)"  -ForegroundColor Red
+                    $first = $true
+                    "$_" -split "`n" | foreach {
+                        $txt = if ($first) {
+                            "[-] - $Name -> $($_.Trim()) "
+                            $first = $false
+                        }
+                        else {
+                            $_.Trim() + " "
+                        }
+                        Write-Host $txt  -NoNewline -ForegroundColor Black -BackgroundColor Red
+                        Write-Host
+                    }
+                    $(Get-FullStackTrace $_) -split [Environment]::NewLine | foreach {
+                        Write-Host "  " -NoNewline
+                        Write-Host "$($_.Trim()) "  -NoNewline -ForegroundColor Black -BackgroundColor Red
+                        Write-Host
+                    }
                 }
             }
         }
