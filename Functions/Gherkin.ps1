@@ -289,7 +289,7 @@ function Invoke-Gherkin {
         Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
 
         foreach ($FeatureFile in & $SafeCommands["Get-ChildItem"] $Path -Filter "*.feature" -Recurse ) {
-            Invoke-GherkinFeature $FeatureFile -Pester $pester 
+            Invoke-GherkinFeature $FeatureFile -Pester $pester -StepPath $StepPath
         }
 
         # Remove all the steps
