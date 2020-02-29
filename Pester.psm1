@@ -93,7 +93,7 @@ $script:SafeCommands = @{
 if ( Get-Command -ea SilentlyContinue Get-CimInstance ) {
     $script:SafeCommands['Get-CimInstance'] = Get-Command -Name Get-CimInstance -Module CimCmdlets @safeCommandLookupParameters
 }
-elseif ( Get-command -ea SilentlyContinue Get-WmiObject ) {
+elseif ( Get-Command -ea SilentlyContinue Get-WmiObject ) {
     $script:SafeCommands['Get-WmiObject'] = Get-Command -Name Get-WmiObject   -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
 }
 elseif ( Get-Command -ea SilentlyContinue uname -Type Application ) {
@@ -484,7 +484,7 @@ function Add-AssertionOperator {
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_) }) {
+    foreach ($string in $Alias | Where-Object { -not (Test-NullOrWhiteSpace $_) }) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -511,7 +511,7 @@ function Assert-AssertionOperatorNameIsUnique {
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_) }) {
+    foreach ($string in $name | Where-Object { -not (Test-NullOrWhiteSpace $_) }) {
         Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string)) {
@@ -1032,11 +1032,15 @@ function Invoke-Pester {
         [Parameter(Position = 2, Mandatory = 0)]
         [switch]$EnableExit,
 
-        [Parameter(Position = 4, Mandatory = 0)]
+        [Parameter(Position = 4, Mandatory = 0, ParameterSetName = 'Tag')]
         [Alias('Tags')]
         [string[]]$Tag,
 
+        [Parameter(ParameterSetName = 'Tag')]
         [string[]]$ExcludeTag,
+
+        [Parameter(ParameterSetName = 'TagFilter')]
+        [scriptblock]$TagFilter,
 
         [switch]$PassThru,
 
@@ -1091,7 +1095,7 @@ function Invoke-Pester {
         $script:mockTable = @{ }
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -AdvancedTagFilter $TagFilter -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
 
         try {
             Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester

@@ -207,6 +207,28 @@ InModuleScope Pester {
             }
         }
 
-        # Testing nested Describe is probably not necessary here; that's covered by PesterState.Tests.ps1 and $pester.EnterDescribe().
+        Context 'Advanced Tags Filter' {
+            $testBlock = { MockMe }
+            $cases = @(
+                @{ AdvancedFilter = { $tags.key1 -eq "value1" }; AdvancedTag = @{ key1 = "value1"; key2 = "value2" }; Runs = 1; Because = 'key1 == value1' }
+                @{ AdvancedFilter = { $tags.key1 -eq "value1" -and $tags.key2 -eq "value2" }; AdvancedTag = @{ key1 = "value1"; key2 = "value2" }; Runs = 1; Because = 'key1 == value1 AND key2 == value2' }
+                @{ AdvancedFilter = { $tags.key1 -ne "nothing" -and $tags.key2 -eq "value2" }; AdvancedTag = @{ key1 = "value1"; key2 = "value2" }; Runs = 1; Because = 'key1 != nothing AND key2 == value2' }
+                @{ AdvancedFilter = { $tags.key1 -ne "value1" }; AdvancedTag = @{ key1 = "value1"; key2 = "value2" }; Runs = 0; Because = 'key1 != value1' }
+            )
+            foreach ($case in $cases) {
+                $testState = New-PesterState -Path $TestDrive -AdvancedTagFilter $case.AdvancedFilter
+                $result = if ($case.Runs -eq 1) { "runs" } else { "does not run" }
+                It "Given an advanced filter {$($case.AdvancedFilter)} and a test with advanced tags the test $result, because $($case.Because)" {
+                    # figuring out what this test does is a bit difficult. Internally the tags to be used
+                    # are stored in Pester state tag filter. So here we have a static  filter and
+                    # we throw tests on it to see if they would run. Then we assert that a mock in the
+                    # test case was called, to see if the test was executed.
+                    DescribeImpl -Name 'Name' -AdvancedTag $case.AdvancedTag -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
+                    Assert-MockCalled MockMe -Scope It -Exactly $case.Runs
+                }
+            }
+
+            # Testing nested Describe is probably not necessary here; that's covered by PesterState.Tests.ps1 and $pester.EnterDescribe().
+        }
     }
 }

@@ -80,6 +80,8 @@ https://pester.dev/docs/usage/testdrive
         [Alias('Tags')]
         [string[]] $Tag = @(),
 
+        [hashtable] $AdvancedTag = @{ },
+
         [Parameter(Position = 1)]
         [ValidateNotNull()]
         [ScriptBlock] $Fixture
@@ -112,6 +114,8 @@ function DescribeImpl {
 
         [Alias('Tags')]
         $Tag = @(),
+
+        $AdvancedTag = @{ },
 
         [Parameter(Position = 1)]
         [ValidateNotNull()]
@@ -165,6 +169,13 @@ function DescribeImpl {
 
         if ($Pester.ExcludeTagFilter) {
             if (Contain-AnyStringLike -Filter $Pester.ExcludeTagFilter -Collection $Tag) {
+                return
+            }
+        }
+        if ($Pester.AdvancedTagFilter) {
+            $variables = [System.Collections.Generic.List[PSVariable]]::new()
+            $variables.Add([PSVariable]::new("tags", $AdvancedTag))
+            if (-not ($Pester.AdvancedTagFilter.InvokeWithContext($null, $variables))) {
                 return
             }
         }
