@@ -227,6 +227,14 @@ InModuleScope Pester {
                     Assert-MockCalled MockMe -Scope It -Exactly $case.Runs
                 }
             }
+            $testState = New-PesterState -Path $TestDrive -AdvancedTagFilter { throw "pester" }
+            It "Given an advanced filter { throw 'pester' } and a test with advanced tags the test throws, because the filter threw an exception" {
+                # figuring out what this test does is a bit difficult. Internally the tags to be used
+                # are stored in Pester state tag filter. So here we have a static  filter and
+                # we throw tests on it to see if they would run. Then we assert that a mock in the
+                # test case was called, to see if the test was executed.
+                { DescribeImpl -Name 'Name' -AdvancedTag @{key1 = "value1" } -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry } | Should -Throw "pester"
+            }
 
             # Testing nested Describe is probably not necessary here; that's covered by PesterState.Tests.ps1 and $pester.EnterDescribe().
         }
