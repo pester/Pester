@@ -1058,9 +1058,13 @@ function Invoke-Pester {
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
+        [Parameter(ParameterSetName = 'Tag')]
+        [Parameter(ParameterSetName = 'TagFilter')]
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
+        [Parameter(ParameterSetName = 'Tag')]
+        [Parameter(ParameterSetName = 'TagFilter')]
         [ValidateSet('NUnitXml', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
