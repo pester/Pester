@@ -173,8 +173,8 @@ function DescribeImpl {
             }
         }
         if ($Pester.AdvancedTagFilter) {
-            $variables = New-Object -TypeName "System.Collections.Generic.List[PSVariable]"
-            $tags = New-Object -TypeName "PSVariable" -ArgumentList @("tags", $AdvancedTag)
+            $variables = New-Object -TypeName "System.Collections.Generic.List[System.Management.Automation.PSVariable]"
+            $tags = New-Object -TypeName "System.Management.Automation.PSVariable" -ArgumentList @("tags", $AdvancedTag)
             $variables.Add($tags)
             if (-not ($Pester.AdvancedTagFilter.InvokeWithContext($null, $variables))) {
                 return
