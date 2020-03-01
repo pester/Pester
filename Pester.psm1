@@ -1033,13 +1033,16 @@ function Invoke-Pester {
         [switch]$EnableExit,
 
         [Parameter(Position = 4, Mandatory = 0, ParameterSetName = 'Tag')]
+        [Parameter(ParameterSetName = 'NewOutputSet')]
         [Alias('Tags')]
         [string[]]$Tag,
 
         [Parameter(ParameterSetName = 'Tag')]
+        [Parameter(ParameterSetName = 'NewOutputSet')]
         [string[]]$ExcludeTag,
 
         [Parameter(ParameterSetName = 'TagFilter')]
+        [Parameter(ParameterSetName = 'NewOutputSet')]
         [scriptblock]$TagFilter,
 
         [switch]$PassThru,
@@ -1058,13 +1061,9 @@ function Invoke-Pester {
         [Switch]$Strict,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
-        [Parameter(ParameterSetName = 'Tag')]
-        [Parameter(ParameterSetName = 'TagFilter')]
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = 'NewOutputSet')]
-        [Parameter(ParameterSetName = 'Tag')]
-        [Parameter(ParameterSetName = 'TagFilter')]
         [ValidateSet('NUnitXml', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
