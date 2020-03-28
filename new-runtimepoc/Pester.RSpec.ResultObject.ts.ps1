@@ -228,7 +228,7 @@ i -PassThru:$PassThru {
             $result.Containers[0].Blocks[2].Result | Verify-Equal "Passed"
         }
 
-        t "Result object indicates failure when after all fails" {
+        t "Result object indicates failure when AfterAll fails" {
             $sb = {
 
                 Describe "d1" {
@@ -251,7 +251,13 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                Describe "d4" {
+                Describe "d4" -Skip {
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+
+                Describe "d5" -Tag a {
                     It "pass" {
                         1 | Should -Be 1
                     }
@@ -262,11 +268,16 @@ i -PassThru:$PassThru {
                 Run = @{
                     ScriptBlock = $sb
                 }
+                Filter = @{
+                    ExcludeTag = "a"
+                }
                 Output = @{ Verbosity = "None" }
             }
 
             $result | Verify-Property "Result"
             $result.Result | Verify-Equal "Failed"
+            $result | Verify-Property "FailedBlocksCount"
+            $result.FailedBlocksCount | Verify-Equal 2
 
             $result | Verify-Property "Containers"
             $result.Containers.Count | Verify-Equal 1
@@ -274,7 +285,7 @@ i -PassThru:$PassThru {
             $result.Containers[0].Result | Verify-Equal "Failed"
 
             $result.Containers[0] | Verify-Property "Blocks"
-            $result.Containers[0].Blocks.Count | Verify-Equal 3
+            $result.Containers[0].Blocks.Count | Verify-Equal 4
 
             $result.Containers[0].Blocks[0].Name | Verify-Equal "d1"
             $result.Containers[0].Blocks[0] | Verify-Property "Result"
@@ -290,7 +301,11 @@ i -PassThru:$PassThru {
 
             $result.Containers[0].Blocks[2].Name | Verify-Equal "d4"
             $result.Containers[0].Blocks[2] | Verify-Property "Result"
-            $result.Containers[0].Blocks[2].Result | Verify-Equal "Passed"
+            $result.Containers[0].Blocks[2].Result | Verify-Equal "Skipped"
+
+            $result.Containers[0].Blocks[3].Name | Verify-Equal "d5"
+            $result.Containers[0].Blocks[3] | Verify-Property "Result"
+            $result.Containers[0].Blocks[3].Result | Verify-Equal "NotRun"
         }
     }
 }

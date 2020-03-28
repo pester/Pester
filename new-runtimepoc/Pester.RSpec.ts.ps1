@@ -12,6 +12,7 @@ $global:PesterPreference = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "Mock"
+        ReturnRawResultObject  = $true
     }
     Output = @{
         Verbosity = "None"

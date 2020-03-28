@@ -47,9 +47,10 @@ $global:PesterPreference = @{
 }
 Get-Module Pester | Remove-Module
 Import-Module ./Pester.psd1
-Invoke-Pester `
+$r = Invoke-Pester `
     -Path . `
     -CI:$CI `
     -Output Minimal `
     -ExcludeTag VersionChecks, StyleRules, Help `
-    -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*', '*/TestProjects/*' | Out-Null
+    -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*', '*/TestProjects/*'
+$r | out-null

@@ -196,13 +196,13 @@ function PostProcess-RspecTestRun ($TestRun) {
         # we already processed errors in the plugin step to make the available for reporting
 
         # here we add result
-        $result = if ($b.Skipped) {
+        $result = if ($b.Skip) {
             "Skipped"
         }
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.OwnFailed -or ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed))) {
+        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {
@@ -217,7 +217,9 @@ function PostProcess-RspecTestRun ($TestRun) {
 
         ## sumamrize
 
-        if (-not $b.OwnPassed) {
+        # a block that has errors would write into failed blocks so we can report them
+        # later we can filter this to only report errors from AfterAll
+        if (0 -lt $b.ErrorRecord.Count) {
             $TestRun.FailedBlocks.Add($b)
         }
 
@@ -233,7 +235,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.OwnFailed -or ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed))) {
+        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {
