@@ -6,6 +6,7 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$PsVersionTable
 Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
