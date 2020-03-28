@@ -374,7 +374,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             It 'produces correct message lines.' {
-                if (7 -lt $PSVersionTable.PSVersion.Major) {
+                if (6 -ge $PSVersionTable.PSVersion.Major) {
                     $r.Message[0] | Should -be 'ArgumentException: inner message'
                     $r.Message[1] | Should -be 'Parameter name: param_name'
                     $r.Message[2] | Should -be 'FormatException: outer message'
