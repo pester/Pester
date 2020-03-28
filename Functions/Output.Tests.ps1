@@ -66,82 +66,83 @@ BeforeAll {
     $thisScriptRegex = [regex]::Escape((Get-Item $PSCommandPath).FullName)
 }
 
-Describe 'ConvertTo-PesterResult' {
-    BeforeAll {
-        $getPesterResult = InModuleScope Pester { ${function:ConvertTo-PesterResult} }
-    }
+# not used but might be useful for future reference
+# Describe 'ConvertTo-PesterResult' {
+#     BeforeAll {
+#         $getPesterResult = InModuleScope Pester { ${function:ConvertTo-PesterResult} }
+#     }
 
-    Context 'failed tests in Tests file' {
-        BeforeAll {
-            #the $script scriptblock below is used as a position marker to determine
-            #on which line the test failed.
-            $errorRecord = $null
-            try {
-                $script = {}; 'something' | Should -Be 'nothing' -ErrorAction Stop
-            }
-            catch {
-                $errorRecord = $_
-            }
-            $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
-        }
+#     Context 'failed tests in Tests file' {
+#         BeforeAll {
+#             #the $script scriptblock below is used as a position marker to determine
+#             #on which line the test failed.
+#             $errorRecord = $null
+#             try {
+#                 $script = {}; 'something' | Should -Be 'nothing' -ErrorAction Stop
+#             }
+#             catch {
+#                 $errorRecord = $_
+#             }
+#             $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
+#         }
 
-        It 'records the correct stack line number' {
-            $result.StackTrace | should -match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
-        }
-        It 'records the correct error record' {
-            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
-            $result.ErrorRecord.Exception.Message | Should -match "Expected: 'nothing'"
-        }
-    }
+#         It 'records the correct stack line number' {
+#             $result.StackTrace | should -match "${thisScriptRegex}: line $($script.startPosition.StartLine)"
+#         }
+#         It 'records the correct error record' {
+#             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
+#             $result.ErrorRecord.Exception.Message | Should -match "Expected: 'nothing'"
+#         }
+#     }
 
-    It 'Does not modify the error message from the original exception' {
-        $object = New-Object psobject
-        $message = 'I am an error.'
-        Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
+#     It 'Does not modify the error message from the original exception' {
+#         $object = New-Object psobject
+#         $message = 'I am an error.'
+#         Add-Member -InputObject $object -MemberType ScriptMethod -Name ThrowSomething -Value { throw $message }
 
-        $errorRecord = $null
-        try {
-            $object.ThrowSomething()
-        }
-        catch {
-            $errorRecord = $_
-        }
+#         $errorRecord = $null
+#         try {
+#             $object.ThrowSomething()
+#         }
+#         catch {
+#             $errorRecord = $_
+#         }
 
-        $pesterResult = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
+#         $pesterResult = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
 
-        $pesterResult.FailureMessage | Should -Be $errorRecord.Exception.Message
-    }
+#         $pesterResult.FailureMessage | Should -Be $errorRecord.Exception.Message
+#     }
 
-    Context 'failed tests in another file' {
-        BeforeAll {
-            $errorRecord = $null
+#     Context 'failed tests in another file' {
+#         BeforeAll {
+#             $errorRecord = $null
 
-            $testPath = Join-Path $TestDrive test.ps1
-            Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two' -ErrorAction Stop"
+#             $testPath = Join-Path $TestDrive test.ps1
+#             Set-Content -Path $testPath -Value "$([System.Environment]::NewLine)'One' | Should -Be 'Two' -ErrorAction Stop"
 
-            $escapedTestPath = [regex]::Escape((Get-Item $testPath).FullName)
+#             $escapedTestPath = [regex]::Escape((Get-Item $testPath).FullName)
 
-            try {
-                & $testPath
-            }
-            catch {
-                $errorRecord = $_
-            }
+#             try {
+#                 & $testPath
+#             }
+#             catch {
+#                 $errorRecord = $_
+#             }
 
-            $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
-        }
+#             $result = & $getPesterResult -Time 0 -ErrorRecord $errorRecord
+#         }
 
 
-        It 'records the correct stack line number' {
-            $result.StackTrace | should -match "${escapedTestPath}: line 2"
-        }
+#         It 'records the correct stack line number' {
+#             $result.StackTrace | should -match "${escapedTestPath}: line 2"
+#         }
 
-        It 'records the correct error record' {
-            $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
-            $result.ErrorRecord.Exception.Message | Should -match "Expected: 'Two'"
-        }
-    }
-}
+#         It 'records the correct error record' {
+#             $result.ErrorRecord -is [System.Management.Automation.ErrorRecord] | Should -be $true
+#             $result.ErrorRecord.Exception.Message | Should -match "Expected: 'Two'"
+#         }
+#     }
+# }
 
 InModuleScope -ModuleName Pester -ScriptBlock {
     Describe "Format-PesterPath" {
@@ -206,7 +207,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         AfterAll {
             & (Get-Module Pester) {
                 param ($p)
-                $global:PesterPreference.Debug.ShowFullErrors = $p
+                $PesterPreference.Debug.ShowFullErrors = $p
             } $showFullErrors
         }
 
