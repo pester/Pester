@@ -1916,7 +1916,7 @@ i -PassThru:$PassThru {
             # such as figuring out if there are focused tests, setting filters and determining which tests to run
             # this needs to be done over all blocks at the same time because of the focused tests
             # the difference here is actually <10ms but let's make this less finicky
-            $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+            $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
 
 
@@ -1981,7 +1981,7 @@ i -PassThru:$PassThru {
             # such as figuring out if there are focused tests, setting filters and determining which tests to run
             # this needs to be done over all blocks at the same time because of the focused tests
             # the difference here is actually <10ms but let's make this less finicky
-            $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+            $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
 
         t "total time is roughly the same as time measured externally (on many tests)" {
@@ -2033,7 +2033,7 @@ i -PassThru:$PassThru {
             # such as figuring out if there are focused tests, setting filters and determining which tests to run
             # this needs to be done over all blocks at the same time because of the focused tests
             # the difference here is actually <10ms but let's make this less finicky
-            $totalDifference.TotalMilliseconds -lt 50 | Verify-True
+            $totalDifference.TotalMilliseconds -lt 100 | Verify-True
 
             # TODO: revisit the difference on many tests, it is still missing some parts of the common discovery processing I guess (replicates on 10k tests)
         }

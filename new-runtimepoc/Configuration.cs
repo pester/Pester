@@ -22,7 +22,7 @@ using System.Management.Automation;
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
 //
-// ⚠ DO NOT use auto properties or any of the new fancy syntax in this file, 
+// ⚠ DO NOT use auto properties or any of the new fancy syntax in this file,
 // PowerShell would not be able to compile it. DO USE nameof, it will be replaced on load.
 
 namespace Pester
@@ -264,7 +264,7 @@ namespace Pester
 
         }
 
-        public ScriptBlockArrayOption(ScriptBlock[] value) : base("", new ScriptBlock[0], value) 
+        public ScriptBlockArrayOption(ScriptBlock[] value) : base("", new ScriptBlock[0], value)
         {
 
         }
@@ -405,6 +405,7 @@ namespace Pester
             WriteDebugMessagesFrom = new StringOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", "*");
             ShowNavigationMarkers = new BoolOption("Write paths after every block and test, for easy navigation in VSCode.", false);
             WriteVSCodeMarker = new BoolOption("Write VSCode marker for better integration with VSCode.", false);
+            ReturnRawResultObject = new BoolOption("Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.", false);
         }
 
         public DebugConfiguration(IDictionary configuration) : this()
@@ -416,6 +417,7 @@ namespace Pester
                 WriteDebugMessagesFrom = configuration.GetObjectOrNull<string>(nameof(WriteDebugMessagesFrom)) ?? WriteDebugMessagesFrom;
                 ShowNavigationMarkers = configuration.GetValueOrNull<bool>(nameof(ShowNavigationMarkers)) ?? ShowNavigationMarkers;
                 WriteVSCodeMarker = configuration.GetValueOrNull<bool>(nameof(WriteVSCodeMarker)) ?? WriteVSCodeMarker;
+                ReturnRawResultObject = configuration.GetValueOrNull<bool>(nameof(ReturnRawResultObject)) ?? ReturnRawResultObject;
             }
         }
 
@@ -424,6 +426,7 @@ namespace Pester
         private StringOption _writeDebugMessagesFrom;
         private BoolOption _showNavigationMarkers;
         private BoolOption _writeVsCodeMarker;
+        private BoolOption _returnRawResultObject;
 
         public BoolOption ShowFullErrors
         {
@@ -501,6 +504,22 @@ namespace Pester
                 else
                 {
                     _writeVsCodeMarker = new BoolOption(_writeVsCodeMarker, value.Value);
+                }
+            }
+        }
+
+        public BoolOption ReturnRawResultObject
+        {
+            get { return _returnRawResultObject; }
+            set
+            {
+                if (_returnRawResultObject == null)
+                {
+                    _returnRawResultObject = value;
+                }
+                else
+                {
+                    _returnRawResultObject = new BoolOption(_returnRawResultObject, value.Value);
                 }
             }
         }

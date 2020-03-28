@@ -125,7 +125,7 @@ i -PassThru:$PassThru {
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
             $r = Invoke-Pester -Configuration $configuration
 
-            ($r.Duration + $r.DiscoveryDuration + $r.FrameworkDuration) -lt (New-TimeSpan -Seconds 1) | Verify-True
+            $r.Duration -lt (New-TimeSpan -Seconds 1) | Verify-True
             $r.Containers.ShouldRun | Verify-False
         }
     }

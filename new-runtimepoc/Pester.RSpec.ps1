@@ -196,13 +196,13 @@ function PostProcess-RspecTestRun ($TestRun) {
         # we already processed errors in the plugin step to make the available for reporting
 
         # here we add result
-        $result = if ($b.Skipped) {
+        $result = if ($b.Skip) {
             "Skipped"
         }
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.OwnFailed -or ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed))) {
+        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {
@@ -217,7 +217,9 @@ function PostProcess-RspecTestRun ($TestRun) {
 
         ## sumamrize
 
-        if (-not $b.OwnPassed) {
+        # a block that has errors would write into failed blocks so we can report them
+        # later we can filter this to only report errors from AfterAll
+        if (0 -lt $b.ErrorRecord.Count) {
             $TestRun.FailedBlocks.Add($b)
         }
 
@@ -233,7 +235,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.OwnFailed -or ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed))) {
+        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {
@@ -302,4 +304,128 @@ function New-PesterConfiguration {
     param()
 
     [PesterConfiguration]@{}
+}
+
+function Remove-RSpecNonPublicProperties ($run){
+    $runProperties = @(
+        'Configuration'
+        'Containers'
+        'ExecutedAt'
+        'FailedBlocksCount'
+        'FailedCount'
+        'NotRunCount'
+        'PassedCount'
+        'PSBoundParameters'
+        'Result'
+        'SkippedCount'
+        'TestsCount'
+        'Time'
+    )
+
+    $containerProperties = @(
+        'Blocks'
+        'Content'
+        'ErrorRecord'
+        'Executed'
+        'ExecutedAt'
+        'FailedCount'
+        'NotRunCount'
+        'PassedCount'
+        'Result'
+        'ScriptBlock'
+        'ShouldRun'
+        'Skip'
+        'SkippedCount'
+        'Tests'
+        'Time'
+        'Type' # needed because of nunit export path expansion
+        'TotalCount'
+    )
+
+    $blockProperties = @(
+        'Blocks'
+        'ErrorRecord'
+        'Executed'
+        'ExecutedAt'
+        'FailedCount'
+        'Name'
+        'NotRunCount'
+        'PassedCount'
+        'Path'
+        'Result'
+        'ScriptBlock'
+        'ShouldRun'
+        'Skip'
+        'SkippedCount'
+        'StandardOutput'
+        'Tag'
+        'Tests'
+        'Time'
+        'TotalCount'
+    )
+
+    $testProperties = @(
+        'Data'
+        'ErrorRecord'
+        'Executed'
+        'ExecutedAt'
+        'ExpandedName'
+        'Id' # needed because of grouping of data driven tests in nunit export
+        'Name'
+        'Path'
+        'Result'
+        'ScriptBlock'
+        'ShouldRun'
+        'Skip'
+        'Skipped'
+        'StandardOutput'
+        'Tag'
+        'Time'
+    )
+
+    Fold-Run $run -OnRun {
+        param($i)
+        $ps = $i.PsObject.Properties.Name
+        foreach ($p in $ps) {
+            if ($p -notin $runProperties) {
+                $i.PsObject.Properties.Remove($p)
+            }
+        }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
+    } -OnContainer {
+        param($i)
+        $ps = $i.PsObject.Properties.Name
+        foreach ($p in $ps) {
+            if ($p -notin $containerProperties) {
+                $i.PsObject.Properties.Remove($p)
+            }
+        }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
+    } -OnBlock {
+        param($i)
+        $ps = $i.PsObject.Properties.Name
+        foreach ($p in $ps) {
+            if ($p -notin $blockProperties) {
+                $i.PsObject.Properties.Remove($p)
+            }
+        }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
+    } -OnTest {
+        param($i)
+        $ps = $i.PsObject.Properties.Name
+        foreach ($p in $ps) {
+            if ($p -notin $testProperties) {
+                $i.PsObject.Properties.Remove($p)
+            }
+        }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
+    }
 }

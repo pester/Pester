@@ -6,6 +6,9 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+# assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
+$ErrorView = "NormalView"
+$PsVersionTable
 Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
@@ -30,6 +33,9 @@ if (-not $SkipPTests) {
         if ($CI) {
             exit 1
         }
+        else {
+            return
+        }
     }
     else {
         Write-Host -ForegroundColor Green "P tests passed!"
@@ -44,9 +50,10 @@ $global:PesterPreference = @{
 }
 Get-Module Pester | Remove-Module
 Import-Module ./Pester.psd1
-Invoke-Pester `
+$r = Invoke-Pester `
     -Path . `
     -CI:$CI `
     -Output Minimal `
     -ExcludeTag VersionChecks, StyleRules, Help `
-    -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*', '*/TestProjects/*' | Out-Null
+    -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*', '*/TestProjects/*'
+$r | out-null
