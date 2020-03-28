@@ -374,9 +374,15 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             It 'produces correct message lines.' {
-                $r.Message[0] | Should -be 'ArgumentException: inner message'
-                $r.Message[1] | Should -be 'Parameter name: param_name'
-                $r.Message[2] | Should -be 'FormatException: outer message'
+                if (7 -lt $PSVersionTable.PSVersion.Major) {
+                    $r.Message[0] | Should -be 'ArgumentException: inner message'
+                    $r.Message[1] | Should -be 'Parameter name: param_name'
+                    $r.Message[2] | Should -be 'FormatException: outer message'
+                }
+                else {
+                    $r.Message[0] | Should -be "ArgumentException: inner message (Parameter 'param_name')"
+                    $r.Message[1] | Should -be 'FormatException: outer message'
+                }
             }
 
             if ((GetPesterOS) -ne 'Windows') {
