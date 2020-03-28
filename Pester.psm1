@@ -677,7 +677,7 @@ function Invoke-Pester {
 
         # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
 
-        $callerPreference = $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+        $callerPreference = [PesterConfiguration] $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
         $hasCallerPreference = $null -ne $callerPreference
         $hasConfiguration = $null -ne $Configuration
 
@@ -866,7 +866,7 @@ function Invoke-Pester {
             $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData -Configuration $PesterPreference
 
             PostProcess-RSpecTestRun -TestRun $run
-            $run
+
             Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
                 TestRun = $run
                 Configuration = $pluginConfiguration
@@ -884,8 +884,13 @@ function Invoke-Pester {
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
             }
 
-            if ($PesterPreference.Run.Exit.Value -and $run.FailedCount -gt 0) {
-                exit ($run.FailedCount)
+            if (-not $PesterPreference.Debug.ReturnRawResultObject.Value) {
+                Remove-RSPecNonPublicProperties $run
+            }
+            $run
+
+            if ($PesterPreference.Run.Exit.Value -and "failed" -eq $run.Result) {
+                exit ($run.FailedCount + $run.FailedBlocksCount)
             }
         }
         catch {
