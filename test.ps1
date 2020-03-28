@@ -30,6 +30,9 @@ if (-not $SkipPTests) {
         if ($CI) {
             exit 1
         }
+        else {
+            return
+        }
     }
     else {
         Write-Host -ForegroundColor Green "P tests passed!"

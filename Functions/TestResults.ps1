@@ -265,7 +265,6 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
         Path = $TestSuiteGroup.Group[0].Path
         TotalCount        = 0
         Duration          = [timespan]0
-        FrameworkDuration = [timespan]0
         PassedCount       = 0
         FailedCount       = 0
         SkippedCount      = 0
@@ -275,20 +274,7 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
 
     foreach ($testCase in $TestSuiteGroup.Group) {
         $node.TotalCount++
-
-        # todo: move this directly onto the TestObject, and BlockObject so we don't have to re-implement it in two places, and it is also easy to see for the people using the result object. I am implementing it here as a big if statement to avoid re-writing the switch below, because it will become relevant again once the result is in the Result property
-
-        $result = if ($testCase.Executed -and $testCase.Passed) {
-            'Passed'
-        }
-        elseif (-not $testCase.ShouldRun) {
-            'Skipped'
-        }
-        elseif (-not $testCase.Passed -or ($testCase.ShouldRun -and -not $testCase.Executed)) {
-            'Failed'
-        }
-
-        switch ($result) {
+        switch ($testCase.Result) {
             Passed {
                 $node.PassedCount++; break;
             }
@@ -307,7 +293,6 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
         }
 
         $node.Duration += $testCase.Duration
-        $node.FrameworkDuration += $testCase.FrameworkDuration
     }
 
     return Get-TestSuiteInfo -TestSuite $node -Path $node.Path
@@ -331,13 +316,7 @@ function Get-TestSuiteInfo ($TestSuite, $Path) {
     #     }
     # }
 
-    # all the blocks except Test have discovery duration, so take that into account
-    # TODO: make this just Duration when we have the aggregate property
-    $time = $TestSuite.Duration + $TestSuite.FrameworkDuration
-    $discoveryDurationProperty = $TestSuite.PSObject.Properties.Item("DiscoveryDuration")
-    if ($discoveryDurationProperty) {
-        $time += $discoveryDurationProperty.Value
-    }
+    $time = $TestSuite.Duration
 
     if (1 -lt @($Path).Count) {
         $name = $Path -join '.'
@@ -389,18 +368,7 @@ function Convert-TimeSpan {
         }
     }
 }
-function Get-TestSuccess($tests) {
-    $result = $true
-    if ($tests) {
-        foreach ($test in $tests) {
-            if (-not $test.Passed) {
-                $result = $false
-                break
-            }
-        }
-    }
-    [String]$result
-}
+
 function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
     $name = $TestSuiteInfo.Name
 
@@ -458,23 +426,11 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     $XmlWriter.WriteAttributeString('description', $TestResult.Name)
 
     $XmlWriter.WriteAttributeString('name', $testName)
-    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Time))
+    $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Duration))
     $XmlWriter.WriteAttributeString('asserts', '0')
-    $XmlWriter.WriteAttributeString('success', $TestResult.Passed)
+    $XmlWriter.WriteAttributeString('success', "Passed" -eq $TestResult.Result)
 
-    # todo: move figuring out the result directly onto the TestObject, and BlockObject so we don't have to re-implement it in two places, and it is also easy to see for the people using the result object. I am implementing it here as a big if statement to avoid re-writing the switch below, because it will become relevant again once the result is in the Result property
-
-    $result = if ($TestResult.Executed -and $TestResult.Passed) {
-        'Passed'
-    }
-    elseif (-not $TestResult.ShouldRun) {
-        'Skipped'
-    }
-    elseif (-not $TestResult.Passed -or ($TestResult.ShouldRun -and -not $TestResult.Executed)) {
-        'Failed'
-    }
-
-    switch ($result) {
+    switch ($TestResult.Result) {
         Passed {
             $XmlWriter.WriteAttributeString('result', 'Success')
             $XmlWriter.WriteAttributeString('executed', 'True')

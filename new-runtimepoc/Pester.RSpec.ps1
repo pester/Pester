@@ -336,6 +336,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'SkippedCount'
         'Tests'
         'Time'
+        'Type' # needed because of nunit export path expansion
         'TotalCount'
     )
 
@@ -367,6 +368,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'Executed'
         'ExecutedAt'
         'ExpandedName'
+        'Id' # needed because of grouping of data driven tests in nunit export
         'Name'
         'Path'
         'Result'
@@ -387,6 +389,9 @@ function Remove-RSpecNonPublicProperties ($run){
                 $i.PsObject.Properties.Remove($p)
             }
         }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
     } -OnContainer {
         param($i)
         $ps = $i.PsObject.Properties.Name
@@ -395,6 +400,9 @@ function Remove-RSpecNonPublicProperties ($run){
                 $i.PsObject.Properties.Remove($p)
             }
         }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
     } -OnBlock {
         param($i)
         $ps = $i.PsObject.Properties.Name
@@ -403,6 +411,9 @@ function Remove-RSpecNonPublicProperties ($run){
                 $i.PsObject.Properties.Remove($p)
             }
         }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
     } -OnTest {
         param($i)
         $ps = $i.PsObject.Properties.Name
@@ -411,5 +422,8 @@ function Remove-RSpecNonPublicProperties ($run){
                 $i.PsObject.Properties.Remove($p)
             }
         }
+
+        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
+        $i.PsObject.Properties.Remove("Time")
     }
 }
