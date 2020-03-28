@@ -6,6 +6,8 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+# assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
+$ErrorView = "NormalView"
 $PsVersionTable
 Get-Module Pester | Remove-Module
 
