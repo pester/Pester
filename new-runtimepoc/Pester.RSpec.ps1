@@ -116,6 +116,7 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
     }
 }
 
+
 function New-RSpecTestRunObject {
     param(
         [Parameter(Mandatory)]
@@ -143,6 +144,7 @@ function New-RSpecTestRunObject {
         Duration = [TimeSpan]::Zero
         FrameworkDuration = [TimeSpan]::Zero
         DiscoveryDuration = [TimeSpan]::Zero
+
         Passed = [Collections.ArrayList]@()
         PassedCount = 0
         Failed = [Collections.ArrayList]@()
@@ -153,13 +155,23 @@ function New-RSpecTestRunObject {
         NotRunCount = 0
         Tests = [Collections.ArrayList]@()
         TestsCount = 0
+
+        FailedBlocks = [Collections.ArrayList]@()
+        FailedBlocksCount = 0
     }
 }
 
 function PostProcess-RspecTestRun ($TestRun) {
-    $tests = @(View-Flat -Block $TestRun.Containers)
 
-    foreach ($t in $tests) {
+    Fold-Run $Run -OnTest {
+        param($t)
+
+        ## decorate
+        # we already added the RSpec properties as part of the plugin
+
+        ### summarize
+        $TestRun.Tests.Add($t)
+
         switch ($t.Result) {
             "NotRun" {
                 $null = $TestRun.NotRun.Add($t)
@@ -175,12 +187,76 @@ function PostProcess-RspecTestRun ($TestRun) {
             }
             default { throw "Result $($t.Result) is not supported."}
         }
-    }
 
-    foreach ($c in $TestRun.Containers) {
-        $TestRun.Duration += $c.Duration
-        $TestRun.FrameworkDuration += $c.FrameworkDuration
-        $TestRun.DiscoveryDuration += $c.DiscoveryDuration
+    } -OnBlock {
+        param ($b)
+
+        ## decorate
+
+        # we already processed errors in the plugin step to make the available for reporting
+
+        # here we add result
+        $result = if ($b.Skipped) {
+            "Skipped"
+        }
+        elseif ($b.Passed) {
+            "Passed"
+        }
+        elseif ($b.OwnFailed -or ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed))) {
+            "Failed"
+        }
+        else {
+            "NotRun"
+        }
+
+        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
+
+        # add time that we will later rename to Duration in the output object filter
+        $time = [timespan]::zero + $b.Duration + $b.FrameworkDuration
+        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
+
+        ## sumamrize
+
+        if (-not $b.OwnPassed) {
+            $TestRun.FailedBlocks.Add($b)
+        }
+
+    } -OnContainer {
+        param ($b)
+
+        ## decorate
+
+        # here we add result
+        $result = if ($b.Skipped) {
+            "Skipped"
+        }
+        elseif ($b.Passed) {
+            "Passed"
+        }
+        elseif ($b.OwnFailed -or ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed))) {
+            "Failed"
+        }
+        else {
+            "NotRun"
+        }
+
+        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
+
+        # add time that we will later rename to Duration in the output object filter
+        $time = [timespan]::zero + $b.Duration + $b.FrameworkDuration + $b.DiscoveryDuration
+        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
+
+
+        foreach ($e in $b.ErrorRecord) {
+            $r = ConvertTo-FailureLines $e
+            $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
+            $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayStackTrace", [string]($r.Trace -join [Environment]::NewLine)))
+        }
+
+        ## summarize
+        $TestRun.Duration += $b.Duration
+        $TestRun.FrameworkDuration += $b.FrameworkDuration
+        $TestRun.DiscoveryDuration += $b.DiscoveryDuration
     }
 
     $TestRun.PassedCount = $TestRun.Passed.Count
@@ -188,8 +264,22 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.SkippedCount = $TestRun.Skipped.Count
     $TestRun.NotRunCount = $TestRun.NotRun.Count
 
-    $TestRun.Tests = [Collections.ArrayList]@($tests)
-    $TestRun.TestsCount = $tests.Count
+    $TestRun.TestsCount = $TestRun.Tests.Count
+
+    $TestRun.FailedBlocksCount = $TestRun.FailedBlocks.Count
+
+    $result = if (0 -lt ($TestRun.FailedCount + $TestRun.FailedBlocksCount)) {
+        "Failed"
+    }
+    else {
+        "Passed"
+    }
+
+    $TestRun.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
+
+    # add time that we will later rename to Duration in the output object filter
+    $time = [timespan]::zero + $TestRun.Duration + $TestRun.FrameworkDuration +  $TestRun.DiscoveryDuration
+    $TestRun.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
 }
 
 function Get-RSpecObjectDecoratorPlugin () {
@@ -202,6 +292,7 @@ function Get-RSpecObjectDecoratorPlugin () {
         Add-RSpecTestObjectProperties $Context.Test
     } -EachBlockTeardownEnd {
         param($Context)
+        #TODO: also this is a plugin because it needs to run before the error processing kicks in (to be able to report correctly formatted errors on scrren in case teardown failure), this mixes concerns here imho, and needs to be revisited, because the error writing logic is now dependent on this plugin
         Add-RSpecBlockObjectProperties $Context.Block
     }
 }

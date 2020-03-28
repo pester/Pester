@@ -9,7 +9,7 @@ Import-Module $PSScriptRoot\..\Pester.psd1
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors         = $true
+        ShowFullErrors         = $false
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "Mock"
     }
@@ -160,6 +160,135 @@ i -PassThru:$PassThru {
 
             $result | Verify-Property "PSBoundParameters"
             $result.PSBoundParameters.Keys.Count | Verify-Equal 1 # Configuration
+        }
+
+        t "Result object indicates success when everything works" {
+            $sb = {
+
+                Describe "d1" {
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+
+                Describe "d2" {
+                    Describe "d3" {
+                        It "pass" {
+                            1 | Should -Be 1
+                        }
+                    }
+
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+
+                Describe "d4" {
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Configuration @{
+                Run = @{
+                    ScriptBlock = $sb
+                }
+                Output = @{ Verbosity = "None" }
+            }
+
+
+            $result | Verify-Property "Result"
+            $result.Result | Verify-Equal "Passed"
+
+            $result | Verify-Property "Containers"
+            $result.Containers.Count | Verify-Equal 1
+            $result.Containers[0] | Verify-Property "Result"
+            $result.Containers[0].Result | Verify-Equal "Passed"
+
+            $result.Containers[0] | Verify-Property "Blocks"
+            $result.Containers[0].Blocks.Count | Verify-Equal 3
+
+            $result.Containers[0].Blocks[0].Name | Verify-Equal "d1"
+            $result.Containers[0].Blocks[0] | Verify-Property "Result"
+            $result.Containers[0].Blocks[0].Result | Verify-Equal "Passed"
+
+            $result.Containers[0].Blocks[1].Name | Verify-Equal "d2"
+            $result.Containers[0].Blocks[1] | Verify-Property "Result"
+            $result.Containers[0].Blocks[1].Result | Verify-Equal "Passed"
+
+            $result.Containers[0].Blocks[1].Blocks[0].Name | Verify-Equal "d3"
+            $result.Containers[0].Blocks[1].Blocks[0] | Verify-Property "Result"
+            $result.Containers[0].Blocks[1].Blocks[0].Result | Verify-Equal "Passed"
+
+            $result.Containers[0].Blocks[2].Name | Verify-Equal "d4"
+            $result.Containers[0].Blocks[2] | Verify-Property "Result"
+            $result.Containers[0].Blocks[2].Result | Verify-Equal "Passed"
+        }
+
+        t "Result object indicates failure when after all fails" {
+            $sb = {
+
+                Describe "d1" {
+                    AfterAll { throw "abc" }
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+
+                Describe "d2" {
+                    Describe "d3" {
+                        AfterAll { throw "abc" }
+                        It "pass" {
+                            1 | Should -Be 1
+                        }
+                    }
+
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+
+                Describe "d4" {
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Configuration @{
+                Run = @{
+                    ScriptBlock = $sb
+                }
+                Output = @{ Verbosity = "None" }
+            }
+
+            $result | Verify-Property "Result"
+            $result.Result | Verify-Equal "Failed"
+
+            $result | Verify-Property "Containers"
+            $result.Containers.Count | Verify-Equal 1
+            $result.Containers[0] | Verify-Property "Result"
+            $result.Containers[0].Result | Verify-Equal "Failed"
+
+            $result.Containers[0] | Verify-Property "Blocks"
+            $result.Containers[0].Blocks.Count | Verify-Equal 3
+
+            $result.Containers[0].Blocks[0].Name | Verify-Equal "d1"
+            $result.Containers[0].Blocks[0] | Verify-Property "Result"
+            $result.Containers[0].Blocks[0].Result | Verify-Equal "Failed"
+
+            $result.Containers[0].Blocks[1].Name | Verify-Equal "d2"
+            $result.Containers[0].Blocks[1] | Verify-Property "Result"
+            $result.Containers[0].Blocks[1].Result | Verify-Equal "Failed"
+
+            $result.Containers[0].Blocks[1].Blocks[0].Name | Verify-Equal "d3"
+            $result.Containers[0].Blocks[1].Blocks[0] | Verify-Property "Result"
+            $result.Containers[0].Blocks[1].Blocks[0].Result | Verify-Equal "Failed"
+
+            $result.Containers[0].Blocks[2].Name | Verify-Equal "d4"
+            $result.Containers[0].Blocks[2] | Verify-Property "Result"
+            $result.Containers[0].Blocks[2].Result | Verify-Equal "Passed"
         }
     }
 }

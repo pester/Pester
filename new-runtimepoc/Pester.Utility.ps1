@@ -343,6 +343,27 @@ function Fold-Container {
     }
 }
 
+function Fold-Run {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Run,
+        $OnRun = {},
+        $OnContainer = {},
+        $OnBlock = {},
+        $OnTest = {},
+        $Accumulator
+    )
+
+    process {
+        foreach ($r in $Run) {
+            $Accumulator = & $OnRun $r $Accumulator
+            foreach ($container in $r.Containers) {
+                Fold-Container -Container $container -OnContainer $OnContainer -OnBlock $OnBlock -OnTest $OnTest -Accumulator $Accumulator
+            }
+        }
+    }
+}
+
 function Test-NullOrWhiteSpace ($Value) {
     # psv2 compatibility, on newer .net we would simply use
     # [string]::isnullorwhitespace
