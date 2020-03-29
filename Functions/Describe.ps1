@@ -97,7 +97,9 @@ about_TestDrive
 
 function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundParameters) {
     # interactive execution (by F5 in an editor, by F8 on selection, or by pasting to console)
-    if (-not [String]::IsNullOrEmpty($ScriptName)) {
+    # do not run interactively in non-saved files
+    # (vscode will use path like "untitled:Untitled-*" so we check if the path is rooted)
+    if (-not [String]::IsNullOrEmpty($ScriptName) -and [IO.Path]::IsPathRooted($ScriptName)) {
 
         if ($null -ne $script:lastExecutedAt -and ([datetime]::now - $script:lastExecutedAt).TotalMilliseconds -lt 100 -and $script:lastExecutedFile -eq $ScriptName) {
             # skip file if the same file was executed less than 100 ms ago. This is here because we will run the file from the first
