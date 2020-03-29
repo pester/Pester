@@ -1126,71 +1126,142 @@ function Contain-AnyStringLike ($Filter, $Collection) {
     return $false
 }
 
-function Get-LegacyResult {
-    param($RunResult)
+function ConvertTo-Pester4Result {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $PesterResult
+    )
+    process {
+        $legacyResult = [PSCustomObject] @{
+            TagFilter = $null
+            ExcludeTagFilter = $null
+            TestNameFilter = $null
+            ScriptBlockFilter = $null
+            TotalCount = 0
+            PassedCount = 0
+            FailedCount = 0
+            SkippedCount = 0
+            PendingCount = 0
+            InconclusiveCount = 0
+            Time = [TimeSpan]::Zero
+            TestResult = [System.Collections.ArrayList]@()
+        }
+        $filter = $PesterResult.Configuration.Filter
+        $legacyResult.TagFilter = if (0 -ne $filter.Tag.Value.Count) { $filter.Tag.Value }
+        $legacyResult.ExcludeTagFilter = if (0 -ne $filter.ExcludeTag.Value.Count) { $filter.ExcludeTag.Value }
+        $legacyResult.TestNameFilter = if (0 -ne $filter.TestNameFilter.Value.Count) { $filter.TestNameFilter.Value }
+        $legacyResult.ScriptBlockFilter = if (0 -ne $filter.ScriptBlockFilter.Value.Count) { $filter.ScriptBlockFilter.Value }
 
-    $acc = @{
-        Time              = [timespan]::Zero
-        FrameworkTime     = [timespan]::Zero
-        PassedCount       = 0
-        FailedCount       = 0
-        SkippedCount      = 0
-        PendingCount      = 0
-        InconclusiveCount = 0
-        TestResult        = [System.Collections.ArrayList]@()
+        $sb = {
+            param($test)
+
+            if ("NotRun" -eq $test.Result) {
+                return
+            }
+
+            $result = [PSCustomObject] @{
+                Passed = "Passed" -eq $test.Result
+                Result = $test.Result
+                Time = $test.Duration
+                Name = $test.Name
+
+                # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
+                # considered to be Context and joined by '\'
+                Describe = $test.Path[0]
+                Context = $(if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'})
+
+                Show = $PesterResult.Configuration.Output.Verbosity.Value
+                Parameters = $test.Data
+                ParameterizedSuiteName = $test.DisplayName
+
+                FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
+                ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
+                StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
+            }
+
+            $null = $legacyResult.TestResult.Add($result)
+        }
+
+
+        Fold-Run $PesterResult -OnTest $sb -OnBlock {
+            param($b)
+
+            if (0 -ne $b.ErrorRecord.Count) {
+                & $sb $b
+            }
+        }
+
+        # the counts here include failed blocks as tests, that's we don't use
+        # the normal properties on the reslt to count
+
+        foreach ($r in $legacyResult.TestResult) {
+            switch ($r.Result) {
+                "Passed" {
+                    $legacyResult.PassedCount++
+                }
+                "Failed" {
+                    $legacyResult.FailedCount++
+                }
+                "Skipped" {
+                    $legacyResult.SkippedCount++
+                }
+            }
+        }
+        $legacyResult.TotalCount = $legacyResult.TestResult.Count
+        $legacyResult.PendingCount = 0
+        $legacyResult.InconclusiveCount = 0
+        $legacyResult.Time = $PesterResult.Duration
+
+        $legacyResult
     }
-
-    $RunResult | Fold-Container -OnTest {
-        param($test)
-
-        if ("Passed" -eq $test.Result) {
-            $acc.PassedCount++
-        }
-        elseif ("Failed" -eq $test.Result) {
-            $acc.FailedCount++
-        }
-        elseif ("Skipped" -eq $test.Result) {
-            $acc.SkippedCount++
-        }
-        else { throw "Result '$($test.Result)' is not supported test result." }
-
-        $acc.FrameworkTime += $test.FrameworkDuration
-        $acc.TestResult += [PSCustomObject]@{
-            Passed = $test.Passed
-            Result = $test.Result
-            Time = $test.Time
-            Name = $test.Name
-
-            # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
-            # considered to be Context and joined by '\'
-            Describe = $test.Path[0]
-            Context = $(if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'})
-
-            Show = "All" # todo: populate this from something like "$test.Block.Root.PluginData.WriteScreen.Show" ?
-            Parameters = $test.Data
-            ParameterizedSuiteName = $test.DisplayName
-
-            FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
-            ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
-            StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
-        }
-    }
-
-    $acc.Time = (sum $RunResult Duration ([timespan]::Zero)) + (sum $RunResult FrameworkDuration ([timespan]::Zero)) + (sum $RunResult DiscoveryDuration ([timespan]::Zero))
-
-    $acc
 }
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 # these functions will be shared with the mock bootstrap function, or used in mocked calls so let's capture them just once instead of everytime we use a mock
 $script:SafeCommands['Get-MockDynamicParameter'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Get-MockDynamicParameter', 'function')
-$SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Write-PesterDebugMessage', 'function')
-$SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
+$script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Write-PesterDebugMessage', 'function')
+$script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
-& $script:SafeCommands['Export-ModuleMember'] Invoke-Pester, Describe, Context, It, In, Mock, Assert-VerifiableMock, Assert-MockCalled, Set-ItResult
-& $script:SafeCommands['Export-ModuleMember'] Should, InModuleScope
-& $script:SafeCommands['Export-ModuleMember'] BeforeEach, AfterEach, BeforeAll, AfterAll, Anywhere
-& $script:SafeCommands['Export-ModuleMember'] Get-MockDynamicParameter, Set-DynamicParameterVariable
-# & $script:SafeCommands['Export-ModuleMember'] Invoke-Gherkin, Find-GherkinStep, BeforeEachFeature, BeforeEachScenario, AfterEachFeature, AfterEachScenario, GherkinStep -Alias Given, When, Then, And, But
-& $script:SafeCommands['Export-ModuleMember'] New-MockObject, Add-ShouldOperator, Get-ShouldOperator
-& $script:SafeCommands['Export-ModuleMember'] Export-NunitReport, ConvertTo-NUnitReport, New-PesterConfiguration
+Set-Alias 'Add-AssertionOperator' 'Add-ShouldOperator'
+Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
+
+
+& $script:SafeCommands['Export-ModuleMember'] @(
+    'Invoke-Pester'
+
+    # blocks
+    'Describe'
+    'Context'
+    'It'
+
+    # mocking
+    'Mock'
+    'InModuleScope'
+
+    # setups
+    'BeforeAll'
+    'BeforeEach'
+    'AfterEach'
+    'AfterAll'
+
+    # should
+    'Should'
+    'Add-ShouldOperator'
+    'Get-ShouldOperator'
+
+    # export
+    'Export-NunitReport'
+    'ConvertTo-NUnitReport'
+    'ConvertTo-Pester4Result'
+
+    # legacy
+    'Assert-VerifiableMock'
+    'Assert-MockCalled'
+    'Set-ItResult'
+    'New-MockObject'
+
+) -Alias @(
+    'Add-AssertionOperator'
+    'Get-AssertionOperator'
+)

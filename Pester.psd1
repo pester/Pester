@@ -16,7 +16,7 @@
     CompanyName       = 'Pester'
 
     # Copyright statement for this module
-    Copyright         = 'Copyright (c) 2019 by Pester Team, licensed under Apache 2.0 License.'
+    Copyright         = 'Copyright (c) 2020 by Pester Team, licensed under Apache 2.0 License.'
 
     # Description of the functionality provided by this module
     Description       = 'Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of PowerShell code being tested. Pester tests can execute any command or script that is accessible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.'
@@ -24,43 +24,42 @@
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '3.0'
 
-    TypesToProcess    = @('.\Functions\Gherkin.types.ps1xml')
+    # TypesToProcess    = @('.\Functions\Gherkin.types.ps1xml')
 
     # Functions to export from this module
     FunctionsToExport = @(
+        'Invoke-Pester'
+
+        # blocks
         'Describe'
         'Context'
         'It'
-        'Should'
+
+        # mocking
         'Mock'
-        'Assert-MockCalled'
-        'Assert-VerifiableMock'
-        'Invoke-Pester'
-        'In'
         'InModuleScope'
+
+        # setups
+        'BeforeAll'
         'BeforeEach'
         'AfterEach'
-        'BeforeAll'
         'AfterAll'
-        'Anywhere'
-        'Set-TestInconclusive'
-        'Set-ItResult'
-        'New-MockObject'
+
+        # should
+        'Should'
         'Add-ShouldOperator'
         'Get-ShouldOperator'
-        'Export-NUnitReport'
+
+        # export
+        'Export-NunitReport'
         'ConvertTo-NUnitReport'
-        'New-PesterConfiguration'
+        'ConvertTo-Pester4Result'
 
-
-        # Gherkin Support:
-        'Invoke-Gherkin'
-        'Find-GherkinStep'
-        'GherkinStep'
-        'BeforeEachFeature'
-        'AfterEachFeature'
-        'BeforeEachScenario'
-        'AfterEachScenario'
+        # legacy
+        'Assert-VerifiableMock'
+        'Assert-MockCalled'
+        'Set-ItResult'
+        'New-MockObject'
     )
 
     # # Cmdlets to export from this module
@@ -71,13 +70,8 @@
 
     # # Aliases to export from this module
     AliasesToExport   = @(
-        'Given'
-        'When'
-        'Then'
-        'And'
-        'But'
-
-        'Add-ShouldOperator'
+        'Add-AssertionOperator'
+        'Get-AssertionOperator'
     )
 
 
@@ -112,7 +106,7 @@
             ReleaseNotes = 'https://github.com/pester/Pester/blob/v5.0/README.md'
 
             # Prerelease string of this module
-            Prerelease   = 'beta'
+            Prerelease   = 'beta2'
         }
     }
 
