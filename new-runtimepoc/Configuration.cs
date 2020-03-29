@@ -412,12 +412,12 @@ namespace Pester
         {
             if (configuration != null)
             {
-                ShowFullErrors = configuration.GetValueOrNull<bool>("(ShowFullErrors)") ?? ShowFullErrors;
-                WriteDebugMessages = configuration.GetValueOrNull<bool>("(WriteDebugMessages)") ?? WriteDebugMessages;
-                WriteDebugMessagesFrom = configuration.GetObjectOrNull<string>("(WriteDebugMessagesFrom)") ?? WriteDebugMessagesFrom;
-                ShowNavigationMarkers = configuration.GetValueOrNull<bool>("(ShowNavigationMarkers)") ?? ShowNavigationMarkers;
-                WriteVSCodeMarker = configuration.GetValueOrNull<bool>("(WriteVSCodeMarker)") ?? WriteVSCodeMarker;
-                ReturnRawResultObject = configuration.GetValueOrNull<bool>("(ReturnRawResultObject)") ?? ReturnRawResultObject;
+                ShowFullErrors = configuration.GetValueOrNull<bool>("ShowFullErrors") ?? ShowFullErrors;
+                WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
+                WriteDebugMessagesFrom = configuration.GetObjectOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
+                ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
+                WriteVSCodeMarker = configuration.GetValueOrNull<bool>("WriteVSCodeMarker") ?? WriteVSCodeMarker;
+                ReturnRawResultObject = configuration.GetValueOrNull<bool>("ReturnRawResultObject") ?? ReturnRawResultObject;
             }
         }
 
@@ -555,12 +555,12 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Enabled = configuration.GetValueOrNull<bool>("(Enabled)") ?? Enabled;
-                OutputFormat = configuration.GetObjectOrNull<string>("(OutputFormat)") ?? OutputFormat;
-                OutputPath = configuration.GetObjectOrNull<string>("(OutputPath)") ?? OutputPath;
-                OutputEncoding = configuration.GetObjectOrNull<string>("(OutputEncoding)") ?? OutputEncoding;
-                Path = configuration.GetArrayOrNull<string>("(Path)") ?? Path;
-                ExcludeTests = configuration.GetValueOrNull<bool>("(ExcludeTests)") ?? ExcludeTests;
+                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
+                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
+                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
+                OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputEncoding;
+                Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
+                ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
             }
         }
 
@@ -689,11 +689,11 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Enabled = configuration.GetValueOrNull<bool>("(Enabled)") ?? Enabled;
-                OutputFormat = configuration.GetObjectOrNull<string>("(OutputFormat)") ?? OutputFormat;
-                OutputPath = configuration.GetObjectOrNull<string>("(OutputPath)") ?? OutputPath;
-                OutputEncoding = configuration.GetObjectOrNull<string>("(OutputEncoding)") ?? OutputPath;
-                TestSuiteName = configuration.GetObjectOrNull<string>("(TestSuiteName)") ?? TestSuiteName;
+                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
+                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
+                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
+                OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputPath;
+                TestSuiteName = configuration.GetObjectOrNull<string>("TestSuiteName") ?? TestSuiteName;
             }
         }
 
@@ -796,11 +796,11 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Exit = configuration.GetValueOrNull<bool>("(Exit)") ?? Exit;
-                Path = configuration.GetArrayOrNull<string>("(Path)") ?? Path;
-                ExcludePath = configuration.GetArrayOrNull<string>("(ExcludePath)") ?? ExcludePath;
-                ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>("(ScriptBlock)") ?? ScriptBlock;
-                TestExtension = configuration.GetObjectOrNull<string>("(TestExtension)") ?? TestExtension;
+                Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
+                Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
+                ExcludePath = configuration.GetArrayOrNull<string>("ExcludePath") ?? ExcludePath;
+                ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>("ScriptBlock") ?? ScriptBlock;
+                TestExtension = configuration.GetObjectOrNull<string>("TestExtension") ?? TestExtension;
             }
         }
 
@@ -911,10 +911,10 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Tag = configuration.GetArrayOrNull<string>("(Tag)") ?? Tag;
-                ExcludeTag = configuration.GetArrayOrNull<string>("(ExcludeTag)") ?? ExcludeTag;
-                Line = configuration.GetArrayOrNull<string>("(Line)") ?? Line;
-                Name = configuration.GetArrayOrNull<string>("(Name)") ?? Name;
+                Tag = configuration.GetArrayOrNull<string>("Tag") ?? Tag;
+                ExcludeTag = configuration.GetArrayOrNull<string>("ExcludeTag") ?? ExcludeTag;
+                Line = configuration.GetArrayOrNull<string>("Line") ?? Line;
+                Name = configuration.GetArrayOrNull<string>("Name") ?? Name;
             }
         }
         public FilterConfiguration() : base("Filter configuration")
@@ -1003,7 +1003,7 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Verbosity = configuration.GetObjectOrNull<string>("(Verbosity)") ?? Verbosity;
+                Verbosity = configuration.GetObjectOrNull<string>("Verbosity") ?? Verbosity;
             }
         }
 
@@ -1064,13 +1064,13 @@ public class PesterConfiguration
     {
         if (configuration != null)
         {
-            Run = new RunConfiguration(configuration.GetIDictionaryOrNull("(Run)"));
-            Filter = new FilterConfiguration(configuration.GetIDictionaryOrNull("(Filter)"));
-            CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull("(CodeCoverage)"));
-            TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull("(TestResult)"));
-            Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("(Should)"));
-            Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull("(Debug)"));
-            Output = new OutputConfiguration(configuration.GetIDictionaryOrNull("(Output)"));
+            Run = new RunConfiguration(configuration.GetIDictionaryOrNull("Run"));
+            Filter = new FilterConfiguration(configuration.GetIDictionaryOrNull("Filter"));
+            CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull("CodeCoverage"));
+            TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull("TestResult"));
+            Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("Should"));
+            Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull("Debug"));
+            Output = new OutputConfiguration(configuration.GetIDictionaryOrNull("Output"));
         }
     }
 
