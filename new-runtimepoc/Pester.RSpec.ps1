@@ -210,6 +210,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         }
 
         $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
+        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Type", $b.FrameworkData.CommandUsed))
 
         # add time that we will later rename to Duration in the output object filter
         $time = [timespan]::zero + $b.Duration + $b.FrameworkDuration
@@ -319,7 +320,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'Result'
         'SkippedCount'
         'TestsCount'
-        'Time'
+        'Time' # renamed to Duration in next step
     )
 
     $containerProperties = @(
@@ -337,7 +338,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'Skip'
         'SkippedCount'
         'Tests'
-        'Time'
+        'Time' # renamed to Duration in next step
         'Type' # needed because of nunit export path expansion
         'TotalCount'
     )
@@ -360,7 +361,8 @@ function Remove-RSpecNonPublicProperties ($run){
         'StandardOutput'
         'Tag'
         'Tests'
-        'Time'
+        'Time' # renamed to Duration in next step
+        'Type' # useful for processing of blocks
         'TotalCount'
     )
 
@@ -380,7 +382,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'Skipped'
         'StandardOutput'
         'Tag'
-        'Time'
+        'Time' # renamed to Duration in next step
     )
 
     Fold-Run $run -OnRun {
@@ -427,5 +429,72 @@ function Remove-RSpecNonPublicProperties ($run){
 
         $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
         $i.PsObject.Properties.Remove("Time")
+    }
+}
+
+function Expand-PesterObject {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $PesterResult,
+        [ScriptBlock] $OnIt = {},
+        [ScriptBlock] $OnDescribe = {},
+        [ScriptBlock] $OnContext = {},
+        [ScriptBlock] $OnDescribeAndContext = {},
+        [ScriptBlock] $OnContainer = {},
+        [ScriptBlock] $OnPesterResult = {},
+        $Accumulator
+    )
+
+    process {
+        foreach ($r in @($PesterResult)) {
+            if ($null -ne $OnPesterResult) {
+                & $OnPesterResult $r $Accumulator
+            }
+            foreach ($c in $r.Containers) {
+                if ($null -ne $OnContainer) {
+                    & $OnContainer $c $Accumulator
+                }
+                foreach ($b in $c.Blocks) {
+                    Expand-DescribeAndContext -Block $b -OnDescribeAndContext $OnDescribeAndContext -OnDescribe $OnDescribe -OnContext $OnContext -OnIt $OnIt -Accumulator $Accumulator
+                }
+            }
+        }
+    }
+}
+
+function Expand-DescribeAndContext {
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Block,
+        $OnDescribe,
+        $OnContext,
+        [Alias("OnBlock")]
+        $OnDescribeAndContext,
+        $OnIt,
+        $Accumulator
+    )
+
+    if ($null -ne $OnDescribeAndContext)
+    {
+        & $OnDescribeAndContext $Block $Accumulator
+    }
+
+    if ($null -ne $OnDescribe -and "Describe" -eq $Block.Type) {
+        & $OnDescribe $Block $Accumulator
+    }
+
+    if ($null -ne $OnContext -and "Context" -eq $Block.Type) {
+        & $OnContext $Block $Accumulator
+    }
+
+    foreach ($b in $Block.Blocks) {
+        Expand-DescribeAndContext -Block $b -OnDescribeAndContext $OnDescribeAndContext -OnDescribe $OnDescribe -OnContext $OnContext -OnIt $OnIt -Accumulator $Accumulator
+    }
+
+    if ($null -ne $OnIt) {
+        foreach ($i in $Block.Tests) {
+            & $OnIt $i $Accumulator
+        }
     }
 }

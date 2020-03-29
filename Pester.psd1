@@ -54,6 +54,7 @@
         'Export-NunitReport'
         'ConvertTo-NUnitReport'
         'ConvertTo-Pester4Result'
+        'Expand-PesterObject'
 
         # legacy
         'Assert-VerifiableMock'
@@ -72,6 +73,7 @@
     AliasesToExport   = @(
         'Add-AssertionOperator'
         'Get-AssertionOperator'
+        'ForEach-PesterObject'
     )
 
 

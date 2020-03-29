@@ -9,13 +9,6 @@ $ErrorActionPreference = 'Stop'
 # assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
 $ErrorView = "NormalView"
 $PsVersionTable
-
-"# Powershell $($PsVersionTable.PSVersion) by Group"
-Get-Verb
-
-"# Powershell $($PsVersionTable.PSVersion) by Verb"
-Get-Verb | Sort Verb
-
 Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
@@ -55,6 +48,7 @@ $global:PesterPreference = @{
         ShowNavigationMarkers = $true
     }
 }
+
 Get-Module Pester | Remove-Module
 Import-Module ./Pester.psd1
 $r = Invoke-Pester `

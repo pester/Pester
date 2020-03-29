@@ -1225,6 +1225,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 
 Set-Alias 'Add-AssertionOperator' 'Add-ShouldOperator'
 Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
+Set-Alias 'ForEach-PesterObject' 'Expand-PesterObject'
 
 
 & $script:SafeCommands['Export-ModuleMember'] @(
@@ -1254,6 +1255,7 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Export-NunitReport'
     'ConvertTo-NUnitReport'
     'ConvertTo-Pester4Result'
+    'Expand-PesterObject'
 
     # legacy
     'Assert-VerifiableMock'
@@ -1264,4 +1266,5 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
 ) -Alias @(
     'Add-AssertionOperator'
     'Get-AssertionOperator'
+    'ForEach-PesterObject'
 )
