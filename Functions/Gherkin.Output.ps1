@@ -659,7 +659,7 @@ function Write-GherkinReport {
         )
 
         $ScenarioSummaryData = foreach ($count in $ScenarioSummaryCounts) {
-            $null = $count -match '^(?<ScenarioCount>\d+) (?<Result>failed|undefined|skipped|pending|passed|scenarios \()'
+            $null = $count -match '^(?<ScenarioCount>\d+) (?<Result>failed|undefined|skipped|pending|passed|scenarios? \()'
             if ($Matches) {
                 switch ($Matches.Result) {
                     failed    { $Foreground = $Failure;                       break }
@@ -704,7 +704,7 @@ function Write-GherkinReport {
         )
 
         $StepSummaryData = foreach ($count in $StepSummaryCounts) {
-            $null = $count -match '^(?<StepCount>\d+) (?<Result>failed|undefined|skipped|pending|passed|steps \()'
+            $null = $count -match '^(?<StepCount>\d+) (?<Result>failed|undefined|skipped|pending|passed|steps? \()'
             switch ($Matches.Result) {
                 failed    { $Foreground    = $Failure;                       break }
                 undefined { $Foreground    = $Undefined;                     break }
