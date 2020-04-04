@@ -9,6 +9,41 @@
 
 Pester release candidate is finally here! 🥳 As the name suggests this release is close to final and most things that I wanted to get working actually work. 😊 This version is already stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own a larger project, please give it a try and report back.
 
+
+  - [What is new?](#what-is-new)
+    - [Discovery & Run](#discovery--run)
+      - [Put setup in BeforeAll](#put-setup-in-beforeall)
+      - [Review your usage of Skip](#review-your-usage-of-skip)
+      - [Review your usage of TestCases](#review-your-usage-of-testcases)
+    - [Tags](#tags)
+      - [Tags on everyting](#tags-on-everyting)
+      - [Tags use wildcards](#tags-use-wildcards)
+    - [Logging](#logging)
+    - [Run only what is needed](#run-only-what-is-needed)
+    - [Skip on everyting](#skip-on-everyting)
+    - [Collect all Should failures](#collect-all-should-failures)
+    - [Collecting `AfterEach` failures](#collecting-aftereach-failures)
+    - [Normal and minimal view](#normal-and-minimal-view)
+    - [New result object (and no -PassThru)](#new-result-object-and-no--passthru)
+    - [Simple and advanced interface](#simple-and-advanced-interface)
+      - [Simple interface](#simple-interface)
+      - [Advanced interface](#advanced-interface)
+    - [PesterPreference](#pesterpreference)
+    - [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall--afterall)
+    - [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach--aftereach)
+    - [Implicit parameters for TestCases](#implicit-parameters-for-testcases)
+    - [Mocking](#mocking)
+      - [Mocks are scoped based on their placement](#mocks-are-scoped-based-on-their-placement)
+      - [Counting mocks depends on placement](#counting-mocks-depends-on-placement)
+      - [Should -Invoke](#should--invoke)
+      - [Default parameters for ParameterFilter](#default-parameters-for-parameterfilter)
+      - [Internal Mock functions are hidden](#internal-mock-functions-are-hidden)
+      - [Avoid putting in InModuleScope around your Describe and It blocks](#avoid-putting-in-inmodulescope-around-your-describe-and-it-blocks)
+      - [Mocks don't work in top-level `BeforeAll`](#mocks-dont-work-in-top-level-beforeall)
+  - [Breaking changes](#breaking-changes)
+- [Questions?](#questions)
+
+
 ## What is new?
 
 > 🔥 Interested only in breaking changes? See [breaking changes](#breaking-changes) below.
