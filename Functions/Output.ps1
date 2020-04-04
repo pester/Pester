@@ -279,9 +279,9 @@ function Write-PesterResult {
                     }
                     else {
                         $TestResult.ErrorRecord |
-                        ConvertTo-FailureLines |
-                        ForEach-Object { $_.Message + $_.Trace } |
-                        ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^', $error_margin) }
+                            ConvertTo-FailureLines |
+                            ForEach-Object {$_.Message + $_.Trace} |
+                            ForEach-Object { & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($_ -replace '(?m)^', $error_margin) }
                     }
                     break
                 }
@@ -473,14 +473,7 @@ function ConvertTo-FailureLines {
             $exceptionName = $exception.GetType().Name
             $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
             if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed' -and $thisLines.Length -gt 0) {
-                # in powershell 7 format changed from
-                # <Exception Name>: <first message line>
-                # Parameter: <param name>
-                # <Inner Exception Name>: <first inner exn line>
-                # to:
-                # <Exception name>: <first message line> (Parameter '<param name>')
-                # <Inner Exception name>: <first inner exn line>
-                if (7 -le $PSVersionTable.PSVersion.Major) {
+                if ($thisLines[0] -match '(?n)\(Parameter ''(?<param>[^'']+)''\)$') {
                     $thisLines = @(
                         "$exceptionName`: $($thisLines[0] -replace '\s*\(Parameter ''[^'']+''\)$')"
                         "Parameter name: $($Matches.param)"
@@ -552,8 +545,8 @@ function ConvertTo-FailureLines {
         }
         else {
             $lines.Trace += $traceLines |
-            & $SafeCommands['Select-Object'] -First $count |
-            & $SafeCommands['Where-Object'] {
+                & $SafeCommands['Select-Object'] -First $count |
+                & $SafeCommands['Where-Object'] {
                 $_ -notmatch $pattern2 -and
                 $_ -notmatch $pattern3 -and
                 $_ -notmatch $pattern4 -and
