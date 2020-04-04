@@ -47,7 +47,6 @@ Pester release candidate is finally here! 🥳 As the name suggests this release
 - [Questions?](#questions)
 
 
-
 ## What is new?
 
 > 🔥 Interested only in breaking changes? See [breaking changes](#breaking-changes) below.
