@@ -40,8 +40,12 @@ Pester release candidate is finally here! 🥳 As the name suggests this release
       - [Internal Mock functions are hidden](#internal-mock-functions-are-hidden)
       - [Avoid putting in InModuleScope around your Describe and It blocks](#avoid-putting-in-inmodulescope-around-your-describe-and-it-blocks)
       - [Mocks don't work in top-level `BeforeAll`](#mocks-dont-work-in-top-level-beforeall)
+    - [VSCode improvements](#vscode-improvements)
+      - [Use legacy code lens](#use-legacy-code-lens)
+      - [Output verbosity](#output-verbosity)
   - [Breaking changes](#breaking-changes)
 - [Questions?](#questions)
+
 
 
 ## What is new?
@@ -711,6 +715,19 @@ When Pester generates the mock bootstrap function it produces a command info obj
 
 Defining mock on the top and using it in a child block does not work.
 
+### VSCode improvements
+
+With Pester 5 it is finally possible to run just a single Pester test in VSCode!
+
+#### Use legacy code lens
+
+In the latest PowerShell Preview extension for VSCode you can enable Use Legacy Code Lens option which will enable `Run tests` on all `Describe`, `Context` and `It` blocks. You can run a whole block, any child block, or any test individually. You can also run tests that are marked as skipped by running them individually.
+
+Actually there is a bug, and the option is called Enable Legacy Code Lens, and is enabled by default and can't be disabled. 😁 Take advantage of this and go try it right now!
+
+#### Output verbosity
+
+You can specify verbosity in VSCode, to see normal or minimal output, or to take it from PesterPreference. This also works for Pester 4!
 
 ## Breaking changes
 
