@@ -2,7 +2,7 @@
 
 > 🐛 This is branch is pre-release, but pretty close to stable, please give it a try.
 
-> 💵 I am spending most of my weekends making this happen. These release notes for example took almost a whole day. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
+> 💵 I am spending most of my weekends making this happen. These release notes for example took ~almost~ a whole day. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
 
 > 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218), or see more options in [Questions?](#questions).
 
