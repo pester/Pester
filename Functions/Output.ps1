@@ -473,7 +473,16 @@ function ConvertTo-FailureLines {
             $exceptionName = $exception.GetType().Name
             $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine), "\n", "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
             if ($ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed' -and $thisLines.Length -gt 0) {
-                $thisLines[0] = "$exceptionName`: $($thisLines[0])"
+                if ($thisLines[0] -match '(?n)\(Parameter ''(?<param>[^'']+)''\)$') {
+                    $thisLines = @(
+                        "$exceptionName`: $($thisLines[0] -replace '\s*\(Parameter ''[^'']+''\)$')"
+                        "Parameter name: $($Matches.param)"
+                        for ($i = 1; $i -lt $thisLines.Length; $i++) { $thisLines[$i] }
+                    )
+                }
+                else {
+                    $thisLines[0] = "$exceptionName`: $($thisLines[0])"
+                }
             }
             [array]::Reverse($thisLines)
             $exceptionLines += $thisLines
