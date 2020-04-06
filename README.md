@@ -423,6 +423,8 @@ Tests Passed: 4, Failed: 2, Skipped: 0, Total: 6, NotRun: 0
 
 ### New result object (and no -PassThru)
 
+> 🌵 Correction, removing this param will probably be reverted, as it turned out to be annoying in interactive runs, see [issue](https://github.com/pester/Pester/issues/1480). 
+
 There is no `-PassThru` switch anymore, the output object is by default piped into the pipeline. The result object is extremely rich, and used by Pester internally to make all of its decisions. Most of the information in the tree is unprocessed to allow you to to work with the raw data. You are welcome to inspect the object, but don't rely on it yet. Some of the properties will be renamed.
 
 To use your current CI pipeline with the new object use `ConvertTo-Pester4Result` to convert it. To convert the new object to NUnit report use `ConvertTo-NUnitReport` or specify the `-CI` switch to enable NUnit output, code coverage and exit.
@@ -740,7 +742,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - `Assert-VerifiableMocks` was removed, `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
 - `Set-ItResult` is published but does not work
 - Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
-- Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
+- Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru), `-PassThru` is removed (but will probably return soon), see [passthru](#new-result-object-and-no--passthru)
 - The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - `$MyInvocation.MyCommand` does not work in top-level `BeforeAll`, use `$PSScriptRoot` or `$PSCommandPath`
 - PowerShell 2 is no longer supported
