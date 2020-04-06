@@ -716,9 +716,11 @@ Defining mock on the top and using it in a child block does not work.
 
 ### VSCode improvements
 
-With Pester 5 it is finally possible to run just a single Pester test in VSCode!
-
 #### Use legacy code lens
+
+With Pester 5 it is finally possible to run and debuge just a single test in VSCode!
+
+![Shows a single test being run using the new Code Lense](images/readme/single-test.gif)
 
 In the latest PowerShell Preview extension for VSCode you can enable Use Legacy Code Lens option which will enable `Run tests` on all `Describe`, `Context` and `It` blocks. You can run a whole block, any child block, or any test individually. You can also run tests that are marked as skipped by running them individually.
 
@@ -727,6 +729,9 @@ Actually there is a bug, and the option is called Enable Legacy Code Lens, and i
 #### Output verbosity
 
 You can specify verbosity in VSCode, to see normal or minimal output, or to take it from PesterPreference. This also works for Pester 4!
+
+![Shows a run with minimal preference that shows only errors](images/readme/minimal-output.gif)
+
 
 ## Breaking changes
 
