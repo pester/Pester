@@ -730,11 +730,12 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 
 ## Breaking changes
 
+- Legacy syntax `Should Be` (without `-`) is removed, see [Migrating from Pester v3 to v4](https://pester.dev/docs/migrations/v3-to-v4)
 - Mocks are scoped based on their placement, not in whole `Describe` / `Context`. The count also depends on their placement. See [mock scoping](#mocks-are-scoped-based-on-their-placement)
-- `Assert-VerifiableMocks` was removed
+- `Assert-VerifiableMocks` was removed, `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
 - `Set-ItResult` is published but does not work
-- Inconclusive and Pending states are not available
-- Output object has changed significantly, there is adapater function that might not be 100% compatible
+- Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
+- Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
 - The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - `$MyInvocation.MyCommand` does not work in top-level `BeforeAll`, use `$PSScriptRoot` or `$PSCommandPath`
 - PowerShell 2 is no longer supported
@@ -742,8 +743,12 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
 - Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.
-- Mocks and Discovery are slow
+- Mocks and Discovery are slow (whole execution is about 40% slower than on v4)
 - Running on huge codebases is largely untested
+- `-Output` parameter has reduced options to `None`, `Minimal` and `All`, `-Show` alias is removed
+- `-PesterOption` switch is removed
+- `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
+- Documentation is out of date for all commands
 - Noticed more of them? Share please!
 
 
