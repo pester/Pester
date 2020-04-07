@@ -41,7 +41,7 @@ function Invoke-GherkinHook {
                     foreach ($testTag in $Tags) {
                         if ($testTag -match "^($hookTag)$") {
                             & $GherkinHook.Script $Name
-                            break :tags
+                            break tags
                         }
                     }
                 }
