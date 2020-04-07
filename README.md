@@ -757,6 +757,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
 - Documentation is out of date for all commands
 - `-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements)
+- Providing parameters to test scripts is not implemented, see [parametric scripts](https://github.com/pester/Pester/issues/1485)
 - Noticed more of them? Share please!
 
 
