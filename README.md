@@ -750,6 +750,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
 - `-Output` parameter has reduced options to `None`, `Minimal` and `All`, `-Show` alias is removed
 - `-PesterOption` switch is removed
+- `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables parametrized scripts are not implemented at the moment, which should be solved in 5.1
 
 
 ### Deprecated features
