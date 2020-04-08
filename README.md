@@ -9,42 +9,45 @@
 
 Pester release candidate is finally here! 🥳 As the name suggests this release is close to final and most things that I wanted to get working actually work. 😊 This version is already stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own a larger project, please give it a try and report back.
 
-
-  - [What is new?](#what-is-new)
-    - [Discovery & Run](#discovery--run)
+  * [What is new?](#what-is-new-)
+    + [Discovery & Run](#discovery---run)
       - [Put setup in BeforeAll](#put-setup-in-beforeall)
       - [Review your usage of Skip](#review-your-usage-of-skip)
       - [Review your usage of TestCases](#review-your-usage-of-testcases)
-    - [Tags](#tags)
+    + [Tags](#tags)
       - [Tags on everyting](#tags-on-everyting)
       - [Tags use wildcards](#tags-use-wildcards)
-    - [Logging](#logging)
-    - [Run only what is needed](#run-only-what-is-needed)
-    - [Skip on everyting](#skip-on-everyting)
-    - [Collect all Should failures](#collect-all-should-failures)
-    - [Collecting `AfterEach` failures](#collecting-aftereach-failures)
-    - [Normal and minimal view](#normal-and-minimal-view)
-    - [New result object (and no -PassThru)](#new-result-object-and-no--passthru)
-    - [Simple and advanced interface](#simple-and-advanced-interface)
+    + [Logging](#logging)
+    + [Run only what is needed](#run-only-what-is-needed)
+    + [Skip on everyting](#skip-on-everyting)
+    + [Collect all Should failures](#collect-all-should-failures)
+    + [Collecting `AfterEach` failures](#collecting--aftereach--failures)
+    + [Normal and minimal view](#normal-and-minimal-view)
+    + [New result object (and no -PassThru)](#new-result-object--and-no--passthru-)
+    + [Simple and advanced interface](#simple-and-advanced-interface)
       - [Simple interface](#simple-interface)
       - [Advanced interface](#advanced-interface)
-    - [PesterPreference](#pesterpreference)
-    - [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall--afterall)
-    - [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach--aftereach)
-    - [Implicit parameters for TestCases](#implicit-parameters-for-testcases)
-    - [Mocking](#mocking)
+    + [PesterPreference](#pesterpreference)
+    + [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall---afterall)
+    + [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach---aftereach)
+    + [Implicit parameters for TestCases](#implicit-parameters-for-testcases)
+    + [Mocking](#mocking)
       - [Mocks are scoped based on their placement](#mocks-are-scoped-based-on-their-placement)
       - [Counting mocks depends on placement](#counting-mocks-depends-on-placement)
       - [Should -Invoke](#should--invoke)
       - [Default parameters for ParameterFilter](#default-parameters-for-parameterfilter)
       - [Internal Mock functions are hidden](#internal-mock-functions-are-hidden)
       - [Avoid putting in InModuleScope around your Describe and It blocks](#avoid-putting-in-inmodulescope-around-your-describe-and-it-blocks)
-      - [Mocks don't work in top-level `BeforeAll`](#mocks-dont-work-in-top-level-beforeall)
-    - [VSCode improvements](#vscode-improvements)
+      - [Mocks don't work in top-level `BeforeAll`](#mocks-don-t-work-in-top-level--beforeall-)
+    + [VSCode improvements](#vscode-improvements)
       - [Use legacy code lens](#use-legacy-code-lens)
       - [Output verbosity](#output-verbosity)
-  - [Breaking changes](#breaking-changes)
-- [Questions?](#questions)
+  * [Breaking changes](#breaking-changes)
+    + [Actual breaking changes](#actual-breaking-changes)
+    + [Deprecated features](#deprecated-features)
+    + [Known issues to be solved in 5.0](#known-issues-to-be-solved-in-50)
+    + [Known issues to be solved in 5.1](#known-issues-to-be-solved-in-51)
+- [Questions?](#questions-)
 
 
 ## What is new?
@@ -423,7 +426,7 @@ Tests Passed: 4, Failed: 2, Skipped: 0, Total: 6, NotRun: 0
 
 ### New result object (and no -PassThru)
 
-> 🌵 Correction, removing this param will probably be reverted, as it turned out to be annoying in interactive runs, see [issue](https://github.com/pester/Pester/issues/1480). 
+> 🌵 Correction, removing this param will probably be reverted, as it turned out to be annoying in interactive runs, see [issue](https://github.com/pester/Pester/issues/1480).
 
 There is no `-PassThru` switch anymore, the output object is by default piped into the pipeline. The result object is extremely rich, and used by Pester internally to make all of its decisions. Most of the information in the tree is unprocessed to allow you to to work with the raw data. You are welcome to inspect the object, but don't rely on it yet. Some of the properties will be renamed.
 
@@ -737,27 +740,41 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 
 ## Breaking changes
 
+### Actual breaking changes
 - Legacy syntax `Should Be` (without `-`) is removed, see [Migrating from Pester v3 to v4](https://pester.dev/docs/migrations/v3-to-v4)
 - Mocks are scoped based on their placement, not in whole `Describe` / `Context`. The count also depends on their placement. See [mock scoping](#mocks-are-scoped-based-on-their-placement)
-- `Assert-VerifiableMocks` was removed, `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
-- `Set-ItResult` is published but does not work
-- Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
-- Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru), `-PassThru` is removed (but will probably return soon), see [passthru](#new-result-object-and-no--passthru)
+- `Assert-VerifiableMocks` was removed, see [Should -Invoke](#should--invoke)
 - The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - `$MyInvocation.MyCommand` does not work in top-level `BeforeAll`, use `$PSScriptRoot` or `$PSCommandPath`
 - PowerShell 2 is no longer supported
 - All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
+- `-Output` parameter has reduced options to `None`, `Minimal` and `All`, `-Show` alias is removed
+- `-PesterOption` switch is removed
+
+
+### Deprecated features
+-  `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
+
+### Known issues to be solved in 5.0
+- Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
+- `-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru), but it will be added again, not outputting the result object by default as in v4
+- `-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`
+- Name filter in the advanced object is broken
+- Providing optional values via PesterConfiguration fails with null reference exception
+
+### Known issues to be solved in 5.1
+- `Set-ItResult` is published but does not work
+- Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
 - Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.
 - Mocks and Discovery are slow (whole execution is about 40% slower than on v4)
 - Running on huge codebases is largely untested
-- `-Output` parameter has reduced options to `None`, `Minimal` and `All`, `-Show` alias is removed
-- `-PesterOption` switch is removed
 - `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
 - Documentation is out of date for all commands
-- `-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements)
 - Providing parameters to test scripts is not implemented, see [parametric scripts](https://github.com/pester/Pester/issues/1485)
+
+
 - Noticed more of them? Share please!
 
 
