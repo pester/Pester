@@ -13,9 +13,9 @@ build: off
 test_script:
   - ps: |
       if ( $env:PSEdition -eq 'Desktop' ) {
-      ./test.ps1 -ci }
+      ./test.ps1 -ci -passThru }
       # (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
   - pwsh: |
       if ( $env:PSEdition -eq 'Core' ) {
-      ./test.ps1 -ci }
+      ./test.ps1 -ci -passThru }
       # (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/nunit/${env:APPVEYOR_JOB_ID}", (Join-Path $PWD 'TestResults.xml')) }
