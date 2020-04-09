@@ -31,7 +31,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
         }
@@ -51,7 +51,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
             $actual.Containers[0].Blocks[0].Tests[1].StandardOutput | Verify-Equal "real"
@@ -75,7 +75,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
             $actual.Containers[0].Blocks[0].Tests[1].StandardOutput | Verify-Equal "mock"
@@ -102,7 +102,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
             $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
@@ -128,7 +128,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
             $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
@@ -156,7 +156,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
             $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
             $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
@@ -185,7 +185,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal 'mock'
         }
@@ -214,7 +214,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $actual.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
             $actual.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
@@ -262,7 +262,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
             $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
         }
     }
@@ -284,7 +284,7 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb }
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
                 Should = @{ ErrorAction = 'Continue' }
             })
 

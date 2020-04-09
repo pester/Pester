@@ -25,7 +25,7 @@ i -PassThru:$PassThru {
                     It "no tag" { }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ Tag = "t" } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "t" } })
 
             $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
         }
@@ -37,7 +37,7 @@ i -PassThru:$PassThru {
                     It "no tag" { }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ Tag = "t" } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "t" } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
@@ -54,7 +54,7 @@ i -PassThru:$PassThru {
                     It "no tag" { }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ Tag = "t" } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
@@ -71,7 +71,7 @@ i -PassThru:$PassThru {
                     It "no tag" { }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ ExcludeTag = "t" } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
@@ -88,7 +88,7 @@ i -PassThru:$PassThru {
                     It "no tag" { }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ ExcludeTag = "t" } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
@@ -105,7 +105,7 @@ i -PassThru:$PassThru {
                     It "no tag" { }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Filter = @{ ExcludeTag = "t" } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "t" } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
@@ -127,7 +127,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Output.Verbosity = 'None'
-            $configuration.Run = @{ ScriptBlock = $sb }
+            $configuration.Run = @{ ScriptBlock = $sb; PassThru = $true }
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
 
@@ -150,7 +150,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Output.Verbosity = 'None'
-            $configuration.Run = @{ ScriptBlock = $sb }
+            $configuration.Run = @{ ScriptBlock = $sb; PassThru = $true }
             $configuration.Filter = @{ Line = "${PSCommandPath}:$($sb.StartPosition.StartLine+4)" }
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
@@ -178,7 +178,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Output.Verbosity = 'None'
-            $configuration.Run = @{ ScriptBlock = $sb }
+            $configuration.Run = @{ ScriptBlock = $sb; PassThru = $true }
             $configuration.Filter = @{ Line = "${PSCommandPath}:$($sb.StartPosition.StartLine+2)" }
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
@@ -203,7 +203,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Output.Verbosity = 'None'
-            $configuration.Run = @{ ScriptBlock = $sb }
+            $configuration.Run = @{ ScriptBlock = $sb; PassThru = $true }
             $configuration.Filter = @{ Line = "${PSCommandPath}:$($sb.StartPosition.StartLine+2)" }
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"

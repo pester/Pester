@@ -62,7 +62,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -79,7 +79,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -110,7 +110,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -137,7 +137,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestResult = $xmlResult.'test-results'
@@ -159,7 +159,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestResult = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
@@ -185,7 +185,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
@@ -205,7 +205,7 @@ i -PassThru:$PassThru {
 
         t "should write the environment information" {
             $sb = { }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlEnvironment = $xmlResult.'test-results'.'environment'
@@ -232,7 +232,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
@@ -252,7 +252,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
@@ -276,7 +276,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
@@ -320,7 +320,7 @@ i -PassThru:$PassThru {
                         }
                     }
                 })
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb }; Output = @{ Verbosity = 'None' } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = ConvertTo-NUnitReport $r
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]

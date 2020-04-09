@@ -56,6 +56,7 @@ i -PassThru:$PassThru {
         t "Flaky test will not run even though parent acceptance tests are included" {
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Filter.Tag = "Acceptance"
             $configuration.Filter.ExcludeTag = "Flaky", "Slow", "LinuxOnly"
             $configuration.Debug.WriteDebugMessages = $true
@@ -81,6 +82,7 @@ i -PassThru:$PassThru {
         t "Running unit tests that are not linux only" {
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Filter.ExcludeTag = "Accept*", "*nuxOnly"
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
@@ -120,6 +122,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Filter.ExcludeTag = "Acceptance"
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
@@ -164,6 +167,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Filter.ExcludeTag = "Acceptance"
             $configuration.Debug.WriteDebugMessages = $true
             $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
@@ -201,6 +205,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $r = Invoke-Pester -Configuration $configuration
 
             $err = $r.Containers[0].Blocks[0].Tests[0].ErrorRecord
@@ -218,6 +223,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Should.ErrorAction = 'Continue'
             $r = Invoke-Pester -Configuration $configuration
 
@@ -233,6 +239,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Should.ErrorAction = 'Continue'
             $r = Invoke-Pester -Configuration $configuration
 
@@ -262,6 +269,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $r = Invoke-Pester -Configuration $configuration
 
             $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.Count | Verify-Equal 2
@@ -303,6 +311,7 @@ i -PassThru:$PassThru {
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
+            $configuration.Run.PassThru = $true
             $configuration.Output.Verbosity = "normal"
             $r = Invoke-Pester -Configuration $configuration
 

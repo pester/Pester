@@ -65,7 +65,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
             $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
@@ -86,7 +86,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
             $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 30
@@ -115,7 +115,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
             $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 60
@@ -171,7 +171,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $null = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $null = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $container.InBeforeAll | Verify-Equal $container.InScript
         }`
@@ -192,7 +192,7 @@ i -PassThru:$PassThru {
 
             t "Running without any params runs all files from the local folder" {
 
-                $result = Invoke-Pester
+                $result = Invoke-Pester -PassThru
 
                 $result.Containers.Count | Verify-Equal 2
                 $result.Containers[0].Path.FullName | Verify-Equal $file1
@@ -200,7 +200,7 @@ i -PassThru:$PassThru {
             }
 
             t "Running tests from Paths runs them" {
-                $result = Invoke-Pester -Path $file1, $file2
+                $result = Invoke-Pester -Path $file1, $file2 -PassThru
 
                 $result.Containers.Count | Verify-Equal 2
                 $result.Containers[0].Path.FullName | Verify-Equal $file1
@@ -208,36 +208,43 @@ i -PassThru:$PassThru {
             }
 
             t "Exluding full path excludes it tests from Paths runs them" {
-                $result = Invoke-Pester -Path $file1, $file2 -ExcludePath $file2
+                $result = Invoke-Pester -Path $file1, $file2 -ExcludePath $file2 -PassThru
 
                 $result.Containers.Count | Verify-Equal 1
                 $result.Containers[0].Path | Verify-Equal $file1
             }
 
             t "Including tag runs just the test with that tag" {
-                $result = Invoke-Pester -Path $file1 -Tag i1
+                $result = Invoke-Pester -Path $file1 -Tag i1 -PassThru
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
                 $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-False
             }
 
             t "Excluding tag skips the test with that tag" {
-                $result = Invoke-Pester -Path $file1 -ExcludeTag i1
+                $result = Invoke-Pester -Path $file1 -ExcludeTag i1 -PassThru
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
                 $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-True
             }
 
             t "Scriptblock invokes inlined test" {
-                $result = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ Path = $file1 ; ScriptBlock = { Describe "d1" { It "i1" { $true } } } } })
+                $configuration = [PesterConfiguration]@{
+                    Run = @{
+                        Path = $file1
+                        ScriptBlock = { Describe "d1" { It "i1" { $true } } }
+                        PassThru = $true
+                    }
+                }
 
+                $result = Invoke-Pester -Configuration $configuration
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
             }
 
-            t "Result object is output by default" {
+            t "Result object is not output by default" {
                 $result = Invoke-Pester -Path $file1
 
-                $result | Verify-NotNull
+                $result | Verify-Null
             }
 
             # t "CI generates code coverage and xml output" {
@@ -284,7 +291,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -308,7 +315,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -331,7 +338,7 @@ i -PassThru:$PassThru {
                 }
             }
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb }
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
                 Should = @{ ErrorAction = 'Continue' }
             })
 
@@ -356,7 +363,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test | Verify-NotNull
@@ -378,7 +385,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
 
             $test = $r.Containers[0].Blocks[0].Tests[0]
@@ -404,7 +411,7 @@ i -PassThru:$PassThru {
                 }
             }
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb }
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
                 Should = @{ ErrorAction = 'Continue' }
             })
 
@@ -431,7 +438,7 @@ i -PassThru:$PassThru {
                 }
             }
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb }
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
                 Should = @{ ErrorAction = 'Continue' }
             })
 
@@ -458,7 +465,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
@@ -471,7 +478,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
@@ -484,7 +491,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
@@ -501,7 +508,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb } })
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
 
             $r.Containers[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }

@@ -21,5 +21,5 @@ matrix:
             - powershell
 
 script:
-  - pwsh -c "./test.ps1 -ci"
+  - pwsh -c "./test.ps1 -ci -passThru"
 
