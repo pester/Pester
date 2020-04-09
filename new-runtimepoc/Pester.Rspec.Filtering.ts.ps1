@@ -31,7 +31,7 @@ i -PassThru:$PassThru {
         }
 
         t "Running tests with tag 't' will run all tests in the tagged describe" {
-            $sb =  {
+            $sb = {
                 Describe "a" -Tag "t" {
                     It "b" -Tag "b", "c" { }
                     It "no tag" { }
@@ -119,7 +119,7 @@ i -PassThru:$PassThru {
                 Describe "a" {
                     Describe "b" {
                         It "b" { }
-                        It "skipped" {} -Skip
+                        It "skipped" { } -Skip
                     }
                     It "no tag" { }
                 }
@@ -142,7 +142,7 @@ i -PassThru:$PassThru {
                 Describe "a" {
                     Describe "b" {
                         It "b" { }
-                        It "skipped" {} -Skip
+                        It "skipped" { } -Skip
                     }
                     It "no tag" { }
                 }
@@ -166,7 +166,7 @@ i -PassThru:$PassThru {
                 Describe "a" {
                     Describe "b" -Skip {
                         It "b" { }
-                        It "skipped" {} -Skip
+                        It "skipped" { } -Skip
                     }
 
                     Describe "d" -Skip {
@@ -194,8 +194,8 @@ i -PassThru:$PassThru {
             $sb = {
                 Describe "a" {
                     Describe "b" {
-                        It "b"{ }
-                        It "skipped" {} -Skip
+                        It "b" { }
+                        It "skipped" { } -Skip
                     }
                     It "no tag" { }
                 }
@@ -212,6 +212,28 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Blocks[0].Tests[1].Result | Verify-Equal "Skipped"
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
+        }
+    }
+
+    b "filtering based on full name" {
+        t "Including test by name will run it" {
+            $sb = {
+                Describe "a" {
+                    It "b" { }
+                    It "c" { }
+                }
+            }
+
+            $configuration = [PesterConfiguration]::Default
+            $configuration.Output.Verbosity = 'None'
+            $configuration.Run = @{ ScriptBlock = $sb; PassThru = $true }
+            $configuration.Filter = @{ FullName = "*b" }
+            $configuration.Debug.WriteDebugMessages = $true
+            $configuration.Debug.WriteDebugMessagesFrom = "*Filter"
+
+            $r = Invoke-Pester -Configuration $configuration
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
         }
     }
 }
