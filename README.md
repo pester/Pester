@@ -758,13 +758,14 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 
 ### Known issues to be solved in 5.0
 - Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
-- `-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru), but it will be added again, not outputting the result object by default as in v4
+- ❗ Fixed. Will ship in 5.0. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
 - `-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`
 - Name filter in the advanced object is broken
 - Providing optional values via PesterConfiguration fails with null reference exception
 
 ### Known issues to be solved in 5.1
 - `Set-ItResult` is published but does not work
+- `-Strict` switch is not available
 - Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
