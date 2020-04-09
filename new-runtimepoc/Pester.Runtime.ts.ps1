@@ -1984,7 +1984,7 @@ i -PassThru:$PassThru {
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
 
-        t "total time is roughly the same as time measured externally (on many tests)" {
+        dt "total time is roughly the same as time measured externally (on many tests)" {
             # this is the same as above, if I add one time setups then the framework time should grow
             # but not the user code time
             $container = @{
@@ -1994,17 +1994,20 @@ i -PassThru:$PassThru {
                 Result = $null
             }
 
+            $cs = 1..2
             $bs = 1..10
             $ts = 1..10
-            $container.Total = Measure-Command {
-                $container.Result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                    New-BlockContainerObject -ScriptBlock {
-                        foreach ($b in $bs) {
 
-                            New-Block -Name "b$b" {
-                                foreach ($t in $ts) {
-                                    New-Test "b$b-t$t" {
-                                        $true | Verify-True
+            $container.Total = Measure-Command {
+                $container.Result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer $(
+                    foreach ($c in $cs) {
+                        New-BlockContainerObject -ScriptBlock {
+                            foreach ($b in $bs) {
+                                New-Block -Name "b$b" {
+                                    foreach ($t in $ts) {
+                                        New-Test "b$b-t$t" {
+                                            $true | Verify-True
+                                        }
                                     }
                                 }
                             }
@@ -2015,15 +2018,19 @@ i -PassThru:$PassThru {
 
             $actual = $container.Result
 
-            $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
+
+            $actualDuration = $actual.Duration | % { $t = [timespan]::zero } { $t += $_ } { $t }
+            $actualFrameworkDuration = $actual.FrameworkDuration | % { $t = [timespan]::zero } { $t += $_ } { $t }
+            $actualDiscoveryDuration = $actual.DiscoveryDuration | % { $t = [timespan]::zero } { $t += $_ } { $t }
+            $totalReported = $actualDuration + $actualFrameworkDuration + $actualDiscoveryDuration
             $totalDifference = $container.Total - $totalReported
-            $testCount = $bs.Count * $ts.Count
+            $testCount = $cs.Count * $bs.Count * $ts.Count
             Write-Host Test count $testCount
             Write-Host Per test $([int]($container.Total.TotalMilliseconds / $testCount)) ms
-            Write-Host Per test without discovery $([int](($actual.Duration + $actual.FrameworkDuration).TotalMilliseconds / $testCount)) ms
-            Write-Host Reported discovery duration $actual.DiscoveryDuration.TotalMilliseconds ms
-            Write-Host Reported total duration $actual.Duration.TotalMilliseconds ms
-            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds ms
+            Write-Host Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount)) ms
+            Write-Host Reported discovery duration $actualDiscoveryDuration.TotalMilliseconds ms
+            Write-Host Reported total duration $actualDuration.TotalMilliseconds ms
+            Write-Host Reported total overhead $actualFrameworkDuration.TotalMilliseconds ms
             Write-Host Reported total $totalReported.TotalMilliseconds ms
             Write-Host Measured total $container.Total.TotalMilliseconds ms
             Write-Host Total difference $totalDifference.TotalMilliseconds ms

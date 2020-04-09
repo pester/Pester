@@ -127,6 +127,7 @@ i -PassThru:$PassThru {
                     Run = @{
                         ScriptBlock = $sb
                         Path = $file1.Path
+                        PassThru = $true
                     }
                     Filter = @{ ExcludeTag = "Slow" }
                     Output = @{ Verbosity = "None" }
@@ -195,6 +196,7 @@ i -PassThru:$PassThru {
             $result = Invoke-Pester -Configuration @{
                 Run = @{
                     ScriptBlock = $sb
+                    PassThru = $true
                 }
                 Output = @{ Verbosity = "None" }
             }
@@ -267,6 +269,7 @@ i -PassThru:$PassThru {
             $result = Invoke-Pester -Configuration @{
                 Run = @{
                     ScriptBlock = $sb
+                    PassThru = $true
                 }
                 Filter = @{
                     ExcludeTag = "a"

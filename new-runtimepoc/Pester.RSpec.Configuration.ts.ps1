@@ -255,6 +255,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration]@{
                 Run = @{
                     Path = $container1, $container2
+                    PassThru = $true
                 }
                 Output = @{
                     Verbosity = 'None'
@@ -270,6 +271,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration]@{
                 Run = @{
                     Path = "$PSScriptRoot/TestProjects/BasicTests"
+                    PassThru = $true
                 }
                 Filter = @{
                     ExcludeTag = 'Slow'
@@ -294,6 +296,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration]@{
                 Run = @{
                     Path = "$PSScriptRoot/TestProjects/BasicTests"
+                    PassThru = $true
                 }
                 Filter = @{
                     Line = "$PSScriptRoot/TestProjects/BasicTests/folder1/file1.Tests.ps1:6"
@@ -314,6 +317,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration]@{
                 Run = @{
                     Path = "$PSScriptRoot/TestProjects/BasicTests"
+                    PassThru = $true
                 }
                 Filter = @{
                     Line = "$PSScriptRoot/TestProjects/BasicTests/folder1/file1.Tests.ps1:1"
@@ -349,6 +353,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run = @{
                     ScriptBlock = $sb
+                    PassThru = $true
                 }
             }
 

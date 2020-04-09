@@ -780,11 +780,12 @@ namespace Pester
 
     public class RunConfiguration : ConfigurationSection
     {
-        private BoolOption _exit;
         private StringArrayOption _path;
         private StringArrayOption _excludePath;
         private ScriptBlockArrayOption _scriptBlock;
         private StringOption _testExtension;
+        private BoolOption _exit;
+        private BoolOption _passThru;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -796,37 +797,23 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludePath = configuration.GetArrayOrNull<string>("ExcludePath") ?? ExcludePath;
                 ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>("ScriptBlock") ?? ScriptBlock;
                 TestExtension = configuration.GetObjectOrNull<string>("TestExtension") ?? TestExtension;
+                Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
+                PassThru = configuration.GetValueOrNull<bool>("PassThru") ?? PassThru;
             }
         }
 
         public RunConfiguration() : base("Run configuration.")
         {
-            Exit = new BoolOption("Exit with non-zero exit code when the test run fails.", false);
             Path = new StringArrayOption("Directories to be searched for tests, paths directly to test files, or combination of both.", new string[] { "." });
             ExcludePath = new StringArrayOption("Directories or files to be excluded from the run.", new string[0]);
             ScriptBlock = new ScriptBlockArrayOption("ScriptBlocks containing tests to be executed.", new ScriptBlock[0]);
             TestExtension = new StringOption("Filter used to identify test files.", ".Tests.ps1");
-        }
-
-        public BoolOption Exit
-        {
-            get { return _exit; }
-            set
-            {
-                if (_exit == null)
-                {
-                    _exit = value;
-                }
-                else
-                {
-                    _exit = new BoolOption(_exit, value.Value);
-                }
-            }
+            Exit = new BoolOption("Exit with non-zero exit code when the test run fails.", false);
+            PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
         }
 
         public StringArrayOption Path
@@ -889,6 +876,38 @@ namespace Pester
                 else
                 {
                     _testExtension = new StringOption(_testExtension, value.Value);
+                }
+            }
+        }
+
+        public BoolOption Exit
+        {
+            get { return _exit; }
+            set
+            {
+                if (_exit == null)
+                {
+                    _exit = value;
+                }
+                else
+                {
+                    _exit = new BoolOption(_exit, value.Value);
+                }
+            }
+        }
+
+        public BoolOption PassThru
+        {
+            get { return _passThru; }
+            set
+            {
+                if (_passThru == null)
+                {
+                    _passThru = value;
+                }
+                else
+                {
+                    _passThru = new BoolOption(_passThru, value.Value);
                 }
             }
         }
