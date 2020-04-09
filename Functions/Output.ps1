@@ -436,7 +436,7 @@ function ConvertTo-HumanTime {
         "$([int]($TimeSpan.TotalMilliseconds))ms"
     }
     else {
-        "$([int]($TimeSpan.TotalSeconds))s"
+        "$([math]::round($TimeSpan.TotalSeconds ,2))s"
     }
 }
 

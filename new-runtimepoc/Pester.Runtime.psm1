@@ -212,34 +212,9 @@ function New-Block {
 
     $previousBlock = Get-CurrentBlock
 
-    if (-not $previousBlock.FrameworkData.ContainsKey("PreviouslyGeneratedBlocks")) {
-        $previousBlock.FrameworkData.Add("PreviouslyGeneratedBlocks", @{ })
-    }
-    $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
-    $Id = if (-not $hasExternalId) {
-        $previouslyGeneratedBlocks = $previousBlock.FrameworkData.PreviouslyGeneratedBlocks
-        Get-Id -ScriptBlock $ScriptBlock -Previous $previouslyGeneratedBlocks
-    }
-    else {
-        $Id
-    }
-
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
     }
-
-    # the tests are identified based on the start position of their script block
-    # so in case user generates tests (typically from foreach loop)
-    # we are not able to distinguish between test generated during first iteration of the
-    # loop and second iteration of the loop. this is not a problem for the discovery, but it
-    # is problem for the run, because then we get ambiguous reference to a test
-    # to avoid forcing the user to provide the id in cases where the list of things is the same
-    # between discovery and run, we look at the latest test in this block and if it comes from the same
-    # line we add one to the counter and use that as an implicit Id.
-    # and since there can be multiple tests in the foreach, we add one item per test, and key
-    # them by the position
-    # TODO: in the new-new-runtime we should be able to remove this because the invocation will be sequential
-    $FrameworkData.Add("PreviouslyGeneratedTests", @{ })
 
     $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id -Skip:$Skip
     # we attach the current block to the parent
@@ -279,18 +254,6 @@ function Invoke-Block ($previousBlock) {
         }
         else {
             $block = $item
-            if (-not $previousBlock.FrameworkData.ContainsKey("PreviouslyGeneratedBlocks")) {
-                $previousBlock.FrameworkData.Add("PreviouslyGeneratedBlocks", @{ })
-            }
-            $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
-            $Id = if (-not $hasExternalId) {
-                    $previouslyGeneratedBlocks = $previousBlock.FrameworkData.PreviouslyGeneratedBlocks
-                    Get-Id -ScriptBlock $block.ScriptBlock -Previous $previouslyGeneratedBlocks
-                }
-                else {
-                    $Id
-                }
-
             Set-CurrentBlock -Block $block
             try {
                 if (-not $block.ShouldRun) {
@@ -474,22 +437,6 @@ function New-Test {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
         }
-
-        # TODO: this id stuff is probably not needed, we don't need to relay tests together here, it was useful before for new runtime that was executing the code twice, but now we are just going by the test order so we don't need the id anymore
-        # $hasExternalId = -not [string]::IsNullOrWhiteSpace($Id)
-        # if (-not $hasExternalId) {
-        #     $Id = 0
-        #     $PreviouslyGeneratedTests = (Get-CurrentBlock).FrameworkData.PreviouslyGeneratedTests
-
-        #     if ($null -eq $PreviouslyGeneratedTests) {
-        #         # TODO: this enables tests that are not in a block to run. those are outdated tests in my
-        #         # test suite, so this should be imho removed later, and the tests rewritten
-        #         $PreviouslyGeneratedTests = @{ }
-
-        #     }
-
-        #     $Id = Get-Id -ScriptBlock $ScriptBlock -Previous $PreviouslyGeneratedTests
-        # }
 
         $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus -Skip:$Skip
         $test.FrameworkData.Runtime.Phase = 'Discovery'
@@ -1134,6 +1081,7 @@ function Discover-Test {
             PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
         }
         $f.Block.DiscoveryDuration += $overhead
+        Write-Host "disc $($f.Block.DiscoveryDuration.totalmilliseconds) $($overhead.totalmilliseconds) ms" #TODO
         $f.Block
     }
 
@@ -1748,7 +1696,7 @@ function Test-ShouldRun {
         $Item,
         $Filter
     )
-
+    $global:tsr++
     # see https://github.com/pester/Pester/issues/1442 for description of how this filtering works
 
     $result = @{
@@ -1785,8 +1733,8 @@ function Test-ShouldRun {
     }
 
     # item is excluded when any of the exclude tags match
-    $tagFilter = tryGetProperty $Filter ExcludeTag
-    if (any $tagFilter) {
+    $tagFilter = $Filter.ExcludeTag
+    if ($tagFilter -and 0 -ne $tagFilter.Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) There is '$($tagFilter -join ", ")' exclude tag filter."
         }
@@ -1808,14 +1756,14 @@ function Test-ShouldRun {
 
     # - place exclude filters above this line and include below this line
 
-    $lineFilter = tryGetProperty $Filter Line
+    $lineFilter = $Filter.Line
     # use File for saved files or Id for ScriptBlocks without files
     # this filter has the ability to set the test to "explicit" so we can run
     # the test even if it is marked as skipped run this include as first so we figure it out
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
     $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.ScriptBlock.StartPosition.StartLine)" -replace '\\','/'
-    if (any $lineFilter) {
+    if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
         foreach ($l in $lineFilter -replace '\\','/') {
             if ($l -eq $line) {
@@ -1847,13 +1795,13 @@ function Test-ShouldRun {
     }
 
     # test is included when it has tags and the any of the tags match
-    $tagFilter = tryGetProperty $Filter Tag
-    if (any $tagFilter) {
+    $tagFilter = $Filter.Tag
+    if ($tagFilter -and 0 -ne $tagFilter.Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) There is '$($tagFilter -join ", ")' include tag filter."
         }
         $anyIncludeFilters = $true
-        if (none $Item.Tag) {
+        if ($null -eq $Item.Tag -or 0 -eq $Item.Tag) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
             }
@@ -1875,9 +1823,14 @@ function Test-ShouldRun {
     }
 
     $allPaths = $Filter.FullName
-    if (any $allPaths) {
+    if ($allPaths -and 0 -ne $allPaths) {
         $anyIncludeFilters = $true
-        $include = like -Text $fullDottedPath -Patterns $allPaths
+        foreach ($p in $allPaths) {
+            if ($fullDottedPath -like $p) {
+                $include = $true
+                break
+            }
+        }
         if ($include) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it matches fullname filter '$include'."
@@ -1915,7 +1868,7 @@ function Test-ShouldRun {
             }
 
             $result.Include = $true
-        }
+        } # putting the bool in both to avoid string comparison
         elseif ('Block' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters, and will let its children to determine whether or not it should run."
@@ -2022,8 +1975,6 @@ function PostProcess-DiscoveredBlock {
     $Block.IsRoot = $Block -eq $RootBlock
     $Block.Root = $RootBlock
     $Block.BlockContainer = $BlockContainer
-    $Block.FrameworkData.PreviouslyGeneratedTests = @{ }
-    $Block.FrameworkData.PreviouslyGeneratedBlocks = @{ }
 
     $tests = $Block.Tests
 

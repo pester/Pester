@@ -89,11 +89,13 @@ filter selectNonNull {
 }
 
 function any ($InputObject) {
-    if (-not $InputObject) {
-        return $false
-    }
+    # inlining version
+    $(<# any #> if (-not ($s = $InputObject)) { return $false } else { @($s).Length -gt 0 })
+    # if (-not $InputObject) {
+    #     return $false
+    # }
 
-    @($InputObject).Length -gt 0
+    # @($InputObject).Length -gt 0
 }
 
 function none ($InputObject) {
