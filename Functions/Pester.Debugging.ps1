@@ -80,7 +80,7 @@ function Test-Hint {
         return $false
     }
 
-    Test-NullOrWhiteSpace $property.Value
+    [string]::IsNullOrWhiteSpace($property.Value)
 }
 
 function Set-Hint {
@@ -97,7 +97,7 @@ function Set-Hint {
     }
 
     if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) {
-        $hintIsNotSet = Test-NullOrWhiteSpace $InputObject.Hint
+        $hintIsNotSet = [string]::IsNullOrWhiteSpace($InputObject.Hint)
         if ($Force -or $hintIsNotSet) {
             $InputObject.Hint = $Hint
         }

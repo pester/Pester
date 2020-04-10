@@ -1019,7 +1019,7 @@ i -PassThru:$PassThru {
             $container.OneTimeTestTeardown | Verify-Equal 1
         }
 
-        t "block setups&teardowns run only when there are some tests to run in the block" {
+        dt "block setups&teardowns run only when there are some tests to run in the block" {
             $container = [PSCustomObject]@{
                 OneTimeBlockSetup1    = 0
                 EachBlockSetup1       = 0

@@ -199,7 +199,7 @@ function New-Block {
     # $blockStartTime = $state.UserCodeStopWatch.Elapsed
 
     $state.Stack.Push($Name)
-    $path = $(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history)
+    $path = @( <# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history)
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
     }
@@ -211,23 +211,24 @@ function New-Block {
         Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
     }
 
-    if ($false) {
-    $block = New-BlockObject -Name $Name -Path $path -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Focus:$Focus -Id $Id -Skip:$Skip
-}
-    else {
-        $block = [Pester.Block]::Create()
-        $block.Name = $Name
-        $block.Path = $Path
-        $block.Tag = $Tag
-        $block.ScriptBlock = $ScriptBlock
-        $block.FrameworkData = $FrameworkData
-        $block.Focus = $Focus
-        $block.Id = $Id
-        $block.Skip = $Skip
-    }
+    # new block
+    $block = [Pester.Block]::Create()
+    $block.Name = $Name
+    $block.Path = $Path
+    $block.Tag = $Tag
+    $block.ScriptBlock = $ScriptBlock
+    $block.FrameworkData = $FrameworkData
+    $block.Focus = $Focus
+    $block.Id = $Id
+    $block.Skip = $Skip
 
-    # we attach the current block to the parent
-    Add-Block -Block $block
+    # we attach the current block to the parent, and put it to the parent
+    # lists
+    $block.Parent = $state.CurrentBlock
+    $state.CurrentBlock.Order.Add($block)
+    $state.CurrentBlock.Blocks.Add($block)
+
+    # and then make it the new current block
     $state.CurrentBlock = $block
     try {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -244,7 +245,6 @@ function New-Block {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Left block $Name"
         }
-        # $block.DiscoveryDuration = ($state.FrameworkStopWatch.Elapsed - $overheadStartTime) + ($state.UserCodeStopWatch.Elapsed - $blockStartTime)
     }
 }
 
@@ -428,44 +428,31 @@ function New-Test {
         Write-PesterDebugMessage -Scope DiscoveryCore "Entering test $Name"
     }
 
-    $state.Stack.Push($Name)
-    try {
-        $path = $(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history)
+    # avoid managing state by not pushing to the stack only to pop out in finally
+    # simply concatenate the arrays
+    $path = @(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history + $name)
 
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
-        }
-
-        if ($false) {
-            $test = New-TestObject -Name $Name -ScriptBlock $ScriptBlock -Tag $Tag -Data $Data -Id $Id -Path $path -Focus:$Focus -Skip:$Skip
-        }
-        else {
-            $test = [Pester.Test]::Create()
-            $test.Id = $Id
-            $test.ScriptBlock = $ScriptBlock
-            $test.Name = $Name
-            $test.Path = $path
-            $test.Tag = $Tag
-            $test.Focus = $Focus
-            $test.Skip = $Skip
-        }
-
-        $test.FrameworkData.Runtime.Phase = 'Discovery'
-        Add-Test -Test $test
-
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
-        }
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
     }
-    finally {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
-        }
-        $state.CurrentTest = $null
-        $null = $state.Stack.Pop()
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Runtime "Left test $Name"
-        }
+
+    $test = [Pester.Test]::Create()
+    $test.Id = $Id
+    $test.ScriptBlock = $ScriptBlock
+    $test.Name = $Name
+    $test.Path = $path
+    $test.Tag = $Tag
+    $test.Focus = $Focus
+    $test.Skip = $Skip
+
+    $test.FrameworkData.Runtime.Phase = 'Discovery'
+
+    # add test to current block lists
+    $state.CurrentBlock.Tests.Add($Test)
+    $state.CurrentBlock.Order.Add($Test)
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
     }
 }
 
@@ -779,16 +766,6 @@ function Set-CurrentTest {
     $state.CurrentTest = $Test
 }
 
-function Add-Test {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        $Test
-    )
-    $block = $state.CurrentBlock
-    $block.Tests.Add($Test)
-    $block.Order.Add($Test)
-}
 
 function New-TestObject {
     param (
@@ -925,19 +902,6 @@ function New-BlockObject {
     }
 }
 
-function Add-Block {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        $Block
-    )
-
-    $currentBlock = $state.CurrentBlock
-    $Block.Parent = $currentBlock
-    $currentBlock.Order.Add($Block)
-    $currentBlock.Blocks.Add($Block)
-}
-
 function Is-Discovery {
     $state.Discovery
 }
@@ -973,14 +937,9 @@ function Discover-Test {
         # this is a block object that we add so we can capture
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
-        if ($false) {
-            $root = New-BlockObject -Name "Root" -Path "Root"
-        }
-        else {
-            $root = [Pester.Block]::Create()
-            $root.Name = "Root"
-            $root.Path = "Path"
-        }
+        $root = [Pester.Block]::Create()
+        $root.Name = "Root"
+        $root.Path = "Path"
 
         $root.First = $true
         $root.Last = $true
@@ -994,7 +953,7 @@ function Discover-Test {
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
-        [PSCustomObject]@{
+        [PSCustomObject] @{
             Container = $container
             Block     = $root
         }
@@ -1011,7 +970,6 @@ function Discover-Test {
             Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds) ms" }
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
         }
-        Write-Host -ForegroundColor Cyan "discovery in container took $([int]$root.DiscoveryDuration.TotalMilliseconds) ms"
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -2339,6 +2297,7 @@ function New-PluginObject {
         ContainerRunEnd         = $ContainerRunEnd
         RunEnd                  = $RunEnd
         End                     = $End
+        PSTypeName = 'Plugin'
     }
 
     # enumerate to avoid modifying the key collection
@@ -2353,7 +2312,7 @@ function New-PluginObject {
         $h.Add("Has$k", ($null -ne $h.$k))
     }
 
-    New_PSObject -Type "Plugin" $h
+    [PSCustomObject] $h
 }
 
 function Invoke-BlockContainer {
