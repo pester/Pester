@@ -14,7 +14,7 @@ $global:PesterPreference = [PesterConfiguration] @{
         WriteDebugMessagesFrom = "Mock"
         ReturnRawResultObject  = $true
     }
-    Output = @{ Verbosity = 'None' }
+    Output = @{ Verbosity = 'Normal' }
 }
 
 
@@ -36,7 +36,7 @@ i -PassThru:$PassThru {
             $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
         }
 
-        t "mock does not leak into the subsequent It" {
+        dt "mock does not leak into the subsequent It" {
             $sb = {
                 BeforeAll { function f { "real" } }
                 Describe 'd1' {

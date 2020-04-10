@@ -61,7 +61,7 @@ namespace Pester
         public DateTime? ExecutedAt = null;
         public bool Passed = false;
         public bool Skipped = false;
-        public List<object> StandardOutput = null;
+        public object StandardOutput = null;
         public List<object> ErrorRecord = new List<object>();
 
         public TimeSpan Duration = TimeSpan.Zero;

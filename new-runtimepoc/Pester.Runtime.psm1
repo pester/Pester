@@ -1307,6 +1307,15 @@ function Invoke-ScriptBlock {
         # THIS RUNS (MOST OF THE TIME) IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______parameters)
 
+        if (-not $______parameters.NoNewScope) {
+            # a child runner that will not create a new scope will force itself into the current scope
+            # and overwrite our params in the inner scope (denoted by & { below), keep a second reference to it
+            # so we can use it for Teardowns and to forward errors that happened after test teardown
+            $______parametersForward = $______parameters
+        }
+
+
+
         try {
              if ($______parameters.ContextInOuterScope) {
                 $______outerSplat = $______parameters.Context
@@ -1338,14 +1347,6 @@ function Invoke-ScriptBlock {
 
             & {
                 try {
-                    # this is needed for nonewscope so we can do two different
-                    # teardowns while running this code in the middle again (which rewrites the teardown
-                    # value in the object), this way we save the first teardown and ressurect it right before
-                    # needing it
-
-                    # setting the value to $true, because if it was null we cannot differentiate
-                    # between the variable not existing and not having value
-                    $_________teardown2 = if ($null -ne $______parameters.Teardown) { $______parameters.Teardown } else { $true }
 
                     if (-not $______parameters.ContextInOuterScope) {
                         $______innerSplat = $______parameters.Context
@@ -1386,21 +1387,6 @@ function Invoke-ScriptBlock {
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Fail running setups or scriptblock" -ErrorRecord $_ }
                 }
                 finally {
-                    # this is needed for nonewscope so we can do two different
-                    # teardowns while running this code in the middle again (which rewrites the teardown
-                    # value in the object)
-                    if ($null -ne $ExecutionContext.SessionState.PSVariable.Get('_________teardown2')) {
-                        # soo we are running the one time test teadown in the same scope as
-                        # each block teardown and it overwrites it
-                        if ($true -eq $ExecutionContext.SessionState.PSVariable.Get('_________teardown2')) {
-                            # do nothing, we needed the true to detect that the property was defined
-                        }
-                        else {
-                            $______parameters.Teardown = $_________teardown2
-                        }
-                        $ExecutionContext.SessionState.PSVariable.Remove('_________teardown2')
-                    }
-
                     if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner teardowns" }
                         foreach ($______current in $______parameters.Teardown) {
@@ -1452,6 +1438,10 @@ function Invoke-ScriptBlock {
             else {
                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no outer teardowns" }
             }
+
+            if ($______parameters.NoNewScope -and $ExecutionContext.SessionState.PSVariable.GetValue('______parametersForward')) {
+                $______parameters = $______parametersForward
+            }
         }
     }
 
@@ -1481,6 +1471,7 @@ function Invoke-ScriptBlock {
                 Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
             }
             Configuration = $Configuration
+            NoNewScope = $NoNewScope
         }
 
         # here we are moving into the user scope if the provided
