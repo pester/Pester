@@ -3,9 +3,8 @@ param ([switch] $PassThru)
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom | Remove-Module
 
-Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\Pester.Runtime.psm1 -DisableNameChecking
 . $PSScriptRoot\Pester.Utility.ps1
 

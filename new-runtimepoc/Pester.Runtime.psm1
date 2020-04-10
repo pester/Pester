@@ -25,6 +25,7 @@ $state = [PSCustomObject] @{
     TotalStopWatch      = $null
     UserCodeStopWatch   = $null
     FrameworkStopWatch  = $null
+    Stack = [Collections.Stack]@()
 
     ExpandName          = {
         param([string]$Name, [HashTable]$Data)
@@ -36,7 +37,6 @@ $state = [PSCustomObject] @{
         $n
     }
 }
-
 
 function Reset-TestSuiteState {
     # resets the module state to the default
@@ -51,7 +51,7 @@ function Reset-TestSuiteState {
 
     $state.CurrentBlock = $null
     $state.CurrentTest = $null
-    Reset-Scope
+    $state.Stack.Clear()
     Reset-TestSuiteTimer
 }
 
@@ -64,7 +64,7 @@ function Reset-PerContainerState {
         Write-PesterDebugMessage -Scope Runtime "Resetting per container state."
     }
     $state.CurrentBlock = $RootBlock
-    Reset-Scope
+    $state.Stack.Clear()
 }
 
 function Find-Test {
@@ -202,8 +202,8 @@ function New-Block {
     $overheadStartTime = $state.FrameworkStopWatch.Elapsed
     $blockStartTime = $state.UserCodeStopWatch.Elapsed
 
-    Push-Scope -Scope (New-Scope -Name $Name -Hint Block)
-    $path = @(foreach ($h in (Get-ScopeHistory)) { $h.Name })
+    $state.Stack.Push($Name)
+    $path = $(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history)
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
     }
@@ -231,7 +231,7 @@ function New-Block {
     }
     finally {
         Set-CurrentBlock -Block $previousBlock
-        $null = Pop-Scope
+        $null = $state.Stack.Pop()
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Left block $Name"
         }
@@ -431,9 +431,10 @@ function New-Test {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering test $Name"
     }
-    Push-Scope -Scope (New-Scope -Name $Name -Hint Test)
+
+    $state.Stack.Push($Name)
     try {
-        $path = foreach ($h in (Get-ScopeHistory)) { $h.Name }
+        $path = $(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history)
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
         }
@@ -451,7 +452,7 @@ function New-Test {
             Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
         }
         $state.CurrentTest = $null
-        $null = Pop-Scope
+        $null = $state.Stack.Pop()
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Left test $Name"
         }
@@ -1696,7 +1697,7 @@ function Test-ShouldRun {
         $Item,
         $Filter
     )
-    $global:tsr++
+
     # see https://github.com/pester/Pester/issues/1442 for description of how this filtering works
 
     $result = @{
@@ -2106,7 +2107,7 @@ function PostProcess-DiscoveredBlock {
         # none of it's children will run
         if ($Block.ShouldRun) {
             $testsToRun = foreach ($t in $tests) { if ($t.ShouldRun) { $t } }
-            if (any $testsToRun) {
+            if ($testsToRun -and 0 -ne $testsToRun.Count) {
                 $testsToRun[0].First = $true
                 $testsToRun[-1].Last = $true
                 $blockShouldRun = $true
@@ -2644,7 +2645,6 @@ function Assert-InvokedNonInteractively () {
     }
 }
 
-Import-Module $PSScriptRoot\stack.psm1 -DisableNameChecking
 # initialize internal state
 Reset-TestSuiteState
 
