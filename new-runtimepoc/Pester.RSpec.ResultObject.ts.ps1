@@ -61,7 +61,7 @@ function Verify-Property {
 
 i -PassThru:$PassThru {
     # b General {
-    #     dt "All parameters should be on the parameter object even if not passed" {
+    #     t "All parameters should be on the parameter object even if not passed" {
     #         $result = Invoke-Pester -ScriptBlock { } -Output None
 
     #         $result | Verify-Property -PropertyName Parameters

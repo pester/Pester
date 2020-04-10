@@ -36,7 +36,7 @@ i -PassThru:$PassThru {
             $actual.Containers[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "mock"
         }
 
-        dt "mock does not leak into the subsequent It" {
+        t "mock does not leak into the subsequent It" {
             $sb = {
                 BeforeAll { function f { "real" } }
                 Describe 'd1' {

@@ -36,39 +36,39 @@ namespace Pester
         //    return t;
         //}
 
-        public string ItemType;
-        public string Id;
-        public ScriptBlock ScriptBlock;
-        public string Name;
-        public List<string> Path;
-        public List<string> Tag;
-        public bool Focus;
-        public bool Skip;
+        public string ItemType { get; private set; }
+        public string Id { get; set; }
+        public ScriptBlock ScriptBlock { get; set; }
+        public string Name { get; set; }
+        public List<string> Path { get; set; }
+        public List<string> Tag { get; set; }
+        public bool Focus { get; set; }
+        public bool Skip { get; set; }
         // IDictionary to allow users use [ordered]
-        public IDictionary Data = new Hashtable();
+        public IDictionary Data { get; set; } = new Hashtable();
 
-        public string ExpandedName;
-        public object Block;
+        public string ExpandedName { get; set; }
+        public object Block { get; set; }
 
-        public bool First = false;
-        public bool Last = false;
-        public bool Include = false;
-        public bool Exclude = false;
-        public bool Explicit = false;
-        public bool ShouldRun = false;
+        public bool First { get; set; } = false;
+        public bool Last { get; set; } = false;
+        public bool Include { get; set; } = false;
+        public bool Exclude { get; set; } = false;
+        public bool Explicit { get; set; } = false;
+        public bool ShouldRun { get; set; } = false;
 
-        public bool Executed = false;
-        public DateTime? ExecutedAt = null;
-        public bool Passed = false;
-        public bool Skipped = false;
-        public object StandardOutput = null;
-        public List<object> ErrorRecord = new List<object>();
+        public bool Executed { get; set; } = false;
+        public DateTime? ExecutedAt { get; set; } = null;
+        public bool Passed { get; set; } = false;
+        public bool Skipped { get; set; } = false;
+        public object StandardOutput { get; set; } = null;
+        public List<object> ErrorRecord { get; set; } = new List<object>();
 
-        public TimeSpan Duration = TimeSpan.Zero;
-        public TimeSpan FrameworkDuration = TimeSpan.Zero;
-        public Hashtable PluginData = new Hashtable();
-        public Hashtable FrameworkData;
-        public string PSTypeName;
+        public TimeSpan Duration { get; set; } = TimeSpan.Zero;
+        public TimeSpan FrameworkDuration { get; set; } = TimeSpan.Zero;
+        public Hashtable PluginData { get; set; } = new Hashtable();
+        public Hashtable FrameworkData { get; set; }
+        public string PSTypeName { get; private set; }
 
         public override string ToString() { return string.Join(".", this.Path); }
     }
@@ -96,64 +96,64 @@ namespace Pester
 
 
 
-        public string ItemType = "Block";
-        public string Id; // = $id
-        public string Name; // = $Name 
-        public List<string> Path; // =  $Path 
-        public List<string> Tag;// = $Tag
-        public ScriptBlock ScriptBlock; // = $ScriptBlock
-        public Hashtable FrameworkData = new Hashtable(); // = $FrameworkData
-        public Hashtable PluginData = new Hashtable(); // = $PluginData
-        public bool Focus; //= [bool] $Focus
-        public bool Skip; // = [bool] $Skip
+        public string ItemType { get;  } = "Block";
+        public string Id { get; set; } // = $id
+        public string Name { get; set; } // = $Name 
+        public List<string> Path { get; set; } // =  $Path 
+        public List<string> Tag { get; set; }// = $Tag
+        public ScriptBlock ScriptBlock { get; set; } // = $ScriptBlock
+        public Hashtable FrameworkData { get; set; } = new Hashtable(); // = $FrameworkData
+        public Hashtable PluginData { get; set; } = new Hashtable(); // = $PluginData
+        public bool Focus { get; set; } //= [bool] $Focus
+        public bool Skip { get; set; } // = [bool] $Skip
 
-        public List<object> Tests = new List<object>();
+        public List<object> Tests { get; set; } = new List<object>();
 
         // TODO: consider renaming this to just Container
-        public object BlockContainer; // = $null
-        public object Root; // =                 = $null
-        public bool IsRoot; //               = $null
-        public object Parent; //               = $null
-        public ScriptBlock EachTestSetup;//        = $null
-        public ScriptBlock OneTimeTestSetup; //     = $null
-        public ScriptBlock EachTestTeardown; //    = $null
-        public ScriptBlock OneTimeTestTeardown;// = $null
-        public ScriptBlock EachBlockSetup;// = $null
-        public ScriptBlock OneTimeBlockSetup; //    = $null
-        public ScriptBlock EachBlockTeardown;// = $null
-        public ScriptBlock OneTimeBlockTeardown;// = $null
-        public List<object> Order = new List<object>();    //   = [Collections.Generic.List[Object]]@()
-        public List<object> Blocks = new List<object>(); // [Collections.Generic.List[Object]]@()
-        public bool Executed; // = $false
-        public bool Passed; //            = $false
-        public bool First; //              = $false
+        public object BlockContainer { get; set; } // = $null
+        public object Root { get; set; } // =                 = $null
+        public bool IsRoot { get; set; } //               = $null
+        public object Parent { get; set; } //               = $null
+        public ScriptBlock EachTestSetup { get; set; }//        = $null
+        public ScriptBlock OneTimeTestSetup { get; set; } //     = $null
+        public ScriptBlock EachTestTeardown { get; set; } //    = $null
+        public ScriptBlock OneTimeTestTeardown { get; set; }// = $null
+        public ScriptBlock EachBlockSetup { get; set; }// = $null
+        public ScriptBlock OneTimeBlockSetup { get; set; } //    = $null
+        public ScriptBlock EachBlockTeardown { get; set; }// = $null
+        public ScriptBlock OneTimeBlockTeardown { get; set; }// = $null
+        public List<object> Order { get; set; } = new List<object>();    //   = [Collections.Generic.List[Object]]@()
+        public List<object> Blocks { get; set; } = new List<object>(); // [Collections.Generic.List[Object]]@()
+        public bool Executed { get; set; } // = $false
+        public bool Passed { get; set; } //            = $false
+        public bool First { get; set; } //              = $false
         public bool Last;//                 = $false
         public List<object> StandardOutput;  //     = $null
         public List<object> ErrorRecord = new List<object>();   //       = [Collections.Generic.List[Object]]@()
-        public bool ShouldRun; // = $false
-        public bool Exclude; //              = $false
-        public bool Include;//            = $false
-        public bool Explicit; //            = $false
-        public DateTime ExecutedAt; //         = $null
-        public TimeSpan Duration; //             = [timespan]::Zero
-        public TimeSpan FrameworkDuration; // = [timespan]::Zero
-        public TimeSpan OwnDuration; //          = [timespan]::Zero
-        public TimeSpan DiscoveryDuration;// = [timespan]::Zero
-        public bool OwnPassed;// = $false
-        public int TotalCount; // = 0
-        public int PassedCount; // = 0
-        public int FailedCount; // = 0
-        public int SkippedCount; // = 0
-        public int PendingCount; // = 0
-        public int NotRunCount; // = 0
-        public int InconclusiveCount; // = 0
-        public int OwnTotalCount; // = 0
-        public int OwnPassedCount; // = 0
-        public int OwnFailedCount; // = 0
-        public int OwnSkippedCount; // = 0
-        public int OwnPendingCount; // = 0
-        public int OwnNotRunCount; // = 0
-        public int OwnInconclusiveCount; // = 0
+        public bool ShouldRun { get; set; } // = $false
+        public bool Exclude { get; set; } //              = $false
+        public bool Include { get; set; }//            = $false
+        public bool Explicit { get; set; } //            = $false
+        public DateTime ExecutedAt { get; set; } //         = $null
+        public TimeSpan Duration { get; set; } //             = [timespan]::Zero
+        public TimeSpan FrameworkDuration { get; set; } // = [timespan]::Zero
+        public TimeSpan OwnDuration { get; set; } //          = [timespan]::Zero
+        public TimeSpan DiscoveryDuration { get; set; }// = [timespan]::Zero
+        public bool OwnPassed { get; set; }// = $false
+        public int TotalCount { get; set; } // = 0
+        public int PassedCount { get; set; } // = 0
+        public int FailedCount { get; set; } // = 0
+        public int SkippedCount { get; set; } // = 0
+        public int PendingCount { get; set; } // = 0
+        public int NotRunCount { get; set; } // = 0
+        public int InconclusiveCount { get; set; } // = 0
+        public int OwnTotalCount { get; set; } // = 0
+        public int OwnPassedCount { get; set; } // = 0
+        public int OwnFailedCount { get; set; } // = 0
+        public int OwnSkippedCount { get; set; } // = 0
+        public int OwnPendingCount { get; set; } // = 0
+        public int OwnNotRunCount { get; set; } // = 0
+        public int OwnInconclusiveCount { get; set; } // = 0
         public string PSTypeName = "DiscoveredBlock";
 
         public override string ToString() { return string.Join(".", this.Path); }
