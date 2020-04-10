@@ -439,7 +439,7 @@ function New-Test {
     $test.Tag = $Tag
     $test.Focus = $Focus
     $test.Skip = $Skip
-
+    $test.Data = $Data
     $test.FrameworkData.Runtime.Phase = 'Discovery'
 
     # add test to current block lists
@@ -2046,8 +2046,8 @@ function PostProcess-DiscoveredBlock {
             # passing the array as a whole to cross the function boundary as few times as I can
             PostProcess-DiscoveredBlock -Block $childBlocks -Filter $Filter -BlockContainer $BlockContainer -RootBlock $RootBlock
 
-            $childBlocksToRun = foreach ($b in $childBlocks) { if ($b.ShouldRun) { $b } }
-            $anyChildBlockShouldRun = any $childBlocksToRun
+            $childBlocksToRun = foreach ($cb in $childBlocks) { if ($cb.ShouldRun) { $cb } }
+            $anyChildBlockShouldRun = $childBlocksToRun -and 0 -ne $childBlocksToRun.Count
             if ($anyChildBlockShouldRun) {
                 $childBlocksToRun[0].First = $true
                 $childBlocksToRun[-1].Last = $true

@@ -44,27 +44,6 @@ function Verify-Property {
     }
 }
 
-function Verify-PSType {
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        [String] $TypeName
-    )
-
-    if ($null -eq $TypeName) {
-        throw 'TypeName value is $null.'
-    }
-
-    if ($null -eq $Actual) {
-        throw 'Actual value is $null.'
-    }
-
-    if ($TypeName -ne $Actual.PSObject.TypeNames[0]) {
-        throw "Expected object have PSTypeName '$TypeName' but it was '$($Actual.PSObject.TypeNames[0])'!"
-    }
-}
-
 # template
     # b "<" {
     #     t ">" {
@@ -137,10 +116,8 @@ i -PassThru:$PassThru {
                 Remove-Item -Path $file1.Path
             }
 
-            $result | Verify-PSType "PesterRSpecTestRun"
             $result | Verify-Property "Containers"
             $result.Containers.Count | Verify-Equal 2
-            $result.Containers[0] | Verify-PSType "ExecutedBlockContainer"
 
             $result.TestsCount | Verify-Equal 4
             $result.Tests | Verify-NotNull

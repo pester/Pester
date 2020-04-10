@@ -1019,7 +1019,7 @@ i -PassThru:$PassThru {
             $container.OneTimeTestTeardown | Verify-Equal 1
         }
 
-        dt "block setups&teardowns run only when there are some tests to run in the block" {
+        t "block setups&teardowns run only when there are some tests to run in the block" {
             $container = [PSCustomObject]@{
                 OneTimeBlockSetup1    = 0
                 EachBlockSetup1       = 0
@@ -1594,56 +1594,57 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "focus" {
-        t "focusing one test in group will run only it" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
+    # focus is removed and will be replaced by pins
+    # b "focus" {
+    #     t "focusing one test in group will run only it" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
 
-                    New-Block -Name "block1" {
+    #                 New-Block -Name "block1" {
 
-                        New-Test "test 1" { }
+    #                     New-Test "test 1" { }
 
-                        New-Block -Name "block2" {
-                            New-Test "test 2" { }
-                        }
-                    }
+    #                     New-Block -Name "block2" {
+    #                         New-Test "test 2" { }
+    #                     }
+    #                 }
 
-                    New-Block -Name "block3" {
-                        New-Test -Focus "test 3" { }
-                    }
-                }
-            )
+    #                 New-Block -Name "block3" {
+    #                     New-Test -Focus "test 3" { }
+    #                 }
+    #             }
+    #         )
 
-            $testsToRun = @($actual | View-Flat | where { $_.ShouldRun })
-            $testsToRun.Count | Verify-Equal 1
-            $testsToRun[0].Name | Verify-Equal "test 3"
-        }
+    #         $testsToRun = @($actual | View-Flat | where { $_.ShouldRun })
+    #         $testsToRun.Count | Verify-Equal 1
+    #         $testsToRun[0].Name | Verify-Equal "test 3"
+    #     }
 
-        t "focusing one block in group will run only tests in it" {
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
+    #     t "focusing one block in group will run only tests in it" {
+    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+    #             New-BlockContainerObject -ScriptBlock {
 
-                    New-Block -Focus -Name "block1" {
+    #                 New-Block -Focus -Name "block1" {
 
-                        New-Test "test 1" { }
+    #                     New-Test "test 1" { }
 
-                        New-Block -Name "block2" {
-                            New-Test "test 2" { }
-                        }
-                    }
+    #                     New-Block -Name "block2" {
+    #                         New-Test "test 2" { }
+    #                     }
+    #                 }
 
-                    New-Block -Name "block3" {
-                        New-Test  "test 3" { }
-                    }
-                }
-            )
+    #                 New-Block -Name "block3" {
+    #                     New-Test  "test 3" { }
+    #                 }
+    #             }
+    #         )
 
-            $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
-            $testsToRun.Count | Verify-Equal 2
-            $testsToRun[0].Name | Verify-Equal "test 1"
-            $testsToRun[1].Name | Verify-Equal "test 2"
-        }
-    }
+    #         $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
+    #         $testsToRun.Count | Verify-Equal 2
+    #         $testsToRun[0].Name | Verify-Equal "test 1"
+    #         $testsToRun[1].Name | Verify-Equal "test 2"
+    #     }
+    # }
 
     # # do these tests still have value? Is the Id needed, or it is useless with the new new runtime?
     # b "generating tests" {

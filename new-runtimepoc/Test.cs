@@ -44,7 +44,8 @@ namespace Pester
         public List<string> Tag;
         public bool Focus;
         public bool Skip;
-        public Hashtable Data = new Hashtable();
+        // IDictionary to allow users use [ordered]
+        public IDictionary Data = new Hashtable();
 
         public string ExpandedName;
         public object Block;
@@ -60,7 +61,7 @@ namespace Pester
         public DateTime? ExecutedAt = null;
         public bool Passed = false;
         public bool Skipped = false;
-        public string StandardOutput = null;
+        public List<object> StandardOutput = null;
         public List<object> ErrorRecord = new List<object>();
 
         public TimeSpan Duration = TimeSpan.Zero;
