@@ -1,6 +1,7 @@
 $Paths = @(
     "$PSScriptRoot/Configuration.cs"
     "$PSScriptRoot/Factory.cs"
+    "$PSScriptRoot/Test.cs"
 )
 
 foreach ($path in $Paths) {

@@ -12,13 +12,6 @@ $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Di
 $script:AssertionDynamicParams = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
 $script:DisableScopeHints = $true
 
-
-function Test-NullOrWhiteSpace {
-    param ([string]$String)
-
-    $String -match "^\s*$"
-}
-
 function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
@@ -126,7 +119,7 @@ function Add-ShouldOperator {
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where { -not (Test-NullOrWhiteSpace $_)}) {
+    foreach ($string in $Alias | Where { -not ([string]::IsNullOrWhiteSpace($_))}) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -153,7 +146,7 @@ function Assert-AssertionOperatorNameIsUnique {
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where { -not (Test-NullOrWhiteSpace $_)}) {
+    foreach ($string in $name | Where { -not ([string]::IsNullOrWhiteSpace($_))}) {
         Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string)) {
@@ -181,7 +174,7 @@ function Add-AssertionDynamicParameterSet {
 
     $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
-    if (-not (Test-NullOrWhiteSpace $AssertionEntry.Alias)) {
+    if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
         Assert-ValidAssertionAlias -Alias $AssertionEntry.Alias
         $attribute = New-Object System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
         $attributeCollection.Add($attribute)

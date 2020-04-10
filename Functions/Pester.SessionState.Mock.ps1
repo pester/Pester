@@ -946,7 +946,7 @@ function Invoke-Mock {
     # should implement this (but I keep it separate from the core function so I can
     # test without dependency on scopes)
     $allBehaviors = Get-AllMockBehaviors -CommandName $CommandName
-    if (Test-NullOrWhiteSpace $ModuleName) {
+    if ([string]::IsNullOrWhiteSpace($ModuleName)) {
         $ModuleName = $null
     }
     $fromModule = any $ModuleName

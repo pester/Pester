@@ -77,7 +77,7 @@ about_TestDrive
     )
 
     $Focus = $false
-    if ($Fixture -eq $null) {
+    if ($null -eq $Fixture) {
         if ($Name.Contains("`n")) {
             throw "Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)"
         }
@@ -87,8 +87,8 @@ about_TestDrive
     }
 
 
-    if ($ExecutionContext.SessionState.PSVariable.Get("invokedViaInvokePester")) {
-        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Describe" } -Focus:$Focus -Skip:$Skip
+    if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
+        New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe' } -Focus:$Focus -Skip:$Skip
     }
     else {
         Invoke-Interactively -CommandUsed 'Describe' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters

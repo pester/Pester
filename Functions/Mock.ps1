@@ -55,7 +55,7 @@ function New-MockBehavior {
         $ParameterFilter = New-BlockWithoutParameterAliases -Metadata $Hook.Metadata -Block $ParameterFilter
     }
 
-    New_PSObject -Type 'MockBehavior' @{
+    [PSCustomObject] @{
         CommandName          = $ContextInfo.Command.Name
         ModuleName           = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
         Filter               = $ParameterFilter
@@ -64,6 +64,7 @@ function New-MockBehavior {
         ScriptBlock          = $mockWithCopy
         ScriptBlockIsClosure = $scriptBlockIsClosure
         Hook                 = $Hook
+        PSTypeName = 'MockBehavior'
     }
 }
 

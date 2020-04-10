@@ -436,7 +436,7 @@ function ConvertTo-HumanTime {
         "$([int]($TimeSpan.TotalMilliseconds))ms"
     }
     else {
-        "$([int]($TimeSpan.TotalSeconds))s"
+        "$([math]::round($TimeSpan.TotalSeconds ,2))s"
     }
 }
 
@@ -509,7 +509,7 @@ function Get-WriteScreenPlugin {
 
         $block = $Context.Block
         # -1 moves the block closer to the start of theline
-        $level = $block.Path.Length - 1
+        $level = $block.Path.Count - 1
         $margin = $ReportStrings.Margin * $level
 
         $text = $ReportStrings.$commandUsed -f $block.Name
@@ -531,7 +531,7 @@ function Get-WriteScreenPlugin {
         $_test = $Context.Test
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-            $level = $_test.Path.Length
+            $level = $_test.Path.Count
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
@@ -623,7 +623,7 @@ function Get-WriteScreenPlugin {
         param ($Context)
         if (-not $Context.Block.OwnPassed) {
             if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-                $level = $Context.Block.Path.Length
+                $level = $Context.Block.Path.Count
                 $margin = $ReportStrings.Margin * ($level)
                 $error_margin = $margin + $ReportStrings.Margin
             }

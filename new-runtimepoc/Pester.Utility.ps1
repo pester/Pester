@@ -89,11 +89,13 @@ filter selectNonNull {
 }
 
 function any ($InputObject) {
-    if (-not $InputObject) {
-        return $false
-    }
+    # inlining version
+    $(<# any #> if (-not ($s = $InputObject)) { return $false } else { @($s).Length -gt 0 })
+    # if (-not $InputObject) {
+    #     return $false
+    # }
 
-    @($InputObject).Length -gt 0
+    # @($InputObject).Length -gt 0
 }
 
 function none ($InputObject) {
@@ -360,43 +362,6 @@ function Fold-Run {
             foreach ($container in $r.Containers) {
                 Fold-Container -Container $container -OnContainer $OnContainer -OnBlock $OnBlock -OnTest $OnTest -Accumulator $Accumulator
             }
-        }
-    }
-}
-
-function Test-NullOrWhiteSpace ($Value) {
-    # psv2 compatibility, on newer .net we would simply use
-    # [string]::isnullorwhitespace
-    $null -eq $Value -or $Value -match "^\s*$"
-}
-
-function New_PSObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [Collections.IDictionary] $Property,
-        [String] $Type
-    )
-
-    # TODO: is calling the function unnecessary overhead?
-    if (-not (Test-NullOrWhiteSpace $Type) ) {
-        # -and -not $Property.ContainsKey("PSTypeName")) {
-        $Property.Add("PSTypeName", $Type)
-    }
-
-    [PSCustomObject]$Property
-}
-
-function like {
-    param(
-        [Parameter(Mandatory)]
-        [String[]] $Patterns,
-        [String] $Text
-    )
-
-    foreach ($p in $Patterns) {
-        if ($text -like $p) {
-            return $p
         }
     }
 }
