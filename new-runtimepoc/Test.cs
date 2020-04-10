@@ -68,6 +68,8 @@ namespace Pester
         public Hashtable PluginData = new Hashtable();
         public Hashtable FrameworkData;
         public string PSTypeName;
+
+        public override string ToString() { return string.Join(".", this.Path); }
     }
 
     public class Block
@@ -152,5 +154,7 @@ namespace Pester
         public int OwnNotRunCount; // = 0
         public int OwnInconclusiveCount; // = 0
         public string PSTypeName = "DiscoveredBlock";
+
+        public override string ToString() { return string.Join(".", this.Path); }
     }
 }

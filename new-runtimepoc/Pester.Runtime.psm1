@@ -259,13 +259,7 @@ function Invoke-Block ($previousBlock) {
 
     foreach ($item in $previousBlock.Order) {
         if ('Test' -eq $item.ItemType) {
-            try {
-                Invoke-TestItem -Test $item
-            }
-            catch {
-                throw
-                # $previousBlock.ErrorRecord.Add($_)
-            }
+            Invoke-TestItem -Test $item
         }
         else {
             $block = $item
@@ -327,8 +321,7 @@ function Invoke-Block ($previousBlock) {
                     }
 
                     $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($block.ScriptBlock, $null)
-                    $script:ScriptBlockSessionStateInternalProperty.SetValue(
-                                $sb, $SessionStateInternal)
+                    $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
 
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
@@ -415,7 +408,9 @@ function Invoke-Block ($previousBlock) {
 # endpoint for adding a test
 function New-Test {
     param (
+        [Parameter(Mandatory = $true, Position = 0)]
         [String] $Name,
+        [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },

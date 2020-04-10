@@ -16,7 +16,7 @@ $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $true
-        WriteDebugMessagesFrom = "*Filter"
+        WriteDebugMessagesFrom = "*Filter*"
     }
 }
 
@@ -1030,7 +1030,8 @@ i -PassThru:$PassThru {
 
                     # New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
                     New-EachBlockSetup {
-                        $container.EachBlockSetup1++ }
+                        $container.EachBlockSetup1++
+                    }
 
                     New-Block 'block1' {
                         New-Test "test1" {
