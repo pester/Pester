@@ -319,9 +319,12 @@ function Invoke-Pester {
         [String[]] $ExcludePath = @(),
 
         [Parameter(ParameterSetName = "Simple")]
-        [string[]] $Tag,
+        [string[]] $TagFilter,
         [Parameter(ParameterSetName = "Simple")]
-        [string[]] $ExcludeTag,
+        [string[]] $ExcludeTagFilter,
+
+        [Parameter(ParameterSetName = "Simple")]
+        [string[]] $FullNameFilter,
 
         [Parameter(ParameterSetName = "Simple")]
         [Switch] $CI,
@@ -398,18 +401,25 @@ function Invoke-Pester {
                     Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
                 }
 
-                if (any $Tag) {
-                    if ($null -ne $Tag) {
-                        $PesterPreference.Filter.Tag = $Tag
+                if (any $TagFilter) {
+                    if ($null -ne $TagFilter) {
+                        $PesterPreference.Filter.Tag = $TagFilter
                     }
-                    Get-Variable 'Tag' -Scope Local | Remove-Variable
+                    Get-Variable 'TagFilter' -Scope Local | Remove-Variable
                 }
 
-                if (any $ExcludeTag) {
-                    if ($null -ne $ExcludeTag) {
-                        $PesterPreference.Filter.ExcludeTag = $ExcludeTag
+                if (any $ExcludeTagFilter) {
+                    if ($null -ne $ExcludeTagFilter) {
+                        $PesterPreference.Filter.ExcludeTag = $ExcludeTagFilter
                     }
-                    Get-Variable 'ExcludeTag' -Scope Local | Remove-Variable
+                    Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
+                }
+
+                if (any $FullNameFilter) {
+                    if ($null -ne $FullNameFilter) {
+                        $PesterPreference.Filter.FullName = $FullNameFilter
+                    }
+                    Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($CI) {
@@ -504,7 +514,7 @@ function Invoke-Pester {
                 -Tag $PesterPreference.Filter.Tag.Value `
                 -ExcludeTag $PesterPreference.Filter.ExcludeTag.Value `
                 -Line $PesterPreference.Filter.Line.Value `
-                -Path $PesterPreference.Filter.Name.Value
+                -FullName $PesterPreference.Filter.FullName.Value
 
             $containers = @()
             if (any $PesterPreference.Run.ScriptBlock.Value) {

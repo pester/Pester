@@ -334,9 +334,30 @@ i -PassThru:$PassThru {
             $tests[0].Name | Verify-Equal "passing"
             $tests[1].Name | Verify-Equal "fails"
         }
+
+        t "Filtering test based on name will find the test" {
+            $c = [PesterConfiguration]@{
+                Run = @{
+                    Path = "$PSScriptRoot/TestProjects/BasicTests"
+                    PassThru = $true
+                }
+                Filter = @{
+                    FullName = "*state tests.passing"
+                }
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+
+            $tests.Count | Verify-Equal 1
+            $tests[0].Name | Verify-Equal "passing"
+        }
     }
 
-    b "merging configuraiton in Invoke-Pester" {
+    b "merging configuration in Invoke-Pester" {
         t "merges pester preference with provided configuration" {
             $PesterPreference = [PesterConfiguration] @{
                 Output = @{

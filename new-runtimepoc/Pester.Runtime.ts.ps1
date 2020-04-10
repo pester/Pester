@@ -16,8 +16,8 @@ Import-Module $PSScriptRoot\..\Dependencies\Axiom\Axiom.psm1 -DisableNameCheckin
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
-        WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = "Timing*"
+        WriteDebugMessages     = $true
+        WriteDebugMessagesFrom = "*Filter"
     }
 }
 
@@ -407,7 +407,7 @@ i -PassThru:$PassThru {
             t "Given a test without tags it include it when it matches path filter" {
                 $t = New-TestObject -Name "test1" -Path "p"
 
-                $f = New-FilterObject -Tag "a" -Path "p"
+                $f = New-FilterObject -Tag "a" -FullName "p"
 
                 $actual = Test-ShouldRun -Item $t -Filter $f
                 $actual.Include | Verify-True
@@ -416,7 +416,7 @@ i -PassThru:$PassThru {
             t "Given a test with path it includes it when it matches path filter " {
                 $t = New-TestObject -Name "test1" -Path "p"
 
-                $f = New-FilterObject -Path "p"
+                $f = New-FilterObject -FullName "p"
 
                 $actual = Test-ShouldRun -Item $t -Filter $f
                 $actual.Include | Verify-True
@@ -425,7 +425,7 @@ i -PassThru:$PassThru {
             t "Given a test with path it maybes it when it does not match path filter " {
                 $t = New-TestObject -Name "test1" -Path "p"
 
-                $f = New-FilterObject -Path "r"
+                $f = New-FilterObject -FullName "r"
 
                 $actual = Test-ShouldRun -Item $t -Filter $f
                 $actual.Include | Verify-False
@@ -450,6 +450,27 @@ i -PassThru:$PassThru {
                 $actual.Include | Verify-False
                 $actual.Exclude | Verify-False
             }
+        }
+
+        b "path filter" {
+            t "Given a test with path it includes it when it matches path filter " {
+                $t = New-TestObject -Name "test1" -Path "r","p","s"
+
+                $f = New-FilterObject -FullName "*s"
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-True
+            }
+
+            t "Given a test with path it maybes it when it does not match path filter " {
+                $t = New-TestObject -Name "test1" -Path "r","p","s"
+
+                $f = New-FilterObject -FullName "x"
+
+                $actual = Test-ShouldRun -Item $t -Filter $f
+                $actual.Include | Verify-False
+                $actual.Exclude | Verify-False
+            }
+
         }
     }
 
@@ -515,13 +536,13 @@ i -PassThru:$PassThru {
             # here I have the failed tests, I need to accumulate paths
             # on them and use them for filtering the run in the next run
             # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
-            $paths = $pre | Where-Failed | % { , ($_.Path) }
-            $paths.Length | Verify-Equal 2
+            $lines = $pre | Where-Failed | % { "$($_.ScriptBlock.File):$($_.ScriptBlock.StartPosition.StartLine)" }
+            $lines.Length | Verify-Equal 2
 
             Write-Host "`n`n`n"
             # set the test3 to pass this time so we have some difference
             $willPass = $true
-            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Path $paths) -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Line $lines ) -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
             $actual = @($result | View-Flat | where { $_.Executed })
 

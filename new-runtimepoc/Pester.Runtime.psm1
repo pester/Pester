@@ -1874,13 +1874,13 @@ function Test-ShouldRun {
         }
     }
 
-    $allPaths = foreach ($p in @(tryGetProperty $Filter Path)) { $p -join '.' }
+    $allPaths = $Filter.FullName
     if (any $allPaths) {
         $anyIncludeFilters = $true
-        $include = $allPaths -contains $fullDottedPath
+        $include = like -Text $fullDottedPath -Patterns $allPaths
         if ($include) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it matches full path filter."
+                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it matches fullname filter '$include'."
             }
 
             $result.Include = $true
@@ -2348,14 +2348,14 @@ function flattenBlock ($Block, $Accumulator) {
 function New-FilterObject {
     [CmdletBinding()]
     param (
-        [String[][]] $Path,
+        [String[][]] $FullName,
         [String[]] $Tag,
         [String[]] $ExcludeTag,
         [String[]] $Line
     )
 
     New_PSObject -Type "Filter" -Property @{
-        Path       = $Path
+        FullName   = $FullName
         Tag        = $Tag
         ExcludeTag = $ExcludeTag
         Line       = $Line
