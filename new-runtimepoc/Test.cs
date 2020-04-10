@@ -10,31 +10,22 @@ namespace Pester
     {
         public static Test Create()
         {
-            var t = new Test();
-            t.ItemType = "Test";
-            t.PSTypeName = "DiscoveredTest";
-            t.FrameworkData = new Hashtable();
+            return new Test();
+        }
+
+        public Test()
+        {
+            ItemType = "Test";
+            Data = new Hashtable();
+            PluginData = new Hashtable();
+            ErrorRecord = new List<object>();
+
             var runtime = new Hashtable();
             runtime.Add("Phase", null);
             runtime.Add("ExecutionStep", null);
-            t.FrameworkData.Add("Runtime", runtime);
-            return t;
+            FrameworkData = new Hashtable();
+            FrameworkData.Add("Runtime", runtime);
         }
-
-        //public static Test Create(string id, ScriptBlock scriptBlock, string name, string[] path, string[] tag, bool focus, bool skip, Hashtable data)
-        //{
-        //    var t = Create();
-
-        //    t.Id = id;
-        //    t.ScriptBlock = scriptBlock;
-        //    t.Name = name;
-        //    t.Path = path.ToList();
-        //    t.Tag = tag.ToList();
-        //    t.Focus = focus;
-        //    t.Skip = skip;
-
-        //    return t;
-        //}
 
         public string ItemType { get; private set; }
         public string Id { get; set; }
@@ -45,28 +36,28 @@ namespace Pester
         public bool Focus { get; set; }
         public bool Skip { get; set; }
         // IDictionary to allow users use [ordered]
-        public IDictionary Data { get; set; } = new Hashtable();
+        public IDictionary Data { get; set; }
 
         public string ExpandedName { get; set; }
         public object Block { get; set; }
 
-        public bool First { get; set; } = false;
-        public bool Last { get; set; } = false;
-        public bool Include { get; set; } = false;
-        public bool Exclude { get; set; } = false;
-        public bool Explicit { get; set; } = false;
-        public bool ShouldRun { get; set; } = false;
+        public bool First { get; set; }
+        public bool Last { get; set; }
+        public bool Include { get; set; }
+        public bool Exclude { get; set; }
+        public bool Explicit { get; set; }
+        public bool ShouldRun { get; set; }
 
-        public bool Executed { get; set; } = false;
-        public DateTime? ExecutedAt { get; set; } = null;
-        public bool Passed { get; set; } = false;
-        public bool Skipped { get; set; } = false;
-        public object StandardOutput { get; set; } = null;
-        public List<object> ErrorRecord { get; set; } = new List<object>();
+        public bool Executed { get; set; }
+        public DateTime? ExecutedAt { get; set; }
+        public bool Passed { get; set; }
+        public bool Skipped { get; set; }
+        public object StandardOutput { get; set; }
+        public List<object> ErrorRecord { get; set; }
 
-        public TimeSpan Duration { get; set; } = TimeSpan.Zero;
-        public TimeSpan FrameworkDuration { get; set; } = TimeSpan.Zero;
-        public Hashtable PluginData { get; set; } = new Hashtable();
+        public TimeSpan Duration { get; set; }
+        public TimeSpan FrameworkDuration { get; set; }
+        public Hashtable PluginData { get; set; }
         public Hashtable FrameworkData { get; set; }
         public string PSTypeName { get; private set; }
 
@@ -79,35 +70,30 @@ namespace Pester
         {
             return new Block();
         }
-        //    function New-BlockObject {
-        //[CmdletBinding()]
-        //    param(
-        //    [Parameter(Mandatory = $true)]
-        //    [String] $Name,
-        //    [string[]] $Path,
-        //    [string[]] $Tag,
-        //    [ScriptBlock] $ScriptBlock,
-        //    [HashTable] $FrameworkData = @{ },
-        //    [HashTable] $PluginData = @{ },
-        //    [Switch] $Focus,
-        //    [String] $Id,
-        //    [Switch] $Skip
-        //)
 
+        public Block()
+        {
+            ItemType = "Block";
+            FrameworkData = new Hashtable();
+            PluginData = new Hashtable();
+            Tests = new List<object>();
+            Order = new List<object>();
+            Blocks = new List<object>();
+            ErrorRecord = new List<object>();
+        }
 
-
-        public string ItemType { get;  } = "Block";
+        public string ItemType { get; }
         public string Id { get; set; } // = $id
         public string Name { get; set; } // = $Name 
         public List<string> Path { get; set; } // =  $Path 
         public List<string> Tag { get; set; }// = $Tag
         public ScriptBlock ScriptBlock { get; set; } // = $ScriptBlock
-        public Hashtable FrameworkData { get; set; } = new Hashtable(); // = $FrameworkData
-        public Hashtable PluginData { get; set; } = new Hashtable(); // = $PluginData
+        public Hashtable FrameworkData { get; set; }// = $FrameworkData
+        public Hashtable PluginData { get; set; }  // = $PluginData
         public bool Focus { get; set; } //= [bool] $Focus
         public bool Skip { get; set; } // = [bool] $Skip
 
-        public List<object> Tests { get; set; } = new List<object>();
+        public List<object> Tests { get; set; }
 
         // TODO: consider renaming this to just Container
         public object BlockContainer { get; set; } // = $null
@@ -122,14 +108,14 @@ namespace Pester
         public ScriptBlock OneTimeBlockSetup { get; set; } //    = $null
         public ScriptBlock EachBlockTeardown { get; set; }// = $null
         public ScriptBlock OneTimeBlockTeardown { get; set; }// = $null
-        public List<object> Order { get; set; } = new List<object>();    //   = [Collections.Generic.List[Object]]@()
-        public List<object> Blocks { get; set; } = new List<object>(); // [Collections.Generic.List[Object]]@()
+        public List<object> Order { get; set; }  //   = [Collections.Generic.List[Object]]@()
+        public List<object> Blocks { get; set; } // [Collections.Generic.List[Object]]@()
         public bool Executed { get; set; } // = $false
         public bool Passed { get; set; } //            = $false
         public bool First { get; set; } //              = $false
-        public bool Last;//                 = $false
-        public List<object> StandardOutput;  //     = $null
-        public List<object> ErrorRecord = new List<object>();   //       = [Collections.Generic.List[Object]]@()
+        public bool Last { get; set; }//                 = $false
+        public List<object> StandardOutput { get; set; }  //     = $null
+        public List<object> ErrorRecord { get; set; }  //       = [Collections.Generic.List[Object]]@()
         public bool ShouldRun { get; set; } // = $false
         public bool Exclude { get; set; } //              = $false
         public bool Include { get; set; }//            = $false
@@ -154,8 +140,6 @@ namespace Pester
         public int OwnPendingCount { get; set; } // = 0
         public int OwnNotRunCount { get; set; } // = 0
         public int OwnInconclusiveCount { get; set; } // = 0
-        public string PSTypeName = "DiscoveredBlock";
-
         public override string ToString() { return string.Join(".", this.Path); }
     }
 }
