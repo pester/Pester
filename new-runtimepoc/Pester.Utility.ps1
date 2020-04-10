@@ -365,18 +365,3 @@ function Fold-Run {
         }
     }
 }
-
-
-function like {
-    param(
-        [Parameter(Mandatory)]
-        [String[]] $Patterns,
-        [String] $Text
-    )
-
-    foreach ($p in $Patterns) {
-        if ($text -like $p) {
-            return $p
-        }
-    }
-}
