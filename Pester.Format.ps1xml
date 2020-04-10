@@ -1,0 +1,252 @@
+<Configuration>
+  <Controls>
+    <Control>
+      <Name>PesterContainersControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <PropertyName>Content</PropertyName>
+                <CustomControlName>PesterContentControl</CustomControlName>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <PropertyName>Blocks</PropertyName>
+                <EnumerateCollection />
+                <CustomControlName>PesterBlocksControl</CustomControlName>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterSummaryControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Text>Tests completed in </Text>
+              <ExpressionBinding>
+                <PropertyName>Duration</PropertyName>
+                <CustomControlName>PesterDurationControl</CustomControlName>
+              </ExpressionBinding>
+              <NewLine />
+              <Text>Tests Passed: </Text>
+              <ExpressionBinding>
+                <PropertyName>PassedCount</PropertyName>
+              </ExpressionBinding>
+              <Text>, Failed: </Text>
+              <ExpressionBinding>
+                <PropertyName>FailedCount</PropertyName>
+              </ExpressionBinding>
+              <Text>, Skipped: </Text>
+              <ExpressionBinding>
+                <PropertyName>SkippedCount</PropertyName>
+              </ExpressionBinding>
+              <Text>, Total: </Text>
+              <ExpressionBinding>
+                <PropertyName>TestsCount</PropertyName>
+              </ExpressionBinding>
+              <Text>, NotRun: </Text>
+              <ExpressionBinding>
+                <PropertyName>NotRunCount</PropertyName>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterContentControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <LeftIndent>0</LeftIndent>
+                <CustomItem>
+                  <NewLine />
+                  <NewLine />
+                  <Text>Tests from: '</Text>
+                  <ExpressionBinding>
+                    <PropertyName>FullName</PropertyName>
+                  </ExpressionBinding>
+                  <Text>'</Text>
+                  <NewLine />
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterBlocksControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <LeftIndent>2</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <ScriptBlock>$_</ScriptBlock>
+                    <CustomControlName>PesterBlockHeaderControl</CustomControlName>
+                  </ExpressionBinding>
+                  <ExpressionBinding>
+                    <PropertyName>Blocks</PropertyName>
+                    <EnumerateCollection />
+                    <CustomControlName>PesterBlocksControl</CustomControlName>
+                  </ExpressionBinding>
+                  <ExpressionBinding>
+                    <PropertyName>Tests</PropertyName>
+                    <EnumerateCollection />
+                    <CustomControlName>PesterTestsControl</CustomControlName>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterBlockHeaderControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <ScriptBlock>
+                  if ($_.Path.Count -eq 1) { 'Describing ' } else { 'Context ' }
+                </ScriptBlock>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <PropertyName>Name</PropertyName>
+              </ExpressionBinding>
+              <NewLine />
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterTestsControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <LeftIndent>2</LeftIndent>
+                <CustomItem>
+                  <Text>[</Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>
+                      switch ($_.result) {
+                        'Passed' { '+' }
+                        'Failed' { '-' }
+                        'Skipped' { '!' }
+                        'Pending' { '?' }
+                        'Inconclusive' { '?' }
+                        default { '?' }
+                      }
+                    </ScriptBlock>
+                  </ExpressionBinding>
+                  <Text>] </Text>
+                  <ExpressionBinding>
+                    <PropertyName>Name</PropertyName>
+                  </ExpressionBinding>
+                  <Text> </Text>
+                  <ExpressionBinding>
+                    <PropertyName>Duration</PropertyName>
+                    <CustomControlName>PesterDurationControl</CustomControlName>
+                  </ExpressionBinding>
+                  <ExpressionBinding>
+                    <PropertyName>ErrorRecord</PropertyName>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$_.ErrorRecord</ScriptBlock>
+                    </ItemSelectionCondition>
+                    <CustomControlName>PesterErrorControl</CustomControlName>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterErrorControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <ScriptBlock>$_</ScriptBlock>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterDurationControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <ScriptBlock>
+                  if ($_.Ticks -lt [TimeSpan]::TicksPerSecond) {
+                      $time = [int]($_.TotalMilliseconds)
+                      $unit = "ms"
+                  }
+                  else {
+                      $time = [Math]::Round($_.TotalSeconds, 2)
+                      $unit = 's'
+                  }
+
+                  "$time$unit"
+                </ScriptBlock>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+  </Controls>
+  <ViewDefinitions>
+    <View>
+      <Name>Default</Name>
+      <ViewSelectedBy>
+        <TypeName>PesterRSpecTestRun</TypeName>
+      </ViewSelectedBy>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <PropertyName>Containers</PropertyName>
+                <EnumerateCollection />
+                <CustomControlName>PesterContainersControl</CustomControlName>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <ScriptBlock>$_</ScriptBlock>
+                <CustomControlName>PesterSummaryControl</CustomControlName>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>
