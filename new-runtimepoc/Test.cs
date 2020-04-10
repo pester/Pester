@@ -82,7 +82,7 @@ namespace Pester
             ErrorRecord = new List<object>();
         }
 
-        public string ItemType { get; }
+        public string ItemType { get; private set; }
         public string Id { get; set; } // = $id
         public string Name { get; set; } // = $Name 
         public List<string> Path { get; set; } // =  $Path 
