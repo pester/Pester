@@ -60,7 +60,13 @@ The fundamental change in this release is that Pester now runs in two phases: Di
 
 This powers many of the features in this release and enables many others to be implemented [in the future](https://github.com/pester/Pester/issues?q=is%3Aopen+is%3Aissue+milestone%3A5.x).
 
-To reap the benefits, you are asked to **put all your code into Pester controlled blocks**. All code should be placed inside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll` or `AfterEach`. Don't put any code directly inside or outside of `Describe` or `Context`, without wrapping it in one of those block. This includes the setup on the top of the file. This will allow Pester to control when all of your code is executed, and scope it correctly. This will also keep the amount of code executed during discovery to a minimum. Keeping it fast and responsive.
+To reap the benefits, there are new rules to follow: 
+
+**Put all your code into `It`, `BeforeAll`, `BeforeEach`, `AfterAll` or `AfterEach`. Put no code directly into `Describe`, `Context` or on the top of your file, without wrapping it in one of these blocks, unless you have a good reason to do so.**
+
+**All misplaced code will run during Discovery, and its results won't be available during Run.**
+
+This will allow Pester to control when all of your code is executed, and scope it correctly. This will also keep the amount of code executed during discovery to a minimum. Keeping it fast and responsive. See an [article explaining it in detail](https://jakubjares.com/2020/04/11/pester5-discovery-and-script-setup/).
 
 #### Put setup in BeforeAll
 If your test suite already puts its setups and teardowns into `Before*` and `After*`. All you need to do is move the file setup into a `BeforeAll` block:
