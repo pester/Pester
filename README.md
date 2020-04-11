@@ -66,7 +66,7 @@ To reap the benefits, there are new rules to follow:
 
 **All misplaced code will run during Discovery, and its results won't be available during Run.**
 
-This will allow Pester to control when all of your code is executed, and scope it correctly. This will also keep the amount of code executed during discovery to a minimum. Keeping it fast and responsive. See an [article explaining it in detail](https://jakubjares.com/2020/04/11/pester5-discovery-and-script-setup/).
+This will allow Pester to control when all of your code is executed, and scope it correctly. This will also keep the amount of code executed during discovery to a minimum. Keeping it fast and responsive. See [discovery and script setup](https://jakubjares.com/2020/04/11/pester5-discovery-and-script-setup/) article for detailed information.
 
 #### Put setup in BeforeAll
 If your test suite already puts its setups and teardowns into `Before*` and `After*`. All you need to do is move the file setup into a `BeforeAll` block:
@@ -84,7 +84,7 @@ Describe "Get-Cactus" {
 }
 ```
 
-See [migration script](https://gist.github.com/nohwnd/d488bd14ab4572f92ae77e208f476ada) for a script that does it for you. Improvements are welcome, e.g. putting code between `Describe` and `It` into `BeforeAll`.
+See [migration script](https://gist.github.com/nohwnd/d488bd14ab4572f92ae77e208f476ada) for a script that does it for you. Improvements are welcome, e.g. putting code between `Describe` and `It` into `BeforeAll`. See [discovery and script setup](https://jakubjares.com/2020/04/11/pester5-discovery-and-script-setup/) and [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
 
 
 #### Review your usage of Skip
@@ -757,6 +757,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - `-Output` parameter has reduced options to `None`, `Minimal` and `All`, `-Show` alias is removed
 - `-PesterOption` switch is removed
 - `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables parametrized scripts are not implemented at the moment, which should be solved in 5.1
+- Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
 
 
 ### Deprecated features
@@ -764,8 +765,8 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 
 ### Known issues to be solved in 5.0
 - Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
-- ❗ Fixed. Will ship in 5.0. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
-- `-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`
+- ❗ Fixed. Will ship in 5.0-rc2. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
+- ❗ Fixed by adding -FullNameFilter. Will ship in 5.0-rc2. ~`-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`~
 - Name filter in the advanced object is broken
 - Providing optional values via PesterConfiguration fails with null reference exception
 
@@ -776,7 +777,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
 - Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.
-- Mocks and Discovery are slow (whole execution is about 40% slower than on v4)
+- Mocks ~and Discovery~ are slow (whole execution is about 40% slower than on v4). ❗ Improved Discovery perf greatly. Other parts will follow.
 - Running on huge codebases is largely untested
 - `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
 - Documentation is out of date for all commands
