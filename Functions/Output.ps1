@@ -460,8 +460,8 @@ function Get-WriteScreenPlugin {
     } -ContainerDiscoveryEnd {
         param ($Context)
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-            $count = $Context.Block.Blocks.Tests.Count
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $count$(if(1 -eq $count) { " test" } else { " tests" }) in $(ConvertTo-HumanTime $Context.Duration)"
+            # todo: this is very very slow because of View-flat
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
     } -DiscoveryEnd {
         param ($Context)
@@ -471,9 +471,8 @@ function Get-WriteScreenPlugin {
         #     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
         # }
 
-        # this is actually pretty fast, takes <1ms on 10k tests, nice
-        $count = $Context.BlockContainers.Blocks.Tests.Count
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished. Found $count$(if(1 -eq $count) { " test" } else { " tests" }) in $(ConvertTo-HumanTime $Context.Duration)"
+        # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
 
     } -ContainerRunStart {
         param ($Context)

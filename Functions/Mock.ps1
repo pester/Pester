@@ -712,10 +712,10 @@ function Invoke-MockInternal {
                 }
                 $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
                 if (-not $CallHistory.ContainsKey($key)) {
-                    $CallHistory.Add($key, @($call))
+                    $CallHistory.Add($key, [Collections.Generic.List[object]]@($call))
                 }
                 else {
-                    $CallHistory[$key] += $call
+                    $CallHistory[$key].Add($call)
                 }
 
                 ExecuteBehavior -Behavior $behavior `

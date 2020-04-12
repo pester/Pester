@@ -349,7 +349,7 @@ function Get-VerifiableBehaviors {
     }
 
     $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
 
     $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
@@ -366,11 +366,14 @@ function Get-VerifiableBehaviors {
         }
     }
     $block = Get-CurrentBlock
-    Recurse-Up $block {
-        param($b)
 
-        if (-not $b.IsRoot) {
-            $bs = $b.PluginData.Mock.Behaviors.Values
+    # recurse up
+    $level = 0
+    while ($null -ne $block) {
+
+        ## action
+        if (-not $block.IsRoot) {
+            $bs = $block.PluginData.Mock.Behaviors.Values
             if ($null -ne $bs -or $bs.Count -ne 0) {
                 foreach ($bb in $bs) {
                     if ($bb.Verifiable) {
@@ -379,7 +382,14 @@ function Get-VerifiableBehaviors {
                 }
             }
         }
+
+        # end action
+
+        $level--
+        $block = $block.Parent
     }
+        # end
+
 
     $behaviors
 }
@@ -413,15 +423,21 @@ function Get-AssertMockTable {
         # we are in test and we care only about the test scope,
         # this is easy, we just look for call history of the command
 
-        $history = tryGetValue $Frame.Frame.PluginData.Mock.CallHistory $key
+
+        $history = if ($Frame.Frame.PluginData.Mock.CallHistory.ContainsKey($Key)) {
+            # do not enumerate so we get the same thing back
+            # even if it is a collection
+            $Frame.Frame.PluginData.Mock.CallHistory.$Key
+        }
+
         if ($history) {
             return @{
-                "$key" = @($history)
+                "$key" = [Collections.Generic.List[object]]@($history)
             }
         }
         else {
             return @{
-                "$key" = @()
+                "$key" = [Collections.Generic.List[object]]@()
             }
 
             # TODO: This figures out if the mock was defined, when there  were 0 calls, it adds overhead
@@ -473,17 +489,16 @@ function Get-AssertMockTable {
     }
     elseif ($scope -eq 1) {
         # in scope 1 it is the parent
-        $block = if (any $currentBlock.Parent) { $currentBlock.Parent } else { $currentBlock }
+        $block = if ($null -ne $currentBlock.Parent) { $currentBlock.Parent } else { $currentBlock }
     }
     else {
         # otherwise we just walk up as many scopes as needed until
         # we reach the desired scope, or the root of the tree, the above ifs could
         # be replaced by this, but they are easier to write and use for the most common
         # cases
-        # TODO: another ad-hoc implementation of Recurse-Up
         $i = $currentBlock
         $level = $scope - 1
-        while ($level -gt 0 -and (any $i.Parent)) {
+        while ($level -gt 0 -and ($null -ne $i.Parent)) {
             $level--
             $i = $i.Parent
         }
@@ -497,15 +512,21 @@ function Get-AssertMockTable {
     $addToHistory = {
         param($b)
 
-        $mockData = tryGetProperty $b.pluginData Mock
-        if ($mockData) {
-            $callHistory = tryGetProperty $mockData CallHistory
-            if ($callHistory) {
-                $v = tryGetValue $callHistory $key
-                if (any $v) {
-                    $history.AddRange(@($v))
-                }
-            }
+        if (-not $b.pluginData.ContainsKey('Mock')) {
+            return
+        }
+
+        $mockData = $b.pluginData.Mock
+
+        $callHistory = $mockData.CallHistory
+
+
+        $v = if ($callHistory.ContainsKey($key)) {
+            $callHistory.$key
+        }
+
+        if ($null -ne $v -and 0 -ne $v.Count) {
+            $history.AddRange([System.Collections.Generic.List[Object]]@($v))
         }
     }
 
@@ -515,13 +536,13 @@ function Get-AssertMockTable {
         # we did not find any calls, is the mock even defined?
         # TODO: should we look in the scope and the upper scopes for the mock or just assume 0 calls were done?
         return @{
-            "$key" = @()
+            "$key" = [Collections.Generic.List[object]]@()
         }
     }
 
 
     return @{
-        "$key" = @($history)
+        "$key" = [Collections.Generic.List[object]]@($history)
     }
 }
 
