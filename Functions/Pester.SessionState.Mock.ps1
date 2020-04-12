@@ -8,14 +8,14 @@ function Get-MockPlugin () {
         -EachBlockSetupStart {
         param($Context)
         $Context.Block.PluginData.Mock = @{
-            Hooks       = @()
+            Hooks       = [System.Collections.Generic.List[object]]@()
             CallHistory = @{}
             Behaviors   = @{}
         }
     } -EachTestSetupStart {
         param($Context)
         $Context.Test.PluginData.Mock = @{
-            Hooks       = @()
+            Hooks       = [System.Collections.Generic.List[object]]@()
             CallHistory = @{}
             Behaviors   = @{}
         }
@@ -201,7 +201,6 @@ about_Mocking
         [string[]]$RemoveParameterType,
         [string[]]$RemoveParameterValidation
     )
-
     if (Is-Discovery) {
         # this is to allow mocks in between Describe and It which is discouraged but common
         # and will make for an easier move to v5
@@ -211,9 +210,15 @@ about_Mocking
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
+
     $SessionState = $PSCmdlet.SessionState
-    $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
-    $null = if ($ParameterFilter) { Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter }
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
+        $null = if ($ParameterFilter) { Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter }
+    }
+
+    # takes 0.4 ms max
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     $mockData = Get-MockDataForCurrentScope
@@ -230,10 +235,16 @@ about_Mocking
             Write-PesterDebugMessage -Scope Mock -Message "Mock does not have a hook yet, creating a new one."
         }
         $hook = Create-MockHook -ContextInfo $contextInfo -InvokeMockCallback $invokeMockCallBack
-        $mockData.Hooks += $hook
+        $mockData.Hooks.Add($hook)
     }
 
-    $behaviors = getOrUpdateValue $mockData.Behaviors $contextInfo.Command.Name ([System.Collections.Generic.List[Object]]@())
+    if ($mockData.Behaviors.ContainsKey($contextInfo.Command.Name)) {
+        $behaviors = $mockData.Behaviors[$contextInfo.Command.Name]
+    }
+    else {
+        $behaviors = [System.Collections.Generic.List[Object]]@()
+        $mockData.Behaviors[$contextInfo.Command.Name] = $behaviors
+    }
 
     $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -243,7 +254,6 @@ about_Mocking
 }
 
 function Get-AllMockBehaviors {
-    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [String] $CommandName
@@ -256,14 +266,16 @@ function Get-AllMockBehaviors {
     # or any of the mocks above it
     # this does not list mocks in other tests
     $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
 
     $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
-        $bs = tryGetValue $currentTest.PluginData.Mock.Behaviors $CommandName
+        $bs = @(if ($currentTest.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+            $currentTest.PluginData.Mock.Behaviors.$CommandName
+        })
         if ($null -ne $bs -and $bs.Count -gt 0) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in the test."
@@ -281,29 +293,37 @@ function Get-AllMockBehaviors {
         Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
     }
     $block = Get-CurrentBlock
-    Recurse-Up $block {
-        param($b)
 
+    # recurse up
+    $level = 0
+    while ($null -ne $block) {
+
+        # action
         # root block can't have mocks, and we also don't run the plugin setup for it so the Mock data are not setup there
         # so not running this code there makes the code simpler, and more correct because when the setup is not there we know
         # that something bad happened
-        if (-not $b.IsRoot) {
-            $bs = tryGetValue $b.PluginData.Mock.Behaviors $CommandName
+        if (-not $block.IsRoot) {
+            $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+                $block.PluginData.Mock.Behaviors.$CommandName
+            })
             # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
             if ($null -ne $bs -or $bs.Count -ne 0) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($b.Name)'."
+                    Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($block.Name)'."
                 }
                 $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
                 $behaviors.AddRange($bss)
             }
         }
+        # action end
+
+        # go one level up
+        $level--
+        $block = $block.Parent
     }
 
-    if (none $behaviors) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
-        }
+    if ($PesterPreference.Debug.WriteDebugMessages.Value -and ($null -eq $behaviors -or $behaviors.Count -eq 0)) {
+        Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -329,7 +349,7 @@ function Get-VerifiableBehaviors {
     }
 
     $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
 
     $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
@@ -346,11 +366,14 @@ function Get-VerifiableBehaviors {
         }
     }
     $block = Get-CurrentBlock
-    Recurse-Up $block {
-        param($b)
 
-        if (-not $b.IsRoot) {
-            $bs = $b.PluginData.Mock.Behaviors.Values
+    # recurse up
+    $level = 0
+    while ($null -ne $block) {
+
+        ## action
+        if (-not $block.IsRoot) {
+            $bs = $block.PluginData.Mock.Behaviors.Values
             if ($null -ne $bs -or $bs.Count -ne 0) {
                 foreach ($bb in $bs) {
                     if ($bb.Verifiable) {
@@ -359,7 +382,14 @@ function Get-VerifiableBehaviors {
                 }
             }
         }
+
+        # end action
+
+        $level--
+        $block = $block.Parent
     }
+        # end
+
 
     $behaviors
 }
@@ -393,15 +423,21 @@ function Get-AssertMockTable {
         # we are in test and we care only about the test scope,
         # this is easy, we just look for call history of the command
 
-        $history = tryGetValue $Frame.Frame.PluginData.Mock.CallHistory $key
+
+        $history = if ($Frame.Frame.PluginData.Mock.CallHistory.ContainsKey($Key)) {
+            # do not enumerate so we get the same thing back
+            # even if it is a collection
+            $Frame.Frame.PluginData.Mock.CallHistory.$Key
+        }
+
         if ($history) {
             return @{
-                "$key" = @($history)
+                "$key" = [Collections.Generic.List[object]]@($history)
             }
         }
         else {
             return @{
-                "$key" = @()
+                "$key" = [Collections.Generic.List[object]]@()
             }
 
             # TODO: This figures out if the mock was defined, when there  were 0 calls, it adds overhead
@@ -453,17 +489,16 @@ function Get-AssertMockTable {
     }
     elseif ($scope -eq 1) {
         # in scope 1 it is the parent
-        $block = if (any $currentBlock.Parent) { $currentBlock.Parent } else { $currentBlock }
+        $block = if ($null -ne $currentBlock.Parent) { $currentBlock.Parent } else { $currentBlock }
     }
     else {
         # otherwise we just walk up as many scopes as needed until
         # we reach the desired scope, or the root of the tree, the above ifs could
         # be replaced by this, but they are easier to write and use for the most common
         # cases
-        # TODO: another ad-hoc implementation of Recurse-Up
         $i = $currentBlock
         $level = $scope - 1
-        while ($level -gt 0 -and (any $i.Parent)) {
+        while ($level -gt 0 -and ($null -ne $i.Parent)) {
             $level--
             $i = $i.Parent
         }
@@ -477,31 +512,36 @@ function Get-AssertMockTable {
     $addToHistory = {
         param($b)
 
-        $mockData = tryGetProperty $b.pluginData Mock
-        if ($mockData) {
-            $callHistory = tryGetProperty $mockData CallHistory
-            if ($callHistory) {
-                $v = tryGetValue $callHistory $key
-                if (any $v) {
-                    $history.AddRange(@($v))
-                }
-            }
+        if (-not $b.pluginData.ContainsKey('Mock')) {
+            return
+        }
+
+        $mockData = $b.pluginData.Mock
+
+        $callHistory = $mockData.CallHistory
+
+
+        $v = if ($callHistory.ContainsKey($key)) {
+            $callHistory.$key
+        }
+
+        if ($null -ne $v -and 0 -ne $v.Count) {
+            $history.AddRange([System.Collections.Generic.List[Object]]@($v))
         }
     }
 
     Fold-Block -Block $Block -OnBlock $addToHistory -OnTest $addToHistory
-
     if (0 -eq $history.Count) {
         # we did not find any calls, is the mock even defined?
         # TODO: should we look in the scope and the upper scopes for the mock or just assume 0 calls were done?
         return @{
-            "$key" = @()
+            "$key" = [Collections.Generic.List[object]]@()
         }
     }
 
 
     return @{
-        "$key" = @($history)
+        "$key" = [Collections.Generic.List[object]]@($history)
     }
 }
 
@@ -516,7 +556,7 @@ function Get-MockDataForCurrentScope {
     # table
 
     $location = $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
 
     if (-not $inTest) {
         $location = $currentBlock = Get-CurrentBlock
@@ -830,7 +870,7 @@ to the original.
 
     $isNumericScope = $Scope -match "^\d+$"
     $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
     $currentBlock = Get-CurrentBlock
 
     $frame = if ($isNumericScope) {
@@ -890,12 +930,24 @@ to the original.
 
     $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule
 
-    tryRemoveKey $PSBoundParameters Scope
-    tryRemoveKey $PSBoundParameters ModuleName
-    tryRemoveKey $PSBoundParameters CommandName
-    tryRemoveKey $PSBoundParameters ActualValue
-    tryRemoveKey $PSBoundParameters Negate
-    tryRemoveKey $PSBoundParameters CallerSessionState
+    if ($PSBoundParameters.ContainsKey('Scope')) {
+        $PSBoundParameters.Remove('Scope')
+    }
+    if ($PSBoundParameters.ContainsKey('ModuleName')) {
+        $PSBoundParameters.Remove('ModuleName')
+    }
+    if ($PSBoundParameters.ContainsKey('CommandName')) {
+        $PSBoundParameters.Remove('CommandName')
+    }
+    if ($PSBoundParameters.ContainsKey('ActualValue')) {
+        $PSBoundParameters.Remove('ActualValue')
+    }
+    if ($PSBoundParameters.ContainsKey('Negate')) {
+        $PSBoundParameters.Remove('Negate')
+    }
+    if ($PSBoundParameters.ContainsKey('CallerSessionState')) {
+        $PSBoundParameters.Remove('CallerSessionState')
+    }
 
     $result = Should-InvokeInternal @PSBoundParameters `
         -ContextInfo $contextInfo `
@@ -938,8 +990,32 @@ function Invoke-Mock {
         $Hook
     )
 
+    if ('End' -eq $FromBlock) {
+        if (-not $MockCallState.ShouldExecuteOriginalCommand) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
+            }
+            return
+        }
+        else {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, forwarding the call to Invoke-MockInternal without call history and without behaviors."
+            }
+            Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
+            return
+        }
+    }
+
+    if ('Begin' -eq $FromBlock) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, Invoke-MockInternal without call history and without behaviors."
+        }
+        Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
+        return
+    }
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock."
+        Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, resolving call history and behaviors."
     }
 
     # this function is called by the mock bootstrap function, so every implementer
@@ -949,7 +1025,7 @@ function Invoke-Mock {
     if ([string]::IsNullOrWhiteSpace($ModuleName)) {
         $ModuleName = $null
     }
-    $fromModule = any $ModuleName
+    $fromModule = $null -ne $ModuleName
     $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
     $nonModuleBehaviors = [System.Collections.Generic.List[Object]]@()
     foreach ($b in $allBehaviors) {
@@ -969,7 +1045,7 @@ function Invoke-Mock {
     }
 
     # if any behaviors exist for this module, use them. Otherwise use the non module behaviors
-    $detectedModule, $behaviors = if (any $moduleBehaviors) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
+    $detectedModule, $behaviors = if ($null -ne $moduleBehaviors -and 0 -ne $moduleBehaviors.Count) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 
     Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory

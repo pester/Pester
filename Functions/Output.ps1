@@ -448,55 +448,49 @@ function Get-WriteScreenPlugin {
         param ($Context)
 
         # Write-PesterStart $Context
-    } `
-        -DiscoveryStart {
+    } -DiscoveryStart {
         param ($Context)
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting test discovery in $(@($Context.BlockContainers).Length) files."
-    } `
-        -ContainerDiscoveryStart {
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+    } -ContainerDiscoveryStart {
         param ($Context)
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering tests in $($Context.BlockContainer.Content)."
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Content)."
         }
-    } `
-        -ContainerDiscoveryEnd {
+    } -ContainerDiscoveryEnd {
         param ($Context)
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+            # todo: this is very very slow because of View-flat
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
-    } `
-        -DiscoveryEnd {
+    } -DiscoveryEnd {
         param ($Context)
 
-        if ($Context.AnyFocusedTests) {
-            $focusedTests = $Context.FocusedTests
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
-        }
+        # if ($Context.AnyFocusedTests) {
+        #     $focusedTests = $Context.FocusedTests
+        #     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        # }
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Test discovery finished. $(ConvertTo-HumanTime $Context.Duration)"
-    } `
-        -ContainerRunStart {
+        # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+
+    } -ContainerRunStart {
         param ($Context)
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"]
-                & $SafeCommands["Write-Host"]
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests from '$($Context.Block.BlockContainer.Content)'"
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`n`nRunning tests from '$($Context.Block.BlockContainer.Content)'"
             }
         }
-    } `
-        -ContainerRunEnd {
+    } -ContainerRunEnd {
         param ($Context)
 
         if ($Context.Block.ErrorRecord.Count -gt 0) {
             & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.Block.BlockContainer.Content)' failed with:"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
-    } `
-        -EachBlockSetupStart {
+    } -EachBlockSetupStart {
         param ($Context)
         # the $context does not mean Context block, it's just a generic name
         # for the invocation context of this callback
@@ -636,8 +630,7 @@ function Get-WriteScreenPlugin {
             & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
             Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
         }
-    } `
-        -End {
+    } -End {
         param ( $Context )
 
         Write-PesterReport $Context.TestRun

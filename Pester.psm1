@@ -6,6 +6,12 @@ Import-Module $PSScriptRoot/new-runtimepoc/Pester.Runtime.psm1 -DisableNameCheck
 
 . $PSScriptRoot/new-runtimepoc/Pester.RSpec.ps1
 . $PSScriptRoot/Functions/Pester.SafeCommands.ps1
+### duplicate from pester.runtime
+$flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
+$script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
+$script:ScriptBlockSessionStateInternalProperty = [System.Management.Automation.ScriptBlock].GetProperty('SessionStateInternal', $flags)
+$script:ScriptBlockSessionStateProperty = [System.Management.Automation.ScriptBlock].GetProperty("SessionState", $flags)
+###
 
 $script:AssertionOperators = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
 $script:AssertionAliases = & $SafeCommands['New-Object'] 'Collections.Generic.Dictionary[string,object]'([StringComparer]::InvariantCultureIgnoreCase)
@@ -905,9 +911,11 @@ function ConvertTo-Pester4Result {
 
 Set-SessionStateHint -Hint Pester -SessionState $ExecutionContext.SessionState
 # these functions will be shared with the mock bootstrap function, or used in mocked calls so let's capture them just once instead of everytime we use a mock
+$script:SafeCommands['ExecutionContext'] = $ExecutionContext
 $script:SafeCommands['Get-MockDynamicParameter'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Get-MockDynamicParameter', 'function')
 $script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Write-PesterDebugMessage', 'function')
 $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
+
 
 Set-Alias 'Add-AssertionOperator' 'Add-ShouldOperator'
 Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
