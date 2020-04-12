@@ -57,7 +57,7 @@ i -PassThru:$PassThru {
             $actual.Containers[0].Blocks[0].Tests[1].StandardOutput | Verify-Equal "real"
         }
 
-        dt "mock defined in beforeall is used in every it" {
+        t "mock defined in beforeall is used in every it" {
             $sb = {
                 BeforeAll { function f { "real" } }
                 Describe 'd1' {
