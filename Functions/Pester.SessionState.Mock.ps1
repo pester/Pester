@@ -990,8 +990,32 @@ function Invoke-Mock {
         $Hook
     )
 
+    if ('End' -eq $FromBlock) {
+        if (-not $MockCallState.ShouldExecuteOriginalCommand) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
+            }
+            return
+        }
+        else {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, forwarding the call to Invoke-MockInternal without call history and without behaviors."
+            }
+            Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
+            return
+        }
+    }
+
+    if ('Begin' -eq $FromBlock) {
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, Invoke-MockInternal without call history and without behaviors."
+        }
+        Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
+        return
+    }
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock."
+        Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, resolving call history and behaviors."
     }
 
     # this function is called by the mock bootstrap function, so every implementer

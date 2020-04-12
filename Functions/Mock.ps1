@@ -182,7 +182,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     # MockCallState initialization is injected only into the begin block by the code that generates this prototype
     # also it is not a good idea to share it via the function local data because then it will get overwritten by nested
-    # mock if there is any, instead it should be a varible that gets defined in describe and so it survives during the whole
+    # mock if there is any, instead it should be a varible that gets defined in begin and so it survives during the whole
     # pipeline, but does not overwrite other variables, because we are running in different scopes. Mindblowing.
     & `$MyInvocation.MyCommand.Mock.Invoke_Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' ```
         -BoundParameters `$PSBoundParameters ```

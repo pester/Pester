@@ -10,7 +10,7 @@ Import-Module $PSScriptRoot\..\Pester.psd1
 $global:PesterPreference = [PesterConfiguration] @{
     Debug = @{
         ShowFullErrors         = $true
-        WriteDebugMessages     = $false
+        WriteDebugMessages     = $true
         WriteDebugMessagesFrom = "Mock"
         ReturnRawResultObject  = $true
     }
