@@ -254,7 +254,6 @@ about_Mocking
 }
 
 function Get-AllMockBehaviors {
-    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [String] $CommandName
@@ -267,14 +266,16 @@ function Get-AllMockBehaviors {
     # or any of the mocks above it
     # this does not list mocks in other tests
     $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
 
     $behaviors = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
-        $bs = tryGetValue $currentTest.PluginData.Mock.Behaviors $CommandName
+        $bs = if ($currentTest.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+            $currentTest.PluginData.Mock.Behaviors.$CommandName
+        }
         if ($null -ne $bs -and $bs.Count -gt 0) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in the test."
@@ -292,29 +293,37 @@ function Get-AllMockBehaviors {
         Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
     }
     $block = Get-CurrentBlock
-    Recurse-Up $block {
-        param($b)
 
+    # recurse up
+    $level = 0
+    while ($null -ne $block) {
+
+        # action
         # root block can't have mocks, and we also don't run the plugin setup for it so the Mock data are not setup there
         # so not running this code there makes the code simpler, and more correct because when the setup is not there we know
         # that something bad happened
-        if (-not $b.IsRoot) {
-            $bs = tryGetValue $b.PluginData.Mock.Behaviors $CommandName
+        if (-not $block.IsRoot) {
+            $bs = if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+                $block.PluginData.Mock.Behaviors.$CommandName
+            }
             # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
             if ($null -ne $bs -or $bs.Count -ne 0) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($b.Name)'."
+                    Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($block.Name)'."
                 }
                 $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
                 $behaviors.AddRange($bss)
             }
         }
+        # action end
+
+        # go one level up
+        $level--
+        $block = $block.Parent
     }
 
-    if (none $behaviors) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
-        }
+    if ($PesterPreference.Debug.WriteDebugMessages.Value -and ($null -eq $behaviors -or $behaviors.Count -eq 0)) {
+        Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {

@@ -1,4 +1,5 @@
 using System.Management.Automation;
+using System.Collections.Generic;
 
 
 namespace Pester {
@@ -7,6 +8,10 @@ namespace Pester {
     public static class Factory {
         public static PSNoteProperty CreateNoteProperty(string name, object value) {
             return new PSNoteProperty(name, value);
+        }
+
+        public static Dictionary<string, object> CreateDictionary() {
+            return new Dictionary<string, object>();
         }
     }
 }
