@@ -170,9 +170,9 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     `$MyInvocation.MyCommand.Mock.Args = `$null
     if (#CANCAPTUREARGS#) {
         if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Capturing arguments of the mocked command." }
-        `$MyInvocation.MyCommand.Mock.Args = `$ExecutionContext.SessionState.PSVariable.GetValue('local:args')
+        `$MyInvocation.MyCommand.Mock.Args = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:args')
     }
-    `$MyInvocation.MyCommand.Mock.PSCmdlet = `$ExecutionContext.SessionState.PSVariable.GetValue('local:PSCmdlet')
+    `$MyInvocation.MyCommand.Mock.PSCmdlet = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:PSCmdlet')
 
 
     `if (`$null -ne `$MyInvocation.MyCommand.Mock.PSCmdlet)
@@ -235,7 +235,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         }
     }
     end {
-        `$internalFunction = (`$ExecutionContext.InvokeProvider.Item.Get('Function:\Internal_$functionName', `$true, `$true))[0]
+        `$internalFunction = (`$MyInvocation.MyCommand.Mock.ExecutionContext.InvokeProvider.Item.Get('Function:\Internal_$functionName', `$true, `$true))[0]
         `$internalFunction.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty('Mock', `$MyInvocation.MyCommand.Mock))
 
         `$receivedInput = @(`$input)
@@ -278,7 +278,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Aliases               = $mock.Aliases
 
         Set_Alias             = $SafeCommands["Set-Alias"]
-        Remove_Variable       = $SafeCommands["Remove-Variable"]
     }
 
     $defineFunctionAndAliases = {
@@ -336,9 +335,11 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
         # data from the time we captured and created this mock
         Hook                     = $mock
+
+        ExecutionContext         = $ExecutionContext
     }
 
-    & $SafeCommands["Add-Member"] -InputObject $definedFunction -MemberType NoteProperty -Name Mock -Value $functionLocalData
+    $definedFunction.psobject.properties.Add([Pester.Factory]::CreateNoteProperty('Mock', $functionLocalData))
 
     $mock
 }
