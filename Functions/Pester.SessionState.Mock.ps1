@@ -273,9 +273,9 @@ function Get-AllMockBehaviors {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
-        $bs = if ($currentTest.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+        $bs = @(if ($currentTest.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
             $currentTest.PluginData.Mock.Behaviors.$CommandName
-        }
+        })
         if ($null -ne $bs -and $bs.Count -gt 0) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in the test."
