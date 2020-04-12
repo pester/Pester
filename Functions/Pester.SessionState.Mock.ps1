@@ -303,9 +303,9 @@ function Get-AllMockBehaviors {
         # so not running this code there makes the code simpler, and more correct because when the setup is not there we know
         # that something bad happened
         if (-not $block.IsRoot) {
-            $bs = if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+            $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
                 $block.PluginData.Mock.Behaviors.$CommandName
-            }
+            })
             # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
             if ($null -ne $bs -or $bs.Count -ne 0) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
