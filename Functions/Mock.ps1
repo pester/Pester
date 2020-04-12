@@ -166,18 +166,14 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
 
     $mockPrototype = @"
-    & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Mock bootstrap function #FUNCTIONNAME# called from block #BLOCK#."
+    if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Mock bootstrap function #FUNCTIONNAME# called from block #BLOCK#." }
     `$MyInvocation.MyCommand.Mock.Args = `$null
     if (#CANCAPTUREARGS#) {
-        & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Capturing arguments of the mocked command."
-        `$MyInvocation.MyCommand.Mock.Args = & `$MyInvocation.MyCommand.Mock.Get_Variable ```
-            -ErrorAction `$MyInvocation.MyCommand.Mock.ErrorAction ```
-            -Name args -ValueOnly -Scope Local
+        if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Capturing arguments of the mocked command." }
+        `$MyInvocation.MyCommand.Mock.Args = `$ExecutionContext.SessionState.PSVariable.GetValue('local:args')
     }
+    `$MyInvocation.MyCommand.Mock.PSCmdlet = `$ExecutionContext.SessionState.PSVariable.GetValue('local:PSCmdlet')
 
-    `$MyInvocation.MyCommand.Mock.PSCmdlet = & `$MyInvocation.MyCommand.Mock.Get_Variable ```
-        -ErrorAction `$MyInvocation.MyCommand.Mock.ErrorAction ```
-        -Name PSCmdlet -ValueOnly -Scope Local
 
     `if (`$null -ne `$MyInvocation.MyCommand.Mock.PSCmdlet)
     {
@@ -239,8 +235,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         }
     }
     end {
-        `$internalFunction = & `$MyInvocation.MyCommand.Mock.Get_Item -Path "Function:Internal_$functionName"
-        & `$MyInvocation.MyCommand.Mock.Add_Member -InputObject `$internalFunction -MemberType NoteProperty -Name Mock -Value `$MyInvocation.MyCommand.Mock
+        `$internalFunction = (`$ExecutionContext.InvokeProvider.Item.Get('Function:\Internal_$functionName', `$true, `$true))[0]
+        `$internalFunction.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty('Mock', `$MyInvocation.MyCommand.Mock))
 
         `$receivedInput = @(`$input)
 
@@ -307,12 +303,14 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
         # define all aliases
         foreach ($______current in $___Mock___parameters.Aliases) {
+            # this does not work because the syntax does not work, but would be faster
+            # $ExecutionContext.InvokeProvider.Item.Set("Alias:script\:$______current", $___Mock___parameters.BootstrapFunctionName, $true, $true)
             & $___Mock___parameters.Set_Alias -Name $______current -Value $___Mock___parameters.BootstrapFunctionName -Scope Script
         }
 
         # clean up the variables because we are injecting them to the current scope
-        & $___Mock___parameters.Remove_Variable -Name ______current
-        & $___Mock___parameters.Remove_Variable -Name ___Mock___parameters
+        $ExecutionContext.SessionState.PSVariable.Remove('______current')
+        $ExecutionContext.SessionState.PSVariable.Remove('___Mock___parameters')
     }
 
     $definedFunction = Invoke-InMockScope -SessionState $mock.SessionState -ScriptBlock $defineFunctionAndAliases -Arguments @($parameters) -NoNewScope
@@ -326,16 +324,12 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     # accessed via $MyInvocation.MyCommand
     $functionLocalData = @{
         Args                     = $null
-        ErrorAction              = if ($PSVersionTable.PSVersion.Major -ge 3) { 'Ignore' } else { 'SilentlyContinue' }
         SessionState             = $null
 
-        Get_Variable             = $SafeCommands["Get-Variable"]
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
-        Add_Member               = $SafeCommands["Add-Member"]
-        Get_Item               = $SafeCommands["Get-Item"]
         # returning empty scriptblock when we should not write debug to avoid patching it in mock prototype
-        Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { {} }
+        Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { $null }
 
         # used as temp variable
         PSCmdlet                 = $null
@@ -1091,7 +1085,10 @@ function Test-ParameterFilter {
         Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
     }
     $cmd = [scriptblock]::Create($scriptBlockString)
-    Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
+    }
     Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $SessionState
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {

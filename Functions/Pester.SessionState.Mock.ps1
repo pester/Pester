@@ -531,7 +531,6 @@ function Get-AssertMockTable {
     }
 
     Fold-Block -Block $Block -OnBlock $addToHistory -OnTest $addToHistory
-
     if (0 -eq $history.Count) {
         # we did not find any calls, is the mock even defined?
         # TODO: should we look in the scope and the upper scopes for the mock or just assume 0 calls were done?
@@ -557,7 +556,7 @@ function Get-MockDataForCurrentScope {
     # table
 
     $location = $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
 
     if (-not $inTest) {
         $location = $currentBlock = Get-CurrentBlock
@@ -871,7 +870,7 @@ to the original.
 
     $isNumericScope = $Scope -match "^\d+$"
     $currentTest = Get-CurrentTest
-    $inTest = any $currentTest
+    $inTest = $null -ne $currentTest
     $currentBlock = Get-CurrentBlock
 
     $frame = if ($isNumericScope) {
@@ -931,12 +930,24 @@ to the original.
 
     $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule
 
-    tryRemoveKey $PSBoundParameters Scope
-    tryRemoveKey $PSBoundParameters ModuleName
-    tryRemoveKey $PSBoundParameters CommandName
-    tryRemoveKey $PSBoundParameters ActualValue
-    tryRemoveKey $PSBoundParameters Negate
-    tryRemoveKey $PSBoundParameters CallerSessionState
+    if ($PSBoundParameters.ContainsKey('Scope')) {
+        $PSBoundParameters.Remove('Scope')
+    }
+    if ($PSBoundParameters.ContainsKey('ModuleName')) {
+        $PSBoundParameters.Remove('ModuleName')
+    }
+    if ($PSBoundParameters.ContainsKey('CommandName')) {
+        $PSBoundParameters.Remove('CommandName')
+    }
+    if ($PSBoundParameters.ContainsKey('ActualValue')) {
+        $PSBoundParameters.Remove('ActualValue')
+    }
+    if ($PSBoundParameters.ContainsKey('Negate')) {
+        $PSBoundParameters.Remove('Negate')
+    }
+    if ($PSBoundParameters.ContainsKey('CallerSessionState')) {
+        $PSBoundParameters.Remove('CallerSessionState')
+    }
 
     $result = Should-InvokeInternal @PSBoundParameters `
         -ContextInfo $contextInfo `
@@ -990,7 +1001,7 @@ function Invoke-Mock {
     if ([string]::IsNullOrWhiteSpace($ModuleName)) {
         $ModuleName = $null
     }
-    $fromModule = any $ModuleName
+    $fromModule = $null -ne $ModuleName
     $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
     $nonModuleBehaviors = [System.Collections.Generic.List[Object]]@()
     foreach ($b in $allBehaviors) {
@@ -1010,7 +1021,7 @@ function Invoke-Mock {
     }
 
     # if any behaviors exist for this module, use them. Otherwise use the non module behaviors
-    $detectedModule, $behaviors = if (any $moduleBehaviors) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
+    $detectedModule, $behaviors = if ($null -ne $moduleBehaviors -and 0 -ne $moduleBehaviors.Count) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 
     Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory
