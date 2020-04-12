@@ -8,14 +8,14 @@ function Get-MockPlugin () {
         -EachBlockSetupStart {
         param($Context)
         $Context.Block.PluginData.Mock = @{
-            Hooks       = @()
+            Hooks       = [System.Collections.Generic.List[object]]@()
             CallHistory = @{}
             Behaviors   = @{}
         }
     } -EachTestSetupStart {
         param($Context)
         $Context.Test.PluginData.Mock = @{
-            Hooks       = @()
+            Hooks       = [System.Collections.Generic.List[object]]@()
             CallHistory = @{}
             Behaviors   = @{}
         }
@@ -201,7 +201,6 @@ about_Mocking
         [string[]]$RemoveParameterType,
         [string[]]$RemoveParameterValidation
     )
-
     if (Is-Discovery) {
         # this is to allow mocks in between Describe and It which is discouraged but common
         # and will make for an easier move to v5
@@ -211,9 +210,15 @@ about_Mocking
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
+
     $SessionState = $PSCmdlet.SessionState
-    $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
-    $null = if ($ParameterFilter) { Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter }
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
+        $null = if ($ParameterFilter) { Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter }
+    }
+
+    # takes 0.4 ms max
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     $mockData = Get-MockDataForCurrentScope
@@ -230,10 +235,16 @@ about_Mocking
             Write-PesterDebugMessage -Scope Mock -Message "Mock does not have a hook yet, creating a new one."
         }
         $hook = Create-MockHook -ContextInfo $contextInfo -InvokeMockCallback $invokeMockCallBack
-        $mockData.Hooks += $hook
+        $mockData.Hooks.Add($hook)
     }
 
-    $behaviors = getOrUpdateValue $mockData.Behaviors $contextInfo.Command.Name ([System.Collections.Generic.List[Object]]@())
+    if ($mockData.Behaviors.ContainsKey($contextInfo.Command.Name)) {
+        $behaviors = $mockData.Behaviors[$contextInfo.Command.Name]
+    }
+    else {
+        $behaviors = [System.Collections.Generic.List[Object]]@()
+        $mockData.Behaviors[$contextInfo.Command.Name] = $behaviors
+    }
 
     $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {

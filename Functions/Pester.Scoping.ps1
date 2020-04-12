@@ -14,16 +14,13 @@ function Set-ScriptBlockScope {
         $SessionStateInternal
     )
 
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-
     if ($PSCmdlet.ParameterSetName -eq 'FromSessionState') {
-        $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
+        $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     }
 
-    $property = [scriptblock].GetProperty('SessionStateInternal', $flags)
-    $scriptBlockSessionState = $property.GetValue($ScriptBlock, $null)
+    $scriptBlockSessionState = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
 
-    if (-not $script:DisableScopeHints) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         # hint can be attached on the internal state (preferable) when the state is there.
         # if we are given unbound scriptblock with null internal state then we hope that
         # the source cmdlet set the hint directly on the ScriptBlock,
@@ -39,14 +36,13 @@ function Set-ScriptBlockScope {
                 $hint = 'Unknown unbound ScriptBlock'
             }
         }
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope SessionState "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
-        }
+
+        Write-PesterDebugMessage -Scope SessionState "Setting ScriptBlock state from source state '$hint' to '$($SessionStateInternal.Hint)'"
     }
 
-    $property.SetValue($ScriptBlock, $SessionStateInternal, $null)
+    $script:ScriptBlockSessionStateInternalProperty.SetValue($ScriptBlock, $SessionStateInternal, $null)
 
-    if (-not $script:DisableScopeHints) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Set-ScriptBlockHint -ScriptBlock $ScriptBlock
     }
 }
@@ -59,13 +55,9 @@ function Get-ScriptBlockScope {
         $ScriptBlock
     )
 
-
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $sessionStateInternal = [scriptblock].GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
-    if (-not $script:DisableScopeHints) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope SessionState "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
-        }
+    $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope SessionState "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
     }
     $sessionStateInternal
 }

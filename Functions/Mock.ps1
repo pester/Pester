@@ -10,10 +10,10 @@ function Add-MockBehavior {
     )
 
     if ($Behavior.IsDefault) {
-        $Behaviors.Default += $Behavior
+        $Behaviors.Default.Add($Behavior)
     }
     else {
-        $Behaviors.Parametrized += $Behavior
+        $Behaviors.Parametrized.Add($Behavior)
     }
 }
 
@@ -46,7 +46,9 @@ function New-MockBehavior {
             Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
         }
         $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
-        Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
+        }
         # bind the script block to the caller state which is most likely the test scope
         Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $ContextInfo.CallerSessionState
     }
@@ -100,11 +102,12 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         # Some versions of PowerShell may include dynamic parameters here
         # We will filter them out and add them at the end to be
         # compatible with both earlier and later versions
-        $dynamicParams = $metadata | & $SafeCommands['Select-Object'] -ExpandProperty Parameters | & $SafeCommands['Select-Object'] -ExpandProperty Values | & $SafeCommands['Where-Object'] {$_.IsDynamic}
+        $dynamicParams = foreach ($m in $metadata.Parameters.Values) { if ($m.IsDynamic) { $m } }
         if ($null -ne $dynamicParams) {
-            $dynamicparams | & $SafeCommands['ForEach-Object'] { $null = $metadata.Parameters.Remove($_.name) }
+            foreach($p in $dynamicParams) {
+                $null = $metadata.Parameters.Remove($d.name)
+            }
         }
-
         $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         if ($global:PSVersionTable.PSVersion.Major -ge 3 -and $contextInfo.Command.CommandType -eq 'Cmdlet') {
             if ($cmdletBinding -ne '[CmdletBinding()]') {
@@ -153,10 +156,10 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
                 $dynamicParamScriptBlock = [scriptblock]::Create($code)
 
-                $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $contextInfo.Command.ScriptBlock
+                $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($contextInfo.Command.ScriptBlock)
 
                 if ($null -ne $sessionStateInternal) {
-                    Set-ScriptBlockScope -ScriptBlock $dynamicParamScriptBlock -SessionStateInternal $sessionStateInternal
+                   $script:ScriptBlockSessionStateInternalProperty.SetValue($dynamicParamScriptBlock, $sessionStateInternal)
                 }
             }
         }
@@ -259,18 +262,18 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         CallerSessionState      = $contextInfo.CallerSessionState
         Metadata                = $metadata
         DynamicParamScriptBlock = $dynamicParamScriptBlock
-        Aliases                 = @($commandName)
+        Aliases                 = [Collections.Generic.List[object]]@($commandName)
         BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
     }
 
     if ($mock.OriginalCommand.ModuleName) {
-        $mock.Aliases += "$($mock.OriginalCommand.ModuleName)\$($CommandName)"
+        $mock.Aliases.Add("$($mock.OriginalCommand.ModuleName)\$($CommandName)")
     }
 
     if ('Application' -eq $mock.OriginalCommand.CommandType) {
         $aliasWithoutExt = $CommandName -replace $Mock.OriginalCommand.Extension
 
-        $mock.Aliases += $aliasWithoutExt
+        $mock.Aliases.Add($aliasWithoutExt)
     }
 
     $parameters = @{
@@ -1199,24 +1202,11 @@ function Get-DynamicParamBlock {
         [scriptblock] $ScriptBlock
     )
 
-    if ($PSVersionTable.PSVersion.Major -le 2) {
-        $flags = [System.Reflection.BindingFlags]'Instance, NonPublic'
-        $dynamicParams = [scriptblock].GetField('_dynamicParams', $flags).GetValue($ScriptBlock)
+    if ($ScriptBlock.AST.psobject.Properties.Name -match "Body") {
+        if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock) {
+            $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements.Extent.Text
 
-        if ($null -ne $dynamicParams) {
-            return $dynamicParams.ToString()
-
-        }
-    }
-    else {
-        If ( $ScriptBlock.AST.psobject.Properties.Name -match "Body") {
-            if ($null -ne $ScriptBlock.Ast.Body.DynamicParamBlock) {
-                $statements = $ScriptBlock.Ast.Body.DynamicParamBlock.Statements |
-                & $SafeCommands['Select-Object'] -ExpandProperty Extent |
-                & $SafeCommands['Select-Object'] -ExpandProperty Text
-
-                return $statements -join "$([System.Environment]::NewLine)"
-            }
+            return $statements -join [System.Environment]::NewLine
         }
     }
 }
@@ -1392,7 +1382,7 @@ function Test-IsClosure {
         $ScriptBlock
     )
 
-    $sessionStateInternal = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+    $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock)
     if ($null -eq $sessionStateInternal) {
         return $false
     }
@@ -1439,10 +1429,10 @@ function Repair-ConflictingParameters {
         $RemoveParameterValidation
     )
 
-    $repairedMetadata = New-Object System.Management.Automation.CommandMetadata -ArgumentList $Metadata
-    $paramMetadatas = @()
-    $paramMetadatas += $repairedMetadata.Parameters.Values
+    $repairedMetadata = [System.Management.Automation.CommandMetadata]$Metadata
+    $paramMetadatas = [Collections.Generic.List[object]]@($repairedMetadata.Parameters.Values)
 
+    # unnecessary function call that could be replaced by variable access, but is needed for tests
     $conflictingParams = Get-ConflictingParameterNames
 
     foreach ($paramMetadata in $paramMetadatas) {
@@ -1460,7 +1450,7 @@ function Repair-ConflictingParameters {
             $repairedMetadata.Parameters.Add($newName, $paramMetadata)
         }
 
-        $attrIndexesToRemove = New-Object System.Collections.ArrayList
+        $attrIndexesToRemove = [System.Collections.Generic.List[object]]@()
 
         if ($RemoveParameterType -contains $paramMetadata.Name) {
             $paramMetadata.ParameterType = [object]
@@ -1501,6 +1491,7 @@ function Reset-ConflictingParameters {
     )
 
     $parameters = $BoundParameters.Clone()
+    # unnecessary function call that could be replaced by variable access, but is needed for tests
     $names = Get-ConflictingParameterNames
 
     foreach ($param in $names) {
@@ -1563,7 +1554,6 @@ function Get-ScriptBlockAST {
 }
 
 function New-BlockWithoutParameterAliases {
-    [CmdletBinding()]
     [OutputType([scriptblock])]
     param(
         [Parameter(Mandatory = $true)]
