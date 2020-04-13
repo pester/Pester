@@ -149,14 +149,4 @@ InModuleScope Pester {
                 Should -Be 'One,C,Zero,Z,A,Weird'
         }
     }
-
-    Describe 'Remove-Comments' {
-        It 'Removes single line comments' {
-            Remove-Comments -Text 'code #comment' | Should -Be 'code '
-        }
-        It 'Removes multi line comments' {
-            Remove-Comments -Text 'code <#comment
-            comment#> code' | Should -Be 'code  code'
-        }
-    }
 }

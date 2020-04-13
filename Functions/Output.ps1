@@ -189,10 +189,6 @@ function ConvertTo-PesterResult {
     return $testResult
 }
 
-function Remove-Comments ($Text) {
-    $text -replace "(?s)(<#.*#>)" -replace "\#.*"
-}
-
 function Write-PesterReport {
     param (
         [Parameter(mandatory = $true, valueFromPipeline = $true)]
@@ -339,6 +335,8 @@ function ConvertTo-FailureLines {
             Message = @()
             Trace   = @()
         }
+
+        # return $lines
 
         ## convert the exception messages
         $exception = $ErrorRecord.Exception

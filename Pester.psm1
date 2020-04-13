@@ -445,7 +445,8 @@ function Invoke-Pester {
                 }
             }
 
-            $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+            # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
+            $sessionState = $PSCmdlet.SessionState
 
             $pluginConfiguration = @{}
             $plugins = @()
