@@ -64,7 +64,6 @@
           <CustomEntry>
             <CustomItem>
               <Frame>
-                <LeftIndent>0</LeftIndent>
                 <CustomItem>
                   <NewLine />
                   <NewLine />
@@ -73,7 +72,6 @@
                     <PropertyName>FullName</PropertyName>
                   </ExpressionBinding>
                   <Text>'</Text>
-                  <NewLine />
                   <NewLine />
                 </CustomItem>
               </Frame>
@@ -161,8 +159,26 @@
                   <Text> </Text>
                   <ExpressionBinding>
                     <PropertyName>Duration</PropertyName>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>-not $_.FrameworkDuration</ScriptBlock>
+                    </ItemSelectionCondition>
                     <CustomControlName>PesterDurationControl</CustomControlName>
                   </ExpressionBinding>
+                  <ExpressionBinding>
+                    <ScriptBlock>$_.Duration + $_.FrameworkDuration</ScriptBlock>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$_.FrameworkDuration</ScriptBlock>
+                    </ItemSelectionCondition>
+                    <CustomControlName>PesterDurationControl</CustomControlName>
+                  </ExpressionBinding>
+                  <ExpressionBinding>
+                    <ScriptBlock>$_</ScriptBlock>
+                    <ItemSelectionCondition>
+                      <PropertyName>FrameworkDuration</PropertyName>
+                    </ItemSelectionCondition>
+                    <CustomControlName>PesterFrameworkControl</CustomControlName>
+                  </ExpressionBinding>
+                  <NewLine />
                   <ExpressionBinding>
                     <PropertyName>ErrorRecord</PropertyName>
                     <ItemSelectionCondition>
@@ -170,7 +186,6 @@
                     </ItemSelectionCondition>
                     <CustomControlName>PesterErrorControl</CustomControlName>
                   </ExpressionBinding>
-                  <NewLine />
                 </CustomItem>
               </Frame>
             </CustomItem>
@@ -184,15 +199,51 @@
         <CustomEntries>
           <CustomEntry>
             <CustomItem>
-              <NewLine />
               <Frame>
-                <LeftIndent>4</LeftIndent>
+                <LeftIndent>1</LeftIndent>
                 <CustomItem>
                   <ExpressionBinding>
-                    <ScriptBlock>$_</ScriptBlock>
+                    <ScriptBlock>$_.DisplayErrorMessage</ScriptBlock>
                   </ExpressionBinding>
+                  <NewLine />
+                  <ExpressionBinding>
+                    <ScriptBlock>$_.DisplayStackTrace</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
                 </CustomItem>
               </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>PesterFrameworkControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <CustomControl>
+                  <CustomEntries>
+                    <CustomEntry>
+                      <CustomItem>
+                        <Text> (</Text>
+                        <ExpressionBinding>
+                          <PropertyName>Duration</PropertyName>
+                          <CustomControlName>PesterDurationControl</CustomControlName>
+                        </ExpressionBinding>
+                        <Text>|</Text>
+                        <ExpressionBinding>
+                          <PropertyName>FrameworkDuration</PropertyName>
+                          <CustomControlName>PesterDurationControl</CustomControlName>
+                        </ExpressionBinding>
+                        <Text>)</Text>
+                      </CustomItem>
+                    </CustomEntry>
+                  </CustomEntries>
+                </CustomControl>
+              </ExpressionBinding>
             </CustomItem>
           </CustomEntry>
         </CustomEntries>
