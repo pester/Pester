@@ -301,16 +301,18 @@ Function Get-AstTopParent {
         [System.Management.Automation.Language.Ast] $Ast,
         [int] $MaxDepth = 30
     )
-    If ([string]::IsNullOrEmpty($Ast.Parent)) {
-        $Ast
+
+    if ([string]::IsNullOrEmpty($Ast.Parent)) {
+        return $Ast
     }
-    ElseIf ($MaxDepth -le 0) {
+    elseif ($MaxDepth -le 0) {
         $params = @{
             Message = "Max depth reached, skipping this check"
         }
         & $SafeCommands['Write-Warning'] @params
+        return $null
     }
-    Else {
+    else {
         $MaxDepth--
         Get-AstTopParent -Ast $Ast.Parent -MaxDepth $MaxDepth
     }
