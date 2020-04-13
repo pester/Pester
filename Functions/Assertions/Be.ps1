@@ -47,7 +47,7 @@ function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     $ExpectedValue = $($ExpectedValue)
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string]))) {
-        return "Expected $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+        return "Expected $(Format-Nicely $ExpectedValue),$(if ($null -ne $Because) { Format-Because $Because }) but got $(Format-Nicely $ActualValue)."
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -60,7 +60,7 @@ function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
-    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got the same value."
+    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got the same value."
 }
 
 Add-ShouldOperator -Name               Be `
@@ -117,7 +117,7 @@ function ShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
     $ExpectedValue = $($ExpectedValue)
 
     if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string]))) {
-        return "Expected exactly $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+        return "Expected exactly $(Format-Nicely $ExpectedValue),$(if ($null -ne $Because) { Format-Because $Because }) but got $(Format-Nicely $ActualValue)."
     }
     <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
@@ -130,7 +130,7 @@ function ShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 function NotShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
-    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(Format-Because $Because) but got exactly the same value."
+    return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got exactly the same value."
 }
 
 Add-ShouldOperator -Name               BeExactly `
@@ -155,7 +155,7 @@ function Get-CompareStringMessage {
 
     $ExpectedValueLength = $ExpectedValue.Length
     $actualLength = $actual.Length
-    $maxLength = $ExpectedValueLength, $actualLength | & $SafeCommands['Sort-Object'] -Descending | & $SafeCommands['Select-Object'] -First 1
+    $maxLength = if ($ExpectedValueLength -gt $actualLength) { $ExpectedValueLength } else { $actualLength }
 
     $differenceIndex = $null
     for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i) {
@@ -168,7 +168,7 @@ function Get-CompareStringMessage {
     }
 
     if ($null -ne $differenceIndex) {
-        "Expected strings to be the same,$(Format-Because $Because) but they were different."
+        "Expected strings to be the same,$(if ($null -ne $Because) { Format-Because $Because }) but they were different."
 
         if ($ExpectedValue.Length -ne $actual.Length) {
             "Expected length: $ExpectedValueLength"
@@ -181,9 +181,8 @@ function Get-CompareStringMessage {
         }
         $ellipsis = "..."
         $excerptSize = 5;
-        "Expected: '{0}'" -f ( $ExpectedValue | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis | Expand-SpecialCharacters )
-        "But was:  '{0}'" -f ( $actual | Format-AsExcerpt -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis | Expand-SpecialCharacters )
-
+        "Expected: '{0}'" -f (  Expand-SpecialCharacters -InputObject (Format-AsExcerpt -InputObject $ExpectedValue -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis) )
+        "But was:  '{0}'" -f ( Expand-SpecialCharacters -InputObject (Format-AsExcerpt -InputObject $actual -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis ) )
     }
 }
 function Format-AsExcerpt {
@@ -198,7 +197,7 @@ function Format-AsExcerpt {
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [string]$excerptMarker
     )
-    $InputObjectDisplay=""
+    $InputObjectDisplay = [string]::Empty
     $displayDifferenceIndex = $startIndex - $excerptSize
     $maximumStringLength = 40
     $maximumSubstringLength = $excerptSize * 2

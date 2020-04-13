@@ -61,7 +61,7 @@ function Should {
 
     end {
         $lineNumber = $MyInvocation.ScriptLineNumber
-        $lineText = $MyInvocation.Line.TrimEnd("$([System.Environment]::NewLine)")
+        $lineText = $MyInvocation.Line.TrimEnd([System.Environment]::NewLine)
         $file = $MyInvocation.ScriptName
 
         $negate = $false
@@ -145,7 +145,6 @@ function Should {
 }
 
 function Invoke-Assertion {
-    [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
         [ValidateNotNull()]
@@ -192,7 +191,8 @@ function Invoke-Assertion {
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
     if (-not $testResult.Succeeded) {
-        $errorRecord = New-ShouldErrorRecord -Message $testResult.FailureMessage -File $file -Line $lineNumber -LineText $lineText -Terminating $ShouldThrow
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow)
+
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately
