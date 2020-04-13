@@ -26,6 +26,9 @@
 
     # TypesToProcess    = @('.\Functions\Gherkin.types.ps1xml')
 
+    # Format files (.ps1xml) to be loaded when importing this module
+    FormatsToProcess = @('.\Pester.Format.ps1xml')
+
     # Functions to export from this module
     FunctionsToExport = @(
         'Invoke-Pester'
