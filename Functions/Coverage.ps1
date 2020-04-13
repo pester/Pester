@@ -306,10 +306,7 @@ Function Get-AstTopParent {
         return $Ast
     }
     elseif ($MaxDepth -le 0) {
-        $params = @{
-            Message = "Max depth reached, skipping this check"
-        }
-        & $SafeCommands['Write-Warning'] @params
+        & $SafeCommands['Write-Verbose'] "Max depth reached, moving on"
         return $null
     }
     else {
