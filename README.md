@@ -7,7 +7,7 @@
 > 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218), or see more options in [Questions?](#questions).
 
 
-Pester release candidate is finally here! 🥳 As the name suggests this release is close to final and most things that I wanted to get working actually work. 😊 This version is already stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own a larger project, please give it a try and report back.
+Pester release candidate 3 is here! 🥳 As the name suggests this release is close to final and most things that I wanted to get working actually work. 😊 This version is already stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own a larger project, please give it a try and report back.
 
   * [What is new?](#what-is-new-)
     + [Discovery & Run](#discovery---run)
@@ -15,11 +15,11 @@ Pester release candidate is finally here! 🥳 As the name suggests this release
       - [Review your usage of Skip](#review-your-usage-of-skip)
       - [Review your usage of TestCases](#review-your-usage-of-testcases)
     + [Tags](#tags)
-      - [Tags on everyting](#tags-on-everyting)
+      - [Tags on everything](#tags-on-everything)
       - [Tags use wildcards](#tags-use-wildcards)
     + [Logging](#logging)
     + [Run only what is needed](#run-only-what-is-needed)
-    + [Skip on everyting](#skip-on-everyting)
+    + [Skip on everything](#skip-on-everythingj)
     + [Collect all Should failures](#collect-all-should-failures)
     + [Collecting `AfterEach` failures](#collecting--aftereach--failures)
     + [Normal and minimal view](#normal-and-minimal-view)
@@ -60,7 +60,7 @@ The fundamental change in this release is that Pester now runs in two phases: Di
 
 This powers many of the features in this release and enables many others to be implemented [in the future](https://github.com/pester/Pester/issues?q=is%3Aopen+is%3Aissue+milestone%3A5.x).
 
-To reap the benefits, there are new rules to follow: 
+To reap the benefits, there are new rules to follow:
 
 **Put all your code into `It`, `BeforeAll`, `BeforeEach`, `AfterAll` or `AfterEach`. Put no code directly into `Describe`, `Context` or on the top of your file, without wrapping it in one of these blocks, unless you have a good reason to do so.**
 
@@ -109,7 +109,7 @@ Describe "d" {
 }
 ```
 
-Changing the code like this will skip the test correctly, but be aware that the code will run everytime Discovery is performed on that file. Depending on how you run your tests this might be everytime.
+Changing the code like this will skip the test correctly, but be aware that the code will run every time Discovery is performed on that file. Depending on how you run your tests this might be every time.
 
 ```powershell
 function Get-IsSkipped {
@@ -125,7 +125,7 @@ Describe "d" {
 }
 ```
 
-Consider settings the check statically into a global readonly variable (much like `$IsWindows`), or caching the response for a while. Are you in this situation? Get in touch via the channels mentioned in [Questions?](#questions).
+Consider settings the check statically into a global read-only variable (much like `$IsWindows`), or caching the response for a while. Are you in this situation? Get in touch via the channels mentioned in [Questions?](#questions).
 
 #### Review your usage of TestCases
 
@@ -133,11 +133,11 @@ Consider settings the check statically into a global readonly variable (much lik
 
 ### Tags
 
-#### Tags on everyting
+#### Tags on everything
 
 The tag parameter is now available on `Describe`, `Context` and `It` and it is possible to filter tags on any level. You can then use `-Tag` and `-ExcludeTag` to run just the tests that you want.
 
-Here you can see an example of a test suite that has acceptance tests and unit tests, and some of the tests are slow, some are flaky, and some only work on Linux. Pester5 makes runnin all reliable acceptance tests, that can run on Windows is as simple as:
+Here you can see an example of a test suite that has acceptance tests and unit tests, and some of the tests are slow, some are flaky, and some only work on Linux. Pester5 makes running all reliable acceptance tests, that can run on Windows is as simple as:
 
 
 ```powershell
@@ -299,7 +299,7 @@ Tests completed in 139ms
 Tests Passed: 0, Failed: 0, Skipped: 0, Total: 1, NotRun: 1
 ```
 
-### Skip on everyting
+### Skip on everything
 
 `-Skip` is now available on Describe and Context. This allows you to skip all the tests in that block and every child block.
 
@@ -413,7 +413,7 @@ In a similar fashion to Should, when test assertion fails, and it teardown also 
 
 ### Normal and minimal view
 
-Errors are usually what we are interested in when running tests. And that is why Pester5 implements a conscise view that prints failed tests with the full test path, and minimal discovery and summary information:
+Errors are usually what we are interested in when running tests. And that is why Pester5 implements a concise view that prints failed tests with the full test path, and minimal discovery and summary information:
 
 ```
 Starting test discovery in 1 files.
@@ -440,7 +440,7 @@ To use your current CI pipeline with the new object use `ConvertTo-Pester4Result
 
 ### Simple and advanced interface
 
-`Invoke-Pester` is extremely bloated in Pester4. Some of the parameters consume hashtables that I always have to google, and some of the names don't make sense anymore. In Pester5 I aimed to simplify this interface and get rid of the hashtables. Right now I landed on two wastly different apis. With a big hole in the middle that stil remains to be defined. There is the Simple interface that looks like this:
+`Invoke-Pester` is extremely bloated in Pester4. Some of the parameters consume hashtables that I always have to google, and some of the names don't make sense anymore. In Pester5 I aimed to simplify this interface and get rid of the hashtables. Right now I landed on two vastly different apis. With a big hole in the middle that still remains to be defined. There is the Simple interface that looks like this:
 
 ```
 Invoke-Pester -Path <String[]>
@@ -522,7 +522,7 @@ This configuration object contains all the options that are currently supported 
 
 ### PesterPreference
 
-There is one more way to provide the configuration object which is `$PesterPreference`. On `Invoke-Pester` (in case of interactive execution `Invoke-Pester` is called inside of the first `Describe`) the preference is collected and merged with the configuration object if provided. This allows you to configure everyting that you would via Invoke-Pester also when you are running interactively (via `F5`). You can also use this to define the defaults for your session by putting $PesterPreference into your PowerShell profile.
+There is one more way to provide the configuration object which is `$PesterPreference`. On `Invoke-Pester` (in case of interactive execution `Invoke-Pester` is called inside of the first `Describe`) the preference is collected and merged with the configuration object if provided. This allows you to configure everything that you would via Invoke-Pester also when you are running interactively (via `F5`). You can also use this to define the defaults for your session by putting $PesterPreference into your PowerShell profile.
 
 Here is a simple example of enabling Mock logging output while running interactively:
 
@@ -579,13 +579,13 @@ Tests Passed: 1, Failed: 0, Skipped: 0, Total: 1, NotRun: 0
 
 `BeforeAll` can now be placed above the the top-level `Describe`, and you should move your setup into it. `AfterAll` is not allowed in the top level block.
 
-The scoping is very similar to Pester v4, but without the quirks. `BeforeAll`, `Describe`, and `AfterAll` now run all in the same scope, and are isolated from their parent scope, to avoid leaking variables outside of their scopes, for example into the script scope. This prevents test cross-polution and makes your tests more repeatable.
+The scoping is very similar to Pester v4, but without the quirks. `BeforeAll`, `Describe`, and `AfterAll` now run all in the same scope, and are isolated from their parent scope, to avoid leaking variables outside of their scopes, for example into the script scope. This prevents test cross-pollution and makes your tests more repeatable.
 
 Failures in setup and teardown work very similar to how they worked in Pester v4, a failure in a `Describe` block, `BeforeAll` or `AfterAll` will fail the whole block. The nice side-effect of having test discovery is that we now know how many tests were in that failed block and can report all tests that were supposed to run as failed.
 
 ### Scoping of BeforeEach & AfterEach
 
-`BeforeEach`, `It` and `AfterEach` now run in the same scope, but are still isolated from their parent to avoid leaking variables and test cross-polution.
+`BeforeEach`, `It` and `AfterEach` now run in the same scope, but are still isolated from their parent to avoid leaking variables and test cross-pollution.
 
 Running in single scope allows you to take a portion of your `It` and move it into `BeforeEach` without any change in behavior. And it also allows you to change a variable in `It`, and use the updated value in `AfterAll`.
 
@@ -718,7 +718,7 @@ When Pester generates the mock bootstrap function it produces a command info obj
 
 #### Avoid putting in InModuleScope around your Describe and It blocks
 
-`InModuleScope` is a simple way to expose your internal module functions to be tested, but it prevents you from properly testing your published functions, does not ensure that your functions are actually published, and slows down Discovery by loading the module. Aim to aviod it altogether by using `-ModuleName` on `Mock`. Or at least avoid placing `InModuleScope` outside of `It`.
+`InModuleScope` is a simple way to expose your internal module functions to be tested, but it prevents you from properly testing your published functions, does not ensure that your functions are actually published, and slows down Discovery by loading the module. Aim to avoid it altogether by using `-ModuleName` on `Mock`. Or at least avoid placing `InModuleScope` outside of `It`.
 
 
 #### Mocks don't work in top-level `BeforeAll`
@@ -764,10 +764,10 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 -  `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
 
 ### Known issues to be solved in 5.0
-- Output object has changed significantly, there is adapater function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
-- ❗ Fixed. Will ship in 5.0-rc2. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
-- ❗ Fixed by adding -FullNameFilter. Will ship in 5.0-rc2. ~`-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`~
-- Name filter in the advanced object is broken
+- Output object has changed significantly, there is adapter function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
+- ❗ Fixed in rc3. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
+- ❗ Fixed by adding -FullNameFilter in rc3. ~`-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`~
+- ❗ Fixed in rc3. ~Name filter in the advanced object throws when provided null~
 - Providing optional values via PesterConfiguration fails with null reference exception
 
 ### Known issues to be solved in 5.1
@@ -777,7 +777,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
 - Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.
-- Mocks ~and Discovery~ are slow (whole execution is about 40% slower than on v4). ❗ Improved Discovery perf greatly. Other parts will follow.
+- Whole execution is about the same as v4 when test don't fail. When they fail it is about 20%-40% slower depending on the scenario. ❗ Improved Discovery and Mocks perf in rc3, still not perfect but it is a start. Other parts will follow.
 - Running on huge codebases is largely untested
 - `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
 - Documentation is out of date for all commands
