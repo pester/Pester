@@ -266,7 +266,7 @@ $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand
 
 
 # sub-modules
-& $script:SafeCommands['Get-ChildItem'] "$PesterRoot\*.psm1" -Exclude "*Pester.psm1" |
+& $script:SafeCommands['Get-ChildItem'] "$PesterRoot/*.psm1" -Exclude "*Pester.psm1" |
     & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -DisableNameChecking }
 
 

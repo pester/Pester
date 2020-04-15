@@ -1,4 +1,4 @@
-Import-Module $PSScriptRoot\TypeClass.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot/TypeClass.psm1 -DisableNameChecking
 
 function Format-Collection ($Value, [switch]$Pretty) {
     $Limit = 10
