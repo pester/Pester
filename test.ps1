@@ -9,10 +9,16 @@ $ErrorActionPreference = 'Stop'
 # assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
 $ErrorView = "NormalView"
 "Using PS $($PsVersionTable.PSVersion)"
+
+if (-not (Test-Path 'variable:PSPesterRoot')) {
+    Set-Variable -Name PSPesterRoot -Value $PSScriptRoot -Option Constant -Scope Global -Force
+}
+
+# remove pester because we will be reimporting it in multiple other places
 Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
-    $result = @(Get-ChildItem *.ts.ps1 -Recurse |
+    $result = @(Get-ChildItem $PSPesterRoot/tst/*.ts.ps1 -Recurse |
         foreach {
             $r = & $_.FullName -PassThru
             if ($r.Failed -gt 0) {
@@ -42,19 +48,21 @@ if (-not $SkipPTests) {
     }
 }
 
-$global:PesterPreference = @{
+$PesterPreference = @{
     Debug = @{
         ShowFullErrors = $false
         ShowNavigationMarkers = $true
     }
 }
 
+# remove pester again to get clean state
 Get-Module Pester | Remove-Module
-Import-Module ./Pester.psd1
+Import-Module $PSPesterRoot/src/Pester.psd1 -ErrorAction Stop
+
 $r = Invoke-Pester `
-    -Path . `
+    -Path $PSPesterRoot/tst `
     -CI:$CI `
     -Output Minimal `
     -ExcludeTag VersionChecks, StyleRules, Help `
-    -ExcludePath '*/demo/*', '*/examples/*', '*/TestProjects/*' `
+    -ExcludePath '*/demo/*', '*/examples/*', '*/testProjects/*' `
     -PassThru

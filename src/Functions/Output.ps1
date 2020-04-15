@@ -381,21 +381,21 @@ function ConvertTo-FailureLines {
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
                 [String]$pattern1 = '^at .*, .*/Pester.Runtime.psm1: line [0-9]*$'
-                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*/Functions/.*.ps1: line [0-9]*$'
+                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*/functions/.*.ps1: line [0-9]*$'
                 [String]$pattern3 = '^at (Invoke-Pester), .*/.*.psm1: line [0-9]*$'
-                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*/Functions/Assertions/Should.ps1: line [0-9]*$'
-                [String]$pattern5 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
-                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
-                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
+                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*/functions/Assertions/Should.ps1: line [0-9]*$'
+                [String]$pattern5 = '^at Assert-MockCalled, .*/functions/Mock.ps1: line [0-9]*$'
+                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/functions/.*.ps1): line [0-9]*$'
+                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/functions/.*.ps1: line [0-9]*$'
             }
             else {
                 [String]$pattern1 = '^at .*, .*\\Pester.Runtime.psm1: line [0-9]*$'
-                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*\\Functions\\.*.ps1: line [0-9]*$'
+                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*\\functions\\.*.ps1: line [0-9]*$'
                 [String]$pattern3 = '^at (Invoke-Pester), .*\\.*.psm1: line [0-9]*$'
-                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
-                [String]$pattern5 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
-                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
+                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*\\functions\\Assertions\\Should.ps1: line [0-9]*$'
+                [String]$pattern5 = '^at Assert-MockCalled, .*\\functions\\Mock.ps1: line [0-9]*$'
+                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*\\functions\\.*.ps1): line [0-9]*$'
+                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\functions\\.*.ps1: line [0-9]*$'
             }
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the

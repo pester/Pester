@@ -1,11 +1,11 @@
-﻿. $PSScriptRoot/new-runtimepoc/Pester.Types.ps1
+﻿. $PSScriptRoot/Pester.Types.ps1
 Get-Module Pester.Runtime | Remove-Module
-. $PSScriptRoot/new-runtimepoc/Pester.Utility.ps1
-Import-Module $PSScriptRoot/new-runtimepoc/Pester.Runtime.psm1 -DisableNameChecking
+. $PSScriptRoot/Pester.Utility.ps1
+Import-Module $PSScriptRoot/Pester.Runtime.psm1 -DisableNameChecking
 
 
-. $PSScriptRoot/new-runtimepoc/Pester.RSpec.ps1
-. $PSScriptRoot/Functions/Pester.SafeCommands.ps1
+. $PSScriptRoot/Pester.RSpec.ps1
+. $PSScriptRoot/functions/Pester.SafeCommands.ps1
 ### duplicate from pester.runtime
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 $script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
@@ -259,16 +259,16 @@ function Get-AssertionDynamicParams {
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-"$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
+"$PesterRoot\functions\*.ps1", "$PesterRoot\functions\Assertions\*.ps1" |
     & $script:SafeCommands['Resolve-Path'] |
     & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
     & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
-if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
-    # sub-modules
-    & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -DisableNameChecking }
-}
+
+# sub-modules
+& $script:SafeCommands['Get-ChildItem'] "$PesterRoot\*.psm1" -Exclude "*Pester.psm1" |
+    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -DisableNameChecking }
+
 
 Add-Type -TypeDefinition @"
 using System;
