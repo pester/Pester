@@ -738,13 +738,6 @@ values are Describe, Context and It. If you use a scope of Describe or
 Context, the command will identify all calls to the mocked command in the
 current Describe / Context block, as well as all child scopes of that block.
 
-For Gherkin style tests, Should -Invoke will find all calls to the mocked
-command in the current Scenario block or the current Feature block (if there is
-no active Scenario), by default. Valid values for Gherkin style tests are Feature
-and Scenario. If you use a scope of Feature or Scenario, the command will identify
-all calls to the mocked command in the current Feature / Scenario block, as well
-as all child scopes of that block.
-
 .EXAMPLE
 C:\PS>Mock Set-Content {}
 
