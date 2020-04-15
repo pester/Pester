@@ -385,7 +385,7 @@ function ConvertTo-FailureLines {
                 [String]$pattern3 = '^at (Invoke-Pester), .*/.*.psm1: line [0-9]*$'
                 [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*/Functions/Assertions/Should.ps1: line [0-9]*$'
                 [String]$pattern5 = '^at Assert-MockCalled, .*/Functions/Mock.ps1: line [0-9]*$'
-                [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
+                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Functions/.*.ps1): line [0-9]*$'
                 [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/Functions/.*.ps1: line [0-9]*$'
             }
             else {
@@ -394,7 +394,7 @@ function ConvertTo-FailureLines {
                 [String]$pattern3 = '^at (Invoke-Pester), .*\\.*.psm1: line [0-9]*$'
                 [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*\\Functions\\Assertions\\Should.ps1: line [0-9]*$'
                 [String]$pattern5 = '^at Assert-MockCalled, .*\\Functions\\Mock.ps1: line [0-9]*$'
-                [String]$pattern6 = '^at (<ScriptBlock>|Invoke-Gherkin.*), (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
+                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*\\Functions\\.*.ps1): line [0-9]*$'
                 [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\Functions\\.*.ps1: line [0-9]*$'
             }
 

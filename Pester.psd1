@@ -24,7 +24,7 @@
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '3.0'
 
-    # TypesToProcess    = @('.\Functions\Gherkin.types.ps1xml')
+    TypesToProcess    = @()
 
     # Functions to export from this module
     FunctionsToExport = @(

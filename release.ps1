@@ -12,10 +12,8 @@ param (
 
 )
 
-.\updateGherkinLanguageFile.ps1
-
 $ErrorActionPreference = 'Stop'
-# run this in seperate instance otherwise Gherkin.dll is loaded and
+# run this in seperate instance otherwise Pester.dll is loaded and the subsequent build will fail
 $process = Start-Process powershell -ArgumentList "-c", ".\testRelease.ps1 -LocalBuild" -NoNewWindow -Wait -PassThru
 
 if ($process.ExitCode -ne 0) {

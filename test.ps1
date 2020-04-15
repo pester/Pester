@@ -44,10 +44,11 @@ if (-not $SkipPTests) {
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors = $false # $true
+        ShowFullErrors = $false
         ShowNavigationMarkers = $true
     }
 }
+
 Get-Module Pester | Remove-Module
 Import-Module ./Pester.psd1
 $r = Invoke-Pester `
@@ -55,5 +56,5 @@ $r = Invoke-Pester `
     -CI:$CI `
     -Output Minimal `
     -ExcludeTag VersionChecks, StyleRules, Help `
-    -ExcludePath '*/demo/*', '*/examples/*', '*/Gherkin*', '*/TestProjects/*' `
+    -ExcludePath '*/demo/*', '*/examples/*', '*/TestProjects/*' `
     -PassThru
