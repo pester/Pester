@@ -370,14 +370,6 @@ function Invoke-Pester {
         }
 
         Get-Variable 'Configuration' -Scope Local | Remove-Variable
-
-        # Ensure when running Pester that we're using RSpec strings
-        & $script:SafeCommands['Import-LocalizedData'] -BindingVariable Script:ReportStrings -BaseDirectory $PesterRoot -FileName RSpec.psd1 -ErrorAction SilentlyContinue
-
-        # Fallback to en-US culture strings
-        if ([String]::IsNullOrEmpty($ReportStrings)) {
-            & $script:SafeCommands['Import-LocalizedData'] -BaseDirectory $PesterRoot -BindingVariable Script:ReportStrings -UICulture 'en-US' -FileName RSpec.psd1 -ErrorAction Stop
-        }
     }
 
     end {
