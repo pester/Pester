@@ -1,12 +1,13 @@
 ﻿Write-Host "root: $PSScriptRoot"
-. $PSScriptRoot/Pester.Types.ps1
-Get-Module Pester.Runtime | Remove-Module
-. $PSScriptRoot/Pester.Utility.ps1
-Import-Module $PSScriptRoot/Pester.Runtime.psm1 -DisableNameChecking
+Write-Host "$(Get-ChildItem $PSScriptRoot | Out-String)"
+. "$PSScriptRoot/Pester.Types.ps1"
+. "$PSScriptRoot/Pester.Utility.ps1"
+Import-Module "$PSScriptRoot/Pester.Runtime.psm1" -DisableNameChecking
 
 
-. $PSScriptRoot/Pester.RSpec.ps1
-. $PSScriptRoot/functions/Pester.SafeCommands.ps1
+. "$PSScriptRoot/Pester.RSpec.ps1"
+. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+
 ### duplicate from pester.runtime
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 $script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
