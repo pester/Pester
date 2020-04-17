@@ -1,6 +1,6 @@
-. $PSScriptRoot/Pester.Utility.ps1
-. $PSScriptRoot/functions/Pester.SafeCommands.ps1
-. $PSScriptRoot/Pester.Types.ps1
+. "$PSScriptRoot/Pester.Utility.ps1"
+. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+. "$PSScriptRoot/Pester.Types.ps1"
 
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 $script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
