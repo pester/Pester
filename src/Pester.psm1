@@ -1,4 +1,5 @@
-﻿. $PSScriptRoot/Pester.Types.ps1
+﻿Write-Host "root: $PSScriptRoot"
+. $PSScriptRoot/Pester.Types.ps1
 Get-Module Pester.Runtime | Remove-Module
 . $PSScriptRoot/Pester.Utility.ps1
 Import-Module $PSScriptRoot/Pester.Runtime.psm1 -DisableNameChecking
