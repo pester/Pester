@@ -2,12 +2,12 @@ language: generic
 
 matrix:
   include:
-    - os: osx
-      osx_image: xcode11.3
-      before_install:
-        # - brew update
-        # - brew tap caskroom/cask
-        - brew cask install powershell
+    # - os: osx
+    #   osx_image: xcode11.3
+    #   before_install:
+    #     # - brew update
+    #     # - brew tap caskroom/cask
+    #     - brew cask install powershell
     - os: linux
       dist: trusty
       # VM-based builds turned out to be faster
@@ -16,10 +16,9 @@ matrix:
         apt:
           sources:
             - sourceline: deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod trusty main
-              key_url: https://packages.microsoft.com/keys/microsoft.asc
-          packages:
-            - powershell
 
-script:
-  - pwsh -c "& ./test.ps1 -ci -passThru"
+script: |
+  sudo dpkg -i powershell-lts_7.0.0-1.ubuntu.18.04_amd64.deb
+  sudo apt-get install -f
+  pwsh -c "& ./test.ps1 -ci -passThru"
 
