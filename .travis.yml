@@ -2,12 +2,12 @@ language: generic
 
 matrix:
   include:
-    # - os: osx
-    #   osx_image: xcode11.3
-    #   before_install:
-    #     # - brew update
-    #     # - brew tap caskroom/cask
-    #     - brew cask install powershell
+    - os: osx
+      osx_image: xcode11.3
+      before_install:
+        # - brew update
+        # - brew tap caskroom/cask
+        - brew cask install powershell
     - os: linux
       dist: bionic
       # VM-based builds turned out to be faster

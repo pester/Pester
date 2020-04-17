@@ -1,6 +1,4 @@
-﻿Write-Host "root: $PSScriptRoot"
-Write-Host "$(Get-ChildItem $PSScriptRoot | Out-String)"
-. "$PSScriptRoot/Pester.Types.ps1"
+﻿. "$PSScriptRoot/Pester.Types.ps1"
 . "$PSScriptRoot/Pester.Utility.ps1"
 Import-Module "$PSScriptRoot/Pester.Runtime.psm1" -DisableNameChecking
 

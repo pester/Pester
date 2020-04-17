@@ -62,7 +62,7 @@ Import-Module $PSPesterRoot/src/Pester.psd1 -ErrorAction Stop
 $r = Invoke-Pester `
     -Path $PSPesterRoot/tst `
     -CI:$CI `
-    -Output Minimal `
+    -Output Normal `
     -ExcludeTag VersionChecks, StyleRules, Help `
     -ExcludePath '*/demo/*', '*/examples/*', '*/testProjects/*' `
     -PassThru
