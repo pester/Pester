@@ -259,10 +259,9 @@ function Get-AssertionDynamicParams {
 }
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
-"$PesterRoot\functions\*.ps1", "$PesterRoot\functions\Assertions\*.ps1" |
-    & $script:SafeCommands['Resolve-Path'] |
-    & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
-    & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+& $script:SafeCommands['Get-ChildItem'] $PesterRoot -Recurse -Filter *.ps1 |
+& $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+& $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
 
 # sub-modules

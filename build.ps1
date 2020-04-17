@@ -1,8 +1,11 @@
-if (-not (Test-Path 'variable:PSPesterRoot')) {
-    $workTree = @(git rev-parse --git-path $PSScriptRoot --is-inside-work-tree)
-    # this is not a mistake it returns a 'true' string
-    if (0 -lt $workTree.Count -and 'true' -eq $workTree[-1]) {
-        $root = Resolve-Path (@(git rev-parse --git-path $PSScriptRoot --show-toplevel)[-1])
-        Set-Variable -Name PSPesterRoot -Value $root.Path -Option Constant -Scope Global -Force
-    }
-}
+# $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
+# "$PesterRoot\functions\*.ps1", "$PesterRoot\functions\Assertions\*.ps1" |
+#     & $script:SafeCommands['Resolve-Path'] |
+#     & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+#     & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+
+
+# # sub-modules
+# & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\*.psm1" -Exclude "*Pester.psm1" |
+#     & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -DisableNameChecking }
+
