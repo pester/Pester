@@ -15,11 +15,11 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod trusty main
+            - sourceline: deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main
+              key_url: https://packages.microsoft.com/keys/microsoft.asc
+          packages:
+            - powershell
 
-script: |
-  wget https://github.com/PowerShell/PowerShell/releases/download/v7.0.0/powershell-lts_7.0.0-1.ubuntu.18.04_amd64.deb
-  sudo dpkg -i powershell-lts_7.0.0-1.ubuntu.18.04_amd64.deb
-  sudo apt-get install -f
-  pwsh -c "& ./test.ps1 -ci -passThru"
+script:
+  - pwsh -c "./test.ps1 -ci -passThru"
 
