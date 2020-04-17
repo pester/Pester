@@ -9,7 +9,7 @@ matrix:
     #     # - brew tap caskroom/cask
     #     - brew cask install powershell
     - os: linux
-      dist: trusty
+      dist: bionic
       # VM-based builds turned out to be faster
       sudo: required
       addons:
@@ -18,6 +18,7 @@ matrix:
             - sourceline: deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod trusty main
 
 script: |
+  wget https://github.com/PowerShell/PowerShell/releases/download/v7.0.0/powershell-lts_7.0.0-1.ubuntu.18.04_amd64.deb
   sudo dpkg -i powershell-lts_7.0.0-1.ubuntu.18.04_amd64.deb
   sudo apt-get install -f
   pwsh -c "& ./test.ps1 -ci -passThru"
