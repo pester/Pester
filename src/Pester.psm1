@@ -526,6 +526,8 @@ function Invoke-Pester {
                 Containers = $containers
                 Configuration = $pluginConfiguration
                 GlobalPluginData = $pluginData
+                WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages
+                Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
             } -ThrowOnFailure
 
             if ((none $containers)) {

@@ -136,7 +136,7 @@ Describe "Is-Collection" {
         @{ Value = [System.Collections.Generic.List[int]]([int[]] 1) }
         @{ Value = [System.Collections.Generic.List[decimal]]([decimal[]] 2D) }
         @{ Value = [Collections.Generic.List[Int]]([int[]](1, 2, 3)) }
-        @{ Value = (Get-Process) }
+        # @{ Value = (Get-Process) } <- fails in docker because there is just one process
     ) {
         param($Value)
         Is-Collection -Value $Value | Verify-True
