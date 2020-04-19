@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
 
     Describe "Should -BeOfType" {
         It "passes if value is of the expected type" {

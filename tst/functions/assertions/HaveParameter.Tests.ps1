@@ -1,88 +1,87 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
 
-    BeforeAll {
-        $functionsBlock = {
-            if ($PSVersionTable.PSVersion.Major -ge 5) {
-                function Invoke-DummyFunction {
-                    param(
-                        [Parameter(Mandatory = $true)]
-                        $MandatoryParam,
+    # not using BeforeAll here, because it does not work in Pester itself
+    $global:functionsBlock = {
+        if ($PSVersionTable.PSVersion.Major -ge 5) {
+            function Invoke-DummyFunction {
+                param(
+                    [Parameter(Mandatory = $true)]
+                    $MandatoryParam,
 
-                        [ValidateNotNullOrEmpty()]
-                        [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
+                    [ValidateNotNullOrEmpty()]
+                    [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
-                        [Parameter()]
-                        [ValidateScript(
-                            {
-                                if (-not (Test-Path $_)) {
-                                    $errorItem = [System.Management.Automation.ErrorRecord]::new(
-                                        ([System.ArgumentException]"Path not found"),
-                                        'ParameterValue.FileNotFound',
-                                        [System.Management.Automation.ErrorCategory]::ObjectNotFound,
-                                        $_
-                                    )
-                                    $errorItem.ErrorDetails = "Invalid path '$_'."
-                                    $PSCmdlet.ThrowTerminatingError($errorItem)
-                                }
-                                else {
-                                    return $true
-                                }
+                    [Parameter()]
+                    [ValidateScript(
+                        {
+                            if (-not (Test-Path $_)) {
+                                $errorItem = [System.Management.Automation.ErrorRecord]::new(
+                                    ([System.ArgumentException]"Path not found"),
+                                    'ParameterValue.FileNotFound',
+                                    [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+                                    $_
+                                )
+                                $errorItem.ErrorDetails = "Invalid path '$_'."
+                                $PSCmdlet.ThrowTerminatingError($errorItem)
                             }
-                        )]
-                        [String]$ParamWithScriptValidation = ".",
-
-                        [Parameter()]
-                        [ValidateNotNullOrEmpty()]
-                        [ArgumentCompleter(
-                            {
-                                param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
-                                & Get-ChildItem |
-                                    Where-Object { $_.Name -like "$wordToComplete*" } |
-                                    ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
+                            else {
+                                return $true
                             }
-                        )]
-                        [String]$ParamWithArgumentCompleter = "./.git"
-                    )
-                }
+                        }
+                    )]
+                    [String]$ParamWithScriptValidation = ".",
+
+                    [Parameter()]
+                    [ValidateNotNullOrEmpty()]
+                    [ArgumentCompleter(
+                        {
+                            param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
+                            & Get-ChildItem |
+                                Where-Object { $_.Name -like "$wordToComplete*" } |
+                                ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
+                        }
+                    )]
+                    [String]$ParamWithArgumentCompleter = "./.git"
+                )
             }
-            else {
-                function Invoke-DummyFunction {
-                    param(
-                        [Parameter(Mandatory = $true)]
-                        $MandatoryParam,
+        }
+        else {
+            function Invoke-DummyFunction {
+                param(
+                    [Parameter(Mandatory = $true)]
+                    $MandatoryParam,
 
-                        [ValidateNotNullOrEmpty()]
-                        [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
+                    [ValidateNotNullOrEmpty()]
+                    [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
-                        # argument completer is PowerShell v5+ only
-                        [Parameter()]
-                        [ValidateScript(
-                            {
-                                if (-not (Test-Path $_)) {
-                                    $errorItem = [System.Management.Automation.ErrorRecord]::new(
-                                        ([System.ArgumentException]"Path not found"),
-                                        'ParameterValue.FileNotFound',
-                                        [System.Management.Automation.ErrorCategory]::ObjectNotFound,
-                                        $_
-                                    )
-                                    $errorItem.ErrorDetails = "Invalid path '$_'."
-                                    $PSCmdlet.ThrowTerminatingError($errorItem)
-                                }
-                                else {
-                                    return $true
-                                }
+                    # argument completer is PowerShell v5+ only
+                    [Parameter()]
+                    [ValidateScript(
+                        {
+                            if (-not (Test-Path $_)) {
+                                $errorItem = [System.Management.Automation.ErrorRecord]::new(
+                                    ([System.ArgumentException]"Path not found"),
+                                    'ParameterValue.FileNotFound',
+                                    [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+                                    $_
+                                )
+                                $errorItem.ErrorDetails = "Invalid path '$_'."
+                                $PSCmdlet.ThrowTerminatingError($errorItem)
                             }
-                        )]
-                        [String]$ParamWithScriptValidation = "."
-                    )
-                }
+                            else {
+                                return $true
+                            }
+                        }
+                    )]
+                    [String]$ParamWithScriptValidation = "."
+                )
             }
+        }
 
-            function Invoke-EmptyFunction {
-                param()
-            }
+        function Invoke-EmptyFunction {
+            param()
         }
     }
 

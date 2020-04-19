@@ -87,7 +87,7 @@ Describe "Cleanup when Remove-Item is mocked" {
     }
 }
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe "New-RandomTempDirectory" {
         It "creates randomly named directory" {
             $first = New-RandomTempDirectory
@@ -103,7 +103,7 @@ InModuleScope Pester {
 }
 
 # Tests problematic symlinks, but needs to run as admin
-# InModuleScope Pester {
+# InPesterModuleScope {
 
 #     Describe "Clear-TestDrive" {
 

@@ -934,7 +934,7 @@ Describe 'Dot Source Test' {
     }
 
     It "Doesn't call the mock with any other parameters" {
-        InModuleScope Pester {
+        InPesterModuleScope {
             $global:calls = $mockTable['||Test-Path'].CallHistory
         }
         Should -Invoke Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' } -Scope Describe
@@ -944,7 +944,7 @@ Describe 'Dot Source Test' {
 
 Describe 'Mocking Cmdlets with dynamic parameters' {
     Context 'Get-ChildItem' {
-        if ((InModuleScope Pester { GetPesterOs }) -ne 'Windows') {
+        if ((InPesterModuleScope { GetPesterOs }) -ne 'Windows') {
             BeforeAll {
                 $mockWith = { if (-not $Hidden) {
                         throw 'Hidden variable not found, or set to false!'
@@ -1360,7 +1360,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
 Describe 'Mocking Cmdlets with dynamic parameters in a module' {
     BeforeAll {
-        if ((InModuleScope Pester {GetPesterOs}) -ne 'Windows') {
+        if ((InPesterModuleScope {GetPesterOs}) -ne 'Windows') {
             New-Module -Name TestModule {
                 function PublicFunction {
                     Get-ChildItem -Path \ -Hidden
@@ -1398,7 +1398,7 @@ Describe 'Mocking Cmdlets with dynamic parameters in a module' {
 
 Describe 'DynamicParam blocks in other scopes' {
     BeforeAll {
-        if ((InModuleScope Pester {GetPesterOs})-ne 'Windows') {
+        if ((InPesterModuleScope {GetPesterOs})-ne 'Windows') {
             New-Module -Name TestModule1 {
                 $script:DoDynamicParam = $true
 
@@ -1413,7 +1413,7 @@ Describe 'DynamicParam blocks in other scopes' {
                             $params = $PSBoundParameters.GetType().GetConstructor($flags, $null, @(), $null).Invoke(@())
 
                             $params['Path'] = [string[]]'/'
-                            $gmdp = InModuleScope Pester { Get-Command Get-MockDynamicParameter }
+                            $gmdp = InPesterModuleScope { Get-Command Get-MockDynamicParameter }
                             & $gmdp -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', '/')
                         }
                     }
@@ -1466,7 +1466,7 @@ Describe 'DynamicParam blocks in other scopes' {
                             }
 
                             $params['Path'] = [string[]]'Cert:\'
-                            $gmdp = InModuleScope Pester { Get-Command Get-MockDynamicParameter }
+                            $gmdp = InPesterModuleScope { Get-Command Get-MockDynamicParameter }
                             & $gmdp -CmdletName Get-ChildItem -Parameters $params -InputArgs @('-Path', 'Cert:\')
                         }
                     }
@@ -2178,7 +2178,7 @@ Describe "Mocking Set-Variable" {
 }
 
 Describe "Mocking functions with conflicting parameters" {
-    InModuleScope Pester {
+    InPesterModuleScope {
         Context "Faked conflicting parameter" {
             BeforeAll {
                 Mock Get-ConflictingParameterNames { @("ParamToAvoid") }
@@ -2292,7 +2292,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
 }
 
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe 'Alias for external commands' {
         Context 'Without extensions' {
             $case = @(

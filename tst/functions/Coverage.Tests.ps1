@@ -1,20 +1,14 @@
 Set-StrictMode -Version Latest
 
-if ($PSVersionTable.PSVersion.Major -le 2) {
-    return
-}
-
-InModuleScope Pester {
-    BeforeAll {
-        function Clear-WhiteSpace ($Text) {
-            # clear whitespace in formatted xml so we can keep the XML in the test file
-            # formatted and easily see changes in source control
-            "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," " -replace "\s*<","<" -replace ">\s*", ">")".Trim()
-        }
-    }
-
+InPesterModuleScope {
     Describe 'Code Coverage Analysis' {
         BeforeAll {
+            function Clear-WhiteSpace ($Text) {
+                # clear whitespace in formatted xml so we can keep the XML in the test file
+                # formatted and easily see changes in source control
+                "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," " -replace "\s*<","<" -replace ">\s*", ">")".Trim()
+            }
+
             $root = (Get-PSDrive TestDrive).Root
 
             $rootSubFolder = Join-Path -Path $root -ChildPath TestSubFolder

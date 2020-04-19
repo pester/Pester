@@ -1,7 +1,10 @@
+# if -not build
 . "$PSScriptRoot/Pester.Utility.ps1"
 . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
 . "$PSScriptRoot/Pester.Types.ps1"
+# endif
 
+# instances
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 $script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
 $script:ScriptBlockSessionStateInternalProperty = [System.Management.Automation.ScriptBlock].GetProperty('SessionStateInternal', $flags)
@@ -2538,6 +2541,7 @@ function ConvertTo-HumanTime {
 # initialize internal state
 Reset-TestSuiteState
 
+# if -not build
 Export-ModuleMember -Function @(
     # the core stuff I am mostly sure about
     'Reset-TestSuiteState'
@@ -2574,3 +2578,5 @@ Export-ModuleMember -Function @(
     'New-PluginObject'
     'New-BlockContainerObject'
 )
+
+# endif

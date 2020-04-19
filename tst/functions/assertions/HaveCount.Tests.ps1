@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
 
     Describe "Should -HaveCount" {
         It "passes if collection has the expected amount of items" {

@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
 
     Describe "Should -Match" {
         It "returns true for things that match" {

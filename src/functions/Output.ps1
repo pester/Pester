@@ -380,22 +380,13 @@ function ConvertTo-FailureLines {
         else {
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
-                [String]$pattern1 = '^at .*, .*/Pester.Runtime.psm1: line [0-9]*$'
-                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*/functions/.*.ps1: line [0-9]*$'
-                [String]$pattern3 = '^at (Invoke-Pester), .*/.*.psm1: line [0-9]*$'
-                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*/functions/assertions/Should.ps1: line [0-9]*$'
-                [String]$pattern5 = '^at Assert-MockCalled, .*/functions/Mock.ps1: line [0-9]*$'
-                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/functions/.*.ps1): line [0-9]*$'
-                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*/functions/.*.ps1: line [0-9]*$'
+                [String]$isPesterFunction = '^at .*, .*/Pester.psm1: line [0-9]*$'
+                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*/Pester.psm1: line [0-9]*$'
+                # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
             }
             else {
-                [String]$pattern1 = '^at .*, .*\\Pester.Runtime.psm1: line [0-9]*$'
-                [String]$pattern2 = '^at (Invoke-Test|Context|Describe|InModuleScope), .*\\functions\\.*.ps1: line [0-9]*$'
-                [String]$pattern3 = '^at (Invoke-Pester), .*\\.*.psm1: line [0-9]*$'
-                [String]$pattern4 = '^at (Should<End>|Invoke-Assertion), .*\\functions\\assertions\\Should.ps1: line [0-9]*$'
-                [String]$pattern5 = '^at Assert-MockCalled, .*\\functions\\Mock.ps1: line [0-9]*$'
-                [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*\\functions\\.*.ps1): line [0-9]*$'
-                [String]$pattern7 = '^at Invoke-LegacyAssertion, .*\\functions\\.*.ps1: line [0-9]*$'
+                [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
+                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
@@ -405,16 +396,11 @@ function ConvertTo-FailureLines {
             # we want to be able to see that we invoked the assertion inside of function a
             # the internal calls to Should and Invoke-Assertion are filtered out later by the second match
             foreach ($line in $traceLines) {
-                if ($line -match $pattern1) {
+                if ($line -match $isPesterFunction -and $line -notmatch $isShould) {
                     break
                 }
 
-                $isPesterInternalFunction = $line -match $pattern2 -or
-                    $line -match $pattern3 -or
-                    $line -match $pattern4 -or
-                    $line -match $pattern5 -or
-                    $line -match $pattern6 -or
-                    $line -match $pattern7
+                $isPesterInternalFunction = $line -match $isPesterFunction
 
                 if (-not $isPesterInternalFunction) {
                     $lines.Trace += $line
@@ -441,7 +427,7 @@ function ConvertTo-HumanTime {
 function Get-WriteScreenPlugin {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
     # The plugin is not imported when output None is specified so the usual level of output is Minimal.
-    Pester.Runtime\New-PluginObject -Name "WriteScreen" `
+    New-PluginObject -Name "WriteScreen" `
         -Start {
         param ($Context)
 

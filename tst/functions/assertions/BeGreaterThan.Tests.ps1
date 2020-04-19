@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
 
     Describe "Should -BeGreaterThan" {
         It "passes if value greater than expected" {

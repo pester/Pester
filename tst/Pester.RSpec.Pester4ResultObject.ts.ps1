@@ -6,7 +6,7 @@ Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Modu
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
-Import-Module $PSPesterRoot\src\Pester.psd1
+Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 
 function Invoke-Pester4 ($Arguments) {

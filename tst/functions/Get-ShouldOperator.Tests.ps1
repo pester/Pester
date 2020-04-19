@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe 'Get-ShouldOperator' {
         Context 'Overview' {
 

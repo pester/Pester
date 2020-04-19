@@ -5,8 +5,8 @@ Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom | Remove-Module
 
-Import-Module $PSPesterRoot\src\Pester.Runtime.psm1 -DisableNameChecking
-. $PSPesterRoot\src\Pester.Utility.ps1
+Import-Module $PSScriptRoot\..\src\Pester.Runtime.psm1 -DisableNameChecking
+. $PSScriptRoot\..\src\Pester.Utility.ps1
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking

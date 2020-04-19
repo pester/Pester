@@ -5,7 +5,7 @@ return
 
 
 
-InModuleScope Pester {
+InPesterModuleScope {
 
     Describe 'It - Implementation' {
         $testState = New-PesterState -Path $TestDrive
@@ -90,7 +90,7 @@ InModuleScope Pester {
         Remove-Variable -Scope Script -Name counterNameThatIsReallyUnlikelyToConflictWithAnything
 
         Context 'Parameterized Tests' {
-            # be careful about variable naming here; with InModuleScope Pester, we can create the same types of bugs that the v3
+            # be careful about variable naming here; with InPesterModuleScope, we can create the same types of bugs that the v3
             # scope isolation fixed for everyone else.  (Naming this variable $testCases gets hidden later by parameters of the
             # same name in It.)
 

@@ -200,7 +200,7 @@ Describe 'Finishing TestGroup Setup and Teardown tests' {
 #             $commandPath = $PSCommandPath
 #         }
 
-#         $beforeEachBlock = InModuleScope Pester {
+#         $beforeEachBlock = InPesterModuleScope {
 #             $pester.CurrentTestGroup.BeforeEach[0]
 #         }
 

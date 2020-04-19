@@ -95,7 +95,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
     }
 
-    InModuleScope Pester {
+    InPesterModuleScope {
         Describe 'SafeCommands table' {
             BeforeAll {
                 $path = $ExecutionContext.SessionState.Module.ModuleBase
@@ -208,7 +208,7 @@ Describe 'Style rules' -Tag StyleRules {
     }
 }
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe 'Find-File' {
         BeforeAll {
             New-Item -ItemType File 'TestDrive:\SomeFile.ps1'
@@ -416,7 +416,7 @@ Describe 'Assertion operators' {
 Describe 'Set-StrictMode for all tests files' {
     It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
 
-        $files = Get-ChildItem $PSPesterRoot/tst/ -Include *.Tests.ps1 -Recurse
+        $files = Get-ChildItem $PSScriptRoot\../tst/ -Include *.Tests.ps1 -Recurse
 
         $UnstrictTests = @(
             foreach ($file in $files) {

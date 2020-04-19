@@ -284,7 +284,7 @@ function PostProcess-RspecTestRun ($TestRun) {
 }
 
 function Get-RSpecObjectDecoratorPlugin () {
-    Pester.Runtime\New-PluginObject -Name "RSpecObjectDecoratorPlugin" `
+    New-PluginObject -Name "RSpecObjectDecoratorPlugin" `
         -EachTestTeardownEnd {
         param ($Context)
 

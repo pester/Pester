@@ -5,7 +5,7 @@ Get-Module Pester.Utility, P, Axiom | Remove-Module
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
-. $PSPesterRoot\src\Pester.Utility.ps1
+. $PSScriptRoot\..\src\Pester.Utility.ps1
 
 i -PassThru:$PassThru {
     b "Merging objects" {

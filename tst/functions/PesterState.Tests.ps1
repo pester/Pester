@@ -2,7 +2,7 @@
 return
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe "New-PesterState" {
         Context "TestNameFilter parameter is set" {
             $p = new-pesterstate -TestNameFilter "filter"

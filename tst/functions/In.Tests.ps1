@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe "the In statement" {
         BeforeAll {
             New-Item -ItemType Directory "TestDrive:\test_path"

@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version Latest
 
-InModuleScope Pester {
+InPesterModuleScope {
 
     Describe "Should -FileContentMatchExactly" {
         Context "when testing file contents" {

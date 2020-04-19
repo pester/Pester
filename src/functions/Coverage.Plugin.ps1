@@ -19,7 +19,7 @@ function Get-CoveragePlugin {
         $config = $Context.Configuration['Coverage']
 
         if ($null -ne $logger) {
-            & $logger "Config: $config"
+            & $logger "Config: $($config | & $script:SafeCommands['Out-String'])"
         }
 
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger

@@ -18,6 +18,10 @@ namespace Pester
             return new Dictionary<string, object>();
         }
 
+        public static RuntimeDefinedParameterDictionary CreateRuntimeDefinedParameterDictionary() {
+            return new System.Management.Automation.RuntimeDefinedParameterDictionary();
+        }
+
         public static ErrorRecord CreateShouldErrorRecord(string message, string file, string line, string lineText, bool terminating)
         {
             var exception = new Exception(message);

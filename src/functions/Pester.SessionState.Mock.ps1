@@ -4,7 +4,7 @@
 # the whole documentation :D )
 
 function Get-MockPlugin () {
-    Pester.Runtime\New-PluginObject -Name "Mock" `
+    New-PluginObject -Name "Mock" `
         -EachBlockSetupStart {
         param($Context)
         $Context.Block.PluginData.Mock = @{

@@ -1,18 +1,23 @@
 function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
-        [object[]] $CodeCoverage
+        [object[]] $CodeCoverage,
+        [ScriptBlock] $Logger
     )
 
     $coverageInfo = foreach ($object in $CodeCoverage) {
-            Get-CoverageInfoFromUserInput -InputObject $object
+            Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
         }
 
     if ($null -eq $coverageInfo) {
-        # no files were found for coverage
+        if ($null -ne $logger) {
+            & $logger "No no files were found for coverage."
+        }
+
         return @()
     }
-    @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
+
+    @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
 }
 
 function Exit-CoverageAnalysis {
@@ -35,7 +40,8 @@ function Get-CoverageInfoFromUserInput {
     param (
         [Parameter(Mandatory = $true)]
         [object]
-        $InputObject
+        $InputObject,
+        $Logger
     )
 
     if ($InputObject -is [System.Collections.IDictionary]) {
@@ -142,12 +148,16 @@ function Resolve-CoverageInfo {
 function Get-CoverageBreakpoints {
     [CmdletBinding()]
     param (
-        [object[]] $CoverageInfo
+        [object[]] $CoverageInfo,
+        [ScriptBlock]$Logger
     )
 
     $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path)
     foreach ($fileGroup in $fileGroups) {
-        & $SafeCommands['Write-Verbose'] "Initializing code coverage analysis for file '$($fileGroup.Name)'"
+        if ($null -ne $Logger) {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            & $Logger "Initializing code coverage analysis for file '$($fileGroup.Name)'"
+        }
         $totalCommands = 0
         $analyzedCommands = 0
 
@@ -163,8 +173,9 @@ function Get-CoverageBreakpoints {
                 }
             }
         }
-
-        & $SafeCommands['Write-Verbose'] "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage"
+        if ($null -ne $Logger) {
+            & $Logger  "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage, in $($sw.ElapsedMilliseconds) ms"
+        }
     }
 }
 

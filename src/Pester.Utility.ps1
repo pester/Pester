@@ -1,10 +1,3 @@
-
-# TODO: Consider removing usage of Write-Host in favor of a solution that does not use any cmdlet
-$_write_host = Get-Command -CommandType Cmdlet -Name Write-Host
-# TODO: Remove this types import once this becomes just ps1
-. $PSScriptRoot/Pester.Types.ps1
-
-
 function or {
     [CmdletBinding()]
     param (
@@ -245,7 +238,7 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("RuntimeCore", "RuntimeFilter", "RuntimeSkip", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore")]
+        [ValidateSet("RuntimeCore", "RuntimeFilter", "RuntimeSkip", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore", "CodeCoverage")]
         [String] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
@@ -264,9 +257,7 @@ function Write-PesterDebugMessage {
         return
     }
 
-
-    $color =
-        if ($null -ne $ErrorRecord) {
+    $color = if ($null -ne $ErrorRecord) {
             "Red"
         }
         else {
@@ -283,6 +274,7 @@ function Write-PesterDebugMessage {
                 "TimingCore" { "Gray" }
                 "PluginCore" { "Blue" }
                 "Plugin" { "Blue" }
+                "CodeCoverage" { "Yellow" }
                 default { "Cyan" }
             }
         }
@@ -297,9 +289,9 @@ function Write-PesterDebugMessage {
         $Message = (&$LazyMessage) -join "`n"
     }
 
-    & $_Write_Host -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
+    & $script:SafeCommands['Write-Host'] -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
     if ($null -ne $ErrorRecord) {
-        & $_Write_Host -ForegroundColor Black -BackgroundColor $color "$ErrorRecord"
+        & $script:SafeCommands['Write-Host'] -ForegroundColor Black -BackgroundColor $color "$ErrorRecord"
     }
 }
 

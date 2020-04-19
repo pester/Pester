@@ -44,7 +44,7 @@ return
 # TODO: Those are tests for Describe, and they test the actual behavior by combining the test code with the code that is being tested. This makes the tests pretty confusing because the same vocabulary is used for the tests and the tested code. Most of this should already be tested in the runtime tests, but let's keep it for further reference. Ideally this would be rewritten to P.
 
 
-InModuleScope Pester {
+InPesterModuleScope {
     Describe 'Describe - Implementation' {
         BeforeAll {
             # Function / mock used for call history tracking and assertion purposes only.

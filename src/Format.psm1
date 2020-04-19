@@ -1,4 +1,6 @@
+# if -not build
 Import-Module "$PSScriptRoot/TypeClass.psm1" -DisableNameChecking
+# endif
 
 function Format-Collection ($Value, [switch]$Pretty) {
     $Limit = 10
@@ -186,7 +188,7 @@ function Format-Type ([Type]$Value) {
     [string]$Value
 }
 
-
+# if -not build
 Export-ModuleMember -Function @(
     'Format-Collection'
     'Format-Object'
@@ -203,3 +205,4 @@ Export-ModuleMember -Function @(
     'Get-DisplayProperty'
     'Get-ShortType'
 )
+# endif

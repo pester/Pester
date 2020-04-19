@@ -79,7 +79,7 @@ about_TestDrive
     }
 
     if ($ExecutionContext.SessionState.PSVariable.Get("invokedViaInvokePester")) {
-        Pester.Runtime\New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus -Skip:$Skip
+        New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus -Skip:$Skip
     }
     else {
         if ($invokedInteractively) {

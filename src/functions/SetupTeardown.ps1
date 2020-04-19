@@ -28,7 +28,7 @@ function BeforeEach {
     )
     Assert-DescribeInProgress -CommandName BeforeEach
 
-    Pester.Runtime\New-EachTestSetup -ScriptBlock $Scriptblock
+    New-EachTestSetup -ScriptBlock $Scriptblock
 }
 
 function AfterEach {
@@ -61,7 +61,7 @@ function AfterEach {
     )
     Assert-DescribeInProgress -CommandName AfterEach
 
-    Pester.Runtime\New-EachTestTeardown -ScriptBlock $Scriptblock
+    New-EachTestTeardown -ScriptBlock $Scriptblock
 }
 
 function BeforeAll {
@@ -91,7 +91,7 @@ function BeforeAll {
         $Scriptblock
     )
 
-    Pester.Runtime\New-OneTimeTestSetup -ScriptBlock $Scriptblock
+    New-OneTimeTestSetup -ScriptBlock $Scriptblock
 }
 
 function AfterAll {
@@ -122,5 +122,5 @@ function AfterAll {
     )
     Assert-DescribeInProgress -CommandName AfterAll
 
-    Pester.Runtime\New-OneTimeTestTeardown -ScriptBlock $Scriptblock
+    New-OneTimeTestTeardown -ScriptBlock $Scriptblock
 }
