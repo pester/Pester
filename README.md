@@ -420,12 +420,12 @@ Starting test discovery in 1 files.
 Test discovery finished. 83ms
 [-] minimal output.fails 24ms (18ms|5ms)
  Expected 2, but got 1.
- at 1 | Should -Be 2, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:289
- at <ScriptBlock>, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:289
+ at 1 | Should -Be 2, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:289
+ at <ScriptBlock>, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:289
 [-] minimal output.child.fails 22ms (16ms|5ms)
  Expected 2, but got 1.
- at 1 | Should -Be 2, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:298
- at <ScriptBlock>, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:298
+ at 1 | Should -Be 2, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:298
+ at <ScriptBlock>, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:298
 Tests completed in 331ms
 Tests Passed: 4, Failed: 2, Skipped: 0, Total: 6, NotRun: 0
 ```
