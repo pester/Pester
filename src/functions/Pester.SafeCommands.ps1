@@ -13,7 +13,7 @@ $safeCommandLookupParameters = @{
     All         = $true
 }
 
-$Get_Command = Get-Command Get-Command -Module Microsoft.PowerShell.Core @safeCommandLookupParameters
+$Get_Command = Get-Command Get-Command -CommandType Cmdlet -ErrorAction 'Stop'
 $script:SafeCommands = @{
     'Get-Command'          = $Get_Command
     'Add-Member'           = & $Get_Command -Name Add-Member           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
@@ -80,15 +80,15 @@ $script:SafeCommands = @{
 # Get-CimInstance is preferred, but we can use Get-WmiObject if it exists
 # Moreover, it shouldn't really be fatal if neither of those cmdlets
 # exist
-if (($cim = & $Get_Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorActionPreference Ignore)) {
+if (($cim = & $Get_Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Ignore)) {
     $script:SafeCommands['Get-CimInstance'] = $cim
 }
-elseif (($wmi = & $Get_Command -Name Get-WmiObject -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorActionPreference Ignore)) {
+elseif (($wmi = & $Get_Command -Name Get-WmiObject -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Ignore)) {
     $script:SafeCommands['Get-WmiObject'] = $wmi
 }
-elseif (($unames = & $Get_Command -Name uname -CommandType Application -ErrorActionPreference Ignore)) {
+elseif (($unames = & $Get_Command -Name uname -CommandType Application -ErrorAction Ignore)) {
     $script:SafeCommands['uname'] = if ($null -ne $unames -and 0 -lt @($unames).Count) { $unames[0] }
-    if  (($ids = & $Get_Command -Name id -CommandType Application -ErrorActionPreference Ignore)) {
+    if  (($ids = & $Get_Command -Name id -CommandType Application -ErrorAction Ignore)) {
         $script:SafeCommands['id'] = if ($null -ne $ids -and 0 -lt @($ids).Count) { $ids[0] }
     }
 }
