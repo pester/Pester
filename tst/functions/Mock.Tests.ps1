@@ -2241,11 +2241,18 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             Context 'Get-Content' {
                 BeforeAll {
                     Mock Get-Content { "default-get-content" }
-                    Mock Get-Content -ParameterFilter {$Tail -eq 100} -MockWith { "aliased-parameter-name" }
+                    Mock Get-Content -ParameterFilter {
+                        # -Last is alias of -Tail so they should both have the same value
+                        $Last -eq 100 -and $Tail -eq 100
+                    } -MockWith { "aliased-parameter-name" }
                 }
 
-                It "returns mock that matches parameter filter block" {
+                It "returns mock that matches parameter filter block when using alias in the call" {
                     Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+                }
+
+                It "returns mock that matches parameter filter block when using the real parameter name in call" {
+                    Get-Content -Path "c:\temp.txt" -Tail 100 | Should -Be "aliased-parameter-name"
                 }
 
                 It 'returns default mock' {

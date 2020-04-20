@@ -22,7 +22,7 @@ function New-MockBehavior {
     param(
         [Parameter(Mandatory)]
         $ContextInfo,
-        [ScriptBlock] $MockWith = {},
+        [ScriptBlock] $MockWith = { },
         [Switch] $Verifiable,
         [ScriptBlock] $ParameterFilter,
         [Parameter(Mandatory)]
@@ -31,42 +31,15 @@ function New-MockBehavior {
         [string[]]$RemoveParameterValidation
     )
 
-
-    $scriptBlockIsClosure = Test-IsClosure -ScriptBlock $MockWith
-    if ($scriptBlockIsClosure) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "The provided mock body is a closure, not touching it so the captured variables are preserved."
-        }
-        # If the user went out of their way to call GetNewClosure(), go ahead and leave the block bound to that
-        # dynamic module's scope.
-        $mockWithCopy = $MockWith
-    }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $MockWith)'"
-        }
-        $mockWithCopy = [scriptblock]::Create($MockWith.ToString())
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Set-ScriptBlockHint -ScriptBlock $mockWithCopy -Hint "Unbound ScriptBlock from Mock"
-        }
-        # bind the script block to the caller state which is most likely the test scope
-        Set-ScriptBlockScope -ScriptBlock $mockWithCopy -SessionState $ContextInfo.CallerSessionState
-    }
-
-    if ($null -ne $ParameterFilter) {
-        $ParameterFilter = New-BlockWithoutParameterAliases -Metadata $Hook.Metadata -Block $ParameterFilter
-    }
-
     [PSCustomObject] @{
-        CommandName          = $ContextInfo.Command.Name
-        ModuleName           = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
-        Filter               = $ParameterFilter
-        IsDefault            = $null -eq $ParameterFilter
-        Verifiable           = $Verifiable
-        ScriptBlock          = $mockWithCopy
-        ScriptBlockIsClosure = $scriptBlockIsClosure
-        Hook                 = $Hook
-        PSTypeName = 'MockBehavior'
+        CommandName = $ContextInfo.Command.Name
+        ModuleName  = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
+        Filter      = $ParameterFilter
+        IsDefault   = $null -eq $ParameterFilter
+        Verifiable  = $Verifiable
+        ScriptBlock = $MockWith
+        Hook        = $Hook
+        PSTypeName  = 'MockBehavior'
     }
 }
 
@@ -104,7 +77,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         # compatible with both earlier and later versions
         $dynamicParams = foreach ($m in $metadata.Parameters.Values) { if ($m.IsDynamic) { $m } }
         if ($null -ne $dynamicParams) {
-            foreach($p in $dynamicParams) {
+            foreach ($p in $dynamicParams) {
                 $null = $metadata.Parameters.Remove($d.name)
             }
         }
@@ -116,10 +89,10 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
         }
 
-            # Will modify $metadata object in-place
-            $originalMetadata = $metadata
-            $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
-            $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+        # Will modify $metadata object in-place
+        $originalMetadata = $metadata
+        $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
+        $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
             $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters -InputArgs `$script:receivedArgs }"
@@ -159,7 +132,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
                 $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($contextInfo.Command.ScriptBlock)
 
                 if ($null -ne $sessionStateInternal) {
-                   $script:ScriptBlockSessionStateInternalProperty.SetValue($dynamicParamScriptBlock, $sessionStateInternal)
+                    $script:ScriptBlockSessionStateInternalProperty.SetValue($dynamicParamScriptBlock, $sessionStateInternal)
                 }
             }
         }
@@ -388,7 +361,7 @@ function Should-InvokeInternal {
         [int]$Times = 1,
 
         [Parameter(ParameterSetName = 'ParameterFilter')]
-        [ScriptBlock]$ParameterFilter = {$True},
+        [ScriptBlock]$ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
@@ -849,7 +822,7 @@ function FindMatchingBehavior {
     param (
         [Parameter(Mandatory)]
         $Behaviors,
-        [hashtable] $BoundParameters = @{},
+        [hashtable] $BoundParameters = @{ },
         [object[]] $ArgumentList = @(),
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
@@ -859,7 +832,6 @@ function FindMatchingBehavior {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Finding a mock behavior."
     }
-    $count = $Behaviors.Count
 
     $foundDefaultBehavior = $false
     $defaultBehavior = $null
@@ -922,7 +894,7 @@ function ExecuteBehavior {
     param (
         $Behavior,
         $Hook,
-        [hashtable] $BoundParameters = @{},
+        [hashtable] $BoundParameters = @{ },
         [object[]] $ArgumentList = @()
     )
 
@@ -976,28 +948,28 @@ function ExecuteBehavior {
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
-    if  ($null -eq $Hook) {
+    if ($null -eq $Hook) {
         throw "Hook should not be null."
     }
 
-    if  ($null -eq $Hook.SessionState) {
+    if ($null -eq $Hook.SessionState) {
         throw "Hook.SessionState should not be null."
     }
 
     Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $Hook.CallerSessionState
     $splat = @{
-    'Script Block'                   = $Behavior.ScriptBlock
-    '___ArgumentList___'             = $ArgumentList
-    '___BoundParameters___'          = $BoundParameters
-    'Meta data'                      = $Hook.Metadata
-    'Session State'                  = $Hook.CallerSessionState
-    'R e p o r t S c o p e'          = {
-        param ($CommandName, $ModuleName, $ScriptBlock)
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock
+        'Script Block'                   = $Behavior.ScriptBlock
+        '___ArgumentList___'             = $ArgumentList
+        '___BoundParameters___'          = $BoundParameters
+        'Meta data'                      = $Hook.Metadata
+        'Session State'                  = $Hook.CallerSessionState
+        'R e p o r t S c o p e'          = {
+            param ($CommandName, $ModuleName, $ScriptBlock)
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-ScriptBlockInvocationHint -Hint "Mock - of command $CommandName$(if ($ModuleName) { "from module $ModuleName"})" -ScriptBlock $ScriptBlock
+            }
         }
-    }
-    'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
+        'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
     }
 
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.ScriptBlock, and not $scriptBlock
@@ -1073,29 +1045,40 @@ function Test-ParameterFilter {
 
     $paramBlock = Get-ParamBlockFromBoundParameters -BoundParameters $BoundParameters -Metadata $Metadata
 
-    #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
-    $scriptBlockString = "
-        $paramBlock
-        `$______isInMockParameterFilter = `$true
-
+    $wrapper = {
+        param ($private:______mock_parameters)
         Set-StrictMode -Off
-        $ScriptBlock
-    "
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlockString }."
-        Write-PesterDebugMessage -Scope SessionState "Unbinding ScriptBlock from '$(Get-ScriptBlockHint $ScriptBlock)'"
+
+        foreach ($private:______current in $private:______mock_parameters.Context.GetEnumerator()) {
+            $private:______mock_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
+        }
+
+        #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
+        # this should not be private, it should leak into Should command when used in ParameterFilter
+        $______isInMockParameterFilter = $true
+        $private:BoundParameters = $private:______mock_parameters.BoundParameters
+        $private:Arguments = $private:______mock_parameters.Arguments
+        & $private:______mock_parameters.ScriptBlock @BoundParameters @Arguments
     }
-    $cmd = [scriptblock]::Create($scriptBlockString)
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Set-ScriptBlockHint -ScriptBlock $cmd -Hint "Unbound ScriptBlock from Test-ParameterFilter"
+        Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } with context: $($context | & $script:SafeCommands['Out-String'])."
     }
-    Set-ScriptBlockScope -ScriptBlock $cmd -SessionState $SessionState
+
+    Set-ScriptBlockScope -ScriptBlock $wrapper -SessionState $SessionState
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $cmd
+        Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $wrapper
     }
-    $result = & $cmd @BoundParameters @arguments
+    $parameters = @{
+        ScriptBlock = $ScriptBlock
+        BoundParameters = $BoundParameters
+        Arguments = $Arguments
+        SessionState = $SessionState
+        Context = $paramBlock
+    }
+
+    $result = & $wrapper $parameters
     if ($result) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
@@ -1115,24 +1098,39 @@ function Get-ParamBlockFromBoundParameters {
         [System.Management.Automation.CommandMetadata] $Metadata
     )
 
-    $params = foreach ($paramName in $BoundParameters.get_Keys()) {
-        if (IsCommonParameter -Name $paramName -Metadata $Metadata) {
-            continue
+    $r = @{}
+    # key the parameters by aliases so we can resolve to
+    # the param itself and define it and all of it's aliases
+    $h = @{}
+    foreach ($p in $Metadata.Parameters.GetEnumerator()) {
+        $aliases = $p.Value.Aliases
+        if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+            foreach ($a in $aliases) { $h.Add($a, $p) }
         }
-
-        "`${$paramName}"
     }
 
-    $params = $params -join ','
+    foreach ($param in $BoundParameters.GetEnumerator()) {
+        $parameterInfo = if ($h.ContainsKey($param.Key)) {
+            $h.($param.Key)
+            }
+            elseif ($Metadata.Parameters.ContainsKey($param.Key)) {
+                $Metadata.Parameters.($param.Key)
+            }
+            else {
+                throw "where is this param $($param.Key) coming from? It is not an alias and not a param on the command."
+            }
 
-    if ($null -ne $Metadata) {
-        $cmdletBinding = [System.Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($Metadata)
-    }
-    else {
-        $cmdletBinding = ''
+        $value = $param.Value
+
+        foreach ($p in $parameterInfo) {
+            $r.Add($p.Name, $value)
+            foreach ($a in $p.Aliases) {
+                $r.Add($a, $value)
+            }
+        }
     }
 
-    return "$cmdletBinding param ($params)"
+    $r
 }
 
 function IsCommonParameter {
@@ -1148,7 +1146,7 @@ function IsCommonParameter {
         if ($Metadata.SupportsShouldProcess -and [System.Management.Automation.Internal.ShouldProcessParameters].GetProperty($Name)) {
             return $true
         }
-        if ($PSVersionTable.PSVersion.Major -ge 3 -and $Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) {
+        if ($Metadata.SupportsPaging -and [System.Management.Automation.PagingParameters].GetProperty($Name)) {
             return $true
         }
         if ($Metadata.SupportsTransactions -and [System.Management.Automation.Internal.TransactionParameters].GetProperty($Name)) {

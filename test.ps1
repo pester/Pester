@@ -2,7 +2,8 @@ param (
     # force P to fail when I leave `dt` in the tests
     [switch]$CI,
     [switch]$SkipPTests,
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    [string[]] $File
 )
 
 Set-StrictMode -Version Latest
@@ -82,7 +83,13 @@ $configuration.Debug.WriteDebugMessages = $false
 $configuration.Debug.ShowFullErrors = $true
 $configuration.Debug.ShowNavigationMarkers = $true
 
-$configuration.Run.Path = "$PSScriptRoot/tst"
+if ($null -ne $File -and 0 -lt @($File).Count) {
+    $configuration.Run.Path = $File
+}
+else
+{
+    $configuration.Run.Path = "$PSScriptRoot/tst"
+}
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
 
