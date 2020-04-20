@@ -106,7 +106,7 @@
             ReleaseNotes = 'https://github.com/pester/Pester/blob/v5.0/README.md'
 
             # Prerelease string of this module
-            Prerelease   = 'rc3'
+            Prerelease   = 'rc4'
         }
     }
 

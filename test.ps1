@@ -101,3 +101,6 @@ if ($CI) {
 }
 
 $r = Invoke-Pester -Configuration $configuration
+if ("Failed" -eq $r.Result) {
+    throw "Run failed!"
+}

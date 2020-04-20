@@ -998,7 +998,7 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
                 }
 
                 AfterAll {
-                    Remove-Module PackageManagement
+                    Remove-Module PackageManagement -Force
                 }
             }
         }
