@@ -1,3 +1,5 @@
+param ([switch]$Debug)
+
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if (Test-Path "$PSScriptRoot/bin") {
@@ -26,6 +28,8 @@ $script = @(
 
 $sb = [System.Text.StringBuilder]""
 foreach ($s in $script) {
+    $lineNumber = 1
+    $hereString = $false
     foreach ($f in Get-ChildItem $s -File) {
         $lines = Get-Content $f
 
@@ -38,7 +42,23 @@ foreach ($s in $script) {
             }
 
             if (-not $noBuild) {
+
+                if ($Debug) {
+                    # don't add the source navigation marker when we are in a here string
+                    # or on a line that is empty or ends with an escape
+                    if ($l -match '@"\s*$') {
+                        $hereString = $true
+                    }
+                    if (-not $hereString -and -not [string]::IsNullOrWhiteSpace($l) -and $l -notmatch '`\s*$') {
+                      $l = $l + " # $($f.FullName):$($lineNumber)"
+                    }
+                    if ($l -match '"@\s*$') {
+                        $hereString = $false
+                    }
+                    $lineNumber++
+                }
                 $null = $sb.AppendLine($l)
+
             }
 
             if ($l -match "#\s*endif\s*$") {

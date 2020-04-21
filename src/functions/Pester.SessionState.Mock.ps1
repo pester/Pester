@@ -328,11 +328,11 @@ function Get-AllMockBehaviors {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -LazyMessage {
-            "Found behaviors ($($behaviors.Count)) for '$CommandName': "
+            "Found $($behaviors.Count) behaviors for '$CommandName': "
             foreach ($b in $behaviors) {
-                "Body: { $($b.ScriptBlock.ToString().Trim()) }"
-                "Filter: $(if ($b.Filter) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })"
-                "Verifiable: $($b.Verifiable)"
+                "    Body: { $($b.ScriptBlock.ToString().Trim()) }"
+                "    Filter: $(if ($b.Filter) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })"
+                "    Verifiable: $($b.Verifiable)"
             }
         }
     }

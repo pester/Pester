@@ -1514,10 +1514,11 @@ Describe 'DynamicParam blocks in other scopes' {
 
 Describe 'Parameter Filters and Common Parameters' {
     & {
-        # set this setting in this scope in case the preference
-        # around is different
-        $VerbosePreference = 'Continue'
         BeforeAll {
+            # set this setting in this scope in case the preference
+            # around is different
+            $VerbosePreference = 'Continue'
+
             function Test-Function {
                 [CmdletBinding()] param ( )
             }
@@ -2241,11 +2242,18 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             Context 'Get-Content' {
                 BeforeAll {
                     Mock Get-Content { "default-get-content" }
-                    Mock Get-Content -ParameterFilter {$Tail -eq 100} -MockWith { "aliased-parameter-name" }
+                    Mock Get-Content -ParameterFilter {
+                        # -Last is alias of -Tail so they should both have the same value
+                        $Last -eq 100 -and $Tail -eq 100
+                    } -MockWith { "aliased-parameter-name" }
                 }
 
-                It "returns mock that matches parameter filter block" {
+                It "returns mock that matches parameter filter block when using alias in the call" {
                     Get-Content -Path "c:\temp.txt" -Last 100 | Should -Be "aliased-parameter-name"
+                }
+
+                It "returns mock that matches parameter filter block when using the real parameter name in call" {
+                    Get-Content -Path "c:\temp.txt" -Tail 100 | Should -Be "aliased-parameter-name"
                 }
 
                 It 'returns default mock' {
@@ -2267,7 +2275,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                     It 'works with read-only/constant automatic variables' {
 
                         function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
-                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter { $_PSEdition -eq 'Desktop' }
 
                         f
 
@@ -2583,5 +2591,38 @@ Describe "Assert-VerifiableMock is available as a wrapper over Should -InvokeVer
         Mock f { "mock" } -Verifiable
         f
         Assert-VerifiableMock
+    }
+}
+
+Describe "Debugging mocks" {
+    It "Hits breakpoints in mock related scriptblocks" {
+        try {
+            $line = {}.StartPosition.StartLine
+            $sb = @(
+                Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 9) -Action { } # mock parameter filter
+                Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 11) -Action { } # mock with
+                Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 17) -Action { } # should invoke parameter filter
+            )
+            function f ($Name) { }
+
+            Mock f -ParameterFilter {
+                $Name -eq "Jakub"
+            } -MockWith {
+                [PSCustomObject]@{ Name = "Jakub"; Age = 31 }
+            }
+
+            f "Jakub"
+
+            Should -Invoke f -ParameterFilter {
+                $Name -eq "Jakub"
+            }
+
+            $sb[0].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[0].Line) is hit"
+            $sb[1].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[1].Line) is hit"
+            $sb[2].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[2].Line) is hit"
+        }
+        finally {
+            $sb | Remove-PSBreakpoint
+        }
     }
 }
