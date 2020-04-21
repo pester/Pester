@@ -1196,7 +1196,8 @@ function Invoke-PluginStep {
         try {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $stepSw = [Diagnostics.Stopwatch]::StartNew()
-                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
+                $c = $Context | & $script:SafeCommands['Out-String']
+                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context:$c"
             }
 
             # the plugins expect -Context and then the actual context in it

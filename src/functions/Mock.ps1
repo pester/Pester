@@ -479,7 +479,7 @@ function Remove-MockHook {
 
     foreach ($h in $Hooks) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommmandName)."
+            Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommandName)."
         }
 
         $null = Invoke-InMockScope -SessionState $h.CallerSessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases
@@ -901,7 +901,7 @@ function ExecuteBehavior {
     $ModuleName = $Behavior.ModuleName
     $CommandName = $Behavior.CommandName
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock $ModuleName - $CommandName."
+        Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock$(if ($ModuleName) {" $ModuleName -" })$CommandName."
     }
 
     $Behavior.Verifiable = $false
@@ -978,7 +978,7 @@ function ExecuteBehavior {
     }
     & $scriptBlock @splat
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Behavior for $ModuleName - $CommandName was executed."
+        Write-PesterDebugMessage -Scope Mock "Behavior for$(if ($ModuleName) { " $ModuleName -"}) $CommandName was executed."
     }
 }
 
@@ -1043,7 +1043,7 @@ function Test-ParameterFilter {
         $arguments = @()
     }
 
-    $paramBlock = Get-ParamBlockFromBoundParameters -BoundParameters $BoundParameters -Metadata $Metadata
+    $context = Get-ContextToDefine -BoundParameters $BoundParameters -Metadata $Metadata
 
     $wrapper = {
         param ($private:______mock_parameters)
@@ -1056,13 +1056,17 @@ function Test-ParameterFilter {
         #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
         # this should not be private, it should leak into Should command when used in ParameterFilter
         $______isInMockParameterFilter = $true
-        $private:BoundParameters = $private:______mock_parameters.BoundParameters
+        # $private:BoundParameters = $private:______mock_parameters.BoundParameters
         $private:Arguments = $private:______mock_parameters.Arguments
-        & $private:______mock_parameters.ScriptBlock @BoundParameters @Arguments
+        # TODO: not binding the bound parameters here because it would make the parameters unbound when the user does
+        # not provide a param block, which they would never provide, so that is okay, but if there is a workaround this then
+        # it would be nice to have. maybe changing the order in which I bind?
+        & $private:______mock_parameters.ScriptBlock @Arguments
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } with context: $($context | & $script:SafeCommands['Out-String'])."
+        $c = $(foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" }) -join ", "
+        Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } with context: $c"
     }
 
     Set-ScriptBlockScope -ScriptBlock $wrapper -SessionState $SessionState
@@ -1071,11 +1075,11 @@ function Test-ParameterFilter {
         Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $wrapper
     }
     $parameters = @{
-        ScriptBlock = $ScriptBlock
+        ScriptBlock     = $ScriptBlock
         BoundParameters = $BoundParameters
-        Arguments = $Arguments
-        SessionState = $SessionState
-        Context = $paramBlock
+        Arguments       = $Arguments
+        SessionState    = $SessionState
+        Context         = $context
     }
 
     $result = & $wrapper $parameters
@@ -1092,16 +1096,38 @@ function Test-ParameterFilter {
     $result
 }
 
-function Get-ParamBlockFromBoundParameters {
+function Get-ContextToDefine {
     param (
         [System.Collections.IDictionary] $BoundParameters,
         [System.Management.Automation.CommandMetadata] $Metadata
     )
 
-    $r = @{}
+    $conflictingParameterNames = Get-ConflictingParameterNames
+    $r = @{ }
     # key the parameters by aliases so we can resolve to
     # the param itself and define it and all of it's aliases
-    $h = @{}
+    $h = @{ }
+    if ($null -eq $Metadata) {
+        # there is no metadata so there will be no aliases
+        # return the parameters that we got, just fix the conflicting
+        # names
+        foreach ($p in $BoundParameters.GetEnumerator()) {
+            $name = if ($p.Key -in $conflictingParameterNames) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Key) is a built-in variable, rewriting it to `$_$($p.Key). Use the version with _ in your -ParameterFilter."
+                }
+                "_$($p.Key)"
+            }
+            else {
+                $p.Key
+            }
+
+            $r.Add($name, $p.Value)
+        }
+
+        return $r
+    }
+
     foreach ($p in $Metadata.Parameters.GetEnumerator()) {
         $aliases = $p.Value.Aliases
         if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
@@ -1112,20 +1138,63 @@ function Get-ParamBlockFromBoundParameters {
     foreach ($param in $BoundParameters.GetEnumerator()) {
         $parameterInfo = if ($h.ContainsKey($param.Key)) {
             $h.($param.Key)
-            }
-            elseif ($Metadata.Parameters.ContainsKey($param.Key)) {
-                $Metadata.Parameters.($param.Key)
-            }
-            else {
-                throw "where is this param $($param.Key) coming from? It is not an alias and not a param on the command."
-            }
+        }
+        elseif ($Metadata.Parameters.ContainsKey($param.Key)) {
+            $Metadata.Parameters.($param.Key)
+        }
 
         $value = $param.Value
 
-        foreach ($p in $parameterInfo) {
-            $r.Add($p.Name, $value)
-            foreach ($a in $p.Aliases) {
-                $r.Add($a, $value)
+        if ($parameterInfo) {
+            foreach ($p in $parameterInfo) {
+                $name = if ($p.Name -in $conflictingParameterNames) {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                        Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Name) is a built-in variable, rewriting it to `$_$($p.Name). Use the version with _ in your -ParameterFilter."
+                    }
+                    "_$($p.Name)"
+                }
+                else {
+                    $p.Name
+                }
+
+                if (-not $r.ContainsKey($name)) {
+                    $r.Add($name, $value)
+                }
+
+                foreach ($a in $p.Aliases) {
+                    $name = if ($a -in $conflictingParameterNames) {
+                        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                            Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($a) is a built-in variable, rewriting it to `$_$($a). Use the version with _ in your -ParameterFilter."
+                        }
+                        "_$($a)"
+                    }
+                    else {
+                        $a
+                    }
+
+                    if (-not $r.ContainsKey($name)) {
+                        $r.Add($name, $value)
+                    }
+                }
+            }
+        }
+        else {
+            # the parameter is not defined in the parameter set,
+            # it is probably dynamic, let's see if I can get away with just adding
+            # it to the list of stuff to define
+
+            $name = if ($param.Key -in $script:ConflictingParameterNames) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($param.Key) is a built-in variable, rewriting it to `$_$($param.Key). Use the version with _ in your -ParameterFilter."
+                }
+                "_$($param.Key)"
+            }
+            else {
+                $param.Key
+            }
+
+            if (-not $r.ContainsKey($name)) {
+                $r.Add($name, $param.Value)
             }
         }
     }
@@ -1436,6 +1505,8 @@ function Repair-ConflictingParameters {
             continue
         }
 
+        # rewrite the metadata to avoid defining confliting parameters
+        # in the function such as $PSEdition
         if ($conflictingParams -contains $paramMetadata.Name) {
             $paramName = $paramMetadata.Name
             $newName = "_$paramName"

@@ -1514,10 +1514,11 @@ Describe 'DynamicParam blocks in other scopes' {
 
 Describe 'Parameter Filters and Common Parameters' {
     & {
-        # set this setting in this scope in case the preference
-        # around is different
-        $VerbosePreference = 'Continue'
         BeforeAll {
+            # set this setting in this scope in case the preference
+            # around is different
+            $VerbosePreference = 'Continue'
+
             function Test-Function {
                 [CmdletBinding()] param ( )
             }
@@ -2274,7 +2275,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                     It 'works with read-only/constant automatic variables' {
 
                         function f { Get-Module foo -ListAvailable -PSEdition 'Desktop' }
-                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter {$PSEdition -eq 'Desktop' }
+                        Mock Get-Module -Verifiable { 'mocked' } -ParameterFilter { $_PSEdition -eq 'Desktop' }
 
                         f
 
