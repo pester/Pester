@@ -490,7 +490,7 @@ function Invoke-Pester {
                 PSBoundParameters = $PSBoundParameters
             }
 
-            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData -Configuration $PesterPreference
+            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData -Configuration $PesterPreference -version 5.0.0
 
             PostProcess-RSpecTestRun -TestRun $run
 
@@ -764,6 +764,7 @@ function ConvertTo-Pester4Result {
     )
     process {
         $legacyResult = [PSCustomObject] @{
+            version = 4.0.0
             TagFilter = $null
             ExcludeTagFilter = $null
             TestNameFilter = $null

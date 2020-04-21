@@ -128,7 +128,8 @@ function New-RSpecTestRunObject {
         [Hashtable] $PluginConfiguration,
         [Hashtable] $PluginData,
         [PesterConfiguration] $Configuration,
-        [object[]] $BlockContainer)
+        [object[]] $BlockContainer,
+        [version]$version)
 
    [PSCustomObject]@{
         PSTypeName = 'PesterRSpecTestRun'
