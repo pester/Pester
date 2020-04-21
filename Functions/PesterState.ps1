@@ -8,7 +8,8 @@ function New-PesterState {
         [Pester.OutputTypes]$Show = 'All',
         [object]$PesterOption,
         [Switch]$RunningViaInvokePester,
-        [Hashtable[]] $ScriptBlockFilter
+        [Hashtable[]] $ScriptBlockFilter,
+        [version]$Version = "4.10.1"
     )
 
     if ($null -eq $SessionState) {
@@ -27,7 +28,7 @@ function New-PesterState {
         }
     }
 
-    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
+    $r = & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester, $version -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
@@ -36,7 +37,8 @@ function New-PesterState {
             [Switch]$Strict,
             [Pester.OutputTypes]$Show,
             [object]$PesterOption,
-            [Switch]$RunningViaInvokePester
+            [Switch]$RunningViaInvokePester,
+            [version]$Version
         )
 
         #public read-only
@@ -44,7 +46,7 @@ function New-PesterState {
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
 
-
+        $script:version = $Version
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:TestStartTime = $null
@@ -69,7 +71,7 @@ function New-PesterState {
         $script:ScriptBlockFilter = $PesterOption.ScriptBlockFilter
         $script:RunningViaInvokePester = $RunningViaInvokePester
 
-        $script:SafeCommands = @{}
+        $script:SafeCommands = @{ }
 
         $script:SafeCommands['New-Object'] = & (Pester\SafeGetCommand) -Name New-Object          -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
         $script:SafeCommands['Select-Object'] = & (Pester\SafeGetCommand) -Name Select-Object       -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
@@ -145,7 +147,7 @@ function New-PesterState {
                 $exception = & $SafeCommands['New-Object'] Exception $Message
                 $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
                 # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-                $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText}
+                $targetObject = @{Message = $Message; File = $File; Line = $Line; LineText = $LineText }
                 $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $ErrorID, $errorCategory, $targetObject
                 return $errorRecord
             }
@@ -233,6 +235,7 @@ function New-PesterState {
             $context = $contexts -join '\'
 
             $script:TestResult += & $SafeCommands['New-Object'] psobject -Property @{
+                version                = $Version
                 Describe               = $describe
                 Context                = $context
                 Name                   = $Name
@@ -348,7 +351,8 @@ function New-PesterState {
         "TestGroupStack",
         "TestSuiteName",
         "InTest",
-        "RunningViaInvokePester"
+        "RunningViaInvokePester",
+        "version"
 
         $ExportedFunctions = "EnterTestGroup",
         "LeaveTestGroup",
@@ -362,16 +366,16 @@ function New-PesterState {
         "LeaveTest"
 
         & $SafeCommands['Export-ModuleMember'] -Variable $ExportedVariables -function $ExportedFunctions
-    }  |
-        & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name CurrentTestGroup -Value {
+    } |
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name CurrentTestGroup -Value {
         $this.TestGroupStack.Peek()
     } |
-        & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name TestGroups -Value {
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name TestGroups -Value {
         $array = $this.TestGroupStack.ToArray()
         [Array]::Reverse($array)
         return $array
     } |
-        & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name IndentLevel -Value {
+    & $SafeCommands['Add-Member'] -PassThru -MemberType ScriptProperty -Name IndentLevel -Value {
         # We ignore the root node of the stack here, and don't start indenting until after the Script nodes inside the root
         return [Math]::Max(0, $this.TestGroupStack.Count - 2)
     }
