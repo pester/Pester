@@ -15,7 +15,8 @@ jobs:
     pool:
       name: Default
       demands:
-        - dotnet
+        - net452
+        - netcoreapp3.1
         - ps3
     workspace:
       clean: all
