@@ -1,4 +1,6 @@
-language: generic
+language: csharp
+mono: none
+dotnet: 2.1.502
 
 matrix:
   include:
