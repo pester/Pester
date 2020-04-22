@@ -1,3 +1,5 @@
+#! /usr/bin/pwsh
+
 param (
     # force P to fail when I leave `dt` in the tests
     [switch]$CI,

@@ -14,5 +14,5 @@ matrix:
 
 script:
   - dotnet tool install --global PowerShell
-  - pwsh -c "./test.ps1 -ci -passThru"
+  - dotnet pwsh -c "./test.ps1 -ci -passThru"
 

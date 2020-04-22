@@ -1,3 +1,5 @@
+#! /usr/bin/pwsh
+
 param ([switch]$Debug)
 
 $ErrorActionPreference = 'Stop'
@@ -69,13 +71,13 @@ foreach ($s in $script) {
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
 $framework = if ($PSVersionTable.PSVersion.Major -le 5) {
-    '--framework net452'
+    '--framework', 'net452'
 }
 elseif ($IsWindows) {
     # none, build for all from the project
 }
 else {
-    '--framework netstandard2.0'
+    '--framework', 'netstandard2.0'
 }
 
 dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release $framework
