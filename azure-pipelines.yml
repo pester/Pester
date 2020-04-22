@@ -1,8 +1,6 @@
 trigger:
-  - master
   - v5.0
 pr:
-  - master
   - v5.0
 
 resources:
@@ -17,13 +15,13 @@ jobs:
     pool:
       name: Default
       demands:
-        - dotnet 
+        - dotnet
         - ps3
     workspace:
       clean: all
     timeoutInMinutes: 3
     steps:
-      - powershell: ./test.ps1 -ci -passThru
+      - powershell: ./test.ps1 -CI -PassThru
 
   - job: ubups7
     pool:
@@ -31,5 +29,5 @@ jobs:
     container: mcr.microsoft.com/dotnet/core/sdk:3.1
 
     steps:
-      - pwsh: ./test.ps1 -ci -passThru
+      - pwsh: ./test.ps1 -CI -PassThru
 
