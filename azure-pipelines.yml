@@ -17,10 +17,19 @@ jobs:
     pool:
       name: Default
       demands:
+        - dotnet 
         - ps3
     workspace:
       clean: all
     timeoutInMinutes: 3
     steps:
       - powershell: ./test.ps1 -ci -passThru
+
+  - job: ubups7
+    pool:
+      vmImage: 'ubuntu-16.04'
+    container: mcr.microsoft.com/dotnet/core/sdk:3.1
+
+    steps:
+      - pwsh: ./test.ps1 -ci -passThru
 
