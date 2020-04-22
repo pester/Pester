@@ -28,7 +28,7 @@ function New-PesterState {
         }
     }
 
-    $r = & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester, $version -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester, $version -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
