@@ -68,18 +68,42 @@ foreach ($s in $script) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
-dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
+$framework = if ($PSVersionTable.PSVersion.Major -le 5) {
+    '--framework net452'
+}
+elseif ($IsWindows) {
+    # none, build for all from the project
+}
+else {
+    '--framework netstandard2.0'
+}
+
+dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release $framework
+if (0 -ne $LASTEXITCODE) {
+    throw "build failed!"
+}
 
 $content = @(
-    ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
     ,("$PSScriptRoot/src/en-US/*.txt","$PSScriptRoot/bin/en-US/")
     ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
 )
+
+
+if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
+    $content += @(
+        ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
+    )
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    $content += @(
+        ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
+        ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
+    )
+}
 
 foreach ($c in $content) {
     $source, $destination = $c

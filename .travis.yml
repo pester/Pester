@@ -2,6 +2,9 @@ language: csharp
 mono: none
 dotnet: 2.1.502
 
+env:
+  - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+
 matrix:
   include:
     - os: osx
