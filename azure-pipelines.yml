@@ -53,14 +53,8 @@ stages:
             Windows_Server2019_PowerShell_5_1:
               vmImage: windows-2019
               pwsh: false
-            PowerShell_3:
-              AGENT_NAME: 'ps3'
-              pwsh: false
         pool:
           vmImage: $[ variables['vmImage'] ]
-          name: Default
-          Demands:
-            - agent.name -equals $(AGENT_NAME)
         steps:
           - download: current
             artifact: bin
@@ -74,8 +68,21 @@ stages:
               targetType: inline
               pwsh: $[ variables['pwsh'] ]
               script: ./test.ps1 -CI -PassThru
-
-      
-
-
-
+      - job:
+        strategy:
+          matrix:
+            PowerShell_3:
+              powershell: '3'
+            PowerShell_4:
+              powershell: '4'
+        pool:
+          name: Default
+          demands:
+            - powershell -equals $(powershell)
+        steps:
+          - task: PowerShell@2
+            displayName: 'Test Pester'
+            inputs:
+              targetType: inline
+              pwsh: false
+              script: ./test.ps1 -CI -PassThru
