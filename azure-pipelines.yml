@@ -70,10 +70,6 @@ stages:
               targetType: inline
               pwsh: $(pwsh)
               script: |
-                $pwd.Path
-                cd $(Build.SourcesDirectory)
-                $pwd.Path
-                Get-ChildItem .
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
       - job:
@@ -99,9 +95,5 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                $pwd.Path
-                cd $(Build.SourcesDirectory)
-                $pwd.Path
-                Get-ChildItem .
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'

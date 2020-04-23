@@ -12,10 +12,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 # assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
 $ErrorView = "NormalView"
-"Using PS $($PsVersionTable.PSVersion)"
-
-"pwd: $($pwd.Path)"
-Get-ChildItem -Path .
+"Using PS: $($PsVersionTable.PSVersion)"
+"In path: $($pwd.Path)"
 
 
 if (-not $NoBuild) {
