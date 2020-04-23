@@ -1,0 +1,66 @@
+trigger:
+  - v5.0
+pr:
+  - v5.0
+
+resources:
+  - repo: self
+    clean: true
+    fetchDepth: 1
+
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+
+stages:
+  - stage: Build
+    jobs:
+      - job: build
+        pool:
+          name: Default
+          demands:
+            - net452
+            - netcoreapp3.1
+        timeoutInMinutes: 3
+        steps:
+          - powershell: ./build.ps1
+          - publish: $(Build.SourcesDirectory)/bin
+            artifact: bin
+          - publish: $(Build.SourcesDirectory)/tst
+            artifact: tst
+          - publish: $(Build.SourcesDirectory)/test.ps1
+            artifact: test
+
+  - stage: Test
+    jobs:
+      - job:
+        strategy:
+          matrix:
+            Ubuntu_16_04:
+              vmImage: ubuntu-16.04
+            Ubuntu_18_04:
+              vmImage: ubuntu-18.04
+            macOS_10_14_Mojave:
+              vmImage: macOS-10.14
+            macOS_10_15_Catalina:
+              vmImage: macOS-10.15
+            Windows_Server2016_PowerShell_Core:
+              vmImage: vs2017-win2016
+            Windows_Server2019_PowerShell_Core:
+              vmImage: windows-2019
+            Windows_Server2016_PowerShell_5_1:
+              vmImage: vs2017-win2016
+              pwsh: false
+            Windows_Server2019_PowerShell_5_1:
+              vmImage: windows-2019
+              pwsh: false
+        pool:
+          vmImage: $[ variables['vmImage'] ]
+        steps:
+          - download: current
+            artifact: bin
+          - download: current
+            artifact: tst
+          - download: current
+            artifact: test
+          - pwsh: ./test.ps1 -CI -PassThru
+
