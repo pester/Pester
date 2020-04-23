@@ -81,8 +81,11 @@ stages:
               targetType: inline
               pwsh: $(pwsh)
               script: |
+                $pwd.Path
                 cd $(Build.SourcesDirectory)
+                $pwd.Path
                 Get-ChildItem .
+                $pwd.Path
       - job:
         strategy:
           matrix:
