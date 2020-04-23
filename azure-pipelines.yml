@@ -37,16 +37,22 @@ stages:
           matrix:
             Ubuntu_16_04:
               vmImage: ubuntu-16.04
+              pwsh: true
             Ubuntu_18_04:
               vmImage: ubuntu-18.04
+              pwsh: true
             macOS_10_14_Mojave:
               vmImage: macOS-10.14
+              pwsh: true
             macOS_10_15_Catalina:
               vmImage: macOS-10.15
+              pwsh: true
             Windows_Server2016_PowerShell_Core:
               vmImage: vs2017-win2016
+              pwsh: true
             Windows_Server2019_PowerShell_Core:
               vmImage: windows-2019
+              pwsh: true
             Windows_Server2016_PowerShell_5_1:
               vmImage: vs2017-win2016
               pwsh: false
@@ -80,6 +86,12 @@ stages:
           demands:
             - powershell -equals $(powershell)
         steps:
+          - download: current
+            artifact: bin
+          - download: current
+            artifact: tst
+          - download: current
+            artifact: test
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
