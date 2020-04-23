@@ -76,7 +76,10 @@ stages:
             inputs:
               targetType: inline
               pwsh: $(pwsh)
-              script: ./test.ps1 -CI -PassThru -NoBuild
+              script: |
+                cd $(System.ArtifactsDirectory)
+                Get-ChildItem .
+                ./test.ps1 -CI -PassThru -NoBuild
       - job:
         strategy:
           matrix:
@@ -103,4 +106,7 @@ stages:
             inputs:
               targetType: inline
               pwsh: false
-              script: ./test.ps1 -CI -PassThru -NoBuild
+              script: |
+                cd $(System.ArtifactsDirectory)
+                Get-ChildItem .
+                ./test.ps1 -CI -PassThru -NoBuild
