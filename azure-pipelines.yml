@@ -83,7 +83,6 @@ stages:
               script: |
                 cd $(Build.SourcesDirectory)
                 Get-ChildItem .
-                ./test.ps1 -CI -PassThru -NoBuild
       - job:
         strategy:
           matrix:
@@ -117,4 +116,4 @@ stages:
               script: |
                 cd $(Build.SourcesDirectory)
                 Get-ChildItem .
-                ./test.ps1 -CI -PassThru -NoBuild
+                & test.ps1 -CI -PassThru -NoBuild
