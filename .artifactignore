@@ -1,4 +1,15 @@
 src/csharp/bin/
 src/csharp/obj/
 src/csharp/.vs/
+publish/
 .git
+.gitignore
+.gitattributes
+.artifactignore
+azure-pipelines.yml
+.github
+.vscode
+LICENSE
+README.MD
+VERIFICATION.txt
+
