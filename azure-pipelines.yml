@@ -67,9 +67,10 @@ stages:
             artifact: bin
           - download: current
             artifact: tst
-          - download: current
-            artifact: test
-            path: $(Build.SourcesDirectory)/test.ps1
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              artifactName: 'test'
+              downloadPath: '$(System.ArtifactsDirectory)/test.ps1'
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
@@ -93,9 +94,10 @@ stages:
             artifact: bin
           - download: current
             artifact: tst
-          - download: current
-            artifact: test
-            path: $(Build.SourcesDirectory)/test.ps1
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              artifactName: 'test'
+              downloadPath: '$(System.ArtifactsDirectory)/test.ps1'
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
