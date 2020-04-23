@@ -63,21 +63,25 @@ stages:
           vmImage: $[ variables['vmImage'] ]
         steps:
           - checkout: none
-          - download: current
-            artifact: bin
-          - download: current
-            artifact: tst
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              artifactName: 'bin'
+              downloadPath: '$(Build.SourcesDirectory)/bin'
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              artifactName: 'tst'
+              downloadPath: '$(Build.SourcesDirectory)/tst'
           - task: DownloadBuildArtifacts@0
             inputs:
               artifactName: 'test'
-              downloadPath: '$(System.ArtifactsDirectory)/test.ps1'
+              downloadPath: '$(Build.SourcesDirectory)'
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
               targetType: inline
               pwsh: $(pwsh)
               script: |
-                cd $(System.ArtifactsDirectory)
+                cd $(Build.SourcesDirectory)
                 Get-ChildItem .
                 ./test.ps1 -CI -PassThru -NoBuild
       - job:
@@ -93,20 +97,24 @@ stages:
             - powershell -equals $(powershell)
         steps:
           - checkout: none
-          - download: current
-            artifact: bin
-          - download: current
-            artifact: tst
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              artifactName: 'bin'
+              downloadPath: '$(Build.SourcesDirectory)/bin'
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              artifactName: 'tst'
+              downloadPath: '$(Build.SourcesDirectory)/tst'
           - task: DownloadBuildArtifacts@0
             inputs:
               artifactName: 'test'
-              downloadPath: '$(System.ArtifactsDirectory)/test.ps1'
+              downloadPath: '$(Build.SourcesDirectory)'
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
               targetType: inline
               pwsh: false
               script: |
-                cd $(System.ArtifactsDirectory)
+                cd $(Build.SourcesDirectory)
                 Get-ChildItem .
                 ./test.ps1 -CI -PassThru -NoBuild
