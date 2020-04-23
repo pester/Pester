@@ -82,7 +82,7 @@ stages:
               agent: 'ps4'
               pwsh: false
             PS6_2:
-              agent: 'ps4'
+              agent: 'ps6'
               pwsh: true
         pool:
           name: Default
