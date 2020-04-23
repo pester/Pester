@@ -31,28 +31,28 @@ stages:
       - job:
         strategy:
           matrix:
-            Ubuntu_16_04:
+            PS7_Ubuntu_16_04:
               vmImage: ubuntu-16.04
               pwsh: true
-            Ubuntu_18_04:
+            PS7_Ubuntu_18_04:
               vmImage: ubuntu-18.04
               pwsh: true
-            macOS_10_14_Mojave:
+            PS7_macOS_10_14_Mojave:
               vmImage: macOS-10.14
               pwsh: true
-            macOS_10_15_Catalina:
+            PS7_macOS_10_15_Catalina:
               vmImage: macOS-10.15
               pwsh: true
-            Windows_Server2016_PowerShell_Core:
+            PS7_Windows_Server2016:
               vmImage: vs2017-win2016
               pwsh: true
-            Windows_Server2019_PowerShell_Core:
+            PS7_Windows_Server2019:
               vmImage: windows-2019
               pwsh: true
-            Windows_Server2016_PowerShell_5_1:
+            PS_5_1_Windows_Server2016:
               vmImage: vs2017-win2016
               pwsh: false
-            Windows_Server2019_PowerShell_5_1:
+            PS_5_1_Windows_Server2019:
               vmImage: windows-2019
               pwsh: false
         pool:
@@ -75,14 +75,19 @@ stages:
       - job:
         strategy:
           matrix:
-            PowerShell_3:
-              powershell: '3'
-            PowerShell_4:
-              powershell: '4'
+            PS3:
+              agent: 'ps3'
+              pwsh: false
+            PS4:
+              agent: 'ps4'
+              pwsh: false
+            PS6_2:
+              agent: 'ps4'
+              pwsh: true
         pool:
           name: Default
           demands:
-            - powershell -equals $(powershell)
+            - agent.name -equals $(agent)
         steps:
           - checkout: none
           - task: DownloadPipelineArtifact@2
@@ -94,6 +99,7 @@ stages:
             displayName: 'Test Pester'
             inputs:
               targetType: 'inline'
+              pwsh: $(pwsh)
               script: |
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
