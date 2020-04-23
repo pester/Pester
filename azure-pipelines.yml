@@ -62,7 +62,6 @@ stages:
         pool:
           vmImage: $[ variables['vmImage'] ]
         steps:
-          steps:
           - checkout: none
           - download: current
             artifact: bin
