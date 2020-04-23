@@ -1,3 +1,5 @@
+#! /usr/bin/pwsh
+
 param (
     # force P to fail when I leave `dt` in the tests
     [switch]$CI,
@@ -10,7 +12,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 # assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
 $ErrorView = "NormalView"
-"Using PS $($PsVersionTable.PSVersion)"
+"Using PS: $($PsVersionTable.PSVersion)"
+"In path: $($pwd.Path)"
+
 
 if (-not $NoBuild) {
     & "$PSScriptRoot/build.ps1"

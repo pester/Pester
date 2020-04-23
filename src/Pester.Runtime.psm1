@@ -1,7 +1,7 @@
 # if -not build
 . "$PSScriptRoot/Pester.Utility.ps1"
 . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-. "$PSScriptRoot/Pester.Types.ps1"
+# . "$PSScriptRoot/Pester.Types.ps1"
 # endif
 
 # instances

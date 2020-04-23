@@ -1,3 +1,5 @@
+#! /usr/bin/pwsh
+
 param ([switch]$Debug)
 
 $ErrorActionPreference = 'Stop'
@@ -22,8 +24,6 @@ $script = @(
     "$PSScriptRoot/src/functions/*"
 
     "$PSScriptRoot/src/Pester.psm1"
-    # "$PSScriptRoot/src/"
-    # "$PSScriptRoot/src/"
 )
 
 $sb = [System.Text.StringBuilder]""
@@ -70,13 +70,20 @@ foreach ($s in $script) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
+dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release $framework
+if (0 -ne $LASTEXITCODE) {
+    throw "build failed!"
+}
 
 $content = @(
-    ,("$PSScriptRoot/src/csharp/*.cs","$PSScriptRoot/bin/csharp/")
     ,("$PSScriptRoot/src/en-US/*.txt","$PSScriptRoot/bin/en-US/")
     ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
+    ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
+    ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
+    ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
 )
 
 foreach ($c in $content) {
@@ -88,4 +95,9 @@ foreach ($c in $content) {
 }
 
 
-Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop
+$powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
+
+& $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
+if (0 -ne $LASTEXITCODE) {
+    throw "load failed!"
+}
