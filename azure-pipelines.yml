@@ -88,7 +88,8 @@ stages:
                 cd $(Build.SourcesDirectory)
                 $pwd.Path
                 Get-ChildItem .
-                $pwd.Path
+                & ./test.ps1 -CI -PassThru -NoBuild
+              workingDirectory: '$(Build.SourcesDirectory)'
       - job:
         strategy:
           matrix:
@@ -120,11 +121,11 @@ stages:
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
-              targetType: inline
-              pwsh: false
+              targetType: 'inline'
               script: |
                 $pwd.Path
                 cd $(Build.SourcesDirectory)
                 $pwd.Path
                 Get-ChildItem .
-                & test.ps1 -CI -PassThru -NoBuild
+                & ./test.ps1 -CI -PassThru -NoBuild
+              workingDirectory: '$(Build.SourcesDirectory)'
