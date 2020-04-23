@@ -8,27 +8,23 @@ resources:
     clean: true
     fetchDepth: 1
 
-jobs:
-  - job: ps3
-    displayName: PowerShell 3
-    continueOnError: false
-    pool:
-      name: Default
-      demands:
-        - net452
-        - netcoreapp3.1
-        - ps3
-    workspace:
-      clean: all
-    timeoutInMinutes: 3
-    steps:
-      - powershell: ./test.ps1 -CI -PassThru
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
 
-  - job: ubups7
-    pool:
-      vmImage: 'ubuntu-16.04'
-    container: mcr.microsoft.com/dotnet/core/sdk:3.1
-
-    steps:
-      - pwsh: ./test.ps1 -CI -PassThru
-
+stages:
+  - stage: Build
+    jobs:
+      - job: build
+        pool:
+          name: Default
+          demands:
+            - net452
+            - netcoreapp3.1
+        timeoutInMinutes: 3
+        steps:
+          - powershell: ./build.ps1
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Pipeline Artifact: bin Folder'
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/bin'
+              artifactName: bin
