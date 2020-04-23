@@ -23,12 +23,8 @@ stages:
         timeoutInMinutes: 3
         steps:
           - powershell: ./build.ps1
-          - publish: $(Build.SourcesDirectory)/bin
-            artifact: bin
-          - publish: $(Build.SourcesDirectory)/tst
-            artifact: tst
-          - publish: $(Build.SourcesDirectory)/test.ps1
-            artifact: test
+          - publish: $(Build.SourcesDirectory)
+            artifact: all
 
   - stage: Test
     jobs:
@@ -66,17 +62,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              artifactName: 'bin'
-              targetPath: '$(Build.SourcesDirectory)/bin'
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'tst'
-              targetPath: '$(Build.SourcesDirectory)/tst'
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'test'
+              artifactName: 'all'
               targetPath: '$(Build.SourcesDirectory)'
           - task: PowerShell@2
             displayName: 'Test Pester'
@@ -106,17 +92,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              artifactName: 'bin'
-              targetPath: '$(Build.SourcesDirectory)/bin'
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'tst'
-              targetPath: '$(Build.SourcesDirectory)/tst'
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'test'
+              artifactName: 'all'
               targetPath: '$(Build.SourcesDirectory)'
           - task: PowerShell@2
             displayName: 'Test Pester'
