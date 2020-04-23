@@ -63,18 +63,21 @@ stages:
           vmImage: $[ variables['vmImage'] ]
         steps:
           - checkout: none
-          - task: DownloadBuildArtifacts@0
+          - task: DownloadPipelineArtifact@2
             inputs:
+              buildType: 'current'
               artifactName: 'bin'
-              downloadPath: '$(Build.SourcesDirectory)/bin'
-          - task: DownloadBuildArtifacts@0
+              targetPath: '$(Build.SourcesDirectory)/bin'
+          - task: DownloadPipelineArtifact@2
             inputs:
+              buildType: 'current'
               artifactName: 'tst'
-              downloadPath: '$(Build.SourcesDirectory)/tst'
-          - task: DownloadBuildArtifacts@0
+              targetPath: '$(Build.SourcesDirectory)/tst'
+          - task: DownloadPipelineArtifact@2
             inputs:
+              buildType: 'current'
               artifactName: 'test'
-              downloadPath: '$(Build.SourcesDirectory)'
+              targetPath: '$(Build.SourcesDirectory)'
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
@@ -99,24 +102,29 @@ stages:
             - powershell -equals $(powershell)
         steps:
           - checkout: none
-          - task: DownloadBuildArtifacts@0
+          - task: DownloadPipelineArtifact@2
             inputs:
+              buildType: 'current'
               artifactName: 'bin'
-              downloadPath: '$(Build.SourcesDirectory)/bin'
-          - task: DownloadBuildArtifacts@0
+              targetPath: '$(Build.SourcesDirectory)/bin'
+          - task: DownloadPipelineArtifact@2
             inputs:
+              buildType: 'current'
               artifactName: 'tst'
-              downloadPath: '$(Build.SourcesDirectory)/tst'
-          - task: DownloadBuildArtifacts@0
+              targetPath: '$(Build.SourcesDirectory)/tst'
+          - task: DownloadPipelineArtifact@2
             inputs:
+              buildType: 'current'
               artifactName: 'test'
-              downloadPath: '$(Build.SourcesDirectory)'
+              targetPath: '$(Build.SourcesDirectory)'
           - task: PowerShell@2
             displayName: 'Test Pester'
             inputs:
               targetType: inline
               pwsh: false
               script: |
+                $pwd.Path
                 cd $(Build.SourcesDirectory)
+                $pwd.Path
                 Get-ChildItem .
                 & test.ps1 -CI -PassThru -NoBuild
