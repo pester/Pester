@@ -14,6 +14,10 @@ $ErrorActionPreference = 'Stop'
 $ErrorView = "NormalView"
 "Using PS $($PsVersionTable.PSVersion)"
 
+"pwd: $($pwd.Path)"
+Get-ChildItem -Path .
+
+
 if (-not $NoBuild) {
     & "$PSScriptRoot/build.ps1"
 }
