@@ -328,26 +328,10 @@ function Invoke-Block ($previousBlock) {
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
                         -OuterSetup $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            if ($true) {
-                                @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
-                            }
-                            else {
-                                combineNonNull @(
-                                    $previousBlock.EachBlockSetup
-                                    $block.OneTimeTestSetup
-                                )
-                            }
+                            @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
                         }) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            if ($true) {
-                                @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
-                            }
-                            else {
-                                combineNonNull @(
-                                $block.OneTimeTestTeardown
-                                $previousBlock.EachBlockTeardown
-                            )
-                            }
+                            @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
                         } ) `
                         -Context @{
                         ______pester_invoke_block_parameters = @{
