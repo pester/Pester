@@ -70,7 +70,7 @@ foreach ($s in $script) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
-dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release $framework
+dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
 if (0 -ne $LASTEXITCODE) {
     throw "build failed!"
 }

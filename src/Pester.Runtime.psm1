@@ -348,8 +348,6 @@ function Invoke-Block ($previousBlock) {
                         } `
                         -ReduceContextToInnerScope `
                         -MoveBetweenScopes `
-                        -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                        -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                         -Configuration $state.Configuration
 
                     $block.OwnPassed = $result.Success
@@ -572,8 +570,6 @@ function Invoke-TestItem {
                     -Context $context `
                     -ReduceContextToInnerScope `
                     -MoveBetweenScopes `
-                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                     -NoNewScope `
                     -Configuration $state.Configuration
 
@@ -1097,9 +1093,7 @@ function Run-Test {
                     -ScriptBlock { } `
                     -Context @{ } `
                     -ReduceContextToInnerScope `
-                    -MoveBetweenScopes `
-                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+                    -MoveBetweenScopes
             }
 
 
@@ -1223,8 +1217,7 @@ function Invoke-PluginStep {
         }
     }
 
-    $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
-
+    $r = [Pester.InvocationResult]::Create((-not $failed), $err, $standardOutput)
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Plugin "Invoking plugins in step $Step took $($sw.ElapsedMilliseconds) ms"
@@ -1266,9 +1259,7 @@ function Assert-Success {
 }
 
 function Invoke-ScriptBlock {
-    [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
         [ScriptBlock] $ScriptBlock,
         [ScriptBlock[]] $OuterSetup,
         [ScriptBlock[]] $Setup,
@@ -1380,11 +1371,16 @@ function Invoke-ScriptBlock {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no inner setups" }
                     }
 
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
-                    $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
-                    . $______parameters.ScriptBlock @______innerSplat
+                    if ($null -ne $______parameters.ScriptBlock) {
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
+                        $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
+                        . $______parameters.ScriptBlock @______innerSplat
 
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scriptblock" }
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scriptblock" }
+                    }
+                    else {
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There is no scriptblock to run" }
+                    }
                 }
                 catch {
                     $______parameters.ErrorRecord.Add($_)
@@ -1449,7 +1445,7 @@ function Invoke-ScriptBlock {
         }
     }
 
-    if ($MoveBetweenScopes) {
+    if ($MoveBetweenScopes -and $null -ne $ScriptBlock) {
         $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
         # attach the original session state to the wrapper scriptblock
         # making it invoke in the same scope as $ScriptBlock
@@ -1470,9 +1466,11 @@ function Invoke-ScriptBlock {
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
             EnableWriteDebug              = $PesterPreference.Debug.WriteDebugMessages.Value
-            WriteDebug                    = {
-                param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
-                Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
+            WriteDebug                    = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                {
+                    param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
+                    Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
+                }
             }
             Configuration = $Configuration
             NoNewScope = $NoNewScope
@@ -1485,8 +1483,14 @@ function Invoke-ScriptBlock {
         # just logging, so the time difference is miniscule.
         # The code might also run just in framework scope, in that case the callback can remain empty,
         # eg when we are invoking framework setup.
-        if ($MoveBetweenScopes -and $null -ne $OnUserScopeTransition) {
-            & $OnUserScopeTransition
+        if ($MoveBetweenScopes) {
+            # switch-timer to user scope inlined
+            $state.UserCodeStopWatch.Start()
+            $state.FrameworkStopWatch.Stop()
+
+            if ($null -ne $OnUserScopeTransition) {
+                & $OnUserScopeTransition
+            }
         }
         do {
             $standardOutput = if ($NoNewScope) {
@@ -1503,58 +1507,24 @@ function Invoke-ScriptBlock {
         $err = $_
     }
 
-    if ($MoveBetweenScopes -and $null -ne $OnFrameworkScopeTransition) {
-        & $OnFrameworkScopeTransition
+    if ($MoveBetweenScopes) {
+        # switch-timer to framework scope inlined
+        $state.UserCodeStopWatch.Stop()
+        $state.FrameworkStopWatch.Start()
+
+        if ($null -ne $OnFrameworkScopeTransition) {
+            & $OnFrameworkScopeTransition
+        }
     }
 
     if ($err) {
         $parameters.ErrorRecord.Add($err)
     }
 
-    $r = New-InvocationResultObject `
-        -Success (0 -eq $parameters.ErrorRecord.Count) `
-        -ErrorRecord $parameters.ErrorRecord `
-        -StandardOutput $standardOutput
+    $r = [Pester.InvocationResult]::Create((0 -eq $parameters.ErrorRecord.Count), $parameters. ErrorRecord, $standardOutput)
 
     return $r
 }
-
-function New-InvocationResultObject {
-    [CmdletBinding()]
-    param (
-        [bool] $Success = $true,
-        [Collections.Generic.List[Management.Automation.ErrorRecord]] $ErrorRecord,
-        $StandardOutput
-    )
-
-    [PSCustomObject] @{
-        Success        = $Success
-        ErrorRecord    = $ErrorRecord
-        StandardOutput = $StandardOutput
-    }
-}
-
-function Merge-InvocationResult {
-    param(
-        [Parameter(Mandatory)]
-        [PSObject[]] $Result
-    )
-
-    if ($Result.Count -eq 1) {
-        return $Result[0]
-    }
-
-    $m = New-InvocationResultObject
-
-    foreach ($r in $Result) {
-        $m.Success = $m.Success -and $r.Success
-        $null = $m.ErrorRecord.AddRange($r.ErrorRecord)
-        $null = $m.StandardOutput.AddRange(@($r.StandardOutput))
-    }
-
-    $m
-}
-
 
 function Reset-TestSuiteTimer {
     if ($null -eq $state.TotalStopWatch) {
@@ -1583,7 +1553,6 @@ function Switch-Timer {
 
     # perf: optimizing away parameter and validate set, and $Scope as int or bool within an if, only brings about 1/3 saving (about 60 ms per 1000 calls)
     # not worth it for the moment
-
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         if ($state.UserCodeStopWatch.IsRunning) {
             Write-PesterDebugMessage -Scope TimingCore "Switching from UserCode to $Scope"
