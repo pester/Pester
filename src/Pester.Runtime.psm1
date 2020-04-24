@@ -328,16 +328,26 @@ function Invoke-Block ($previousBlock) {
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
                         -OuterSetup $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            combineNonNull @(
-                                $previousBlock.EachBlockSetup
-                                $block.OneTimeTestSetup
-                            )
+                            if ($true) {
+                                @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
+                            }
+                            else {
+                                combineNonNull @(
+                                    $previousBlock.EachBlockSetup
+                                    $block.OneTimeTestSetup
+                                )
+                            }
                         }) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            combineNonNull @(
+                            if ($true) {
+                                @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
+                            }
+                            else {
+                                combineNonNull @(
                                 $block.OneTimeTestTeardown
                                 $previousBlock.EachBlockTeardown
                             )
+                            }
                         } ) `
                         -Context @{
                         ______pester_invoke_block_parameters = @{
@@ -526,28 +536,40 @@ function Invoke-TestItem {
         else {
 
             if ($frameworkSetupResult.Success) {
-                try {
-                    # huh? we have a single test here, why I am looping?
-                    $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path } })
-                }
-                catch {
-                    throw $_;
-                }
-
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
                     # context visible in test
-                    Context = $testInfo
+                    Context = [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }
                 }
-                # user provided data are merged with Pester provided context
-                Merge-Hashtable -Source $Test.Data -Destination $context
 
-                $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
-                $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
+                # user provided data are merged with Pester provided context
+                # Merge-Hashtable -Source $Test.Data -Destination $context
+                foreach ($p in $Test.Data.GetEnumerator()) {
+                    # only add non existing keys so in case of conflict
+                    # the framework name wins, as if we had explicit parameters
+                    # on a scriptblock, then the parameter would also win
+                    if (-not $context.ContainsKey($p.Key)) {
+                        $context.Add($p.Key, $p.Value)
+                    }
+                }
+
+                # recurse up Recurse-Up $Block { param ($b) $b.EachTestSetup }
+                $i = $Block
+                $eachTestSetups = while ($null -ne $i) {
+                    $i.EachTestSetup
+                    $i = $i.Parent
+                }
+
+                # recurse up Recurse-Up $Block { param ($b) $b.EachTestTeardown }
+                $i = $Block
+                $eachTestTeardowns = while ($null -ne $i) {
+                    $i.EachTestTeardown
+                    $i = $i.Parent
+                }
 
                 $result = Invoke-ScriptBlock `
                     -Setup @(
-                    if (any $eachTestSetups) {
+                    if ($null -ne $eachTestSetups -and 0 -lt @($eachTestSetups).Count) {
                         # we collect the child first but want the parent to run first
                         [Array]::Reverse($eachTestSetups)
                         @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
@@ -561,7 +583,7 @@ function Invoke-TestItem {
                 ) `
                     -ScriptBlock $Test.ScriptBlock `
                     -Teardown @(
-                    if (any $eachTestTeardowns) {
+                    if ($null -ne $eachTestTeardowns -and 0 -lt @($eachTestTeardowns).Count) {
                         @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
                     } ) `
                     -Context $context `
