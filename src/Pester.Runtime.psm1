@@ -917,10 +917,13 @@ function Discover-Test {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
-    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
-        BlockContainers = $BlockContainer
-        Configuration   = $state.PluginConfiguration
-    } -ThrowOnFailure
+    $steps = $state.Plugin.DiscoveryStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
+            BlockContainers = $BlockContainer
+            Configuration   = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
@@ -942,10 +945,13 @@ function Discover-Test {
 
         Reset-PerContainerState -RootBlock $root
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
-            BlockContainer = $container
-            Configuration  = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerDiscoveryStart
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
+                BlockContainer = $container
+                Configuration  = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
@@ -954,12 +960,15 @@ function Discover-Test {
             Block     = $root
         }
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
-            BlockContainer = $container
-            Block          = $root
-            Duration       = $perContainerDiscoveryDuration.Elapsed
-            Configuration  = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerDiscoveryEnd
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
+                BlockContainer = $container
+                Block          = $root
+                Duration       = $perContainerDiscoveryDuration.Elapsed
+                Configuration  = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1014,13 +1023,16 @@ function Discover-Test {
         $f.Block
     }
 
-    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-        BlockContainers = $found.Block
-        AnyFocusedTests = $focusedTests.Count -gt 0
-        FocusedTests    = $focusedTests
-        Duration        = $totalDiscoveryDuration.Elapsed
-        Configuration   = $state.PluginConfiguration
-    } -ThrowOnFailure
+    $steps = $state.Plugin.DiscoveryEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
+            BlockContainers = $found.Block
+            AnyFocusedTests = $focusedTests.Count -gt 0
+            FocusedTests    = $focusedTests
+            Duration        = $totalDiscoveryDuration.Elapsed
+            Configuration   = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
@@ -1051,10 +1063,13 @@ function Run-Test {
         $rootBlock.Executed = $true
         $rootBlock.ExecutedAt = [DateTime]::now
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
-            Block         = $rootBlock
-            Configuration = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerRunStart
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
+                Block         = $rootBlock
+                Configuration = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         try {
             # if ($null -ne $rootBlock.OneTimeBlockSetup) {
@@ -1114,11 +1129,14 @@ function Run-Test {
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
-            Result        = $result
-            Block         = $rootBlock
-            Configuration = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ConatainerRunEnd
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
+                Result        = $result
+                Block         = $rootBlock
+                Configuration = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         # set this again so the plugins have some data but that we also include the plugin invocation to the
         # overall time to keep the actual timing correct
@@ -1134,7 +1152,7 @@ function Run-Test {
 }
 
 function Invoke-PluginStep {
-    [CmdletBinding()]
+    # [CmdletBinding()]
     param (
         [PSObject[]] $Plugins,
         [Parameter(Mandatory)]
@@ -1148,21 +1166,15 @@ function Invoke-PluginStep {
     # in isolation, and then another where we are using Invoke-ScriptBlock directly when we need the plugin to run
     # for example as a teardown step of a test.
 
-    Switch-Timer -Scope Framework
+    # switch-timer framework
+    $state.UserCodeStopWatch.Stop()
+    $state.FrameworkStopWatch.Start()
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $sw = [Diagnostics.Stopwatch]::StartNew()
     }
 
-    # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
-    $isEndStep = $Step -like "*End"
-
-    $pluginsWithGivenStep =
-    @(foreach ($p in $Plugins) {
-            if ($p."Has$Step") {
-                $p
-            }
-        })
-
+    $pluginsWithGivenStep = @(foreach ($p in $Plugins) { if ($null -ne $p.$Step) { $p } })
 
     if ($null -eq $pluginsWithGivenStep -or 0 -eq @($pluginsWithGivenStep).Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1171,12 +1183,21 @@ function Invoke-PluginStep {
         return
     }
 
+    # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
+    # only do this if there is more than 1, to avoid the "expensive" -like check and reverse
+    $isEndStep = 1 -lt $pluginsWithGivenStep.Count -and $Step -like "*End"
     if (-not $isEndStep) {
         [Array]::Reverse($pluginsWithGivenStep)
     }
 
     $err = [Collections.Generic.List[Management.Automation.ErrorRecord]]@()
     $failed = $false
+    # the plugins expect -Context and then the actual context in it
+    # this was a choice at the start of the project to make it easy to see
+    # what is available, not sure if a good choice
+    $ctx = @{
+        Context = $Context
+    }
     $standardOutput =
     foreach ($p in $pluginsWithGivenStep) {
         if ($failed -and -not $isEndStep) {
@@ -1193,12 +1214,6 @@ function Invoke-PluginStep {
                 Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context:$c"
             }
 
-            # the plugins expect -Context and then the actual context in it
-            # this was a choice at the start of the project to make it easy to see
-            # what is available, not sure if a good choice
-            $ctx = @{
-                Context = $Context
-            }
             do {
                 & $p.$Step @ctx
             } while ($false)
@@ -1216,15 +1231,17 @@ function Invoke-PluginStep {
         }
     }
 
-    $r = [Pester.InvocationResult]::Create((-not $failed), $err, $standardOutput)
-
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Plugin "Invoking plugins in step $Step took $($sw.ElapsedMilliseconds) ms"
-    }
     if ($ThrowOnFailure) {
-        Assert-Success $r -Message "Invoking step $step failed"
+        if ($failed) {
+            $r = [Pester.InvocationResult]::Create((-not $failed), $err, $standardOutput)
+            Assert-Success $r -Message "Invoking step $step failed"
+        }
+        else {
+            # do nothing, especially don't create or return the result object
+        }
     }
     else {
+        $r = [Pester.InvocationResult]::Create((-not $failed), $err, $standardOutput)
         return $r
     }
 }
@@ -2269,7 +2286,7 @@ function New-PluginObject {
         [ScriptBlock] $End
     )
 
-    $h = @{
+    [PSCustomObject] @{
         Name                    = $Name
         Configuration           = $Configuration
         Start                   = $Start
@@ -2296,20 +2313,6 @@ function New-PluginObject {
         End                     = $End
         PSTypeName              = 'Plugin'
     }
-
-    # enumerate to avoid modifying the key collection
-    # when we edit the hashtable
-    $keys = foreach ($k in $h.Keys) { $k }
-
-    foreach ($k in $keys) {
-        if ("Configuration" -eq $k -or "Name" -eq $k) {
-            continue
-        }
-
-        $h.Add("Has$k", ($null -ne $h.$k))
-    }
-
-    [PSCustomObject] $h
 }
 
 function Invoke-BlockContainer {

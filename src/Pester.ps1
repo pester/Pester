@@ -386,7 +386,7 @@ function Invoke-Pester {
             $pluginConfiguration = @{}
             $plugins = @()
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
-                $plugins += Get-WriteScreenPlugin
+                $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
             }
 
             $plugins +=
@@ -467,13 +467,17 @@ function Invoke-Pester {
 
             # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
             $pluginData = @{}
-            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
-                Containers = $containers
-                Configuration = $pluginConfiguration
-                GlobalPluginData = $pluginData
-                WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
-                Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
-            } -ThrowOnFailure
+
+            $steps = $Plugins.Start
+            if ($null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
+                    Containers = $containers
+                    Configuration = $pluginConfiguration
+                    GlobalPluginData = $pluginData
+                    WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+                    Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+                } -ThrowOnFailure
+            }
 
             if ((none $containers)) {
                 throw "No test files were found and no scriptblocks were provided."
@@ -494,10 +498,13 @@ function Invoke-Pester {
 
             PostProcess-RSpecTestRun -TestRun $run
 
-            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
-                TestRun = $run
-                Configuration = $pluginConfiguration
-            } -ThrowOnFailure
+            $steps = $Plugins.End
+            if ($null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
+                    TestRun = $run
+                    Configuration = $pluginConfiguration
+                } -ThrowOnFailure
+            }
 
             if ($PesterPreference.TestResult.Enabled.Value) {
                 Export-NunitReport $run $PesterPreference.TestResult.OutputPath.Value

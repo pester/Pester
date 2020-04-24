@@ -424,30 +424,44 @@ function ConvertTo-HumanTime {
     }
 }
 
-function Get-WriteScreenPlugin {
+function Get-WriteScreenPlugin ($Verbosity) {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
     # The plugin is not imported when output None is specified so the usual level of output is Minimal.
-    New-PluginObject -Name "WriteScreen" `
-        -Start {
-        param ($Context)
 
-        # Write-PesterStart $Context
-    } -DiscoveryStart {
+    $p = @{
+        Name = 'WriteScreen'
+    }
+
+    if ("Normal" -eq $Verbosity) {
+        $p.Start = {
+            param ($Context)
+
+            # Write-PesterStart $Context
+        }
+    }
+
+    $p.DiscoveryStart = {
         param ($Context)
 
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
-    } -ContainerDiscoveryStart {
-        param ($Context)
-        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+    }
+
+    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+        $p.ContainerDiscoveryStart = {
+            param ($Context)
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Content)."
         }
-    } -ContainerDiscoveryEnd {
-        param ($Context)
-        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+    }
+
+    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+        $p.ContainerDiscoveryEnd = {
+            param ($Context)
             # todo: this is very very slow because of View-flat
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
-    } -DiscoveryEnd {
+    }
+
+    $p.DiscoveryEnd = {
         param ($Context)
 
         # if ($Context.AnyFocusedTests) {
@@ -457,52 +471,57 @@ function Get-WriteScreenPlugin {
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+    }
 
-    } -ContainerRunStart {
-        param ($Context)
+    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+        $p.ContainerRunStart = {
+            param ($Context)
 
-        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
                 & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`n`nRunning tests from '$($Context.Block.BlockContainer.Content)'"
             }
         }
-    } -ContainerRunEnd {
+    }
+
+    $p.ContainerRunEnd = {
         param ($Context)
 
         if ($Context.Block.ErrorRecord.Count -gt 0) {
             & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.Block.BlockContainer.Content)' failed with:"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
-    } -EachBlockSetupStart {
-        param ($Context)
-        # the $context does not mean Context block, it's just a generic name
-        # for the invocation context of this callback
+    }
 
-        if ('Normal' -ne $PesterPreference.Output.Verbosity.Value) {
-            return
+    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+        $p.EachBlockSetupStart = {
+            param ($Context)
+            # the $context does not mean Context block, it's just a generic name
+            # for the invocation context of this callback
+
+            $commandUsed = $Context.Block.FrameworkData.CommandUsed
+
+            $block = $Context.Block
+            # -1 moves the block closer to the start of theline
+            $level = $block.Path.Count - 1
+            $margin = $ReportStrings.Margin * $level
+
+            $text = $ReportStrings.$commandUsed -f $block.Name
+
+            if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
+                $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
+            }
+
+            if (0 -eq $level -and -not $block.First) {
+                # write extra line before top-level describe / context if it is not first
+                # in that case there are already two spaces before the name of the file
+                & $SafeCommands['Write-Host']
+            }
+            & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
         }
+    }
 
-        $commandUsed = $Context.Block.FrameworkData.CommandUsed
-
-        $block = $Context.Block
-        # -1 moves the block closer to the start of theline
-        $level = $block.Path.Count - 1
-        $margin = $ReportStrings.Margin * $level
-
-        $text = $ReportStrings.$commandUsed -f $block.Name
-
-        if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
-            $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
-        }
-
-        if (0 -eq $level -and -not $block.First) {
-            # write extra line before top-level describe / context if it is not first
-            # in that case there are already two spaces before the name of the file
-            & $SafeCommands['Write-Host']
-        }
-        & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
-    } -EachTestTeardownEnd {
+    $p.EachTestTeardownEnd = {
         param ($Context)
 
         # we are currently in scope of describe so $Test is hardtyped and conflicts
@@ -597,7 +616,9 @@ function Get-WriteScreenPlugin {
                 }
             }
         }
-    } -EachBlockTeardownEnd {
+    }
+
+    $p.EachBlockTeardownEnd = {
         param ($Context)
         if (-not $Context.Block.OwnPassed) {
             if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
@@ -614,12 +635,15 @@ function Get-WriteScreenPlugin {
             & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
             Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
         }
-    } -End {
+    }
+
+    $p.End = {
         param ( $Context )
 
         Write-PesterReport $Context.TestRun
     }
 
+    New-PluginObject @p
 }
 
 function Write-ErrorToScreen {
