@@ -1085,8 +1085,6 @@ function Run-Test {
                     $rootBlock.OneTimeTestSetup
                     # }
                 ) `
-                    -Setup @() `
-                    -Context @{ } `
                     -ReduceContextToInnerScope `
                     -MoveBetweenScopes
             }
@@ -1484,6 +1482,13 @@ function Invoke-ScriptBlock {
         $script:ScriptBlockSessionStateInternalProperty.SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
     }
 
+    $writeDebug = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        {
+            param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
+            Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
+        }
+    }
+
     #$break = $true
     $err = $null
     try {
@@ -1498,12 +1503,7 @@ function Invoke-ScriptBlock {
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
             EnableWriteDebug              = $PesterPreference.Debug.WriteDebugMessages.Value
-            WriteDebug                    = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                {
-                    param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
-                    Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
-                }
-            }
+            WriteDebug                    = $writeDebug
             Configuration                 = $Configuration
             NoNewScope                    = $NoNewScope
         }

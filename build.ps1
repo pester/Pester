@@ -1,6 +1,8 @@
 #! /usr/bin/pwsh
 
-param ([switch]$Debug)
+param (
+    [switch]$Debug,
+    [switch]$NoLoad)
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
@@ -97,7 +99,9 @@ foreach ($c in $content) {
 
 $powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
 
-& $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
-if (0 -ne $LASTEXITCODE) {
-    throw "load failed!"
+if (-not $NoLoad) {
+    & $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
+    if (0 -ne $LASTEXITCODE) {
+        throw "load failed!"
+    }
 }
