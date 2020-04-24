@@ -107,7 +107,7 @@ function t {
             try {
                 $script:total++
                 $null = & $ScriptBlock
-                Write-Host "[+] - $Name " -ForegroundColor Black -BackgroundColor Green -NoNewline ; Write-Host
+                Write-Host "[y] - $Name " -ForegroundColor Black -BackgroundColor Green -NoNewline ; Write-Host
             }
             catch {
                 $script:failed++
@@ -132,7 +132,7 @@ function t {
                     $first = $true
                     "$_" -split "`n" | foreach {
                         $txt = if ($first) {
-                            "[-] - $Name -> $($_.Trim()) "
+                            "[n] - $Name -> $($_.Trim()) "
                             $first = $false
                         }
                         else {

@@ -1,6 +1,8 @@
 #! /usr/bin/pwsh
 
-param ([switch]$Debug)
+param (
+    [switch]$Debug,
+    [switch]$NoLoad)
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
@@ -70,7 +72,7 @@ foreach ($s in $script) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
-dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release $framework
+dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
 if (0 -ne $LASTEXITCODE) {
     throw "build failed!"
 }
@@ -97,7 +99,9 @@ foreach ($c in $content) {
 
 $powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
 
-& $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
-if (0 -ne $LASTEXITCODE) {
-    throw "load failed!"
+if (-not $NoLoad) {
+    & $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
+    if (0 -ne $LASTEXITCODE) {
+        throw "load failed!"
+    }
 }
