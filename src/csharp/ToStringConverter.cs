@@ -15,7 +15,7 @@ namespace Pester
                     return "[!]";
                 case "NotRun":
                     return "[ ]";
-                default: "[ERR]");
+                default: return "[ERR]";
             }
         }
 
