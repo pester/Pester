@@ -137,9 +137,9 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Debug.WriteDebugMessages.Value | Verify-False
         }
 
-        t "Debug.WriteDebugMessagesFrom is '*'" {
-            [PesterConfiguration]::Default.Debug.WriteDebugMessagesFrom.Value | Verify-Equal '*'
-        }
+        # t "Debug.WriteDebugMessagesFrom is '*'" {
+        #     [PesterConfiguration]::Default.Debug.WriteDebugMessagesFrom.Value | Verify-Equal '*'
+        # }
 
         t "Debug.ShowNavigationMarkers is `$false" {
             [PesterConfiguration]::Default.Debug.ShowNavigationMarkers.Value | Verify-False
