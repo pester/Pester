@@ -792,7 +792,7 @@ function ConvertTo-Pester4Result {
             PendingCount = 0
             InconclusiveCount = 0
             Time = [TimeSpan]::Zero
-            TestResult = [System.Collections.ArrayList]@()
+            TestResult = [System.Collections.Generic.List[object]]@()
         }
         $filter = $PesterResult.Configuration.Filter
         $legacyResult.TagFilter = if (0 -ne $filter.Tag.Value.Count) { $filter.Tag.Value }

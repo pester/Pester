@@ -97,7 +97,7 @@ function Write-PesterStart {
         $OFS = $ReportStrings.MessageOfs
 
         $hash = @{
-            Files        = [System.Collections.ArrayList]@()
+            Files        = [System.Collections.Generic.List[object]]@()
             ScriptBlocks = 0
         }
 
