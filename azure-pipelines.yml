@@ -10,6 +10,7 @@ resources:
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  CI: 1
 
 stages:
   - stage: Build

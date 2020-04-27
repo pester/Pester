@@ -88,7 +88,7 @@ function dt {
     )
     $ci = [Environment]::GetEnvironmentVariable("CI")
     if ($null -ne $ci -and "0" -ne $ci) {
-        throw "t was used in while running in CI environment, did you forget to remove it after debugging a test?"
+        throw "dt was used in while running in CI environment, did you forget to remove it after debugging a test?"
     }
     $f = "$script:path.$Name"
 
