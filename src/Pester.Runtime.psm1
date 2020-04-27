@@ -138,47 +138,11 @@ function ConvertTo-ExecutedBlockContainer {
         $Block
     )
 
-    # takes a root block and converts it to a executed block container
-    # that we can publish from Invoke-Test, because keeping everything a block makes the internal
-    # code simpler
-    $container = $Block.BlockContainer
-    $content = tryGetProperty $container Content
-    $type = tryGetProperty $container Type
-
-    $properties = @{
-        Content = $content
-        Type    = $type
+    foreach ($b in $Block) {
+        [Pester.Container]::CreateFromBlock($b)
     }
 
-    if ("file" -eq $Block.BlockContainer.Type) {
-        $properties.Add("Path", $content)
-    }
 
-    $excluded = @(
-        "Parent"
-        "Name"
-        "Tag"
-        "First"
-        "Last"
-        "StandardOutput"
-        "Path" # <- this is abc.gef on Block, not filepath
-        "Order"
-    )
-
-    foreach ($b in @($Block)) {
-        $o = @{ }
-        foreach ($p in $Block.PSObject.Properties) {
-            if ($p.Name -notin $excluded) {
-                $o.Add($p.Name, $p.Value)
-            }
-        }
-
-        foreach ($p in $properties.GetEnumerator()) {
-            $o.Add($p.Key, $p.Value)
-        }
-
-        [PSCustomObject] $o
-    }
 }
 
 
@@ -363,7 +327,7 @@ function Invoke-Block ($previousBlock) {
                 # BUT they are then set again at the end of the block to make them accurate
                 # so the value on the screen vs the value in the object is slightly different
                 # with the value in the result being the correct one
-                $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+                $block.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
                 $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
                 $frameworkTeardownResult = Invoke-ScriptBlock `
                     -Teardown $frameworkEachBlockTeardowns `
@@ -386,10 +350,10 @@ function Invoke-Block ($previousBlock) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Left block $Name"
                 }
-                $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+                $block.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
                 $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
+                    Write-PesterDebugMessage -Scope Timing "Block duration $($block.UserDuration.TotalMilliseconds)ms"
                     Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
                     Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
                 }
@@ -414,6 +378,10 @@ function New-Test {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Entering test $Name"
+    }
+
+    if ($state.CurrentBlock.IsRoot) {
+        throw "Test cannot be directly in the root."
     }
 
     # avoid managing state by not pushing to the stack only to pop out in finally
@@ -588,7 +556,7 @@ function Invoke-TestItem {
         # BUT they are then set again at the end of the block to make them accurate
         # so the value on the screen vs the value in the object is slightly different
         # with the value in the result being the correct one
-        $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+        $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
 
         $frameworkEachTestTeardowns = @( $state.Plugin.EachTestTeardownEnd )
@@ -623,10 +591,10 @@ function Invoke-TestItem {
         }
 
         # keep this at the end so we report even the test teardown in the framework overhead for the test
-        $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+        $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Timing -Message "Test duration $($Test.Duration.TotalMilliseconds)ms"
+            Write-PesterDebugMessage -Scope Timing -Message "Test duration $($Test.UserDuration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing -Message "Framework duration $($Test.FrameworkDuration.TotalMilliseconds)ms"
         }
     }
@@ -763,141 +731,6 @@ function Set-CurrentTest {
 }
 
 
-function New-TestObject {
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [String[]] $Path,
-        [String[]] $Tag,
-        [System.Collections.IDictionary] $Data,
-        [String] $Id,
-        [ScriptBlock] $ScriptBlock,
-        [Switch] $Focus,
-        [Switch] $Skip
-    )
-
-    # this function is on hot path, inline as much as you can
-
-    [PSCustomObject] @{
-        ItemType          = 'Test'
-        Id                = $Id
-        ScriptBlock       = $ScriptBlock
-        Name              = $Name
-        Path              = $Path
-        Tag               = $Tag
-        Focus             = [Bool]$Focus
-        Skip              = [Bool]$Skip
-        Data              = $Data
-
-        ExpandedName      = $null
-        Block             = $null
-
-        First             = $false
-        Last              = $false
-        Include           = $false
-        Exclude           = $false
-        Explicit          = $false
-        ShouldRun         = $false
-
-        Executed          = $false
-        ExecutedAt        = $null
-        Passed            = $false
-        Skipped           = $false
-        StandardOutput    = $null
-        ErrorRecord       = [Collections.Generic.List[Object]]@()
-
-        Duration          = [timespan]::Zero
-        FrameworkDuration = [timespan]::Zero
-        PluginData        = @{ }
-        FrameworkData     = @{
-            Runtime = @{
-                Phase         = $null
-                ExecutionStep = $null
-            }
-        }
-        PSTypeName        = 'DiscoveredTest'
-    }
-}
-
-function New-BlockObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [string[]] $Path,
-        [string[]] $Tag,
-        [ScriptBlock] $ScriptBlock,
-        [HashTable] $FrameworkData = @{ },
-        [HashTable] $PluginData = @{ },
-        [Switch] $Focus,
-        [String] $Id,
-        [Switch] $Skip
-    )
-
-    # this function is on hot path, inline as much as you can
-
-    [PSCustomObject] @{
-        ItemType             = 'Block'
-        Id                   = $Id
-        Name                 = $Name
-        Path                 = $Path
-        Tag                  = $Tag
-        ScriptBlock          = $ScriptBlock
-        FrameworkData        = $FrameworkData
-        PluginData           = $PluginData
-        Focus                = [bool] $Focus
-        Skip                 = [bool] $Skip
-
-        Tests                = [Collections.Generic.List[Object]]@()
-        # TODO: consider renaming this to just Container
-        BlockContainer       = $null
-        Root                 = $null
-        IsRoot               = $null
-        Parent               = $null
-        EachTestSetup        = $null
-        OneTimeTestSetup     = $null
-        EachTestTeardown     = $null
-        OneTimeTestTeardown  = $null
-        EachBlockSetup       = $null
-        OneTimeBlockSetup    = $null
-        EachBlockTeardown    = $null
-        OneTimeBlockTeardown = $null
-        Order                = [Collections.Generic.List[Object]]@()
-        Blocks               = [Collections.Generic.List[Object]]@()
-        Executed             = $false
-        Passed               = $false
-        First                = $false
-        Last                 = $false
-        StandardOutput       = $null
-        ErrorRecord          = [Collections.Generic.List[Object]]@()
-        ShouldRun            = $false
-        Exclude              = $false
-        Include              = $false
-        Explicit             = $false
-        ExecutedAt           = $null
-        Duration             = [timespan]::Zero
-        FrameworkDuration    = [timespan]::Zero
-        OwnDuration          = [timespan]::Zero
-        DiscoveryDuration    = [timespan]::Zero
-        OwnPassed            = $false
-        TotalCount           = 0
-        PassedCount          = 0
-        FailedCount          = 0
-        SkippedCount         = 0
-        PendingCount         = 0
-        NotRunCount          = 0
-        InconclusiveCount    = 0
-        OwnTotalCount        = 0
-        OwnPassedCount       = 0
-        OwnFailedCount       = 0
-        OwnSkippedCount      = 0
-        OwnPendingCount      = 0
-        OwnNotRunCount       = 0
-        OwnInconclusiveCount = 0
-        PSTypeName           = 'DiscoveredBlock'
-    }
-}
-
 function Is-Discovery {
     $state.Discovery
 }
@@ -930,7 +763,7 @@ function Discover-Test {
         $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
+            Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Item)"
         }
 
         # this is a block object that we add so we can capture
@@ -938,6 +771,7 @@ function Discover-Test {
         # container
         $root = [Pester.Block]::Create()
         $root.Name = "Root"
+        $root.IsRoot = $true
         $root.Path = "Path"
 
         $root.First = $true
@@ -1127,9 +961,9 @@ function Run-Test {
         PostProcess-ExecutedBlock -Block $rootBlock
         $result = ConvertTo-ExecutedBlockContainer -Block $rootBlock
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
 
-        $steps = $state.Plugin.ConatainerRunEnd
+        $steps = $state.Plugin.ContainerRunEnd
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
                 Result        = $result
@@ -1141,9 +975,9 @@ function Run-Test {
         # set this again so the plugins have some data but that we also include the plugin invocation to the
         # overall time to keep the actual timing correct
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Timing "Container duration $($result.Duration.TotalMilliseconds)ms"
+            Write-PesterDebugMessage -Scope Timing "Container duration $($result.UserDuration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
         }
 
@@ -2324,8 +2158,8 @@ function Invoke-BlockContainer {
     )
 
     switch ($BlockContainer.Type) {
-        "ScriptBlock" { & $BlockContainer.Content }
-        "File" { Invoke-File -Path $BlockContainer.Content.PSPath -SessionState $SessionState }
+        "ScriptBlock" { & $BlockContainer.Item }
+        "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 }
@@ -2341,17 +2175,17 @@ function New-BlockContainerObject {
         [System.IO.FileInfo] $File
     )
 
-    $type, $content = switch ($PSCmdlet.ParameterSetName) {
+    $type, $item = switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { "ScriptBlock", $ScriptBlock }
         "Path" { "File", (Get-Item $Path) }
         "File" { "File", $File }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
-    [PSCustomObject] @{
-        Type    = $type
-        Content = $content
-    }
+    $c = [Pester.ContainerInfo]::Create()
+    $c.Type    = $type
+    $c.Item = $item
+    return $c
 }
 
 function New-DiscoveredBlockContainerObject {
@@ -2365,7 +2199,7 @@ function New-DiscoveredBlockContainerObject {
 
     [PSCustomObject] @{
         Type    = $BlockContainer.Type
-        Content = $BlockContainer.Content
+        Item = $BlockContainer.Item
         # I create a Root block to keep the discovery unaware of containers,
         # but I don't want to publish that root block because it contains properties
         # that do not make sense on container level like Name and Parent,

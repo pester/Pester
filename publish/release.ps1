@@ -9,9 +9,7 @@ param (
 )
 
 $ErrorActionPreference = 'Stop'
-if (-not $IsWindows -or $PSVersionTable.PSVersion.Major -gt 6) {
-    throw "this must run on powershell 6+ on windows to build all the right binaries"
-}
+
 # run this in seperate instance otherwise Pester.dll is loaded and the subsequent build will fail
 # $process = Start-Process powershell -ArgumentList "-c", ".\testRelease.ps1 -LocalBuild" -NoNewWindow -Wait -PassThru
 
@@ -21,16 +19,25 @@ if (-not $IsWindows -or $PSVersionTable.PSVersion.Major -gt 6) {
 
 #.\getNugetExe.ps1
 #.\cleanUpBeforeBuild.ps1
-# & "$PSSCriptRoot/../test.ps1"
-& "$PSScriptRoot/../build.ps1"
+
+pwsh -f "$PSScriptRoot/../build.ps1 -clean"
+if ($LASTEXITCODE -ne 0) {
+    throw "build failed!"
+}
+
+pwsh -f "$PSSCriptRoot/../test.ps1 -nobuild"
+if ($LASTEXITCODE -ne 0) {
+    throw "test failed!"
+}
+
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path "$PSScriptRoot/../bin"
 
-$psGalleryDir = "$PSScriptRoot/../tmp/PSGallery/Pester/"
 
+
+$psGalleryDir = "$PSScriptRoot/../tmp/PSGallery/Pester/"
 if (Test-Path $psGalleryDir) {
     Remove-Item -Recurse -Force $psGalleryDir
 }
-
 $null = New-Item -ItemType Directory -Path $psGalleryDir
 Copy-Item "$PSScriptRoot/../bin/*" $psGalleryDir -Recurse
 
@@ -66,7 +73,7 @@ else {
 
 
 
-# Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose
+Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose
 #.\buildNugetPackage.ps1
 # .\buildPSGalleryPackage.ps1
 

@@ -103,7 +103,7 @@ function Write-PesterStart {
 
         foreach ($c in $Context.Containers) {
             switch ($c.Type) {
-                "File" { $null = $hash.Files.Add($c.Content.FullName) }
+                "File" { $null = $hash.Files.Add($c.Item.FullName) }
                 "ScriptBlock" { $null = $hash.ScriptBlocks++ }
                 Default { throw "$($c.Type) is not supported." }
             }
@@ -196,7 +196,7 @@ function Write-PesterReport {
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
-    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration + $RunResult.FrameworkDuration + $RunResult.DiscoveryDuration))) -Foreground $ReportTheme.Foreground
+    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
 
     $Success, $Failure = if ($RunResult.FailedCount -gt 0) {
         $ReportTheme.Foreground, $ReportTheme.Fail
@@ -219,7 +219,7 @@ function Write-PesterReport {
         $ReportTheme.Information
     }
 
-    $Total = if ($RunResult.TestsCount -gt 0) {
+    $Total = if ($RunResult.TotalCount -gt 0) {
         $ReportTheme.Total
     }
     else {
@@ -261,7 +261,7 @@ function Write-PesterReport {
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsTotal -f $RunResult.TestsCount) -Foreground $Total -NoNewLine
+        & $SafeCommands['Write-Host'] ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
     if (0 -lt $RunResult.FailedBlocksCount) {
@@ -449,7 +449,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
         $p.ContainerDiscoveryStart = {
             param ($Context)
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Content)."
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
         }
     }
 
@@ -479,7 +479,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`n`nRunning tests from '$($Context.Block.BlockContainer.Content)'"
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`n`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
             }
         }
     }
@@ -488,7 +488,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         if ($Context.Block.ErrorRecord.Count -gt 0) {
-            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.Block.BlockContainer.Content)' failed with:"
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "Container '$($Context.Block.BlockContainer.Item)' failed with:"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
     }
@@ -543,7 +543,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
-        $humanTime = "$(Get-HumanTime ($_test.Duration + $_test.FrameworkDuration)) ($(Get-HumanTime $_test.Duration)|$(Get-HumanTime $_test.FrameworkDuration))"
+        $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.ScriptBlock.StartPosition.StartLine)"

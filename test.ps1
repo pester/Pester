@@ -10,7 +10,7 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-# assigning error view explicitly to change it from the default on powershell 7 (travis ci macOS right now)
+# assigning error view explicitly to change it from the default on PowerShell 7
 $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
@@ -54,11 +54,13 @@ if (-not $SkipPTests) {
     }
 }
 
-# reset pester and all preferences
-$PesterPreference = [PesterConfiguration]::Default
+
 Get-Module Pester | Remove-Module
 
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
+
+# reset pester and all preferences
+$PesterPreference = [PesterConfiguration]::Default
 
 # add our own in module scope because the implementation
 # pester relies on being in different sesstion state than

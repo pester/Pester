@@ -25,7 +25,7 @@ $ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {
     b "Counting tests" {
-        t "Passed and counts are correct for non nested blocks" {
+        dt "Passed and counts are correct for non nested blocks" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
                     New-Block -Name "b1" {

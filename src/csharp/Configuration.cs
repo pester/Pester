@@ -19,9 +19,6 @@ using System.Management.Automation;
 // simple to use by implicit casting, with the only exception of PesterConfiguration because that is helpful
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
-//
-// ⚠ DO NOT use auto properties or any of the new fancy syntax in this file,
-// PowerShell would not be able to compile it. DO USE nameof, it will be replaced on load.
 
 namespace Pester
 {

@@ -54,7 +54,8 @@ namespace Pester
         public object StandardOutput { get; set; }
         public List<object> ErrorRecord { get; set; }
 
-        public TimeSpan Duration { get; set; }
+        public TimeSpan Duration { get => UserDuration + FrameworkDuration; }
+        public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }
         public Hashtable PluginData { get; set; }
         public Hashtable FrameworkData { get; set; }

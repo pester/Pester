@@ -2,13 +2,15 @@
 
 param (
     [switch]$Debug,
-    [switch]$NoLoad)
+    [switch]$Load,
+    [switch]$Clean)
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
-if (Test-Path "$PSScriptRoot/bin") {
+if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
 }
+
 $null = New-Item "$PSScriptRoot/bin" -ItemType Directory -Force
 
 $script = @(
@@ -99,7 +101,7 @@ foreach ($c in $content) {
 
 $powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
 
-if (-not $NoLoad) {
+if ($Load) {
     & $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
     if (0 -ne $LASTEXITCODE) {
         throw "load failed!"
