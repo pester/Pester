@@ -1,4 +1,4 @@
-# Pester v5 - release candidate 1
+# Pester v5 - release candidate 5
 
 > 🐛 This is branch is pre-release, but pretty close to stable, please give it a try.
 
