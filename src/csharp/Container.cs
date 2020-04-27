@@ -44,6 +44,9 @@ namespace Pester
             };
         }
 
+        public string Type { get; set; }
+        public object Item { get; set; }
+        public List<Block> Blocks { get; set; } = new List<Block>();
         public string Result { get; set; } = "NotRun";
         public TimeSpan Duration { get => DiscoveryDuration + UserDuration + FrameworkDuration; }
         public int FailedCount { get; set; }
@@ -63,9 +66,6 @@ namespace Pester
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }
 
-        public string Type { get; set; }
-        public object Item { get; set; }
-        public List<Block> Blocks { get; set; } = new List<Block>();
 
         public override string ToString()
         {

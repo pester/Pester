@@ -15,7 +15,7 @@ namespace Pester
         public Block()
         {
             ItemType = "Block";
-            FrameworkData = 
+            FrameworkData =
             PluginData = new Hashtable();
             Tests = new List<Test>();
             Order = new List<object>();
@@ -25,6 +25,8 @@ namespace Pester
 
         public string Name { get; set; }
         public List<string> Path { get; set; }
+        public List<Block> Blocks { get; set; } = new List<Block>();
+        public List<Test> Tests { get; set; } = new List<Test>();
 
         public string Result { get; set; } = "NotRun";
         public int FailedCount { get; set; }
@@ -34,8 +36,6 @@ namespace Pester
         public int TotalCount { get; set; }
         public List<object> ErrorRecord { get; set; }
         public TimeSpan Duration { get => DiscoveryDuration + FrameworkDuration + UserDuration; }
-        public List<Test> Tests { get; set; } = new List<Test>();
-        public List<Block> Blocks { get; set; } = new List<Block>();
 
         public string Id { get; set; }
         public List<string> Tag { get; set; }

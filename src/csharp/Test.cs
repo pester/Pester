@@ -26,18 +26,24 @@ namespace Pester
             FrameworkData.Add("Runtime", runtime);
         }
 
+        public string Name { get; set; }
+        public List<string> Path { get; set; }
+        public IDictionary Data { get; set; }
+        public string ExpandedName { get; set; }
+
+        public string Result { get; set; }
+        public List<object> ErrorRecord { get; set; }
+        public object StandardOutput { get; set; }
+        public TimeSpan Duration { get => UserDuration + FrameworkDuration; }
+
         public string ItemType { get; private set; }
         public string Id { get; set; }
         public ScriptBlock ScriptBlock { get; set; }
-        public string Name { get; set; }
-        public List<string> Path { get; set; }
         public List<string> Tag { get; set; }
         public bool Focus { get; set; }
         public bool Skip { get; set; }
         // IDictionary to allow users use [ordered]
-        public IDictionary Data { get; set; }
 
-        public string ExpandedName { get; set; }
         public object Block { get; set; }
 
         public bool First { get; set; }
@@ -51,16 +57,13 @@ namespace Pester
         public DateTime? ExecutedAt { get; set; }
         public bool Passed { get; set; }
         public bool Skipped { get; set; }
-        public object StandardOutput { get; set; }
-        public List<object> ErrorRecord { get; set; }
 
-        public TimeSpan Duration { get => UserDuration + FrameworkDuration; }
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }
         public Hashtable PluginData { get; set; }
         public Hashtable FrameworkData { get; set; }
         public string PSTypeName { get; private set; }
 
-        public override string ToString() { return string.Join(".", this.Path); }
+        public override string ToString() => ToStringConverter.TestToString(this);
     }
 }

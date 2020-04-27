@@ -495,6 +495,7 @@ function Invoke-Pester {
             }
 
             $run = [Pester.Run]::Create()
+            $run.Executed = $true
             $run.ExecutedAt = $start
             $run.PSBoundParameters = $PSBoundParameters
             $run.PluginConfiguration = $pluginConfiguration

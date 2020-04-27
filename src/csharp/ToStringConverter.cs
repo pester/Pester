@@ -35,6 +35,11 @@ namespace Pester
             return $"{ResultToString(container.Result)} {path}";
         }
 
+        internal static string TestToString(Test test)
+        {
+            return $"{ResultToString(test.Result)} {test.ExpandedName ?? test.Name}";
+        } 
+
         internal static string BlockToString(Block block)
         {
             return $"{ResultToString(block.Result)} {block.Name}";
@@ -42,7 +47,7 @@ namespace Pester
 
         internal static string RunToString(Run run)
         {
-            return $"{ResultToString(run.Result)} run";
+            return $"{ResultToString(run.Result)} Pester";
         }
     }
 }

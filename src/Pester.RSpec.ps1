@@ -82,7 +82,7 @@ function Add-RSpecTestObjectProperties {
     # this includes figuring out the result
     # formatting the failure message and stacktrace
 
-    $result = if ($TestObject.Skipped) {
+    $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
     }
     elseif ($TestObject.Passed) {
@@ -94,8 +94,6 @@ function Add-RSpecTestObjectProperties {
     else {
         "NotRun"
     }
-
-    $TestObject.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
 
     foreach ($e in $TestObject.ErrorRecord) {
         $r = ConvertTo-FailureLines $e
