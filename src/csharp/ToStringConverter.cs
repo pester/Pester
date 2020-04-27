@@ -15,7 +15,7 @@ namespace Pester
                     return "[!]";
                 case "NotRun":
                     return "[ ]";
-                default: throw new NotSupportedException($"Not supported result '{result}'");
+                default: "[ERR]");
             }
         }
 
@@ -38,7 +38,7 @@ namespace Pester
         internal static string TestToString(Test test)
         {
             return $"{ResultToString(test.Result)} {test.ExpandedName ?? test.Name}";
-        } 
+        }
 
         internal static string BlockToString(Block block)
         {
