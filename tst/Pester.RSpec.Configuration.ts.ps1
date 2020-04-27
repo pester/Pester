@@ -240,7 +240,7 @@ i -PassThru:$PassThru {
             $result = [PesterConfiguration]::Merge($user, $override)
 
             # has the same value as default but was written so it will override
-            $result.Output.Verbosity.Value | Verify-Equal "Normal"
+            $result.Output.Verbosity.Value | Verify-Equal "Minimal"
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
