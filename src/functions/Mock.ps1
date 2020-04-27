@@ -301,7 +301,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Invoke_Mock              = $InvokeMockCallBack
         Get_MockDynamicParameter = $SafeCommands["Get-MockDynamicParameter"]
         # returning empty scriptblock when we should not write debug to avoid patching it in mock prototype
-        Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message } } else { $null }
+        Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { { param($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope MockCore -Message $Message } } else { $null }
 
         # used as temp variable
         PSCmdlet                 = $null
@@ -582,7 +582,7 @@ function Resolve-Command {
 
     if ($command.Name -like 'PesterMock_*') {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "The resolved command is a mock bootstrap function, pointing the mock to the same command info an session state as the original mock."
+            Write-PesterDebugMessage -Scope MockCore "The resolved command is a mock bootstrap function, pointing the mock to the same command info and session state as the original mock."
         }
         $module = $command.Mock.OriginalSessionState.Module
         return @{
@@ -901,7 +901,7 @@ function ExecuteBehavior {
     $ModuleName = $Behavior.ModuleName
     $CommandName = $Behavior.CommandName
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock$(if ($ModuleName) {" $ModuleName -" })$CommandName."
+        Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock$(if ($ModuleName) {" $ModuleName -" }) $CommandName."
     }
 
     $Behavior.Verifiable = $false
@@ -1065,8 +1065,9 @@ function Test-ParameterFilter {
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        $c = $(foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" }) -join ", "
-        Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } with context: $c"
+        $hasContext = 0 -lt $Context.Count
+        $c = $(if ($hasContext) {foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" }}) -join ", "
+        Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
     Set-ScriptBlockScope -ScriptBlock $wrapper -SessionState $SessionState

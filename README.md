@@ -226,40 +226,40 @@ Tests Passed: 1, Failed: 0, Skipped: 0, Total: 7, NotRun: 6
 All the major components log extensively.I am using logs as a debugging tool all the time so I make sure the logs are usable and not overly verbose. See if you can figure out why `acceptance test 1` is excluded from the run, and why `acceptance test 2` runs.
 
 ```
-RuntimeFilter: (Get-Beer) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer) Block did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer) Block has no tags, moving to next include filter.
-RuntimeFilter: (Get-Beer) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
-RuntimeFilter: (Get-Beer.acceptance tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests) Block did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.acceptance tests) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests) Block is included, because it's tag 'Acceptance' matches tag filter 'Acceptance'.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 1) Test is excluded, because it's tag 'Flaky' matches exclude tag filter 'Flaky'.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 2) Test did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 2) Test is included, because its parent is included.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 3) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 3) Test did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 3) Test is included, because its parent is included.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 4) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 4) Test is excluded, because it's tag 'Slow' matches exclude tag filter 'Slow'.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 5) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 5) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
-RuntimeFilter: (Get-Beer.Unit tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.Unit tests) Block did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.Unit tests) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer.Unit tests) Block has no tags, moving to next include filter.
-RuntimeFilter: (Get-Beer.Unit tests) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) Test did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) Test has no tags, moving to next include filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) Test did not match any of the include filters, it will not be included in the run.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 2) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
-RuntimeFilter: (Get-Beer.Unit tests) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run.
+Filter: (Get-Beer) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer) Block did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer) Block has no tags, moving to next include filter.
+Filter: (Get-Beer) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
+Filter: (Get-Beer.acceptance tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests) Block did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.acceptance tests) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer.acceptance tests) Block is included, because it's tag 'Acceptance' matches tag filter 'Acceptance'.
+Filter: (Get-Beer.acceptance tests.acceptance test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 1) Test is excluded, because it's tag 'Flaky' matches exclude tag filter 'Flaky'.
+Filter: (Get-Beer.acceptance tests.acceptance test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 2) Test did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 2) Test is included, because its parent is included.
+Filter: (Get-Beer.acceptance tests.acceptance test 3) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 3) Test did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 3) Test is included, because its parent is included.
+Filter: (Get-Beer.acceptance tests.acceptance test 4) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 4) Test is excluded, because it's tag 'Slow' matches exclude tag filter 'Slow'.
+Filter: (Get-Beer.acceptance tests.acceptance test 5) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 5) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
+Filter: (Get-Beer.Unit tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.Unit tests) Block did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.Unit tests) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer.Unit tests) Block has no tags, moving to next include filter.
+Filter: (Get-Beer.Unit tests) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
+Filter: (Get-Beer.Unit tests.unit test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.Unit tests.unit test 1) Test did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.Unit tests.unit test 1) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer.Unit tests.unit test 1) Test has no tags, moving to next include filter.
+Filter: (Get-Beer.Unit tests.unit test 1) Test did not match any of the include filters, it will not be included in the run.
+Filter: (Get-Beer.Unit tests.unit test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.Unit tests.unit test 2) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
+Filter: (Get-Beer.Unit tests) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run.
 ```
 
 Please be aware that the log is currently only written to the screen and not persisted in the result object. And that the logging comes with a performance penalty.

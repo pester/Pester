@@ -272,8 +272,8 @@ function Invoke-Pester {
         [Switch] $CI,
 
         [Parameter(ParameterSetName = "Simple")]
-        [ValidateSet("Normal", "Minimal", "None")]
-        [String] $Output,
+        [ValidateSet("Diagnostic", "Normal", "Minimal", "None")]
+        [String] $Output = "Minimal",
 
         [Parameter(ParameterSetName = "Simple")]
         [Switch] $PassThru,
@@ -387,6 +387,11 @@ function Invoke-Pester {
             $plugins = @()
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
+            }
+
+            if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
+                $PesterPreference.Debug.WriteDebugMessages = $true
+                $PesterPreference.Debug.WriteDebugMessagesFrom = "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
             }
 
             $plugins +=

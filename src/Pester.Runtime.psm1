@@ -471,7 +471,7 @@ function Invoke-TestItem {
         if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $path = $Test.Path -join '.'
-                Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
+                Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
             }
 
             # setting the test as passed here, this is by choice
@@ -1044,8 +1044,9 @@ function Invoke-PluginStep {
         try {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $stepSw = [Diagnostics.Stopwatch]::StartNew()
-                $c = $Context | & $script:SafeCommands['Out-String']
-                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context:$c"
+                $hasContext = 0 -lt $Context.Count
+                $c = if ($hasContext) { $Context | & $script:SafeCommands['Out-String'] }
+                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step $(if ($hasContext) { "with context: $c" } else { "without any context"})"
             }
 
             do {
@@ -1489,7 +1490,7 @@ function Test-ShouldRun {
     $fullDottedPath = $Item.Path -join "."
     if ($null -eq $Filter) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because there is no filters."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because there is no filters."
         }
 
         $result.Include = $true
@@ -1506,7 +1507,7 @@ function Test-ShouldRun {
 
     if ($parent.Exclude) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is excluded, because it's parent is excluded."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because it's parent is excluded."
         }
         $result.Exclude = $true
         return $result
@@ -1516,13 +1517,13 @@ function Test-ShouldRun {
     $tagFilter = $Filter.ExcludeTag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) There is '$($tagFilter -join ", ")' exclude tag filter."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) There is '$($tagFilter -join ", ")' exclude tag filter."
         }
         foreach ($f in $tagFilter) {
             foreach ($t in $Item.Tag) {
                 if ($t -like $f) {
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                        Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is excluded, because it's tag '$t' matches exclude tag filter '$f'."
+                        Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because it's tag '$t' matches exclude tag filter '$f'."
                     }
                     $result.Exclude = $true
                     return $result
@@ -1530,7 +1531,7 @@ function Test-ShouldRun {
             }
         }
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match the exclude tag filter, moving on to the next filter."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) did not match the exclude tag filter, moving on to the next filter."
         }
     }
 
@@ -1548,12 +1549,12 @@ function Test-ShouldRun {
         foreach ($l in $lineFilter -replace '\\', '/') {
             if ($l -eq $line) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because its path:line '$line' matches line filter '$lineFilter'."
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because its path:line '$line' matches line filter '$lineFilter'."
                 }
 
                 # if ('Test' -eq $Item.ItemType ) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is explicitly included, because it matched line filter, and will run even if -Skip is specified on it. Any skipped children will still be skipped."
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is explicitly included, because it matched line filter, and will run even if -Skip is specified on it. Any skipped children will still be skipped."
                 }
 
                 $result.Explicit = $true
@@ -1567,7 +1568,7 @@ function Test-ShouldRun {
 
     if ($parent.Include) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because its parent is included."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because its parent is included."
         }
 
         $result.Include = $true
@@ -1578,12 +1579,12 @@ function Test-ShouldRun {
     $tagFilter = $Filter.Tag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) There is '$($tagFilter -join ", ")' include tag filter."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) There is '$($tagFilter -join ", ")' include tag filter."
         }
         $anyIncludeFilters = $true
         if ($null -eq $Item.Tag -or 0 -eq $Item.Tag) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
             }
         }
         else {
@@ -1591,7 +1592,7 @@ function Test-ShouldRun {
                 foreach ($t in $Item.Tag) {
                     if ($t -like $f) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it's tag '$t' matches tag filter '$f'."
+                            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because it's tag '$t' matches tag filter '$f'."
                         }
 
                         $result.Include = $true
@@ -1613,7 +1614,7 @@ function Test-ShouldRun {
         }
         if ($include) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it matches fullname filter '$include'."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because it matches fullname filter '$include'."
             }
 
             $result.Include = $true
@@ -1621,7 +1622,7 @@ function Test-ShouldRun {
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) does not match the dotted path filter, moving to next include filter."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) does not match the dotted path filter, moving to next include filter."
             }
         }
     }
@@ -1629,12 +1630,12 @@ function Test-ShouldRun {
     if ($anyIncludeFilters) {
         if ('Test' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, it will not be included in the run."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, it will not be included in the run."
             }
         }
         elseif ('Block' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run."
             }
         }
         else {
@@ -1644,14 +1645,14 @@ function Test-ShouldRun {
     else {
         if ('Test' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters so all tests are included unless they match exclude rule."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters so all tests are included unless they match exclude rule."
             }
 
             $result.Include = $true
         } # putting the bool in both to avoid string comparison
         elseif ('Block' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters, and will let its children to determine whether or not it should run."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters, and will let its children to determine whether or not it should run."
             }
         }
         else {
@@ -1785,14 +1786,14 @@ function PostProcess-DiscoveredBlock {
         if ($b.Skip) {
             if ($b.Explicit) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block was marked as skipped, but will not be skipped because it was explicitly requested to run."
+                    Write-PesterDebugMessage -Scope Skip "($path) Block was marked as skipped, but will not be skipped because it was explicitly requested to run."
                 }
 
                 $b.Skip = $false
             }
             else {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped."
+                    Write-PesterDebugMessage -Scope Skip "($path) Block is skipped."
                 }
 
                 $b.Skip = $true
@@ -1800,7 +1801,7 @@ function PostProcess-DiscoveredBlock {
         }
         elseif ($parentBlockIsSkipped) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped because a parent block was skipped."
+                Write-PesterDebugMessage -Scope Skip "($path) Block is skipped because a parent block was skipped."
             }
 
             $b.Skip = $true
@@ -1814,7 +1815,7 @@ function PostProcess-DiscoveredBlock {
                 if ($t.Block.Exclude) {
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $t.Path -join "."
-                        Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because parent block was excluded."
+                        Write-PesterDebugMessage -Scope Filter "($path) Test is excluded because parent block was excluded."
                     }
                     $t.ShouldRun = $false
                 }
@@ -1845,14 +1846,14 @@ function PostProcess-DiscoveredBlock {
                 if ($t.Skip) {
                     if ($t.ShouldRun -and $t.Explicit) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test was marked as skipped, but will not be skipped because it was explicitly requested to run."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test was marked as skipped, but will not be skipped because it was explicitly requested to run."
                         }
 
                         $t.Skip = $false
                     }
                     else {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
                         }
 
                         $t.Skip = $true
@@ -1861,14 +1862,14 @@ function PostProcess-DiscoveredBlock {
                 elseif ($b.Skip) {
                     if ($t.ShouldRun -and $t.Explicit) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test was marked as skipped, because its parent was marked as skipped, but will not be skipped because it was explicitly requested to run."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test was marked as skipped, because its parent was marked as skipped, but will not be skipped because it was explicitly requested to run."
                         }
 
                         $t.Skip = $false
                     }
                     else {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped because a parent block was skipped."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test is skipped because a parent block was skipped."
                         }
 
                         $t.Skip = $true
@@ -1911,7 +1912,7 @@ function PostProcess-DiscoveredBlock {
 
         if ($b.ShouldRun -and -not $shouldRunBasedOnChildren) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($($b.Path -join '.')) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run."
+                Write-PesterDebugMessage -Scope Filter "($($b.Path -join '.')) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run."
             }
         }
 

@@ -446,14 +446,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
     }
 
-    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+    if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
         $p.ContainerDiscoveryStart = {
             param ($Context)
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
         }
     }
 
-    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+    if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
         $p.ContainerDiscoveryEnd = {
             param ($Context)
             # todo: this is very very slow because of View-flat
@@ -473,7 +473,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
     }
 
-    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+    if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
         $p.ContainerRunStart = {
             param ($Context)
 
@@ -493,7 +493,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
     }
 
-    if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+    if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
         $p.EachBlockSetupStart = {
             param ($Context)
             # the $context does not mean Context block, it's just a generic name
@@ -527,7 +527,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         # we are currently in scope of describe so $Test is hardtyped and conflicts
         $_test = $Context.Test
 
-        if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+        if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
             $level = $_test.Path.Count
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
@@ -552,7 +552,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         $result = $_test.Result
         switch ($result) {
             Passed {
-                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
                 }
@@ -576,7 +576,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             Skipped {
-                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
@@ -586,7 +586,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             Pending {
-                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
@@ -596,7 +596,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             Inconclusive {
-                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
@@ -607,7 +607,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             default {
-                if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
                     if ($null -eq $_test.Duration) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
@@ -621,7 +621,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.EachBlockTeardownEnd = {
         param ($Context)
         if (-not $Context.Block.OwnPassed) {
-            if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
+            if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                 $level = $Context.Block.Path.Count
                 $margin = $ReportStrings.Margin * ($level)
                 $error_margin = $margin + $ReportStrings.Margin

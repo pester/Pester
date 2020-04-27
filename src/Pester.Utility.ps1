@@ -238,8 +238,8 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("RuntimeCore", "RuntimeFilter", "RuntimeSkip", "Runtime", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore", "CodeCoverage")]
-        [String] $Scope,
+        [ValidateSet("Filter", "Skip", "Runtime", "RuntimeCore", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore", "CodeCoverage")]
+        [String[]] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Lazy")]
@@ -253,7 +253,20 @@ function Write-PesterDebugMessage {
     }
 
     $messagePreference = $PesterPreference.Debug.WriteDebugMessagesFrom.Value
-    if ($Scope -notlike $messagePreference) {
+    $any = $false
+    foreach ($s in $Scope) {
+        if ($any) {
+            break
+        }
+        foreach ($p in $messagePreference) {
+            if ($s -like $p) {
+                $any = $true
+                break
+            }
+        }
+    }
+
+    if (-not $any) {
         return
     }
 
@@ -262,10 +275,10 @@ function Write-PesterDebugMessage {
         }
         else {
             switch ($Scope) {
-                "RuntimeCore" { "Cyan" }
-                "RuntimeFilter" { "Cyan" }
-                "RuntimeSkip" { "Cyan" }
+                "Filter" { "Cyan" }
+                "Skip" { "Cyan" }
                 "Runtime" { "DarkGray" }
+                "RuntimeCore" { "Cyan" }
                 "Mock" { "DarkYellow" }
                 "Discovery" { "DarkMagenta" }
                 "DiscoveryCore" { "DarkMagenta" }
