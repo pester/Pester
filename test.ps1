@@ -106,11 +106,10 @@ $configuration.Output.Verbosity = 'Minimal'
 if ($CI) {
     $configuration.Run.Exit = $true
 
-    # skipping cc and tr because I don't need them right now and cc is extremely slow
-    # $configuration.CodeCoverage.Enabled = $true
-    # $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
+    $configuration.CodeCoverage.Enabled = $true
+    $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
 
-    # $configuration.TestResult.Enabled = $true
+    $configuration.TestResult.Enabled = $true
 }
 
 $r = Invoke-Pester -Configuration $configuration
