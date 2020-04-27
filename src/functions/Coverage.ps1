@@ -491,7 +491,7 @@ function Merge-CommandCoverage {
     # can also accumulate the hit count across the different breakpoints
 
     $hitBps = @{}
-    $hits = [System.Collections.ArrayList]@()
+    $hits = [System.Collections.Generic.List[object]]@()
     foreach ($bp in $CommandCoverage) {
         if (0 -lt $bp.Breakpoint.HitCount) {
             $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
@@ -505,7 +505,7 @@ function Merge-CommandCoverage {
     }
 
     $missedBps = @{}
-    $misses = [System.Collections.ArrayList]@()
+    $misses = [System.Collections.Generic.List[object]]@()
     foreach ($bp in $CommandCoverage) {
         if (0 -eq $bp.Breakpoint.HitCount) {
             $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"

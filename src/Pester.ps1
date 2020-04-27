@@ -494,7 +494,17 @@ function Invoke-Pester {
                 PSBoundParameters = $PSBoundParameters
             }
 
-            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData -Configuration $PesterPreference
+            $run = [Pester.Run]::Create()
+            $run.Executed = $true
+            $run.ExecutedAt = $start
+            $run.PSBoundParameters = $PSBoundParameters
+            $run.PluginConfiguration = $pluginConfiguration
+            $run.Plugins = $Plugins
+            $run.PluginData = $pluginData
+            $run.Configuration = $PesterPreference
+            foreach ($i in @($r)) {
+                $run.Containers.Add($i)
+            }
 
             PostProcess-RSpecTestRun -TestRun $run
 
@@ -513,7 +523,7 @@ function Invoke-Pester {
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
-                $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
+                $totalMilliseconds = $run.Duration.TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
             }
@@ -782,7 +792,7 @@ function ConvertTo-Pester4Result {
             PendingCount = 0
             InconclusiveCount = 0
             Time = [TimeSpan]::Zero
-            TestResult = [System.Collections.ArrayList]@()
+            TestResult = [System.Collections.Generic.List[object]]@()
         }
         $filter = $PesterResult.Configuration.Filter
         $legacyResult.TagFilter = if (0 -ne $filter.Tag.Value.Count) { $filter.Tag.Value }

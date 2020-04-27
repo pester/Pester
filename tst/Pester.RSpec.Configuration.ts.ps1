@@ -263,8 +263,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration $c
-            ($r.Containers[0].Path.Directory) | Verify-PathEqual $container1
-            ($r.Containers[1].Path.Directory) | Verify-PathEqual $container2
+            ($r.Containers[0].Item.Directory) | Verify-PathEqual $container1
+            ($r.Containers[1].Item.Directory) | Verify-PathEqual $container2
         }
 
         t "Filtering based on tags" {

@@ -145,7 +145,7 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', 'Pester')
-    $XmlWriter.WriteAttributeString('total', ($Result.TestsCount - $Result.NotRunCount))
+    $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.NotRunCount))
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', $Result.NotRunCount)
@@ -175,7 +175,7 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
             $path = ($action.Path -replace "$cwdReplacement[\\/](.*)", '.\$1')
         }
         elseif ("ScriptBlock" -eq $container.Type) {
-            $path = "<ScriptBlock>$($container.Content.File):$($container.Content.StartPosition.StartLine)"
+            $path = "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
         }
         else  {
             throw "Container type '$($container.Type)' is not supported."

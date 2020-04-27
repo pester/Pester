@@ -195,23 +195,23 @@ i -PassThru:$PassThru {
                 $result = Invoke-Pester -PassThru
 
                 $result.Containers.Count | Verify-Equal 2
-                $result.Containers[0].Path.FullName | Verify-Equal $file1
-                $result.Containers[1].Path.FullName | Verify-Equal $file2
+                $result.Containers[0].Item.FullName | Verify-Equal $file1
+                $result.Containers[1].Item.FullName | Verify-Equal $file2
             }
 
             t "Running tests from Paths runs them" {
                 $result = Invoke-Pester -Path $file1, $file2 -PassThru
 
                 $result.Containers.Count | Verify-Equal 2
-                $result.Containers[0].Path.FullName | Verify-Equal $file1
-                $result.Containers[1].Path.FullName | Verify-Equal $file2
+                $result.Containers[0].Item.FullName | Verify-Equal $file1
+                $result.Containers[1].Item.FullName | Verify-Equal $file2
             }
 
             t "Exluding full path excludes it tests from Paths runs them" {
                 $result = Invoke-Pester -Path $file1, $file2 -ExcludePath $file2 -PassThru
 
                 $result.Containers.Count | Verify-Equal 1
-                $result.Containers[0].Path | Verify-Equal $file1
+                $result.Containers[0].Item | Verify-Equal $file1
             }
 
             t "Including tag runs just the test with that tag" {
@@ -250,7 +250,7 @@ i -PassThru:$PassThru {
             # t "CI generates code coverage and xml output" {
             #     $temp = [IO.Path]::GetTempPath()
             #     $path = "$temp/$([Guid]::NewGuid().Guid)"
-            #     $pesterPath = (Get-Module Pester).Path
+            #     $pesterPath = (Get-Module Pester).Item
 
             #     try {
             #         New-Item -Path $path -ItemType Container | Out-Null

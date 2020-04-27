@@ -404,8 +404,8 @@ function Should-InvokeInternal {
     #     throw "You did not declare a mock of the $commandName Command${moduleMessage}."
     # }
 
-    $matchingCalls = [System.Collections.ArrayList]@()
-    $nonMatchingCalls = [System.Collections.ArrayList]@()
+    $matchingCalls = [System.Collections.Generic.List[object]]@()
+    $nonMatchingCalls = [System.Collections.Generic.List[object]]@()
 
     foreach ($historyEntry in $callHistory) {
 
@@ -650,7 +650,7 @@ function Invoke-MockInternal {
 
     switch ($FromBlock) {
         Begin {
-            $MockCallState['InputObjects'] = [System.Collections.ArrayList]@()
+            $MockCallState['InputObjects'] = [System.Collections.Generic.List[object]]@()
             $MockCallState['ShouldExecuteOriginalCommand'] = $false
             $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
             # argument list must not be null, if the bootstrap functions has no parameters

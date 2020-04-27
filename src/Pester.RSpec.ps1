@@ -82,7 +82,7 @@ function Add-RSpecTestObjectProperties {
     # this includes figuring out the result
     # formatting the failure message and stacktrace
 
-    $result = if ($TestObject.Skipped) {
+    $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
     }
     elseif ($TestObject.Passed) {
@@ -94,12 +94,6 @@ function Add-RSpecTestObjectProperties {
     else {
         "NotRun"
     }
-
-    $TestObject.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
-
-    # TODO: rename this to Duration, and rename duration to UserCodeDuration or something like that
-    $time = [timespan]::zero + $TestObject.Duration + $TestObject.FrameworkDuration
-    $TestObject.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
 
     foreach ($e in $TestObject.ErrorRecord) {
         $r = ConvertTo-FailureLines $e
@@ -113,50 +107,6 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
         $r = ConvertTo-FailureLines $e
         $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
         $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayStackTrace", [string]($r.Trace -join [Environment]::NewLine)))
-    }
-}
-
-
-function New-RSpecTestRunObject {
-    param(
-        [Parameter(Mandatory)]
-        [DateTime] $ExecutedAt,
-        [Parameter(Mandatory)]
-        [Hashtable] $Parameters,
-        [Hashtable] $BoundParameters,
-        $Plugins,
-        [Hashtable] $PluginConfiguration,
-        [Hashtable] $PluginData,
-        [PesterConfiguration] $Configuration,
-        [object[]] $BlockContainer)
-
-   [PSCustomObject]@{
-        PSTypeName = 'PesterRSpecTestRun'
-        ExecutedAt = $ExecutedAt
-        Containers = [Collections.ArrayList]@($BlockContainer)
-        PSBoundParameters = $BoundParameters
-        Plugins = $Plugins
-        PluginConfiguration = $PluginConfiguration
-        PluginData = $PluginData
-        Configuration = $Configuration
-
-        Duration = [TimeSpan]::Zero
-        FrameworkDuration = [TimeSpan]::Zero
-        DiscoveryDuration = [TimeSpan]::Zero
-
-        Passed = [Collections.ArrayList]@()
-        PassedCount = 0
-        Failed = [Collections.ArrayList]@()
-        FailedCount = 0
-        Skipped = [Collections.ArrayList]@()
-        SkippedCount = 0
-        NotRun = [Collections.ArrayList]@()
-        NotRunCount = 0
-        Tests = [Collections.ArrayList]@()
-        TestsCount = 0
-
-        FailedBlocks = [Collections.ArrayList]@()
-        FailedBlocksCount = 0
     }
 }
 
@@ -194,8 +144,7 @@ function PostProcess-RspecTestRun ($TestRun) {
 
         # we already processed errors in the plugin step to make the available for reporting
 
-        # here we add result
-        $result = if ($b.Skip) {
+        $b.Result = if ($b.Skip) {
             "Skipped"
         }
         elseif ($b.Passed) {
@@ -207,12 +156,6 @@ function PostProcess-RspecTestRun ($TestRun) {
         else {
             "NotRun"
         }
-
-        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
-
-        # add time that we will later rename to Duration in the output object filter
-        $time = [timespan]::zero + $b.Duration + $b.FrameworkDuration
-        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
 
         ## sumamrize
 
@@ -228,7 +171,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         ## decorate
 
         # here we add result
-        $result = if ($b.Skipped) {
+        $b.result = if ($b.Skipped) {
             "Skipped"
         }
         elseif ($b.Passed) {
@@ -241,13 +184,6 @@ function PostProcess-RspecTestRun ($TestRun) {
             "NotRun"
         }
 
-        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
-
-        # add time that we will later rename to Duration in the output object filter
-        $time = [timespan]::zero + $b.Duration + $b.FrameworkDuration + $b.DiscoveryDuration
-        $b.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
-
-
         foreach ($e in $b.ErrorRecord) {
             $r = ConvertTo-FailureLines $e
             $e.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("DisplayErrorMessage", [string]($r.Message -join [Environment]::NewLine)))
@@ -256,6 +192,7 @@ function PostProcess-RspecTestRun ($TestRun) {
 
         ## summarize
         $TestRun.Duration += $b.Duration
+        $TestRun.UserDuration += $b.UserDuration
         $TestRun.FrameworkDuration += $b.FrameworkDuration
         $TestRun.DiscoveryDuration += $b.DiscoveryDuration
     }
@@ -265,22 +202,16 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.SkippedCount = $TestRun.Skipped.Count
     $TestRun.NotRunCount = $TestRun.NotRun.Count
 
-    $TestRun.TestsCount = $TestRun.Tests.Count
+    $TestRun.TotalCount = $TestRun.Tests.Count
 
     $TestRun.FailedBlocksCount = $TestRun.FailedBlocks.Count
 
-    $result = if (0 -lt ($TestRun.FailedCount + $TestRun.FailedBlocksCount)) {
+    $TestRun.Result = if (0 -lt ($TestRun.FailedCount + $TestRun.FailedBlocksCount)) {
         "Failed"
     }
     else {
         "Passed"
     }
-
-    $TestRun.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Result", $result))
-
-    # add time that we will later rename to Duration in the output object filter
-    $time = [timespan]::zero + $TestRun.Duration + $TestRun.FrameworkDuration +  $TestRun.DiscoveryDuration
-    $TestRun.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Time", $time))
 }
 
 function Get-RSpecObjectDecoratorPlugin () {
@@ -317,8 +248,8 @@ function Remove-RSpecNonPublicProperties ($run){
         'PSBoundParameters'
         'Result'
         'SkippedCount'
-        'TestsCount'
-        'Time'
+        'TotalCount'
+        'Duration'
     )
 
     $containerProperties = @(
@@ -331,12 +262,10 @@ function Remove-RSpecNonPublicProperties ($run){
         'NotRunCount'
         'PassedCount'
         'Result'
-        'ScriptBlock'
         'ShouldRun'
         'Skip'
         'SkippedCount'
-        'Tests'
-        'Time'
+        'Duration'
         'Type' # needed because of nunit export path expansion
         'TotalCount'
     )
@@ -359,7 +288,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'StandardOutput'
         'Tag'
         'Tests'
-        'Time'
+        'Duration'
         'TotalCount'
     )
 
@@ -379,7 +308,7 @@ function Remove-RSpecNonPublicProperties ($run){
         'Skipped'
         'StandardOutput'
         'Tag'
-        'Time'
+        'Duration'
     )
 
     Fold-Run $run -OnRun {
@@ -391,8 +320,6 @@ function Remove-RSpecNonPublicProperties ($run){
             }
         }
 
-        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
-        $i.PsObject.Properties.Remove("Time")
     } -OnContainer {
         param($i)
         $ps = $i.PsObject.Properties.Name
@@ -402,8 +329,6 @@ function Remove-RSpecNonPublicProperties ($run){
             }
         }
 
-        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
-        $i.PsObject.Properties.Remove("Time")
     } -OnBlock {
         param($i)
         $ps = $i.PsObject.Properties.Name
@@ -413,8 +338,6 @@ function Remove-RSpecNonPublicProperties ($run){
             }
         }
 
-        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
-        $i.PsObject.Properties.Remove("Time")
     } -OnTest {
         param($i)
         $ps = $i.PsObject.Properties.Name
@@ -423,8 +346,5 @@ function Remove-RSpecNonPublicProperties ($run){
                 $i.PsObject.Properties.Remove($p)
             }
         }
-
-        $i.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Duration", $i.PsObject.Properties.Item("Time").Value))
-        $i.PsObject.Properties.Remove("Time")
     }
 }

@@ -86,7 +86,7 @@
 #                 Name              = $Name
 #                 Type              = 'TestGroup'
 #                 Hint              = $Hint
-#                 Actions           = [System.Collections.ArrayList]@()
+#                 Actions           = [System.Collections.Generic.List[object]]@()
 #                 BeforeEach        = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
 #                 AfterEach         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
 #                 BeforeAll         = & $SafeCommands['New-Object'] System.Collections.Generic.List[scriptblock]
@@ -200,7 +200,7 @@
 
 #             # Attempting some degree of backward compatibility for the TestResult collection for now; deprecated and will be removed in the future
 #             $describe = ''
-#             $contexts = [System.Collections.ArrayList]@()
+#             $contexts = [System.Collections.Generic.List[object]]@()
 
 #             # make a copy of the stack and reverse it
 #             $reversedStack = $script:TestGroupStack.ToArray()
