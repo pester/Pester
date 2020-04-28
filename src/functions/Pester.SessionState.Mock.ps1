@@ -290,12 +290,12 @@ function Get-AllMockBehaviors {
         }
     }
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
+        Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parent blocks."
     }
     $block = Get-CurrentBlock
 
     # recurse up
-    $level = 0
+    $behaviorsInTestCount = $behaviors.Count
     while ($null -ne $block) {
 
         # action
@@ -306,8 +306,8 @@ function Get-AllMockBehaviors {
             $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
                 $block.PluginData.Mock.Behaviors.$CommandName
             })
-            # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
-            if ($null -ne $bs -or $bs.Count -ne 0) {
+
+            if ($null -ne $bs -and 0 -lt @($bs).Count) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($block.Name)'."
                 }
@@ -317,12 +317,10 @@ function Get-AllMockBehaviors {
         }
         # action end
 
-        # go one level up
-        $level--
         $block = $block.Parent
     }
 
-    if ($PesterPreference.Debug.WriteDebugMessages.Value -and ($null -eq $behaviors -or $behaviors.Count -eq 0)) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value -and $behaviorsInTestCount -eq $behaviors.Count) {
         Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
     }
 
