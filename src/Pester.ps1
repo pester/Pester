@@ -321,49 +321,57 @@ function Invoke-Pester {
                 # populate preference from parameters and remove them so we
                 # don't inherit them to child functions by accident
 
-                if ($Path) {
+                if ($PSBoundParameters.ContainsKey('Path')) {
                     if ($null -ne $Path) {
                         $PesterPreference.Run.Path = $Path
                     }
+
                     Get-Variable 'Path' -Scope Local | Remove-Variable
                 }
 
-                if ($ExcludePath) {
+                if ($PSBoundParameters.ContainsKey('ExcludePath')) {
                     if ($null -ne $ExcludePath) {
                         $PesterPreference.Run.ExcludePath = $ExcludePath
                     }
+
                     Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
                 }
 
-                if (any $TagFilter) {
-                    if ($null -ne $TagFilter) {
+                if ($PSBoundParameters.ContainsKey('TagFilter')) {
+                    if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
                         $PesterPreference.Filter.Tag = $TagFilter
                     }
+
                     Get-Variable 'TagFilter' -Scope Local | Remove-Variable
                 }
 
-                if (any $ExcludeTagFilter) {
-                    if ($null -ne $ExcludeTagFilter) {
+                if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
                         $PesterPreference.Filter.ExcludeTag = $ExcludeTagFilter
                     }
+
                     Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
                 }
 
-                if (any $FullNameFilter) {
-                    if ($null -ne $FullNameFilter) {
+                if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
+                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
                         $PesterPreference.Filter.FullName = $FullNameFilter
                     }
+
                     Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
                 }
 
-                if ($CI) {
-                    $PesterPreference.Run.Exit = $true
-                    $PesterPreference.CodeCoverage.Enabled = $true
-                    $PesterPreference.TestResult.Enabled = $true
+                if ($PSBoundParameters.ContainsKey('CI')) {
+                    if ($CI) {
+                        $PesterPreference.Run.Exit = $true
+                        $PesterPreference.CodeCoverage.Enabled = $true
+                        $PesterPreference.TestResult.Enabled = $true
+                    }
+
                     Get-Variable 'CI' -Scope Local | Remove-Variable
                 }
 
-                if ($Output) {
+                if ($PSBoundParameters.ContainsKey('Output')) {
                     if ($null -ne $Output) {
                         $PesterPreference.Output.Verbosity = $Output
                     }
@@ -371,7 +379,7 @@ function Invoke-Pester {
                     Get-Variable 'Output' -Scope Local | Remove-Variable
                 }
 
-                if ($PassThru) {
+                if ($PSBoundParameters.ContainsKey('PassThru')) {
                     if ($null -ne $PassThru) {
                         $PesterPreference.Run.PassThru = [bool] $PassThru
                     }
