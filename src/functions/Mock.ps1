@@ -565,7 +565,7 @@ function Resolve-Command {
         $command = & $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {"and it resolved to $($command.Name)"})."
+                Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
             }
         }
         else {
