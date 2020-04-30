@@ -764,7 +764,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 -  `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
 
 ### Known issues to be solved in 5.0
-- Output object has changed significantly, there is adapter function that might not be 100% compatible see [new result object](#new-result-object-and-no--passthru)
+- ❗ Got some reports that the adapted object works nicely. Output object has changed significantly, there is adapter function `ConvertTo-Pester4Result` ~that might not be 100% compatible~ see [new result object](#new-result-object-and-no--passthru)
 - ❗ Fixed in rc3. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
 - ❗ Fixed by adding -FullNameFilter in rc3. ~`-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`~
 - ❗ Fixed in rc3. ~Name filter in the advanced object throws when provided null~
