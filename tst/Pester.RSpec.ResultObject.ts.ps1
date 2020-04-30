@@ -258,7 +258,8 @@ i -PassThru:$PassThru {
             $result | Verify-Property "Result"
             $result.Result | Verify-Equal "Failed"
             $result | Verify-Property "Version"
-            ($result.version -split "-")[0] | Verify-Equal (Get-Module Pester).Version.ToString()
+            ($result.Version -split "-")[0] | Verify-Equal (Get-Module Pester).Version.ToString()
+            $result.PSVersion | Verify-Equal $PSVersionTable.PSVersion
             $result | Verify-Property "FailedBlocksCount"
             $result.FailedBlocksCount | Verify-Equal 2
 
