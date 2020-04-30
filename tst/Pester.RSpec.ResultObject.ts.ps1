@@ -5,7 +5,7 @@ Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Modu
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
-Import-Module $PSScriptRoot/../src/Pester.psd1
+Import-Module $PSScriptRoot/../bin/Pester.psd1
 
 
 $global:PesterPreference = @{
@@ -258,7 +258,7 @@ i -PassThru:$PassThru {
             $result | Verify-Property "Result"
             $result.Result | Verify-Equal "Failed"
             $result | Verify-Property "Version"
-            $result.version | Verify-Equal "5.0.0"
+            ($result.version -split "-")[0] | Verify-Equal (Get-Module Pester).Version.ToString()
             $result | Verify-Property "FailedBlocksCount"
             $result.FailedBlocksCount | Verify-Equal 2
 

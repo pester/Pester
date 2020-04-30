@@ -31,7 +31,6 @@ namespace Pester
         public string Version { get; set; }
         public string PSVersion { get; set; }
 
-
         public object PSBoundParameters { get; set; }
         public List<object> Plugins { get; set; } = new List<object>();
         public Hashtable PluginConfiguration { get; set; } = new Hashtable();
