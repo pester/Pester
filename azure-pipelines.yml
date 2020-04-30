@@ -1,8 +1,6 @@
 trigger:
-  - master
   - v5.0
 pr:
-  - master
   - v5.0
 
 resources:
@@ -10,17 +8,99 @@ resources:
     clean: true
     fetchDepth: 1
 
-jobs:
-  - job: ps3
-    displayName: PowerShell 3
-    continueOnError: false
-    pool:
-      name: Default
-      demands:
-        - ps3
-    workspace:
-      clean: all
-    timeoutInMinutes: 3
-    steps:
-      - powershell: ./test.ps1 -ci -passThru
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  CI: 1
 
+stages:
+  - stage: Build
+    jobs:
+      - job: build
+        pool:
+          name: Default
+          demands:
+            - net452
+            - netcoreapp3.1
+        timeoutInMinutes: 3
+        steps:
+          - powershell: ./build.ps1
+          - publish: $(Build.SourcesDirectory)
+            artifact: all
+
+  - stage: Test
+    jobs:
+      - job:
+        strategy:
+          matrix:
+            PS7_Ubuntu_16_04:
+              vmImage: ubuntu-16.04
+              pwsh: true
+            PS7_Ubuntu_18_04:
+              vmImage: ubuntu-18.04
+              pwsh: true
+            PS7_macOS_10_14_Mojave:
+              vmImage: macOS-10.14
+              pwsh: true
+            PS7_macOS_10_15_Catalina:
+              vmImage: macOS-10.15
+              pwsh: true
+            PS7_Windows_Server2016:
+              vmImage: vs2017-win2016
+              pwsh: true
+            PS7_Windows_Server2019:
+              vmImage: windows-2019
+              pwsh: true
+            PS_5_1_Windows_Server2016:
+              vmImage: vs2017-win2016
+              pwsh: false
+            PS_5_1_Windows_Server2019:
+              vmImage: windows-2019
+              pwsh: false
+        pool:
+          vmImage: $[ variables['vmImage'] ]
+        steps:
+          - checkout: none
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: 'all'
+              targetPath: '$(Build.SourcesDirectory)'
+          - task: PowerShell@2
+            displayName: 'Test Pester'
+            inputs:
+              targetType: inline
+              pwsh: $(pwsh)
+              script: |
+                & ./test.ps1 -CI -PassThru -NoBuild
+              workingDirectory: '$(Build.SourcesDirectory)'
+      - job:
+        strategy:
+          matrix:
+            PS3:
+              agent: 'ps3'
+              pwsh: false
+            PS4:
+              agent: 'ps4'
+              pwsh: false
+            PS6_2:
+              agent: 'ps6'
+              pwsh: true
+        pool:
+          name: Default
+          demands:
+            - agent.name -equals $(agent)
+        steps:
+          - checkout: none
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: 'all'
+              targetPath: '$(Build.SourcesDirectory)'
+          - task: PowerShell@2
+            displayName: 'Test Pester'
+            inputs:
+              targetType: 'inline'
+              pwsh: $(pwsh)
+              script: |
+                & ./test.ps1 -CI -PassThru -NoBuild
+              workingDirectory: '$(Build.SourcesDirectory)'

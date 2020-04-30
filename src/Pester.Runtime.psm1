@@ -1,7 +1,7 @@
 # if -not build
 . "$PSScriptRoot/Pester.Utility.ps1"
 . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-. "$PSScriptRoot/Pester.Types.ps1"
+# . "$PSScriptRoot/Pester.Types.ps1"
 # endif
 
 # instances
@@ -33,7 +33,7 @@ $state = [PSCustomObject] @{
     TotalStopWatch      = $null
     UserCodeStopWatch   = $null
     FrameworkStopWatch  = $null
-    Stack = [Collections.Stack]@()
+    Stack               = [Collections.Stack]@()
 
     ExpandName          = {
         param([string]$Name, [HashTable]$Data)
@@ -138,47 +138,11 @@ function ConvertTo-ExecutedBlockContainer {
         $Block
     )
 
-    # takes a root block and converts it to a executed block container
-    # that we can publish from Invoke-Test, because keeping everything a block makes the internal
-    # code simpler
-    $container = $Block.BlockContainer
-    $content = tryGetProperty $container Content
-    $type = tryGetProperty $container Type
-
-    $properties = @{
-        Content = $content
-        Type = $type
+    foreach ($b in $Block) {
+        [Pester.Container]::CreateFromBlock($b)
     }
 
-    if ("file" -eq $Block.BlockContainer.Type) {
-        $properties.Add("Path", $content)
-    }
 
-    $excluded = @(
-        "Parent"
-        "Name"
-        "Tag"
-        "First"
-        "Last"
-        "StandardOutput"
-        "Path" # <- this is abc.gef on Block, not filepath
-        "Order"
-    )
-
-    foreach ($b in @($Block)) {
-        $o = @{}
-        foreach ($p in $Block.PSObject.Properties) {
-            if ($p.Name -notin $excluded) {
-                $o.Add($p.Name, $p.Value)
-            }
-        }
-
-        foreach ($p in $properties.GetEnumerator()) {
-            $o.Add($p.Key, $p.Value)
-        }
-
-        [PSCustomObject] $o
-    }
 }
 
 
@@ -287,10 +251,9 @@ function Invoke-Block ($previousBlock) {
                 # making the transition callbacks mandatory unless the parameter is provided
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First) { selectNonNull $state.Plugin.OneTimeBlockSetupStart }
+                    if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
                 ) `
-                    -Setup @( selectNonNull $state.Plugin.EachBlockSetupStart ) `
-                    -ScriptBlock { } `
+                    -Setup @( $state.Plugin.EachBlockSetupStart ) `
                     -Context @{
                     Context = @{
                         # context that is visible to plugins
@@ -329,27 +292,19 @@ function Invoke-Block ($previousBlock) {
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
                         -OuterSetup $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            combineNonNull @(
-                                $previousBlock.EachBlockSetup
-                                $block.OneTimeTestSetup
-                            )
+                            @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
                         }) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            combineNonNull @(
-                                $block.OneTimeTestTeardown
-                                $previousBlock.EachBlockTeardown
-                            )
+                            @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
                         } ) `
                         -Context @{
-                            ______pester_invoke_block_parameters = @{
-                                Invoke_Block = ${function:Invoke-Block}
-                                Block = $block
-                            }
-                        } `
+                        ______pester_invoke_block_parameters = @{
+                            Invoke_Block = ${function:Invoke-Block}
+                            Block        = $block
+                        }
+                    } `
                         -ReduceContextToInnerScope `
                         -MoveBetweenScopes `
-                        -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                        -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                         -Configuration $state.Configuration
 
                     $block.OwnPassed = $result.Success
@@ -361,8 +316,8 @@ function Invoke-Block ($previousBlock) {
                     }
                 }
 
-                $frameworkEachBlockTeardowns = @( selectNonNull $state.Plugin.EachBlockTeardownEnd )
-                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { selectNonNull $state.Plugin.OneTimeBlockTeardownEnd } )
+                $frameworkEachBlockTeardowns = @($state.Plugin.EachBlockTeardownEnd )
+                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardownEnd } )
                 # reverse the teardowns so they run in opposite order to setups
                 [Array]::Reverse($frameworkEachBlockTeardowns)
                 [Array]::Reverse($frameworkOneTimeBlockTeardowns)
@@ -372,10 +327,9 @@ function Invoke-Block ($previousBlock) {
                 # BUT they are then set again at the end of the block to make them accurate
                 # so the value on the screen vs the value in the object is slightly different
                 # with the value in the result being the correct one
-                $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+                $block.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
                 $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
                 $frameworkTeardownResult = Invoke-ScriptBlock `
-                    -ScriptBlock { } `
                     -Teardown $frameworkEachBlockTeardowns `
                     -OuterTeardown $frameworkOneTimeBlockTeardowns `
                     -Context @{
@@ -396,10 +350,10 @@ function Invoke-Block ($previousBlock) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Left block $Name"
                 }
-                $block.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+                $block.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
                 $block.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Timing "Block duration $($block.Duration.TotalMilliseconds)ms"
+                    Write-PesterDebugMessage -Scope Timing "Block duration $($block.UserDuration.TotalMilliseconds)ms"
                     Write-PesterDebugMessage -Scope Timing "Block framework duration $($block.FrameworkDuration.TotalMilliseconds)ms"
                     Write-PesterDebugMessage -Scope Runtime "Leaving path $($path -join '.')"
                 }
@@ -424,6 +378,10 @@ function New-Test {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Entering test $Name"
+    }
+
+    if ($state.CurrentBlock.IsRoot) {
+        throw "Test cannot be directly in the root."
     }
 
     # avoid managing state by not pushing to the stack only to pop out in finally
@@ -498,10 +456,9 @@ function Invoke-TestItem {
         # no callbacks are provided because we are not transitioning between any states
         $frameworkSetupResult = Invoke-ScriptBlock `
             -OuterSetup @(
-            if ($Test.First) { selectNonNull $state.Plugin.OneTimeTestSetupStart }
+            if ($Test.First) { $state.Plugin.OneTimeTestSetupStart }
         ) `
-            -Setup @( selectNonNull $state.Plugin.EachTestSetupStart ) `
-            -ScriptBlock { } `
+            -Setup @( $state.Plugin.EachTestSetupStart ) `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -514,7 +471,7 @@ function Invoke-TestItem {
         if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $path = $Test.Path -join '.'
-                Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
+                Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
             }
 
             # setting the test as passed here, this is by choice
@@ -531,28 +488,40 @@ function Invoke-TestItem {
         else {
 
             if ($frameworkSetupResult.Success) {
-                try  {
-                    # huh? we have a single test here, why I am looping?
-                    $testInfo = @(foreach ($t in $Test) { [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }})
-                } catch
-                {
-                    throw $_;
-                }
-
                 # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
                     # context visible in test
-                    Context = $testInfo
+                    Context = [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }
                 }
-                # user provided data are merged with Pester provided context
-                Merge-Hashtable -Source $Test.Data -Destination $context
 
-                $eachTestSetups = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestSetup } )
-                $eachTestTeardowns = CombineNonNull (Recurse-Up $Block { param ($b) $b.EachTestTeardown } )
+                # user provided data are merged with Pester provided context
+                # Merge-Hashtable -Source $Test.Data -Destination $context
+                foreach ($p in $Test.Data.GetEnumerator()) {
+                    # only add non existing keys so in case of conflict
+                    # the framework name wins, as if we had explicit parameters
+                    # on a scriptblock, then the parameter would also win
+                    if (-not $context.ContainsKey($p.Key)) {
+                        $context.Add($p.Key, $p.Value)
+                    }
+                }
+
+                # recurse up Recurse-Up $Block { param ($b) $b.EachTestSetup }
+                $i = $Block
+                $eachTestSetups = while ($null -ne $i) {
+                    $i.EachTestSetup
+                    $i = $i.Parent
+                }
+
+                # recurse up Recurse-Up $Block { param ($b) $b.EachTestTeardown }
+                $i = $Block
+                $eachTestTeardowns = while ($null -ne $i) {
+                    $i.EachTestTeardown
+                    $i = $i.Parent
+                }
 
                 $result = Invoke-ScriptBlock `
                     -Setup @(
-                    if (any $eachTestSetups) {
+                    if ($null -ne $eachTestSetups -and 0 -lt @($eachTestSetups).Count) {
                         # we collect the child first but want the parent to run first
                         [Array]::Reverse($eachTestSetups)
                         @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
@@ -566,14 +535,12 @@ function Invoke-TestItem {
                 ) `
                     -ScriptBlock $Test.ScriptBlock `
                     -Teardown @(
-                    if (any $eachTestTeardowns) {
+                    if ($null -ne $eachTestTeardowns -and 0 -lt @($eachTestTeardowns).Count) {
                         @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestTeardown' }) + @($eachTestTeardowns)
                     } ) `
                     -Context $context `
                     -ReduceContextToInnerScope `
                     -MoveBetweenScopes `
-                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework } `
                     -NoNewScope `
                     -Configuration $state.Configuration
 
@@ -589,16 +556,15 @@ function Invoke-TestItem {
         # BUT they are then set again at the end of the block to make them accurate
         # so the value on the screen vs the value in the object is slightly different
         # with the value in the result being the correct one
-        $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+        $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
 
-        $frameworkEachTestTeardowns = @( selectNonNull $state.Plugin.EachTestTeardownEnd )
-        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { selectNonNull $state.Plugin.OneTimeTestTeardownEnd })
+        $frameworkEachTestTeardowns = @( $state.Plugin.EachTestTeardownEnd )
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.Plugin.OneTimeTestTeardownEnd })
         [array]::Reverse($frameworkEachTestTeardowns)
         [array]::Reverse($frameworkOneTimeTestTeardowns)
 
         $frameworkTeardownResult = Invoke-ScriptBlock `
-            -ScriptBlock { } `
             -Teardown $frameworkEachTestTeardowns `
             -OuterTeardown $frameworkOneTimeTestTeardowns `
             -Context @{
@@ -625,10 +591,10 @@ function Invoke-TestItem {
         }
 
         # keep this at the end so we report even the test teardown in the framework overhead for the test
-        $Test.Duration = $state.UserCodeStopWatch.Elapsed - $testStartTime
+        $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Timing -Message "Test duration $($Test.Duration.TotalMilliseconds)ms"
+            Write-PesterDebugMessage -Scope Timing -Message "Test duration $($Test.UserDuration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing -Message "Framework duration $($Test.FrameworkDuration.TotalMilliseconds)ms"
         }
     }
@@ -765,141 +731,6 @@ function Set-CurrentTest {
 }
 
 
-function New-TestObject {
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [String[]] $Path,
-        [String[]] $Tag,
-        [System.Collections.IDictionary] $Data,
-        [String] $Id,
-        [ScriptBlock] $ScriptBlock,
-        [Switch] $Focus,
-        [Switch] $Skip
-    )
-
-    # this function is on hot path, inline as much as you can
-
-    [PSCustomObject] @{
-        ItemType          = 'Test'
-        Id                = $Id
-        ScriptBlock       = $ScriptBlock
-        Name              = $Name
-        Path              = $Path
-        Tag               = $Tag
-        Focus             = [Bool]$Focus
-        Skip              = [Bool]$Skip
-        Data              = $Data
-
-        ExpandedName      = $null
-        Block             = $null
-
-        First             = $false
-        Last              = $false
-        Include           = $false
-        Exclude           = $false
-        Explicit          = $false
-        ShouldRun         = $false
-
-        Executed          = $false
-        ExecutedAt        = $null
-        Passed            = $false
-        Skipped           = $false
-        StandardOutput    = $null
-        ErrorRecord       = [Collections.Generic.List[Object]]@()
-
-        Duration          = [timespan]::Zero
-        FrameworkDuration = [timespan]::Zero
-        PluginData        = @{ }
-        FrameworkData     = @{
-            Runtime = @{
-                Phase         = $null
-                ExecutionStep = $null
-            }
-        }
-        PSTypeName = 'DiscoveredTest'
-    }
-}
-
-function New-BlockObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [string[]] $Path,
-        [string[]] $Tag,
-        [ScriptBlock] $ScriptBlock,
-        [HashTable] $FrameworkData = @{ },
-        [HashTable] $PluginData = @{ },
-        [Switch] $Focus,
-        [String] $Id,
-        [Switch] $Skip
-    )
-
-    # this function is on hot path, inline as much as you can
-
-    [PSCustomObject] @{
-        ItemType               = 'Block'
-        Id                   = $Id
-        Name                 = $Name
-        Path                 = $Path
-        Tag                  = $Tag
-        ScriptBlock          = $ScriptBlock
-        FrameworkData        = $FrameworkData
-        PluginData           = $PluginData
-        Focus                = [bool] $Focus
-        Skip                 = [bool] $Skip
-
-        Tests                = [Collections.Generic.List[Object]]@()
-        # TODO: consider renaming this to just Container
-        BlockContainer       = $null
-        Root                 = $null
-        IsRoot               = $null
-        Parent               = $null
-        EachTestSetup        = $null
-        OneTimeTestSetup     = $null
-        EachTestTeardown     = $null
-        OneTimeTestTeardown  = $null
-        EachBlockSetup       = $null
-        OneTimeBlockSetup    = $null
-        EachBlockTeardown    = $null
-        OneTimeBlockTeardown = $null
-        Order                = [Collections.Generic.List[Object]]@()
-        Blocks               = [Collections.Generic.List[Object]]@()
-        Executed             = $false
-        Passed               = $false
-        First                = $false
-        Last                 = $false
-        StandardOutput       = $null
-        ErrorRecord          = [Collections.Generic.List[Object]]@()
-        ShouldRun            = $false
-        Exclude              = $false
-        Include              = $false
-        Explicit             = $false
-        ExecutedAt           = $null
-        Duration             = [timespan]::Zero
-        FrameworkDuration    = [timespan]::Zero
-        OwnDuration          = [timespan]::Zero
-        DiscoveryDuration    = [timespan]::Zero
-        OwnPassed     = $false
-        TotalCount = 0
-        PassedCount = 0
-        FailedCount = 0
-        SkippedCount = 0
-        PendingCount = 0
-        NotRunCount = 0
-        InconclusiveCount = 0
-        OwnTotalCount = 0
-        OwnPassedCount = 0
-        OwnFailedCount = 0
-        OwnSkippedCount = 0
-        OwnPendingCount = 0
-        OwnNotRunCount = 0
-        OwnInconclusiveCount = 0
-        PSTypeName = 'DiscoveredBlock'
-    }
-}
-
 function Is-Discovery {
     $state.Discovery
 }
@@ -919,17 +750,20 @@ function Discover-Test {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
-    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
-        BlockContainers = $BlockContainer
-        Configuration = $state.PluginConfiguration
-    } -ThrowOnFailure
+    $steps = $state.Plugin.DiscoveryStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
+            BlockContainers = $BlockContainer
+            Configuration   = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
         $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Content)"
+            Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Item)"
         }
 
         # this is a block object that we add so we can capture
@@ -937,6 +771,7 @@ function Discover-Test {
         # container
         $root = [Pester.Block]::Create()
         $root.Name = "Root"
+        $root.IsRoot = $true
         $root.Path = "Path"
 
         $root.First = $true
@@ -944,10 +779,13 @@ function Discover-Test {
 
         Reset-PerContainerState -RootBlock $root
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
-            BlockContainer = $container
-            Configuration = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerDiscoveryStart
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
+                BlockContainer = $container
+                Configuration  = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
 
@@ -956,12 +794,15 @@ function Discover-Test {
             Block     = $root
         }
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
-            BlockContainer = $container
-            Block          = $root
-            Duration       = $perContainerDiscoveryDuration.Elapsed
-            Configuration = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerDiscoveryEnd
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
+                BlockContainer = $container
+                Block          = $root
+                Duration       = $perContainerDiscoveryDuration.Elapsed
+                Configuration  = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1016,13 +857,16 @@ function Discover-Test {
         $f.Block
     }
 
-    Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-        BlockContainers = $found.Block
-        AnyFocusedTests = $focusedTests.Count -gt 0
-        FocusedTests    = $focusedTests
-        Duration        = $totalDiscoveryDuration.Elapsed
-        Configuration = $state.PluginConfiguration
-    } -ThrowOnFailure
+    $steps = $state.Plugin.DiscoveryEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
+            BlockContainers = $found.Block
+            AnyFocusedTests = $focusedTests.Count -gt 0
+            FocusedTests    = $focusedTests
+            Duration        = $totalDiscoveryDuration.Elapsed
+            Configuration   = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
@@ -1053,10 +897,13 @@ function Run-Test {
         $rootBlock.Executed = $true
         $rootBlock.ExecutedAt = [DateTime]::now
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
-            Block = $rootBlock
-            Configuration = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerRunStart
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
+                Block         = $rootBlock
+                Configuration = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         try {
             # if ($null -ne $rootBlock.OneTimeBlockSetup) {
@@ -1089,17 +936,12 @@ function Run-Test {
                 $rootSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
                     # if ($rootBlock.ShouldRun) {
-                        # todo: should this always run?
-                        selectNonNull $rootBlock.OneTimeTestSetup
+                    # todo: should this always run?
+                    $rootBlock.OneTimeTestSetup
                     # }
                 ) `
-                    -Setup @() `
-                    -ScriptBlock { } `
-                    -Context @{ } `
                     -ReduceContextToInnerScope `
-                    -MoveBetweenScopes `
-                    -OnUserScopeTransition { Switch-Timer -Scope UserCode } `
-                    -OnFrameworkScopeTransition { Switch-Timer -Scope Framework }
+                    -MoveBetweenScopes
             }
 
 
@@ -1119,20 +961,23 @@ function Run-Test {
         PostProcess-ExecutedBlock -Block $rootBlock
         $result = ConvertTo-ExecutedBlockContainer -Block $rootBlock
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
 
-        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
-            Result = $result
-            Block  = $rootBlock
-            Configuration = $state.PluginConfiguration
-        } -ThrowOnFailure
+        $steps = $state.Plugin.ContainerRunEnd
+        if ($null -ne $steps -and 0 -lt @($steps).Count) {
+            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
+                Result        = $result
+                Block         = $rootBlock
+                Configuration = $state.PluginConfiguration
+            } -ThrowOnFailure
+        }
 
         # set this again so the plugins have some data but that we also include the plugin invocation to the
         # overall time to keep the actual timing correct
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.Duration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Timing "Container duration $($result.Duration.TotalMilliseconds)ms"
+            Write-PesterDebugMessage -Scope Timing "Container duration $($result.UserDuration.TotalMilliseconds)ms"
             Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
         }
 
@@ -1141,7 +986,7 @@ function Run-Test {
 }
 
 function Invoke-PluginStep {
-    [CmdletBinding()]
+    # [CmdletBinding()]
     param (
         [PSObject[]] $Plugins,
         [Parameter(Mandatory)]
@@ -1155,21 +1000,15 @@ function Invoke-PluginStep {
     # in isolation, and then another where we are using Invoke-ScriptBlock directly when we need the plugin to run
     # for example as a teardown step of a test.
 
-    Switch-Timer -Scope Framework
+    # switch-timer framework
+    $state.UserCodeStopWatch.Stop()
+    $state.FrameworkStopWatch.Start()
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $sw = [Diagnostics.Stopwatch]::StartNew()
     }
 
-    # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
-    $isEndStep = $Step -like "*End"
-
-    $pluginsWithGivenStep =
-    @(foreach ($p in $Plugins) {
-            if ($p."Has$Step") {
-                $p
-            }
-        })
-
+    $pluginsWithGivenStep = @(foreach ($p in $Plugins) { if ($null -ne $p.$Step) { $p } })
 
     if ($null -eq $pluginsWithGivenStep -or 0 -eq @($pluginsWithGivenStep).Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1178,12 +1017,21 @@ function Invoke-PluginStep {
         return
     }
 
+    # this is end step, we should run all steps no matter if some failed, and we should run them in opposite direction
+    # only do this if there is more than 1, to avoid the "expensive" -like check and reverse
+    $isEndStep = 1 -lt $pluginsWithGivenStep.Count -and $Step -like "*End"
     if (-not $isEndStep) {
         [Array]::Reverse($pluginsWithGivenStep)
     }
 
     $err = [Collections.Generic.List[Management.Automation.ErrorRecord]]@()
     $failed = $false
+    # the plugins expect -Context and then the actual context in it
+    # this was a choice at the start of the project to make it easy to see
+    # what is available, not sure if a good choice
+    $ctx = @{
+        Context = $Context
+    }
     $standardOutput =
     foreach ($p in $pluginsWithGivenStep) {
         if ($failed -and -not $isEndStep) {
@@ -1196,15 +1044,11 @@ function Invoke-PluginStep {
         try {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $stepSw = [Diagnostics.Stopwatch]::StartNew()
-                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step with context '$($Context | Out-String)'"
+                $hasContext = 0 -lt $Context.Count
+                $c = if ($hasContext) { $Context | & $script:SafeCommands['Out-String'] }
+                Write-PesterDebugMessage -Scope Plugin "Running $($p.Name) step $Step $(if ($hasContext) { "with context: $c" } else { "without any context"})"
             }
 
-            # the plugins expect -Context and then the actual context in it
-            # this was a choice at the start of the project to make it easy to see
-            # what is available, not sure if a good choice
-            $ctx = @{
-                Context = $Context
-            }
             do {
                 & $p.$Step @ctx
             } while ($false)
@@ -1222,16 +1066,17 @@ function Invoke-PluginStep {
         }
     }
 
-    $r = New-InvocationResultObject -Success (-not $failed) -ErrorRecord $err -StandardOutput $standardOutput
-
-
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Plugin "Invoking plugins in step $Step took $($sw.ElapsedMilliseconds) ms"
-    }
     if ($ThrowOnFailure) {
-        Assert-Success $r -Message "Invoking step $step failed"
+        if ($failed) {
+            $r = [Pester.InvocationResult]::Create((-not $failed), $err, $standardOutput)
+            Assert-Success $r -Message "Invoking step $step failed"
+        }
+        else {
+            # do nothing, especially don't create or return the result object
+        }
     }
     else {
+        $r = [Pester.InvocationResult]::Create((-not $failed), $err, $standardOutput)
         return $r
     }
 }
@@ -1265,9 +1110,7 @@ function Assert-Success {
 }
 
 function Invoke-ScriptBlock {
-    [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
         [ScriptBlock] $ScriptBlock,
         [ScriptBlock[]] $OuterSetup,
         [ScriptBlock[]] $Setup,
@@ -1290,6 +1133,43 @@ function Invoke-ScriptBlock {
         [ScriptBlock] $OnFrameworkScopeTransition = $null,
         $Configuration
     )
+
+    # filter nulls, inlined to avoid overhead of combineNonNull and selectNonNull
+    $OuterSetup = if ($null -ne $OuterSetup -and 0 -lt $OuterSetup.Count) {
+        foreach ($i in $OuterSetup) {
+            if ($null -ne $i) {
+                $i
+            }
+        }
+    }
+
+    $Setup = if ($null -ne $Setup -and 0 -lt $Setup.Count) {
+        foreach ($i in $Setup) {
+            if ($null -ne $i) {
+                $i
+            }
+        }
+    }
+
+    $Teardown = if ($null -ne $Teardown -and 0 -lt $Teardown.Count) {
+        foreach ($i in $Teardown) {
+            if ($null -ne $i) {
+                $i
+            }
+        }
+    }
+
+    $OuterTeardown = if ($null -ne $OuterTeardown -and 0 -lt $OuterTeardown.Count) {
+        foreach ($i in $OuterTeardown) {
+            if ($null -ne $i) {
+                $i
+            }
+        }
+    }
+
+
+
+
 
     # this is what the code below does
     # . $OuterSetup
@@ -1320,7 +1200,7 @@ function Invoke-ScriptBlock {
 
 
         try {
-             if ($______parameters.ContextInOuterScope) {
+            if ($______parameters.ContextInOuterScope) {
                 $______outerSplat = $______parameters.Context
                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variables" }
                 foreach ($______current in $______outerSplat.GetEnumerator()) {
@@ -1379,11 +1259,16 @@ function Invoke-ScriptBlock {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There are no inner setups" }
                     }
 
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
-                    $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
-                    . $______parameters.ScriptBlock @______innerSplat
+                    if ($null -ne $______parameters.ScriptBlock) {
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running scriptblock { $($______parameters.ScriptBlock) }" }
+                        $______parameters.CurrentlyExecutingScriptBlock = $______parameters.ScriptBlock
+                        . $______parameters.ScriptBlock @______innerSplat
 
-                    if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scriptblock" }
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Done running scriptblock" }
+                    }
+                    else {
+                        if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "There is no scriptblock to run" }
+                    }
                 }
                 catch {
                     $______parameters.ErrorRecord.Add($_)
@@ -1448,11 +1333,18 @@ function Invoke-ScriptBlock {
         }
     }
 
-    if ($MoveBetweenScopes) {
+    if ($MoveBetweenScopes -and $null -ne $ScriptBlock) {
         $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
         # attach the original session state to the wrapper scriptblock
         # making it invoke in the same scope as $ScriptBlock
         $script:ScriptBlockSessionStateInternalProperty.SetValue($wrapperScriptBlock, $SessionStateInternal, $null)
+    }
+
+    $writeDebug = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        {
+            param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
+            Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
+        }
     }
 
     #$break = $true
@@ -1469,12 +1361,9 @@ function Invoke-ScriptBlock {
             Context                       = $Context
             ContextInOuterScope           = -not $ReduceContextToInnerScope
             EnableWriteDebug              = $PesterPreference.Debug.WriteDebugMessages.Value
-            WriteDebug                    = {
-                param($Message, [Management.Automation.ErrorRecord] $ErrorRecord)
-                Write-PesterDebugMessage -Scope "RuntimeCore" $Message -ErrorRecord $ErrorRecord
-            }
-            Configuration = $Configuration
-            NoNewScope = $NoNewScope
+            WriteDebug                    = $writeDebug
+            Configuration                 = $Configuration
+            NoNewScope                    = $NoNewScope
         }
 
         # here we are moving into the user scope if the provided
@@ -1484,8 +1373,14 @@ function Invoke-ScriptBlock {
         # just logging, so the time difference is miniscule.
         # The code might also run just in framework scope, in that case the callback can remain empty,
         # eg when we are invoking framework setup.
-        if ($MoveBetweenScopes -and $null -ne $OnUserScopeTransition) {
-            & $OnUserScopeTransition
+        if ($MoveBetweenScopes) {
+            # switch-timer to user scope inlined
+            $state.UserCodeStopWatch.Start()
+            $state.FrameworkStopWatch.Stop()
+
+            if ($null -ne $OnUserScopeTransition) {
+                & $OnUserScopeTransition
+            }
         }
         do {
             $standardOutput = if ($NoNewScope) {
@@ -1502,58 +1397,24 @@ function Invoke-ScriptBlock {
         $err = $_
     }
 
-    if ($MoveBetweenScopes -and $null -ne $OnFrameworkScopeTransition) {
-        & $OnFrameworkScopeTransition
+    if ($MoveBetweenScopes) {
+        # switch-timer to framework scope inlined
+        $state.UserCodeStopWatch.Stop()
+        $state.FrameworkStopWatch.Start()
+
+        if ($null -ne $OnFrameworkScopeTransition) {
+            & $OnFrameworkScopeTransition
+        }
     }
 
     if ($err) {
         $parameters.ErrorRecord.Add($err)
     }
 
-    $r = New-InvocationResultObject `
-        -Success (0 -eq $parameters.ErrorRecord.Count) `
-        -ErrorRecord $parameters.ErrorRecord `
-        -StandardOutput $standardOutput
+    $r = [Pester.InvocationResult]::Create((0 -eq $parameters.ErrorRecord.Count), $parameters. ErrorRecord, $standardOutput)
 
     return $r
 }
-
-function New-InvocationResultObject {
-    [CmdletBinding()]
-    param (
-        [bool] $Success = $true,
-        [Collections.Generic.List[Management.Automation.ErrorRecord]] $ErrorRecord,
-        $StandardOutput
-    )
-
-    [PSCustomObject] @{
-        Success        = $Success
-        ErrorRecord    = $ErrorRecord
-        StandardOutput = $StandardOutput
-    }
-}
-
-function Merge-InvocationResult {
-    param(
-        [Parameter(Mandatory)]
-        [PSObject[]] $Result
-    )
-
-    if ($Result.Count -eq 1) {
-        return $Result[0]
-    }
-
-    $m = New-InvocationResultObject
-
-    foreach ($r in $Result) {
-        $m.Success = $m.Success -and $r.Success
-        $null = $m.ErrorRecord.AddRange($r.ErrorRecord)
-        $null = $m.StandardOutput.AddRange(@($r.StandardOutput))
-    }
-
-    $m
-}
-
 
 function Reset-TestSuiteTimer {
     if ($null -eq $state.TotalStopWatch) {
@@ -1582,7 +1443,6 @@ function Switch-Timer {
 
     # perf: optimizing away parameter and validate set, and $Scope as int or bool within an if, only brings about 1/3 saving (about 60 ms per 1000 calls)
     # not worth it for the moment
-
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         if ($state.UserCodeStopWatch.IsRunning) {
             Write-PesterDebugMessage -Scope TimingCore "Switching from UserCode to $Scope"
@@ -1621,8 +1481,8 @@ function Test-ShouldRun {
     # see https://github.com/pester/Pester/issues/1442 for description of how this filtering works
 
     $result = @{
-        Include = $false
-        Exclude = $false
+        Include  = $false
+        Exclude  = $false
         Explicit = $false
     }
 
@@ -1630,7 +1490,7 @@ function Test-ShouldRun {
     $fullDottedPath = $Item.Path -join "."
     if ($null -eq $Filter) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because there is no filters."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because there is no filters."
         }
 
         $result.Include = $true
@@ -1647,7 +1507,7 @@ function Test-ShouldRun {
 
     if ($parent.Exclude) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is excluded, because it's parent is excluded."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because it's parent is excluded."
         }
         $result.Exclude = $true
         return $result
@@ -1657,13 +1517,13 @@ function Test-ShouldRun {
     $tagFilter = $Filter.ExcludeTag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) There is '$($tagFilter -join ", ")' exclude tag filter."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) There is '$($tagFilter -join ", ")' exclude tag filter."
         }
         foreach ($f in $tagFilter) {
             foreach ($t in $Item.Tag) {
                 if ($t -like $f) {
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                        Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is excluded, because it's tag '$t' matches exclude tag filter '$f'."
+                        Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because it's tag '$t' matches exclude tag filter '$f'."
                     }
                     $result.Exclude = $true
                     return $result
@@ -1671,7 +1531,7 @@ function Test-ShouldRun {
             }
         }
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match the exclude tag filter, moving on to the next filter."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) did not match the exclude tag filter, moving on to the next filter."
         }
     }
 
@@ -1683,21 +1543,21 @@ function Test-ShouldRun {
     # the test even if it is marked as skipped run this include as first so we figure it out
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.ScriptBlock.StartPosition.StartLine)" -replace '\\','/'
+    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.ScriptBlock.StartPosition.StartLine)" -replace '\\', '/'
     if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
-        foreach ($l in $lineFilter -replace '\\','/') {
+        foreach ($l in $lineFilter -replace '\\', '/') {
             if ($l -eq $line) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because its path:line '$line' matches line filter '$lineFilter'."
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because its path:line '$line' matches line filter '$lineFilter'."
                 }
 
-               # if ('Test' -eq $Item.ItemType ) {
-                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                        Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is explicitly included, because it matched line filter, and will run even if -Skip is specified on it. Any skipped children will still be skipped."
-                    }
+                # if ('Test' -eq $Item.ItemType ) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is explicitly included, because it matched line filter, and will run even if -Skip is specified on it. Any skipped children will still be skipped."
+                }
 
-                    $result.Explicit = $true
+                $result.Explicit = $true
                 # }
 
                 $result.Include = $true
@@ -1708,7 +1568,7 @@ function Test-ShouldRun {
 
     if ($parent.Include) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because its parent is included."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because its parent is included."
         }
 
         $result.Include = $true
@@ -1719,12 +1579,12 @@ function Test-ShouldRun {
     $tagFilter = $Filter.Tag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) There is '$($tagFilter -join ", ")' include tag filter."
+            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) There is '$($tagFilter -join ", ")' include tag filter."
         }
         $anyIncludeFilters = $true
         if ($null -eq $Item.Tag -or 0 -eq $Item.Tag) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
             }
         }
         else {
@@ -1732,7 +1592,7 @@ function Test-ShouldRun {
                 foreach ($t in $Item.Tag) {
                     if ($t -like $f) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it's tag '$t' matches tag filter '$f'."
+                            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because it's tag '$t' matches tag filter '$f'."
                         }
 
                         $result.Include = $true
@@ -1754,7 +1614,7 @@ function Test-ShouldRun {
         }
         if ($include) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) is included, because it matches fullname filter '$include'."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because it matches fullname filter '$include'."
             }
 
             $result.Include = $true
@@ -1762,7 +1622,7 @@ function Test-ShouldRun {
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) does not match the dotted path filter, moving to next include filter."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) does not match the dotted path filter, moving to next include filter."
             }
         }
     }
@@ -1770,32 +1630,32 @@ function Test-ShouldRun {
     if ($anyIncludeFilters) {
         if ('Test' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, it will not be included in the run."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, it will not be included in the run."
             }
         }
         elseif ('Block' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run."
             }
         }
-        else  {
+        else {
             throw "Item type $($Item.ItemType) is not supported in filter."
         }
     }
     else {
         if ('Test' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters so all tests are included unless they match exclude rule."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters so all tests are included unless they match exclude rule."
             }
 
             $result.Include = $true
         } # putting the bool in both to avoid string comparison
         elseif ('Block' -eq $Item.ItemType) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters, and will let its children to determine whether or not it should run."
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) will be included in the run, because there were no include filters, and will let its children to determine whether or not it should run."
             }
         }
-        else  {
+        else {
             throw "Item type $($Item.ItemType) is not supported in filter."
         }
 
@@ -1926,14 +1786,14 @@ function PostProcess-DiscoveredBlock {
         if ($b.Skip) {
             if ($b.Explicit) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block was marked as skipped, but will not be skipped because it was explicitly requested to run."
+                    Write-PesterDebugMessage -Scope Skip "($path) Block was marked as skipped, but will not be skipped because it was explicitly requested to run."
                 }
 
                 $b.Skip = $false
             }
             else {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped."
+                    Write-PesterDebugMessage -Scope Skip "($path) Block is skipped."
                 }
 
                 $b.Skip = $true
@@ -1941,7 +1801,7 @@ function PostProcess-DiscoveredBlock {
         }
         elseif ($parentBlockIsSkipped) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeSkip "($path) Block is skipped because a parent block was skipped."
+                Write-PesterDebugMessage -Scope Skip "($path) Block is skipped because a parent block was skipped."
             }
 
             $b.Skip = $true
@@ -1955,7 +1815,7 @@ function PostProcess-DiscoveredBlock {
                 if ($t.Block.Exclude) {
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $t.Path -join "."
-                        Write-PesterDebugMessage -Scope RuntimeFilter "($path) Test is excluded because parent block was excluded."
+                        Write-PesterDebugMessage -Scope Filter "($path) Test is excluded because parent block was excluded."
                     }
                     $t.ShouldRun = $false
                 }
@@ -1986,14 +1846,14 @@ function PostProcess-DiscoveredBlock {
                 if ($t.Skip) {
                     if ($t.ShouldRun -and $t.Explicit) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test was marked as skipped, but will not be skipped because it was explicitly requested to run."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test was marked as skipped, but will not be skipped because it was explicitly requested to run."
                         }
 
                         $t.Skip = $false
                     }
                     else {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
                         }
 
                         $t.Skip = $true
@@ -2002,14 +1862,14 @@ function PostProcess-DiscoveredBlock {
                 elseif ($b.Skip) {
                     if ($t.ShouldRun -and $t.Explicit) {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test was marked as skipped, because its parent was marked as skipped, but will not be skipped because it was explicitly requested to run."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test was marked as skipped, because its parent was marked as skipped, but will not be skipped because it was explicitly requested to run."
                         }
 
                         $t.Skip = $false
                     }
                     else {
                         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                            Write-PesterDebugMessage -Scope RuntimeSkip "($path) Test is skipped because a parent block was skipped."
+                            Write-PesterDebugMessage -Scope Skip "($path) Test is skipped because a parent block was skipped."
                         }
 
                         $t.Skip = $true
@@ -2052,7 +1912,7 @@ function PostProcess-DiscoveredBlock {
 
         if ($b.ShouldRun -and -not $shouldRunBasedOnChildren) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope RuntimeFilter "($($b.Path -join '.')) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run."
+                Write-PesterDebugMessage -Scope Filter "($($b.Path -join '.')) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run."
             }
         }
 
@@ -2092,7 +1952,7 @@ function PostProcess-ExecutedBlock {
                 if (-not $t.ShouldRun) {
                     $b.OwnNotRunCount++
                 }
-                elseif  ($t.ShouldRun -and $t.Skipped) {
+                elseif ($t.ShouldRun -and $t.Skipped) {
                     $b.OwnSkippedCount++
                 }
                 elseif (($t.Executed -and -not $t.Passed) -or ($t.ShouldRun -and -not $t.Executed)) {
@@ -2261,7 +2121,7 @@ function New-PluginObject {
         [ScriptBlock] $End
     )
 
-    $h = @{
+    [PSCustomObject] @{
         Name                    = $Name
         Configuration           = $Configuration
         Start                   = $Start
@@ -2286,22 +2146,8 @@ function New-PluginObject {
         ContainerRunEnd         = $ContainerRunEnd
         RunEnd                  = $RunEnd
         End                     = $End
-        PSTypeName = 'Plugin'
+        PSTypeName              = 'Plugin'
     }
-
-    # enumerate to avoid modifying the key collection
-    # when we edit the hashtable
-    $keys = foreach ($k in $h.Keys) { $k }
-
-    foreach ($k in $keys) {
-        if ("Configuration" -eq $k -or "Name" -eq $k) {
-            continue
-        }
-
-        $h.Add("Has$k", ($null -ne $h.$k))
-    }
-
-    [PSCustomObject] $h
 }
 
 function Invoke-BlockContainer {
@@ -2313,8 +2159,8 @@ function Invoke-BlockContainer {
     )
 
     switch ($BlockContainer.Type) {
-        "ScriptBlock" { & $BlockContainer.Content }
-        "File" { Invoke-File -Path $BlockContainer.Content.PSPath -SessionState $SessionState }
+        "ScriptBlock" { & $BlockContainer.Item }
+        "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 }
@@ -2330,17 +2176,17 @@ function New-BlockContainerObject {
         [System.IO.FileInfo] $File
     )
 
-    $type, $content = switch ($PSCmdlet.ParameterSetName) {
+    $type, $item = switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { "ScriptBlock", $ScriptBlock }
         "Path" { "File", (Get-Item $Path) }
         "File" { "File", $File }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
-    [PSCustomObject] @{
-        Type    = $type
-        Content = $content
-    }
+    $c = [Pester.ContainerInfo]::Create()
+    $c.Type    = $type
+    $c.Item = $item
+    return $c
 }
 
 function New-DiscoveredBlockContainerObject {
@@ -2354,7 +2200,7 @@ function New-DiscoveredBlockContainerObject {
 
     [PSCustomObject] @{
         Type    = $BlockContainer.Type
-        Content = $BlockContainer.Content
+        Item = $BlockContainer.Item
         # I create a Root block to keep the discovery unaware of containers,
         # but I don't want to publish that root block because it contains properties
         # that do not make sense on container level like Name and Parent,
@@ -2506,7 +2352,7 @@ function New-ParametrizedTest () {
     # using the start line of the scriptblock as the id of the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
     $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
-    #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
+        #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
         New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus -Skip:$Skip
     }
 }

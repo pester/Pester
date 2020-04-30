@@ -1,6 +1,8 @@
 param (
     [Parameter(Mandatory)]
-    [string] $ApiKey
+    [string] $ApiKey,
+    [Parameter(Mandatory)]
+    [string] $Path
 )
 
 

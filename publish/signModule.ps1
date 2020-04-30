@@ -1,4 +1,4 @@
-param($Thumbprint)
+param($Thumbprint, $Path)
 $ErrorActionPreference = 'Stop'
 
 $cert = Get-ChildItem Cert:\CurrentUser\My |
@@ -13,7 +13,7 @@ if (@($cert).Length -gt 1) {
 }
 
 "Signing Files"
-$files = Get-ChildItem -Recurse -ErrorAction SilentlyContinue |
+$files = Get-ChildItem -Recurse -ErrorAction SilentlyContinue $Path |
     Where-Object { $_.Extension -in ".ps1", ".psm1", ".psd1", ".dll" } |
     Select-Object -ExpandProperty FullName
 

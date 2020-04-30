@@ -1,7 +1,5 @@
 using Pester;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
@@ -21,9 +19,6 @@ using System.Management.Automation;
 // simple to use by implicit casting, with the only exception of PesterConfiguration because that is helpful
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
-//
-// ⚠ DO NOT use auto properties or any of the new fancy syntax in this file,
-// PowerShell would not be able to compile it. DO USE nameof, it will be replaced on load.
 
 namespace Pester
 {
@@ -402,7 +397,7 @@ namespace Pester
         {
             ShowFullErrors = new BoolOption("Show full errors including Pester internal stack.", false);
             WriteDebugMessages = new BoolOption("Write Debug messages to screen.", false);
-            WriteDebugMessagesFrom = new StringOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", "*");
+            WriteDebugMessagesFrom = new StringArrayOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", new string[] { "Discovery", "Skip", "Filter", "Mock", "CodeCoverage" });
             ShowNavigationMarkers = new BoolOption("Write paths after every block and test, for easy navigation in VSCode.", false);
             WriteVSCodeMarker = new BoolOption("Write VSCode marker for better integration with VSCode.", false);
             ReturnRawResultObject = new BoolOption("Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.", false);
@@ -414,7 +409,7 @@ namespace Pester
             {
                 ShowFullErrors = configuration.GetValueOrNull<bool>("ShowFullErrors") ?? ShowFullErrors;
                 WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
-                WriteDebugMessagesFrom = configuration.GetObjectOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
+                WriteDebugMessagesFrom = configuration.GetArrayOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
                 ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
                 WriteVSCodeMarker = configuration.GetValueOrNull<bool>("WriteVSCodeMarker") ?? WriteVSCodeMarker;
                 ReturnRawResultObject = configuration.GetValueOrNull<bool>("ReturnRawResultObject") ?? ReturnRawResultObject;
@@ -423,7 +418,7 @@ namespace Pester
 
         private BoolOption _showFullErrors;
         private BoolOption _writeDebugMessages;
-        private StringOption _writeDebugMessagesFrom;
+        private StringArrayOption _writeDebugMessagesFrom;
         private BoolOption _showNavigationMarkers;
         private BoolOption _writeVsCodeMarker;
         private BoolOption _returnRawResultObject;
@@ -460,7 +455,7 @@ namespace Pester
             }
         }
 
-        public StringOption WriteDebugMessagesFrom
+        public StringArrayOption WriteDebugMessagesFrom
         {
             get { return _writeDebugMessagesFrom; }
             set
@@ -471,7 +466,7 @@ namespace Pester
                 }
                 else
                 {
-                    _writeDebugMessagesFrom = new StringOption(_writeDebugMessagesFrom, value.Value);
+                    _writeDebugMessagesFrom = new StringArrayOption(_writeDebugMessagesFrom, value.Value);
                 }
             }
         }
@@ -1028,7 +1023,7 @@ namespace Pester
 
         public OutputConfiguration() : base("Output configuration")
         {
-            Verbosity = new StringOption("The verbosity of output, options are Normal, None.", "Normal");
+            Verbosity = new StringOption("The verbosity of output, options are None, Minimal, Normal and Diagnostic.", "Minimal");
         }
 
         public StringOption Verbosity

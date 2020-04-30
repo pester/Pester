@@ -272,8 +272,8 @@ function Invoke-Pester {
         [Switch] $CI,
 
         [Parameter(ParameterSetName = "Simple")]
-        [ValidateSet("Normal", "Minimal", "None")]
-        [String] $Output,
+        [ValidateSet("Diagnostic", "Normal", "Minimal", "None")]
+        [String] $Output = "Minimal",
 
         [Parameter(ParameterSetName = "Simple")]
         [Switch] $PassThru,
@@ -321,49 +321,57 @@ function Invoke-Pester {
                 # populate preference from parameters and remove them so we
                 # don't inherit them to child functions by accident
 
-                if ($Path) {
+                if ($PSBoundParameters.ContainsKey('Path')) {
                     if ($null -ne $Path) {
                         $PesterPreference.Run.Path = $Path
                     }
+
                     Get-Variable 'Path' -Scope Local | Remove-Variable
                 }
 
-                if ($ExcludePath) {
+                if ($PSBoundParameters.ContainsKey('ExcludePath')) {
                     if ($null -ne $ExcludePath) {
                         $PesterPreference.Run.ExcludePath = $ExcludePath
                     }
+
                     Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
                 }
 
-                if (any $TagFilter) {
-                    if ($null -ne $TagFilter) {
+                if ($PSBoundParameters.ContainsKey('TagFilter')) {
+                    if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
                         $PesterPreference.Filter.Tag = $TagFilter
                     }
+
                     Get-Variable 'TagFilter' -Scope Local | Remove-Variable
                 }
 
-                if (any $ExcludeTagFilter) {
-                    if ($null -ne $ExcludeTagFilter) {
+                if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
                         $PesterPreference.Filter.ExcludeTag = $ExcludeTagFilter
                     }
+
                     Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
                 }
 
-                if (any $FullNameFilter) {
-                    if ($null -ne $FullNameFilter) {
+                if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
+                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
                         $PesterPreference.Filter.FullName = $FullNameFilter
                     }
+
                     Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
                 }
 
-                if ($CI) {
-                    $PesterPreference.Run.Exit = $true
-                    $PesterPreference.CodeCoverage.Enabled = $true
-                    $PesterPreference.TestResult.Enabled = $true
+                if ($PSBoundParameters.ContainsKey('CI')) {
+                    if ($CI) {
+                        $PesterPreference.Run.Exit = $true
+                        $PesterPreference.CodeCoverage.Enabled = $true
+                        $PesterPreference.TestResult.Enabled = $true
+                    }
+
                     Get-Variable 'CI' -Scope Local | Remove-Variable
                 }
 
-                if ($Output) {
+                if ($PSBoundParameters.ContainsKey('Output')) {
                     if ($null -ne $Output) {
                         $PesterPreference.Output.Verbosity = $Output
                     }
@@ -371,7 +379,7 @@ function Invoke-Pester {
                     Get-Variable 'Output' -Scope Local | Remove-Variable
                 }
 
-                if ($PassThru) {
+                if ($PSBoundParameters.ContainsKey('PassThru')) {
                     if ($null -ne $PassThru) {
                         $PesterPreference.Run.PassThru = [bool] $PassThru
                     }
@@ -386,7 +394,12 @@ function Invoke-Pester {
             $pluginConfiguration = @{}
             $plugins = @()
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
-                $plugins += Get-WriteScreenPlugin
+                $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
+            }
+
+            if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
+                $PesterPreference.Debug.WriteDebugMessages = $true
+                $PesterPreference.Debug.WriteDebugMessagesFrom = "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
             }
 
             $plugins +=
@@ -467,13 +480,17 @@ function Invoke-Pester {
 
             # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
             $pluginData = @{}
-            Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
-                Containers = $containers
-                Configuration = $pluginConfiguration
-                GlobalPluginData = $pluginData
-                WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
-                Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
-            } -ThrowOnFailure
+
+            $steps = $Plugins.Start
+            if ($null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
+                    Containers = $containers
+                    Configuration = $pluginConfiguration
+                    GlobalPluginData = $pluginData
+                    WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+                    Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+                } -ThrowOnFailure
+            }
 
             if ((none $containers)) {
                 throw "No test files were found and no scriptblocks were provided."
@@ -490,14 +507,37 @@ function Invoke-Pester {
                 PSBoundParameters = $PSBoundParameters
             }
 
-            $run = New-RSpecTestRunObject -ExecutedAt $start -Parameters $parameters -BoundParameters $PSBoundParameters -BlockContainer @($r) -PluginConfiguration $pluginConfiguration -Plugins $Plugins -PluginData $pluginData -Configuration $PesterPreference -version 5.0.0
+            $run = [Pester.Run]::Create()
+            $run.Executed = $true
+            $run.ExecutedAt = $start
+            $run.PSBoundParameters = $PSBoundParameters
+            $run.PluginConfiguration = $pluginConfiguration
+            $run.Plugins = $Plugins
+            $run.PluginData = $pluginData
+            $run.Configuration = $PesterPreference
+            $m = $ExecutionContext.SessionState.Module
+            $run.Version = if ($m.PrivateData -and $m.PrivateData.PSData)
+            {
+                "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
+            }
+            else {
+                $m.Version
+            }
+
+            $run.PSVersion = $PSVersionTable.PSVersion
+            foreach ($i in @($r)) {
+                $run.Containers.Add($i)
+            }
 
             PostProcess-RSpecTestRun -TestRun $run
 
-            Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
-                TestRun = $run
-                Configuration = $pluginConfiguration
-            } -ThrowOnFailure
+            $steps = $Plugins.End
+            if ($null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
+                    TestRun = $run
+                    Configuration = $pluginConfiguration
+                } -ThrowOnFailure
+            }
 
             if ($PesterPreference.TestResult.Enabled.Value) {
                 Export-NunitReport $run $PesterPreference.TestResult.OutputPath.Value
@@ -506,7 +546,7 @@ function Invoke-Pester {
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
-                $totalMilliseconds = ($run.Duration + $run.DiscoveryDuration + $run.FrameworkDuration).TotalMilliseconds
+                $totalMilliseconds = $run.Duration.TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
             }
@@ -776,7 +816,7 @@ function ConvertTo-Pester4Result {
             PendingCount = 0
             InconclusiveCount = 0
             Time = [TimeSpan]::Zero
-            TestResult = [System.Collections.ArrayList]@()
+            TestResult = [System.Collections.Generic.List[object]]@()
         }
         $filter = $PesterResult.Configuration.Filter
         $legacyResult.TagFilter = if (0 -ne $filter.Tag.Value.Count) { $filter.Tag.Value }

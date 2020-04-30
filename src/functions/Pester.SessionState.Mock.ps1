@@ -208,7 +208,7 @@ about_Mocking
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Setting up mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
+        Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
 
     $SessionState = $PSCmdlet.SessionState
@@ -290,12 +290,12 @@ function Get-AllMockBehaviors {
         }
     }
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parents."
+        Write-PesterDebugMessage -Scope Mock "Finding all behaviors in this block and parent blocks."
     }
     $block = Get-CurrentBlock
 
     # recurse up
-    $level = 0
+    $behaviorsInTestCount = $behaviors.Count
     while ($null -ne $block) {
 
         # action
@@ -306,8 +306,8 @@ function Get-AllMockBehaviors {
             $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
                 $block.PluginData.Mock.Behaviors.$CommandName
             })
-            # for some reason 'any' fails with Arguments not match on this (posh 6.1.1 on windows), so I am inlining the check
-            if ($null -ne $bs -or $bs.Count -ne 0) {
+
+            if ($null -ne $bs -and 0 -lt @($bs).Count) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($block.Name)'."
                 }
@@ -317,22 +317,20 @@ function Get-AllMockBehaviors {
         }
         # action end
 
-        # go one level up
-        $level--
         $block = $block.Parent
     }
 
-    if ($PesterPreference.Debug.WriteDebugMessages.Value -and ($null -eq $behaviors -or $behaviors.Count -eq 0)) {
+    if ($PesterPreference.Debug.WriteDebugMessages.Value -and $behaviorsInTestCount -eq $behaviors.Count) {
         Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -LazyMessage {
-            "Found behaviors ($($behaviors.Count)) for '$CommandName': "
+            "Found $($behaviors.Count) behaviors for '$CommandName': "
             foreach ($b in $behaviors) {
-                "Body: { $($b.ScriptBlock.ToString().Trim()) }"
-                "Filter: $(if ($b.Filter) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })"
-                "Verifiable: $($b.Verifiable)"
+                "    Body: { $($b.ScriptBlock.ToString().Trim()) }"
+                "    Filter: $(if ($b.Filter) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })"
+                "    Verifiable: $($b.Verifiable)"
             }
         }
     }
@@ -986,13 +984,13 @@ function Invoke-Mock {
     if ('End' -eq $FromBlock) {
         if (-not $MockCallState.ShouldExecuteOriginalCommand) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
             }
             return
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, forwarding the call to Invoke-MockInternal without call history and without behaviors."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, forwarding the call to Invoke-MockInternal without call history and without behaviors."
             }
             Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
             return
@@ -1001,7 +999,7 @@ function Invoke-Mock {
 
     if ('Begin' -eq $FromBlock) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, Invoke-MockInternal without call history and without behaviors."
+            Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, Invoke-MockInternal without call history and without behaviors."
         }
         Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
         return

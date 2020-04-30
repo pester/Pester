@@ -175,7 +175,7 @@ i -PassThru:$PassThru {
 
             $r.SkippedCount | Verify-Equal 4
             $r.PassedCount | Verify-Equal 1
-            $r.TestsCount | Verify-Equal 5
+            $r.TotalCount | Verify-Equal 5
         }
     }
 

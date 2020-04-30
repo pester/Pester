@@ -47,15 +47,37 @@ function Verify-TestFailed {
     }
 }
 
-
-
-
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {
 
     & (Get-Module Pester.Runtime) {
+
+        function New-TestObject {
+            param (
+                [Parameter(Mandatory = $true)]
+                [String] $Name,
+                [String[]] $Path,
+                [String[]] $Tag,
+                [System.Collections.IDictionary] $Data,
+                [String] $Id,
+                [ScriptBlock] $ScriptBlock,
+                [Switch] $Focus,
+                [Switch] $Skip
+            )
+
+            $t = [Pester.Test]::Create()
+            $t.ScriptBlock = $ScriptBlock
+            $t.Name = $Name
+            $t.Path = $Path
+            $t.Tag = $Tag
+            $t.Focus = [Bool]$Focus
+            $t.Skip = [Bool]$Skip
+            $t.Data = $Data
+
+            return $t
+        }
 
 
         b "tryGetProperty" {
@@ -123,9 +145,11 @@ i -PassThru:$PassThru {
         b "Basic" {
             t "Given a scriptblock with 1 test in it, it finds 1 test" {
                 Reset-TestSuiteState
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
                         New-Test "test1" { }
-                    }) | % Tests
+                    }
+                    })).Blocks.Tests
 
                 @($actual).Length | Verify-Equal 1
                 $actual.Name | Verify-Equal "test1"
@@ -133,11 +157,12 @@ i -PassThru:$PassThru {
 
             t "Given scriptblock with 2 tests in it it finds 2 tests" {
                 Reset-TestSuiteState
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
                         New-Test "test1" { }
-
                         New-Test "test2" { }
-                    }) | % Tests
+                    }
+                    })).Blocks.Tests
 
                 @($actual).Length | Verify-Equal 2
                 $actual.Name[0] | Verify-Equal "test1"
@@ -150,16 +175,18 @@ i -PassThru:$PassThru {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock { })
 
-                $actual.Tests.Count | Verify-Equal 0
+                $actual.Blocks[0].Tests.Count | Verify-Equal 0
             }
 
             t "Given 0 tests it returns block containing 0 tests" {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Test "test1" {}
+                    New-Block "block1" {
+                        New-Test "test1" { }
+                    }
                     })
 
-                $actual.Tests.Count | Verify-Equal 1
+                $actual.Blocks[0].Tests.Count | Verify-Equal 1
             }
         }
 
@@ -167,11 +194,13 @@ i -PassThru:$PassThru {
             t "Given block that has test setup for each test it finds it" {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-EachTestSetup {setup}
-                        New-Test "test1" {}
+                        New-Block "block1" {
+                        New-EachTestSetup { setup }
+                        New-Test "test1" { }
+                        }
                     })
 
-                $actual[0].EachTestSetup | Verify-Equal 'setup'
+                $actual[0].Blocks[0].EachTestSetup.ToString().Trim() | Verify-Equal 'setup'
             }
         }
 
@@ -179,11 +208,13 @@ i -PassThru:$PassThru {
             t "Find setup to run before all tests in the block" {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-OneTimeTestSetup {oneTimeSetup}
-                        New-Test "test1" {}
+                        New-Block "block1" {
+                            New-OneTimeTestSetup { oneTimeSetup }
+                            New-Test "test1" { }
+                        }
                     })
 
-                $actual[0].OneTimeTestSetup | Verify-Equal 'oneTimeSetup'
+                $actual[0].Blocks[0].OneTimeTestSetup.ToString().Trim() | Verify-Equal 'oneTimeSetup'
             }
         }
 
@@ -192,7 +223,7 @@ i -PassThru:$PassThru {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
-                            New-Test "test1" {}
+                            New-Test "test1" { }
                         }
                     })
 
@@ -204,11 +235,11 @@ i -PassThru:$PassThru {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
-                            New-Test "test1" {}
+                            New-Test "test1" { }
                         }
 
                         New-Block "block2" {
-                            New-Test "test2" {}
+                            New-Test "test2" { }
                         }
                     })
 
@@ -223,9 +254,9 @@ i -PassThru:$PassThru {
                 Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
-                            New-Test "test1" {}
+                            New-Test "test1" { }
                             New-Block "block2" {
-                                New-Test "test2" {}
+                                New-Test "test2" { }
                             }
                         }
                     })
@@ -244,31 +275,35 @@ i -PassThru:$PassThru {
             t "Executes 1 test" {
                 Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Test "test1" { "a" }
+                        New-Block "block1" {
+                            New-Test "test1" { "a" }
+                        }
                     })
 
-                $actual.Tests[0].Executed | Verify-True
-                $actual.Tests[0].Passed | Verify-True
-                $actual.Tests[0].Name | Verify-Equal "test1"
-                $actual.Tests[0].StandardOutput | Verify-Equal "a"
+                $actual.Blocks[0].Tests[0].Executed | Verify-True
+                $actual.Blocks[0].Tests[0].Passed | Verify-True
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
             }
 
             t "Executes 2 tests next to each other" {
                 Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Test "test1" { "a" }
-                        New-Test "test2" { "b" }
+                        New-Block "block1" {
+                            New-Test "test1" { "a" }
+                            New-Test "test2" { "b" }
+                        }
                     })
 
-                $actual.Tests[0].Executed | Verify-True
-                $actual.Tests[0].Passed | Verify-True
-                $actual.Tests[0].Name | Verify-Equal "test1"
-                $actual.Tests[0].StandardOutput | Verify-Equal "a"
+                $actual.Blocks[0].Tests[0].Executed | Verify-True
+                $actual.Blocks[0].Tests[0].Passed | Verify-True
+                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-                $actual.Tests[1].Executed | Verify-True
-                $actual.Tests[1].Passed | Verify-True
-                $actual.Tests[1].Name | Verify-Equal "test2"
-                $actual.Tests[1].StandardOutput | Verify-Equal "b"
+                $actual.Blocks[0].Tests[1].Executed | Verify-True
+                $actual.Blocks[0].Tests[1].Passed | Verify-True
+                $actual.Blocks[0].Tests[1].Name | Verify-Equal "test2"
+                $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "b"
             }
 
             t "Executes 2 tests in blocks next to each other" {
@@ -453,7 +488,7 @@ i -PassThru:$PassThru {
 
         b "path filter" {
             t "Given a test with path it includes it when it matches path filter " {
-                $t = New-TestObject -Name "test1" -Path "r","p","s"
+                $t = New-TestObject -Name "test1" -Path "r", "p", "s"
 
                 $f = New-FilterObject -FullName "*s"
                 $actual = Test-ShouldRun -Item $t -Filter $f
@@ -461,7 +496,7 @@ i -PassThru:$PassThru {
             }
 
             t "Given a test with path it maybes it when it does not match path filter " {
-                $t = New-TestObject -Name "test1" -Path "r","p","s"
+                $t = New-TestObject -Name "test1" -Path "r", "p", "s"
 
                 $f = New-FilterObject -FullName "x"
 
@@ -478,23 +513,27 @@ i -PassThru:$PassThru {
     b "discover and execute tests" {
         t "discovers and executes one test" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                    New-Test "test1" { "a" }
+                    New-Block "block1" {
+                        New-Test "test1" { "a" }
+                    }
                 })
 
-            $actual.Tests[0].Executed | Verify-True
-            $actual.Tests[0].Passed | Verify-True
-            $actual.Tests[0].Name | Verify-Equal "test1"
-            $actual.Tests[0].StandardOutput | Verify-Equal "a"
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
         }
 
         t "discovers and executes one failing test" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                    New-Test "test1" { throw }
+                    New-Block "block1" {
+                        New-Test "test1" { throw }
+                    }
                 })
 
-            $actual.Tests[0].Executed | Verify-True
-            $actual.Tests[0].Passed | Verify-False
-            $actual.Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-False
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
         }
 
         t "re-runs failing tests" {
@@ -586,18 +625,18 @@ i -PassThru:$PassThru {
                             $g = 'one time setup'
                         }
                         New-EachTestSetup {
-                            if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?"}
+                            if ($g -ne 'one time setup') { throw "`$g ($g) is not set to 'one time setup' did the one time setup run?" }
                             $g = 'each setup'
                         }
 
                         New-Test "test1" {
-                            if ($g -ne 'each setup') {throw "`$g ($g) is not set to 'each setup' did the each setup run" }
+                            if ($g -ne 'each setup') { throw "`$g ($g) is not set to 'each setup' did the each setup run" }
                             $g = 'test'
                         }
 
                         New-EachTestTeardown {
                             Write-Host "each test teardown"
-                            if ($g -ne 'test') {throw "`$g ($g) is not set to 'test' did the test body run? does the body run in the same scope as the setup and teardown?" }
+                            if ($g -ne 'test') { throw "`$g ($g) is not set to 'test' did the test body run? does the body run in the same scope as the setup and teardown?" }
                             $g = 'each teardown'
                         }
                         New-OneTimeTestTeardown {
@@ -767,8 +806,8 @@ i -PassThru:$PassThru {
                             $container.OneTimeTeardown++
                         }
 
-                        New-Test "test1" {}
-                        New-Test "test2" {}
+                        New-Test "test1" { }
+                        New-Test "test2" { }
                     }
                 })
 
@@ -791,12 +830,12 @@ i -PassThru:$PassThru {
                         throw
                     }
                     New-Block "block1" {
-                        New-Test "test1" {}
+                        New-Test "test1" { }
                     }
                 }
                 New-BlockContainerObject -ScriptBlock {
                     New-Block "block2" {
-                        New-Test "test2" {}
+                        New-Test "test2" { }
                     }
                 })
 
@@ -812,18 +851,20 @@ i -PassThru:$PassThru {
     b "Not running tests by tags" {
         t "tests can be not run based on tags" {
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                    New-Test "test1" -Tag run {}
-                    New-Test "test2" {}
+                    New-Block "block1" {
+                    New-Test "test1" -Tag run { }
+                    New-Test "test2" { }
+                    }
                 }) -Filter (New-FilterObject -Tag 'Run')
 
-            $result.Tests[0].Executed | Verify-True
-            $result.Tests[1].Executed | Verify-False
+            $result.Blocks[0].Tests[0].Executed | Verify-True
+            $result.Blocks[0].Tests[1].Executed | Verify-False
         }
 
         t "blocks can be excluded based on tags" {
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" -Tag DoNotRun {
-                        New-Test "test1" {}
+                        New-Test "test1" { }
                     }
                 }) -Filter (New-FilterObject -ExcludeTag 'DoNotRun')
 
@@ -870,10 +911,10 @@ i -PassThru:$PassThru {
     b "Not running tests by -Skip" {
         t "skippping single test will set its result correctly" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "block1" {
-                    New-Test "test1" { "a" } -Skip
-                }
-            })
+                    New-Block "block1" {
+                        New-Test "test1" { "a" } -Skip
+                    }
+                })
 
             $actual.Blocks[0].Tests[0].Skip | Verify-True
             $actual.Blocks[0].Tests[0].Executed | Verify-True
@@ -884,10 +925,10 @@ i -PassThru:$PassThru {
 
         t "skippping block will skip all tests in it" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "skipped block" -Skip {
-                    New-Test "test1" { "a" }
-                }
-            })
+                    New-Block "skipped block" -Skip {
+                        New-Test "test1" { "a" }
+                    }
+                })
 
             $actual.Blocks[0].Skip | Verify-True
             $actual.Blocks[0].Tests[0].Skip | Verify-True
@@ -895,12 +936,12 @@ i -PassThru:$PassThru {
 
         t "skippping block will skip child blocks in it" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "skipped block" -Skip {
                     New-Block "skipped block" -Skip {
-                        New-Test "test1" { "a" }
+                        New-Block "skipped block" -Skip {
+                            New-Test "test1" { "a" }
+                        }
                     }
-                }
-            })
+                })
 
             $actual.Blocks[0].Skip | Verify-True
             $actual.Blocks[0].Blocks[0].Skip | Verify-True
@@ -909,30 +950,30 @@ i -PassThru:$PassThru {
 
         t "skipping a block will skip block setup and teardows" {
             $container = @{
-                OneTimeTestSetup = 0
+                OneTimeTestSetup    = 0
                 OneTimeTestTeardown = 0
-                EachTestSetup = 0
-                EachTestTeardown = 0
-                TestRun = 0
+                EachTestSetup       = 0
+                EachTestTeardown    = 0
+                TestRun             = 0
             }
 
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "parent block" {
-                    New-Block "parent block" -Skip {
-                        # putting this in child block because each test setup is not supported in root block
-                        New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
-                        New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+                    New-Block "parent block" {
+                        New-Block "parent block" -Skip {
+                            # putting this in child block because each test setup is not supported in root block
+                            New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                            New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
 
-                        New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
-                        New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+                            New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+                            New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
 
-                        New-Test "test1" {
-                            $container.TestRun++
-                            "a"
+                            New-Test "test1" {
+                                $container.TestRun++
+                                "a"
+                            }
                         }
                     }
-                }
-            })
+                })
 
             # $actual.Blocks[0].Skip | Verify-True
             $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
@@ -951,44 +992,44 @@ i -PassThru:$PassThru {
             # affect implementation of this. Right now skipping the block goes from parent down, and skipping all items in a block
             # will not prevent the parent block setups from running
 
-        #     $container = @{
-        #         OneTimeTestSetup = 0
-        #         OneTimeTestTeardown = 0
-        #         EachTestSetup = 0
-        #         EachTestTeardown = 0
-        #         TestRun = 0
-        #     }
+            #     $container = @{
+            #         OneTimeTestSetup = 0
+            #         OneTimeTestTeardown = 0
+            #         EachTestSetup = 0
+            #         EachTestTeardown = 0
+            #         TestRun = 0
+            #     }
 
-        #     $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-        #         New-Block "parent block" {
-        #             New-Block "parent block" {
-        #                 # putting this in child block because each test setup is not supported in root block
-        #                 New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
-        #                 New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+            #     $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+            #         New-Block "parent block" {
+            #             New-Block "parent block" {
+            #                 # putting this in child block because each test setup is not supported in root block
+            #                 New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+            #                 New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
 
-        #                 New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
-        #                 New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+            #                 New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+            #                 New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
 
-        #                 New-Test "test1" -Skip {
-        #                     $container.TestRun++
-        #                     "a"
-        #                 }
+            #                 New-Test "test1" -Skip {
+            #                     $container.TestRun++
+            #                     "a"
+            #                 }
 
-        #                 New-Test "test2" -Skip {
-        #                     $container.TestRun++
-        #                     "a"
-        #                 }
-        #             }
-        #         }
-        #     })
+            #                 New-Test "test2" -Skip {
+            #                     $container.TestRun++
+            #                     "a"
+            #                 }
+            #             }
+            #         }
+            #     })
 
-        #     # $actual.Blocks[0].Skip | Verify-True
-        #     $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
-        #     $container.TestRun | Verify-Equal 0
-        #     $container.OneTimeTestSetup | Verify-Equal 0
-        #     $container.OneTimeTestTeardown | Verify-Equal 0
-        #     $container.EachTestSetup | Verify-Equal 0
-        #     $container.EachTestTeardown | Verify-Equal 0
+            #     # $actual.Blocks[0].Skip | Verify-True
+            #     $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
+            #     $container.TestRun | Verify-Equal 0
+            #     $container.OneTimeTestSetup | Verify-Equal 0
+            #     $container.OneTimeTestTeardown | Verify-Equal 0
+            #     $container.EachTestSetup | Verify-Equal 0
+            #     $container.EachTestTeardown | Verify-Equal 0
         }
     }
 
@@ -1005,7 +1046,7 @@ i -PassThru:$PassThru {
                     New-Block 'block1' {
                         New-OneTimeTestSetup { $container.OneTimeTestSetup++ }
                         New-EachTestSetup { $container.EachTestSetup++ }
-                        New-Test "test1" {}
+                        New-Test "test1" { }
                         New-EachTestTeardown {
                             $container.EachTestTeardown++ }
                         New-OneTimeTestTeardown { $container.OneTimeTestTeardown++ }
@@ -1051,7 +1092,7 @@ i -PassThru:$PassThru {
                     New-EachBlockTeardown {
                         $container.EachBlockTeardown1++
                     }
-                   # New-OneTimeBlockTeardown { $container.OneTimeBlockTeardown1++ }
+                    # New-OneTimeBlockTeardown { $container.OneTimeBlockTeardown1++ }
                 }) -Filter (New-FilterObject -ExcludeTag DoNotRun)
 
             # $container.OneTimeBlockSetup1 | Verify-Equal 1
@@ -1085,12 +1126,12 @@ i -PassThru:$PassThru {
 
             $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block 'block1' {
-                        New-Test "test1" {}
-                        New-Test "test2" {}
+                        New-Test "test1" { }
+                        New-Test "test2" { }
                     }
 
                     New-Block 'block2' {
-                        New-Test "test3" {}
+                        New-Test "test3" { }
                     }
                 }) -Plugin $p
 
@@ -1120,34 +1161,34 @@ i -PassThru:$PassThru {
             }
             $p = @(
                 New-PluginObject -Name "a" `
-                -OneTimeBlockSetupStart { $container.OneTimeBlockSetup += "a" } `
-                -EachBlockSetupStart { $container.EachBlockSetup += "a" } `
-                -OneTimeTestSetupStart { $container.OneTimeTestSetup += "a" } `
-                -EachTestSetupStart { $container.EachTestSetup += "a" } `
-                -EachTestTeardownEnd { $container.EachTestTeardown += "a" } `
-                -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown += "a" } `
-                -EachBlockTeardownEnd { $container.EachBlockTeardown += "a" } `
-                -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown += "a" }
+                    -OneTimeBlockSetupStart { $container.OneTimeBlockSetup += "a" } `
+                    -EachBlockSetupStart { $container.EachBlockSetup += "a" } `
+                    -OneTimeTestSetupStart { $container.OneTimeTestSetup += "a" } `
+                    -EachTestSetupStart { $container.EachTestSetup += "a" } `
+                    -EachTestTeardownEnd { $container.EachTestTeardown += "a" } `
+                    -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown += "a" } `
+                    -EachBlockTeardownEnd { $container.EachBlockTeardown += "a" } `
+                    -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown += "a" }
 
                 New-PluginObject -Name "b" `
-                -OneTimeBlockSetupStart { $container.OneTimeBlockSetup += "b" } `
-                -EachBlockSetupStart { $container.EachBlockSetup += "b" } `
-                -OneTimeTestSetupStart { $container.OneTimeTestSetup += "b" } `
-                -EachTestSetupStart { $container.EachTestSetup += "b" } `
-                -EachTestTeardownEnd { $container.EachTestTeardown += "b" } `
-                -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown += "b" } `
-                -EachBlockTeardownEnd { $container.EachBlockTeardown += "b" } `
-                -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown += "b" }
+                    -OneTimeBlockSetupStart { $container.OneTimeBlockSetup += "b" } `
+                    -EachBlockSetupStart { $container.EachBlockSetup += "b" } `
+                    -OneTimeTestSetupStart { $container.OneTimeTestSetup += "b" } `
+                    -EachTestSetupStart { $container.EachTestSetup += "b" } `
+                    -EachTestTeardownEnd { $container.EachTestTeardown += "b" } `
+                    -OneTimeTestTeardownEnd { $container.OneTimeTestTeardown += "b" } `
+                    -EachBlockTeardownEnd { $container.EachBlockTeardown += "b" } `
+                    -OneTimeBlockTeardownEnd { $container.OneTimeBlockTeardown += "b" }
             )
 
             $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block 'block1' {
-                        New-Test "test1" {}
-                        New-Test "test2" {}
+                        New-Test "test1" { }
+                        New-Test "test2" { }
                     }
 
                     New-Block 'block2' {
-                        New-Test "test3" {}
+                        New-Test "test3" { }
                     }
                 }) -Plugin $p
 
@@ -1172,7 +1213,9 @@ i -PassThru:$PassThru {
                 -EachTestTeardownEnd { param($context) $container.Test = $context.Test }
 
             $null = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                    New-Test "test1" {}
+                    New-Block "block1" {
+                        New-Test "test1" { }
+                    }
                 }) -Plugin $p
 
             $container.Test.Name | Verify-Equal "test1"
@@ -1191,7 +1234,7 @@ i -PassThru:$PassThru {
 
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block -Name "block1" {
-                        New-Test "test1" {}
+                        New-Test "test1" { }
                     }
                 }) -Plugin $p
 
@@ -1886,7 +1929,7 @@ i -PassThru:$PassThru {
             $container = @{
                 # Test = $null
                 # Block = $null
-                Total = $null
+                Total  = $null
                 Result = $null
             }
 
@@ -1904,33 +1947,30 @@ i -PassThru:$PassThru {
             # I was able to measure the block and the test execution time and so if I come up with a way again
             # I don't want to write the same code one more time
             $actual = $container.Result
-            $testReported = $actual.Blocks[0].Tests[0].Duration + $actual.Blocks[0].Tests[0].FrameworkDuration
             #$testDifference = $container.Test - $testReported
-            Write-Host Reported test duration $actual.Blocks[0].Tests[0].Duration.TotalMilliseconds
+            Write-Host Reported test duration $actual.Blocks[0].Tests[0].UserDuration.TotalMilliseconds
             Write-Host Reported test overhead $actual.Blocks[0].Tests[0].FrameworkDuration.TotalMilliseconds
-            Write-Host Reported test total $testReported.TotalMilliseconds
+            Write-Host Reported test total $actual.Blocks[0].Tests[0].Duration.TotalMilliseconds
             #Write-Host Measured test total $container.Test.TotalMilliseconds
             #Write-Host Test difference $testDifference.TotalMilliseconds
             # the difference here is actually <1ms but let's make this less finicky
-           # $testDifference.TotalMilliseconds -lt 5 | Verify-True
+            # $testDifference.TotalMilliseconds -lt 5 | Verify-True
 
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
-            $blockReported =  $actual.Blocks[0].Duration + $actual.Blocks[0].FrameworkDuration
             #$blockDifference = $container.Block - $blockReported
-            Write-Host Reported block duration $actual.Blocks[0].Duration.TotalMilliseconds
+            Write-Host Reported block duration $actual.Blocks[0].UserDuration.TotalMilliseconds
             Write-Host Reported block overhead $actual.Blocks[0].FrameworkDuration.TotalMilliseconds
-            Write-Host Reported block total $blockReported.TotalMilliseconds
+            Write-Host Reported block total $actual.Blocks[0].Duration.TotalMilliseconds
             #Write-Host Measured block total $container.Block.TotalMilliseconds
             #Write-Host Block difference $blockDifference.TotalMilliseconds
 
             # the difference here is actually <1ms but let's make this less finicky
             #$blockDifference.TotalMilliseconds -lt 5 | Verify-True
 
-            $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
-            $totalDifference = $container.Total - $totalReported
-            Write-Host Reported total duration $actual.Duration.TotalMilliseconds
+            $totalDifference = $container.Total - $actual.Duration
+            Write-Host Reported total duration $actual.UserDuration.TotalMilliseconds
             Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds
-            Write-Host Reported total $totalReported.TotalMilliseconds
+            Write-Host Reported total $actual.Duration.TotalMilliseconds
             Write-Host Measured total $container.Total.TotalMilliseconds
             Write-Host Total difference $totalDifference.TotalMilliseconds
 
@@ -1946,9 +1986,9 @@ i -PassThru:$PassThru {
             # this is the same as above, if I add one time setups then the framework time should grow
             # but not the user code time
             $container = @{
-                Test = $null
-                Block = $null
-                Total = $null
+                Test   = $null
+                Block  = $null
+                Total  = $null
                 Result = $null
             }
 
@@ -1968,36 +2008,36 @@ i -PassThru:$PassThru {
                 )
             }
 
+            # some of the code is commented out here because before changing the runtime to the new-new runtime
+            # I was able to measure the block and the test execution time and so if I come up with a way again
+            # I don't want to write the same code one more time
             $actual = $container.Result
-            $testReported = $actual.Blocks[1].Tests[1].Duration + $actual.Blocks[1].Tests[1].FrameworkDuration
-            # $testDifference = $container.Test - $testReported
-            Write-Host Reported test duration $actual.Blocks[1].Tests[1].Duration.TotalMilliseconds
+            #$testDifference = $container.Test - $testReported
+            Write-Host Reported test duration $actual.Blocks[1].Tests[1].UserDuration.TotalMilliseconds
             Write-Host Reported test overhead $actual.Blocks[1].Tests[1].FrameworkDuration.TotalMilliseconds
-            Write-Host Reported test total $testReported.TotalMilliseconds
-            # Write-Host Measured test total $container.Test.TotalMilliseconds
-            # Write-Host Test difference $testDifference.TotalMilliseconds
+            Write-Host Reported test total $actual.Blocks[1].Tests[1].Duration.TotalMilliseconds
+            #Write-Host Measured test total $container.Test.TotalMilliseconds
+            #Write-Host Test difference $testDifference.TotalMilliseconds
             # the difference here is actually <1ms but let's make this less finicky
             # $testDifference.TotalMilliseconds -lt 5 | Verify-True
 
             # so the block non aggregated time is mostly correct (to get the total time we need to add total blockduration + total test duration), but the overhead is accounted twice because we have only one timer running so the child overhead is included in the child and the parent ( that is the FrameworkDuration on Block is actually Aggregated framework duration),
-            $blockReported =  $actual.Blocks[1].Duration + $actual.Blocks[1].FrameworkDuration
-            # $blockDifference = $container.Block - $blockReported
-            Write-Host Reported block duration $actual.Blocks[1].Duration.TotalMilliseconds ms
-            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds ms
-            Write-Host Reported block total $blockReported.TotalMilliseconds ms
-            # Write-Host Measured block total $container.Block.TotalMilliseconds ms
-            # Write-Host Block difference $blockDifference.TotalMilliseconds ms
+            #$blockDifference = $container.Block - $blockReported
+            Write-Host Reported block duration $actual.Blocks[1].UserDuration.TotalMilliseconds
+            Write-Host Reported block overhead $actual.Blocks[1].FrameworkDuration.TotalMilliseconds
+            Write-Host Reported block total $actual.Blocks[1].Duration.TotalMilliseconds
+            #Write-Host Measured block total $container.Block.TotalMilliseconds
+            #Write-Host Block difference $blockDifference.TotalMilliseconds
 
             # the difference here is actually <1ms but let's make this less finicky
-            # $blockDifference.TotalMilliseconds -lt 5 | Verify-True
+            #$blockDifference.TotalMilliseconds -lt 5 | Verify-True
 
-            $totalReported = $actual.Duration + $actual.FrameworkDuration + $actual.DiscoveryDuration
-            $totalDifference = $container.Total - $totalReported
-            Write-Host Reported total duration $actual.Duration.TotalMilliseconds ms
-            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds ms
-            Write-Host Reported total $totalReported.TotalMilliseconds ms
-            Write-Host Measured total $container.Total.TotalMilliseconds ms
-            Write-Host Total difference $totalDifference.TotalMilliseconds ms
+            $totalDifference = $container.Total - $actual.Duration
+            Write-Host Reported total duration $actual.UserDuration.TotalMilliseconds
+            Write-Host Reported total overhead $actual.FrameworkDuration.TotalMilliseconds
+            Write-Host Reported total $actual.Duration.TotalMilliseconds
+            Write-Host Measured total $container.Total.TotalMilliseconds
+            Write-Host Total difference $totalDifference.TotalMilliseconds
 
             # the difference here is because of the code that is running after all tests have been discovered
             # such as figuring out if there are focused tests, setting filters and determining which tests to run
@@ -2010,9 +2050,9 @@ i -PassThru:$PassThru {
             # this is the same as above, if I add one time setups then the framework time should grow
             # but not the user code time
             $container = @{
-                Test = $null
-                Block = $null
-                Total = $null
+                Test   = $null
+                Block  = $null
+                Total  = $null
                 Result = $null
             }
 
@@ -2041,7 +2081,7 @@ i -PassThru:$PassThru {
             $actual = $container.Result
 
 
-            $actualDuration = $actual.Duration | % { $t = [timespan]::zero } { $t += $_ } { $t }
+            $actualDuration = $actual.UserDuration | % { $t = [timespan]::zero } { $t += $_ } { $t }
             $actualFrameworkDuration = $actual.FrameworkDuration | % { $t = [timespan]::zero } { $t += $_ } { $t }
             $actualDiscoveryDuration = $actual.DiscoveryDuration | % { $t = [timespan]::zero } { $t += $_ } { $t }
             $totalReported = $actualDuration + $actualFrameworkDuration + $actualDiscoveryDuration
@@ -2075,8 +2115,8 @@ i -PassThru:$PassThru {
             # outside of the block so the setup is shared with other blocks
             # that follow the first block
             $container = @{
-                OneTimeTestSetup = 0
-                ValueInTestInFirstBlock = ''
+                OneTimeTestSetup         = 0
+                ValueInTestInFirstBlock  = ''
                 ValueInTestInSecondBlock = ''
             }
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (

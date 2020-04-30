@@ -3,8 +3,8 @@ $ErrorActionPreference = 'Stop'
 $baseDir = $PSScriptRoot
 
 try {
-    $buildDir = "$baseDir\build\psgallery\Pester"
-    $null = New-Item -Path $buildDir -ItemType Directory -Verbose
+    $buildDir = "$baseDir\pkg\psgallery\Pester"
+    $null = New-Item -Path $buildDir -ItemType Directory -Force
 
     Write-Verbose "Copying release files to build folder '$buildDir'"
     Copy-Item $baseDir\Pester.ps?1          $buildDir\

@@ -119,7 +119,7 @@ i -PassThru:$PassThru {
             $result | Verify-Property "Containers"
             $result.Containers.Count | Verify-Equal 2
 
-            $result.TestsCount | Verify-Equal 4
+            $result.TotalCount | Verify-Equal 4
             $result.Tests | Verify-NotNull
 
             $result.PassedCount | Verify-Equal 1
@@ -135,6 +135,7 @@ i -PassThru:$PassThru {
             $result.NotRun | Verify-NotNull
 
             $result.Duration | Verify-Equal ($result.Containers[0].Duration + $result.Containers[1].Duration)
+            $result.UserDuration | Verify-Equal ($result.Containers[0].UserDuration + $result.Containers[1].UserDuration)
             $result.FrameworkDuration | Verify-Equal ($result.Containers[0].FrameworkDuration + $result.Containers[1].FrameworkDuration)
             $result.DiscoveryDuration | Verify-Equal ($result.Containers[0].DiscoveryDuration + $result.Containers[1].DiscoveryDuration)
 
