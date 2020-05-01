@@ -32,6 +32,15 @@ InPesterModuleScope {
             $array | Should -EQ $arrayWithCaps
         }
 
+        It 'Compares arrays with similar values in different order' {
+            [int32[]]$array = (1..10)
+            $arrayoutoforder = (1, 10, 2, 3, 4, 5, 6, 7, 8, 9)
+
+            $array | Should Not Be $arrayOutOfOrder
+            $array | Should -Not -Be $arrayOutOfOrder
+            $array | Should -Not -EQ $arrayOutOfOrder
+        }
+
         It 'Handles reference types properly' {
             $object1 = New-Object psobject -Property @{ Value = 'Test' }
             $object2 = New-Object psobject -Property @{ Value = 'Test' }

@@ -26,8 +26,8 @@ function Get-ShouldOperator {
     -Name is a dynamic parameter that tab completes all available options.
 
     .LINK
-    https://github.com/Pester/Pester
-    about_Should
+    https://pester.dev/docs/commands/Should
+
     #>
     [CmdletBinding()]
     param ()
@@ -46,8 +46,8 @@ function Get-ShouldOperator {
         $AttributeCollection.Add($ParameterAttribute)
 
         $arrSet = $AssertionOperators.Values |
-            Select-Object -Property Name, Alias |
-            ForEach-Object { $_.Name; $_.Alias }
+        Select-Object -Property Name, Alias |
+        ForEach-Object { $_.Name; $_.Alias }
 
         $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($arrSet)
 

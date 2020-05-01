@@ -1,3 +1,42 @@
+## 4.10.1 (February 7, 2020)
+
+- Fix link in nuspec
+
+## 4.10.0 (February 2, 2020)
+
+- Remove all banners
+- Fix path in TestRegistry check
+- Remove drives on invocation and handle io error
+- Update link to Pester limitations [#1440](https://github.com/pester/pester/pull/1440)
+- Fix Get-Help links [#1432](https://github.com/pester/pester/pull/1432)
+- Handle the case when the failure message contains an escape sequence [#1426](https://github.com/pester/pester/pull/1426)
+- Remove logo from header because it is noisy [#1428](https://github.com/pester/pester/pull/1428)
+- Fix JaCoCo report so it can be processed by Codecov.io [#1420](https://github.com/pester/pester/pull/1420)
+- get-help: fix broken links [#1417](https://github.com/pester/pester/pull/1417)
+- docs: fix dyslexic PS prompt [#1415](https://github.com/pester/pester/pull/1415)
+- Skip symlink tests
+- Adds code fencing to the multi-line Get-Help code examples [#1413](https://github.com/pester/pester/pull/1413)
+- Add wiki lockdown note and call for help
+- Fixed incorrect variable used for hooks with tags in Invoke-GherkinHook. [#1400](https://github.com/pester/pester/pull/1400)
+- Upgrade AppVeyor image for PS Core test to 'Visual Studio 2019' to upgrade PS Core from 6.1 to 6.2 [#1368](https://github.com/pester/pester/pull/1368)
+- Add an Example of Should Be with an Array [#1396](https://github.com/pester/pester/pull/1396)
+- Handle when exceptions have no error messages. [#1382](https://github.com/pester/pester/pull/1382)
+- Write header only when Header flag is specified [#1378](https://github.com/pester/pester/pull/1378)
+- Invoke Set-ScriptBlockHint indirectly [#1371](https://github.com/pester/pester/pull/1371)
+- Added financial contributors to the README [#1363](https://github.com/pester/pester/pull/1363)
+
+## 4.9.0 (September 8, 2019)
+
+- Add JUnit format for results [#1347](https://github.com/pester/Pester/pull/1347)
+- Add skip reason to nUnit output [#1353](https://github.com/pester/Pester/pull/1353)
+- Add header with Pester version to output [#1343](https://github.com/pester/Pester/pull/1343)
+- Fix detect variable and params conflicts [#1292](https://github.com/pester/Pester/pull/1292)
+- Fix signing of ps1xml files
+
+## 4.8.1 (May 11, 2019)
+
+- Fix default parameter comparison on v2 [#1310](https://github.com/pester/Pester/pull/1310)
+
 ## 4.8.0 (May 1, 2019)
 
 - Add parameter to remove validation when mocking [#1278](https://github.com/pester/Pester/pull/1278)
