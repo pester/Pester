@@ -36,6 +36,8 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     # export
     'Export-NunitReport'
     'ConvertTo-NUnitReport'
+    # 'Export-JUnitReport' does not work yet, it needs similar rework as NUnit to work with the new structure
+    # 'ConvertTo-JUnitReport'
     'ConvertTo-Pester4Result'
 
     # legacy

@@ -45,6 +45,23 @@ function Export-PesterResults {
         }
     }
 }
+
+function Export-NUnitReport {
+    param (
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Result,
+
+        [parameter(Mandatory = $true)]
+        [String] $Path,
+
+        [parameter(Mandatory = $true)]
+        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [string] $Format
+    )
+
+    Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
+}
+
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -288,6 +305,40 @@ function Write-JUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteEndElement()
 }
 
+function ConvertTo-JUnitReport {
+    param (
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Result,
+        [Switch] $AsString
+    )
+
+    $settings = [Xml.XmlWriterSettings] @{
+        Indent              = $true
+        NewLineOnAttributes = $false
+    }
+
+    $stringWriter = $null
+    $xmlWriter = $null
+    try {
+        $stringWriter = & $SafeCommands["New-Object"] IO.StringWriter
+        $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
+
+        Write-JUnitReport -XmlWriter $xmlWriter -Result $Result
+
+        $xmlWriter.Flush()
+        $stringWriter.Flush()
+    }
+    finally {
+        $xmlWriter.Close()
+        if (-not $AsString) {
+            [xml] $stringWriter.ToString()
+        }
+        else {
+            $stringWriter.ToString()
+        }
+    }
+}
+
 function Write-JUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
@@ -344,7 +395,7 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteAttributeString('skipped', $Action.SkippedCount)
     $XmlWriter.WriteAttributeString('disabled', $Action.InconclusiveCount + $Action.PendingCount)
     $XmlWriter.WriteAttributeString('package', $Package)
-    $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+    $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
     $XmlWriter.WriteStartElement('properties')
 
@@ -390,7 +441,7 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
     $XmlWriter.WriteAttributeString('status', $Action.Result)
     $XmlWriter.WriteAttributeString('classname', $ClassName)
     $XmlWriter.WriteAttributeString('assertions', '0')
-    $XmlWriter.WriteAttributeString('time', $Action.Time.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+    $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
     if ($null -ne $statusElementName) {
         Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -StatusElementName $statusElementName
