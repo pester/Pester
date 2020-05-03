@@ -73,6 +73,19 @@ stages:
               script: |
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'JaCoCo'
+              summaryFileLocation: 'coverage.xml'
+              pathToSources: 'src/'
+              failIfCoverageEmpty: true
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: 'testResults.xml'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
       - job:
         strategy:
           matrix:
@@ -104,3 +117,16 @@ stages:
               script: |
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'JaCoCo'
+              summaryFileLocation: 'coverage.xml'
+              pathToSources: 'src/'
+              failIfCoverageEmpty: true
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: 'testResults.xml'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
