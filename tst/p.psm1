@@ -1,6 +1,7 @@
 $script:failed = 0
 $script:total = 0
 
+
 function ImportDir {
     [CmdletBinding()]
     param($Directory)
