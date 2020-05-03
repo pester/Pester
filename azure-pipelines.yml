@@ -3,11 +3,6 @@ trigger:
 pr:
   - v5.0
 
-resources:
-  - repo: self
-    clean: true
-    fetchDepth: 1
-
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   CI: 1
@@ -66,10 +61,6 @@ stages:
           vmImage: $[ variables['vmImage'] ]
         steps:
           - checkout: none
-          - task: DeleteFiles@1
-            inputs:
-              SourceFolder: '$(Pipeline.Workspace)'
-              Contents: '**/*'
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
@@ -97,6 +88,8 @@ stages:
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
       - job:
+        workspace:
+          clean: all
         strategy:
           matrix:
             PS3:
