@@ -10,6 +10,7 @@ try {
     Copy-Item $baseDir\Pester.ps?1          $buildDir\
     Copy-Item $baseDir\LICENSE              $buildDir\
     Copy-Item $baseDir\nunit_schema_2.5.xsd $buildDir\
+    Copy-Item $baseDir\junit_schema_4.xsd   $buildDir\
     Copy-Item $baseDir\bin                  $buildDir\ -Recurse
     Copy-Item $baseDir\Functions            $buildDir\ -Recurse
     Copy-Item $baseDir\Dependencies         $buildDir\ -Recurse

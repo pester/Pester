@@ -78,9 +78,9 @@ function Clear-TestDrive ([String[]]$Exclude) {
 
         #Get-ChildItem -Exclude did not seem to work with full paths
         & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
-            & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
-            & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
-            & $SafeCommands['Remove-Item'] -Force -Recurse
+        & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
+        & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
+        & $SafeCommands['Remove-Item'] -Force -Recurse
 
     }
 }
@@ -120,8 +120,8 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
-        where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-        foreach-object { $_.Delete() }
+    where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+    foreach-object { $_.Delete() }
 }
 
 function Remove-TestDrive {
