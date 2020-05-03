@@ -348,7 +348,6 @@ function Remove-RSpecNonPublicProperties ($run){
         # }
 
         $i.FrameworkData = $null
-        $i.PluginConfiguration = $null
         $i.PluginData = $null
 
     } -OnTest {
@@ -361,7 +360,6 @@ function Remove-RSpecNonPublicProperties ($run){
         # }
 
         $i.FrameworkData = $null
-        $i.PluginConfiguration = $null
         $i.PluginData = $null
     }
 }
