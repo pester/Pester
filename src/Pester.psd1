@@ -51,8 +51,10 @@
         'Get-ShouldOperator'
 
         # export
-        'Export-NunitReport'
+        'Export-NUnitReport'
         'ConvertTo-NUnitReport'
+        # 'Export-JUnitReport'
+        # 'ConvertTo-JUnitReport'
         'ConvertTo-Pester4Result'
 
         # legacy

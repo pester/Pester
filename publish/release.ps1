@@ -43,6 +43,7 @@ Copy-Item "$PSScriptRoot/../bin/*" $psGalleryDir -Recurse
 
 $files = @(
 "nunit_schema_2.5.xsd"
+"junit_schema_4.xsd"
 "Pester.psd1"
 "Pester.psm1"
 "report.dtd"

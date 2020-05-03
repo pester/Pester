@@ -3,11 +3,6 @@ trigger:
 pr:
   - v5.0
 
-resources:
-  - repo: self
-    clean: true
-    fetchDepth: 1
-
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   CI: 1
@@ -16,6 +11,8 @@ stages:
   - stage: Build
     jobs:
       - job: build
+        workspace:
+          clean: all
         pool:
           name: Default
           demands:
@@ -23,13 +20,17 @@ stages:
             - netcoreapp3.1
         timeoutInMinutes: 3
         steps:
-          - powershell: ./build.ps1
+          - checkout: self
+            fetchDepth: 1
+          - powershell: ./build.ps1 -Clean
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
   - stage: Test
     jobs:
       - job:
+        workspace:
+          clean: all
         strategy:
           matrix:
             PS7_Ubuntu_16_04:
@@ -73,7 +74,22 @@ stages:
               script: |
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'JaCoCo'
+              summaryFileLocation: 'coverage.xml'
+              pathToSources: 'src/'
+              failIfCoverageEmpty: true
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: 'testResults.xml'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
       - job:
+        workspace:
+          clean: all
         strategy:
           matrix:
             PS3:
@@ -104,3 +120,16 @@ stages:
               script: |
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'JaCoCo'
+              summaryFileLocation: 'coverage.xml'
+              pathToSources: 'src/'
+              failIfCoverageEmpty: true
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: 'testResults.xml'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
