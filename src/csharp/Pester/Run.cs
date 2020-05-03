@@ -28,6 +28,8 @@ namespace Pester
         public bool Executed { get; set; }
         public DateTime ExecutedAt { get; set; }
 
+        public string Version { get; set; }
+        public string PSVersion { get; set; }
 
         public object PSBoundParameters { get; set; }
         public List<object> Plugins { get; set; } = new List<object>();

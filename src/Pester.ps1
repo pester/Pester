@@ -520,6 +520,16 @@ function Invoke-Pester {
             $run.Plugins = $Plugins
             $run.PluginData = $pluginData
             $run.Configuration = $PesterPreference
+            $m = $ExecutionContext.SessionState.Module
+            $run.Version = if ($m.PrivateData -and $m.PrivateData.PSData)
+            {
+                "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
+            }
+            else {
+                $m.Version
+            }
+
+            $run.PSVersion = $PSVersionTable.PSVersion
             foreach ($i in @($r)) {
                 $run.Containers.Add($i)
             }
@@ -799,6 +809,7 @@ function ConvertTo-Pester4Result {
     )
     process {
         $legacyResult = [PSCustomObject] @{
+            Version = 4.99.0
             TagFilter = $null
             ExcludeTagFilter = $null
             TestNameFilter = $null
