@@ -16,6 +16,8 @@ stages:
   - stage: Build
     jobs:
       - job: build
+        workspace:
+          clean: all
         pool:
           name: Default
           demands:
@@ -24,7 +26,6 @@ stages:
         timeoutInMinutes: 3
         steps:
           - checkout: self
-            clean: true
             fetchDepth: 1
           - powershell: ./build.ps1 -Clean
           - publish: $(Build.SourcesDirectory)
@@ -33,6 +34,8 @@ stages:
   - stage: Test
     jobs:
       - job:
+        workspace:
+          clean: all
         strategy:
           matrix:
             PS7_Ubuntu_16_04:
