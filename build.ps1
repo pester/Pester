@@ -92,10 +92,10 @@ $content = @(
 
 if ($Clean) {
     $content += @(
-        ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
-        ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
-        ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
-        ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
     )
 }
 

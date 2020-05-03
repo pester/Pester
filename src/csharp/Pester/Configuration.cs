@@ -378,7 +378,7 @@ namespace Pester
                 }
                 else
                 {
-                    _errorAction = new StringOption(_errorAction, value.Value);
+                    _errorAction = new StringOption(_errorAction, value?.Value);
                 }
             }
         }
@@ -466,7 +466,7 @@ namespace Pester
                 }
                 else
                 {
-                    _writeDebugMessagesFrom = new StringArrayOption(_writeDebugMessagesFrom, value.Value);
+                    _writeDebugMessagesFrom = new StringArrayOption(_writeDebugMessagesFrom, value?.Value);
                 }
             }
         }
@@ -586,7 +586,7 @@ namespace Pester
                 }
                 else
                 {
-                    _outputFormat = new StringOption(_outputFormat, value.Value);
+                    _outputFormat = new StringOption(_outputFormat, value?.Value);
                 }
             }
         }
@@ -602,7 +602,7 @@ namespace Pester
                 }
                 else
                 {
-                    _outputPath = new StringOption(_outputPath, value.Value);
+                    _outputPath = new StringOption(_outputPath, value?.Value);
                 }
             }
         }
@@ -618,7 +618,7 @@ namespace Pester
                 }
                 else
                 {
-                    _outputEncoding = new StringOption(_outputEncoding, value.Value);
+                    _outputEncoding = new StringOption(_outputEncoding, value?.Value);
                 }
             }
         }
@@ -634,7 +634,7 @@ namespace Pester
                 }
                 else
                 {
-                    _path = new StringArrayOption(_path, value.Value);
+                    _path = new StringArrayOption(_path, value?.Value);
                 }
             }
         }
@@ -719,7 +719,7 @@ namespace Pester
                 }
                 else
                 {
-                    _outputFormat = new StringOption(_outputFormat, value.Value);
+                    _outputFormat = new StringOption(_outputFormat, value?.Value);
                 }
             }
         }
@@ -735,7 +735,7 @@ namespace Pester
                 }
                 else
                 {
-                    _outputPath = new StringOption(_outputPath, value.Value);
+                    _outputPath = new StringOption(_outputPath, value?.Value);
                 }
             }
         }
@@ -751,7 +751,7 @@ namespace Pester
                 }
                 else
                 {
-                    _outputEncoding = new StringOption(_outputEncoding, value.Value);
+                    _outputEncoding = new StringOption(_outputEncoding, value?.Value);
                 }
             }
         }
@@ -767,7 +767,7 @@ namespace Pester
                 }
                 else
                 {
-                    _testSuiteName = new StringOption(_testSuiteName, value.Value);
+                    _testSuiteName = new StringOption(_testSuiteName, value?.Value);
                 }
             }
         }
@@ -822,7 +822,7 @@ namespace Pester
                 }
                 else
                 {
-                    _path = new StringArrayOption(_path, value.Value);
+                    _path = new StringArrayOption(_path, value?.Value);
                 }
             }
         }
@@ -838,7 +838,7 @@ namespace Pester
                 }
                 else
                 {
-                    _excludePath = new StringArrayOption(_excludePath, value.Value);
+                    _excludePath = new StringArrayOption(_excludePath, value?.Value);
                 }
             }
         }
@@ -854,7 +854,7 @@ namespace Pester
                 }
                 else
                 {
-                    _scriptBlock = new ScriptBlockArrayOption(_scriptBlock, value.Value);
+                    _scriptBlock = new ScriptBlockArrayOption(_scriptBlock, value?.Value);
                 }
             }
         }
@@ -870,7 +870,7 @@ namespace Pester
                 }
                 else
                 {
-                    _testExtension = new StringOption(_testExtension, value.Value);
+                    _testExtension = new StringOption(_testExtension, value?.Value);
                 }
             }
         }
@@ -950,7 +950,7 @@ namespace Pester
                 }
                 else
                 {
-                    _tag = new StringArrayOption(_tag, value.Value);
+                    _tag = new StringArrayOption(_tag, value?.Value);
                 }
             }
         }
@@ -966,7 +966,7 @@ namespace Pester
                 }
                 else
                 {
-                    _excludeTag = new StringArrayOption(_excludeTag, value.Value);
+                    _excludeTag = new StringArrayOption(_excludeTag, value?.Value);
                 }
             }
         }
@@ -981,7 +981,7 @@ namespace Pester
                 }
                 else
                 {
-                    _line = new StringArrayOption(_line, value.Value);
+                    _line = new StringArrayOption(_line, value?.Value);
                 }
             }
         }
@@ -997,7 +997,7 @@ namespace Pester
                 }
                 else
                 {
-                    _fullName = new StringArrayOption(_fullName, value.Value);
+                    _fullName = new StringArrayOption(_fullName, value?.Value);
                 }
             }
         }
@@ -1037,7 +1037,7 @@ namespace Pester
                 }
                 else
                 {
-                    _verbosity = new StringOption(_verbosity, value.Value);
+                    _verbosity = new StringOption(_verbosity, value?.Value);
                 }
             }
         }
