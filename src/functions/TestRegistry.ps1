@@ -136,3 +136,46 @@ function Remove-TestRegistry {
         & $SafeCommands['Remove-Variable'] -Scope Global -Name $DriveName -Force
     }
 }
+
+
+function Get-TestRegistryPlugin {
+
+    # TODO: add OnStart block and put this in it
+
+    if (Test-Path TestRegistry:\) {
+        Remove-Item (Get-PSDrive TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
+        Remove-PSDrive TestRegistry
+    }
+    New-PluginObject -Name "TestRegistry" -EachBlockSetupStart {
+        param($Context)
+        if (-not ($Context.Block.PluginData.ContainsKey('TestRegistry'))) {
+            $Context.Block.PluginData.Add('TestRegistry', @{
+                    TestRegistryAdded   = $false
+                    TestRegistryContent = $null
+                })
+        }
+
+        # TODO: Add option, but probably in a more generic way
+        # if (-not $NoTestRegistry)
+        # {
+        if (-not (Test-Path TestRegistry:\)) {
+            New-TestRegistry
+            $Context.Block.PluginData.TestRegistry.TestRegistryAdded = $true
+        }
+        else {
+            $Context.Block.PluginData.TestRegistry.TestRegistryContent = Get-TestRegistryChildItem
+        }
+        # }
+
+    } -EachBlockTearDownEnd {
+        # if (-not $NoTestRegistry)
+        # {
+        if ($Context.Block.PluginData.TestRegistry.TestRegistryAdded) {
+            Remove-TestRegistry
+        }
+        else {
+            Clear-TestRegistry -Exclude ( $Context.Block.PluginData.TestRegistry.TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
+        }
+        # }
+    }
+}
