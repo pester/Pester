@@ -882,6 +882,13 @@ function Run-Test {
     )
 
     $state.Discovery = $false
+    $steps = $state.Plugin.RunStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
+            Block         = $Block
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
     foreach ($rootBlock in $Block) {
         $blockStartTime = $state.UserCodeStopWatch.Elapsed
         $overheadStartTime = $state.FrameworkStopWatch.Elapsed

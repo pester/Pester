@@ -86,46 +86,55 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
 
 function Write-PesterStart {
     param(
-        [Parameter(mandatory = $true, valueFromPipeline = $true)]
+        [Parameter(Mandatory = $true)]
         $Context
     )
-    process {
-        # if (-not ( $Context.Show | Has-Flag 'All, Fails, Header')) {
-        #     return
-        # }
 
-        $OFS = $ReportStrings.MessageOfs
 
-        $hash = @{
-            Files        = [System.Collections.Generic.List[object]]@()
-            ScriptBlocks = 0
-        }
 
-        foreach ($c in $Context.Containers) {
-            switch ($c.Type) {
-                "File" { $null = $hash.Files.Add($c.Item.FullName) }
-                "ScriptBlock" { $null = $hash.ScriptBlocks++ }
-                Default { throw "$($c.Type) is not supported." }
-            }
-        }
-
-        $message = $ReportStrings.StartMessage -f (Format-PesterPath $hash.Files -Delimiter $OFS)
-
-        $message = "$message$(if (0 -lt $hash.ScriptBlocks) { ", and in $($hash.ScriptBlocks) scriptblocks." })"
-        # todo write out filters that are applied
-        # if ($PesterState.TestNameFilter) {
-        #     $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
-        # }
-        # if ($PesterState.ScriptBlockFilter) {
-        #     $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
-        #     $message += $ReportStrings.FilterMessage -f $m
-        # }
-        # if ($PesterState.TagFilter) {
-        #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
-        # }
-
-        & $SafeCommands['Write-Host'] $message -Foreground $ReportTheme.Foreground
+    $m = $ExecutionContext.SessionState.Module
+    $v = if ($m.PrivateData -and $m.PrivateData.PSData)
+    {
+        "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
     }
+    else {
+        $m.Version
+    }
+
+    $psv = $PSVersionTable.PSVersion
+    $message = "`nStarting Pester $v on PS $psv in $(@($Context.BlockContainers).Count) containers."
+
+    # $OFS = $ReportStrings.MessageOfs
+
+    # $hash = @{
+    #     Files        = [System.Collections.Generic.List[object]]@()
+    #     ScriptBlocks = 0
+    # }
+
+    # foreach ($c in $Context.Containers) {
+    #     switch ($c.Type) {
+    #         "File" { $null = $hash.Files.Add($c.Item.FullName) }
+    #         "ScriptBlock" { $null = $hash.ScriptBlocks++ }
+    #         Default { throw "$($c.Type) is not supported." }
+    #     }
+    # }
+
+    # $message += $ReportStrings.StartMessage -f (Format-PesterPath $hash.Files -Delimiter $OFS)
+
+    # $message = "$message$(if (0 -lt $hash.ScriptBlocks) { ", and in $($hash.ScriptBlocks) scriptblocks." })"
+    # # todo write out filters that are applied
+    # if ($Context.Configuration.FullNameFilter) {
+    #      $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
+    # }
+    # if ($PesterState.ScriptBlockFilter) {
+    #     $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
+    #     $message += $ReportStrings.FilterMessage -f $m
+    # }
+    # if ($PesterState.TagFilter) {
+    #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
+    # }
+
+    # & $SafeCommands['Write-Host'] $message -Foreground $ReportTheme.Foreground
 }
 
 
@@ -432,12 +441,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
         Name = 'WriteScreen'
     }
 
-    if ("Normal" -eq $Verbosity) {
-        $p.Start = {
-            param ($Context)
+    $p.Start = {
+        param ($Context)
 
-            # Write-PesterStart $Context
-        }
+        Write-PesterStart $Context
     }
 
     $p.DiscoveryStart = {
@@ -471,6 +478,22 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+    }
+
+    $p.RunStart = {
+        $r = 0
+        $nr = 0
+
+        foreach ($c in $Context.Containers) {
+            if ($c.ShouldRun) {
+                $r++
+            }
+            else {
+                $nr++
+            }
+        }
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`n`nRunning tests from $r containers.$(if (0 -lt $nr) { "Skipping $nr containers because they were filtered out from the run." })"
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
