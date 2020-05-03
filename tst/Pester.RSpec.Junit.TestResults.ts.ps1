@@ -1,6 +1,6 @@
 param ([switch] $PassThru)
 # TODO: fix these tests
-return
+return (i -PassThru:$PassThru { })
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 

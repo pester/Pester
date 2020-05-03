@@ -36,7 +36,6 @@ InPesterModuleScope {
             [int32[]]$array = (1..10)
             $arrayoutoforder = (1, 10, 2, 3, 4, 5, 6, 7, 8, 9)
 
-            $array | Should Not Be $arrayOutOfOrder
             $array | Should -Not -Be $arrayOutOfOrder
             $array | Should -Not -EQ $arrayOutOfOrder
         }
