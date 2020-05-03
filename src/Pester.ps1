@@ -290,40 +290,19 @@ function Invoke-Pester {
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
         Remove-MockFunctionsAndAliases
-
-        # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
-
-        $callerPreference = [PesterConfiguration] $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
-        $hasCallerPreference = $null -ne $callerPreference
-        $hasConfiguration = $null -ne $Configuration
-
-        # preference is inherited in all subsequent calls in this session state
-        # but we still pass it explicitly where practical
-        if ($hasCallerPreference -and -not $hasConfiguration) {
-            [PesterConfiguration] $PesterPreference = $callerPreference
-        }
-        elseif (-not $hasCallerPreference -and $hasConfiguration) {
-            [PesterConfiguration] $PesterPreference = $Configuration
-        }
-        elseif ($hasCallerPreference -and $hasConfiguration) {
-            [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
-        }
-        else {
-            [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Default
-        }
-
-        Get-Variable 'Configuration' -Scope Local | Remove-Variable
     }
 
     end {
         try {
             if ('Simple' -eq $PSCmdlet.ParameterSetName) {
-                # populate preference from parameters and remove them so we
+                # populate config from parameters and remove them so we
                 # don't inherit them to child functions by accident
+
+                $Configuration = [PesterConfiguration]::Default
 
                 if ($PSBoundParameters.ContainsKey('Path')) {
                     if ($null -ne $Path) {
-                        $PesterPreference.Run.Path = $Path
+                        $Configuration.Run.Path = $Path
                     }
 
                     Get-Variable 'Path' -Scope Local | Remove-Variable
@@ -331,7 +310,7 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('ExcludePath')) {
                     if ($null -ne $ExcludePath) {
-                        $PesterPreference.Run.ExcludePath = $ExcludePath
+                        $Configuration.Run.ExcludePath = $ExcludePath
                     }
 
                     Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
@@ -339,7 +318,7 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('TagFilter')) {
                     if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
-                        $PesterPreference.Filter.Tag = $TagFilter
+                        $Configuration.Filter.Tag = $TagFilter
                     }
 
                     Get-Variable 'TagFilter' -Scope Local | Remove-Variable
@@ -347,7 +326,7 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
                     if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
-                        $PesterPreference.Filter.ExcludeTag = $ExcludeTagFilter
+                        $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
                     Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
@@ -355,7 +334,7 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
                     if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
-                        $PesterPreference.Filter.FullName = $FullNameFilter
+                        $Configuration.Filter.FullName = $FullNameFilter
                     }
 
                     Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
@@ -363,9 +342,9 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('CI')) {
                     if ($CI) {
-                        $PesterPreference.Run.Exit = $true
-                        $PesterPreference.CodeCoverage.Enabled = $true
-                        $PesterPreference.TestResult.Enabled = $true
+                        $Configuration.Run.Exit = $true
+                        $Configuration.CodeCoverage.Enabled = $true
+                        $Configuration.TestResult.Enabled = $true
                     }
 
                     Get-Variable 'CI' -Scope Local | Remove-Variable
@@ -373,7 +352,7 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('Output')) {
                     if ($null -ne $Output) {
-                        $PesterPreference.Output.Verbosity = $Output
+                        $Configuration.Output.Verbosity = $Output
                     }
 
                     Get-Variable 'Output' -Scope Local | Remove-Variable
@@ -381,12 +360,33 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('PassThru')) {
                     if ($null -ne $PassThru) {
-                        $PesterPreference.Run.PassThru = [bool] $PassThru
+                        $Configuration.Run.PassThru = [bool] $PassThru
                     }
 
                     Get-Variable 'PassThru' -Scope Local | Remove-Variable
                 }
             }
+
+            # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
+
+            $callerPreference = [PesterConfiguration] $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+            $hasCallerPreference = $null -ne $callerPreference
+
+            # we never want to use and keep the pester preference directly,
+            # because then the settings are modified on an object that outlives the
+            # invoke-pester run and we leak changes from this run to the next
+            # such as filters set in the first run will end up in the next run as well
+            #
+            # preference is inherited in all subsequent calls in this session state
+            # but we still pass it explicitly where practical
+            if (-not $hasCallerPreference) {
+                [PesterConfiguration] $PesterPreference = $Configuration
+            }
+            elseif ($hasCallerPreference) {
+                [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
+            }
+
+            Get-Variable 'Configuration' -Scope Local | Remove-Variable
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
             $sessionState = $PSCmdlet.SessionState
