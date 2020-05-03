@@ -20,15 +20,15 @@ $ErrorActionPreference = 'Stop'
 #.\getNugetExe.ps1
 #.\cleanUpBeforeBuild.ps1
 
-pwsh -f "$PSScriptRoot/../build.ps1 -clean"
+pwsh -c "$PSScriptRoot/../build.ps1 -clean"
 if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
 
-pwsh -f "$PSSCriptRoot/../test.ps1 -nobuild"
-if ($LASTEXITCODE -ne 0) {
-    throw "test failed!"
-}
+# pwsh -c "$PSSCriptRoot/../test.ps1 -nobuild"
+# if ($LASTEXITCODE -ne 0) {
+#     throw "test failed!"
+# }
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path "$PSScriptRoot/../bin"
 
@@ -47,10 +47,10 @@ $files = @(
 "Pester.psd1"
 "Pester.psm1"
 "report.dtd"
-"Pester\bin\net452\Pester.dll"
-"Pester\bin\net452\Pester.pdb"
-"Pester\bin\netstandard2.0\Pester.dll"
-"Pester\bin\netstandard2.0\Pester.pdb"
+"bin\net452\Pester.dll"
+"bin\net452\Pester.pdb"
+"bin\netstandard2.0\Pester.dll"
+"bin\netstandard2.0\Pester.pdb"
 "en-US\about_BeforeEach_AfterEach.help.txt"
 "en-US\about_Mocking.help.txt"
 "en-US\about_Pester.help.txt"
@@ -74,7 +74,7 @@ else {
 
 
 
-Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose
+Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
 #.\buildNugetPackage.ps1
 # .\buildPSGalleryPackage.ps1
 

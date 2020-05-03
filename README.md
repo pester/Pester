@@ -1,58 +1,59 @@
-# Pester v5 - release candidate 5
+# Pester v5 - RC6 (GA)
 
-> 🐛 This is branch is pre-release, but pretty close to stable, please give it a try.
-
-> 💵 I am spending most of my weekends making this happen. These release notes for example took ~almost~ a whole day. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
+> 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
 
 > 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218), or see more options in [Questions?](#questions).
 
-
-Pester release candidate 3 is here! 🥳 As the name suggests this release is close to final and most things that I wanted to get working actually work. 😊 This version is already stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own a larger project, please give it a try and report back.
-
-  * [What is new?](#what-is-new-)
-    + [Discovery & Run](#discovery---run)
+- [Pester v5 - RC6 (GA)](#pester-v5---rc6-ga)
+  - [What is new?](#what-is-new)
+    - [Discovery & Run](#discovery--run)
       - [Put setup in BeforeAll](#put-setup-in-beforeall)
       - [Review your usage of Skip](#review-your-usage-of-skip)
       - [Review your usage of TestCases](#review-your-usage-of-testcases)
-    + [Tags](#tags)
+    - [Tags](#tags)
       - [Tags on everything](#tags-on-everything)
       - [Tags use wildcards](#tags-use-wildcards)
-    + [Logging](#logging)
-    + [Run only what is needed](#run-only-what-is-needed)
-    + [Skip on everything](#skip-on-everythingj)
-    + [Collect all Should failures](#collect-all-should-failures)
-    + [Collecting `AfterEach` failures](#collecting--aftereach--failures)
-    + [Normal and minimal view](#normal-and-minimal-view)
-    + [New result object (and no -PassThru)](#new-result-object--and-no--passthru-)
-    + [Simple and advanced interface](#simple-and-advanced-interface)
+    - [Logging](#logging)
+    - [Run only what is needed](#run-only-what-is-needed)
+    - [Skip on everything](#skip-on-everything)
+    - [Collect all Should failures](#collect-all-should-failures)
+    - [Collecting `AfterEach` failures](#collecting-aftereach-failures)
+    - [Minimal, Normal and Diagnostic view](#minimal-normal-and-diagnostic-view)
+    - [New result object](#new-result-object)
+    - [Simple and advanced interface](#simple-and-advanced-interface)
       - [Simple interface](#simple-interface)
       - [Advanced interface](#advanced-interface)
-    + [PesterPreference](#pesterpreference)
-    + [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall---afterall)
-    + [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach---aftereach)
-    + [Implicit parameters for TestCases](#implicit-parameters-for-testcases)
-    + [Mocking](#mocking)
+    - [PesterPreference](#pesterpreference)
+    - [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall--afterall)
+    - [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach--aftereach)
+    - [Implicit parameters for TestCases](#implicit-parameters-for-testcases)
+    - [Mocking](#mocking)
       - [Mocks are scoped based on their placement](#mocks-are-scoped-based-on-their-placement)
       - [Counting mocks depends on placement](#counting-mocks-depends-on-placement)
       - [Should -Invoke](#should--invoke)
       - [Default parameters for ParameterFilter](#default-parameters-for-parameterfilter)
+      - [Mocks can be debugged](#mocks-can-be-debugged)
       - [Internal Mock functions are hidden](#internal-mock-functions-are-hidden)
       - [Avoid putting in InModuleScope around your Describe and It blocks](#avoid-putting-in-inmodulescope-around-your-describe-and-it-blocks)
-      - [Mocks don't work in top-level `BeforeAll`](#mocks-don-t-work-in-top-level--beforeall-)
-    + [VSCode improvements](#vscode-improvements)
+      - [Mocks don't work in top-level `BeforeAll`](#mocks-dont-work-in-top-level-beforeall)
+    - [VSCode improvements](#vscode-improvements)
       - [Use legacy code lens](#use-legacy-code-lens)
       - [Output verbosity](#output-verbosity)
-  * [Breaking changes](#breaking-changes)
-    + [Actual breaking changes](#actual-breaking-changes)
-    + [Deprecated features](#deprecated-features)
-    + [Known issues to be solved in 5.0](#known-issues-to-be-solved-in-50)
-    + [Known issues to be solved in 5.1](#known-issues-to-be-solved-in-51)
-- [Questions?](#questions-)
-
+  - [Breaking changes](#breaking-changes)
+    - [Actual breaking changes](#actual-breaking-changes)
+    - [Deprecated features](#deprecated-features)
+    - [Additional issues to be solved in 5.1](#additional-issues-to-be-solved-in-51)
+- [Questions?](#questions)
 
 ## What is new?
 
 > 🔥 Interested only in breaking changes? See [breaking changes](#breaking-changes) below.
+
+> 🕹 want to see a demo? Here is my talk [What is new in Pester 5](https://www.twitch.tv/videos/607067228?t=03h52m07s) from #BridgeConf
+
+
+Pester 5 RC6 (GA) is here! 🥳 This version is stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify any major bugs.
+
 
 ### Discovery & Run
 
@@ -262,7 +263,7 @@ Filter: (Get-Beer.Unit tests.unit test 2) Test is excluded, because it's tag 'Li
 Filter: (Get-Beer.Unit tests) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run.
 ```
 
-Please be aware that the log is currently only written to the screen and not persisted in the result object. And that the logging comes with a performance penalty.
+Please be aware that the log is currently only written to the screen and not persisted in the result object. And that the logging comes with a performance penalty. You can enable logging by using the configuration object, or by using `-Output Diagnostic`.
 
 ### Run only what is needed
 
@@ -411,7 +412,7 @@ In a similar fashion to Should, when test assertion fails, and it teardown also 
  [1] RuntimeException: but also fails in after each
 ```
 
-### Normal and minimal view
+### Minimal, Normal and Diagnostic view
 
 Errors are usually what we are interested in when running tests. And that is why Pester5 implements a concise view that prints failed tests with the full test path, and minimal discovery and summary information:
 
@@ -430,13 +431,34 @@ Tests completed in 331ms
 Tests Passed: 4, Failed: 2, Skipped: 0, Total: 6, NotRun: 0
 ```
 
-### New result object (and no -PassThru)
+Pester5 also implements a Diagnostic view that prints information from Discovery, Filter, Skip, Mock and other sources, this output will be by default enabled when debugging tests in VSCode, or you can enable it by using `-Output Diagnostic`.
 
-> 🌵 Correction, removing this param will probably be reverted, as it turned out to be annoying in interactive runs, see [issue](https://github.com/pester/Pester/issues/1480).
+```shell
+Mock: Found 2 behaviors for 'Get-Emoji':
+    Body: { '🚒' }
+    Filter: { $Emoji -eq 'firetruck' }
+    Verifiable: False
+    Body: { '🔥' }
+    Filter: $null
+    Verifiable: False
+Mock: We are in a test. Returning mock table from test scope.
+Mock: Finding a mock behavior.
+Mock: Running mock filter {  $Emoji -eq 'firetruck'  } with context: Emoji = firetruck.
+Mock: Mock filter passed.
+Mock: {  '🚒'  } passed parameter filter and will be used for the mock call.
+Mock: Executing mock behavior for mock Get-Emoji.
+Mock: Behavior for Get-Emoji was executed.
+Mock: Removing function PesterMock_3b8fd8ae-de6a-4a1c-87a8-7b177071f4af and aliases Get-Emoji for Get-Emoji.
+  [+] Gets firetruck 2.78s (2.71s|64ms)
+Tests completed in 4.71s
+Tests Passed: 1, Failed: 0, Skipped: 0 NotRun: 0
+```
 
-There is no `-PassThru` switch anymore, the output object is by default piped into the pipeline. The result object is extremely rich, and used by Pester internally to make all of its decisions. Most of the information in the tree is unprocessed to allow you to to work with the raw data. You are welcome to inspect the object, but don't rely on it yet. Some of the properties will be renamed.
+### New result object
 
-To use your current CI pipeline with the new object use `ConvertTo-Pester4Result` to convert it. To convert the new object to NUnit report use `ConvertTo-NUnitReport` or specify the `-CI` switch to enable NUnit output, code coverage and exit.
+The new result object is extremely rich, and used by Pester internally to make all of its decisions. Most of the information in the tree is unprocessed to allow you to to work with the raw data. You are welcome to inspect the object, and write your code based on it.
+
+To use your current CI pipeline with the new object use `ConvertTo-Pester4Result` to convert it. To convert the new object to NUnit report use `ConvertTo-NUnitReport` or specify the `-CI` switch to enable NUnit output, code coverage and exit code on failure.
 
 ### Simple and advanced interface
 
@@ -524,7 +546,7 @@ This configuration object contains all the options that are currently supported 
 
 There is one more way to provide the configuration object which is `$PesterPreference`. On `Invoke-Pester` (in case of interactive execution `Invoke-Pester` is called inside of the first `Describe`) the preference is collected and merged with the configuration object if provided. This allows you to configure everything that you would via Invoke-Pester also when you are running interactively (via `F5`). You can also use this to define the defaults for your session by putting $PesterPreference into your PowerShell profile.
 
-Here is a simple example of enabling Mock logging output while running interactively:
+Here is a simple example of enabling Mock logging output while running interactively :
 
 ```powershell
 $PesterPreference = [PesterConfiguration]::Default
@@ -709,6 +731,9 @@ Describe "d" {
     }
 }
 ```
+#### Mocks can be debugged
+
+Mocks don't rewrite the scriptblock you provide anymore. You can now set breakpoints into them as well as any of the ParameterFilter or Should -Invoke Parameter filter.
 
 #### Internal Mock functions are hidden
 
@@ -719,7 +744,6 @@ When Pester generates the mock bootstrap function it produces a command info obj
 #### Avoid putting in InModuleScope around your Describe and It blocks
 
 `InModuleScope` is a simple way to expose your internal module functions to be tested, but it prevents you from properly testing your published functions, does not ensure that your functions are actually published, and slows down Discovery by loading the module. Aim to avoid it altogether by using `-ModuleName` on `Mock`. Or at least avoid placing `InModuleScope` outside of `It`.
-
 
 #### Mocks don't work in top-level `BeforeAll`
 
@@ -747,53 +771,41 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 ## Breaking changes
 
 ### Actual breaking changes
+- PowerShell 2 is no longer supported
+- Documentation is out of date for all commands
 - Legacy syntax `Should Be` (without `-`) is removed, see [Migrating from Pester v3 to v4](https://pester.dev/docs/migrations/v3-to-v4)
 - Mocks are scoped based on their placement, not in whole `Describe` / `Context`. The count also depends on their placement. See [mock scoping](#mocks-are-scoped-based-on-their-placement)
 - `Assert-VerifiableMocks` was removed, see [Should -Invoke](#should--invoke)
 - The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
-- `$MyInvocation.MyCommand` does not work in top-level `BeforeAll`, use `$PSScriptRoot` or `$PSCommandPath`
-- PowerShell 2 is no longer supported
 - All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
-- `-Output` parameter has reduced options to `None`, `Minimal` and `All`, `-Show` alias is removed
+- `-Output` parameter has reduced options to `None`, `Minimal`, `Normal` and `Diagnostic`, `-Show` alias is removed
 - `-PesterOption` switch is removed
-- `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables parametrized scripts are not implemented at the moment, which should be solved in 5.1
-- Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
+- `-TestName` swithc is replaced with `-FullNameFilter` switch
+- `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables. Parametrized scripts are not implemented at the moment, which should be solved in 5.1
+- Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. Use `$PSScriptRoot` or `$PSCommandPath`. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
 
 
 ### Deprecated features
--  `Assert-MockCalled` was renamed (but aliases exist), see [Should -Invoke](#should--invoke)
+-  `Assert-MockCalled` is deprecated, it is recommended to use [Should -Invoke](#should--invoke)
+-  `Assert-VerifiableMock` is deprecated, it is recommended to use [Should -InvokeVerifiable](#should--invoke)
 
-### Known issues to be solved in 5.0
-- ❗ Got some reports that the adapted object works nicely. Output object has changed significantly, there is adapter function `ConvertTo-Pester4Result` ~that might not be 100% compatible~ see [new result object](#new-result-object-and-no--passthru)
-- ❗ Fixed in rc3. ~`-PassThru` is removed, see [passthru](#new-result-object-and-no--passthru)~
-- ❗ Fixed by adding -FullNameFilter in rc3. ~`-TestName` parameter is removed, it can be specified using the advanced syntax, see [`-TestName` missing](https://github.com/pester/Pester/issues/1479) for a workaround. Or better, use VSCode, see [VSCode improvements](#vscode-improvements), it will be added as `-FullNameFilter`~
-- ❗ Fixed in rc3. ~Name filter in the advanced object throws when provided null~
-- Providing optional values via PesterConfiguration fails with null reference exception
 
-### Known issues to be solved in 5.1
+### Additional issues to be solved in 5.1
 - `Set-ItResult` is published but does not work
 - `-Strict` switch is not available
 - Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
 - Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.
-- Whole execution is about the same as v4 when test don't fail. When they fail it is about 20%-40% slower depending on the scenario. ❗ Improved Discovery and Mocks perf in rc3, still not perfect but it is a start. Other parts will follow.
 - Running on huge codebases is largely untested
 - `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
 - Documentation is out of date for all commands
 - Providing parameters to test scripts is not implemented, see [parametric scripts](https://github.com/pester/Pester/issues/1485)
-
+- JUnit output is missing
 
 - Noticed more of them? Share please!
-
-
 
 
 # Questions?
 
 Use [this issue thread](https://github.com/pester/Pester/issues/1218), ping me on [twitter](https://twitter.com/nohwnd) or [#testing](https://powershell.slack.com/messages/C03QKTUCS/)
-
-
-
-
-# Also, happy 30th birthday [@ryanyates1990](https://twitter.com/ryanyates1990) hope you'll get well soon! 🎉🎊🥳🍰
