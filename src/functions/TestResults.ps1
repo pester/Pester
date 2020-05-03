@@ -52,11 +52,7 @@ function Export-NUnitReport {
         $Result,
 
         [parameter(Mandatory = $true)]
-        [String] $Path,
-
-        [parameter(Mandatory = $true)]
-        [ValidateSet('NUnitXml', 'JUnitXml')]
-        [string] $Format
+        [String] $Path
     )
 
     Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
