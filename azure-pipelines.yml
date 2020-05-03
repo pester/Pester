@@ -23,6 +23,9 @@ stages:
             - netcoreapp3.1
         timeoutInMinutes: 3
         steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 1
           - powershell: ./build.ps1 -Clean
           - publish: $(Build.SourcesDirectory)
             artifact: all
