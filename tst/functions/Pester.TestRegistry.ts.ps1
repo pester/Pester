@@ -1,14 +1,15 @@
 param ([switch] $PassThru)
 
-if ($PSVersionTable.PSVersion.Major -le 5 -or -not $IsWindows) {
-    Write-Host "Not on Windows skipping TestRegistry tests." -ForegroundColor Yellow
-    return (i -PassThru:$PassThru { })
-}
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
 Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
+
+if ($PSVersionTable.PSVersion.Major -le 5 -or -not $IsWindows) {
+    Write-Host "Not on Windows skipping TestRegistry tests." -ForegroundColor Yellow
+    return (i -PassThru:$PassThru { })
+}
 
 Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
