@@ -23,6 +23,7 @@ Script that is executed. This may include setup specific to the context
 and one or more It blocks that validate the expected outcomes.
 
 .EXAMPLE
+```ps
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -39,18 +40,28 @@ Describe "Add-Numbers" {
         It "..." { ... }
     }
 }
+```
 
 .LINK
-https://github.com/pester/Pester/wiki/Context
+https://pester.dev/docs/commands/Describe
 
 .LINK
-Describe
-It
-BeforeEach
-AfterEach
-about_Should
-about_Mocking
-about_TestDrive
+https://pester.dev/docs/commands/It
+
+.LINK
+https://pester.dev/docs/commands/BeforeEach
+
+.LINK
+https://pester.dev/docs/commands/AfterEach
+
+.LINK
+https://pester.dev/docs/commands/Should
+
+.LINK
+https://pester.dev/docs/usage/mocking
+
+.LINK
+https://pester.dev/docs/usage/testdrive
 
 #>
     param(

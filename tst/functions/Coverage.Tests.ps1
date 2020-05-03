@@ -252,27 +252,27 @@ InPesterModuleScope {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript.ps1">
-                            <line nr="5" mi="0" ci="1" />
-                            <line nr="6" mi="0" ci="1" />
-                            <line nr="9" mi="0" ci="1" />
-                            <line nr="11" mi="0" ci="1" />
-                            <line nr="12" mi="0" ci="1" />
-                            <line nr="15" mi="1" ci="1" />
-                            <line nr="17" mi="0" ci="2" />
-                            <line nr="22" mi="1" ci="0" />
-                            <line nr="25" mi="0" ci="1" />
-                            <line nr="32" mi="0" ci="1" />
-                            <line nr="37" mi="0" ci="1" />
-                            <line nr="42" mi="1" ci="0" />
-                            <line nr="46" mi="0" ci="1" />
-                            <line nr="47" mi="0" ci="1" />
+                            <line nr="5" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="9" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="11" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="15" mi="1" ci="1" mb="0" cb="0" />
+                            <line nr="17" mi="0" ci="2" mb="0" cb="0" />
+                            <line nr="22" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="32" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="37" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="42" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="46" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="47" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="3" covered="13" />
                             <counter type="LINE" missed="2" covered="12" />
                             <counter type="METHOD" missed="2" covered="5" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
                         <sourcefile name="TestScript2.ps1">
-                            <line nr="1" mi="0" ci="1" />
+                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
                             <counter type="METHOD" missed="0" covered="1" />
@@ -296,7 +296,7 @@ InPesterModuleScope {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript3.ps1">
-                            <line nr="1" mi="0" ci="1" />
+                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
                             <counter type="METHOD" missed="0" covered="1" />

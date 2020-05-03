@@ -1,8 +1,5 @@
 Set-StrictMode -Version Latest
 
-#TODO: registry plugin is not added yet
-return
-
 $os = InModuleScope -ModuleName Pester { GetPesterOs }
 if ("Windows" -ne $os) {
     # test registry are only for Windows
@@ -20,12 +17,8 @@ Describe "General" {
     }
 }
 
-$script:drivePath = $null
-
 Describe "TestRegistry scoping" {
     BeforeAll {
-        $script:drivePath = (Get-PSDrive "TestRegistry").Root -replace "HKEY_CURRENT_USER", "HKCU:"
-
         $describeKey = New-Item -Path "TestRegistry:\" -Name "DescribeKey"
         $describeValue = New-ItemProperty -Path "TestRegistry:\DescribeKey" -Name "DescribeValue" -Value 1
 
@@ -66,36 +59,3 @@ Describe "TestRegistry scoping" {
     }
 }
 
-# the describes might be skipped and then $script:drivePath would be null
-# but we cannot put it in a describe because then the describe would setup the
-# test registry
-$registryKeyVariableHasValue = $null -ne $script:drivePath
-$registryKeyWasRemoved = $registryKeyVariableHasValue -and -not (Test-Path $script:drivePath)
-
-$testRegistryDriveWasRemoved = -not (Test-Path "TestRegistry:\")
-
-Describe "cleanup" {
-    It "Removed the key used in the previous Describe" {
-        $registryKeyWasRemoved | Should -BeTrue
-    }
-
-    It "Removed the drive" {
-        $testRegistryDriveWasRemoved | Should -BeTrue
-    }
-}
-
-# Describe "Cleanup when Remove-Item is mocked" {
-#     Mock Remove-Item {}
-
-#     Context "add a temp directory" {
-#         Setup -Dir "foo"
-#     }
-
-#     Context "next context" {
-
-#         It "should have removed the temp folder" {
-#             "$TestRegistry\foo" | Should -Not -Exist
-#         }
-
-#     }
-# }

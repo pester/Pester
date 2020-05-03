@@ -3,7 +3,8 @@
 param (
     [switch]$Debug,
     [switch]$Load,
-    [switch]$Clean)
+    [switch]$Clean
+)
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
@@ -74,21 +75,29 @@ foreach ($s in $script) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
-dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
-if (0 -ne $LASTEXITCODE) {
-    throw "build failed!"
+if ($Clean) {
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
+    if (0 -ne $LASTEXITCODE) {
+        throw "build failed!"
+    }
 }
 
 $content = @(
     ,("$PSScriptRoot/src/en-US/*.txt","$PSScriptRoot/bin/en-US/")
     ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
-    ,("$PSScriptRoot/src/csharp/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
 )
+
+if ($Clean) {
+    $content += @(
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
+    )
+}
 
 foreach ($c in $content) {
     $source, $destination = $c

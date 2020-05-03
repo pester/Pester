@@ -410,8 +410,13 @@ function Invoke-Pester {
                 # decorated, not nice but works
                 Get-RSpecObjectDecoratorPlugin
                 Get-TestDrivePlugin
-                Get-MockPlugin
             )
+
+            if ("Windows" -eq (GetPesterOs)) {
+                $plugins += @(Get-TestRegistryPlugin)
+            }
+
+            $plugins +=  @(Get-MockPlugin)
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
