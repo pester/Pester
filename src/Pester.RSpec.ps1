@@ -237,114 +237,131 @@ function New-PesterConfiguration {
 }
 
 function Remove-RSpecNonPublicProperties ($run){
-    $runProperties = @(
-        'Configuration'
-        'Containers'
-        'ExecutedAt'
-        'FailedBlocksCount'
-        'FailedCount'
-        'NotRunCount'
-        'PassedCount'
-        'PSBoundParameters'
-        'Result'
-        'SkippedCount'
-        'TotalCount'
-        'Duration'
-    )
+    # $runProperties = @(
+    #     'Configuration'
+    #     'Containers'
+    #     'ExecutedAt'
+    #     'FailedBlocksCount'
+    #     'FailedCount'
+    #     'NotRunCount'
+    #     'PassedCount'
+    #     'PSBoundParameters'
+    #     'Result'
+    #     'SkippedCount'
+    #     'TotalCount'
+    #     'Duration'
+    # )
 
-    $containerProperties = @(
-        'Blocks'
-        'Content'
-        'ErrorRecord'
-        'Executed'
-        'ExecutedAt'
-        'FailedCount'
-        'NotRunCount'
-        'PassedCount'
-        'Result'
-        'ShouldRun'
-        'Skip'
-        'SkippedCount'
-        'Duration'
-        'Type' # needed because of nunit export path expansion
-        'TotalCount'
-    )
+    # $containerProperties = @(
+    #     'Blocks'
+    #     'Content'
+    #     'ErrorRecord'
+    #     'Executed'
+    #     'ExecutedAt'
+    #     'FailedCount'
+    #     'NotRunCount'
+    #     'PassedCount'
+    #     'Result'
+    #     'ShouldRun'
+    #     'Skip'
+    #     'SkippedCount'
+    #     'Duration'
+    #     'Type' # needed because of nunit export path expansion
+    #     'TotalCount'
+    # )
 
-    $blockProperties = @(
-        'Blocks'
-        'ErrorRecord'
-        'Executed'
-        'ExecutedAt'
-        'FailedCount'
-        'Name'
-        'NotRunCount'
-        'PassedCount'
-        'Path'
-        'Result'
-        'ScriptBlock'
-        'ShouldRun'
-        'Skip'
-        'SkippedCount'
-        'StandardOutput'
-        'Tag'
-        'Tests'
-        'Duration'
-        'TotalCount'
-    )
+    # $blockProperties = @(
+    #     'Blocks'
+    #     'ErrorRecord'
+    #     'Executed'
+    #     'ExecutedAt'
+    #     'FailedCount'
+    #     'Name'
+    #     'NotRunCount'
+    #     'PassedCount'
+    #     'Path'
+    #     'Result'
+    #     'ScriptBlock'
+    #     'ShouldRun'
+    #     'Skip'
+    #     'SkippedCount'
+    #     'StandardOutput'
+    #     'Tag'
+    #     'Tests'
+    #     'Duration'
+    #     'TotalCount'
+    # )
 
-    $testProperties = @(
-        'Data'
-        'ErrorRecord'
-        'Executed'
-        'ExecutedAt'
-        'ExpandedName'
-        'Id' # needed because of grouping of data driven tests in nunit export
-        'Name'
-        'Path'
-        'Result'
-        'ScriptBlock'
-        'ShouldRun'
-        'Skip'
-        'Skipped'
-        'StandardOutput'
-        'Tag'
-        'Duration'
-    )
+    # $testProperties = @(
+    #     'Data'
+    #     'ErrorRecord'
+    #     'Executed'
+    #     'ExecutedAt'
+    #     'ExpandedName'
+    #     'Id' # needed because of grouping of data driven tests in nunit export
+    #     'Name'
+    #     'Path'
+    #     'Result'
+    #     'ScriptBlock'
+    #     'ShouldRun'
+    #     'Skip'
+    #     'Skipped'
+    #     'StandardOutput'
+    #     'Tag'
+    #     'Duration'
+    # )
 
     Fold-Run $run -OnRun {
         param($i)
-        $ps = $i.PsObject.Properties.Name
-        foreach ($p in $ps) {
-            if ($p -notin $runProperties) {
-                $i.PsObject.Properties.Remove($p)
-            }
-        }
+        # $ps = $i.PsObject.Properties.Name
+        # foreach ($p in $ps) {
+        #     if ($p -like 'Plugin*') {
+        #         $i.PsObject.Properties.Remove($p)
+        #     }
+        # }
+
+        $i.PluginConfiguration = $null
+        $i.PluginData = $null
+        $i.Plugins = $null
 
     } -OnContainer {
         param($i)
-        $ps = $i.PsObject.Properties.Name
-        foreach ($p in $ps) {
-            if ($p -notin $containerProperties) {
-                $i.PsObject.Properties.Remove($p)
-            }
-        }
+        # $ps = $i.PsObject.Properties.Name
+        # foreach ($p in $ps) {
+        #     if ($p -like 'Own*') {
+        #         $i.PsObject.Properties.Remove($p)
+        #     }
+        # }
+
+        # $i.FrameworkData = $null
+        # $i.PluginConfiguration = $null
+        # $i.PluginData = $null
+        # $i.Plugins = $null
 
     } -OnBlock {
         param($i)
-        $ps = $i.PsObject.Properties.Name
-        foreach ($p in $ps) {
-            if ($p -notin $blockProperties) {
-                $i.PsObject.Properties.Remove($p)
-            }
-        }
+        # $ps = $i.PsObject.Properties.Name
+        # foreach ($p in $ps) {
+        #     if ($p -eq 'FrameworkData' -or $p -like 'Own*' -or $p -like 'Plugin*') {
+        #         $i.PsObject.Properties.Remove($p)
+        #     }
+        # }
+
+        $i.FrameworkData = $null
+        $i.PluginConfiguration = $null
+        $i.PluginData = $null
 
     } -OnTest {
         param($i)
-        $ps = $i.PsObject.Properties.Name
-        foreach ($p in $ps) {
-            if ($p -notin $testProperties) {
-                $i.PsObject.Properties.Remove($p)
-            }
-        }
+        # $ps = $i.PsObject.Properties.Name
+        # foreach ($p in $ps) {
+        #     if ($p -eq 'FrameworkData' -or $p -like 'Plugin*') {
+        #         $i.PsObject.Properties.Remove($p)
+        #     }
+        # }
+
+        $i.FrameworkData = $null
+        $i.PluginConfiguration = $null
+        $i.PluginData = $null
     }
 }

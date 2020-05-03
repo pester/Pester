@@ -62,7 +62,6 @@ namespace Pester
         public TimeSpan FrameworkDuration { get; set; }
         public Hashtable PluginData { get; set; }
         public Hashtable FrameworkData { get; set; }
-        public string PSTypeName { get; private set; }
 
         public override string ToString() => ToStringConverter.TestToString(this);
     }
