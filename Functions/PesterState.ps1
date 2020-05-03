@@ -9,7 +9,7 @@ function New-PesterState {
         [object]$PesterOption,
         [Switch]$RunningViaInvokePester,
         [Hashtable[]] $ScriptBlockFilter,
-        [version]$Version = "4.10.1"
+        [version]$Version = $ExecutionContext.SessionState.Module.Version
     )
 
     if ($null -eq $SessionState) {
@@ -46,7 +46,7 @@ function New-PesterState {
         $ExcludeTagFilter = $_excludeTagFilter
         $TestNameFilter = $_testNameFilter
 
-        $script:version = $Version
+        $script:Version = $Version
         $script:SessionState = $_sessionState
         $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $script:TestStartTime = $null
