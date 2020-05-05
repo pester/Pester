@@ -552,8 +552,8 @@ function Invoke-TestItem {
                         $path = $Test.Path -join '.'
                         Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
                     }
-                    $test.Passed = $true
-                    $test.Skipped = $true
+                    $Test.Passed = $true
+                    $Test.Skipped = $true
                 } else {
                     $Test.Passed = $result.Success
                 }

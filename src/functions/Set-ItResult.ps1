@@ -61,7 +61,7 @@ function Set-ItResult {
         [String]$Because = $result.toUpper() + ': ' + $Because
     }
 
-    $test.Result = 'Skipped'
-    $test.Data.Because = $Because
+    $Test.Result = 'Skipped'
+    $Test.Data.Because = $Because
     throw [Management.Automation.RuntimeException]'Skipped'
 }
