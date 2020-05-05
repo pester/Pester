@@ -577,9 +577,12 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             Skipped {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
-                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped " is skipped" -NoNewLine
+                    $because = $_Test.Data.Because
+                    if ($Because) {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", because $Because" -NoNewLine
+                    }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                 }
                 break
