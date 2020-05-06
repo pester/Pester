@@ -22,7 +22,7 @@ namespace Pester
             return new System.Management.Automation.RuntimeDefinedParameterDictionary();
         }
 
-        public static ErrorRecord CreateErrorRecord(string message, string file, string line, string lineText, bool terminating)
+        public static ErrorRecord CreateShouldErrorRecord(string message, string file, string line, string lineText, bool terminating)
         {
             return CreateErrorRecord("PesterAssertionFailed", message, file, line, lineText, terminating);
         }
