@@ -71,7 +71,7 @@ function Set-ItResult {
             [String]$Line = $MyInvocation.ScriptLineNumber
         }
         $LineText {
-            $LineText = [String]$MyInvocation.Line.trim()
+            [String]$LineText = $MyInvocation.Line.trim()
         }
     }
 
