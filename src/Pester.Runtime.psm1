@@ -546,7 +546,7 @@ function Invoke-TestItem {
 
                 $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
 
-                if ($Test.Result -eq 'Skipped') {
+                if ($Result.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
                     #Same logic as when setting a test block to skip
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $Test.Path -join '.'
