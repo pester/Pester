@@ -55,13 +55,32 @@ function Set-ItResult {
 
     $result = $PSCmdlet.ParameterSetName
 
-    #TODO: Remove in Pester 6
-    if ($result -in 'Inconclusive','Pending') {
-        Write-Host -Fore Yellow 'DEPRECATION WARNING: Inconclusive and Pending states are deprecated in Pester 5. You should update Set-ItResult in your tests to use -Skipped only'
-        [String]$Because = $result.toUpper() + ': ' + $Because
+    [String]$Message = "is skipped"
+    if ($Result -ne 'Skipped') {
+        [String]$Because = if ($Because) {$Result.ToUpper(), $Because -join ': '} else {$Result.ToUpper()}
+    }
+    if ($Because) {
+        [String]$Message += ", because $Because"
     }
 
-    $Test.Result = 'Skipped'
-    $Test.Data.Because = $Because
-    throw [Management.Automation.RuntimeException]'Skipped'
+    switch ($null) {
+        $File {
+            [String]$File = $MyInvocation.ScriptName
+        }
+        $Line {
+            [String]$Line = $MyInvocation.ScriptLineNumber
+        }
+        $LineText {
+            $LineText = [String]$MyInvocation.Line.trim()
+        }
+    }
+
+    throw [Pester.Factory]::CreateErrorRecord(
+        'PesterTestSkipped', #string errorId
+        $Message, #string message
+        $File, #string file
+        $Line, #string line
+        $LineText, #string lineText
+        $false #bool terminating
+    )
 }
