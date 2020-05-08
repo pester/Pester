@@ -565,7 +565,7 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.Run.Exit.Value -and "failed" -eq $run.Result) {
-                exit ($run.FailedCount + $run.FailedBlocksCount)
+                exit ($run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount)
             }
         }
         catch {

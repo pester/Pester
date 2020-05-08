@@ -191,6 +191,10 @@ function PostProcess-RspecTestRun ($TestRun) {
         }
 
         ## summarize
+        if (0 -lt $b.ErrorRecord.Count) {
+            $TestRun.FailedContainers.Add($b)
+        }
+
         $TestRun.Duration += $b.Duration
         $TestRun.UserDuration += $b.UserDuration
         $TestRun.FrameworkDuration += $b.FrameworkDuration
@@ -205,8 +209,9 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.TotalCount = $TestRun.Tests.Count
 
     $TestRun.FailedBlocksCount = $TestRun.FailedBlocks.Count
+    $TestRun.FailedContainersCount = $TestRun.FailedContainers.Count
 
-    $TestRun.Result = if (0 -lt ($TestRun.FailedCount + $TestRun.FailedBlocksCount)) {
+    $TestRun.Result = if (0 -lt ($TestRun.FailedCount + $TestRun.FailedBlocksCount + $TestRun.FailedContainersCount)) {
         "Failed"
     }
     else {

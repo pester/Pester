@@ -17,6 +17,7 @@ namespace Pester
         public string Result { get; set; } = "NotRun";
         public int FailedCount { get; set; }
         public int FailedBlocksCount { get; set; }
+        public int FailedContainersCount { get; set; }
 
         public int PassedCount { get; set; }
         public int SkippedCount { get; set; }
@@ -43,6 +44,7 @@ namespace Pester
 
         public List<Test> Failed { get; set; } = new List<Test>();
         public List<Block> FailedBlocks { get; set; } = new List<Block>();
+        public List<Container> FailedContainers { get; set; } = new List<Container>();
 
         public List<Test> Passed { get; set; } = new List<Test>();
         public List<Test> Skipped { get; set; } = new List<Test>();

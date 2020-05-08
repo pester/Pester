@@ -1,5 +1,3 @@
-$script:IgnoreErrorPreference = 'Ignore' # TODO: get rid of this, it is used in only few places
-
 # Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
 # Get-Command does.  Since this is at import time, before any mocks have been defined, that's probably acceptable.
 # If someone monkeys with Get-Command before they import Pester, they may break something.
