@@ -295,4 +295,42 @@ i -PassThru:$PassThru {
             $err[-1] | Verify-Equal "But was:  'b'"
         }
     }
+
+    b "splatting on default params" {
+        dt "should be able to splat whatif" {
+            # https://github.com/pester/Pester/issues/1519
+
+
+            $sb = {
+                Describe "a" {
+                    It "it" {
+                        function Subject {
+                            $params = @{
+                                Path   = 'c:\temp\nothing'
+                                WhatIf = $true
+                            }
+
+                            Remove-Item @params
+                        }
+
+                        Mock Remove-Item {
+                            'This should be called'
+                        }
+
+                        Subject
+
+                        Should -Invoke Remove-Item -Exactly 1
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.StandardOutput | Verify-Equal 'This should be called' # the "won't reach this" should not run because the mock filter will throw before it
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
 }
