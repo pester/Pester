@@ -136,7 +136,7 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
 function Remove-TestDrive {
 
     $DriveName = "TestDrive"
-    $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction 'Ignore'
+    $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
     $Path = ($Drive).Root
 
 
@@ -157,7 +157,7 @@ function Remove-TestDrive {
         & $SafeCommands['Remove-Item'] -Path $Path -Force -Recurse
     }
 
-    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction 'Ignore') {
+    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction Ignore) {
         & $SafeCommands['Remove-Variable'] -Scope Global -Name $DriveName -Force
     }
 }

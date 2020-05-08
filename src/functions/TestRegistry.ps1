@@ -108,7 +108,7 @@ function New-RandomTempRegistry {
 
 function Remove-TestRegistry {
     $DriveName = "TestRegistry"
-    $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction 'Ignore'
+    $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
     if ($null -eq $Drive) {
         # the drive does not exist, someone must have removed it instead of us,
         # most likely a test that tests pester itself, so we just hope that the
@@ -132,7 +132,7 @@ function Remove-TestRegistry {
         & $SafeCommands['Remove-Item'] -Path $path -Force -Recurse
     }
 
-    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction 'Ignore') {
+    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction Ignore) {
         & $SafeCommands['Remove-Variable'] -Scope Global -Name $DriveName -Force
     }
 }
