@@ -12,23 +12,23 @@ function In {
     .PARAMETER Path
     The path that the execute block will be executed in.
 
-    .PARAMETER execute
+    .PARAMETER Execute
     The script to be executed in the path provided.
 
     #>
     [CmdletBinding()]
     param(
-        $path,
-        [ScriptBlock] $execute
+        $Path,
+        [ScriptBlock] $Execute
     )
     Assert-DescribeInProgress -CommandName In
 
     $old_pwd = $pwd
-    & $SafeCommands['Push-Location'] $path
-    $pwd = $path
+    & $SafeCommands['Push-Location'] $Path
+    $pwd = $Path
     try {
-        Write-ScriptBlockInvocationHint -Hint "In" -ScriptBlock $execute
-        & $execute
+        Write-ScriptBlockInvocationHint -Hint "In" -ScriptBlock $Execute
+        & $Execute
     }
     finally {
         & $SafeCommands['Pop-Location']
