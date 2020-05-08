@@ -297,7 +297,7 @@ i -PassThru:$PassThru {
     }
 
     b "splatting on default params" {
-        dt "should be able to splat whatif" {
+        t "should be able to splat whatif" {
             # https://github.com/pester/Pester/issues/1519
 
 
