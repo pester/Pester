@@ -268,6 +268,24 @@ function Write-PesterReport {
         & $SafeCommands['Write-Host'] ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
         & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
+
+    if (0 -lt $RunResult.FailedContainersCount) {
+        $cs = foreach ($container in $RunResult.FailedContainers) {
+            $path = if ("File" -eq $container.Type) {
+                $container.Item.FullName
+            }
+            elseif ("ScriptBlock" -eq $container.Type) {
+                "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
+            }
+            else {
+                throw "Container type '$($container.Type)' is not supported."
+            }
+
+            "  - $path"
+        }
+        & $SafeCommands['Write-Host'] ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
+        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+    }
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     # }

@@ -1,15 +1,9 @@
 param ([switch] $PassThru)
 
-
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
 Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
-
-if ($PSVersionTable.PSVersion.Major -le 5 -or -not $IsWindows) {
-    Write-Host "Not on Windows skipping TestRegistry tests." -ForegroundColor Yellow
-    return (i -PassThru:$PassThru { })
-}
 
 Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
@@ -23,13 +17,13 @@ $global:PesterPreference = @{
 }
 
 i -PassThru:$PassThru {
-    b "Test registry clean up" {
-        t "TestRegistry is removed after execution" {
+    b "Test drive clean up" {
+        t "TestDrive is removed after execution" {
             $c = @{ DrivePath = $null}
             $sb = {
                 Describe "a" {
                     It "i" {
-                        $c.DrivePath = (Get-PSDrive "TestRegistry").Root -replace "HKEY_CURRENT_USER", "HKCU:"
+                        $c.DrivePath = (Get-PSDrive "TestDrive").Root
                     }
                 }
             }
@@ -42,12 +36,12 @@ i -PassThru:$PassThru {
 
             $registryKeyWasRemoved | Verify-True
 
-            $testRegistryDriveWasRemoved = -not (Test-Path "TestRegistry:\")
-            $testRegistryDriveWasRemoved | Verify-True
+            $TestDriveDriveWasRemoved = -not (Test-Path "TestDrive:\")
+            $TestDriveDriveWasRemoved | Verify-True
 
         }
 
-        t "TestRegistry removal does not fail when Pester is invoked in Pester" {
+        t "TestDrive removal does not fail when Pester is invoked in Pester" {
             $innerSb = {
                 Describe "d" {
                     It "i" {
