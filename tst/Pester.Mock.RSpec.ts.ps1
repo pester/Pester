@@ -299,8 +299,6 @@ i -PassThru:$PassThru {
     b "splatting on default params" {
         t "should be able to splat whatif" {
             # https://github.com/pester/Pester/issues/1519
-
-
             $sb = {
                 Describe "a" {
                     It "it" {
@@ -329,7 +327,7 @@ i -PassThru:$PassThru {
             })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
-            $t.StandardOutput | Verify-Equal 'This should be called' # the "won't reach this" should not run because the mock filter will throw before it
+            $t.StandardOutput | Verify-Equal 'This should be called'
             $t.Result | Verify-Equal "Passed"
         }
     }
