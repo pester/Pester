@@ -75,9 +75,9 @@ function New-CoverageInfo {
 function Get-CoverageInfoFromDictionary {
     param ([System.Collections.IDictionary] $Dictionary)
 
-    [string] $path = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Path', 'p'
-    if ([string]::IsNullOrEmpty($path)) {
-        throw "Coverage value '$Dictionary' is missing required Path key."
+    $path = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Path', 'p'
+    if ($null -eq $path -or 0 -ge @($path).Count) {
+        throw "Coverage value '$($Dictionary | & $script:SafeCommands['Out-String'])' is missing required Path key."
     }
 
     $startLine = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'StartLine', 'Start', 's'

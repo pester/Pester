@@ -194,10 +194,9 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
 
     $XmlWriter.WriteStartElement('results')
 
-    $cwdReplacement = [regex]::Escape($pwd.Path)
     foreach ($container in $Result.Containers) {
         if ("File" -eq $container.Type) {
-            $path = ($action.Path -replace "$cwdReplacement[\\/](.*)", '.\$1')
+            $path = $container.Item.FullName
         }
         elseif ("ScriptBlock" -eq $container.Type) {
             $path = "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
