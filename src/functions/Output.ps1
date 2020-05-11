@@ -268,6 +268,24 @@ function Write-PesterReport {
         & $SafeCommands['Write-Host'] ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
         & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
+
+    if (0 -lt $RunResult.FailedContainersCount) {
+        $cs = foreach ($container in $RunResult.FailedContainers) {
+            $path = if ("File" -eq $container.Type) {
+                $container.Item.FullName
+            }
+            elseif ("ScriptBlock" -eq $container.Type) {
+                "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
+            }
+            else {
+                throw "Container type '$($container.Type)' is not supported."
+            }
+
+            "  - $path"
+        }
+        & $SafeCommands['Write-Host'] ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
+        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+    }
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     # }
@@ -532,6 +550,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
+            if ($_test.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+                $skippedMessage = [String]$_Test.ErrorRecord
+                [String]$out += " $skippedMessage"
+            }
         }
         elseif ('Minimal' -eq $PesterPreference.Output.Verbosity.Value) {
             $level = 0
@@ -577,9 +599,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             Skipped {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
-                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                 }
                 break

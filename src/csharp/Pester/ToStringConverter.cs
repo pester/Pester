@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Management.Automation;
 
 namespace Pester
 {
@@ -26,6 +27,15 @@ namespace Pester
             {
                 case "File":
                     path = container.Item.ToString();
+                    break;
+                case "ScriptBlock":
+                    path = $"<ScriptBlock>"; 
+                    if (container.Item is ScriptBlock s) { 
+                        if (!string.IsNullOrWhiteSpace(s.File))
+                        {
+                            path += $":{s.File}:{s.StartPosition.StartLine}";
+                        }
+                    }
                     break;
                 default:
                     path = $"<{container.Type}>";

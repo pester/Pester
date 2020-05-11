@@ -201,7 +201,7 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
         elseif ("ScriptBlock" -eq $container.Type) {
             $path = "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
         }
-        else  {
+        else {
             throw "Container type '$($container.Type)' is not supported."
         }
         Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $path

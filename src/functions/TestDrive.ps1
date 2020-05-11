@@ -71,6 +71,15 @@ function New-TestDrive ([Switch]$PassThru, [string] $Path) {
 
 
 function Clear-TestDrive ([String[]]$Exclude) {
+    $drive = & $SafeCommands['Get-PSDrive'] -Name TestDrive -ErrorAction Ignore
+
+    if ($null -eq $drive) {
+        # someone cleared it up before us, maybe a Pester running in a child scope
+        return
+    }
+
+    $Path = $drive.Root
+
     $Path = (& $SafeCommands['Get-PSDrive'] -Name TestDrive).Root
     if (& $SafeCommands['Test-Path'] -Path $Path ) {
 
@@ -127,7 +136,7 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
 function Remove-TestDrive {
 
     $DriveName = "TestDrive"
-    $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction $script:IgnoreErrorPreference
+    $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
     $Path = ($Drive).Root
 
 
@@ -148,7 +157,7 @@ function Remove-TestDrive {
         & $SafeCommands['Remove-Item'] -Path $Path -Force -Recurse
     }
 
-    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction $script:IgnoreErrorPreference) {
+    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction Ignore) {
         & $SafeCommands['Remove-Variable'] -Scope Global -Name $DriveName -Force
     }
 }
