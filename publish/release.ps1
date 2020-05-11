@@ -47,8 +47,6 @@ $files = @(
 "Pester.psd1"
 "Pester.psm1"
 "report.dtd"
-"bin\net452\Pester.dll"
-"bin\net452\Pester.pdb"
 "bin\netstandard2.0\Pester.dll"
 "bin\netstandard2.0\Pester.pdb"
 "en-US\about_BeforeEach_AfterEach.help.txt"

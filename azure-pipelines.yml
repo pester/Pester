@@ -16,7 +16,6 @@ stages:
         pool:
           name: Default
           demands:
-            - net452
             - netcoreapp3.1
         timeoutInMinutes: 3
         steps:
