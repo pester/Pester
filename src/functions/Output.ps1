@@ -575,14 +575,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
         switch ($result) {
             Passed {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[$($PesterPreference.Output.PassedChar.Value)] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
                 }
                 break
             }
 
             Failed {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[$($PesterPreference.Output.FailedChar.Value)] $out" -NoNewLine
                 & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
                 # review how we should write errors for VS code based on https://github.com/PowerShell/vscode-powershell/pull/2447
@@ -599,7 +599,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             Skipped {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[$($PesterPreference.Output.SkippedChar.Value)] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                 }
                 break
@@ -608,7 +608,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             Pending {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[$($PesterPreference.Output.SkippedChar.Value)] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
                 }
@@ -618,7 +618,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             Inconclusive {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
+                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[$($PesterPreference.Output.UnknownChar.Value)] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
                 }
@@ -630,7 +630,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
                     if ($null -eq $_test.Duration) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[$($PesterPreference.Output.UnknownChar.Value)] $out" -NoNewLine
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                     }
                 }

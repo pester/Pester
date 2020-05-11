@@ -1006,6 +1006,10 @@ namespace Pester
     public class OutputConfiguration : ConfigurationSection
     {
         private StringOption _verbosity;
+        private StringOption _passedChar;
+        private StringOption _failedChar;
+        private StringOption _skippedChar;
+        private StringOption _unknownChar;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -1024,6 +1028,10 @@ namespace Pester
         public OutputConfiguration() : base("Output configuration")
         {
             Verbosity = new StringOption("The verbosity of output, options are None, Minimal, Normal and Diagnostic.", "Minimal");
+            PassedChar = new StringOption("The character to use to represent passed tests in console output.", "+");
+            FailedChar = new StringOption("The character to use to represent failed tests in console output.", "-");
+            SkippedChar = new StringOption("The character to use to represent skipped tests in console output.", "!");
+            UnknownChar = new StringOption("The character to use to represent unknown tests in console output.", "?");
         }
 
         public StringOption Verbosity
@@ -1038,6 +1046,66 @@ namespace Pester
                 else
                 {
                     _verbosity = new StringOption(_verbosity, value?.Value);
+                }
+            }
+        }
+        public StringOption PassedChar
+        {
+            get { return _passedChar; }
+            set
+            {
+                if (_passedChar == null)
+                {
+                    _passedChar = value;
+                }
+                else
+                {
+                    _passedChar = new StringOption(_passedChar, value?.Value);
+                }
+            }
+        }
+        public StringOption FailedChar
+        {
+            get { return _failedChar; }
+            set
+            {
+                if (_failedChar == null)
+                {
+                    _failedChar = value;
+                }
+                else
+                {
+                    _failedChar = new StringOption(_failedChar, value?.Value);
+                }
+            }
+        }
+        public StringOption SkippedChar
+        {
+            get { return _skippedChar; }
+            set
+            {
+                if (_skippedChar == null)
+                {
+                    _skippedChar = value;
+                }
+                else
+                {
+                    _skippedChar = new StringOption(_skippedChar, value?.Value);
+                }
+            }
+        }
+        public StringOption UnknownChar
+        {
+            get { return _unknownChar; }
+            set
+            {
+                if (_unknownChar == null)
+                {
+                    _unknownChar = value;
+                }
+                else
+                {
+                    _unknownChar = new StringOption(_unknownChar, value?.Value);
                 }
             }
         }
