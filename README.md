@@ -789,11 +789,9 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 -  `Assert-MockCalled` is deprecated, it is recommended to use [Should -Invoke](#should--invoke)
 -  `Assert-VerifiableMock` is deprecated, it is recommended to use [Should -InvokeVerifiable](#should--invoke)
 
-
 ### Additional issues to be solved in 5.1
-- `Set-ItResult` is published but does not work
 - `-Strict` switch is not available
-- Inconclusive and Pending states are not available, `-Pending` is translated to `-Skip`
+- Inconclusive and Pending states are currently no longer available, `-Pending` and `-Inconclusive` are translated to `-Skip` both on test blocks and when using `Set-ItResult`
 - Code coverage report is not available.
 - Automatic Code coverage via -CI switch is largely untested.
 - Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.

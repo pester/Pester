@@ -550,6 +550,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
+            if ($_test.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+                $skippedMessage = [String]$_Test.ErrorRecord
+                [String]$out += " $skippedMessage"
+            }
         }
         elseif ('Minimal' -eq $PesterPreference.Output.Verbosity.Value) {
             $level = 0
@@ -595,9 +599,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             Skipped {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
-                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped ", is skipped$because" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                 }
                 break
