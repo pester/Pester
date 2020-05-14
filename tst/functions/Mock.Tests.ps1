@@ -535,7 +535,9 @@ Describe 'When calling Mock on a module-internal function.' {
         }
 
         It 'Should be able to count the call to the InternalFunction' {
-            PublicFunction # that calls InternalFunction
+            # using fully qualified call because PublicFunction resolves to TestModule2 and
+            # that is not mocked
+            TestModule\PublicFunction # that calls InternalFunction
 
             Should -Invoke -ModuleName TestModule -CommandName InternalFunction -Exactly 1
         }
