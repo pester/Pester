@@ -474,7 +474,8 @@ function Resolve-Command {
     # saving the caller session state here, below the command is looked up and
     # the $SessionState is overwritten with the session state in which the command
     # was found (if -ModuleName was specified), but we will be running the mock body
-    # in the caller scope, not the module scope so we need to hold ont the caller scope
+    # in the caller scope (in the test scope), to be able to use the variables defined in the test inside of the mock
+    # so we need to hold onto the caller scope
     $callerSessionState = $SessionState
 
     $command = $null
@@ -509,7 +510,8 @@ function Resolve-Command {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
         }
-        $SessionState = Set-SessionStateHint -PassThru  -Hint "Module - $($module.Name)" -SessionState ( $module.SessionState )
+        # this is the target session state in which we will insert the mock
+        $SessionState = $module.SessionState
         $command = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($command.Module -eq $module) {
@@ -561,14 +563,20 @@ function Resolve-Command {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope MockCore "The resolved command is a mock bootstrap function, pointing the mock to the same command info and session state as the original mock."
         }
-        $module = $command.Mock.OriginalSessionState.Module
+        # the target module into which we inserted the mock
+        $module = $command.Mock.Hook.SessionState.Module
         return @{
             Command                 = $command.Mock.Hook.OriginalCommand
+            # the session state of the target module
             SessionState            = $command.Mock.Hook.SessionState
+            # the session state in which we invoke the mock body (where the test runs)
             CallerSessionState      = $command.Mock.Hook.CallerSessionState
-            Module                  = $command.Module
+            # the module that defines the command
+            Module                  = $command.Mock.Hook.OriginalCommand.Module
+            # true if we inserted the mock into a module
             IsFromModule            = $null -ne $module
-            IsFromRequestedModule   = $null -ne $module -and $module -eq $ModuleName
+            # true if the commmand comes from the target module
+            IsFromRequestedModule   = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
             IsMockBootstrapFunction = $true
             Hook                    = $command.Mock.Hook
         }

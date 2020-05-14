@@ -916,7 +916,7 @@ to the original.
 
     $SessionState = $CallerSessionState
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
-    $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.ModuleName } else { $null }
+    $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { $null }
     $resolvedCommand = $contextInfo.Command.Name
 
     $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule
