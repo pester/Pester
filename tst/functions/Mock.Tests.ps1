@@ -530,8 +530,14 @@ Describe 'When calling Mock on a module-internal function.' {
             Mock -ModuleName TestModule2 Get-Content { }
         }
 
-        It 'Should call the mocked function' {
+        It 'Should call the mocked InternalFunction' {
             TestModule\PublicFunction | Should -Be 'I am the mock test'
+        }
+
+        It 'Should be able to count the call to the InternalFunction' {
+            PublicFunction # that calls InternalFunction
+
+            Should -Invoke -ModuleName TestModule -CommandName InternalFunction -Exactly 1
         }
 
         It 'Should mock calls to external functions from inside the module' {

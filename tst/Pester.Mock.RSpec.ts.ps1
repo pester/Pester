@@ -331,4 +331,172 @@ i -PassThru:$PassThru {
             $t.Result | Verify-Equal "Passed"
         }
     }
+
+    b "cross module mocking and counting" {
+        try {
+            Get-Module Source, Target | Remove-Module
+            New-Module -Name Source -ScriptBlock {
+
+                # this module is the source of the public command
+                # we should be able to mock it in a different module
+                # in user scope
+                # and in this module as well
+                function Public {
+                    Private
+                }
+
+                function Private {
+                    "private"
+                }
+
+                Set-Alias -Name pub -Value Public
+
+                Export-ModuleMember -Function Public -Alias pub
+            } | Import-Module -Force
+
+            New-Module Target {
+                # this module is the target we will inject mock into it
+                # and check if the call to Public2 is calling the mocked
+                # Public function imported from Source
+                function Public2 {
+                    Public
+                }
+            } | Import-Module -Force
+
+            t "can mock Private in the same module" {
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            Mock -ModuleName Source -CommandName Private -MockWith { "mock" }
+                            Public
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+                $t = $r.Containers[0].Blocks[0].Tests[0]
+                $t.StandardOutput | Verify-Equal 'mock'
+                $t.Result | Verify-Equal "Passed"
+            }
+
+            # we have two modules one is the one that defines the function we are mocking
+            # and the other one is using it. To mock the public functions of Source we need to insert
+            # mocks into the Target module (because that is the module using them).
+            # we also need to ensure that the mock body will still run in the test scope.
+            t "can mock Public in a module that is not the module that defines that function" {
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            Mock -ModuleName Target -CommandName Public -MockWith { "mock" }
+                            Public2
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+                $t = $r.Containers[0].Blocks[0].Tests[0]
+                $t.StandardOutput | Verify-Equal 'mock'
+                $t.Result | Verify-Equal "Passed"
+            }
+
+            t "can mock Public in a module that is not the module that defines that function and still runs the MockWith in the test scope" {
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            $mockResult = "mmm"
+                            Mock -ModuleName Target -CommandName Public -MockWith { $mockResult }
+                            Public2
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+                $t = $r.Containers[0].Blocks[0].Tests[0]
+                $t.StandardOutput | Verify-Equal 'mmm'
+                $t.Result | Verify-Equal "Passed"
+            }
+
+            t "can count calls to Public in a module that is not the module that defines that function and still run the MockWith in the test scope" {
+                # here we have three session states at play.
+                # - The caller session state in which we want to invoke the MockWith, to be able to use variables from the test in the mock body
+                # - The target session state in which we will insert the mock, in this case the Target module Session State
+                # - And the source session state (or more precisely the Source module) from which we resolve the command, and need to define fully qualified name for it
+                #   and it's aliases to point to Source/Public
+                #
+                # the Should -Invoke part should then find the calls that were made from the Target module, to Target||Public function
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            $mockResult = "mmm"
+                            Mock -ModuleName Target -CommandName Public -MockWith { $mockResult }
+                            Public2 | Should -Be "mmm"
+                            Should -Invoke Public -ModuleName Target -Exactly 1
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+                $t = $r.Containers[0].Blocks[0].Tests[0]
+                $t.Result | Verify-Equal "Passed"
+            }
+
+            t "can mock Private in a module and then call it from a different module" {
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            Mock -ModuleName Source -CommandName Private -MockWith { "mock" }
+                            Public2 # -> Public -> Private (mocked)
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+                $t = $r.Containers[0].Blocks[0].Tests[0]
+                $t.StandardOutput | Verify-Equal 'mock'
+                $t.Result | Verify-Equal "Passed"
+            }
+
+            t "can count calls to Private in a module when called from a different module" {
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            Mock -ModuleName Source -CommandName Private -MockWith { "mock" }
+                            Public2 | Should -Be 'mock'
+
+                            Should -Invoke Private -ModuleName Source
+                        }
+
+                        It "cleans up the mock" {
+                            Public2 Should -Not -Be 'mock'
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
+            }
+        }
+        finally {
+            Get-Module Source, Target | Remove-Module -Force -ErrorAction Ignore
+        }
+    }
 }
