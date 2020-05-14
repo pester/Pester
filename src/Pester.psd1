@@ -108,7 +108,7 @@
             ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.0.0-rc7'
 
             # Prerelease string of this module
-            Prerelease   = 'rc7'
+            Prerelease   = 'rc8'
         }
     }
 
