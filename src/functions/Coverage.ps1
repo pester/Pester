@@ -60,7 +60,7 @@ function Get-CoverageInfoFromUserInput {
 }
 
 function New-CoverageInfo {
-    param ([string] $Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false)
+    param ($Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false)
 
     return [pscustomobject]@{
         Path         = $Path
