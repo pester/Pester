@@ -354,11 +354,17 @@ function Get-VerifiableBehaviors {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
-        $bs = $currentTest.PluginData.Mock.Behaviors.Values
-        if ($null -ne $bs -and $bs.Count -gt 0) {
-            foreach ($b in $bs) {
-                if ($b.Verifiable) {
-                    $behaviors.Add($b)
+        $allBehaviors = $currentTest.PluginData.Mock.Behaviors.Values
+        if ($null -ne $allBehaviors -and $allBehaviors.Count -gt 0) {
+            # all behaviors for all commands
+            foreach ($commandBehaviors in $allBehaviors) {
+                if ($null -ne $commandBehaviors -and $commandBehaviors.Count -gt 0) {
+                    # all behaviors for single command
+                    foreach ($behavior in $commandBehaviors) {
+                        if ($behavior.Verifiable) {
+                            $behaviors.Add($behavior)
+                        }
+                    }
                 }
             }
         }
@@ -366,28 +372,30 @@ function Get-VerifiableBehaviors {
     $block = Get-CurrentBlock
 
     # recurse up
-    $level = 0
     while ($null -ne $block) {
 
         ## action
         if (-not $block.IsRoot) {
-            $bs = $block.PluginData.Mock.Behaviors.Values
-            if ($null -ne $bs -or $bs.Count -ne 0) {
-                foreach ($bb in $bs) {
-                    if ($bb.Verifiable) {
-                        $behaviors.Add($bb)
+            $allBehaviors = $block.PluginData.Mock.Behaviors.Values
+            # all behaviors for all commands
+            if ($null -ne $allBehaviors -or $allBehaviors.Count -ne 0) {
+                foreach ($commandBehaviors in $allBehaviors) {
+                    if ($null -ne $commandBehaviors -and $commandBehaviors.Count -gt 0) {
+                        # all behaviors for single command
+                        foreach ($behavior in $commandBehaviors) {
+                            if ($behavior.Verifiable) {
+                                $behaviors.Add($behavior)
+                            }
+                        }
                     }
                 }
             }
         }
 
         # end action
-
-        $level--
         $block = $block.Parent
     }
-        # end
-
+    # end
 
     $behaviors
 }

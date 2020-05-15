@@ -499,4 +499,64 @@ i -PassThru:$PassThru {
             Get-Module Source, Target | Remove-Module -Force -ErrorAction Ignore
         }
     }
+
+    b "counting verifiable mocks" {
+        t "should count mocks correctly when there are multiple behaviors defined in the test" {
+            # https://github.com/pester/Pester/issues/1539
+            $sb = {
+                Context "a" {
+                    It "b" {
+                        function a {}
+                        function b {}
+
+                        Mock a
+                        Mock a -ParameterFilter { $true }
+                        Mock b -Verifiable
+
+                        a
+                        b
+
+                        Should -InvokeVerifiable
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+
+        t "should count mocks correctly when there are multiple behaviors defined in block" {
+            # https://github.com/pester/Pester/issues/1539
+            $sb = {
+                Context "a" {
+                    BeforeAll {
+                        function a {}
+                        function b {}
+
+                        Mock a
+                        Mock a -ParameterFilter { $true }
+                        Mock b -Verifiable
+                    }
+
+                    It "b" {
+                        a
+                        b
+
+                        Should -InvokeVerifiable
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
 }
