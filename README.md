@@ -1,10 +1,10 @@
-# Pester v5 - RC6 (GA3)
+# Pester v5 - RC9 (GA4)
 
 > 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
 
 > 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218), or see more options in [Questions?](#questions).
 
-- [Pester v5 - RC6 (GA3)](#pester-v5---rc6-ga3)
+- [Pester v5 - RC9 (GA4)](#pester-v5---rc9-ga4)
   - [What is new?](#what-is-new)
     - [Discovery & Run](#discovery--run)
       - [Put setup in BeforeAll](#put-setup-in-beforeall)
@@ -52,7 +52,7 @@
 > 🕹 want to see a demo? Here is my talk [What is new in Pester 5](https://www.twitch.tv/videos/607067228?t=03h52m07s) from #BridgeConf
 
 
-Pester 5 RC8 (GA3) is here! 🥳 This version is stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify any major bugs.
+Pester 5 RC9 (GA4) is here! 🥳 This version is stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify any major bugs.
 
 
 ### Discovery & Run
