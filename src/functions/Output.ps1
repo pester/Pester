@@ -497,7 +497,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`n`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
             }
         }
     }
