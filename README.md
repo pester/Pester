@@ -481,14 +481,14 @@ Invoke-Pester -Configuration <PesterConfiguration>
 
 A mapping of the parameters of the simple interface to the configuration object properties on the advanced interface is:
 
-| Parameter   | Configuration Object Property |
-| ----------- | ----------------------------- |
-| Path        | Run.Path                      |
-| ExcludePath | Run.ExcludePath               |
-| Tag         | Filter.Tag                    |
-| ExcludeTag  | Filter.ExcludeTag             |
-| Output      | Output.Verbosity              |
-| CI          | TestResult.Enabled            |
+| Parameter   | Configuration Object Property                                              |
+| ----------- | -------------------------------------------------------------------------- |
+| Path        | Run.Path                                                                   |
+| ExcludePath | Run.ExcludePath                                                            |
+| Tag         | Filter.Tag                                                                 |
+| ExcludeTag  | Filter.ExcludeTag                                                          |
+| Output      | Output.Verbosity                                                           |
+| CI          | CodeCoverage.Enabled, TestResult.Enabled and Run.Exit (all set to `$true`) |
 
 #### Simple interface
 
