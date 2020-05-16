@@ -508,7 +508,7 @@ $configuration.Run.Path = 'C:\projects\tst'
 $configuration.Filter.Tag = 'Acceptance'
 $configuration.Filter.ExcludeTag = 'WindowsOnly'
 $configuration.Should.ErrorAction = 'Continue'
-$configuration.CodeCoverage.Enable = $true
+$configuration.CodeCoverage.Enabled = $true
 
 # cast whole hashtable to configuration
 $configuration = [PesterConfiguration]@{
@@ -536,7 +536,7 @@ $configuration.Filter = @{
         ExcludeTag = 'WindowsOnly'
     }
 $configuration.Should.ErrorAction = 'Continue'
-$configuration.CodeCoverage.Enable = $true
+$configuration.CodeCoverage.Enabled = $true
 
 ```
 
