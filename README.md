@@ -479,6 +479,17 @@ And the Advanced interface that takes just Pester configuration object and nothi
 Invoke-Pester -Configuration <PesterConfiguration>
 ```
 
+A mapping of the parameters of the simple interface to the configuration object properties on the advanced interface is:
+
+| Parameter   | Configuration Object Property |
+| ----------- | ----------------------------- |
+| Path        | Run.Path                      |
+| ExcludePath | Run.ExcludePath               |
+| Tag         | Filter.Tag                    |
+| ExcludeTag  | Filter.ExcludeTag             |
+| Output      | Output.Verbosity              |
+| CI          | TestResult.Enabled            |
+
 #### Simple interface
 
 The simple interface is what I mostly need to run my tests. It uses some sensible defaults, and most of the parameters are hopefully self explanatory. The CI switch enables NUnit output to `testResults.xml`, code coverage that is automatically figured out from the provided files and exported into coverage.xml and also enables exit with error code when anything fails.
