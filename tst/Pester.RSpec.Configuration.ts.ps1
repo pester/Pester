@@ -186,7 +186,7 @@ i -PassThru:$PassThru {
         }
         t "StringArrayOption can be assigned an array of Objects that don't directly cast to a string" {
             $config = [PesterConfiguration]::Default
-            $path = (Join-Path $PWD "foo"), (Join-Path $PWD "bar")
+            $path = (Join-Path $PWD 'foo'), (Join-Path $PWD 'bar')
             $config.Run.Path = $path
 
             Verify-Same $path[0] -Actual $config.Run.Path.Value[0]
