@@ -467,7 +467,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
     if ($PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic') {
         $p.ContainerDiscoveryStart = {
             param ($Context)
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
+            if (-not $PesterPreference.Output.SummarizeDiscovery.Value) {
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
+            }
         }
     }
 
@@ -475,7 +477,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
         $p.ContainerDiscoveryEnd = {
             param ($Context)
             # todo: this is very very slow because of View-flat
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+            if (-not $PesterPreference.Output.SummarizeDiscovery.Value) {
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+            }
         }
     }
 

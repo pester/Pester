@@ -1006,6 +1006,7 @@ namespace Pester
     public class OutputConfiguration : ConfigurationSection
     {
         private StringOption _verbosity;
+        private BoolOption _summarizeDiscovery;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -1024,6 +1025,7 @@ namespace Pester
         public OutputConfiguration() : base("Output configuration")
         {
             Verbosity = new StringOption("The verbosity of output, options are None, Minimal, Normal and Diagnostic.", "Minimal");
+            SummarizeDiscovery = new BoolOption("Display only a summary of Discovery, rather than per-file statistics. Default is not enabled", false);
         }
 
         public StringOption Verbosity
@@ -1038,6 +1040,22 @@ namespace Pester
                 else
                 {
                     _verbosity = new StringOption(_verbosity, value?.Value);
+                }
+            }
+        }
+
+        public BoolOption SummarizeDiscovery
+        {
+            get { return _summarizeDiscovery; }
+            set
+            {
+                if (_summarizeDiscovery == null)
+                {
+                    _summarizeDiscovery = value;
+                }
+                else
+                {
+                    _summarizeDiscovery = new BoolOption(_summarizeDiscovery, value.Value);
                 }
             }
         }
