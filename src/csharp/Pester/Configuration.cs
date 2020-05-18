@@ -220,7 +220,7 @@ namespace Pester
 
         }
 
-        public StringArrayOption(object[] value) : base("", new string[0], value.Cast<string>().ToArray())
+        public StringArrayOption(object[] value) : base("", new string[0], value.Select(oneValue => oneValue.ToString()).ToArray())
         {
 
         }
