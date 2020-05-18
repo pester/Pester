@@ -1,0 +1,27 @@
+$VerbosePreference = 'Continue'
+$ErrorActionPreference = 'Stop'
+$baseDir = $PSScriptRoot
+
+try {
+    $buildDir = "$baseDir\pkg\psgallery\Pester"
+    $null = New-Item -Path $buildDir -ItemType Directory -Force
+
+    Write-Verbose "Copying release files to build folder '$buildDir'"
+    Copy-Item $baseDir\Pester.ps?1          $buildDir\
+    Copy-Item $baseDir\LICENSE              $buildDir\
+    Copy-Item $baseDir\nunit_schema_2.5.xsd $buildDir\
+    Copy-Item $baseDir\junit_schema_4.xsd   $buildDir\
+    Copy-Item $baseDir\bin                  $buildDir\ -Recurse
+    Copy-Item $baseDir\Functions            $buildDir\ -Recurse
+    Copy-Item $baseDir\Dependencies         $buildDir\ -Recurse
+    Copy-Item $baseDir\en-US                $buildDir\ -Recurse
+    Copy-Item $baseDir\lib                  $buildDir\ -Recurse
+    Copy-Item $baseDir\new-runtimepoc       $buildDir\ -Recurse
+
+    Write-Verbose 'Copy complete. Contents:'
+    Get-ChildItem $buildDir -Recurse | Out-Host
+}
+catch {
+    Write-Error -ErrorRecord $_
+    exit 1
+}

@@ -1,19 +1,144 @@
-# Pester v5 - beta
+# Pester v5 - RC9 (GA4)
 
-> 🐛 This is branch is pre-release, use at your own risk.
+> 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
 
-> 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218)
+> 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218), or see more options in [Questions?](#questions).
+
+- [Pester v5 - RC9 (GA4)](#pester-v5---rc9-ga4)
+  - [What is new?](#what-is-new)
+    - [Discovery & Run](#discovery--run)
+      - [Put setup in BeforeAll](#put-setup-in-beforeall)
+      - [Review your usage of Skip](#review-your-usage-of-skip)
+      - [Review your usage of TestCases](#review-your-usage-of-testcases)
+    - [Tags](#tags)
+      - [Tags on everything](#tags-on-everything)
+      - [Tags use wildcards](#tags-use-wildcards)
+    - [Logging](#logging)
+    - [Run only what is needed](#run-only-what-is-needed)
+    - [Skip on everything](#skip-on-everything)
+    - [Collect all Should failures](#collect-all-should-failures)
+    - [Collecting `AfterEach` failures](#collecting-aftereach-failures)
+    - [Minimal, Normal and Diagnostic view](#minimal-normal-and-diagnostic-view)
+    - [New result object](#new-result-object)
+    - [Simple and advanced interface](#simple-and-advanced-interface)
+      - [Simple interface](#simple-interface)
+      - [Advanced interface](#advanced-interface)
+    - [PesterPreference](#pesterpreference)
+    - [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall--afterall)
+    - [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach--aftereach)
+    - [Implicit parameters for TestCases](#implicit-parameters-for-testcases)
+    - [Mocking](#mocking)
+      - [Mocks are scoped based on their placement](#mocks-are-scoped-based-on-their-placement)
+      - [Counting mocks depends on placement](#counting-mocks-depends-on-placement)
+      - [Should -Invoke](#should--invoke)
+      - [Default parameters for ParameterFilter](#default-parameters-for-parameterfilter)
+      - [Mocks can be debugged](#mocks-can-be-debugged)
+      - [Internal Mock functions are hidden](#internal-mock-functions-are-hidden)
+      - [Avoid putting in InModuleScope around your Describe and It blocks](#avoid-putting-in-inmodulescope-around-your-describe-and-it-blocks)
+      - [Mocks don't work in top-level `BeforeAll`](#mocks-dont-work-in-top-level-beforeall)
+    - [VSCode improvements](#vscode-improvements)
+      - [Use legacy code lens](#use-legacy-code-lens)
+      - [Output verbosity](#output-verbosity)
+  - [Breaking changes](#breaking-changes)
+    - [Actual breaking changes](#actual-breaking-changes)
+    - [Deprecated features](#deprecated-features)
+    - [Additional issues to be solved in 5.1](#additional-issues-to-be-solved-in-51)
+- [Questions?](#questions)
+
+## What is new?
+
+> 🔥 Interested only in breaking changes? See [breaking changes](#breaking-changes) below.
+
+> 🕹 want to see a demo? Here is my talk [What is new in Pester 5](https://www.twitch.tv/videos/607067228?t=03h52m07s) from #BridgeConf
 
 
-Pester5 beta is finally here. 🥳🥳🥳 Frankly there are more news than I am able to cover. Here some of the best new features:
+Pester 5 RC9 (GA4) is here! 🥳 This version is stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify any major bugs.
 
-## Tags
 
-### Tags on everyting
+### Discovery & Run
+
+The fundamental change in this release is that Pester now runs in two phases: Discovery and Run. During discovery, it quickly scans your test files and discovers all the Describes, Contexts, Its and other Pester blocks.
+
+This powers many of the features in this release and enables many others to be implemented [in the future](https://github.com/pester/Pester/issues?q=is%3Aopen+is%3Aissue+milestone%3A5.x).
+
+To reap the benefits, there are new rules to follow:
+
+**Put all your code into `It`, `BeforeAll`, `BeforeEach`, `AfterAll` or `AfterEach`. Put no code directly into `Describe`, `Context` or on the top of your file, without wrapping it in one of these blocks, unless you have a good reason to do so.**
+
+**All misplaced code will run during Discovery, and its results won't be available during Run.**
+
+This will allow Pester to control when all of your code is executed, and scope it correctly. This will also keep the amount of code executed during discovery to a minimum. Keeping it fast and responsive. See [discovery and script setup](https://jakubjares.com/2020/04/11/pester5-discovery-and-script-setup/) article for detailed information.
+
+#### Put setup in BeforeAll
+If your test suite already puts its setups and teardowns into `Before*` and `After*`. All you need to do is move the file setup into a `BeforeAll` block:
+
+```powershell
+BeforeAll {
+    # DON'T use $MyInvocation.MyCommand.Path
+    . $PSCommandPath.Replace('.Tests.ps1','.ps1')
+}
+
+Describe "Get-Cactus" {
+    It "Returns 🌵" {
+        Get-Cactus | Should -Be '🌵'
+    }
+}
+```
+
+See [migration script](https://gist.github.com/nohwnd/d488bd14ab4572f92ae77e208f476ada) for a script that does it for you. Improvements are welcome, e.g. putting code between `Describe` and `It` into `BeforeAll`. See [discovery and script setup](https://jakubjares.com/2020/04/11/pester5-discovery-and-script-setup/) and [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
+
+
+#### Review your usage of Skip
+
+This also impacts `-Skip` when you use it with `-Skip:$SomeCondition`. All the code in the describe block, including your skip conditions and TestCases will be evaluated during Discovery. Prefer static global variables, or code that is cheap to executed. It is not forbidden to put code to figure out the skip outside of `BeforeAll`, but be aware that it will run on every discovery.
+
+This won't work. `BeforeAll` runs after Discovery, and so `$isSkipped` is not defined and ends up being `$null -> $false`, so the test will run.
+
+```powershell
+Describe "d" {
+    BeforeAll {
+        function Get-IsSkipped {
+            Start-Sleep -Second 1
+            $true
+        }
+        $isSkipped = Get-IsSkipped
+    }
+
+    It "i" -Skip:$isSkipped {
+
+    }
+}
+```
+
+Changing the code like this will skip the test correctly, but be aware that the code will run every time Discovery is performed on that file. Depending on how you run your tests this might be every time.
+
+```powershell
+function Get-IsSkipped {
+    Start-Sleep -Second 1
+    $true
+}
+$isSkipped = Get-IsSkipped
+
+Describe "d" {
+    It "i" -Skip:$isSkipped {
+
+    }
+}
+```
+
+Consider settings the check statically into a global read-only variable (much like `$IsWindows`), or caching the response for a while. Are you in this situation? Get in touch via the channels mentioned in [Questions?](#questions).
+
+#### Review your usage of TestCases
+
+`-TestCases`, much like `-Skip` are evaluated during discovery and saved for later use when the test runs. This means that doing expensive setup for them will be happening every Discovery. On the other hand, you will now find their complete content for each TestCase in `Data` on the result test object. And also don't need to specify [param block](#implicit-parameters-for-testcases).
+
+### Tags
+
+#### Tags on everything
 
 The tag parameter is now available on `Describe`, `Context` and `It` and it is possible to filter tags on any level. You can then use `-Tag` and `-ExcludeTag` to run just the tests that you want.
 
-Here you can see an example of a test suite that has acceptance tests and unit tests, and some of the tests are slow, some are flaky, and some only work on Linux. Pester5 makes runnin all reliable acceptance tests, that can run on Windows is as simple as:
+Here you can see an example of a test suite that has acceptance tests and unit tests, and some of the tests are slow, some are flaky, and some only work on Linux. Pester5 makes running all reliable acceptance tests, that can run on Windows is as simple as:
 
 
 ```powershell
@@ -75,7 +200,7 @@ Tests completed in 1.09s
 Tests Passed: 2, Failed: 0, Skipped: 0, Total: 7, NotRun: 5
 ```
 
-### Tags use wildcards
+#### Tags use wildcards
 
 The tags are now also compared as `-like` wildcards, so you don't have to spell out the whole tag if you can't remember it. This is especially useful when you are running tests locally:
 
@@ -102,45 +227,45 @@ Tests Passed: 1, Failed: 0, Skipped: 0, Total: 7, NotRun: 6
 All the major components log extensively.I am using logs as a debugging tool all the time so I make sure the logs are usable and not overly verbose. See if you can figure out why `acceptance test 1` is excluded from the run, and why `acceptance test 2` runs.
 
 ```
-RuntimeFilter: (Get-Beer) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer) Block did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer) Block has no tags, moving to next include filter.
-RuntimeFilter: (Get-Beer) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
-RuntimeFilter: (Get-Beer.acceptance tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests) Block did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.acceptance tests) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests) Block is included, because it's tag 'Acceptance' matches tag filter 'Acceptance'.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 1) Test is excluded, because it's tag 'Flaky' matches exclude tag filter 'Flaky'.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 2) Test did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 2) Test is included, because its parent is included.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 3) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 3) Test did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 3) Test is included, because its parent is included.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 4) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 4) Test is excluded, because it's tag 'Slow' matches exclude tag filter 'Slow'.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 5) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.acceptance tests.acceptance test 5) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
-RuntimeFilter: (Get-Beer.Unit tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.Unit tests) Block did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.Unit tests) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer.Unit tests) Block has no tags, moving to next include filter.
-RuntimeFilter: (Get-Beer.Unit tests) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) Test did not match the exclude tag filter, moving on to the next filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) There is 'Acceptance' include tag filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) Test has no tags, moving to next include filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 1) Test did not match any of the include filters, it will not be included in the run.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
-RuntimeFilter: (Get-Beer.Unit tests.unit test 2) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
-RuntimeFilter: (Get-Beer.Unit tests) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run.
+Filter: (Get-Beer) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer) Block did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer) Block has no tags, moving to next include filter.
+Filter: (Get-Beer) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
+Filter: (Get-Beer.acceptance tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests) Block did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.acceptance tests) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer.acceptance tests) Block is included, because it's tag 'Acceptance' matches tag filter 'Acceptance'.
+Filter: (Get-Beer.acceptance tests.acceptance test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 1) Test is excluded, because it's tag 'Flaky' matches exclude tag filter 'Flaky'.
+Filter: (Get-Beer.acceptance tests.acceptance test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 2) Test did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 2) Test is included, because its parent is included.
+Filter: (Get-Beer.acceptance tests.acceptance test 3) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 3) Test did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 3) Test is included, because its parent is included.
+Filter: (Get-Beer.acceptance tests.acceptance test 4) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 4) Test is excluded, because it's tag 'Slow' matches exclude tag filter 'Slow'.
+Filter: (Get-Beer.acceptance tests.acceptance test 5) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.acceptance tests.acceptance test 5) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
+Filter: (Get-Beer.Unit tests) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.Unit tests) Block did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.Unit tests) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer.Unit tests) Block has no tags, moving to next include filter.
+Filter: (Get-Beer.Unit tests) Block did not match any of the include filters, but it will still be included in the run, it's children will determine if it will run.
+Filter: (Get-Beer.Unit tests.unit test 1) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.Unit tests.unit test 1) Test did not match the exclude tag filter, moving on to the next filter.
+Filter: (Get-Beer.Unit tests.unit test 1) There is 'Acceptance' include tag filter.
+Filter: (Get-Beer.Unit tests.unit test 1) Test has no tags, moving to next include filter.
+Filter: (Get-Beer.Unit tests.unit test 1) Test did not match any of the include filters, it will not be included in the run.
+Filter: (Get-Beer.Unit tests.unit test 2) There is 'Flaky, Slow, LinuxOnly' exclude tag filter.
+Filter: (Get-Beer.Unit tests.unit test 2) Test is excluded, because it's tag 'LinuxOnly' matches exclude tag filter 'LinuxOnly'.
+Filter: (Get-Beer.Unit tests) Block was marked as Should run based on filters, but none of its tests or tests in children blocks were marked as should run. So the block won't run.
 ```
 
-Please be aware that the log is currently only written to the screen and not persisted in the result object. And that the logging comes with a performance penalty.
+Please be aware that the log is currently only written to the screen and not persisted in the result object. And that the logging comes with a performance penalty. You can enable logging by using the configuration object, or by using `-Output Diagnostic`.
 
-## Run only what is needed
+### Run only what is needed
 
 Look at the last line of the above log. It says that the block will not run, because none of the tests inside of it, or inside of any of the children blocks will run. This is great because when the block does not run, none of its setups and teardowns run either.
 
@@ -175,7 +300,7 @@ Tests completed in 139ms
 Tests Passed: 0, Failed: 0, Skipped: 0, Total: 1, NotRun: 1
 ```
 
-## Skip on everyting
+### Skip on everything
 
 `-Skip` is now available on Describe and Context. This allows you to skip all the tests in that block and every child block.
 
@@ -229,7 +354,7 @@ Tests Passed: 1, Failed: 0, Skipped: 4, Total: 5, NotRun: 0
 
 (Pending is translated to skipped, Inconclusive does not exist anymore. Are you relying on them extensively? Share your [feedback](https://github.com/pester/Pester/issues/1218).)
 
-## Collect all Should failures
+### Collect all Should failures
 
 `Should` can now be configured to continue on failure. This will report the error to Pester, but won't fail the test immediately. Instead, all the Should failures are collected and reported at the end of the test. This allows you to put multiple assertions into one It and still get complete information on failure.
 
@@ -276,9 +401,9 @@ This allows you to check complex objects easily without writing It for each of t
 
 This new Should behavior is opt-in and can be enabled via `Should.ErrorAction = 'Continue'` on the configuration object or via `$PesterPreference` more on that below.
 
-## Collecting teardown failures
+### Collecting `AfterEach` failures
 
-In a similar fashion to Should, when test fails in distinct steps it will record both errors. For example when a test fails a Should assertion, and then AfterEach fails you will get a result similar to this:
+In a similar fashion to Should, when test assertion fails, and it teardown also fails you will see both errors:
 
 ```
 [-] fails the test 30ms (24ms|5ms)
@@ -287,35 +412,57 @@ In a similar fashion to Should, when test fails in distinct steps it will record
  [1] RuntimeException: but also fails in after each
 ```
 
-## Normal and minimal view
+### Minimal, Normal and Diagnostic view
 
-Errors are usually what we are interested in when running tests. And that is why Pester5 implements a conscise view that prints failed tests with the full test path, and minimal discovery and summary information:
+Errors are usually what we are interested in when running tests. And that is why Pester5 implements a concise view that prints failed tests with the full test path, and minimal discovery and summary information:
 
 ```
 Starting test discovery in 1 files.
 Test discovery finished. 83ms
 [-] minimal output.fails 24ms (18ms|5ms)
  Expected 2, but got 1.
- at 1 | Should -Be 2, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:289
- at <ScriptBlock>, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:289
+ at 1 | Should -Be 2, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:289
+ at <ScriptBlock>, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:289
 [-] minimal output.child.fails 22ms (16ms|5ms)
  Expected 2, but got 1.
- at 1 | Should -Be 2, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:298
- at <ScriptBlock>, C:\Projects\pester\new-runtimepoc\Pester.RSpec.Demo.ts.ps1:298
+ at 1 | Should -Be 2, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:298
+ at <ScriptBlock>, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:298
 Tests completed in 331ms
 Tests Passed: 4, Failed: 2, Skipped: 0, Total: 6, NotRun: 0
 ```
 
+Pester5 also implements a Diagnostic view that prints information from Discovery, Filter, Skip, Mock and other sources, this output will be by default enabled when debugging tests in VSCode, or you can enable it by using `-Output Diagnostic`.
 
-## New result object (and no -PassThru)
+```shell
+Mock: Found 2 behaviors for 'Get-Emoji':
+    Body: { '🚒' }
+    Filter: { $Emoji -eq 'firetruck' }
+    Verifiable: False
+    Body: { '🔥' }
+    Filter: $null
+    Verifiable: False
+Mock: We are in a test. Returning mock table from test scope.
+Mock: Finding a mock behavior.
+Mock: Running mock filter {  $Emoji -eq 'firetruck'  } with context: Emoji = firetruck.
+Mock: Mock filter passed.
+Mock: {  '🚒'  } passed parameter filter and will be used for the mock call.
+Mock: Executing mock behavior for mock Get-Emoji.
+Mock: Behavior for Get-Emoji was executed.
+Mock: Removing function PesterMock_3b8fd8ae-de6a-4a1c-87a8-7b177071f4af and aliases Get-Emoji for Get-Emoji.
+  [+] Gets firetruck 2.78s (2.71s|64ms)
+Tests completed in 4.71s
+Tests Passed: 1, Failed: 0, Skipped: 0 NotRun: 0
+```
 
-There is no `-PassThru` switch anymore, the output object is by default piped into the pipeline. The result object is extremely rich, and used by Pester internally to make all of its decisions. Most of the information in the tree is unprocessed to allow you to to work with the raw data. You are welcome to inspect the object, but don't rely on it yet. Some of the properties will be renamed.
+### New result object
 
-There is also an adapter function that translates the new result object into the old one so you can plug this into your existing pipeline.
+The new result object is extremely rich, and used by Pester internally to make all of its decisions. Most of the information in the tree is unprocessed to allow you to to work with the raw data. You are welcome to inspect the object, and write your code based on it.
 
-## Simple and advanced interface
+To use your current CI pipeline with the new object use `ConvertTo-Pester4Result` to convert it. To convert the new object to NUnit report use `ConvertTo-NUnitReport` or specify the `-CI` switch to enable NUnit output, code coverage and exit code on failure.
 
-`Invoke-Pester` is extremely bloated in Pester4. Some of the parameters consume hashtables that I always have to google, and some of the names don't make sense anymore. In Pester5 I aimed to simplify this interface and get rid of the hashtables. Right now I landed on two wastly different apis. With a big hole in the middle that stil remains to be defined. There is the Simple interface that looks like this:
+### Simple and advanced interface
+
+`Invoke-Pester` is extremely bloated in Pester4. Some of the parameters consume hashtables that I always have to google, and some of the names don't make sense anymore. In Pester5 I aimed to simplify this interface and get rid of the hashtables. Right now I landed on two vastly different apis. With a big hole in the middle that still remains to be defined. There is the Simple interface that looks like this:
 
 ```
 Invoke-Pester -Path <String[]>
@@ -332,11 +479,22 @@ And the Advanced interface that takes just Pester configuration object and nothi
 Invoke-Pester -Configuration <PesterConfiguration>
 ```
 
-### Simple interface
+A mapping of the parameters of the simple interface to the configuration object properties on the advanced interface is:
 
-The simple interface is what I mostly need to run my tests. It uses some sensible defaults, and most of the parameters are hopefully self explanatory. The CI switch enables NUnit output to `TestResults.xml`, code coverage that is automatically figured out from the provided files and exported into coverage.xml and also enables exit with error code when anything fails.
+| Parameter   | Configuration Object Property                                              |
+| ----------- | -------------------------------------------------------------------------- |
+| Path        | Run.Path                                                                   |
+| ExcludePath | Run.ExcludePath                                                            |
+| Tag         | Filter.Tag                                                                 |
+| ExcludeTag  | Filter.ExcludeTag                                                          |
+| Output      | Output.Verbosity                                                           |
+| CI          | CodeCoverage.Enabled, TestResult.Enabled and Run.Exit (all set to `$true`) |
 
-### Advanced interface
+#### Simple interface
+
+The simple interface is what I mostly need to run my tests. It uses some sensible defaults, and most of the parameters are hopefully self explanatory. The CI switch enables NUnit output to `testResults.xml`, code coverage that is automatically figured out from the provided files and exported into coverage.xml and also enables exit with error code when anything fails.
+
+#### Advanced interface
 
 Advanced interface uses `PesterConfiguration` object which contains all options that you can provide to Pester and contains descriptions for all the configuration sections and as well as default values. Here is what you see when you look at the default Debug section of the object:
 
@@ -361,7 +519,7 @@ $configuration.Run.Path = 'C:\projects\tst'
 $configuration.Filter.Tag = 'Acceptance'
 $configuration.Filter.ExcludeTag = 'WindowsOnly'
 $configuration.Should.ErrorAction = 'Continue'
-$configuration.CodeCoverage.Enable = $true
+$configuration.CodeCoverage.Enabled = $true
 
 # cast whole hashtable to configuration
 $configuration = [PesterConfiguration]@{
@@ -389,17 +547,17 @@ $configuration.Filter = @{
         ExcludeTag = 'WindowsOnly'
     }
 $configuration.Should.ErrorAction = 'Continue'
-$configuration.CodeCoverage.Enable = $true
+$configuration.CodeCoverage.Enabled = $true
 
 ```
 
 This configuration object contains all the options that are currently supported and the Simple interface is internally translates to this object internally. It is the source of truth for the defaults and configuration. The Intermediate api will be figured out later, as well as all the other details.
 
-## PesterPreference
+### PesterPreference
 
-There is one more way to provide the configuration object which is `$PesterPreference`. On `Invoke-Pester` (in case of interactive execution `Invoke-Pester` is called inside of the first `Describe`) the preference is collected and merged with the configuration object if provided. This allows you to configure everyting that you would via Invoke-Pester also when you are running interactively (via `F5`). You can also use this to define the defaults for your session by putting $PesterPreference into your PowerShell profile.
+There is one more way to provide the configuration object which is `$PesterPreference`. On `Invoke-Pester` (in case of interactive execution `Invoke-Pester` is called inside of the first `Describe`) the preference is collected and merged with the configuration object if provided. This allows you to configure everything that you would via Invoke-Pester also when you are running interactively (via `F5`). You can also use this to define the defaults for your session by putting $PesterPreference into your PowerShell profile.
 
-Here is a simple example of enabling Mock logging output while running interactively:
+Here is a simple example of enabling Mock logging output while running interactively :
 
 ```powershell
 $PesterPreference = [PesterConfiguration]::Default
@@ -450,134 +608,213 @@ Tests completed in 1.12s
 Tests Passed: 1, Failed: 0, Skipped: 0, Total: 1, NotRun: 0
 ```
 
-## Source code
+### Scoping of BeforeAll & AfterAll
 
-Code for the demos in this document is available in `new-runtimepoc\Pester.RSpec.Demo.ts.ps1`, you can run all the tests in the file using `F5` or focus one by replacing the `t` command with `dt`. The output contains also the output from the P testing framework.
+`BeforeAll` can now be placed above the the top-level `Describe`, and you should move your setup into it. `AfterAll` is not allowed in the top level block.
+
+The scoping is very similar to Pester v4, but without the quirks. `BeforeAll`, `Describe`, and `AfterAll` now run all in the same scope, and are isolated from their parent scope, to avoid leaking variables outside of their scopes, for example into the script scope. This prevents test cross-pollution and makes your tests more repeatable.
+
+Failures in setup and teardown work very similar to how they worked in Pester v4, a failure in a `Describe` block, `BeforeAll` or `AfterAll` will fail the whole block. The nice side-effect of having test discovery is that we now know how many tests were in that failed block and can report all tests that were supposed to run as failed.
+
+### Scoping of BeforeEach & AfterEach
+
+`BeforeEach`, `It` and `AfterEach` now run in the same scope, but are still isolated from their parent to avoid leaking variables and test cross-pollution.
+
+Running in single scope allows you to take a portion of your `It` and move it into `BeforeEach` without any change in behavior. And it also allows you to change a variable in `It`, and use the updated value in `AfterAll`.
 
 
-# How to start?
+### Implicit parameters for TestCases
 
-I will be publishing some more examples in the next few days. What you need to know now is that all of your code should be in Pester controlled blocks. Even the dot sourcing you are doing on the top. Here are few pointers for the start:
-
-- Put all code into Pester controlled blocks
-- Put your dot-sourcing into `BeforeAll` on the top of the file, or in the first `Describe`
-- Do not use `$here = $MyInvocation.MyCommand.Path` it won't work, use `$PSScriptRoot` instead
-- The test file will be invoked during Discovery, there is no AST, everything that is not in a scriptblock that is consumed by a Pester function won't be available to Pester.
-
-Here is the readme example, the only change here is that the `Planets.ps1` is dot-sourced in `BeforeAll`:
+Test cases are super useful, but I find it a bit annoying, and error prone to define the `param` block all the time, so when invoking `It` I am defining the variables in parent scope, and also splatting them. As a result you don't have to define the `param` block:
 
 ```powershell
-# in Planets.ps1
-function Get-Planet ([string]$Name = '*') {
-    $planets = @(
-        @{ Name = 'Mercury' }
-        @{ Name = 'Venus' }
-        @{ Name = 'Earth' }
-        @{ Name = 'Mars' }
-        @{ Name = 'Jupiter' }
-        @{ Name = 'Saturn' }
-        @{ Name = 'Uranus' }
-        @{ Name = 'Neptune' }
-    ) | foreach { [PSCustomObject]$_ }
-
-    $planets | where { $_.Name -like $Name }
-}
-
-
-# in Planets.Tests.ps1
-BeforeAll {
-  . $PSScriptRoot/Planets.ps1
-}
-
-Describe 'Get-Planet' {
-    It "Given no parameters, it lists all 8 planets" {
-        $allPlanets = Get-Planet
-        $allPlanets.Count | Should -Be 8
-    }
-
-    Context "Filtering by Name" {
-        It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
-            @{ Filter = 'Earth'; Expected = 'Earth' }
-            @{ Filter = 'ne*'  ; Expected = 'Neptune' }
-            @{ Filter = 'ur*'  ; Expected = 'Uranus' }
-            @{ Filter = 'm*'   ; Expected = 'Mercury', 'Mars' }
-        ) {
-            param ($Filter, $Expected)
-
-            $planets = Get-Planet -Name $Filter
-            $planets.Name | Should -Be $Expected
-        }
-
-        It "Given invalid parameter -Name 'Alpha Centauri', it returns `$null" {
-            $planets = Get-Planet -Name 'Alpha Centauri'
-            $planets | Should -Be $null
-        }
-    }
-}
-
-```
-
-Even stuff like this still works:
-```powershell
-foreach ($i in 1..3) {
-    Describe "d$i" {
-        foreach ($j in 1..3) {
-            It "i$j" {
-
-            }
-        }
+Describe "a" {
+    It "b" -TestCases @(
+        @{ Name = "Jakub"; Age = 30 }
+    ) {
+        $Name | Should -Be "Jakub"
     }
 }
 ```
 
-But this won't work. The test will be executed because `BeforeAll` runs after Discovery, and so `$isSkipped` is not defined and ends up being `$null -> $false`.
+This also works for [mock](#default-parameters-for-parameterfilter)
+
+
+### Mocking
+
+#### Mocks are scoped based on their placement
+
+Mocks are no longer effective in the whole `Describe` / `Context` in which they were placed. Instead they will defualt to the block in which they were placed. Both of these work:
 
 ```powershell
 Describe "d" {
     BeforeAll {
-        function Get-IsSkipped {
-            Start-Sleep -Second 1
-            $true
-        }
-        $isSkipped = Get-IsSkipped
+        function f () { "real" }
     }
 
-    It "i" -Skip:$isSkipped {
+    It "i" {
+        Mock f { "mock" }
+        f | Should -Be "mock"
+    }
 
+    It "j" {
+        f | Should -Be "real"
     }
 }
-```
-
-Changing the code like this will skip the test correctly, but be aware that the code will run everytime Discovery is performed on that file. Depending on how you run your tests this might be everytime.
-
-```powershell
-function Get-IsSkipped {
-    Start-Sleep -Second 1
-    $true
-}
-$isSkipped = Get-IsSkipped
 
 Describe "d" {
-    It "i" -Skip:$isSkipped {
+    BeforeAll {
+        function f () { "real" }
+        Mock f { "mock" }
+    }
 
+    It "i" {
+        f | Should -Be "mock"
+    }
+
+    It "j" {
+        f | Should -Be "mock"
     }
 }
 ```
 
-In general you should not be worse off than with Pester4, but if you try to migrate your test base to Pester5 and need to do this refactoring, please add a `TODO:` to it. There might be a better pattern in the future, or maybe you can figure this out once, and reuse the value everywhere. Or maybe you can tag this test and use tags to filter it out.
+#### Counting mocks depends on placement
 
-# What does not work?
+Counting mocks depends on where the assertion is placed. In `It`, `BeforeEach` and `AfterEach` it defaults to `It` scope. In `Describe`, `Context`, `BeforeAll` and `AfterAll`, it default to `Describe` or `Context` based on the command that contains them. The default can still be overriden by specifying `-Scope` parameter.
 
-At the moment there is not much that is missing from Pester4.
-- The TestRegistry is not implemented at all.
-- I am missing some of the latest patches from the master branch, the code diverged too much and it needs to be ported rather than just merged.
-- The automatic code coverage needs revisiting.
-- Printing coverage report is not done.
-- The result object probably has more properties that I should publish, and some of the names are a bit inconsistent, it is still nice to dig into.
-- Documentation is outdated.
+```powershell
+
+Describe "d" {
+
+    BeforeAll {
+        function f () { "real" }
+        Mock f { "mock" }
+    }
+
+    It "i" {
+        f
+        Should -Invoke f -Exactly 1
+    }
+
+    It "j" {
+        f
+        Should -Invoke f -Exactly 1
+    }
+
+    It "k" {
+        f
+        Should -Invoke f -Exactly 3 -Scope Describe
+    }
+
+    AfterEach {
+        Should -Invoke f -Exactly 1
+    }
+
+    AfterAll {
+        Should -Invoke f -Exactly 3
+    }
+}
+```
+#### Should -Invoke
+
+Mock counting assertions were renamed to `Should -Invoke` and `Should -InvokeVerifiable`, and most of their parameters are no longer positional. `Assert-MockCalled` and `Assert-VerifiableMock` are provided as functions, and are deprecated.
+
+#### Default parameters for ParameterFilter
+
+Parameter filters no longer require you to use `param()`.
+
+```powershell
+Describe "d" {
+
+    BeforeAll {
+        function f ($a) { "real" }
+        Mock f { "mock" } -ParameterFilter { $a -eq 10 }
+    }
+
+    It "i" {
+        f 10
+        Should -Invoke f -Exactly 1
+    }
+
+    It "j" {
+        f 20
+        Should -Invoke f -Exactly 0
+    }
+}
+```
+#### Mocks can be debugged
+
+Mocks don't rewrite the scriptblock you provide anymore. You can now set breakpoints into them as well as any of the ParameterFilter or Should -Invoke Parameter filter.
+
+#### Internal Mock functions are hidden
+
+v4 published few internal functions that were needed to successfully call back into Pester from the mock bootstrap function. In v5 I came up with a little trick that enabled me to remove all the internal functions from the public API.
+
+When Pester generates the mock bootstrap function it produces a command info object (the thing you get from `Get-Command <some command>`). I take that object and attach a new property on it that contains data from Pester. When the bootstrap function executes, it can simply use `$MyInvocation.MyCommand` to reach the _same_ command info object, and so it can reach the data Pester gave it. Among this data is a command info of internal Pester function `Invoke-Mock` which is then simply invoked by `&`.
+
+#### Avoid putting in InModuleScope around your Describe and It blocks
+
+`InModuleScope` is a simple way to expose your internal module functions to be tested, but it prevents you from properly testing your published functions, does not ensure that your functions are actually published, and slows down Discovery by loading the module. Aim to avoid it altogether by using `-ModuleName` on `Mock`. Or at least avoid placing `InModuleScope` outside of `It`.
+
+#### Mocks don't work in top-level `BeforeAll`
+
+Defining mock on the top and using it in a child block does not work.
+
+### VSCode improvements
+
+#### Use legacy code lens
+
+With Pester 5 it is finally possible to run and debug just a single test in VSCode!
+
+![Shows a single test being run using the new Code Lense](images/readme/single-test.gif)
+
+In the latest [PowerShell Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.PowerShell-Preview) extension for VSCode you can enable Use Legacy Code Lens option which will enable `Run tests` on all `Describe`, `Context` and `It` blocks. You can run a whole block, any child block, or any test individually. You can also run tests that are marked as skipped by running them individually.
+
+Actually there is a bug, and the option is called Enable Legacy Code Lens, and is enabled by default and can't be disabled. 😁 Take advantage of this and go try it right now!
+
+#### Output verbosity
+
+You can specify verbosity in VSCode, to see normal or minimal output, or to take it from PesterPreference. This also works for Pester 4!
+
+![Shows a run with minimal preference that shows only errors](images/readme/minimal-output.gif)
 
 
-And generally the framework is a bit slow, especially in the mocking and discovery area.
+## Breaking changes
+
+### Actual breaking changes
+- PowerShell 2 is no longer supported
+- Documentation is out of date for all commands
+- Legacy syntax `Should Be` (without `-`) is removed, see [Migrating from Pester v3 to v4](https://pester.dev/docs/migrations/v3-to-v4)
+- Mocks are scoped based on their placement, not in whole `Describe` / `Context`. The count also depends on their placement. See [mock scoping](#mocks-are-scoped-based-on-their-placement)
+- `Assert-VerifiableMocks` was removed, see [Should -Invoke](#should--invoke)
+- The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
+- All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
+- `-Output` parameter has reduced options to `None`, `Minimal`, `Normal` and `Diagnostic`, `-Show` alias is removed
+- `-PesterOption` switch is removed
+- `-TestName` swithc is replaced with `-FullNameFilter` switch
+- `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables. Parametrized scripts are not implemented at the moment, which should be solved in 5.1
+- Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. Use `$PSScriptRoot` or `$PSCommandPath`. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
+- Should `-Throw` is using `-like` to match the exception message instead of .Contains. Use `*` or any of the other `-like` wildcard to match only part of the message.
+
+
+### Deprecated features
+-  `Assert-MockCalled` is deprecated, it is recommended to use [Should -Invoke](#should--invoke)
+-  `Assert-VerifiableMock` is deprecated, it is recommended to use [Should -InvokeVerifiable](#should--invoke)
+
+### Additional issues to be solved in 5.1
+- `-Strict` switch is not available
+- Inconclusive and Pending states are currently no longer available, `-Pending` and `-Inconclusive` are translated to `-Skip` both on test blocks and when using `Set-ItResult`
+- Code coverage report is not available.
+- Automatic Code coverage via -CI switch is largely untested.
+- Generating tests during using foreach during discovery time works mostly, generating them from BeforeAll, to postpone expensive work till it is needed in case the test is filtered out also works, but is hacky. Get in touch if you need it and help me refine it.
+- Running on huge codebases is largely untested
+- `IncludeVSCodeMarker` was renamed to `WriteVSCodeMarker` and moved to, PesterConfiguration object in Debug section. But it is not implemented and will be removed, I will detect VSCode by env variables
+- Documentation is out of date for all commands
+- Providing parameters to test scripts is not implemented, see [parametric scripts](https://github.com/pester/Pester/issues/1485)
+- JUnit output is missing
+
+- Noticed more of them? Share please!
+
 
 # Questions?
 
