@@ -5,6 +5,7 @@ function Should-HaveParameter (
     [String]$DefaultValue,
     [Switch]$Mandatory,
     [Switch]$HasArgumentCompleter,
+    [String]$Alias,
     [Switch]$Negate,
     [String]$Because ) {
     <#
@@ -197,7 +198,7 @@ function Should-HaveParameter (
         }
 
         if ($HasArgumentCompleter) {
-            $testArgumentCompleter = $attributes | Where-Object {$_ -is [ArgumentCompleter]}
+            $testArgumentCompleter = $attributes | Where-Object { $_ -is [ArgumentCompleter] }
             $filters += "has ArgumentCompletion"
 
             if (-not $Negate -and -not $testArgumentCompleter) {
@@ -205,6 +206,18 @@ function Should-HaveParameter (
             }
             elseif ($Negate -and $testArgumentCompleter) {
                 $buts += "has ArgumentCompletion"
+            }
+        }
+
+        if ($Alias) {
+            $testPresenceOfAlias = $ActualValue.Parameters[$ParameterName].Aliases -contains $Alias
+            $filters += "to$(if ($Negate) {" not"}) have an alias '$Alias'"
+
+            if (-not $Negate -and -not $testPresenceOfAlias) {
+                $buts += "it didn't have an alias '$Alias'"
+            }
+            elseif ($Negate -and $testPresenceOfAlias) {
+                $buts += "it had an alias '$Alias'"
             }
         }
     }
