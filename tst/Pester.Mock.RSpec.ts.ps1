@@ -5,6 +5,7 @@ Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Modu
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
+& "$PSScriptRoot\..\build.ps1"
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = [PesterConfiguration] @{
@@ -546,6 +547,83 @@ i -PassThru:$PassThru {
                         a
                         b
 
+                        Should -InvokeVerifiable
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "top-level mocks" {
+        t "should allow mock to be defined in top-level BeforeAll" {
+            # https://github.com/pester/Pester/issues/1559
+            $sb = {
+                BeforeAll {
+                    Mock Get-Command { "ffff" }
+                    Get-Command | Should -Be "ffff"
+                }
+
+                Describe "d1" {
+                    It "i1" {
+                        Get-Command | Should -Be "ffff"
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+
+        t "should count mock in top-level BeforeAll" {
+            # https://github.com/pester/Pester/issues/1559
+            $sb = {
+                BeforeAll {
+                    Mock Get-Command { "ffff" }
+                    Get-Command | Should -Be "ffff"
+                    Should -Invoke Get-Command -Exactly 1
+                }
+
+                Describe "d1" {
+                    It "i1" {
+                        Get-Command | Should -Be "ffff"
+                        Should -Invoke Get-Command -Exactly 1
+                        Should -Invoke Get-Command -Exactly 1 -Scope Describe
+                        Should -Invoke Get-Command -Exactly 2 -Scope 2
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+
+
+        t "should count verifiable mock in top-level BeforeAll" {
+            # https://github.com/pester/Pester/issues/1559
+            $sb = {
+                BeforeAll {
+                    Mock Get-Command { "ffff" } -Verifiable
+                    Get-Command | Should -Be "ffff"
+                    Should -InvokeVerifiable
+                }
+
+                Describe "d1" {
+                    It "i1" {
                         Should -InvokeVerifiable
                     }
                 }

@@ -5,7 +5,15 @@
 
 function Get-MockPlugin () {
     New-PluginObject -Name "Mock" `
-        -EachBlockSetupStart {
+        -ContainerRunStart {
+            param($Context)
+
+            $Context.Block.PluginData.Mock = @{
+                Hooks       = [System.Collections.Generic.List[object]]@()
+                CallHistory = @{}
+                Behaviors   = @{}
+            }
+        } -EachBlockSetupStart {
         param($Context)
         $Context.Block.PluginData.Mock = @{
             Hooks       = [System.Collections.Generic.List[object]]@()
@@ -28,6 +36,11 @@ function Get-MockPlugin () {
         $hooks = $Context.Test.PluginData.Mock.Hooks
         Remove-MockHook -Hooks $hooks
     } -EachBlockTeardownEnd {
+        param($Context)
+        # TODO: resolve this path safely
+        $hooks = $Context.Block.PluginData.Mock.Hooks
+        Remove-MockHook -Hooks $hooks
+    } -ContainerRunEnd {
         param($Context)
         # TODO: resolve this path safely
         $hooks = $Context.Block.PluginData.Mock.Hooks
@@ -299,21 +312,16 @@ function Get-AllMockBehaviors {
     while ($null -ne $block) {
 
         # action
-        # root block can't have mocks, and we also don't run the plugin setup for it so the Mock data are not setup there
-        # so not running this code there makes the code simpler, and more correct because when the setup is not there we know
-        # that something bad happened
-        if (-not $block.IsRoot) {
-            $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
-                $block.PluginData.Mock.Behaviors.$CommandName
-            })
+        $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
+            $block.PluginData.Mock.Behaviors.$CommandName
+        })
 
-            if ($null -ne $bs -and 0 -lt @($bs).Count) {
-                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($block.Name)'."
-                }
-                $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
-                $behaviors.AddRange($bss)
+        if ($null -ne $bs -and 0 -lt @($bs).Count) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in '$($block.Name)'."
             }
+            $bss = @(for ($i = $bs.Count - 1; $i -ge 0; $i--) { $bs[$i] })
+            $behaviors.AddRange($bss)
         }
         # action end
 
@@ -375,17 +383,15 @@ function Get-VerifiableBehaviors {
     while ($null -ne $block) {
 
         ## action
-        if (-not $block.IsRoot) {
-            $allBehaviors = $block.PluginData.Mock.Behaviors.Values
-            # all behaviors for all commands
-            if ($null -ne $allBehaviors -or $allBehaviors.Count -ne 0) {
-                foreach ($commandBehaviors in $allBehaviors) {
-                    if ($null -ne $commandBehaviors -and $commandBehaviors.Count -gt 0) {
-                        # all behaviors for single command
-                        foreach ($behavior in $commandBehaviors) {
-                            if ($behavior.Verifiable) {
-                                $behaviors.Add($behavior)
-                            }
+        $allBehaviors = $block.PluginData.Mock.Behaviors.Values
+        # all behaviors for all commands
+        if ($null -ne $allBehaviors -or $allBehaviors.Count -ne 0) {
+            foreach ($commandBehaviors in $allBehaviors) {
+                if ($null -ne $commandBehaviors -and $commandBehaviors.Count -gt 0) {
+                    # all behaviors for single command
+                    foreach ($behavior in $commandBehaviors) {
+                        if ($behavior.Verifiable) {
+                            $behaviors.Add($behavior)
                         }
                     }
                 }
