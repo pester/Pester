@@ -48,7 +48,35 @@ function Should {
     )
 
     dynamicparam {
-        Get-AssertionDynamicParams
+        # Figuring out if we are using the old syntax is 'easy'
+        $myLine = # we can use $myInvocation.Line to get the surrounding context
+            $MyInvocation.Line.Substring($MyInvocation.OffsetInLine - 1)
+        
+        # A bit of Regex lets us know if the line used the old form         
+        if ($myLine -match '\s{0,}should\s{1,}(?<Operator>[^\-\s]+)') 
+        {
+            # Now it gets tricky.  This will be called once for each unmapped parameter.
+            # So while we always want to return here, we only want to error once
+            # The message uniqueness can be one part of our error.
+            $shouldErrorMsg = 
+                "should command syntax out of date.  It Should be `"should -$($matches.Operator)`"."
+            
+            # The rest of the uniqueness we can cobble together out of $MyInvocation.
+            $uniqueErrorMsg = $shouldErrorMsg, 
+                $MyInvocation.HistoryId, # The history ID is unique per run
+                $MyInvocation.PSCommandPath, # the command path is unique per file
+                $myLine  -join '.' # and the whole line should be.  Join all of these pieces by .
+                                
+            
+            if ($script:lastShouldErrorMsg -ne $uniqueErrorMsg) {
+                $script:lastShouldErrorMsg  = $uniqueErrorMsg
+                Write-Error $shouldErrorMsg
+                return
+            }
+            return
+        } else {
+            Get-AssertionDynamicParams
+        }
     }
 
     begin {
