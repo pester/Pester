@@ -75,6 +75,17 @@ i -PassThru:$PassThru {
         }
 
 
+        # Output configuration
+        t "Verbosity is Normal" {
+            [PesterConfiguration]::Default.Output.Verbosity.Value | Verify-Equal "Normal"
+        }
+
+        t "Verbosity Minimal is translated to Normal (backwards compat for currently unsupported option)" {
+            $p = [PesterConfiguration]::Default
+            $p.Output.Verbosity = "Minimal"
+            $p.Output.Verbosity.Value | Verify-Equal "Normal"
+        }
+
         # CodeCoverage configuration
         t "CodeCoverage.Enabled is `$false" {
             [PesterConfiguration]::Default.CodeCoverage.Enabled.Value | Verify-False
@@ -197,12 +208,12 @@ i -PassThru:$PassThru {
     b "Cloning" {
         t "Configuration can be shallow cloned to avoid modifying user values" {
             $user = [PesterConfiguration]::Default
-            $user.Output.Verbosity = "Minimal"
+            $user.Output.Verbosity = "Normal"
 
             $cloned = [PesterConfiguration]::ShallowClone($user)
             $cloned.Output.Verbosity = "None"
 
-            $user.Output.Verbosity.Value | Verify-Equal "Minimal"
+            $user.Output.Verbosity.Value | Verify-Equal "Normal"
             $cloned.Output.Verbosity.Value | Verify-Equal "None"
         }
     }
@@ -210,7 +221,7 @@ i -PassThru:$PassThru {
     b "Merging" {
         t "configurations can be merged" {
             $user = [PesterConfiguration]::Default
-            $user.Output.Verbosity = "Minimal"
+            $user.Output.Verbosity = "Normal"
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
@@ -226,7 +237,7 @@ i -PassThru:$PassThru {
 
         t "merged object is a new instance" {
             $user = [PesterConfiguration]::Default
-            $user.Output.Verbosity = "Minimal"
+            $user.Output.Verbosity = "Normal"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
@@ -239,7 +250,7 @@ i -PassThru:$PassThru {
 
         t "values are overwritten even if they are set to the same value as default" {
             $user = [PesterConfiguration]::Default
-            $user.Output.Verbosity = "Minimal"
+            $user.Output.Verbosity = "Diagnostic"
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
@@ -248,7 +259,7 @@ i -PassThru:$PassThru {
             $result = [PesterConfiguration]::Merge($user, $override)
 
             # has the same value as default but was written so it will override
-            $result.Output.Verbosity.Value | Verify-Equal "Minimal"
+            $result.Output.Verbosity.Value | Verify-Equal "Normal"
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"

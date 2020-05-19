@@ -277,10 +277,10 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Demo - Minimal view" {
+    b "Demo - Normal view" {
         t "should will fail on the first failure by default" {
             $sb = {
-                Describe "minimal output" {
+                Describe "output" {
                     It "passes" {
                         1 | Should -Be 1
                     }

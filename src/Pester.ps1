@@ -272,8 +272,8 @@ function Invoke-Pester {
         [Switch] $CI,
 
         [Parameter(ParameterSetName = "Simple")]
-        [ValidateSet("Diagnostic", "Normal", "Minimal", "None")]
-        [String] $Output = "Minimal",
+        [ValidateSet("Diagnostic", "Detailed", "Normal", "Minimal", "None")]
+        [String] $Output = "Normal",
 
         [Parameter(ParameterSetName = "Simple")]
         [Switch] $PassThru,
