@@ -35,7 +35,6 @@
       - [Mocks can be debugged](#mocks-can-be-debugged)
       - [Internal Mock functions are hidden](#internal-mock-functions-are-hidden)
       - [Avoid putting in InModuleScope around your Describe and It blocks](#avoid-putting-in-inmodulescope-around-your-describe-and-it-blocks)
-      - [Mocks don't work in top-level `BeforeAll`](#mocks-dont-work-in-top-level-beforeall)
     - [VSCode improvements](#vscode-improvements)
       - [Use legacy code lens](#use-legacy-code-lens)
       - [Output verbosity](#output-verbosity)
@@ -755,10 +754,6 @@ When Pester generates the mock bootstrap function it produces a command info obj
 #### Avoid putting in InModuleScope around your Describe and It blocks
 
 `InModuleScope` is a simple way to expose your internal module functions to be tested, but it prevents you from properly testing your published functions, does not ensure that your functions are actually published, and slows down Discovery by loading the module. Aim to avoid it altogether by using `-ModuleName` on `Mock`. Or at least avoid placing `InModuleScope` outside of `It`.
-
-#### Mocks don't work in top-level `BeforeAll`
-
-Defining mock on the top and using it in a child block does not work.
 
 ### VSCode improvements
 
