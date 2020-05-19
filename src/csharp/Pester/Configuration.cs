@@ -1,4 +1,5 @@
 using Pester;
+using System;
 using System.Collections;
 using System.Linq;
 using System.Management.Automation;
@@ -1023,7 +1024,7 @@ namespace Pester
 
         public OutputConfiguration() : base("Output configuration")
         {
-            Verbosity = new StringOption("The verbosity of output, options are None, Minimal, Normal and Diagnostic.", "Minimal");
+            Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
         }
 
         public StringOption Verbosity
@@ -1037,9 +1038,14 @@ namespace Pester
                 }
                 else
                 {
-                    _verbosity = new StringOption(_verbosity, value?.Value);
+                    _verbosity = new StringOption(_verbosity, FixMinimal(value?.Value));
                 }
             }
+        }
+
+        private string FixMinimal(string value)
+        {
+            return string.Equals(value, "Minimal", StringComparison.OrdinalIgnoreCase) ? "Normal" : value;
         }
     }
 }

@@ -19,7 +19,6 @@ $global:PesterPreference = @{
         WriteDebugMessages     = $true
         WriteDebugMessagesFrom = "*Filter"
     }
-    Output = @{ Verbosity = 'Minimal' }
 }
 
 i -PassThru:$PassThru {

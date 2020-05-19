@@ -18,7 +18,7 @@
     - [Skip on everything](#skip-on-everything)
     - [Collect all Should failures](#collect-all-should-failures)
     - [Collecting `AfterEach` failures](#collecting-aftereach-failures)
-    - [Minimal, Normal and Diagnostic view](#minimal-normal-and-diagnostic-view)
+    - [Normal, Detailed and Diagnostic view](#normal-detailed-and-diagnostic-view)
     - [New result object](#new-result-object)
     - [Simple and advanced interface](#simple-and-advanced-interface)
       - [Simple interface](#simple-interface)
@@ -411,18 +411,18 @@ In a similar fashion to Should, when test assertion fails, and it teardown also 
  [1] RuntimeException: but also fails in after each
 ```
 
-### Minimal, Normal and Diagnostic view
+### Normal, Detailed and Diagnostic view
 
 Errors are usually what we are interested in when running tests. And that is why Pester5 implements a concise view that prints failed tests with the full test path, and minimal discovery and summary information:
 
 ```
 Starting test discovery in 1 files.
 Test discovery finished. 83ms
-[-] minimal output.fails 24ms (18ms|5ms)
+[-] output.fails 24ms (18ms|5ms)
  Expected 2, but got 1.
  at 1 | Should -Be 2, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:289
  at <ScriptBlock>, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:289
-[-] minimal output.child.fails 22ms (16ms|5ms)
+[-] output.child.fails 22ms (16ms|5ms)
  Expected 2, but got 1.
  at 1 | Should -Be 2, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:298
  at <ScriptBlock>, C:\Projects\pester\Pester.RSpec.Demo.ts.ps1:298
@@ -769,7 +769,7 @@ Actually there is a bug, and the option is called Enable Legacy Code Lens, and i
 
 #### Output verbosity
 
-You can specify verbosity in VSCode, to see normal or minimal output, or to take it from PesterPreference. This also works for Pester 4!
+You can specify verbosity in VSCode, to see normal or detailed output, or to take it from PesterPreference. This also works for Pester 4!
 
 ![Shows a run with minimal preference that shows only errors](images/readme/minimal-output.gif)
 
@@ -784,7 +784,7 @@ You can specify verbosity in VSCode, to see normal or minimal output, or to take
 - `Assert-VerifiableMocks` was removed, see [Should -Invoke](#should--invoke)
 - The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
-- `-Output` parameter has reduced options to `None`, `Minimal`, `Normal` and `Diagnostic`, `-Show` alias is removed
+- `-Output` parameter has reduced options to `None`, `Normal`, `Detailed` and `Diagnostic`, `-Show` alias is removed
 - `-PesterOption` switch is removed
 - `-TestName` swithc is replaced with `-FullNameFilter` switch
 - `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables. Parametrized scripts are not implemented at the moment, which should be solved in 5.1

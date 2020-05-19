@@ -101,8 +101,6 @@ $configuration.Run.PassThru = $true
 
 $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
 
-$configuration.Output.Verbosity = 'Minimal'
-
 if ($CI) {
     $configuration.Run.Exit = $true
 
