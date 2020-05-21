@@ -31,44 +31,44 @@ $script = @(
     "$PSScriptRoot/src/Pester.psm1"
 )
 
+$files = Get-ChildItem $script -File | Select-Object -Unique
+
 $sb = [System.Text.StringBuilder]""
-foreach ($s in $script) {
+foreach ($f in $files) {
     $lineNumber = 1
     $hereString = $false
-    foreach ($f in Get-ChildItem $s -File) {
-        $lines = Get-Content $f
+    $lines = Get-Content $f
 
-        $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
-        $null = $sb.AppendLine("# file $relativePath")
-        $noBuild = $false
-        foreach ($l in $lines) {
-            if ($l -match "^\s*#\s*if\s*-not\s*build\s*$") {
-                $noBuild = $true
-            }
+    $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
+    $null = $sb.AppendLine("# file $relativePath")
+    $noBuild = $false
+    foreach ($l in $lines) {
+        if ($l -match "^\s*#\s*if\s*-not\s*build\s*$") {
+            $noBuild = $true
+        }
 
-            if (-not $noBuild) {
+        if (-not $noBuild) {
 
-                if ($Debug) {
-                    # don't add the source navigation marker when we are in a here string
-                    # or on a line that is empty or ends with an escape
-                    if ($l -match '@"\s*$') {
-                        $hereString = $true
-                    }
-                    if (-not $hereString -and -not [string]::IsNullOrWhiteSpace($l) -and $l -notmatch '`\s*$') {
-                      $l = $l + " # $($f.FullName):$($lineNumber)"
-                    }
-                    if ($l -match '"@\s*$') {
-                        $hereString = $false
-                    }
-                    $lineNumber++
+            if ($Debug) {
+                # don't add the source navigation marker when we are in a here string
+                # or on a line that is empty or ends with an escape
+                if ($l -match '@"\s*$') {
+                    $hereString = $true
                 }
-                $null = $sb.AppendLine($l)
-
+                if (-not $hereString -and -not [string]::IsNullOrWhiteSpace($l) -and $l -notmatch '`\s*$') {
+                    $l = $l + " # $($f.FullName):$($lineNumber)"
+                }
+                if ($l -match '"@\s*$') {
+                    $hereString = $false
+                }
+                $lineNumber++
             }
+            $null = $sb.AppendLine($l)
 
-            if ($l -match "#\s*endif\s*$") {
-                $noBuild = $false
-            }
+        }
+
+        if ($l -match "#\s*endif\s*$") {
+            $noBuild = $false
         }
     }
 }
