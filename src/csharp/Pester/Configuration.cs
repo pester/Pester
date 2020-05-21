@@ -306,7 +306,14 @@ namespace Pester
 
         public static T GetObjectOrNull<T>(this IDictionary dictionary, string key) where T : class
         {
-            return dictionary.Contains(key) ? dictionary[key] as T : null;
+            if (!dictionary.Contains(key))
+                return null;
+
+            if (typeof(T) == typeof(string))
+                if (dictionary[key] is PSObject o)
+                    return (T) Convert.ChangeType(o.ToString(), typeof(string));
+
+            return dictionary[key] as T;
         }
 
         public static IDictionary GetIDictionaryOrNull(this IDictionary dictionary, string key)
