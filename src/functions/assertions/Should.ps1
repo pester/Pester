@@ -53,7 +53,7 @@ function Should {
             $MyInvocation.Line.Substring($MyInvocation.OffsetInLine - 1)
 
         # A bit of Regex lets us know if the line used the old form
-        if ($myLine -match '\s{0,}should\s{1,}(?<Operator>[^\-\s]+)')
+        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\s]+)')
         {
             $operatorDynamicParameters = Get-AssertionDynamicParams $matches.Operator
             if ($operatorDynamicParameters.Count -ge 1) {
