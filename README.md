@@ -1,10 +1,10 @@
-# Pester v5 - RC9 (GA4)
+# Pester 5.0.0
 
 > 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
 
 > 🙋‍ Want to share feedback? [Go here](https://github.com/pester/Pester/issues/1218), or see more options in [Questions?](#questions).
 
-- [Pester v5 - RC9 (GA4)](#pester-v5---rc9-ga4)
+- [Pester 5.0.0](#pester-500)
   - [What is new?](#what-is-new)
     - [Discovery & Run](#discovery--run)
       - [Put setup in BeforeAll](#put-setup-in-beforeall)
@@ -51,7 +51,7 @@
 > 🕹 want to see a demo? Here is my talk [What is new in Pester 5](https://www.twitch.tv/videos/607067228?t=03h52m07s) from #BridgeConf
 
 
-Pester 5 RC9 (GA4) is here! 🥳 This version is stable enough to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify any major bugs.
+Pester 5.0.0 is finally here! 🥳 This version recommended to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify bugs.
 
 
 ### Discovery & Run
@@ -786,7 +786,7 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
 - `-Output` parameter has reduced options to `None`, `Normal`, `Detailed` and `Diagnostic`, `-Show` alias is removed
 - `-PesterOption` switch is removed
-- `-TestName` swithc is replaced with `-FullNameFilter` switch
+- `-TestName` switch is replaced with `-FullNameFilter` switch
 - `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables. Parametrized scripts are not implemented at the moment, which should be solved in 5.1
 - Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. Use `$PSScriptRoot` or `$PSCommandPath`. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
 - Should `-Throw` is using `-like` to match the exception message instead of .Contains. Use `*` or any of the other `-like` wildcard to match only part of the message.
