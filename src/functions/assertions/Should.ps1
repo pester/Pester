@@ -55,15 +55,10 @@ function Should {
         # A bit of Regex lets us know if the line used the old form
         if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\s]+)')
         {
-            $operatorDynamicParameters = Get-AssertionDynamicParams $matches.Operator
-            if ($operatorDynamicParameters.Count -ge 1) {
-                return $operatorDynamicParameters
-            }
             # Now it gets tricky.  This will be called once for each unmapped parameter.
             # So while we always want to return here, we only want to error once
             # The message uniqueness can be one part of our error.
-            $shouldErrorMsg =
-                "should operator '$($matches.Operator)' not found."
+            $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
 
             # The rest of the uniqueness we can cobble together out of $MyInvocation.
             $uniqueErrorMsg = $shouldErrorMsg,
@@ -162,7 +157,6 @@ function Should {
             AddErrorCallback   = $addErrorCallback
         }
 
-        if (-not $entry) { return }
         if ($inputArray.Count -eq 0) {
             Invoke-Assertion @assertionParams -ValueToTest $null
         }

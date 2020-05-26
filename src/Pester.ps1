@@ -77,7 +77,8 @@ function Add-ShouldOperator {
         [string] $InternalName,
 
         [switch] $SupportsArrayInput
-    )    
+    )
+
     $entry = New-Object psobject -Property @{
         Test               = $Test
         SupportsArrayInput = [bool]$SupportsArrayInput
@@ -227,70 +228,14 @@ function Add-AssertionDynamicParameterSet {
 
         $null = $dynamic.Attributes.Add($attribute)
     }
-
-    $script:AssertionDynamicParamsByParameterSet = @{}
 }
 
 function Get-AssertionOperatorEntry([string] $Name) {
     return $script:AssertionOperators[$Name]
 }
 
-function Get-AssertionDynamicParams([string] $ParameterSet) {
-    if (-not $ParameterSet) {
-        return $script:AssertionDynamicParams
-    }
-    if (-not $script:AssertionDynamicParamsByParameterSet) {
-        $script:AssertionDynamicParamsByParameterSet = @{}
-    }
-    if (-not $script:AssertionDynamicParamsByParameterSet[$ParameterSet]) {
-        $script:AssertionDynamicParamsByParameterSet[$ParameterSet] = [Pester.Factory]::CreateRuntimeDefinedParameterDictionary()
-        $anyFound = $false 
-        :nextParameter foreach ($param in $script:AssertionDynamicParams.Values) {
-            $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-
-            $includeParameter = $false
-            foreach ($attribute in $param.Attributes) {
-                if ($attribute -is [Management.Automation.ParameterAttribute]) {
-                    if ($attribute.ParameterSetName -ne $ParameterSet) { continue }
-                    if ($param.Name -eq $ParameterSet -and $param.ParameterType -eq [switch]) {
-                        continue nextParameter
-                    }
-                    # Very few parts of PowerShell are case-sensitive.
-                    # Parameter set names are one of them.  
-                    if ($ParameterSet -cne $attribute.ParameterSetName) { # So check the case
-                        $ParameterSet = $attribute.ParameterSetName # and make sure it matches the parameter set name.
-                    }
-
-                    $includeParameter = $true
-                }
-                if ($attribute -is [Management.Automation.AliasAttribute] -and 
-                    $param.ParameterType -eq [switch] -and 
-                    $attribute.ValidValues -contains $ParameterSet) {
-                    continue nextParameter    
-                }
-                $attributeCollection.Add($attribute)
-            }
-            
-            if ($includeParameter) {
-                $anyFound = $true
-                $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($param.Name, $param.ParameterType, $attributeCollection)
-                $script:AssertionDynamicParamsByParameterSet[$ParameterSet].Add($param.Name, $dynamic)
-            }
-        }
-        if ($anyFound) {
-            $attribute = New-Object Management.Automation.ParameterAttribute
-            $attribute.ParameterSetName = $ParameterSet
-            $attribute.Mandatory = $true
-            $attribute.Position = 0 
-
-            $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
-            $null = $attributeCollection.Add($attribute)
-
-            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('ShouldOperator', [string], $attributeCollection)
-            $null = $script:AssertionDynamicParamsByParameterSet[$ParameterSet].Add('ShouldOperator', $dynamic)           
-        }
-    }
-    return $script:AssertionDynamicParamsByParameterSet[$ParameterSet]
+function Get-AssertionDynamicParams {
+    return $script:AssertionDynamicParams
 }
 
 function Has-Flag {
