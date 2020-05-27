@@ -790,6 +790,7 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - `-Script` option was renamed to `-Path` and takes paths only, it does not take hashtables. Parametrized scripts are not implemented at the moment, which should be solved in 5.1
 - Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. Use `$PSScriptRoot` or `$PSCommandPath`. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
 - Should `-Throw` is using `-like` to match the exception message instead of .Contains. Use `*` or any of the other `-like` wildcard to match only part of the message.
+- Variables defined during Discovery, are not available in Before*, After* and It. When generating tests via foreach blocks, make sure you pass all variables into the test using -TestCases.
 
 
 ### Deprecated features
