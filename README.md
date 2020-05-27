@@ -48,7 +48,7 @@
 
 > 🔥 Interested only in breaking changes? See [breaking changes](#breaking-changes) below.
 
-> 🕹 want to see a demo? Here is my talk [What is new in Pester 5](https://www.twitch.tv/videos/607067228?t=03h52m07s) from #BridgeConf
+> 🕹 want to see a demo? Here is my talk [What is new in Pester 5](https://www.youtube.com/watch?v=mTfUO00hWSc) from #BridgeConf
 
 
 Pester 5.0.0 is finally here! 🥳 This version recommended to be used for new projects, and is the recommended choice if you just started learning Pester. If you own any project, please give it a try and report back to help me identify bugs.
