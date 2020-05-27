@@ -761,7 +761,7 @@ When Pester generates the mock bootstrap function it produces a command info obj
 
 With Pester 5 it is finally possible to run and debug just a single test in VSCode!
 
-![Shows a single test being run using the new Code Lense](images/readme/single-test.gif)
+![Shows a single test being run using the new Code Lense](docs/images/readme/single-test.gif)
 
 In the latest [PowerShell Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.PowerShell-Preview) extension for VSCode you can enable Use Legacy Code Lens option which will enable `Run tests` on all `Describe`, `Context` and `It` blocks. You can run a whole block, any child block, or any test individually. You can also run tests that are marked as skipped by running them individually.
 
@@ -771,7 +771,7 @@ Actually there is a bug, and the option is called Enable Legacy Code Lens, and i
 
 You can specify verbosity in VSCode, to see normal or detailed output, or to take it from PesterPreference. This also works for Pester 4!
 
-![Shows a run with minimal preference that shows only errors](images/readme/minimal-output.gif)
+![Shows a run with normal preference that shows only errors](docs/images/readme/minimal-output.gif)
 
 
 ## Breaking changes
@@ -791,6 +791,7 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - Using `$MyInvocation.MyCommand.Path` to locate your script in `BeforeAll` does not work. This does not break it for your scripts and modules. Use `$PSScriptRoot` or `$PSCommandPath`. See [importing ps files](https://jakubjares.com/2020/04/11/pester5-importing-ps-files/) article for detailed information.
 - Should `-Throw` is using `-like` to match the exception message instead of .Contains. Use `*` or any of the other `-like` wildcard to match only part of the message.
 - Variables defined during Discovery, are not available in Before*, After* and It. When generating tests via foreach blocks, make sure you pass all variables into the test using -TestCases.
+- Gherkin is removed, and will later move to it's own module, please keep using Pester version 4.
 
 
 ### Deprecated features
