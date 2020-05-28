@@ -505,10 +505,6 @@ function Invoke-Pester {
 
                     # advanced CC options won't work (hashtable)
                     if ($null -ne $CodeCoverage) {
-                        if (@($CodeCoverage)[0] -is [System.Collections.IDictionary]) {
-                            throw "Passing hashtable configuration to -CodeCoverageis currently not supported in Pester 5.0. Please provide just paths, as an array of strings."
-                        }
-
                         $Configuration.CodeCoverage.Enabled = $true
                         $Configuration.CodeCoverage.Path = $CodeCoverage
                     }

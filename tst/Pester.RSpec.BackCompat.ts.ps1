@@ -19,7 +19,7 @@ $global:PesterPreference = @{
 
 i -PassThru:$PassThru {
     b "Backward compatibility for Invoke-Pester" {
-        t "Invoke-Pester -Script" {
+        t "Invoke-Pester Legacy parameter set" {
             try {
                 $tmp = Join-Path ([IO.Path]::GetTempPath())  "simple1"
                 $null = New-Item -ItemType Directory -Force $tmp
@@ -50,6 +50,39 @@ i -PassThru:$PassThru {
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
                 Test-Path $tr | Verify-True
                 Test-Path $cc | Verify-True
+            }
+            finally {
+                if (Test-Path $tmp) {
+                    Remove-Item -Path $tmp -Force -Recurse
+                }
+            }
+        }
+
+        dt "Fail on hashtable in -Script" {
+            try {
+                $tmp = Join-Path ([IO.Path]::GetTempPath())  "simple1"
+                $null = New-Item -ItemType Directory -Force $tmp
+
+                $codeFile = Join-Path $tmp "code-file.ps1"
+                $testFile = Join-Path $tmp "simple.Tests.ps1"
+                $tr = Join-Path $tmp "simple.TestResults.xml"
+
+                $code = "function fff { 'hello' }"
+
+                $test ="
+                    BeforeAll {
+                        . $codeFile
+                    }
+                    Describe 'a' {
+                        It 'b' { fff }
+                    }"
+
+
+                $code | Set-Content $codeFile
+                $test | Set-Content $testFile
+
+
+                { Invoke-Pester -Script @{ Path = $codeFile } -OutputFile $tr -PassThru } | Verify-Throw
             }
             finally {
                 if (Test-Path $tmp) {
