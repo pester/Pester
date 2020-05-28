@@ -57,38 +57,5 @@ i -PassThru:$PassThru {
                 }
             }
         }
-
-        t "Fail on hashtable in -Script" {
-            try {
-                $tmp = Join-Path ([IO.Path]::GetTempPath())  "simple1"
-                $null = New-Item -ItemType Directory -Force $tmp
-
-                $codeFile = Join-Path $tmp "code-file.ps1"
-                $testFile = Join-Path $tmp "simple.Tests.ps1"
-                $tr = Join-Path $tmp "simple.TestResults.xml"
-
-                $code = "function fff { 'hello' }"
-
-                $test ="
-                    BeforeAll {
-                        . $codeFile
-                    }
-                    Describe 'a' {
-                        It 'b' { fff }
-                    }"
-
-
-                $code | Set-Content $codeFile
-                $test | Set-Content $testFile
-
-
-                { Invoke-Pester -Script @{ Path = $codeFile } -OutputFile $tr -PassThru } | Verify-Throw
-            }
-            finally {
-                if (Test-Path $tmp) {
-                    Remove-Item -Path $tmp -Force -Recurse
-                }
-            }
-        }
     }
 }
