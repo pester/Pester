@@ -255,17 +255,26 @@ function Has-Flag {
 function Invoke-Pester {
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
-        [Parameter(Position = 0, Mandatory = 0,  ParameterSetName = "Simple")]
+        [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
+        [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [Alias("Script")] # Legacy set for v4 compatibility during migration - deprecated
         [String[]] $Path = '.',
         [Parameter(ParameterSetName = "Simple")]
         [String[]] $ExcludePath = @(),
 
         [Parameter(ParameterSetName = "Simple")]
+        [Parameter(Position = 4, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [Alias("Tag")] # Legacy set for v4 compatibility during migration - deprecated
+        [Alias("Tags")] # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $TagFilter,
-        [Parameter(ParameterSetName = "Simple")]
-        [string[]] $ExcludeTagFilter,
 
         [Parameter(ParameterSetName = "Simple")]
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [string[]] $ExcludeTagFilter,
+
+        [Parameter(Position = 1, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Simple")]
+        [Alias("Name")]  # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $FullNameFilter,
 
         [Parameter(ParameterSetName = "Simple")]
@@ -276,10 +285,47 @@ function Invoke-Pester {
         [String] $Output = "Normal",
 
         [Parameter(ParameterSetName = "Simple")]
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch] $PassThru,
 
         [Parameter(ParameterSetName = "Advanced")]
-        [PesterConfiguration] $Configuration
+        [PesterConfiguration] $Configuration,
+
+        # rest of the Legacy set
+        [Parameter(Position = 2, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [switch]$EnableExit,
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [object[]] $CodeCoverage = @(),
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [string] $CodeCoverageOutputFile,
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [string] $CodeCoverageOutputFileEncoding = 'utf8',
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [ValidateSet('JaCoCo')]
+        [String]$CodeCoverageOutputFileFormat = "JaCoCo",
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Switch]$Strict,
+
+        [Parameter(Mandatory = $true, ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [string] $OutputFile,
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [string] $OutputFormat = 'NUnitXml',
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Switch]$Quiet,
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [object]$PesterOption,
+
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Pester.OutputTypes]$Show = 'All'
     )
     begin {
         $start = [DateTime]::Now
@@ -302,6 +348,10 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('Path')) {
                     if ($null -ne $Path) {
+                        if (@($Path)[0] -is [System.Collections.IDictionary]) {
+                            throw "Passing hashtable configuration to -Path / -Script is currently not supported in Pester 5.0. Please provide just paths, as an array of strings."
+                        }
+
                         $Configuration.Run.Path = $Path
                     }
 
@@ -364,6 +414,162 @@ function Invoke-Pester {
                     }
 
                     Get-Variable 'PassThru' -Scope Local | Remove-Variable
+                }
+            }
+
+            if ('Legacy' -eq $PSCmdlet.ParameterSetName) {
+                Write-Warning "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
+                # populate config from parameters and remove them so we
+                # don't inherit them to child functions by accident
+
+                $Configuration = [PesterConfiguration]::Default
+
+                if ($PSBoundParameters.ContainsKey('Path')) {
+                    if ($null -ne $Path) {
+                        $Configuration.Run.Path = $Path
+                    }
+
+                    Get-Variable 'Path' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
+                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
+                        $Configuration.Filter.FullName = $FullNameFilter
+                    }
+
+                    Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('EnableExit')) {
+                    if ($EnableExit) {
+                        $Configuration.Run.Exit = $true
+                    }
+
+                    Get-Variable 'EnableExit' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('TagFilter')) {
+                    if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
+                        $Configuration.Filter.Tag = $TagFilter
+                    }
+
+                    Get-Variable 'TagFilter' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
+                        $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
+                    }
+
+                    Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('PassThru')) {
+                    if ($null -ne $PassThru) {
+                        $Configuration.Run.PassThru = [bool] $PassThru
+                    }
+
+                    Get-Variable 'PassThru' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('CodeCoverage')) {
+
+                    # advanced CC options won't work (hashtable)
+                    if ($null -ne $CodeCoverage) {
+                        $Configuration.CodeCoverage.Enabled = $true
+                        $Configuration.CodeCoverage.Path = $CodeCoverage
+                    }
+
+                    Get-Variable 'CodeCoverage' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFile')) {
+                    if ($null -ne $CodeCoverageOutputFile) {
+                        $Configuration.CodeCoverage.Enabled = $true
+                        $Configuration.CodeCoverage.OutputPath = $CodeCoverageOutputFile
+                    }
+
+                    Get-Variable 'CodeCoverageOutputFile' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileEncoding')) {
+                    if ($null -ne $CodeCoverageOutputFileEncoding) {
+                        $Configuration.CodeCoverage.Enabled = $true
+                        $Configuration.CodeCoverage.OutputEncoding = $CodeCoverageOutputFileEncoding
+                    }
+
+                    Get-Variable 'CodeCoverageOutputFileEncoding' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileFormat')) {
+                    if ($null -ne $CodeCoverageOutputFileFormat) {
+                        $Configuration.CodeCoverage.Enabled = $true
+                        $Configuration.CodeCoverage.OutputFormat = $CodeCoverageOutputFileFormat
+                    }
+
+                    Get-Variable 'CodeCoverageOutputFileFormat' -Scope Local | Remove-Variable
+                }
+
+                if (-not $PSBoundParameters.ContainsKey('Strict')) {
+                    Get-Variable 'Strict' -Scope Local | Remove-Variable
+                }
+
+                if (-not $PSBoundParameters.ContainsKey('PesterOption')) {
+                    Get-Variable 'PesterOption' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('OutputFile')) {
+                    if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count){
+                        $Configuration.TestResult.Enabled = $true
+                        $Configuration.TestResult.OutputPath = $OutputFile
+                    }
+
+                    Get-Variable 'OutputFile' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('OutputFormat')) {
+                    if ($null -ne $OutputFormat -and 0 -lt @($OutputFormat).Count) {
+                        if ("JUnitXml" -eq $OutputFormat) {
+                            throw "JUnitXml is currently not supported in Pester 5."
+                        }
+
+                        $Configuration.TestResult.OutputFormat = $OutputFormat
+                    }
+
+                    Get-Variable 'OutputFormat' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('Show')) {
+                    if ($null -ne $Show) {
+                        # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
+                        # without switching the whole param set just to get Diagnostic output
+                        # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
+                        $verbosity = switch ($Show) {
+                            "All" { "Detailed" }
+                            "Default" { "Detailed" }
+                            "Fails" { "Normal" }
+                            "Diagnostic" { "Diagnostic" }
+                            "Detailed" { "Detailed" }
+                            "Normal" { "Normal" }
+                            "Minimal" { "Minimal" }
+                            "None" { "None" }
+                            default { "Detailed" }
+                        }
+
+                        $Configuration.Output.Verbosity = $verbosity
+                    }
+
+                    Get-Variable 'Quiet' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('Quiet')) {
+                    if ($null -ne $Quiet) {
+                        if ($Quiet) {
+                            $Configuration.Output.Verbosity = 'None'
+                        }
+                    }
+
+                    Get-Variable 'Quiet' -Scope Local | Remove-Variable
                 }
             }
 
