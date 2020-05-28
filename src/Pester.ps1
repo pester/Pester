@@ -256,25 +256,25 @@ function Invoke-Pester {
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
-        [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Legacy")]  # deprecated
-        [Alias("Script")] # deprecated
+        [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [Alias("Script")] # Legacy set for v4 compatibility during migration - deprecated
         [String[]] $Path = '.',
         [Parameter(ParameterSetName = "Simple")]
         [String[]] $ExcludePath = @(),
 
         [Parameter(ParameterSetName = "Simple")]
-        [Parameter(Position = 4, Mandatory = 0, ParameterSetName = "Legacy")]  # deprecated
-        [Alias("Tag")] # deprecated
-        [Alias("Tags")] # deprecated
+        [Parameter(Position = 4, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [Alias("Tag")] # Legacy set for v4 compatibility during migration - deprecated
+        [Alias("Tags")] # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $TagFilter,
 
         [Parameter(ParameterSetName = "Simple")]
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $ExcludeTagFilter,
 
-        [Parameter(Position = 1, Mandatory = 0, ParameterSetName = "Legacy")]  # deprecated
+        [Parameter(Position = 1, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
         [Parameter(ParameterSetName = "Simple")]
-        [Alias("Name")]  # deprecated
+        [Alias("Name")]  # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $FullNameFilter,
 
         [Parameter(ParameterSetName = "Simple")]
@@ -285,46 +285,46 @@ function Invoke-Pester {
         [String] $Output = "Normal",
 
         [Parameter(ParameterSetName = "Simple")]
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch] $PassThru,
 
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration,
 
         # rest of the Legacy set
-        [Parameter(Position = 2, Mandatory = 0, ParameterSetName = "Legacy")]  # deprecated
+        [Parameter(Position = 2, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
         [switch]$EnableExit,
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [object[]] $CodeCoverage = @(),
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [string] $CodeCoverageOutputFile,
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [string] $CodeCoverageOutputFileEncoding = 'utf8',
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch]$Strict,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "Legacy")] # deprecated
+        [Parameter(Mandatory = $true, ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [string] $OutputFile,
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [ValidateSet('NUnitXml', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch]$Quiet,
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [object]$PesterOption,
 
-        [Parameter(ParameterSetName = "Legacy")] # deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Pester.OutputTypes]$Show = 'All'
     )
     begin {
