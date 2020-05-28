@@ -566,6 +566,7 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('OutputFile')) {
                     if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count){
+                        $Configuration.TestResult.Enabled = $true
                         $Configuration.TestResult.OutputPath = $OutputFile
                     }
 
