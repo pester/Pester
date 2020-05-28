@@ -418,23 +418,11 @@ function Invoke-Pester {
             }
 
             if ('Legacy' -eq $PSCmdlet.ParameterSetName) {
-                Write-Warning "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%, please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
+                Write-Warning "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
                 # populate config from parameters and remove them so we
                 # don't inherit them to child functions by accident
 
                 $Configuration = [PesterConfiguration]::Default
-
-                # if ($PSBoundParameters.ContainsKey('Path')) {
-                #     if ($null -ne $Path) {
-                #         $Configuration.Run.Path = $Path
-                #     }
-
-                #     Get-Variable 'Path' -Scope Local | Remove-Variable
-                # }
-
-                # [Parameter(Position = 0, Mandatory = 0)]
-                # [Alias('Path', 'relative_path')]
-                # [object[]]$Script = '.',
 
                 if ($PSBoundParameters.ContainsKey('Path')) {
                     if ($null -ne $Path) {
@@ -444,10 +432,6 @@ function Invoke-Pester {
                     Get-Variable 'Path' -Scope Local | Remove-Variable
                 }
 
-                # [Parameter(Position = 1, Mandatory = 0)]
-                # [Alias("Name")]
-                # [string[]]$TestName,
-
                 if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
                     if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
                         $Configuration.Filter.FullName = $FullNameFilter
@@ -455,9 +439,6 @@ function Invoke-Pester {
 
                     Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
                 }
-
-                # [Parameter(Position = 2, Mandatory = 0)]
-                # [switch]$EnableExit,
 
                 if ($PSBoundParameters.ContainsKey('EnableExit')) {
                     if ($EnableExit) {
@@ -467,10 +448,6 @@ function Invoke-Pester {
                     Get-Variable 'EnableExit' -Scope Local | Remove-Variable
                 }
 
-                # [Parameter(Position = 4, Mandatory = 0)]
-                # [Alias('Tags')]
-                # [string[]]$Tag,
-
                 if ($PSBoundParameters.ContainsKey('TagFilter')) {
                     if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
                         $Configuration.Filter.Tag = $TagFilter
@@ -478,8 +455,6 @@ function Invoke-Pester {
 
                     Get-Variable 'TagFilter' -Scope Local | Remove-Variable
                 }
-
-                # [string[]]$ExcludeTag,
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
                     if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
@@ -489,8 +464,6 @@ function Invoke-Pester {
                     Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
                 }
 
-                # [switch]$PassThru,
-
                 if ($PSBoundParameters.ContainsKey('PassThru')) {
                     if ($null -ne $PassThru) {
                         $Configuration.Run.PassThru = [bool] $PassThru
@@ -498,8 +471,6 @@ function Invoke-Pester {
 
                     Get-Variable 'PassThru' -Scope Local | Remove-Variable
                 }
-
-                # [object[]] $CodeCoverage = @(),
 
                 if ($PSBoundParameters.ContainsKey('CodeCoverage')) {
 
@@ -512,9 +483,6 @@ function Invoke-Pester {
                     Get-Variable 'CodeCoverage' -Scope Local | Remove-Variable
                 }
 
-                # [string] $CodeCoverageOutputFile,
-
-
                 if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFile')) {
                     if ($null -ne $CodeCoverageOutputFile) {
                         $Configuration.CodeCoverage.Enabled = $true
@@ -523,10 +491,6 @@ function Invoke-Pester {
 
                     Get-Variable 'CodeCoverageOutputFile' -Scope Local | Remove-Variable
                 }
-
-                # [Parameter()]
-                # [ValidateSet('ascii', 'bigendianunicode', 'oem', 'unicode', 'utf7', 'utf8', 'utf8BOM', 'utf8NoBOM', 'utf32')]
-                # [string] $CodeCoverageOutputFileEncoding = 'utf8',
 
                 if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileEncoding')) {
                     if ($null -ne $CodeCoverageOutputFileEncoding) {
@@ -537,9 +501,6 @@ function Invoke-Pester {
                     Get-Variable 'CodeCoverageOutputFileEncoding' -Scope Local | Remove-Variable
                 }
 
-                # [ValidateSet('JaCoCo')]
-                # [String]$CodeCoverageOutputFileFormat = "JaCoCo",
-
                 if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileFormat')) {
                     if ($null -ne $CodeCoverageOutputFileFormat) {
                         $Configuration.CodeCoverage.Enabled = $true
@@ -549,17 +510,13 @@ function Invoke-Pester {
                     Get-Variable 'CodeCoverageOutputFileFormat' -Scope Local | Remove-Variable
                 }
 
-                # [Switch]$Strict,
-
                 if (-not $PSBoundParameters.ContainsKey('Strict')) {
-                    $Strict = $false
-
-                    # TODO: we keep this variable, and act on it on the end, I am not sure how to call it on
-                    # the config object right now, so I workaround it to get a quick win
+                    Get-Variable 'Strict' -Scope Local | Remove-Variable
                 }
 
-                # [Parameter(Mandatory = $true, ParameterSetName = 'NewOutputSet')]
-                # [string] $OutputFile,
+                if (-not $PSBoundParameters.ContainsKey('PesterOption')) {
+                    Get-Variable 'PesterOption' -Scope Local | Remove-Variable
+                }
 
                 if ($PSBoundParameters.ContainsKey('OutputFile')) {
                     if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count){
@@ -569,10 +526,6 @@ function Invoke-Pester {
 
                     Get-Variable 'OutputFile' -Scope Local | Remove-Variable
                 }
-
-                # [Parameter(ParameterSetName = 'NewOutputSet')]
-                # [ValidateSet('NUnitXml', 'JUnitXml')]
-                # [string] $OutputFormat = 'NUnitXml',
 
                 if ($PSBoundParameters.ContainsKey('OutputFormat')) {
                     if ($null -ne $OutputFormat -and 0 -lt @($OutputFormat).Count) {
@@ -586,13 +539,6 @@ function Invoke-Pester {
                     Get-Variable 'OutputFormat' -Scope Local | Remove-Variable
                 }
 
-                # [object]$PesterOption,
-
-                if ($PSBoundParameters.ContainsKey('PesterOption')) {
-                    # PesterOption is ignored
-                }
-
-                # [Pester.OutputTypes]$Show = 'All'
                 if ($PSBoundParameters.ContainsKey('Show')) {
                     if ($null -ne $Show) {
                         # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
@@ -616,9 +562,6 @@ function Invoke-Pester {
                     Get-Variable 'Quiet' -Scope Local | Remove-Variable
                 }
 
-                # Move this down to overwrite Show if specified
-                # [Switch]$Quiet,
-
                 if ($PSBoundParameters.ContainsKey('Quiet')) {
                     if ($null -ne $Quiet) {
                         if ($Quiet) {
@@ -628,7 +571,6 @@ function Invoke-Pester {
 
                     Get-Variable 'Quiet' -Scope Local | Remove-Variable
                 }
-
             }
 
             # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context

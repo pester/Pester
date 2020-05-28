@@ -58,7 +58,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        dt "Fail on hashtable in -Script" {
+        t "Fail on hashtable in -Script" {
             try {
                 $tmp = Join-Path ([IO.Path]::GetTempPath())  "simple1"
                 $null = New-Item -ItemType Directory -Force $tmp
