@@ -599,8 +599,7 @@ function Invoke-Pester {
                     if ($null -ne $Show) {
                         # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
                         # without switching the whole param set just to get Diagnostic output
-                        # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context |
-    Summary | Header | Fails | All}
+                        # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
                         $verbosity = switch ($Show) {
                             "All" { "Detailed" }
                             "Default" { "Detailed" }
