@@ -777,13 +777,14 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 ## Breaking changes
 
 ### Actual breaking changes
+- (❗ new in 5.0.1)  The Parameters of `Invoke-Pester` changed significantly, but in 5.0.1, a compatibility parameter set was added. To allow all the v4 parameters to be used, e.g. like this `Invoke-Pester -Script $testFile -PassThru -Verbose -OutputFile $tr -OutputFormat NUnitXml -CodeCoverage "$tmp/*-*.ps1" -CodeCoverageOutputFile $cc -Show All`. The compatibility is not 100%, neither -Script not -CodeCoverage take hashtables, they just take a collection of paths. The `-Strict` parameter and `-PesterOption` are ignored. The `-Output` \ `-Show` parameter takes all the values, but translates only the most used options to Pester 5 compatible options, otherwise it uses `Detailed` output. It also allows all the Pester 5 output options, to allow you to use `Diagnostic` during migration. This whole Parameter set is deprecated, and prints a warning. For more options and the Advanced interface see [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - PowerShell 2 is no longer supported
 - Documentation is out of date for all commands
 - Legacy syntax `Should Be` (without `-`) is removed, see [Migrating from Pester v3 to v4](https://pester.dev/docs/migrations/v3-to-v4)
 - Mocks are scoped based on their placement, not in whole `Describe` / `Context`. The count also depends on their placement. See [mock scoping](#mocks-are-scoped-based-on-their-placement)
 - `Assert-VerifiableMocks` was removed, see [Should -Invoke](#should--invoke)
-- The api changed significantly, and the intermediate api is not present in this release. See [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - All code placed in the body of `Describe` outside of `It`, `BeforeAll`, `BeforeEach`, `AfterAll`, `AfterEach` will run during discovery and it's state might or might not be available to the test code, see [basics of discovery](#basics-of-discovery)
+
 - `-Output` parameter has reduced options to `None`, `Normal`, `Detailed` and `Diagnostic`, `-Show` alias is removed
 - `-PesterOption` switch is removed
 - `-TestName` switch is replaced with `-FullNameFilter` switch
