@@ -418,6 +418,7 @@ function Invoke-Pester {
             }
 
             if ('Legacy' -eq $PSCmdlet.ParameterSetName) {
+                Write-Warning "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%, please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
                 # populate config from parameters and remove them so we
                 # don't inherit them to child functions by accident
 
