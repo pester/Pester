@@ -53,7 +53,7 @@ function Should {
             $MyInvocation.Line.Substring($MyInvocation.OffsetInLine - 1)
 
         # A bit of Regex lets us know if the line used the old form
-        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\s]+)')
+        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)')
         {
             # Now it gets tricky.  This will be called once for each unmapped parameter.
             # So while we always want to return here, we only want to error once
@@ -156,6 +156,8 @@ function Should {
             ShouldThrow        = $shouldThrow
             AddErrorCallback   = $addErrorCallback
         }
+
+        if (-not $entry) { return } 
 
         if ($inputArray.Count -eq 0) {
             Invoke-Assertion @assertionParams -ValueToTest $null
