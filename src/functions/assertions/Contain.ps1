@@ -33,7 +33,7 @@ This test passes, as 1 exists in the provided collection.
     }
 }
 
-Add-ShouldOperator -Name         Contain `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         Contain `
     -InternalName Should-Contain `
     -Test         ${function:Should-Contain} `
     -SupportsArrayInput

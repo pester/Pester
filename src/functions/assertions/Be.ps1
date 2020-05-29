@@ -63,7 +63,7 @@ function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got the same value."
 }
 
-Add-ShouldOperator -Name               Be `
+& $script:SafeCommands['Add-ShouldOperator'] -Name               Be `
     -InternalName       Should-Be `
     -Test               ${function:Should-Be} `
     -Alias              'EQ' `
@@ -133,7 +133,7 @@ function NotShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got exactly the same value."
 }
 
-Add-ShouldOperator -Name               BeExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name               BeExactly `
     -InternalName       Should-BeExactly `
     -Test               ${function:Should-BeExactly} `
     -Alias              'CEQ' `
