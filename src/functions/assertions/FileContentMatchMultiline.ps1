@@ -55,6 +55,6 @@ function NotShouldFileContentMatchMultilineFailureMessage($ActualValue, $Expecte
     return "Expected $(Format-Nicely $ExpectedContent) to not be found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
-Add-ShouldOperator -Name         FileContentMatchMultiline `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatchMultiline `
     -InternalName Should-FileContentMatchMultiline `
     -Test         ${function:Should-FileContentMatchMultiline}

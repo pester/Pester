@@ -177,6 +177,6 @@ function NotShouldThrowFailureMessage {
     # to make the should tests happy, for now
 }
 
-Add-ShouldOperator -Name         Throw `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         Throw `
     -InternalName Should-Throw `
     -Test         ${function:Should-Throw}

@@ -653,7 +653,7 @@ This will not throw an exception because the mock was invoked.
     Should-InvokeVerifiableInternal -Behaviors $behaviors
 }
 
-Add-ShouldOperator -Name InvokeVerifiable `
+& $script:SafeCommands['Add-ShouldOperator'] -Name InvokeVerifiable `
     -InternalName Should-InvokeVerifiable `
     -Test         ${function:Should-InvokeVerifiable}
 
@@ -962,7 +962,7 @@ to the original.
     return $result
 }
 
-Add-ShouldOperator -Name Invoke `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Invoke `
     -InternalName Should-Invoke `
     -Test         ${function:Should-Invoke}
 

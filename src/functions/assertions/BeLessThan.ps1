@@ -55,12 +55,12 @@ This test also passes, as PowerShell evaluates `2 -ge 2` as true.
     }
 }
 
-Add-ShouldOperator -Name         BeLessThan `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         BeLessThan `
     -InternalName Should-BeLessThan `
     -Test         ${function:Should-BeLessThan} `
     -Alias        'LT'
 
-Add-ShouldOperator -Name         BeGreaterOrEqual `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         BeGreaterOrEqual `
     -InternalName Should-BeGreaterOrEqual `
     -Test         ${function:Should-BeGreaterOrEqual} `
     -Alias        'GE'

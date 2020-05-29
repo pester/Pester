@@ -45,7 +45,7 @@ function NotShouldMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
     return "Expected regular expression $(Format-Nicely $RegularExpression) to not case sensitively match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
-Add-ShouldOperator -Name         MatchExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         MatchExactly `
     -InternalName Should-MatchExactly `
     -Test         ${function:Should-MatchExactly} `
     -Alias        'CMATCH'

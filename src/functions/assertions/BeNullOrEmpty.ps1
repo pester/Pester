@@ -66,7 +66,7 @@ function NotShouldBeNullOrEmptyFailureMessage ($Because) {
     return "Expected a value,$(Format-Because $Because) but got `$null or empty."
 }
 
-Add-ShouldOperator -Name               BeNullOrEmpty `
+& $script:SafeCommands['Add-ShouldOperator'] -Name               BeNullOrEmpty `
     -InternalName       Should-BeNullOrEmpty `
     -Test               ${function:Should-BeNullOrEmpty} `
     -SupportsArrayInput

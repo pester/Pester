@@ -41,7 +41,7 @@ This test will fail, as -BeLikeExactly is case-sensitive.
     }
 }
 
-Add-ShouldOperator -Name         BeLikeExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         BeLikeExactly `
     -InternalName Should-BeLikeExactly `
     -Test         ${function:Should-BeLikeExactly}
 

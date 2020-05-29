@@ -35,7 +35,7 @@ returns $false because the file was removed, and fails the test.
     }
 }
 
-Add-ShouldOperator -Name         Exist `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         Exist `
     -InternalName Should-Exist `
     -Test         ${function:Should-Exist}
 
