@@ -1098,3 +1098,7 @@ function ConvertTo-Pester4Result {
         $legacyResult
     }
 }
+
+# Adding Add-ShouldOperator because it used to be an alias in v4, and so when we now import it will take precedence over
+# our internal function in v5, so we need a safe way to refer to it
+$script:SafeCommands['Add-ShouldOperator'] = & $SafeCommands['Get-Command'] -CommandType Function -Name 'Add-ShouldOperator'

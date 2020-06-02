@@ -69,11 +69,11 @@ This test passes as a "falsy" result.
 }
 
 
-Add-ShouldOperator -Name         BeTrue `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         BeTrue `
     -InternalName Should-BeTrue `
     -Test         ${function:Should-BeTrue}
 
-Add-ShouldOperator -Name         BeFalse `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         BeFalse `
     -InternalName Should-BeFalse `
     -Test         ${function:Should-BeFalse}
 

@@ -61,6 +61,6 @@ function NotShouldFileContentMatchFailureMessage($ActualValue, $ExpectedContent,
     return "Expected $(Format-Nicely $ExpectedContent) to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
 }
 
-Add-ShouldOperator -Name         FileContentMatch `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatch `
     -InternalName Should-FileContentMatch `
     -Test         ${function:Should-FileContentMatch}

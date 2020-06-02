@@ -69,7 +69,7 @@ This is like running `@(1,2,3).Count` in PowerShell.
     }
 }
 
-Add-ShouldOperator -Name         HaveCount `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         HaveCount `
     -InternalName Should-HaveCount `
     -Test         ${function:Should-HaveCount} `
     -SupportsArrayInput

@@ -33,7 +33,7 @@ This test passes, as 1 exists in the provided collection.
     }
 }
 
-Add-ShouldOperator -Name         BeIn `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         BeIn `
     -InternalName Should-BeIn `
     -Test         ${function:Should-BeIn}
 

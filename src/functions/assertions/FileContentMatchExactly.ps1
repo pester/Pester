@@ -47,6 +47,6 @@ function NotShouldFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedC
     return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
-Add-ShouldOperator -Name         FileContentMatchExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatchExactly `
     -InternalName Should-FileContentMatchExactly `
     -Test         ${function:Should-FileContentMatchExactly}

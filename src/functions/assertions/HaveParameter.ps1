@@ -237,6 +237,6 @@ function Should-HaveParameter (
     }
 }
 
-Add-ShouldOperator -Name         HaveParameter `
+& $script:SafeCommands['Add-ShouldOperator'] -Name         HaveParameter `
     -InternalName Should-HaveParameter `
     -Test         ${function:Should-HaveParameter}
