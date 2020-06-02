@@ -142,7 +142,7 @@ function Get-TestRegistryPlugin {
 
     # TODO: add OnStart block and put this in it
 
-    if (Test-Path TestRegistry:\) {
+    if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
         Remove-Item (Get-PSDrive TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
         Remove-PSDrive TestRegistry
     }
@@ -158,7 +158,7 @@ function Get-TestRegistryPlugin {
         # TODO: Add option, but probably in a more generic way
         # if (-not $NoTestRegistry)
         # {
-        if (-not (Test-Path TestRegistry:\)) {
+        if (-not (& $script:SafeCommands['Test-Path'] TestRegistry:\)) {
             New-TestRegistry
             $Context.Block.PluginData.TestRegistry.TestRegistryAdded = $true
         }

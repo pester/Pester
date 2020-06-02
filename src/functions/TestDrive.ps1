@@ -2,7 +2,7 @@ function Get-TestDrivePlugin {
 
     # TODO: add OnStart block and put this in it
 
-    if (Test-Path TestDrive:\) {
+    if (& $script:SafeCommands['Test-Path'] TestDrive:\) {
         Remove-Item (Get-PSDrive TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
         Remove-PSDrive TestDrive
     }
@@ -18,7 +18,7 @@ function Get-TestDrivePlugin {
         # TODO: Add option, but probably in a more generic way
         # if (-not $NoTestDrive)
         # {
-        if (-not (Test-Path TestDrive:\)) {
+        if (-not (& $script:SafeCommands['Test-Path'] TestDrive:\)) {
             New-TestDrive
             $Context.Block.PluginData.TestDrive.TestDriveAdded = $true
         }
