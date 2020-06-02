@@ -637,4 +637,35 @@ i -PassThru:$PassThru {
             $t.Result | Verify-Equal "Passed"
         }
     }
+
+    b "mocking cmdlets" {
+        t "mocking Test-Path" {
+            # https://github.com/pester/Pester/issues/1551
+            # Test-Path was not always taking from SafeCommands, so cleaning TestDrive
+            # failed. This is why we need to be in extra Context, to clean up TestDrive
+            # not just tear it down.
+            $sb = {
+                Describe Do-Something {
+                    BeforeAll {
+                        function Do-Something { }
+
+                        Mock Test-Path { $true }
+                    }
+
+                    Context 'Some block' {
+                        It 'does something' {
+                            Do-Something
+                        }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
 }

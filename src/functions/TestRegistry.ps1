@@ -36,7 +36,7 @@
         }
         catch {
             if ($_.FullyQualifiedErrorId -like 'DriveAlreadyExists*') {
-                # it can happen that & $script:SafeCommands['Test-Path'] reports false even though the drive
+                # it can happen that Test-Path reports false even though the drive
                 # exists. I don't know why but I see it in "Context Teardown fails"
                 # it would be possible to use Get-PsDrive directly for the test but it
                 # is about 10ms slower and we do it in every Describe and It so it would
