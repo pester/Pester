@@ -36,7 +36,7 @@
         }
         catch {
             if ($_.FullyQualifiedErrorId -like 'DriveAlreadyExists*') {
-                # it can happen that Test-Path reports false even though the drive
+                # it can happen that & $script:SafeCommands['Test-Path'] reports false even though the drive
                 # exists. I don't know why but I see it in "Context Teardown fails"
                 # it would be possible to use Get-PsDrive directly for the test but it
                 # is about 10ms slower and we do it in every Describe and It so it would
@@ -142,7 +142,7 @@ function Get-TestRegistryPlugin {
 
     # TODO: add OnStart block and put this in it
 
-    if (Test-Path TestRegistry:\) {
+    if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
         Remove-Item (Get-PSDrive TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
         Remove-PSDrive TestRegistry
     }
@@ -158,7 +158,7 @@ function Get-TestRegistryPlugin {
         # TODO: Add option, but probably in a more generic way
         # if (-not $NoTestRegistry)
         # {
-        if (-not (Test-Path TestRegistry:\)) {
+        if (-not (& $script:SafeCommands['Test-Path'] TestRegistry:\)) {
             New-TestRegistry
             $Context.Block.PluginData.TestRegistry.TestRegistryAdded = $true
         }

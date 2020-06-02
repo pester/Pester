@@ -34,7 +34,7 @@ function Get-TempDirectory {
 
 function Get-TempRegistry {
     $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
-    if (-not (Test-Path $pesterTempRegistryRoot)) {
+    if (-not (& $script:SafeCommands['Test-Path'] $pesterTempRegistryRoot)) {
         try {
             $null = New-Item -Path $pesterTempRegistryRoot -ErrorAction Stop
         }

@@ -16,7 +16,7 @@ function Find-File {
                 continue
             }
 
-            if ((Test-Path $p)) {
+            if ((& $script:SafeCommands['Test-Path'] $p)) {
                 $item = Get-Item $p
 
                 if ($item.PSIsContainer) {
