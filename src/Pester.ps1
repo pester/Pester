@@ -311,7 +311,7 @@ function Invoke-Pester {
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch]$Strict,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
