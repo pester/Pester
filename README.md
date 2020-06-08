@@ -23,6 +23,7 @@
     - [Simple and advanced interface](#simple-and-advanced-interface)
       - [Simple interface](#simple-interface)
       - [Advanced interface](#advanced-interface)
+    - [Legacy interface](#legacy-interface)
     - [PesterPreference](#pesterpreference)
     - [Scoping of BeforeAll & AfterAll](#scoping-of-beforeall--afterall)
     - [Scoping of BeforeEach & AfterEach](#scoping-of-beforeeach--aftereach)
@@ -488,6 +489,7 @@ A mapping of the parameters of the simple interface to the configuration object 
 | ExcludeTag  | Filter.ExcludeTag                                                          |
 | Output      | Output.Verbosity                                                           |
 | CI          | CodeCoverage.Enabled, TestResult.Enabled and Run.Exit (all set to `$true`) |
+| PassThru    | Run.PassThru                                                               |
 
 #### Simple interface
 
@@ -496,7 +498,6 @@ The simple interface is what I mostly need to run my tests. It uses some sensibl
 #### Advanced interface
 
 Advanced interface uses `PesterConfiguration` object which contains all options that you can provide to Pester and contains descriptions for all the configuration sections and as well as default values. Here is what you see when you look at the default Debug section of the object:
-
 
 ```powershell
 [PesterConfiguration]::Default.Debug | Format-List
@@ -551,6 +552,35 @@ $configuration.CodeCoverage.Enabled = $true
 ```
 
 This configuration object contains all the options that are currently supported and the Simple interface is internally translates to this object internally. It is the source of truth for the defaults and configuration. The Intermediate api will be figured out later, as well as all the other details.
+
+### Legacy interface
+
+The following table shows a mapping of v4 Legacy parameters (those which have not been documented under the Simple/Advanced interfaces) to the configuration object
+
+| Parameter                       | Configuration Object Property                          |
+| ------------------------------- | ------------------------------------------------------ |
+| FullNameFilter                  | Filter.FullName                                        |
+| EnableExit                      | Run.Exit                                               |
+| CodeCoverage                    | CodeCoverage.Path                                      |
+| CodeCoverageOutputFile          | CodeCoverage.CodeCoverageOutputFile                    |
+| CodeCoverageOutputFileEncoding  | CodeCoverage.CodeCoverageOutputFileEncoding            |
+| CodeCoverageOutputFileFormat    | CodeCoverage.CodeCoverageOutputFileFormat              |
+| OutputFile                      | TestResult.OutputFile                                  |
+| OutputFormat                    | TestResult.OutputFormat                                |
+| Show                            | Output.Verbosity (via mapping; see below)              |
+
+The following table shows the mapping for v4 *Show* property values to the configuration property *Output.Verbosity*:
+
+| *Show* value                    | Configuration Object *Output Verbosity* Property       |
+| ------------------------------- | ------------------------------------------------------ |
+| All                             | Detailed                                               |
+| Default                         | Detailed                                               |
+| Detailed                        | Detailed                                               |
+| Fails                           | Normal                                                 |
+| Diagnostic                      | Diagnostic                                             |
+| Normal                          | Normal                                                 |
+| Minimal                         | Minimal                                                |
+| None                            | None                                                   |
 
 ### PesterPreference
 
@@ -621,7 +651,6 @@ Failures in setup and teardown work very similar to how they worked in Pester v4
 
 Running in single scope allows you to take a portion of your `It` and move it into `BeforeEach` without any change in behavior. And it also allows you to change a variable in `It`, and use the updated value in `AfterAll`.
 
-
 ### Implicit parameters for TestCases
 
 Test cases are super useful, but I find it a bit annoying, and error prone to define the `param` block all the time, so when invoking `It` I am defining the variables in parent scope, and also splatting them. As a result you don't have to define the `param` block:
@@ -637,7 +666,6 @@ Describe "a" {
 ```
 
 This also works for [mock](#default-parameters-for-parameterfilter)
-
 
 ### Mocking
 
@@ -714,6 +742,7 @@ Describe "d" {
     }
 }
 ```
+
 #### Should -Invoke
 
 Mock counting assertions were renamed to `Should -Invoke` and `Should -InvokeVerifiable`, and most of their parameters are no longer positional. `Assert-MockCalled` and `Assert-VerifiableMock` are provided as functions, and are deprecated.
@@ -741,6 +770,7 @@ Describe "d" {
     }
 }
 ```
+
 #### Mocks can be debugged
 
 Mocks don't rewrite the scriptblock you provide anymore. You can now set breakpoints into them as well as any of the ParameterFilter or Should -Invoke Parameter filter.
@@ -773,10 +803,10 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 
 ![Shows a run with normal preference that shows only errors](docs/images/readme/minimal-output.gif)
 
-
 ## Breaking changes
 
 ### Actual breaking changes
+
 - (❗ new in 5.0.1)  The Parameters of `Invoke-Pester` changed significantly, but in 5.0.1, a compatibility parameter set was added. To allow all the v4 parameters to be used, e.g. like this `Invoke-Pester -Script $testFile -PassThru -Verbose -OutputFile $tr -OutputFormat NUnitXml -CodeCoverage "$tmp/*-*.ps1" -CodeCoverageOutputFile $cc -Show All`. The compatibility is not 100%, neither -Script not -CodeCoverage take hashtables, they just take a collection of paths. The `-Strict` parameter and `-PesterOption` are ignored. The `-Output` \ `-Show` parameter takes all the values, but translates only the most used options to Pester 5 compatible options, otherwise it uses `Detailed` output. It also allows all the Pester 5 output options, to allow you to use `Diagnostic` during migration. This whole Parameter set is deprecated, and prints a warning. For more options and the Advanced interface see [simple and advanced interface](#simple-and-advanced-interface) above on how to invoke Pester.
 - PowerShell 2 is no longer supported
 - Documentation is out of date for all commands
@@ -794,12 +824,13 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - Variables defined during Discovery, are not available in Before*, After* and It. When generating tests via foreach blocks, make sure you pass all variables into the test using -TestCases.
 - Gherkin is removed, and will later move to it's own module, please keep using Pester version 4.
 
-
 ### Deprecated features
+
 -  `Assert-MockCalled` is deprecated, it is recommended to use [Should -Invoke](#should--invoke)
 -  `Assert-VerifiableMock` is deprecated, it is recommended to use [Should -InvokeVerifiable](#should--invoke)
 
 ### Additional issues to be solved in 5.1
+
 - `-Strict` switch is not available
 - Inconclusive and Pending states are currently no longer available, `-Pending` and `-Inconclusive` are translated to `-Skip` both on test blocks and when using `Set-ItResult`
 - Code coverage report is not available.
@@ -812,7 +843,6 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - JUnit output is missing
 
 - Noticed more of them? Share please!
-
 
 # Questions?
 
