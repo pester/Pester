@@ -23,7 +23,7 @@ InPesterModuleScope {
             }
 
             It "returns error when -PassThru is specified" {
-                $err = { throw } | Should -Throw -PassThru
+                $err = { throw } | Should -PassThru
                 $err | Verify-NotNull
                 $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
             }
@@ -32,23 +32,23 @@ InPesterModuleScope {
         Context "Matching error message" {
             It "given scriptblock that throws exception with the expected message it passes" {
                 $expectedErrorMessage = "expected error message"
-                { throw $expectedErrorMessage } | Should -Throw -ExpectedMessage $expectedErrorMessage
+                { throw $expectedErrorMessage } | Should -ExpectedMessage $expectedErrorMessage
             }
 
             It "given scriptblock that throws exception with the expected message in UPPERCASE it passes" {
                 $expectedErrorMessage = "expected error message"
                 $errorMessage = $expectedErrorMessage.ToUpperInvariant()
-                { throw $errorMessage } | Should -Throw -ExpectedMessage $expectedErrorMessage
+                { throw $errorMessage } | Should -ExpectedMessage $expectedErrorMessage
             }
 
             It "given scriptblock that throws exception with a different message it fails" {
                 $expectedErrorMessage = "expected error message"
                 $unexpectedErrorMessage = "different error message"
-                { { throw $unexpectedErrorMessage } | Should -Throw -ExpectedMessage $expectedErrorMessage } | Verify-AssertionFailed
+                { { throw $unexpectedErrorMessage } | Should -ExpectedMessage $expectedErrorMessage } | Verify-AssertionFailed
             }
 
             It "given scriptblock that throws exception with message that contains the expected message it passes" {
-                { throw 'expected error' } | Should -Throw -ExpectedMessage '*error*'
+                { throw 'expected error' } | Should -ExpectedMessage '*error*'
             }
         }
 
@@ -65,7 +65,7 @@ InPesterModuleScope {
                     throw $errorRecord
                 }
 
-                $ScriptBlock | Should -Throw -ErrorId $expectedErrorId
+                $ScriptBlock | Should -ErrorId $expectedErrorId
             }
 
             It "given scriptblock that throws exception with FullyQualifiedErrorId that contains the expected ErrorId it passes" {
@@ -80,7 +80,7 @@ InPesterModuleScope {
                     throw $errorRecord
                 }
 
-                $ScriptBlock | Should -Throw -ErrorId "*$expectedErrorId*"
+                $ScriptBlock | Should -ErrorId "*$expectedErrorId*"
             }
 
             It "given scriptblock that throws exception with FullyQualifiedErrorId that is different from the expected ErrorId it fails" {
@@ -97,17 +97,17 @@ InPesterModuleScope {
                     throw $errorRecord
                 }
 
-                { $ScriptBlock | Should -Throw -ErrorId $expectedErrorId } | Verify-AssertionFailed
+                { $ScriptBlock | Should -ErrorId $expectedErrorId } | Verify-AssertionFailed
             }
         }
 
         Context 'Matching exception type' {
             It "given scriptblock that throws exception with the expected type it passes" {
-                { throw [System.ArgumentException]"message" } | Should -Throw -ExceptionType ([System.ArgumentException])
+                { throw [System.ArgumentException]"message" } | Should -ExceptionType ([System.ArgumentException])
             }
 
             It "given scriptblock that throws exception with a sub-type of the expected type it passes" {
-                { throw [ArgumentNullException]"message" } | Should -Throw -ExceptionType ([System.ArgumentException])
+                { throw [ArgumentNullException]"message" } | Should -ExceptionType ([System.ArgumentException])
             }
 
             It "given scriptblock that throws errorrecord with the expected exception type it passes" {
@@ -121,11 +121,11 @@ InPesterModuleScope {
                     throw $errorRecord
                 }
 
-                $ScriptBlock | Should -Throw -ExceptionType ([System.ArgumentException])
+                $ScriptBlock | Should -ExceptionType ([System.ArgumentException])
             }
 
             It "given scriptblock that throws exception with a different type than the expected type it fails" {
-                { { throw [System.InvalidOperationException]"message" } | Should -Throw -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
+                { { throw [System.InvalidOperationException]"message" } | Should -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
             }
 
             It "given scriptblock that throws errorrecord with a different exception type it fails" {
@@ -139,7 +139,7 @@ InPesterModuleScope {
                     throw $errorRecord
                 }
 
-                { $ScriptBlock | Should -Throw -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
+                { $ScriptBlock | Should -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
             }
         }
 
@@ -150,17 +150,17 @@ InPesterModuleScope {
             }
 
             It 'returns the correct assertion message when type filter is used, but no exception is thrown' {
-                $err = { { } | Should -Throw -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
+                $err = { { } | Should -ExceptionType ([System.ArgumentException]) } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected an exception, with type [System.ArgumentException] to be thrown, but no exception was thrown."
             }
 
             It 'returns the correct assertion message when message filter is used, but no exception is thrown' {
-                $err = { { } | Should -Throw -ExpectedMessage 'message' } | Verify-AssertionFailed
+                $err = { { } | Should -ExpectedMessage 'message' } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected an exception, with message 'message' to be thrown, but no exception was thrown."
             }
 
             It 'returns the correct assertion message when errorId filter is used, but no exception is thrown' {
-                $err = { { } | Should -Throw -ErrorId 'id' } | Verify-AssertionFailed
+                $err = { { } | Should -ErrorId 'id' } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected an exception, with FullyQualifiedErrorId 'id' to be thrown, but no exception was thrown."
             }
 
@@ -172,7 +172,7 @@ InPesterModuleScope {
                 # use the real path of the script, because we don't know it beforehand
                 $assertionMessage = "Expected an exception, with message 'error2' to be thrown, but the message was 'error1'. from ##path##:1 char:" -replace "##path##", $testScriptPath
 
-                $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 } | Verify-AssertionFailed
+                $err = { { & $testScriptPath } | Should -ExpectedMessage error2 } | Verify-AssertionFailed
                 $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
             }
 
@@ -184,7 +184,7 @@ InPesterModuleScope {
                 # use the real path of the script, because we don't know it beforehand
                 $assertionMessage = "Expected an exception, with message 'error2' to be thrown, because reason, but the message was 'error1'. from ##path##:1 char:" -replace "##path##", $testScriptPath
 
-                $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage error2 -Because 'reason' } | Verify-AssertionFailed
+                $err = { { & $testScriptPath } | Should -ExpectedMessage error2 -Because 'reason' } | Verify-AssertionFailed
                 $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
             }
 
