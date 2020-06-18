@@ -156,8 +156,7 @@ function Add-AssertionDynamicParameterSet {
 
     $attribute = New-Object Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
-    $attribute.Mandatory = $true
-
+    
     $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
