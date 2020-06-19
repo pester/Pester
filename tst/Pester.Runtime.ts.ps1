@@ -1321,6 +1321,7 @@ i -PassThru:$PassThru {
             $actual.Blocks[0].Tests[0].Data.Value1 | Verify-Equal 1
         }
     }
+
     b "New-ParametrizedTest" {
         t "New-ParameterizedTest takes data and generates as many tests as there are hashtables" {
             $data = @(
@@ -2146,6 +2147,25 @@ i -PassThru:$PassThru {
             $container.OneTimeTestSetup | Verify-Equal 1
             $container.ValueInTestInFirstBlock | Verify-Equal "outside"
             $container.ValueInTestInSecondBlock | Verify-Equal "outside"
+        }
+    }
+
+    b "New-ParametrizedBlock" {
+        dt "New-ParametrizedBlock takes data and generates as many blocks as there are hashtables" {
+            $data = @(
+                @{ Value = 1 }
+                @{ Value = 2 }
+            )
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-ParametrizedBlock -Name "block1" {
+                        New-Test "test" { }
+                    } -Data $data
+                }
+            )
+
+            $actual.Blocks.Count | Verify-Equal 2
         }
     }
 }

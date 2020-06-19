@@ -145,6 +145,25 @@ function ConvertTo-ExecutedBlockContainer {
 
 }
 
+function New-ParametrizedBlock {
+    param (
+        [Parameter(Mandatory = $true)]
+        [String] $Name,
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [String[]] $Tag = @(),
+        [HashTable] $FrameworkData = @{ },
+        [System.Collections.IDictionary[]] $Data = @{},
+        [Switch] $Focus,
+        [String] $Id,
+        [Switch] $Skip
+    )
+
+    $id = $ScriptBlock.StartPosition.StartLine
+    foreach ($d in $Data) {
+        New-Block -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Data $d -Focus:$Focus -Skip:$Skip
+    }
+}
 
 # endpoint for adding a block that contains tests
 # or other blocks
@@ -158,7 +177,8 @@ function New-Block {
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
         [String] $Id,
-        [Switch] $Skip
+        [Switch] $Skip,
+        [Collections.IDictionary] $Data
     )
 
     # Switch-Timer -Scope Framework
@@ -188,6 +208,7 @@ function New-Block {
     $block.Focus = $Focus
     $block.Id = $Id
     $block.Skip = $Skip
+    $block.Data = $Data
 
     # we attach the current block to the parent, and put it to the parent
     # lists
@@ -2404,6 +2425,7 @@ Export-ModuleMember -Function @(
     # the core stuff I am mostly sure about
     'Reset-TestSuiteState'
     'New-Block'
+    'New-ParametrizedBlock'
     'New-Test'
     'New-ParametrizedTest'
     'New-EachTestSetup'
