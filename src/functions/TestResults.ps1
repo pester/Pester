@@ -597,7 +597,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     foreach ($testParameterName in $TestResult.Data.Keys){
         $matchString = [regex]::Escape("<$testParameterName>")
         if ($testName -match $matchString){
-            $testName = $testName -replace $matchString, [string]$TestResult.Data.$testParameterName
+            $testName = $testName -replace $matchString, [string]$TestResult.Data[$testParameterName]
             $paramsUsedInTestName = $true
         }
     }
