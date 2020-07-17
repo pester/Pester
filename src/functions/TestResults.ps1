@@ -594,31 +594,43 @@ function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWrit
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
     $testName = $TestResult.Path -join '.'
 
+    foreach ($testParameterName in $TestResult.Data.Keys){
+        $matchString = [regex]::Escape("<$testParameterName>")
+        if ($testName -match $matchString){
+            $testName = $testName -replace $matchString, [string]$TestResult.Data.$testParameterName
+            $paramsUsedInTestName = $true
+        }
+    }
+
     # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time
     if ($testName -eq $ParameterizedSuiteName) {
         $paramString = ''
         if ($null -ne $TestResult.Data) {
-            $params = @(
-                foreach ($value in $TestResult.Data.Values) {
-                    if ($null -eq $value) {
-                        'null'
-                    }
-                    elseif ($value -is [string]) {
-                        '"{0}"' -f $value
-                    }
-                    else {
-                        #do not use .ToString() it uses the current culture settings
-                        #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
-                        [string]$value
-                    }
-                }
-            )
+            $paramsUsedInTestName =$false
 
-            $paramString = "($($params -join ','))"
+            if (-not $paramsUsedInTestName) {
+                $params = @(
+                    foreach ($value in $TestResult.Data.Values) {
+                        if ($null -eq $value) {
+                            'null'
+                        }
+                        elseif ($value -is [string]) {
+                            '"{0}"' -f $value
+                        }
+                        else {
+                            #do not use .ToString() it uses the current culture settings
+                            #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
+                            [string]$value
+                        }
+                    }
+                )
+
+                $paramString = "($($params -join ','))"
+        
+                $testName = "$testName$paramString"
+            }
         }
     }
-
-    $testName = "$testName$paramString"
 
     $XmlWriter.WriteAttributeString('description', $TestResult.Name)
 
@@ -719,6 +731,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         }
     }
 }
+
 function Get-RunTimeEnvironment() {
     # based on what we found during startup, use the appropriate cmdlet
     $computerName = $env:ComputerName
