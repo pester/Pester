@@ -592,15 +592,7 @@ function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWrit
 }
 
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
-    $testName = $TestResult.Path -join '.'
-
-    foreach ($testParameterName in $TestResult.Data.Keys){
-        $matchString = [regex]::Escape("<$testParameterName>")
-        if ($testName -match $matchString){
-            $testName = $testName -replace $matchString, [string]$TestResult.Data[$testParameterName]
-            $paramsUsedInTestName = $true
-        }
-    }
+    $testName = $TestResult.ExpandedPath
 
     # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time
     if ($testName -eq $ParameterizedSuiteName) {
@@ -632,7 +624,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         }
     }
 
-    $XmlWriter.WriteAttributeString('description', $TestResult.Name)
+    $XmlWriter.WriteAttributeString('description', $TestResult.ExpandedName)
 
     $XmlWriter.WriteAttributeString('name', $testName)
     $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Duration))

@@ -265,7 +265,7 @@ i -PassThru:$PassThru {
     }
 
     b 'Exporting Parameterized Tests (Newer format)' {
-        t 'should write parameterized test results correctly' {
+        t 'should write parameterized test results without <value> tags expanded with parameter set values' {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Parameterized Testcase" -TestCases @(
@@ -293,11 +293,11 @@ i -PassThru:$PassThru {
             $testCase1 = $xmlTestSuite.results.'test-case'[0]
             $testCase2 = $xmlTestSuite.results.'test-case'[1]
 
-            $testCase1.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase(1)'
-            $testCase1.Time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+            $testCase1.name | Verify-Equal 'Mocked Describe.Parameterized Testcase(1)'
+            $testCase1.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-            $testCase2.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase(2,"two",null,-42.67)'
-            $testCase2.Time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
+            $testCase2.name | Verify-Equal 'Mocked Describe.Parameterized Testcase(2,"two",null,-42.67)'
+            $testCase2.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
             # verify against schema
             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
@@ -333,11 +333,13 @@ i -PassThru:$PassThru {
             $testCase1 = $xmlTestSuite.results.'test-case'[0]
             $testCase2 = $xmlTestSuite.results.'test-case'[1]
 
-            $testCase1.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase Value: 1'
-            $testCase1.Time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+            $testCase1.name | Verify-Equal 'Mocked Describe.Parameterized Testcase Value: 1'
+            $testCase1.description | Verify-Equal 'Parameterized Testcase Value: 1'
+            $testCase1.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-            $testCase2.Name | Verify-Equal 'Mocked Describe.Parameterized Testcase Value: 2'
-            $testCase2.Time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
+            $testCase2.name | Verify-Equal 'Mocked Describe.Parameterized Testcase Value: 2'
+            $testCase2.description | Verify-Equal 'Parameterized Testcase Value: 2'
+            $testCase2.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
             # verify against schema
             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
