@@ -448,7 +448,7 @@ function Invoke-TestItem {
 
         $Test.ExpandedName = & $state.ExpandName -Name $Test.Name -Data $Test.Data
 
-        $test.ExpandedPath = & $state.ExpandName -Name ($Test.Path -join '.') -Data $Test.Data
+        $test.ExpandedPath = "$($Test.Block.Path -join '.').$($Test.ExpandedName)"
 
         $block = $Test.Block
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
