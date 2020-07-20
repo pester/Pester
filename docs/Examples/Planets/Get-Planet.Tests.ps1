@@ -30,8 +30,8 @@ BeforeAll {
     # the current path, but replace the ".Tests.ps1" occurences with ".ps1".
     # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
     #
-    # We could even replace all the ".Tests" occurences with "" and end up
-    # with the right filename.Get-
+    # We could even replace all the ".Tests" occurences in the current path
+    # with "" and end up with the right filename.
     # . $PSCommandPath.Replace('.Tests', '')
 }
 
