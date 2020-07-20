@@ -618,7 +618,6 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
                 )
 
                 $paramString = "($($params -join ','))"
-        
                 $testName = "$testName$paramString"
             }
         }
