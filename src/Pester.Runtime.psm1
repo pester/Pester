@@ -946,7 +946,7 @@ function Run-Test {
             $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
 
             $parent = [Pester.Block]::Create()
-            $parent.Name = "Parent"
+            $parent.Name = "ParentBlock"
             $parent.Path = "Path"
 
             $parent.First = $false
