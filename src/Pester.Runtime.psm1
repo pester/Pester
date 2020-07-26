@@ -945,16 +945,16 @@ function Run-Test {
             $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
             $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
 
-            $parent = [Pester.Block]::Create()
-            $parent.Name = "ParentBlock"
-            $parent.Path = "Path"
+            $private:parent = [Pester.Block]::Create()
+            $private:parent.Name = "ParentBlock"
+            $private:parent.Path = "Path"
 
-            $parent.First = $false
-            $parent.Last = $false
+            $private:parent.First = $false
+            $private:parent.Last = $false
 
-            $parent.Order.Add($rootBlock)
+            $private:parent.Order.Add($rootBlock)
 
-            $null = Invoke-Block -previousBlock $parent
+            $null = Invoke-Block -previousBlock $private:parent
         }
         catch {
             $rootBlock.ErrorRecord.Add($_)
