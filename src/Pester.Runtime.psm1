@@ -939,34 +939,24 @@ function Run-Test {
                 throw "Teardowns are not supported in root (directly in the block container)."
             }
 
-            $rootSetupResult = $null
-            if ($null -ne $rootBlock.OneTimeTestSetup) {
-                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Runtime "One time setup from root block is executing"
-                }
+            # we add one more artificial block so the root can run
+            # all of it's setups and teardowns
+            $rootBlock.ScriptBlock = {}
+            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+            $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
 
-                $rootSetupResult = Invoke-ScriptBlock `
-                    -OuterSetup @(
-                    # if ($rootBlock.ShouldRun) {
-                    # todo: should this always run?
-                    $rootBlock.OneTimeTestSetup
-                    # }
-                ) `
-                    -ReduceContextToInnerScope `
-                    -MoveBetweenScopes
-            }
+            $private:parent = [Pester.Block]::Create()
+            $private:parent.Name = "ParentBlock"
+            $private:parent.Path = "Path"
 
+            $private:parent.First = $false
+            $private:parent.Last = $false
 
-            if ($null -ne $rootSetupResult -and -not $rootSetupResult.Success) {
-                & $SafeCommands["Write-Error"] -ErrorRecord $rootSetupResult.ErrorRecord[0] -ErrorAction 'Stop'
-            }
+            $private:parent.Order.Add($rootBlock)
 
-            $null = Invoke-Block -previousBlock $rootBlock
-
-            $rootBlock.OwnPassed = $true
+            $null = Invoke-Block -previousBlock $private:parent
         }
         catch {
-            $rootBlock.OwnPassed = $false
             $rootBlock.ErrorRecord.Add($_)
         }
 
@@ -1103,21 +1093,24 @@ function Assert-Success {
 
     $rc = 0
     $anyFailed = $false
+    $err = ""
     foreach ($r in $InvocationResult) {
         $ec = 0
         if ($null -ne $r.ErrorRecord -and $r.ErrorRecord.Length -gt 0) {
-            & $SafeCommands["Write-Host"] -ForegroundColor Red "Result $($rc++):"
+            $err += "Result $($rc++):"
             $anyFailed = $true
             foreach ($e in $r.ErrorRecord) {
-                & $SafeCommands["Write-Host"] -ForegroundColor Red "Error $($ec++):"
-                & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e )
-                & $SafeCommands["Write-Host"] -ForegroundColor Red (Out-String -InputObject $e.ScriptStackTrace)
+                $err += "Error $($ec++):"
+                $err += & $SafeCommands["Out-String"] -InputObject $e
+                $err += & $SafeCommands["Out-String"] -InputObject $e.ScriptStackTrace
             }
         }
+    }
 
-        if ($anyFailed) {
-            throw $Message
-        }
+    if ($anyFailed) {
+        $Message = $Message + ":`n$err"
+        & $SafeCommands["Write-Host"] -ForegroundColor Red $Message
+        throw $Message
     }
 }
 
