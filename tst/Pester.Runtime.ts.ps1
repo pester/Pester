@@ -1135,8 +1135,10 @@ i -PassThru:$PassThru {
                     }
                 }) -Plugin $p
 
-            $container.OneTimeBlockSetup | Verify-Equal 1
-            $container.EachBlockSetup | Verify-Equal 2
+            # we invoke the actual block and Root block as well,
+            # so each block related count is 1 higher than what is visible
+            $container.OneTimeBlockSetup | Verify-Equal 2
+            $container.EachBlockSetup | Verify-Equal 3
 
             $container.OneTimeTestSetup | Verify-Equal 2
             $container.EachTestSetup | Verify-Equal 3
@@ -1144,8 +1146,8 @@ i -PassThru:$PassThru {
             $container.EachTestTeardown | Verify-Equal 3
             $container.OneTimeTestTeardown | Verify-Equal 2
 
-            $container.EachBlockTeardown | Verify-Equal 2
-            $container.OneTimeBlockTeardown | Verify-Equal 1
+            $container.EachBlockTeardown | Verify-Equal 3
+            $container.OneTimeBlockTeardown | Verify-Equal 2
         }
 
         t "Given multiple plugins the teardowns are called in opposite order than the setups" {
@@ -1192,8 +1194,11 @@ i -PassThru:$PassThru {
                     }
                 }) -Plugin $p
 
-            $container.OneTimeBlockSetup | Verify-Equal "ab"
-            $container.EachBlockSetup | Verify-Equal "abab"
+            # we are running root block as a normal block so
+            # there is one more execution of every block related setup / tardown
+            # than what is visible
+            $container.OneTimeBlockSetup | Verify-Equal "abab"
+            $container.EachBlockSetup | Verify-Equal "ababab"
 
             $container.OneTimeTestSetup | Verify-Equal "abab"
             $container.EachTestSetup | Verify-Equal "ababab"
@@ -1201,8 +1206,8 @@ i -PassThru:$PassThru {
             $container.EachTestTeardown | Verify-Equal "bababa"
             $container.OneTimeTestTeardown | Verify-Equal "baba"
 
-            $container.EachBlockTeardown | Verify-Equal "baba"
-            $container.OneTimeBlockTeardown | Verify-Equal "ba"
+            $container.EachBlockTeardown | Verify-Equal "bababa"
+            $container.OneTimeBlockTeardown | Verify-Equal "baba"
         }
 
         t "Plugin has access to test info" {
