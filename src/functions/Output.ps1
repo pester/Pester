@@ -532,6 +532,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             # the $context does not mean Context block, it's just a generic name
             # for the invocation context of this callback
 
+            if ($Context.Block.IsRoot) {
+                return
+            }
+
             $commandUsed = $Context.Block.FrameworkData.CommandUsed
 
             $block = $Context.Block
@@ -655,6 +659,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
     $p.EachBlockTeardownEnd = {
         param ($Context)
+
+        if ($Context.Block.IsRoot) {
+            return
+        }
+
         if (-not $Context.Block.OwnPassed) {
             if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                 $level = $Context.Block.Path.Count

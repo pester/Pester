@@ -359,10 +359,12 @@ Tests Passed: 1, Failed: 0, Skipped: 4, Total: 5, NotRun: 0
 `Should` can now be configured to continue on failure. This will report the error to Pester, but won't fail the test immediately. Instead, all the Should failures are collected and reported at the end of the test. This allows you to put multiple assertions into one It and still get complete information on failure.
 
 ```powershell
-function Get-User {
-    @{
-        Name = "Jakub"
-        Age = 31
+ BeforeAll {
+    function Get-User {
+        @{
+            Name = "Jakub"
+            Age = 31
+        }
     }
 }
 
@@ -469,8 +471,10 @@ Invoke-Pester -Path <String[]>
               -ExcludePath <String[]>
               -Tag <String[]>
               -ExcludeTag <String[]>
+              -FullNameFilter <String[]>
               -Output <String>
               -CI
+              -PassThru
 ```
 
 And the Advanced interface that takes just Pester configuration object and nothing else:
@@ -481,15 +485,16 @@ Invoke-Pester -Configuration <PesterConfiguration>
 
 A mapping of the parameters of the simple interface to the configuration object properties on the advanced interface is:
 
-| Parameter   | Configuration Object Property                                              |
-| ----------- | -------------------------------------------------------------------------- |
-| Path        | Run.Path                                                                   |
-| ExcludePath | Run.ExcludePath                                                            |
-| Tag         | Filter.Tag                                                                 |
-| ExcludeTag  | Filter.ExcludeTag                                                          |
-| Output      | Output.Verbosity                                                           |
-| CI          | CodeCoverage.Enabled, TestResult.Enabled and Run.Exit (all set to `$true`) |
-| PassThru    | Run.PassThru                                                               |
+| Parameter      | Configuration Object Property                                              |
+| -----------    | -------------------------------------------------------------------------- |
+| Path           | Run.Path                                                                   |
+| ExcludePath    | Run.ExcludePath                                                            |
+| Tag            | Filter.Tag                                                                 |
+| ExcludeTag     | Filter.ExcludeTag                                                          |
+| FullNameFilter | Filter.FullName                                                            |
+| Output         | Output.Verbosity                                                           |
+| CI             | CodeCoverage.Enabled, TestResult.Enabled and Run.Exit (all set to `$true`) |
+| PassThru       | Run.PassThru                                                               |
 
 #### Simple interface
 
@@ -559,7 +564,6 @@ The following table shows a mapping of v4 Legacy parameters (those which have no
 
 | Parameter                       | Configuration Object Property                          |
 | ------------------------------- | ------------------------------------------------------ |
-| FullNameFilter                  | Filter.FullName                                        |
 | EnableExit                      | Run.Exit                                               |
 | CodeCoverage                    | CodeCoverage.Path                                      |
 | CodeCoverageOutputFile          | CodeCoverage.CodeCoverageOutputFile                    |

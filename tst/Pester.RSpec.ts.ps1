@@ -514,4 +514,33 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Skipped"
         }
     }
+
+    b "Variables do not leak from top-level BeforeAll" {
+        t "BeforeAll keeps a scoped to just the first scriptblock" {
+            $sb = {
+                BeforeAll {
+                    $f = 10
+                }
+
+                Describe "d1" {
+                    It "t1" {
+                        $f | Should -Be 10
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "d2" {
+                    It "t2" {
+                        Get-Variable -Name f -ErrorAction Ignore -ValueOnly | Should -BeNullOrEmpty
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb, $sb2; PassThru = $true } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
 }
