@@ -301,6 +301,21 @@ i -PassThru:$PassThru {
             $testCase2.description | Verify-Equal 'Parameterized Testcase Value: 2'
             $testCase2.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
+            $testCase1Properties = $xmlTestSuite.results.'test-case'[0].properties.property
+            $testCase2Properties = $xmlTestSuite.results.'test-case'[1].properties.property
+
+            $testCase1Properties.name | Verify-Equal 'Value'
+            $testCase1Properties.value | Verify-Equal '1'
+
+            $testCase2Properties[0].name | Verify-Equal 'Value'
+            $testCase2Properties[0].value | Verify-Equal '2'
+            $testCase2Properties[1].name | Verify-Equal 'StringParameter'
+            $testCase2Properties[1].value | Verify-Equal 'two'
+            $testCase2Properties[2].name | Verify-Equal 'NullParameter'
+            $testCase2Properties[2].value | Verify-Equal 'null'
+            $testCase2Properties[3].name | Verify-Equal 'NumberParameter'
+            $testCase2Properties[3].value | Verify-Equal '-42.67'
+
             # verify against schema
             $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $null = $xmlResult.Schemas.Add($null, $schemaPath)

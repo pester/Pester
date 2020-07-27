@@ -598,19 +598,20 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     $XmlWriter.WriteAttributeString('asserts', '0')
     $XmlWriter.WriteAttributeString('success', "Passed" -eq $TestResult.Result)
 
-    Write-NUnitTestCaseParameterElement
-
     switch ($TestResult.Result) {
         Passed {
             $XmlWriter.WriteAttributeString('result', 'Success')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
             break
         }
 
         Skipped {
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
+
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
 
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
@@ -625,6 +626,8 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
+
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
@@ -638,6 +641,8 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
+
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
@@ -649,6 +654,9 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         Failed {
             $XmlWriter.WriteAttributeString('result', 'Failure')
             $XmlWriter.WriteAttributeString('executed', 'True')
+
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
+
             $XmlWriter.WriteStartElement('failure')
 
             # TODO: remove monkey patching the error message when parent setup failed so this test never run
@@ -694,26 +702,22 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
 }
 
 function Write-NUnitTestCaseParameters ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
-    if($TestResult.Parameters) {
+    if ($TestResult.Data.Count){
         $XmlWriter.WriteStartElement('properties')
-        $TestResult.Parameters.GetEnumerator() | ForEach-Object -Process {
+        $TestResult.Data.GetEnumerator() | ForEach-Object -Process {
+            $value = $_.Value
+            $formattedValue = if ($null -eq $value) {
+                'null'
+            } elseif ($value.GetType() -match 'String|Int|Boolean|Double|Float|Decimal'){
+                [string] $_.Value
+            } elseif ($value.GetType() -match 'System.DateTime'){
+                $value.ToString('u')
+            } else {
+                $_.Value | Out-String
+            }
             $XmlWriter.WriteStartElement("property")
             $XmlWriter.WriteAttributeString("name",$_.Name)
-            $value = $_.Value
-            $XmlWriter.WriteAttributeString(
-                "value",
-                (
-                    if ($null -eq $value) {
-                        'null'
-                    } elseif ($value.GetType() -match 'String|Int|Boolean|Double|Float|Decimal'){
-                        [string] $_.Value
-                    } elseif ($value.GetType() -match 'System.DateTime'){
-                        $value.ToString('u')
-                    } else {
-                        $_.Value | Out-String
-                    }
-                )
-            )
+            $XmlWriter.WriteAttributeString( "value", $formattedValue )
             $XmlWriter.WriteEndElement()
         }
         $XmlWriter.WriteEndElement()
