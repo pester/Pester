@@ -18,17 +18,22 @@
 #      [+] Given invalid parameter -Name 'Alpha Centauri', it returns $null 22ms
 
 
-# First we need to import the Get-Planet.ps1 file to make the function
-# Get-Planet available to our test. Notice the . at the start
-# of the line.
-$here = (Split-Path -Parent $MyInvocation.MyCommand.Path)
-. $here\Get-Planet.ps1
+# Put the initialization code in a seperate `BeforeAll` block,
+# where you can perform i.e. your imports.
+BeforeAll {
+    # First we need to import the Get-Planet.ps1 file to make the function
+    # Get-Planet available to our test. Notice the . at the start
+    # of the line.
+    . $PSScriptRoot/Get-Planet.ps1
 
-# Normally we would use this PowerShell 3 and newer compatible
-# version of the same code, but we need to keep our examples
-# compatible with PowerShell v2.
-# . $PSScriptRoot\Get-Planet.ps1
-
+    # Normally we can use a more platform agnostic and generic approach where we import
+    # the current path, but replace the ".Tests.ps1" occurences with ".ps1".
+    # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
+    #
+    # We could even replace all the ".Tests" occurences in the current path
+    # with "" and end up with the right filename.
+    # . $PSCommandPath.Replace('.Tests', '')
+}
 
 # Describe groups tests for easy navigation and overview.
 # Usually we use the name of the function we are testing as description
@@ -101,11 +106,7 @@ Describe 'Get-Planet' {
             $planets = Get-Planet -Name $Filter
             # We validate that the returned name is equal to $Expected.
             # That is Neptune, in our second test.
-            $planets | Select -ExpandProperty Name | Should -Be $Expected
-
-            # again we are jumping thru hoops to keep PowerShell v2 compatibility
-            # in PowerShell v3 you would just do this, as seen in readme:
-            # $planets.Name | Should -Be $Expected
+            $planets.Name | Should -Be $Expected
         }
 
         # Testing just the positive cases is usually not enough. Our tests
