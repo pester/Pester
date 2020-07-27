@@ -359,10 +359,12 @@ Tests Passed: 1, Failed: 0, Skipped: 4, Total: 5, NotRun: 0
 `Should` can now be configured to continue on failure. This will report the error to Pester, but won't fail the test immediately. Instead, all the Should failures are collected and reported at the end of the test. This allows you to put multiple assertions into one It and still get complete information on failure.
 
 ```powershell
-function Get-User {
-    @{
-        Name = "Jakub"
-        Age = 31
+ BeforeAll {
+    function Get-User {
+        @{
+            Name = "Jakub"
+            Age = 31
+        }
     }
 }
 
