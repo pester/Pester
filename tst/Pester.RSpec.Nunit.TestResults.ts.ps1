@@ -265,46 +265,6 @@ i -PassThru:$PassThru {
     }
 
     b 'Exporting Parameterized Tests (Newer format)' {
-        t 'should write parameterized test results without <value> tags expanded with parameter set values' {
-            $sb = {
-                Describe "Mocked Describe" {
-                    It "Parameterized Testcase" -TestCases @(
-                        @{ Value = 1 }
-                        [ordered] @{ Value = 2; StringParameter = "two"; NullParameter = $null; NumberParameter = -42.67 }
-                    ) {
-                        param ($Value)
-                        $Value | Should -Be 1
-                    }
-                }
-            }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
-
-            $xmlResult = $r | ConvertTo-NUnitReport
-            $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
-            $xmlTestSuite.name | Verify-Equal 'Mocked Describe.Parameterized Testcase'
-            $xmlTestSuite.description | Verify-Equal 'Parameterized Testcase'
-            $xmlTestSuite.type | Verify-Equal 'ParameterizedTest'
-            $xmlTestSuite.result | Verify-Equal 'Failure'
-            $xmlTestSuite.success | Verify-Equal 'False'
-            $xmlTestSuite.time | Verify-XmlTime (
-                $r.Containers[0].Blocks[0].Tests[0].Duration +
-                $r.Containers[0].Blocks[0].Tests[1].Duration)
-
-            $testCase1 = $xmlTestSuite.results.'test-case'[0]
-            $testCase2 = $xmlTestSuite.results.'test-case'[1]
-
-            $testCase1.name | Verify-Equal 'Mocked Describe.Parameterized Testcase(1)'
-            $testCase1.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
-
-            $testCase2.name | Verify-Equal 'Mocked Describe.Parameterized Testcase(2,"two",null,-42.67)'
-            $testCase2.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
-
-            # verify against schema
-            $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $null = $xmlResult.Schemas.Add($null, $schemaPath)
-            $xmlResult.Validate( { throw $args[1].Exception })
-        }
-
         t 'should write parameterized test results correctly if <parameter> tags are used' {
             $sb = {
                 Describe "Mocked Describe" {
