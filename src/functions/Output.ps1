@@ -578,7 +578,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $level = 0
             $margin = ''
             $error_margin = $ReportStrings.Margin
-            $out = "$($_test.Block.Path -join '.').$($_test.ExpandedName)"
+            $out = $_test.ExpandedPath
         }
         else {
             throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"

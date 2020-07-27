@@ -448,6 +448,8 @@ function Invoke-TestItem {
 
         $Test.ExpandedName = & $state.ExpandName -Name $Test.Name -Data $Test.Data
 
+        $test.ExpandedPath = "$($Test.Block.Path -join '.').$($Test.ExpandedName)"
+
         $block = $Test.Block
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
