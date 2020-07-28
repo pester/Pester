@@ -38,6 +38,7 @@ end {
 
 begin {
     function Update-Directory {
+        [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", Scope="Function", Target="*")]
         [CmdletBinding()]
         param (
             [Parameter(Mandatory = $true)]
@@ -73,8 +74,8 @@ begin {
             $relativePath = Get-RelativePath $sourceFile.FullName -RelativeTo $Source
             $targetPath = Join-Path -Path $Destination -ChildPath $relativePath
 
-            $sourceHash = Get-FileHash -Path $sourceFile.FullName
-            $destHash = Get-FileHash -Path $targetPath
+            $sourceHash = Get-Base64FileHash -Path $sourceFile.FullName
+            $destHash = Get-Base64FileHash -Path $targetPath
 
             if ($sourceHash -ne $destHash) {
                 $targetParent = Split-Path -Path $targetPath -Parent
@@ -108,7 +109,7 @@ begin {
         return $Path -replace "^$([regex]::Escape($RelativeTo))\\?"
     }
 
-    function Get-FileHash {
+    function Get-Base64FileHash {
         param ([string] $Path)
 
         if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
