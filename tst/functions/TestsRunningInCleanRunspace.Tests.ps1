@@ -46,11 +46,11 @@ function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switc
 
     #not using Receive-Job to ignore any output to Host
     #TODO: how should this handle errors?
-    #$job.Error | foreach { throw $_.Exception  }
+    #$job.Error | ForEach-Object { throw $_.Exception  }
     $job.Output
-    $job.ChildJobs | ForEach {
+    $job.ChildJobs | ForEach-Object {
         $childJob = $_
-        #$childJob.Error | foreach { throw $_.Exception }
+        #$childJob.Error | ForEach-Object { throw $_.Exception }
         $childJob.Output
     }
     $job | Remove-Job

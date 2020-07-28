@@ -116,6 +116,7 @@ Describe 'When calling Mock on an alias' {
 
         $originalPath = $env:path
 
+        # TODO review usage PSAvoidUsingCmdletAliases
         # Our TeamCity server has a dir.exe on the system path, and PowerShell v2 apparently finds that instead of the PowerShell alias first.
         # This annoying bit of code makes sure our test works as intended even when this is the case.
 
