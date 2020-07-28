@@ -7,23 +7,23 @@ try {
     # I download a version from the web and try that
 
     $nugetPath = "$psScriptRoot\vendor\tools\nuget.exe"
-    Write-Host Nuget path $nugetPath
+    Write-Output "Nuget path ${nugetPath}"
 
     $nugetFound = Test-Path $nugetPath
     if ($nugetFound) {
-        Write-Host Found local nuget.exe running it
+        Write-Output "Found local nuget.exe running it"
         $nugetRunnable = $false
         try {
-            &$nugetPath | select -First 1
+            &$nugetPath | Select-Object -First 1
             $nugetRunnable = $true
         }
         catch {
-            Write-Host Could not run local nuget.exe. Failed with ("$_")
+            Write-Output 'Could not run local nuget.exe. Failed with ("$_")'
             Remove-Item $nugetPath -Force -Confirm:$false -Verbose
         }
     }
     else {
-        Write-Host Local nuget.exe not found
+        Write-Output "Local nuget.exe not found"
     }
 
     if (-not $nugetFound -or -not $nugetRunnable) {
@@ -33,7 +33,7 @@ try {
         }
 
         Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/v4.4.1/nuget.exe" -OutFile $nugetPath -Verbose
-        "Downloaded $(&$nugetPath | select -First 1)"
+        "Downloaded $(&$nugetPath | Select-Object -First 1)"
     }
 
 }
