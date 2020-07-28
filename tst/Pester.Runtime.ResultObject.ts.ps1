@@ -11,6 +11,7 @@ Import-Module $PSScriptRoot\..\src\Pester.Runtime.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
+# TODO PSAvoidGlobalVars
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true

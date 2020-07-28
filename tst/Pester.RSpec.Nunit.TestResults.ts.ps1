@@ -8,12 +8,14 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 & "$PSScriptRoot\..\build.ps1"
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
+# TODO PSAvoidGlobalVars and supress warning if required
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors = $false
     }
 }
 
+# FIXME PSUseApprovedVerbs
 function Verify-XmlTime {
     param (
         [Parameter(ValueFromPipeline = $true)]

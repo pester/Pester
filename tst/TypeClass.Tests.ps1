@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 function New-Dictionary ([hashtable]$Hashtable) {
     $d = new-object "Collections.Generic.Dictionary[string,object]"
 
-    $Hashtable.GetEnumerator() | foreach { $d.Add($_.Key, $_.Value) }
+    $Hashtable.GetEnumerator() | ForEach-Object { $d.Add($_.Key, $_.Value) }
 
     $d
 }
@@ -109,6 +109,7 @@ Describe "Is-Hashtable" {
 Describe "Is-Dictionary" {
     It "Given dictionary '<value>' it returns `$true" -TestCases @(
         @{ Value = New-Object "Collections.Generic.Dictionary[string,object]" }
+        # TODO PSUseShouldProcessForStateChangingFunctions
         @{ Value = New-Dictionary @{Name = "Jakub"} }
     ) {
         param($Value)

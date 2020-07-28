@@ -21,8 +21,10 @@ function Invoke-Pester4 ($Arguments) {
     Start-Job -ScriptBlock $sb -ArgumentList $Arguments | Wait-Job | Receive-Job
 }
 
+# FIXME PSUseApprovedVerbs
 function Verify-Property {
     param (
+        # TODO PSUseProcessBlockForPipelineCommand
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Mandatory = $true, Position = 0)]

@@ -8,6 +8,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 & "$PSScriptRoot\..\build.ps1"
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
+# TODO PSAvoidGlobalVars
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
@@ -189,7 +190,7 @@ i -PassThru:$PassThru {
 
             $c | Set-Content $file1
             $c | Set-Content $file2
-            cd $tempDir
+            Set-Location -Path $tempDir
 
             t "Running without any params runs all files from the local folder" {
 
@@ -275,7 +276,7 @@ i -PassThru:$PassThru {
             # }
         }
         finally {
-            cd $path
+            Set-Location -Path $path
             Remove-Item $tempDir -Recurse -Force -Confirm:$false -ErrorAction Stop
         }
     }
@@ -450,6 +451,7 @@ i -PassThru:$PassThru {
         }
 
         t "Should throws when called outside of Pester" {
+            # TODO PSUseDeclaredVarsMoreThanAssignments
             $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' }}
             $err = { 1 | Should -Be 2 } | Verify-Throw
             $err.Exception.Message | Verify-Equal "Expected 2, but got 1."
@@ -519,6 +521,7 @@ i -PassThru:$PassThru {
         t "BeforeAll keeps a scoped to just the first scriptblock" {
             $sb = {
                 BeforeAll {
+                    # TODO PSUseDeclaredVarsMoreThanAssignments
                     $f = 10
                 }
 

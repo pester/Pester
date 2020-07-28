@@ -74,7 +74,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
 
     It "has valid pre-release suffix in manifest (empty for stable version)" {
         # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
-        $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where {$_}
+        $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | Where-Object {$_}
         $prereleaseFromManifest | Should -Be $script:tagPrerelease
     }
 }
@@ -118,12 +118,12 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
 
                 $uniqueSafeCommands = $callsToSafeCommands | ForEach-Object { $_.CommandElements[0].Index.Value } | Select-Object -Unique
 
-                $missingSafeCommands = $uniqueSafeCommands | Where { -not $script:SafeCommands.ContainsKey($_) }
+                $missingSafeCommands = $uniqueSafeCommands | Where-Object { -not $script:SafeCommands.ContainsKey($_) }
 
                 # These commands are conditionally added to the safeCommands table due to Nano / Core versus PSv2 compatibility; one will always
                 # be missing, and can be ignored.
                 # Also add the two possible commands uname and id which would be found on non-Windows platforms
-                $missingSafeCommands = $missingSafeCommands | Where { @('Get-WmiObject', 'Get-CimInstance', 'uname', 'id') -notcontains $_ }
+                $missingSafeCommands = $missingSafeCommands | Where-Object { @('Get-WmiObject', 'Get-CimInstance', 'uname', 'id') -notcontains $_ }
             }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
@@ -135,6 +135,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
 
 Describe 'Public API' {
     It 'all non-deprecated, non-internal public commands use CmdletBinding' {
+        # TODO Review PSAvoidUsingCmdletAliases
         $r = Get-Command -Module Pester |
             ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
             ? { -not $_.CmdletBinding } |

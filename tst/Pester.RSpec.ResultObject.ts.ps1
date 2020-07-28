@@ -7,7 +7,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
 Import-Module $PSScriptRoot/../bin/Pester.psd1
 
-
+# TODO PSAvoidGlobalVars
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $false
@@ -19,6 +19,7 @@ $global:PesterPreference = @{
 
 function Verify-Property {
     param (
+        # TODO PSUseProcessBlockForPipelineCommand
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Mandatory = $true, Position = 0)]

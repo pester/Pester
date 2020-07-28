@@ -8,6 +8,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 & "$PSScriptRoot\..\build.ps1"
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
+# TODO PSAvoidGlobalVars and supress warning if required
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
@@ -17,6 +18,8 @@ $global:PesterPreference = @{
     }
 }
 
+# TODO PSUseProcessBlockForPipelineCommand
+# TODO PSUseApprovedVerbs
 function Verify-PathEqual {
     [CmdletBinding()]
     param (
@@ -304,11 +307,11 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration $c
             $tests = $r.Containers.Blocks.Tests
 
-            $allTags = $tests.Tag | where { $null -ne $_ }
+            $allTags = $tests.Tag | Where-Object { $null -ne $_ }
             $allTags | Verify-NotNull
             'slow' -in $allTags | Verify-True
 
-            $runTags = ($tests | where { $_.ShouldRun }).Tag
+            $runTags = ($tests | Where-Object { $_.ShouldRun }).Tag
             'slow' -notin $runTags | Verify-True
         }
 
@@ -327,7 +330,7 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration $c
-            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+            $tests = @($r.Containers.Blocks.Tests | Where-Object { $_.ShouldRun })
 
             $tests.Count | Verify-Equal 1
             $tests[0].Name | Verify-Equal "fails"
@@ -348,7 +351,7 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration $c
-            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+            $tests = @($r.Containers.Blocks.Tests | Where-Object { $_.ShouldRun })
 
             $tests.Count | Verify-Equal 2
             $tests[0].Name | Verify-Equal "passing"
@@ -370,7 +373,7 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration $c
-            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+            $tests = @($r.Containers.Blocks.Tests | Where-Object { $_.ShouldRun })
 
             $tests.Count | Verify-Equal 1
             $tests[0].Name | Verify-Equal "passing"
@@ -379,6 +382,7 @@ i -PassThru:$PassThru {
 
     b "merging configuration in Invoke-Pester" {
         t "merges pester preference with provided configuration" {
+            # TODO PSUseDeclaredVarsMoreThanAssignments
             $PesterPreference = [PesterConfiguration] @{
                 Output = @{
                     Verbosity = 'None'

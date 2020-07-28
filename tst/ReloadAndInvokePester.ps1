@@ -7,6 +7,7 @@ if ($v5) {
     Import-Module -Name Pester -RequiredVersion 4.7.3
 }
 
+# TODO PSAvoidGlobalVars
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
@@ -33,11 +34,11 @@ Set-StrictMode -Version Latest
 $script:r = $null
 [Math]::Round((Measure-Command {
     if ($v5) {
-        Write-Host -ForegroundColor Cyan Running in Version 5
+        Write-Host -ForegroundColor Cyan "Running in Version 5"
         $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal # -CI
     }
     else {
-        Write-Host -ForegroundColor Cyan Running in Version 4
+        Write-Host -ForegroundColor Cyan "Running in Version 4"
         $script:r = Invoke-Pester -Path $path -ExcludeTag $excludeTags -PassThru
     }
 }).TotalMilliseconds, 2)

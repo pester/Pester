@@ -8,6 +8,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 & "$PSScriptRoot\..\build.ps1"
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
+# TODO Review PSAvoidGlobalVars and supress warning if required
 $global:PesterPreference = [PesterConfiguration] @{
     Debug = @{
         ShowFullErrors         = $true
@@ -342,6 +343,7 @@ i -PassThru:$PassThru {
                 # we should be able to mock it in a different module
                 # in user scope
                 # and in this module as well
+                # TODO PSProvideCommentHelp
                 function Public {
                     Private
                 }
@@ -644,6 +646,7 @@ i -PassThru:$PassThru {
             # Test-Path was not always taking from SafeCommands, so cleaning TestDrive
             # failed. This is why we need to be in extra Context, to clean up TestDrive
             # not just tear it down.
+            # FIXME PSUseApprovedVerbs
             $sb = {
                 Describe Do-Something {
                     BeforeAll {

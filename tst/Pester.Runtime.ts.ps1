@@ -582,7 +582,7 @@ i -PassThru:$PassThru {
             $willPass = $true
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Line $lines ) -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
-            $actual = @($result | View-Flat | where { $_.Executed })
+            $actual = @($result | View-Flat | Where-Object { $_.Executed })
 
             $actual.Length | Verify-Equal 2
             $actual[0].Name | Verify-Equal test2
@@ -1953,6 +1953,7 @@ i -PassThru:$PassThru {
             # I don't want to write the same code one more time
             $actual = $container.Result
             #$testDifference = $container.Test - $testReported
+            # TODO PSAvoidUsingPositionalParameters
             Write-Host Reported test duration $actual.Blocks[0].Tests[0].UserDuration.TotalMilliseconds
             Write-Host Reported test overhead $actual.Blocks[0].Tests[0].FrameworkDuration.TotalMilliseconds
             Write-Host Reported test total $actual.Blocks[0].Tests[0].Duration.TotalMilliseconds
