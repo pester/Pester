@@ -4,16 +4,18 @@ $script:total = 0
 
 function ImportDir {
     [CmdletBinding()]
+    # TODO PSReviewUnusedParameter
     param($Directory)
 
+    # TODO PSReviewUnusedParameter, spelling
     $seessionState = $PSCmdlet.SessionState
 
 
     $sb = {
         param ($p)
         foreach ($f in @(Get-ChildItem $Directory -Recurse -Filter *.ps1 |
-                    where { $_.FullName -notLike "*Tests.ps1"} |
-                    select -ExpandProperty FullName)) {
+                    Where-Object { $_.FullName -notLike "*Tests.ps1"} |
+                    Select-Object -ExpandProperty FullName)) {
             . $f
         }
         Remove-Variable -Scope Local -Name p, f
@@ -113,7 +115,7 @@ function t {
             catch {
                 $script:failed++
                 function Get-FullStackTrace ($ErrorRecord) {
-                    $_.ScriptStackTrace | Out-String | % { $_ -replace '\s*line\s+(\d+)', '$1'}
+                    $_.ScriptStackTrace | Out-String | ForEach-Object { $_ -replace '\s*line\s+(\d+)', '$1'}
                 }
                 # verify throws Exception directly, so if the type is someting
                 # different then show me more info because it's likely a bug in my code
@@ -121,7 +123,7 @@ function t {
                 # on test failure low
                 if ([Exception] -ne $_.Exception.GetType()) {
                     Write-Host "ERROR: - $Name -> $($_| Out-String) "  -ForegroundColor Black -BackgroundColor Red
-                    $(Get-FullStackTrace $_) -split [Environment]::NewLine | foreach {
+                    $(Get-FullStackTrace $_) -split [Environment]::NewLine | ForEach-Object {
                         Write-Host " " -NoNewline
                         Write-Host " $_ "  -NoNewline -ForegroundColor Black -BackgroundColor Red
                         Write-Host
@@ -131,7 +133,7 @@ function t {
                     # print just the error and full stack trace with numbers fixed so I can jump to them
                     # in VSCode
                     $first = $true
-                    "$_" -split "`n" | foreach {
+                    "$_" -split "`n" | ForEach-Object {
                         $txt = if ($first) {
                             "[n] - $Name -> $($_.Trim()) "
                             $first = $false
@@ -142,7 +144,7 @@ function t {
                         Write-Host $txt  -NoNewline -ForegroundColor Black -BackgroundColor Red
                         Write-Host
                     }
-                    $(Get-FullStackTrace $_) -split [Environment]::NewLine | foreach {
+                    $(Get-FullStackTrace $_) -split [Environment]::NewLine | ForEach-Object {
                         Write-Host "  " -NoNewline
                         Write-Host "$($_.Trim()) "  -NoNewline -ForegroundColor Black -BackgroundColor Red
                         Write-Host
