@@ -11,6 +11,7 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 # assigning error view explicitly to change it from the default on PowerShell 7
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", Scope="Function", Target="*")]
 $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
@@ -25,7 +26,7 @@ Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
-        foreach {
+        ForEach-Object {
             $r = & $_.FullName -PassThru
             if ($r.Failed -gt 0) {
                 [PSCustomObject]@{
@@ -37,9 +38,9 @@ if (-not $SkipPTests) {
 
 
     if (0 -lt $result.Count) {
-        Write-Host -ForegroundColor Red "P tests failed!"
+        Write-Output -ForegroundColor Red "P tests failed!"
         foreach ($r in $result) {
-            Write-Host -ForegroundColor Red "$($r.Count) tests failed in '$($r.FullName)'."
+            Write-Output -ForegroundColor Red "$($r.Count) tests failed in '$($r.FullName)'."
         }
 
         if ($CI) {
@@ -50,7 +51,7 @@ if (-not $SkipPTests) {
         }
     }
     else {
-        Write-Host -ForegroundColor Green "P tests passed!"
+        Write-Output -ForegroundColor Green "P tests passed!"
     }
 }
 
@@ -60,6 +61,7 @@ Get-Module Pester | Remove-Module
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
 
 # reset pester and all preferences
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", Scope="Function", Target="*")]
 $PesterPreference = [PesterConfiguration]::Default
 
 # add our own in module scope because the implementation
