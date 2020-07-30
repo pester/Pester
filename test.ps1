@@ -61,7 +61,7 @@ Get-Module Pester | Remove-Module
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
 
 # reset pester and all preferences
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", Scope="Function", Target="*")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", Scope="Function", Target="PesterPreference")]
 $PesterPreference = [PesterConfiguration]::Default
 
 # add our own in module scope because the implementation
