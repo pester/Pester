@@ -22,23 +22,76 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
 function Should {
     <#
     .SYNOPSIS
-    Should is a keyword what is used to define an assertion inside It block.
+    Should is a keyword that is used to define an assertion inside an It block.
 
     .DESCRIPTION
-    Should is a keyword what is used to define an assertion inside the It block.
-    Should provides assertion methods for verify assertion e.g. comparing objects.
-    If assertion is not met the test fails and an exception is throwed up.
+    Should is a keyword that is used to define an assertion inside an It block.
+    Should provides assertion methods to verify assertions e.g. comparing objects.
+    If assertion is not met the test fails and an exception is thrown.
 
     Should can be used more than once in the It block if more than one assertion
-    need to be verified. Each Should keywords need to be located in a new line.
+    need to be verified. Each Should keyword needs to be on a separate line.
     Test will be passed only when all assertion will be met (logical conjuction).
 
     .LINK
-    https://github.com/pester/Pester/wiki/Should
+    https://pester.dev/docs/usage/assertions
 
     .LINK
     about_Should
     about_Pester
+
+    .EXAMPLE
+    Describe "d1" {
+        BeforeEach { $be = 1 }
+        It "i1" {
+            $be = 2
+        }
+        AfterEach { Write-Host "AfterEach: $be" }
+    }
+
+    .EXAMPLE
+    Describe "d1" {
+        It "i1" {
+            $user = Get-User
+            $user | Should -NotBeNullOrEmpty -ErrorAction Stop
+            $user |
+                Should -HaveProperty Name -Value "Jakub" |
+                Should -HaveProperty Age  -Value 30
+        }
+    }
+
+    .EXAMPLE
+    Describe "d1" {
+        It "i1" {
+            Mock Get-Command { }
+            Get-Command -CommandName abc
+            Should -Invoke Get-Command -Times 1 -Exactly
+        }
+    }
+
+    .EXAMPLE
+    Describe "d1" {
+        It "i1" {
+            Mock Get-Command { }
+            Get-Command -CommandName abc
+            Should -Invoke Get-Command -Times 1 -Exactly
+        }
+    }
+
+    .EXAMPLE
+    $true | Should -BeFalse
+
+    .EXAMPLE
+    $a | Should -Be 10
+
+    .EXAMPLE
+    Should -Invoke Get-Command -Times 1 -Exactly
+
+    .EXAMPLE
+    $user | Should -NotBeNullOrEmpty -ErrorAction Stop
+
+    .EXAMPLE
+    $planets.Name | Should -Be $Expected
 #>
 
     [CmdletBinding()]
@@ -157,7 +210,7 @@ function Should {
             AddErrorCallback   = $addErrorCallback
         }
 
-        if (-not $entry) { return } 
+        if (-not $entry) { return }
 
         if ($inputArray.Count -eq 0) {
             Invoke-Assertion @assertionParams -ValueToTest $null
