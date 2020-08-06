@@ -11,7 +11,6 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 # assigning error view explicitly to change it from the default on PowerShell 7
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", Scope="Function", Target="ErrorView")]
 $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
@@ -61,7 +60,6 @@ Get-Module Pester | Remove-Module
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
 
 # reset pester and all preferences
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", Scope="Function", Target="PesterPreference")]
 $PesterPreference = [PesterConfiguration]::Default
 
 # add our own in module scope because the implementation

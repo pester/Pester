@@ -18,6 +18,7 @@ $global:PesterPreference = @{
 # FIXME PSUseApprovedVerbs
 function Verify-XmlTime {
     param (
+        # TODO PSUseProcessBlockForPipelineCommand
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Mandatory = $true, Position = 0)]
@@ -97,6 +98,7 @@ i -PassThru:$PassThru {
             $message[-2] | Verify-Equal "But was:  'Testing'"
             $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
 
+            # FIXME PSAvoidAssignmentToAutomaticVariable
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
             $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }

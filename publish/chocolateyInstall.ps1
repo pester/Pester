@@ -38,7 +38,6 @@ end {
 
 begin {
     function Update-Directory {
-        [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", Scope="Function", Target="*")]
         [CmdletBinding()]
         param (
             [Parameter(Mandatory = $true)]
