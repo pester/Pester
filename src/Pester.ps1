@@ -253,6 +253,189 @@ function Has-Flag {
 }
 
 function Invoke-Pester {
+    <#
+    .SYNOPSIS
+    Runs Pester tests
+
+    .DESCRIPTION
+    The Invoke-Pester function runs Pester tests, including *.Tests.ps1 files and
+    Pester tests in PowerShell scripts.
+
+    You can run scripts that include Pester tests just as you would any other
+    Windows PowerShell script, including typing the full path at the command line
+    and running in a script editing program. Typically, you use Invoke-Pester to run
+    all Pester tests in a directory, or to use its many helpful parameters,
+    including parameters that generate custom objects or XML files.
+
+    By default, Invoke-Pester runs all *.Tests.ps1 files in the current directory
+    and all subdirectories recursively. You can use its parameters to select tests
+    by file name, test name, or tag.
+
+    To run Pester tests in scripts that take parameter values, use the Script
+    parameter with a hash table value.
+
+    Also, by default, Pester tests write test results to the console host, much like
+    Write-Host does, but you can use the Show parameter set to None to suppress the host
+    messages, use the PassThru parameter to generate a custom object
+    (PSCustomObject) that contains the test results, use the OutputXml and
+    OutputFormat parameters to write the test results to an XML file, and use the
+    EnableExit parameter to return an exit code that contains the number of failed
+    tests.
+
+    You can also use the Strict parameter to fail all pending and skipped tests.
+    This feature is ideal for build systems and other processes that require success
+    on every test.
+
+    To help with test design, Invoke-Pester includes a CodeCoverage parameter that
+    lists commands, classes, functions, and lines of code that did not run during test
+    execution and returns the code that ran as a percentage of all tested code.
+
+    Invoke-Pester, and the Pester module that exports it, are products of an
+    open-source project hosted on GitHub. To view, comment, or contribute to the
+    repository, see https://github.com/Pester.
+
+    .PARAMETER CI
+
+    .PARAMETER CodeCoverage
+    Adds a code coverage report to the Pester tests. Takes strings or hash table values.
+    A code coverage report lists the lines of code that did and did not run during
+    a Pester test. This report does not tell whether code was tested; only whether
+    the code ran during the test.
+    By default, the code coverage report is written to the host program
+    (like Write-Host). When you use the PassThru parameter, the custom object
+    that Invoke-Pester returns has an additional CodeCoverage property that contains
+    a custom object with detailed results of the code coverage test, including lines
+    hit, lines missed, and helpful statistics.
+    However, NUnitXml and JUnitXml output (OutputXML, OutputFormat) do not include
+    any code coverage information, because it's not supported by the schema.
+    Enter the path to the files of code under test (not the test file).
+    Wildcard characters are supported. If you omit the path, the default is local
+    directory, not the directory specified by the Script parameter. Pester test files
+    are by default excluded from code coverage when a directory is provided. When you
+    provide a test file directly using string, code coverage will be measured. To include
+    tests in code coverage of a directory, use the dictionary syntax and provide
+    IncludeTests = $true option, as shown below.
+    To run a code coverage test only on selected classes, functions or lines in a script,
+    enter a hash table value with the following keys:
+    -- Path (P)(mandatory) <string>: Enter one path to the files. Wildcard characters
+    are supported, but only one string is permitted.
+    -- IncludeTests <bool>: Includes code coverage for Pester test files (*.tests.ps1).
+    Default is false.
+    One of the following: Class/Function or StartLine/EndLine
+    -- Class (C) <string>: Enter the class name. Wildcard characters are
+    supported, but only one string is permitted. Default is *.
+    -- Function (F) <string>: Enter the function name. Wildcard characters are
+    supported, but only one string is permitted. Default is *.
+    -or-
+    -- StartLine (S): Performs code coverage analysis beginning with the specified
+    line. Default is line 1.
+    -- EndLine (E): Performs code coverage analysis ending with the specified line.
+    Default is the last line of the script.
+
+    .PARAMETER CodeCoverageOutputFile
+    The path where Invoke-Pester will save formatted code coverage results file.
+    The path must include the location and name of the folder and file name with
+    a required extension (usually the xml).
+    If this path is not provided, no file will be generated.
+
+    .PARAMETER CodeCoverageOutputFileEncoding
+
+    .PARAMETER CodeCoverageOutputFileFormat
+    The name of a code coverage report file format.
+    Default value is: JaCoCo.
+    Currently supported formats are:
+    - JaCoCo - this XML file format is compatible with Azure Devops, VSTS/TFS
+
+    The ReportGenerator tool can be used to consolidate multiple reports and provide code coverage reporting.
+    https://github.com/danielpalme/ReportGenerator
+
+    .PARAMETER Configuration
+
+    .PARAMETER EnableExit
+    Will cause Invoke-Pester to exit with a exit code equal to the number of failed
+    tests once all tests have been run. Use this to "fail" a build when any tests fail.
+
+    .PARAMETER ExcludePath
+
+    .PARAMETER ExcludeTagFilter
+
+    .PARAMETER FullNameFilter
+
+    .PARAMETER Output
+
+    .PARAMETER OutputFile
+    The path where Invoke-Pester will save formatted test results log file.
+    The path must include the location and name of the folder and file name with
+    the xml extension.
+    If this path is not provided, no log will be generated.
+
+    .PARAMETER OutputFormat
+    The format of output. Currently NUnitXml is supported.
+    Note that JUnitXml is not currently supported in Pester 5.
+
+    .PARAMETER PassThru
+    Returns a custom object (PSCustomObject) that contains the test results.
+    By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
+    If you try to save the result in a variable, the variable is empty unless you
+    use the PassThru parameter.
+    To suppress the host output, use the Show parameter set to None.
+
+    .PARAMETER Path
+    Specifies a test to run. The value is a path\file
+    name or name pattern. Wildcards are permitted. All hash tables in a Script
+    parameter value must have a Path key.
+
+    .PARAMETER PesterOption
+    Sets advanced options for the test execution. Enter a PesterOption object,
+    such as one that you create by using the New-PesterOption cmdlet, or a hash table
+    in which the keys are option names and the values are option values.
+    For more information on the options available, see the help for New-PesterOption.
+
+    .PARAMETER Quiet
+    The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
+    in the next major version of Pester. Please use the parameter Show
+    with value 'None' instead.
+    The parameter Quiet suppresses the output that Pester writes to the host program,
+    including the result summary and CodeCoverage output.
+    This parameter does not affect the PassThru custom object or the XML output that
+    is written when you use the Output parameters.
+
+    .PARAMETER Show
+    Customizes the output Pester writes to the screen. Available options are None, Default,
+    Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+    The options can be combined to define presets.
+    Common use cases are:
+    None - to write no output to the screen.
+    All - to write all available information (this is default option).
+    Fails - to write everything except Passed (but including Describes etc.).
+    A common setting is also Failed, Summary, to write only failed tests and test summary.
+    This parameter does not affect the PassThru custom object or the XML output that
+    is written when you use the Output parameters.
+
+    .PARAMETER Strict
+    Makes Pending and Skipped tests to Failed tests. Useful for continuous
+    integration where you need to make sure all tests passed.
+
+    .PARAMETER TagFilter
+
+    .EXAMPLE
+    Invoke-Pester
+
+    This command runs all *.Tests.ps1 files in the current directory and its subdirectories.
+
+    .EXAMPLE
+    Invoke-Pester -Path .\Util*
+
+    This commands runs all *.Tests.ps1 files in subdirectories with names that begin
+    with 'Util' and their subdirectories.
+
+    .LINK
+    https://pester.dev/docs/quick-start
+
+    .LINK
+    Describe
+    about_Pester
+    #>
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
