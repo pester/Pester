@@ -265,11 +265,8 @@ function Invoke-Block ($previousBlock) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
-                # TODO: no callbacks are provided because we are not transitioning between any states,
-                # it might be nice to add a parameter to indicate that we run in the same scope
-                # so we can avoid getting and setting the scope on scriptblock that already has that
-                # scope, which is _potentially_ slow because of reflection, it would also allow
-                # making the transition callbacks mandatory unless the parameter is provided
+
+                # no callbacks are provided because we are not transitioning between any states
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
                     if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
@@ -2186,10 +2183,25 @@ function Invoke-BlockContainer {
         [Management.Automation.SessionState] $SessionState
     )
 
-    switch ($BlockContainer.Type) {
-        "ScriptBlock" { & $BlockContainer.Item }
-        "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
-        default { throw [System.ArgumentOutOfRangeException]"" }
+    if ($null -ne $BlockContainer.Data -and 0 -lt $BlockContainer.Data.Count) {
+        foreach ($d in $BlockContainer.Data) {
+            switch ($BlockContainer.Type) {
+                "ScriptBlock" {
+                    & $BlockContainer.Item @d
+                }
+                "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d }
+                default { throw [System.ArgumentOutOfRangeException]"" }
+            }
+        }
+    }
+    else {
+        switch ($BlockContainer.Type) {
+            "ScriptBlock" {
+                & $BlockContainer.Item
+            }
+            "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
+            default { throw [System.ArgumentOutOfRangeException]"" }
+        }
     }
 }
 
@@ -2201,7 +2213,8 @@ function New-BlockContainerObject {
         [Parameter(Mandatory, ParameterSetName = "Path")]
         [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
-        [System.IO.FileInfo] $File
+        [System.IO.FileInfo] $File,
+        [Collections.IDictionary[]] $Data
     )
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
@@ -2211,10 +2224,25 @@ function New-BlockContainerObject {
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
-    $c = [Pester.ContainerInfo]::Create()
-    $c.Type    = $type
-    $c.Item = $item
-    return $c
+    if ($null -ne $Data -and 0 -lt $Data.Count) {
+        foreach ($d in $Data) {
+            $c = [Pester.ContainerInfo]::Create()
+            $c.Type    = $type
+            $c.Item = $item
+            $c.Data = $d
+            $c
+        }
+    }
+    else {
+        $c = [Pester.ContainerInfo]::Create()
+        $c.Type    = $type
+        $c.Item = $item
+        $c = [Pester.ContainerInfo]::Create()
+        $c.Type    = $type
+        $c.Item = $item
+        $c.Data = @{}
+        $c
+    }
 }
 
 function New-DiscoveredBlockContainerObject {
@@ -2245,7 +2273,8 @@ function Invoke-File {
         [String]
         $Path,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        [Collections.IDictionary] $Data
     )
 
     $sb = {
@@ -2259,7 +2288,7 @@ function Invoke-File {
     $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal, $null)
 
-    & $sb $Path
+    & $sb $Path @Data
 }
 
 function Import-Dependency {
