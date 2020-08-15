@@ -23,11 +23,10 @@ if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
 
-# >>>>>>>>>>>>>>>>>>>>>>>> Enable!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-# pwsh -c "$PSSCriptRoot/../test.ps1 -nobuild"
-# if ($LASTEXITCODE -ne 0) {
-#     throw "test failed!"
-# }
+pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
+if ($LASTEXITCODE -ne 0) {
+    throw "test failed!"
+}
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
