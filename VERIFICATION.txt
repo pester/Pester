@@ -8,3 +8,6 @@ You can use one of the following methods to obtain the checksum
 
 CHECKSUMS
 
+  file: lib\Gherkin\core\Gherkin.dll
+  checksum: 352A6A598BA8D1E350F497791A9FB9AC64BA11E977FF6CCB7432D8516DDF7685
+  algorithm: sha256

@@ -1,45 +1,36 @@
 # build should provide '%system.teamcity.build.checkoutDir%'
 param (
-    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43',
-    # [Parameter(Mandatory)]
-    # [String] $NugetApiKey,
-    # [String] $ChocolateyApiKey,
     [Parameter(Mandatory)]
-    [String] $PsGalleryApiKey
+    [String] $PsGalleryApiKey,
+    [Parameter(Mandatory)]
+    [String] $NugetApiKey,
+    [Parameter(Mandatory)]
+    [String] $ChocolateyApiKey,
+    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43'
 )
 
 $ErrorActionPreference = 'Stop'
 
-# run this in seperate instance otherwise Pester.dll is loaded and the subsequent build will fail
-# $process = Start-Process powershell -ArgumentList "-c", ".\testRelease.ps1 -LocalBuild" -NoNewWindow -Wait -PassThru
+$bin = "$PSScriptRoot/../bin"
 
-# if ($process.ExitCode -ne 0) {
-#     throw "Testing failed with exit code $($process.ExitCode)."
-# }
+# checking the path first because I want to fail the script when I fail to remove all files
+if (Test-Path $bin) {
+    Remove-Item $bin -Recurse -Force
+}
 
-#.\getNugetExe.ps1
-#.\cleanUpBeforeBuild.ps1
-
-pwsh -c "$PSScriptRoot/../build.ps1 -clean"
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -clean"
 if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
 
-pwsh -c "$PSSCriptRoot/../test.ps1 -nobuild"
-if ($LASTEXITCODE -ne 0) {
-    throw "test failed!"
-}
+# >>>>>>>>>>>>>>>>>>>>>>>> Enable!!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# pwsh -c "$PSSCriptRoot/../test.ps1 -nobuild"
+# if ($LASTEXITCODE -ne 0) {
+#     throw "test failed!"
+# }
 
-& "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path "$PSScriptRoot/../bin"
+& "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
-
-
-$psGalleryDir = "$PSScriptRoot/../tmp/PSGallery/Pester/"
-if (Test-Path $psGalleryDir) {
-    Remove-Item -Recurse -Force $psGalleryDir
-}
-$null = New-Item -ItemType Directory -Path $psGalleryDir
-Copy-Item "$PSScriptRoot/../bin/*" $psGalleryDir -Recurse
 
 $files = @(
 "nunit_schema_2.5.xsd"
@@ -60,7 +51,7 @@ $files = @(
 
 $notFound = @()
 foreach ($f in $files) {
-    if (-not (Test-Path "$psGalleryDir/$f")) {
+    if (-not (Test-Path "$bin/$f")) {
         $notFound += $f
     }
 }
@@ -72,13 +63,59 @@ else {
     "Found all files!"
 }
 
+# build psgallery module
+$psGalleryDir = "$PSScriptRoot/../tmp/PSGallery/Pester/"
+if (Test-Path $psGalleryDir) {
+    Remove-Item -Recurse -Force $psGalleryDir
+}
+$null = New-Item -ItemType Directory -Path $psGalleryDir
+Copy-Item "$PSScriptRoot/../bin/*" $psGalleryDir -Recurse
 
+
+# build nuget for nuget.org and chocolatey
+$nugetDir = "$PSScriptRoot/../tmp/nuget/"
+if (Test-Path $nugetDir) {
+    Remove-Item -Recurse -Force $nugetDir
+}
+$null = New-Item -ItemType Directory -Path $nugetDir
+Copy-Item "$PSScriptRoot/../bin/*" $nugetDir -Recurse
+
+Out-File $nugetDir\VERIFICATION.txt -InputObject @"
+VERIFICATION
+Verification is intended to assist the Chocolatey moderators and community
+in verifying that this package's contents are trustworthy.
+
+You can use one of the following methods to obtain the checksum
+  - Use powershell function 'Get-Filehash'
+  - Use chocolatey utility 'checksum.exe'
+
+CHECKSUMS
+"@
+
+Get-ChildItem -Path $bin -Filter *.dll -Recurse | Foreach-Object {
+    $path = $_.FullName
+    $relativePath = ($path -replace [regex]::Escape($nugetDir.TrimEnd('/').TrimEnd('\'))).TrimStart('/').TrimStart('\')
+    $hash = Get-FileHash  -Path $path -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    Out-File $nugetDir\VERIFICATION.txt -Append -InputObject @"
+    file: $relativePath
+    hash: $hash
+    algorithm: sha256
+"@
+}
+
+$m = Test-ModuleManifest $nugetDir/Pester.psd1
+$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
+{
+    "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
+}
+else {
+    $m.Version
+}
+
+& nuget pack "$PSScriptRoot/Pester.nuspec" -OutputDirectory $nugetDir -NoPackageAnalysis -version $version
+$nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
+& nuget sign $nupkg -CertificateFingerprint $CertificateThumbprint -Timestamper "http://timestamp.digicert.com"
 
 Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
-#.\buildNugetPackage.ps1
-# .\buildPSGalleryPackage.ps1
-
-
-# .\publishPSGalleryPackage.ps1 $PsGalleryApiKey
-# publish nuget
-# publish chocolatey
+& nuget push $nupkg -Source https://api.nuget.org/v3/index.json -apikey $NugetApiKey
+& nuget push $nupkg -Source https://push.chocolatey.org/ -apikey $ChocolateyApiKey
