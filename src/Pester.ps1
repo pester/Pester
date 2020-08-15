@@ -727,7 +727,7 @@ function Invoke-Pester {
             $run.PluginData = $pluginData
             $run.Configuration = $PesterPreference
             $m = $ExecutionContext.SessionState.Module
-            $run.Version = if ($m.PrivateData -and $m.PrivateData.PSData)
+            $run.Version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
             {
                 "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
             }
