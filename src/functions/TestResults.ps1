@@ -592,40 +592,8 @@ function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWrit
 }
 
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
-    $testName = $TestResult.ExpandedPath
-
-    # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time
-    if ($testName -eq $ParameterizedSuiteName) {
-        $paramString = ''
-        if ($null -ne $TestResult.Data) {
-            $paramsUsedInTestName =$false
-
-            if (-not $paramsUsedInTestName) {
-                $params = @(
-                    foreach ($value in $TestResult.Data.Values) {
-                        if ($null -eq $value) {
-                            'null'
-                        }
-                        elseif ($value -is [string]) {
-                            '"{0}"' -f $value
-                        }
-                        else {
-                            #do not use .ToString() it uses the current culture settings
-                            #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
-                            [string]$value
-                        }
-                    }
-                )
-
-                $paramString = "($($params -join ','))"
-                $testName = "$testName$paramString"
-            }
-        }
-    }
-
     $XmlWriter.WriteAttributeString('description', $TestResult.ExpandedName)
-
-    $XmlWriter.WriteAttributeString('name', $testName)
+    $XmlWriter.WriteAttributeString('name', $TestResult.ExpandedPath)
     $XmlWriter.WriteAttributeString('time', (Convert-TimeSpan $TestResult.Duration))
     $XmlWriter.WriteAttributeString('asserts', '0')
     $XmlWriter.WriteAttributeString('success', "Passed" -eq $TestResult.Result)
@@ -635,12 +603,15 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Success')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
             break
         }
 
         Skipped {
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
+
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
 
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
@@ -655,6 +626,8 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
+
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
@@ -668,6 +641,8 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
+
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
@@ -679,6 +654,9 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         Failed {
             $XmlWriter.WriteAttributeString('result', 'Failure')
             $XmlWriter.WriteAttributeString('executed', 'True')
+
+            Write-NUnitTestCaseParameters -TestResult $TestResult -XmlWriter $XmlWriter
+
             $XmlWriter.WriteStartElement('failure')
 
             # TODO: remove monkey patching the error message when parent setup failed so this test never run
@@ -720,6 +698,29 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteEndElement() # Close failure tag
             break
         }
+    }
+}
+
+function Write-NUnitTestCaseParameters ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
+    if ($TestResult.Data.Count){
+        $XmlWriter.WriteStartElement('properties')
+        $TestResult.Data.GetEnumerator() | ForEach-Object -Process {
+            $value = $_.Value
+            $formattedValue = if ($null -eq $value) {
+                'null'
+            } elseif ($value.GetType() -match 'String|Int|Boolean|Double|Float|Decimal'){
+                [string] $_.Value
+            } elseif ($value.GetType() -match 'System.DateTime'){
+                $value.ToString('u')
+            } else {
+                $_.Value | Out-String
+            }
+            $XmlWriter.WriteStartElement("property")
+            $XmlWriter.WriteAttributeString("name",$_.Name)
+            $XmlWriter.WriteAttributeString( "value", $formattedValue )
+            $XmlWriter.WriteEndElement()
+        }
+        $XmlWriter.WriteEndElement()
     }
 }
 
