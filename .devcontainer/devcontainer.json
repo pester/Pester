@@ -1,0 +1,40 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.134.1/containers/dotnetcore
+{
+	"name": "Pester C# (.NET Core) w/ PowerShell",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			// Update 'VARIANT' to pick a .NET Core version. Rebuild the container if
+			// it already exists to update. Example variants: 2.1-bionic, 3.1-bionic
+			"VARIANT": "3.1-bionic",
+			// Options
+			"INSTALL_NODE": "false",
+			"NODE_VERSION": "lts/*",
+			"INSTALL_AZURE_CLI": "false"
+		}
+	},
+
+	// Set *default* container specific settings.json values on container create.
+	"settings": {
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-vscode.powershell",
+		"ms-dotnettools.csharp"
+	],
+
+	"mounts": [
+	],
+	"remoteEnv": {
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// Restoring the c# projects
+	"postCreateCommand": "dotnet restore src/csharp"
+
+	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
+	// "remoteUser": "vscode"
+}
