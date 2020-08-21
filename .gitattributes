@@ -8,5 +8,6 @@
 *.feature text
 *.xsd text
 *.dtd text
+*.sh text eol=lf
 *.dll binary
 *.PNG binary
