@@ -31,9 +31,9 @@ function Verify-TestPassed {
         throw "Test $($actual.Name) failed with $($actual.ErrorRecord.Count) errors: `n$($actual.ErrorRecord | Format-List -Force *  | Out-String)"
     }
 
-    if ($StandardOutput -ne $actual.StandardOutput) {
-        throw "Expected standard output '$StandardOutput' but got '$($actual.StandardOutput)'."
-    }
+    # if ($StandardOutput -ne $actual.StandardOutput) {
+    #     throw "Expected standard output '$StandardOutput' but got '$($actual.StandardOutput)'."
+    # }
 }
 
 function Verify-TestFailed {
@@ -2181,9 +2181,12 @@ i -PassThru:$PassThru {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
                     param(
-                        [Parameter(Mandatory)]
                         [int] $Value
                     )
+
+                    if (1 -ne $Value) {
+                        throw "Value should be 1 but is $Value."
+                    }
 
                     New-OneTimeBlockSetup {
                         $Value | Verify-Equal 1
@@ -2193,7 +2196,7 @@ i -PassThru:$PassThru {
                         $Value | Verify-Equal 1
                     }
 
-                    New-ParametrizedBlock -Name "block1" {
+                    New-Block -Name "block1" {
                         New-Test "test" {
                             $Value | Verify-Equal 1
                         }
@@ -2201,7 +2204,7 @@ i -PassThru:$PassThru {
                 } -Data $data
             )
 
-            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0] | Verify-TestPassed
         }
     }
 }

@@ -959,12 +959,43 @@ function Run-Test {
                 throw "Teardowns are not supported in root (directly in the block container)."
             }
 
-            # we add one more artificial block so the root can run
-            # all of it's setups and teardowns
+            # add BeforeAll to set variables, by having $setVariables script that will invoke in the user scope
+            # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
+            # before all script, but it might be better to make this a plugin, because there we can pass data.
+            # I am taking just the first data from the collection below $rootBlock.BlockContainer.Data[0], and
+            # overwriting the actual BeforeAll that we've set in the test, so these both need to be fixed
+            # $rootBlock.OneTimeTestSetup = $setVariablesWithContext. With any solution I need to be careful to not
+            # set the variables in the top level scope so we don't start leaking them among scripts again.
+            $setVariables = {
+                param($private:____parameters)
+                foreach($private:____d in $____parameters.Data.GetEnumerator()) {
+                    & $____parameters.Set_Variable -Name $private:____d.Name -Value $private:____d.Value
+                }
+            }
+
+            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+            $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
+
+            $setVariablesWithContext = & {
+                $action = $setVariables
+                $parameters = @{
+                    Data = $rootBlock.BlockContainer.Data[0]
+                    Set_Variable = $SafeCommands["Set-Variable"]
+                }
+
+                {
+                    . $action $parameters
+                }.GetNewClosure()
+            }
+
+            $rootBlock.OneTimeTestSetup = $setVariablesWithContext
+
             $rootBlock.ScriptBlock = {}
             $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
             $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
 
+            # we add one more artificial block so the root can run
+            # all of it's setups and teardowns
             $private:parent = [Pester.Block]::Create()
             $private:parent.Name = "ParentBlock"
             $private:parent.Path = "Path"
