@@ -372,6 +372,7 @@ function New-Test {
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
+        [int] $StartLine,
         [Switch] $Focus,
         [Switch] $Skip
     )
@@ -397,6 +398,7 @@ function New-Test {
     $test.ScriptBlock = $ScriptBlock
     $test.Name = $Name
     $test.Path = $path
+    $test.StartLine = $StartLine
     $test.Tag = $Tag
     $test.Focus = $Focus
     $test.Skip = $Skip
@@ -1550,7 +1552,9 @@ function Test-ShouldRun {
     # the test even if it is marked as skipped run this include as first so we figure it out
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.ScriptBlock.StartPosition.StartLine)" -replace '\\', '/'
+
+    # using $StartLine property in Item of type Test when available due to TestsCase support in VSCode
+    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$(if($Item.StartLine) { $Item.Startline } else { $Item.ScriptBlock.StartPosition.StartLine })" -replace '\\', '/'
     if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
         foreach ($l in $lineFilter -replace '\\', '/') {
@@ -2348,7 +2352,8 @@ function New-ParametrizedTest () {
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [System.Collections.IDictionary[]] $Data = @{ },
         [Switch] $Focus,
-        [Switch] $Skip
+        [Switch] $Skip,
+        [int] $StartLine
     )
 
     # we don't need to switch the timer, all the code that runs during discovery is "overhead"
@@ -2360,7 +2365,7 @@ function New-ParametrizedTest () {
     $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
         #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
-        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus -Skip:$Skip
+        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus -Skip:$Skip -StartLine $StartLine
     }
 }
 

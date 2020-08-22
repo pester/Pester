@@ -40,6 +40,7 @@ namespace Pester
         public string ItemType { get; private set; }
         public string Id { get; set; }
         public ScriptBlock ScriptBlock { get; set; }
+        public int StartLine { get; set; }
         public List<string> Tag { get; set; }
         public bool Focus { get; set; }
         public bool Skip { get; set; }
