@@ -962,8 +962,8 @@ function Run-Test {
             # add BeforeAll to set variables, by having $setVariables script that will invoke in the user scope
             # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
             # before all script, but it might be better to make this a plugin, because there we can pass data.
-            # I am taking just the first data from the collection below $rootBlock.BlockContainer.Data[0], and
-            # overwriting the actual BeforeAll that we've set in the test, so these both need to be fixed
+            # TODO:
+            # I am overwriting the actual BeforeAll that we've set in the test, so these both need to be fixed
             # $rootBlock.OneTimeTestSetup = $setVariablesWithContext. With any solution I need to be careful to not
             # set the variables in the top level scope so we don't start leaking them among scripts again.
             $setVariables = {
@@ -976,19 +976,25 @@ function Run-Test {
             $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
             $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
 
-            $setVariablesWithContext = & {
+            $setVariablesAndThenRunOneTimeSetupIfAny = & {
                 $action = $setVariables
+                $setup = $rootBlock.OneTimeTestSetup
                 $parameters = @{
+                    # taking the first one because we expanded the containers to have
+                    # just one set of data per each
                     Data = $rootBlock.BlockContainer.Data[0]
                     Set_Variable = $SafeCommands["Set-Variable"]
                 }
 
                 {
                     . $action $parameters
+                    if ($null -ne $setup) {
+                        . $setup
+                    }
                 }.GetNewClosure()
             }
 
-            $rootBlock.OneTimeTestSetup = $setVariablesWithContext
+            $rootBlock.OneTimeTestSetup = $setVariablesAndThenRunOneTimeSetupIfAny
 
             $rootBlock.ScriptBlock = {}
             $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)

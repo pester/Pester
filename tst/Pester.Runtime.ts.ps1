@@ -355,13 +355,13 @@ i -PassThru:$PassThru {
             }
 
             t "Executes container only if it contains anything that should run" {
-                $d = @{
+                $c = @{
                     Call = 0
                 }
                 Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
                     (New-BlockContainerObject -ScriptBlock {
-                            $d.Call++
+                            $c.Call++
                             New-Block "block1" {
                                 New-Test "test1" { "a" } -Tag "a"
                             }
@@ -374,7 +374,7 @@ i -PassThru:$PassThru {
                 ) -Filter (New-FilterObject -Tag "b")
 
                 # should add once during discovery
-                $d.Call | Verify-Equal 1
+                $c.Call | Verify-Equal 1
 
                 $actual[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
                 $actual[1].Blocks[0].Tests[0].Executed | Verify-True
@@ -2173,8 +2173,13 @@ i -PassThru:$PassThru {
             $actual.Blocks.Count | Verify-Equal 2
         }
 
-        dt "New-ParametrizedContainer makes it's data available in Setup*, Teadown* and Test" {
+        t "New-ParametrizedContainer makes it's data available in Setup*, Teadown* and Test" {
             $data = @(
+                # runs the same set of tests twice
+                # this is useful to detect errors where we are not
+                # taking the first item of an array but instead take the
+                # whole array
+                @{ Value = 1 }
                 @{ Value = 1 }
             )
 
