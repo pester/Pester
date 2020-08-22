@@ -362,7 +362,7 @@ i -PassThru:$PassThru {
                     PassThru = $true
                 }
                 Filter = @{
-                    Line = "$PSScriptRoot/testProjects/BasicTests/folder1/file1.Tests.ps1:8"
+                    Line = "$PSScriptRoot/testProjects/BasicTests/folder1/file1.Tests.ps1:12"
                 }
                 Output = @{
                     Verbosity = 'None'
@@ -372,8 +372,8 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration $c
             $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
 
-            $tests.Count | Verify-Equal 1
-            $tests[0].Name | Verify-Equal "fails"
+            $tests.Count | Verify-Equal 2
+            $tests[0].Name | Verify-Equal "passing with testcases"
         }
 
         t "Filtering test based on name will find the test" {
