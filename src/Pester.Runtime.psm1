@@ -1553,7 +1553,7 @@ function Test-ShouldRun {
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
 
-    # using $StartLine property in Item of type Test when available due to TestsCase support in VSCode
+    # using StartLine property in Item-object for Tests when available to target It startline when using testcases with multiple lines
     $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$(if($Item.StartLine) { $Item.Startline } else { $Item.ScriptBlock.StartPosition.StartLine })" -replace '\\', '/'
     if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
