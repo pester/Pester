@@ -10,6 +10,8 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <PackageReference Include="Microsoft.PowerShell.3.ReferenceAssemblies" Version="1.0.0" />
+
+    <!-- To enable build support on unix-->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
