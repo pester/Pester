@@ -788,7 +788,6 @@ namespace Pester
         private ScriptBlockArrayOption _scriptBlock;
         private StringOption _testExtension;
         private BoolOption _exit;
-        private BoolOption _strict;
         private BoolOption _passThru;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
