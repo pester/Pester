@@ -539,6 +539,7 @@ i -PassThru:$PassThru {
         }
 
         t "re-runs failing tests" {
+            # Tests stored in file to make StartLine predictable as it's needed for New-Block/-Test parameter for filtering to work
             $testFile = "$PSScriptRoot/testProjects/RerunFailed.tests.ps1"
 
             $willPass = $false
@@ -562,8 +563,7 @@ i -PassThru:$PassThru {
             # on them and use them for filtering the run in the next run
             # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
 
-            #TODO: Change to $_.StartLine when I find out why it's 0.....
-            $lines = $pre | Where-Failed | % { "$($_.ScriptBlock.File):$($_.ScriptBlock.StartPosition.StartLine)" }
+            $lines = $pre | Where-Failed | % { "$($_.ScriptBlock.File):$($_.StartLine)" }
             $lines.Length | Verify-Equal 2
 
             Write-Host "`n`n`n"
