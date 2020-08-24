@@ -63,6 +63,7 @@ i -PassThru:$PassThru {
                 [System.Collections.IDictionary] $Data,
                 [String] $Id,
                 [ScriptBlock] $ScriptBlock,
+                [int] $StartLine,
                 [Switch] $Focus,
                 [Switch] $Skip
             )
@@ -72,6 +73,7 @@ i -PassThru:$PassThru {
             $t.Name = $Name
             $t.Path = $Path
             $t.Tag = $Tag
+            $t.StartLine = $StartLine
             $t.Focus = [Bool]$Focus
             $t.Skip = [Bool]$Skip
             $t.Data = $Data
@@ -467,7 +469,7 @@ i -PassThru:$PassThru {
             }
 
             t "Given a test with file path and line number it includes it when it matches the lines filter" {
-                $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" })
+                $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
 
                 $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine)"
 
@@ -476,7 +478,7 @@ i -PassThru:$PassThru {
             }
 
             t "Given a test with file path and line number it maybes it when it does not match the lines filter" {
-                $t = New-TestObject -Name "test1" -ScriptBlock { "test" }
+                $t = New-TestObject -Name "test1" -ScriptBlock { "test" } -StartLine 1
 
                 $f = New-FilterObject -Line "C:\file.tests.ps1:10"
 
