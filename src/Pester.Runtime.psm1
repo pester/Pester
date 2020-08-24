@@ -154,6 +154,7 @@ function New-Block {
         [String] $Name,
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
+        [int] $StartLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
@@ -184,6 +185,7 @@ function New-Block {
     $block.Path = $Path
     $block.Tag = $Tag
     $block.ScriptBlock = $ScriptBlock
+    $block.StartLine = $StartLine
     $block.FrameworkData = $FrameworkData
     $block.Focus = $Focus
     $block.Id = $Id
