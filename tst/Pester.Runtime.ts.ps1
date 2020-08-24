@@ -539,25 +539,10 @@ i -PassThru:$PassThru {
         }
 
         t "re-runs failing tests" {
-            $sb = {
-                New-Block "block1" {
-                    New-Test "test1" { "a" }
-                    New-Block "block2" {
-                        New-Test "test2" {
-                            throw
-                        }
-                    }
-                }
-
-                New-Block "block3" {
-                    New-Test "test3" {
-                        if (-not $willPass) { throw }
-                    }
-                }
-            }
+            $testFile = "$PSScriptRoot/testProjects/RerunFailed.tests.ps1"
 
             $willPass = $false
-            $pre = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+            $pre = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -Path $testFile)
 
             # validate the precondition
             $pre.Blocks[0].Tests[0].Executed | Verify-True
@@ -576,13 +561,15 @@ i -PassThru:$PassThru {
             # here I have the failed tests, I need to accumulate paths
             # on them and use them for filtering the run in the next run
             # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
+
+            #TODO: Change to $_.StartLine when I find out why it's 0.....
             $lines = $pre | Where-Failed | % { "$($_.ScriptBlock.File):$($_.ScriptBlock.StartPosition.StartLine)" }
             $lines.Length | Verify-Equal 2
 
             Write-Host "`n`n`n"
             # set the test3 to pass this time so we have some difference
             $willPass = $true
-            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Line $lines ) -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Line $lines ) -BlockContainer (New-BlockContainerObject -Path $testFile)
 
             $actual = @($result | View-Flat | where { $_.Executed })
 
