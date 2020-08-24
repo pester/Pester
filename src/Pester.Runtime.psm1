@@ -369,10 +369,10 @@ function New-Test {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
+        [int] $StartLine,
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
-        [int] $StartLine,
         [Switch] $Focus,
         [Switch] $Skip
     )
@@ -2348,12 +2348,12 @@ function New-ParametrizedTest () {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
+        [int] $StartLine,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [System.Collections.IDictionary[]] $Data = @{ },
         [Switch] $Focus,
-        [Switch] $Skip,
-        [int] $StartLine
+        [Switch] $Skip
     )
 
     # we don't need to switch the timer, all the code that runs during discovery is "overhead"
@@ -2365,7 +2365,7 @@ function New-ParametrizedTest () {
     $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
         #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
-        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus -Skip:$Skip -StartLine $StartLine
+        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
     }
 }
 
