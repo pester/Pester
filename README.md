@@ -675,7 +675,7 @@ This also works for [mock](#default-parameters-for-parameterfilter)
 
 #### Mocks are scoped based on their placement
 
-Mocks are no longer effective in the whole `Describe` / `Context` in which they were placed. Instead they will defualt to the block in which they were placed. Both of these work:
+Mocks are no longer effective in the whole `Describe` / `Context` in which they were placed. Instead they will default to the block in which they were placed. Both of these work:
 
 ```powershell
 Describe "d" {
