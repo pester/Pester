@@ -353,6 +353,8 @@ i -PassThru:$PassThru {
             $tests.Count | Verify-Equal 4
             $tests[0].Name | Verify-Equal "passing"
             $tests[1].Name | Verify-Equal "fails"
+            $tests[2].Name | Verify-Equal "passing with testcases"
+            $tests[3].Name | Verify-Equal "passing with testcases"
         }
 
         t "Filtering test with testcases based on line of It" {
@@ -374,6 +376,9 @@ i -PassThru:$PassThru {
 
             $tests.Count | Verify-Equal 2
             $tests[0].Name | Verify-Equal "passing with testcases"
+            $tests[0].Data.Value | Verify-Equal 1
+            $tests[1].Name | Verify-Equal "passing with testcases"
+            $tests[1].Data.Value | Verify-Equal 2
         }
 
         t "Filtering test based on name will find the test" {
