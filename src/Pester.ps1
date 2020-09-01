@@ -377,7 +377,7 @@ function Invoke-Pester {
 
     ConfigurationProperties include following:
 
-    Run
+    [PesterConfiguration]::Default.Run
     ---
     Run.ExcludePath - Directories or files to be excluded from the run.
     Run.Exit - Exit with non-zero exit code when the test run fails.
@@ -392,7 +392,7 @@ function Invoke-Pester {
     Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
         Default is: Normal
 
-    CodeCoverage
+    [PesterConfiguration]::Default.CodeCoverage
     ------------
     CodeCoverage.Enabled - Enable CodeCoverage.
         Default is: false
@@ -404,7 +404,7 @@ function Invoke-Pester {
     CodeCoverage.ExcludeTests - Exclude tests from code coverage. This uses the TestFilter from general configuration.
         Default is: true
 
-    TestResult
+    [PesterConfiguration]::Default.TestResult
     ----------
     TestResult.Enabled - Enable TestResult.
     TestResult.OutputFormat - Format to use for test result report. Possible values: NUnit2.5
@@ -414,7 +414,7 @@ function Invoke-Pester {
     TestResult.TestSuiteName - Set the name assigned to the root 'test-suite' element.
         Default is: Pester
 
-    Filter
+    [PesterConfiguration]::Default.Filter
     ------
     Filter.ExcludeTag - Exclude a tag, accepts wildcards
     Filter.FullName - Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
@@ -422,7 +422,7 @@ function Invoke-Pester {
     Filter.Tag - Tags of Describe, Context or It to be run.
     Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
 
-    Debug
+    [PesterConfiguration]::Default.Debug
     -----
     Debug.ShowFullErrors - Show full errors including Pester internal stack.
     Debug.ShowNavigationMarkers - Write paths after every block and test, for easy navigation in VSCode.
@@ -548,8 +548,28 @@ function Invoke-Pester {
     This commands runs all *.Tests.ps1 files in subdirectories with names that begin
     with 'Util' and their subdirectories.
 
+    .EXAMPLE
+    $config = [PesterConfiguration]@{
+    Should = @{ <- # Should configuration.
+        ErrorAction = 'Stop' # <- "Controls if Should throws on error."
+        }
+    }
+
+    Invoke-Pester -Configuration $config
+
+    .EXAMPLE
+    $config = [PesterConfiguration]::Default
+
+    Invoke-Pester -Configuration $config
+
     .LINK
     https://pester.dev/docs/quick-start
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+
+    .LINK
+    https://pswiki.net/invoke-pester-pester/
 
     .LINK
     Describe
