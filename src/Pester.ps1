@@ -295,6 +295,13 @@ function Invoke-Pester {
     repository, see https://github.com/Pester.
 
     .PARAMETER CI
+    (Deprecated v4)
+    Enable Code Coverage, Test Results and Exit after Run
+
+    Replace with ConfigurationProperty
+        CodeCoverage.Enabled = $true
+        TestResult.Enabled = $true
+        Run.Exit = $true
 
     .PARAMETER CodeCoverage
     Adds a code coverage report to the Pester tests. Takes strings or hash table values.
@@ -339,8 +346,14 @@ function Invoke-Pester {
     If this path is not provided, no file will be generated.
 
     .PARAMETER CodeCoverageOutputFileEncoding
+    (Deprecated v4)
+    Replace with ConfigurationProperty CodeCoverage.CodeCoverageOutputFileEncoding
+    Sets the output encoding of CodeCoverageOutputFileFormat
+    Default is utf8
 
     .PARAMETER CodeCoverageOutputFileFormat
+    (Deprecated v4)
+    Replace with ConfigurationProperty CodeCoverage.CodeCoverageOutputFileFormat
     The name of a code coverage report file format.
     Default value is: JaCoCo.
     Currently supported formats are:
@@ -356,20 +369,32 @@ function Invoke-Pester {
     tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
     .PARAMETER ExcludePath
+    (Deprecated v4)
+    Replace with ConfigurationProperty Run.ExcludePath
 
     .PARAMETER ExcludeTagFilter
+    (Deprecated v4)
 
     .PARAMETER FullNameFilter
+    (Deprecated v4)
+
 
     .PARAMETER Output
+    Supports Diagnostic, Detailed, Normal, Minimal, None
+
+    Default value is: Normal
 
     .PARAMETER OutputFile
+    (Deprecated v4)
+    Replace with ConfigurationProperty TestResult.OutputFile
     The path where Invoke-Pester will save formatted test results log file.
     The path must include the location and name of the folder and file name with
     the xml extension.
     If this path is not provided, no log will be generated.
 
     .PARAMETER OutputFormat
+    (Deprecated v4)
+    Replace with ConfigurationProperty TestResult.OutputFormat
     The format of output. Currently NUnitXml is supported.
     Note that JUnitXml is not currently supported in Pester 5.
 
@@ -381,9 +406,11 @@ function Invoke-Pester {
     To suppress the host output, use the Show parameter set to None.
 
     .PARAMETER Path
+    (Deprecated v4)
+    Aliases Script
     Specifies a test to run. The value is a path\file
     name or name pattern. Wildcards are permitted. All hash tables in a Script
-    parameter value must have a Path key.
+    parameter values must have a Path key.
 
     .PARAMETER PesterOption
     Sets advanced options for the test execution. Enter a PesterOption object,
@@ -401,13 +428,28 @@ function Invoke-Pester {
     is written when you use the Output parameters.
 
     .PARAMETER Show
+    (Deprecated v4)
+    Replace with ConfigurationProperty Output.Verbosity
     Customizes the output Pester writes to the screen. Available options are None, Default,
     Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
     The options can be combined to define presets.
-    Common use cases are:
-    None - to write no output to the screen.
-    All - to write all available information (this is default option).
-    Fails - to write everything except Passed (but including Describes etc.).
+    ConfigurationProperty Output.Verbosity supports the following values:
+    None
+    Minimal
+    Normal
+    Detailed
+    Diagnostic
+
+    Show parameter supports the following parameter values:
+    None - (None) to write no output to the screen.
+    All - (Detailed) to write all available information (this is default option).
+    Default - (Detailed)
+    Detailed - (Detailed)
+    Fails - (Normal) to write everything except Passed (but including Describes etc.).
+    Diagnostic - (Diagnostic)
+    Normal - (Normal)
+    Minimal - (Minimal)
+
     A common setting is also Failed, Summary, to write only failed tests and test summary.
     This parameter does not affect the PassThru custom object or the XML output that
     is written when you use the Output parameters.
@@ -417,6 +459,9 @@ function Invoke-Pester {
     integration where you need to make sure all tests passed.
 
     .PARAMETER TagFilter
+    (Deprecated v4)
+    Aliases Tag, Tags
+    Replace with ConfigurationProperty Filter.Tag
 
     .EXAMPLE
     Invoke-Pester
