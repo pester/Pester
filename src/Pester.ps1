@@ -387,14 +387,17 @@ function Invoke-Pester {
     Run.ScriptBlock - ScriptBlocks containing tests to be executed.
     Run.TestExtension - Filter used to identify test files.
         Default is: *.Tests.ps1*
-    Output.Verbosity
+    Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
+        Default is: Normal
     CodeCoverage.Enabled - Enable CodeCoverage.
+        Default is: false
     CodeCoverage.OutputFormat - Format to use for code coverage report. Possible values: JaCoCo
     CodeCoverage.OutputPath - Path relative to the current directory where code coverage report is saved.
         Default is: coverage.xml
     CodeCoverage.OutputEncoding - Encoding of the output file. Currently UTF8
     CodeCoverage.Path - Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.
     CodeCoverage.ExcludeTests - Exclude tests from code coverage. This uses the TestFilter from general configuration.
+        Default is: true
     TestResult.Enabled - Enable TestResult.
     TestResult.OutputFormat - Format to use for test result report. Possible values: NUnit2.5
     TestResult.OutputPath - Path relative to the current directory where test result report is saved.
@@ -402,9 +405,10 @@ function Invoke-Pester {
     TestResult.OutputEncoding - Encoding of the output file. Currently UTF8
     TestResult.TestSuiteName - Set the name assigned to the root 'test-suite' element.
         Default is: Pester
-    Filter.ExcludeTag
-    Filter.FullName
-    Filter.Tag
+    Filter.ExcludeTag - Exclude a tag, accepts wildcards
+    Filter.FullName - Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
+    Filter.Line - Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
+    Filter.Tag - Tags of Describe, Context or It to be run.
     Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
     Debug.ShowFullErrors - Show full errors including Pester internal stack.
     Debug.ShowNavigationMarkers - Write paths after every block and test, for easy navigation in VSCode.
@@ -432,6 +436,8 @@ function Invoke-Pester {
     Replace with ConfigurationProperty Filter.FullName
 
     .PARAMETER Output
+    (Deprecated v4)
+    Replace with ConfigurationProperty Output.Verbosity
     Supports Diagnostic, Detailed, Normal, Minimal, None
 
     Default value is: Normal
@@ -451,6 +457,8 @@ function Invoke-Pester {
     Note that JUnitXml is not currently supported in Pester 5.
 
     .PARAMETER PassThru
+    (Deprecated v4)
+    Replace with ConfigurationProperty Run.PassThru
     Returns a custom object (PSCustomObject) that contains the test results.
     By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
     If you try to save the result in a variable, the variable is empty unless you
