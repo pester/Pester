@@ -304,6 +304,8 @@ function Invoke-Pester {
         Run.Exit = $true
 
     .PARAMETER CodeCoverage
+    (Deprecated v4)
+    Replace with ConfigurationProperty CodeCoverage.Enabled = $true
     Adds a code coverage report to the Pester tests. Takes strings or hash table values.
     A code coverage report lists the lines of code that did and did not run during
     a Pester test. This report does not tell whether code was tested; only whether
@@ -340,6 +342,7 @@ function Invoke-Pester {
     Default is the last line of the script.
 
     .PARAMETER CodeCoverageOutputFile
+    (Deprecated v4)
     The path where Invoke-Pester will save formatted code coverage results file.
     The path must include the location and name of the folder and file name with
     a required extension (usually the xml).
@@ -363,8 +366,56 @@ function Invoke-Pester {
     https://github.com/danielpalme/ReportGenerator
 
     .PARAMETER Configuration
+    (Introduced v5)
+    [PesterConfiguration] object for Advanced Configuration
+
+    Pester supports Simple and Advanced Configuration.
+
+    Invoke-Pester -Configuration <PesterConfiguration> [<CommonParameters>]
+
+    Default is [PesterConfiguration]::Default
+
+    ConfigurationProperties include following:
+
+    Run.ExcludePath - Directories or files to be excluded from the run.
+    Run.Exit - Exit with non-zero exit code when the test run fails.
+        Default is: false
+    Run.PassThru - Return result object to the pipeline after finishing the test run.
+        Default is: false
+    Run.Path - Directories to be searched for tests, paths directly to test files, or combination of both.
+        Default is: .
+    Run.ScriptBlock - ScriptBlocks containing tests to be executed.
+    Run.TestExtension - Filter used to identify test files.
+        Default is: *.Tests.ps1*
+    Output.Verbosity
+    CodeCoverage.Enabled - Enable CodeCoverage.
+    CodeCoverage.OutputFormat - Format to use for code coverage report. Possible values: JaCoCo
+    CodeCoverage.OutputPath - Path relative to the current directory where code coverage report is saved.
+        Default is: coverage.xml
+    CodeCoverage.OutputEncoding - Encoding of the output file. Currently UTF8
+    CodeCoverage.Path - Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.
+    CodeCoverage.ExcludeTests - Exclude tests from code coverage. This uses the TestFilter from general configuration.
+    TestResult.Enabled - Enable TestResult.
+    TestResult.OutputFormat - Format to use for test result report. Possible values: NUnit2.5
+    TestResult.OutputPath - Path relative to the current directory where test result report is saved.
+        Default is: testResults.xml
+    TestResult.OutputEncoding - Encoding of the output file. Currently UTF8
+    TestResult.TestSuiteName - Set the name assigned to the root 'test-suite' element.
+        Default is: Pester
+    Filter.ExcludeTag
+    Filter.FullName
+    Filter.Tag
+    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
+    Debug.ShowFullErrors - Show full errors including Pester internal stack.
+    Debug.ShowNavigationMarkers - Write paths after every block and test, for easy navigation in VSCode.
+    Debug.WriteDebugMessages - Write Debug messages to screen.
+    Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
+        Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+    Debug.WriteVSCodeMarker - Write VSCode marker for better integration with VSCode.
 
     .PARAMETER EnableExit
+    (Deprecated v4)
+    Replace with ConfigurationProperty Run.EnableExit
     Will cause Invoke-Pester to exit with a exit code equal to the number of failed
     tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
@@ -374,10 +425,11 @@ function Invoke-Pester {
 
     .PARAMETER ExcludeTagFilter
     (Deprecated v4)
+    Replace with ConfigurationProperty Filter.ExcludeTag
 
     .PARAMETER FullNameFilter
     (Deprecated v4)
-
+    Replace with ConfigurationProperty Filter.FullName
 
     .PARAMETER Output
     Supports Diagnostic, Detailed, Normal, Minimal, None
