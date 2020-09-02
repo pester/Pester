@@ -372,6 +372,7 @@ function New-Test {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $true)]
         [int] $StartLine,
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
