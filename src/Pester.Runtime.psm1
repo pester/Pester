@@ -980,9 +980,7 @@ function Run-Test {
                 $action = $setVariables
                 $setup = $rootBlock.OneTimeTestSetup
                 $parameters = @{
-                    # taking the first one because we expanded the containers to have
-                    # just one set of data per each
-                    Data = $rootBlock.BlockContainer.Data[0]
+                    Data = $rootBlock.BlockContainer.Data
                     Set_Variable = $SafeCommands["Set-Variable"]
                 }
 
@@ -2251,7 +2249,7 @@ function New-BlockContainerObject {
         [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
         [System.IO.FileInfo] $File,
-        [Collections.IDictionary[]] $Data
+        [Collections.IDictionary] $Data
     )
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
@@ -2261,25 +2259,11 @@ function New-BlockContainerObject {
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
 
-    if ($null -ne $Data -and 0 -lt $Data.Count) {
-        foreach ($d in $Data) {
-            $c = [Pester.ContainerInfo]::Create()
-            $c.Type    = $type
-            $c.Item = $item
-            $c.Data = $d
-            $c
-        }
-    }
-    else {
-        $c = [Pester.ContainerInfo]::Create()
-        $c.Type    = $type
-        $c.Item = $item
-        $c = [Pester.ContainerInfo]::Create()
-        $c.Type    = $type
-        $c.Item = $item
-        $c.Data = @{}
-        $c
-    }
+    $c = [Pester.ContainerInfo]::Create()
+    $c.Type = $type
+    $c.Item = $item
+    $c.Data = if ($null -ne $Data) { $Data } else { @{} }
+    $c
 }
 
 function New-DiscoveredBlockContainerObject {

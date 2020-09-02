@@ -288,6 +288,9 @@ function Invoke-Pester {
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch] $PassThru,
 
+        [Parameter(ParameterSetName = "Simple")]
+        [Pester.TestContainer[]] $Container,
+
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration,
 
@@ -414,6 +417,23 @@ function Invoke-Pester {
                     }
 
                     Get-Variable 'PassThru' -Scope Local | Remove-Variable
+                }
+
+                if ($PSBoundParameters.ContainsKey('Container')) {
+                    # expand from the public Pester.TestContainer, or more likely Pester.TestFile types to ContainerInfo
+                    # the public types can hold multiple sets of data, ContainerInfo can hold only one to keep the internal
+                    # logic simple.
+                    if ($null -ne $Container) {
+                        $cs = @()
+
+                        foreach ($c in $Container) {
+                            $cs += ([Pester.ContainerInfo]::CreateFromTestContainer($c))
+                        }
+
+                        $Configuration.Run.Container = $cs
+                    }
+
+                    Get-Variable 'Container' -Scope Local | Remove-Variable
                 }
             }
 
@@ -681,12 +701,16 @@ function Invoke-Pester {
             }
 
             if ((any $PesterPreference.Run.Path.Value)) {
-                if ((none $PesterPreference.Run.ScriptBlock.Value) -or ((any $PesterPreference.Run.ScriptBlock.Value) -and '.' -ne $PesterPreference.Run.Path.Value[0])) {
+                if (((none $PesterPreference.Run.ScriptBlock.Value) -and (none $PesterPreference.Run.Container.Value)) -or ((any $PesterPreference.Run.ScriptBlock.Value) -and '.' -ne $PesterPreference.Run.Path.Value[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
                     $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value | foreach { New-BlockContainerObject -File $_ })
                 }
+            }
+
+            foreach ($c in $PesterPreference.Run.Container.Value) {
+                $containers += $c
             }
 
             # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content

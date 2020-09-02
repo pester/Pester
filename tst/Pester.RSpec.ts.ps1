@@ -543,4 +543,38 @@ i -PassThru:$PassThru {
             $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
     }
+
+    b "Parametric scripts" {
+        t "Data can be passed to scripts" {
+            $sb = {
+                param ($Value)
+
+                if ($Value -ne 1 -and $Value -ne 2) {
+                    throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                }
+
+                BeforeAll {
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+                }
+
+                Describe "d1" {
+                    It "t1" {
+                        if ($Value -ne 1 -and $Value -ne 2) {
+                            throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                        }
+                    }
+                }
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb -Data @(
+                    @{ Value = 1 }
+                    @{ Value = 2 }
+                )
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
 }

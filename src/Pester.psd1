@@ -57,6 +57,9 @@
         # 'ConvertTo-JUnitReport'
         'ConvertTo-Pester4Result'
 
+        # config
+        'New-TestContainer',
+
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'

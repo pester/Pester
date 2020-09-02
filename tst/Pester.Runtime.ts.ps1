@@ -2173,15 +2173,8 @@ i -PassThru:$PassThru {
             $actual.Blocks.Count | Verify-Equal 2
         }
 
-        t "New-ParametrizedContainer makes it's data available in Setup*, Teadown* and Test" {
-            $data = @(
-                # runs the same set of tests twice
-                # this is useful to detect errors where we are not
-                # taking the first item of an array but instead take the
-                # whole array
-                @{ Value = 1 }
-                @{ Value = 1 }
-            )
+        t "New-BlockContainerObject makes it's data available in Setup*, Teadown* and Test" {
+            $data = @{ Value = 1 }
 
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {

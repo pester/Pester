@@ -368,3 +368,22 @@ function Remove-RSpecNonPublicProperties ($run){
         $i.PluginData = $null
     }
 }
+
+
+function New-TestContainer {
+    [CmdletBinding(DefaultParameterSetName="Path")]
+    param(
+        [Parameter(Mandatory, ParameterSetName = "Path")]
+        [String] $Path,
+
+        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
+        [ScriptBlock] $ScriptBlock,
+
+        [Collections.IDictionary[]] $Data
+    )
+
+    switch ($PSCmdlet.ParameterSetName) {
+        "ScriptBlock" { [Pester.TestScriptBlock]::Create($ScriptBlock, $Data) }
+        Default { [Pester.TestFile]::Create($Path, $Data) }
+    }
+}
