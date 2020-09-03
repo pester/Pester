@@ -154,7 +154,6 @@ function New-Block {
         [String] $Name,
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $true)]
         [int] $StartLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
