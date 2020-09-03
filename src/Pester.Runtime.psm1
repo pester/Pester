@@ -145,26 +145,6 @@ function ConvertTo-ExecutedBlockContainer {
 
 }
 
-function New-ParametrizedBlock {
-    param (
-        [Parameter(Mandatory = $true)]
-        [String] $Name,
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock,
-        [String[]] $Tag = @(),
-        [HashTable] $FrameworkData = @{ },
-        [System.Collections.IDictionary[]] $Data = @{},
-        [Switch] $Focus,
-        [String] $Id,
-        [Switch] $Skip
-    )
-
-    $id = $ScriptBlock.StartPosition.StartLine
-    foreach ($d in $Data) {
-        New-Block -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -FrameworkData $FrameworkData -Data $d -Focus:$Focus -Skip:$Skip
-    }
-}
-
 # endpoint for adding a block that contains tests
 # or other blocks
 function New-Block {

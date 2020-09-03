@@ -2155,24 +2155,7 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "New-ParametrizedBlock" {
-        t "New-ParametrizedBlock takes data and generates as many blocks as there are hashtables" {
-            $data = @(
-                @{ Value = 1 }
-                @{ Value = 2 }
-            )
-
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-                New-BlockContainerObject -ScriptBlock {
-                    New-ParametrizedBlock -Name "block1" {
-                        New-Test "test" { }
-                    } -Data $data
-                }
-            )
-
-            $actual.Blocks.Count | Verify-Equal 2
-        }
-
+    b "Parametrized container" {
         t "New-BlockContainerObject makes it's data available in Setup*, Teadown* and Test" {
             $data = @{ Value = 1 }
 
