@@ -576,5 +576,337 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
+
+        t "Single path with single set of data" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1) {
+                        throw "Expected `$Value to be 1 but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 1) {
+                            throw "Expected `$Value to be 1 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1) {
+                                throw "Expected `$Value to be 1 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = New-TestContainer -Path $file -Data @{ Value = 1 }
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Multiple instances of the same path each with it's own data" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 1 -and $Value -ne 2) {
+                            throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1 -and $Value -ne 2) {
+                                throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = @(
+                    (New-TestContainer -Path $file -Data @{ Value = 1 })
+                    (New-TestContainer -Path $file -Data @{ Value = 2 })
+                )
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Single path with multiple sets of data (alternative to the above)" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 1 -and $Value -ne 2) {
+                            throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1 -and $Value -ne 2) {
+                                throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = New-TestContainer -Path $file -Data @(
+                        @{ Value = 1 }
+                        @{ Value = 2 }
+                    )
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Multiple different paths each with it's own data" {
+            try {
+                $sb1 = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 1 -and $Value -ne 2) {
+                            throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1 -and $Value -ne 2) {
+                                throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $sb2 = {
+                    param (
+                        [string] $Color
+                    )
+
+                    if ($Color -ne "Blue" -and $Color -ne "Yellow") {
+                        throw "Expected `$Color to be Blue or Yellow but it is, '$Color'"
+                    }
+
+                    BeforeAll {
+                        if ($Color -ne "Blue" -and $Color -ne "Yellow") {
+                            throw "Expected `$Color to be Blue or Yellow but it is, '$Color'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Color -ne "Blue" -and $Color -ne "Yellow") {
+                                throw "Expected `$Color to be Blue or Yellow but it is, '$Color'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file1 = "$tmp/file1.Tests.ps1"
+                $file2 = "$tmp/file2.Tests.ps1"
+                $sb1 | Set-Content -Path $file1
+                $sb2 | Set-Content -Path $file2
+
+                $container = @(
+                    (New-TestContainer -Path $file1 -Data @(
+                        @{ Value = 1 }
+                        @{ Value = 2 }
+                    ))
+
+                    (New-TestContainer -Path $file2 -Data @(
+                        @{ Color = "Blue" }
+                        @{ Color = "Yellow" }
+                    ))
+                )
+
+                $r = Invoke-Pester -Container $container -PassThru # -Output Normal
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[2].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[3].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file1 -and (Test-Path $file1)) {
+                    Remove-Item $file1 -Force
+                }
+
+                if ($null -ne $file2 -and (Test-Path $file2)) {
+                    Remove-Item $file2 -Force
+                }
+            }
+        }
+
+        t "Providing path with wildcard should expand the path to multiple containers" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1 -and $Value -ne 2) {
+                                throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file1 = "$tmp/file1.Tests.ps1"
+                $file2 = "$tmp/file2.Tests.ps1"
+                $sb | Set-Content -Path $file1
+                $sb | Set-Content -Path $file2
+
+                # passing path to the whole directory with two test files
+                $container = New-TestContainer -Path $tmp -Data @(
+                    @{ Value = 1 }
+                    @{ Value = 2 }
+                )
+
+                $r = Invoke-Pester -Container $container -PassThru # -Output Normal
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[2].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[3].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file1 -and (Test-Path $file1)) {
+                    Remove-Item $file1 -Force
+                }
+
+                if ($null -ne $file2 -and (Test-Path $file2)) {
+                    Remove-Item $file2 -Force
+                }
+            }
+        }
+
+        t "Providing -Path that resolves to the same path as a parametrized script should skip that path" {
+            try {
+                $sb1 = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1) {
+                        throw "Expected `$Value to be 1 but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 1) {
+                            throw "Expected `$Value to be 1 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1) {
+                                throw "Expected `$Value to be 1 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $sb2 = {
+                    Describe "d2" {
+                        It "t2" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file1 = "$tmp/file1.Tests.ps1"
+                $file2 = "$tmp/file2.Tests.ps1"
+                $sb1 | Set-Content -Path $file1
+                $sb2 | Set-Content -Path $file2
+
+                $container = New-TestContainer -Path $file1 -Data @{ Value = 1 }
+
+                # the path to $file1 should be included only once, even though -Path $tmp will find that file as well
+                # because we expect the parametrized script to require the parameters, but still want to allow
+                # providing wildcard paths to run the rest of the test base
+                $r = Invoke-Pester -Path $tmp -Container $container -PassThru -Output Normal
+                $r.Containers.Count | Verify-Equal 2
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file1 -and (Test-Path $file1)) {
+                    Remove-Item $file1 -Force
+                }
+
+                if ($null -ne $file2 -and (Test-Path $file2)) {
+                    Remove-Item $file2 -Force
+                }
+            }
+        }
     }
 }

@@ -384,6 +384,6 @@ function New-TestContainer {
 
     switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { [Pester.TestScriptBlock]::Create($ScriptBlock, $Data) }
-        Default { [Pester.TestFile]::Create($Path, $Data) }
+        Default { [Pester.TestPath]::Create($Path, $Data) }
     }
 }

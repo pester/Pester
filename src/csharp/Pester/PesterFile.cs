@@ -10,25 +10,25 @@ namespace Pester
         public IDictionary[] Data { get; set; }
     }
 
-    public class TestFile : TestContainer
+    public class TestPath : TestContainer
     {
-        public static TestFile Create(string path)
+        public static TestPath Create(string path)
         {
-            return new TestFile(path);
+            return new TestPath(path);
         }
 
-        public static TestFile Create(string path, IDictionary[] data)
+        public static TestPath Create(string path, IDictionary[] data)
         {
-            return new TestFile(path, data);
+            return new TestPath(path, data);
         }
 
 
-        public TestFile(string path) : this(path, null)
+        public TestPath(string path) : this(path, null)
         {
 
         }
 
-        public TestFile(string path, IDictionary[] data)
+        public TestPath(string path, IDictionary[] data)
         {
             Container = Path = path ?? throw new ArgumentNullException(nameof(path));
             Data = data;

@@ -2299,8 +2299,8 @@ function Invoke-File {
     )
 
     $sb = {
-        param ($private:p)
-        . $private:p
+        param ($private:p, $private:d)
+        . $private:p @d
     }
 
     # set the original session state to the wrapper scriptblock
@@ -2309,7 +2309,7 @@ function Invoke-File {
     $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal, $null)
 
-    & $sb $Path @Data
+    & $sb $Path $Data
 }
 
 function Import-Dependency {
