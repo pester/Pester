@@ -2169,7 +2169,7 @@ i -PassThru:$PassThru {
                         throw "Value should be 1 but is $Value."
                     }
 
-                    New-OneTimeBlockSetup {
+                    New-OneTimeTestSetup {
                         $Value | Verify-Equal 1
                     }
 
@@ -2180,6 +2180,34 @@ i -PassThru:$PassThru {
                     New-Block -Name "block1" {
                         New-Test "test" {
                             $Value | Verify-Equal 1
+                        }
+                    }
+                } -Data $data
+            )
+
+            $actual.Blocks[0].Tests[0] | Verify-TestPassed
+        }
+
+        t "New-BlockContainerObject makes it's data available in Test, and data from Setup are also available" {
+            # at the moment the variable insertion is implemented as extra one time test setup
+            # which wraps the the user setup, here we are ensuring that both of those setups run
+            $data = @{ Value = 1 }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+
+                    New-OneTimeTestSetup {
+                        $Color = "Blue"
+                    }
+
+                    New-OneTimeBlockTeardown {
+                        $Value | Verify-Equal 1
+                    }
+
+                    New-Block -Name "block1" {
+                        New-Test "test" {
+                            $Value | Verify-Equal 1
+                            $Color | Verify-Equal "Blue"
                         }
                     }
                 } -Data $data

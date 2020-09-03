@@ -939,13 +939,9 @@ function Run-Test {
                 throw "Teardowns are not supported in root (directly in the block container)."
             }
 
-            # add BeforeAll to set variables, by having $setVariables script that will invoke in the user scope
+            # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
             # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
             # before all script, but it might be better to make this a plugin, because there we can pass data.
-            # TODO:
-            # I am overwriting the actual BeforeAll that we've set in the test, so these both need to be fixed
-            # $rootBlock.OneTimeTestSetup = $setVariablesWithContext. With any solution I need to be careful to not
-            # set the variables in the top level scope so we don't start leaking them among scripts again.
             $setVariables = {
                 param($private:____parameters)
                 foreach($private:____d in $____parameters.Data.GetEnumerator()) {
