@@ -154,6 +154,7 @@ function New-Block {
         [String] $Name,
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
+        [int] $StartLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
@@ -184,6 +185,7 @@ function New-Block {
     $block.Path = $Path
     $block.Tag = $Tag
     $block.ScriptBlock = $ScriptBlock
+    $block.StartLine = $StartLine
     $block.FrameworkData = $FrameworkData
     $block.Focus = $Focus
     $block.Id = $Id
@@ -369,6 +371,7 @@ function New-Test {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
+        [int] $StartLine,
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
@@ -397,6 +400,7 @@ function New-Test {
     $test.ScriptBlock = $ScriptBlock
     $test.Name = $Name
     $test.Path = $path
+    $test.StartLine = $StartLine
     $test.Tag = $Tag
     $test.Focus = $Focus
     $test.Skip = $Skip
@@ -1550,7 +1554,8 @@ function Test-ShouldRun {
     # the test even if it is marked as skipped run this include as first so we figure it out
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.ScriptBlock.StartPosition.StartLine)" -replace '\\', '/'
+
+    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
     if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
         foreach ($l in $lineFilter -replace '\\', '/') {
@@ -2344,6 +2349,7 @@ function New-ParametrizedTest () {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
+        [int] $StartLine,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [System.Collections.IDictionary[]] $Data = @{ },
@@ -2360,7 +2366,7 @@ function New-ParametrizedTest () {
     $id = $ScriptBlock.StartPosition.StartLine
     foreach ($d in $Data) {
         #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
-        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -Data $d -Focus:$Focus -Skip:$Skip
+        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
     }
 }
 
