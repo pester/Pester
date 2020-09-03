@@ -8,9 +8,9 @@ function Format-Collection ($Value, [switch]$Pretty) {
     if ($Pretty) {
         $separator = ",`n"
     }
-    #$count = $Value.Count
-    #$trimmed = $count  -gt $Limit
-    '@(' + (($Value | Select -First $Limit | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator ) + <# $(if ($trimmed) {' +' + [string]($count-$limit)}) + #> ')'
+    $count = $Value.Count
+    $trimmed = $count  -gt $Limit
+    '@(' + (($Value | Select -First $Limit | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {
