@@ -2,11 +2,10 @@
 param (
     [Parameter(Mandatory)]
     [String] $PsGalleryApiKey,
-    [Parameter(Mandatory)]
     [String] $NugetApiKey,
-    [Parameter(Mandatory)]
     [String] $ChocolateyApiKey,
-    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43'
+    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43',
+    [Switch] $Force
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,10 +22,32 @@ if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
 
+$m = Test-ModuleManifest $bin/Pester.psd1
+$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
+{
+    "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
+}
+else {
+    $m.Version
+}
+
+$isPreRelease = $version -match '-'
+
+if (-not $isPreRelease -or $Force) {
+    if ($null -eq $NugetApiKey) {
+        throw "NugetApiKey is needed."
+    }
+
+    if ($null -eq $ChocolateyApiKey) {
+        throw "ChocolateyApiKey is needed."
+    }
+}
+
 pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
 if ($LASTEXITCODE -ne 0) {
     throw "test failed!"
 }
+
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
@@ -102,19 +123,16 @@ Get-ChildItem -Path $bin -Filter *.dll -Recurse | Foreach-Object {
 "@
 }
 
-$m = Test-ModuleManifest $nugetDir/Pester.psd1
-$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
-{
-    "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
-}
-else {
-    $m.Version
-}
-
 & nuget pack "$PSScriptRoot/Pester.nuspec" -OutputDirectory $nugetDir -NoPackageAnalysis -version $version
 $nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
 & nuget sign $nupkg -CertificateFingerprint $CertificateThumbprint -Timestamper "http://timestamp.digicert.com"
 
 Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
-& nuget push $nupkg -Source https://api.nuget.org/v3/index.json -apikey $NugetApiKey
-& nuget push $nupkg -Source https://push.chocolatey.org/ -apikey $ChocolateyApiKey
+
+if (-not $isPreRelease -or $Force) {
+    & nuget push $nupkg -Source https://api.nuget.org/v3/index.json -apikey $NugetApiKey
+    & nuget push $nupkg -Source https://push.chocolatey.org/ -apikey $ChocolateyApiKey
+}
+else {
+    Write-Host "This is pre-release $version, not pushing to Nuget and Chocolatey."
+}
