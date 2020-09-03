@@ -603,7 +603,7 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
                 $null = New-Item $tmp -Force -ItemType Container
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
@@ -645,7 +645,7 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
                 $null = New-Item $tmp -Force -ItemType Container
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
@@ -691,7 +691,7 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
                 $null = New-Item $tmp -Force -ItemType Container
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
@@ -761,7 +761,7 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
                 $null = New-Item $tmp -Force -ItemType Container
                 $file1 = "$tmp/file1.Tests.ps1"
                 $file2 = "$tmp/file2.Tests.ps1"
@@ -817,7 +817,7 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
                 $null = New-Item $tmp -Force -ItemType Container
                 $file1 = "$tmp/file1.Tests.ps1"
                 $file2 = "$tmp/file2.Tests.ps1"
@@ -881,7 +881,7 @@ i -PassThru:$PassThru {
                     }
                 }
 
-                $tmp = "$([IO.Path]::GetTempPath())/$(New-Guid)"
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
                 $null = New-Item $tmp -Force -ItemType Container
                 $file1 = "$tmp/file1.Tests.ps1"
                 $file2 = "$tmp/file2.Tests.ps1"
