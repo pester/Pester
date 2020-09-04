@@ -112,4 +112,10 @@ InPesterModuleScope {
             $returnedValue | Should -BeNullOrEmpty # make sure the previous assertion returned nothing
         }
     }
+
+    Describe 'Using Should without the main assertion switch' {
+        It 'Should -Throw should be used when one of its parameters is used' {
+            { throw "abc" } | Should -ErrorId "abc" # -Throw is not used
+        }
+    }
 }
