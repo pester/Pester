@@ -1,6 +1,7 @@
 using Pester;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
@@ -279,6 +280,60 @@ namespace Pester
         {
             var array = new[] { value };
             return new ScriptBlockArrayOption(string.Empty, array, array);
+        }
+    }
+
+    public class ContainerInfoArrayOption : Option<ContainerInfo[]>
+    {
+        public ContainerInfoArrayOption(ContainerInfoArrayOption option, ContainerInfo[] value) : base(option, value)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(string description, ContainerInfo[] defaultValue) : base(description, defaultValue, defaultValue)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(string description, ContainerInfo[] defaultValue, ContainerInfo[] value) : base(description, defaultValue, value)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(object[] value) : base("", new ContainerInfo[0], value.Cast<ContainerInfo>().ToArray())
+        {
+
+        }
+
+        public ContainerInfoArrayOption(ContainerInfo[] value) : base("", new ContainerInfo[0], value)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(List<object> value) : base("", new ContainerInfo[0], value.Cast<ContainerInfo>().ToArray())
+        {
+
+        }
+
+        public ContainerInfoArrayOption(List<ContainerInfo> value) : base("", new ContainerInfo[0], value.ToArray())
+        {
+
+        }
+
+        public ContainerInfoArrayOption(ContainerInfo value) : this(new ContainerInfo[] { value })
+        {
+
+        }
+
+        public static implicit operator ContainerInfoArrayOption(ContainerInfo[] value)
+        {
+            return new ContainerInfoArrayOption(string.Empty, value, value);
+        }
+
+        public static implicit operator ContainerInfoArrayOption(ContainerInfo value)
+        {
+            var array = new[] { value };
+            return new ContainerInfoArrayOption(string.Empty, array, array);
         }
     }
 
@@ -786,6 +841,7 @@ namespace Pester
         private StringArrayOption _path;
         private StringArrayOption _excludePath;
         private ScriptBlockArrayOption _scriptBlock;
+        private ContainerInfoArrayOption _container;
         private StringOption _testExtension;
         private BoolOption _exit;
         private BoolOption _passThru;
@@ -803,6 +859,7 @@ namespace Pester
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludePath = configuration.GetArrayOrNull<string>("ExcludePath") ?? ExcludePath;
                 ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>("ScriptBlock") ?? ScriptBlock;
+                Container = configuration.GetArrayOrNull<ContainerInfo>("Container") ?? Container;
                 TestExtension = configuration.GetObjectOrNull<string>("TestExtension") ?? TestExtension;
                 Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
                 PassThru = configuration.GetValueOrNull<bool>("PassThru") ?? PassThru;
@@ -814,6 +871,7 @@ namespace Pester
             Path = new StringArrayOption("Directories to be searched for tests, paths directly to test files, or combination of both.", new string[] { "." });
             ExcludePath = new StringArrayOption("Directories or files to be excluded from the run.", new string[0]);
             ScriptBlock = new ScriptBlockArrayOption("ScriptBlocks containing tests to be executed.", new ScriptBlock[0]);
+            Container = new ContainerInfoArrayOption("ContainerInfo objects containing tests to be executed.", new ContainerInfo[0]);
             TestExtension = new StringOption("Filter used to identify test files.", ".Tests.ps1");
             Exit = new BoolOption("Exit with non-zero exit code when the test run fails.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
@@ -863,6 +921,22 @@ namespace Pester
                 else
                 {
                     _scriptBlock = new ScriptBlockArrayOption(_scriptBlock, value?.Value);
+                }
+            }
+        }
+
+        public ContainerInfoArrayOption Container
+        {
+            get { return _container; }
+            set
+            {
+                if (_container == null)
+                {
+                    _container = value;
+                }
+                else
+                {
+                    _container = new ContainerInfoArrayOption(_container, value?.Value);
                 }
             }
         }

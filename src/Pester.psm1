@@ -33,6 +33,9 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Add-ShouldOperator'
     'Get-ShouldOperator'
 
+    # config
+    'New-TestContainer',
+
     # export
     'Export-NunitReport'
     'ConvertTo-NUnitReport'

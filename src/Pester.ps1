@@ -156,7 +156,7 @@ function Add-AssertionDynamicParameterSet {
 
     $attribute = New-Object Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
-    
+
     $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
@@ -294,7 +294,7 @@ function Invoke-Pester {
     repository, see https://github.com/Pester.
 
     .PARAMETER CI
-    (Deprecated v4)
+    (Introduced v5)
     Enable Code Coverage, Test Results and Exit after Run
 
     Replace with ConfigurationProperty
@@ -470,7 +470,6 @@ function Invoke-Pester {
     Note that JUnitXml is not currently supported in Pester 5.
 
     .PARAMETER PassThru
-    (Deprecated v4)
     Replace with ConfigurationProperty Run.PassThru
     Returns a custom object (PSCustomObject) that contains the test results.
     By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
@@ -479,20 +478,21 @@ function Invoke-Pester {
     To suppress the host output, use the Show parameter set to None.
 
     .PARAMETER Path
-    (Deprecated v4)
     Aliases Script
     Specifies a test to run. The value is a path\file
     name or name pattern. Wildcards are permitted. All hash tables in a Script
     parameter values must have a Path key.
 
     .PARAMETER PesterOption
+    (Deprecated v4)
     Sets advanced options for the test execution. Enter a PesterOption object,
     such as one that you create by using the New-PesterOption cmdlet, or a hash table
     in which the keys are option names and the values are option values.
     For more information on the options available, see the help for New-PesterOption.
 
     .PARAMETER Quiet
-    The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
+    (Deprecated v4)
+    The parameter Quiet is deprecated since Pester v4.0 and will be deleted
     in the next major version of Pester. Please use the parameter Show
     with value 'None' instead.
     The parameter Quiet suppresses the output that Pester writes to the host program,
@@ -528,6 +528,7 @@ function Invoke-Pester {
     is written when you use the Output parameters.
 
     .PARAMETER Strict
+    (Deprecated v4)
     Makes Pending and Skipped tests to Failed tests. Useful for continuous
     integration where you need to make sure all tests passed.
 
@@ -608,6 +609,9 @@ function Invoke-Pester {
         [Parameter(ParameterSetName = "Simple")]
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch] $PassThru,
+
+        [Parameter(ParameterSetName = "Simple")]
+        [Pester.TestContainer[]] $Container,
 
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration,
@@ -735,6 +739,39 @@ function Invoke-Pester {
                     }
 
                     Get-Variable 'PassThru' -Scope Local | Remove-Variable
+                }
+
+
+                if ($PSBoundParameters.ContainsKey('Container')) {
+                    # expand from the public Pester.TestContainer, or more likely Pester.TestPath types to ContainerInfo
+                    # the public types can hold multiple sets of data, ContainerInfo can hold only one to keep the internal
+                    # logic simple.
+                    if ($null -ne $Container) {
+                        $cs = @()
+
+                        foreach ($c in $Container) {
+                            $data = if ($null -eq $c.Data) { @(@{}) } else { $c.Data }
+                            if ($c -is [Pester.TestScriptBlock]) {
+                                foreach ($d in $data) {
+                                    $cs += New-BlockContainerObject -ScriptBlock $c.ScriptBlock -Data $d
+                                }
+                            }
+
+                            if ($c -is [Pester.TestPath]) {
+                                foreach ($d in $data) {
+                                    # resolve the path we are given in the same way we would resolve -Path
+                                    $files = @(Find-File -Path $c.Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
+                                    foreach ($file in $files) {
+                                        $cs += New-BlockContainerObject -File $file -Data $d
+                                    }
+                                }
+                            }
+                        }
+
+                        $Configuration.Run.Container = $cs
+                    }
+
+                    Get-Variable 'Container' -Scope Local | Remove-Variable
                 }
             }
 
@@ -1001,12 +1038,17 @@ function Invoke-Pester {
                 $containers += @( $PesterPreference.Run.ScriptBlock.Value | foreach { New-BlockContainerObject -ScriptBlock $_ })
             }
 
+            foreach ($c in $PesterPreference.Run.Container.Value) {
+                $containers += $c
+            }
+
             if ((any $PesterPreference.Run.Path.Value)) {
-                if ((none $PesterPreference.Run.ScriptBlock.Value) -or ((any $PesterPreference.Run.ScriptBlock.Value) -and '.' -ne $PesterPreference.Run.Path.Value[0])) {
+                if (((none $PesterPreference.Run.ScriptBlock.Value) -and (none $PesterPreference.Run.Container.Value)) -or ('.' -ne $PesterPreference.Run.Path.Value[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value | foreach { New-BlockContainerObject -File $_ })
+                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | where { "File" -eq $_.Type } | foreach {$_.Item.FullName }))
+                    $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | foreach { New-BlockContainerObject -File $_ })
                 }
             }
 

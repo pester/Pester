@@ -145,7 +145,6 @@ function ConvertTo-ExecutedBlockContainer {
 
 }
 
-
 # endpoint for adding a block that contains tests
 # or other blocks
 function New-Block {
@@ -159,7 +158,8 @@ function New-Block {
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
         [String] $Id,
-        [Switch] $Skip
+        [Switch] $Skip,
+        [Collections.IDictionary] $Data
     )
 
     # Switch-Timer -Scope Framework
@@ -190,6 +190,7 @@ function New-Block {
     $block.Focus = $Focus
     $block.Id = $Id
     $block.Skip = $Skip
+    $block.Data = $Data
 
     # we attach the current block to the parent, and put it to the parent
     # lists
@@ -246,11 +247,8 @@ function Invoke-Block ($previousBlock) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
-                # TODO: no callbacks are provided because we are not transitioning between any states,
-                # it might be nice to add a parameter to indicate that we run in the same scope
-                # so we can avoid getting and setting the scope on scriptblock that already has that
-                # scope, which is _potentially_ slow because of reflection, it would also allow
-                # making the transition callbacks mandatory unless the parameter is provided
+
+                # no callbacks are provided because we are not transitioning between any states
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
                     if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
@@ -945,12 +943,43 @@ function Run-Test {
                 throw "Teardowns are not supported in root (directly in the block container)."
             }
 
-            # we add one more artificial block so the root can run
-            # all of it's setups and teardowns
+            # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
+            # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
+            # before all script, but it might be better to make this a plugin, because there we can pass data.
+            $setVariables = {
+                param($private:____parameters)
+                foreach($private:____d in $____parameters.Data.GetEnumerator()) {
+                    & $____parameters.Set_Variable -Name $private:____d.Name -Value $private:____d.Value
+                }
+            }
+
+            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+            $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
+
+            $setVariablesAndThenRunOneTimeSetupIfAny = & {
+                $action = $setVariables
+                $setup = $rootBlock.OneTimeTestSetup
+                $parameters = @{
+                    Data = $rootBlock.BlockContainer.Data
+                    Set_Variable = $SafeCommands["Set-Variable"]
+                }
+
+                {
+                    . $action $parameters
+                    if ($null -ne $setup) {
+                        . $setup
+                    }
+                }.GetNewClosure()
+            }
+
+            $rootBlock.OneTimeTestSetup = $setVariablesAndThenRunOneTimeSetupIfAny
+
             $rootBlock.ScriptBlock = {}
             $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
             $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
 
+            # we add one more artificial block so the root can run
+            # all of it's setups and teardowns
             $private:parent = [Pester.Block]::Create()
             $private:parent.Name = "ParentBlock"
             $private:parent.Path = "Path"
@@ -2170,10 +2199,25 @@ function Invoke-BlockContainer {
         [Management.Automation.SessionState] $SessionState
     )
 
-    switch ($BlockContainer.Type) {
-        "ScriptBlock" { & $BlockContainer.Item }
-        "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
-        default { throw [System.ArgumentOutOfRangeException]"" }
+    if ($null -ne $BlockContainer.Data -and 0 -lt $BlockContainer.Data.Count) {
+        foreach ($d in $BlockContainer.Data) {
+            switch ($BlockContainer.Type) {
+                "ScriptBlock" {
+                    & $BlockContainer.Item @d
+                }
+                "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d }
+                default { throw [System.ArgumentOutOfRangeException]"" }
+            }
+        }
+    }
+    else {
+        switch ($BlockContainer.Type) {
+            "ScriptBlock" {
+                & $BlockContainer.Item
+            }
+            "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
+            default { throw [System.ArgumentOutOfRangeException]"" }
+        }
     }
 }
 
@@ -2185,7 +2229,8 @@ function New-BlockContainerObject {
         [Parameter(Mandatory, ParameterSetName = "Path")]
         [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
-        [System.IO.FileInfo] $File
+        [System.IO.FileInfo] $File,
+        [Collections.IDictionary] $Data
     )
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
@@ -2196,9 +2241,10 @@ function New-BlockContainerObject {
     }
 
     $c = [Pester.ContainerInfo]::Create()
-    $c.Type    = $type
+    $c.Type = $type
     $c.Item = $item
-    return $c
+    $c.Data = if ($null -ne $Data) { $Data } else { @{} }
+    $c
 }
 
 function New-DiscoveredBlockContainerObject {
@@ -2229,12 +2275,13 @@ function Invoke-File {
         [String]
         $Path,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        [Collections.IDictionary] $Data
     )
 
     $sb = {
-        param ($private:p)
-        . $private:p
+        param ($private:p, $private:d)
+        . $private:p @d
     }
 
     # set the original session state to the wrapper scriptblock
@@ -2243,7 +2290,7 @@ function Invoke-File {
     $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal, $null)
 
-    & $sb $Path
+    & $sb $Path $Data
 }
 
 function Import-Dependency {
@@ -2405,6 +2452,7 @@ Export-ModuleMember -Function @(
     # the core stuff I am mostly sure about
     'Reset-TestSuiteState'
     'New-Block'
+    'New-ParametrizedBlock'
     'New-Test'
     'New-ParametrizedTest'
     'New-EachTestSetup'
