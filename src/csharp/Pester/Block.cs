@@ -76,6 +76,7 @@ namespace Pester
         public TimeSpan OwnDuration { get; set; }
 
         public ScriptBlock ScriptBlock { get; set; }
+        public int StartLine { get; set; }
         public Hashtable FrameworkData { get; set; } = new Hashtable();
         public Hashtable PluginData { get; set; } = new Hashtable();
 
@@ -90,6 +91,7 @@ namespace Pester
         public int OwnPendingCount { get; set; }
         public int OwnNotRunCount { get; set; }
         public int OwnInconclusiveCount { get; set; }
+
         public override string ToString()
         {
             return ToStringConverter.BlockToString(this);

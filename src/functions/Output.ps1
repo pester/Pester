@@ -546,7 +546,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $text = $ReportStrings.$commandUsed -f $block.Name
 
             if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
-                $text += ", $($block.ScriptBlock.File):$($block.ScriptBlock.StartPosition.StartLine)"
+                $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
             }
 
             if (0 -eq $level -and -not $block.First) {
@@ -587,7 +587,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
-            $out += ", $($_test.ScriptBlock.File):$($_Test.ScriptBlock.StartPosition.StartLine)"
+            $out += ", $($_test.ScriptBlock.File):$($_Test.StartLine)"
         }
 
         $result = $_test.Result

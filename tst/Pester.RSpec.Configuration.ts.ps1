@@ -312,7 +312,7 @@ i -PassThru:$PassThru {
             'slow' -notin $runTags | Verify-True
         }
 
-        t "Filtering test based on line" {
+        t "Filtering test based on line of It" {
             $c = [PesterConfiguration]@{
                 Run = @{
                     Path = "$PSScriptRoot/testProjects/BasicTests"
@@ -333,7 +333,7 @@ i -PassThru:$PassThru {
             $tests[0].Name | Verify-Equal "fails"
         }
 
-        t "Filtering test based on line" {
+        t "Filtering tests based on line of Describe" {
             $c = [PesterConfiguration]@{
                 Run = @{
                     Path = "$PSScriptRoot/testProjects/BasicTests"
@@ -350,9 +350,35 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration $c
             $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
 
-            $tests.Count | Verify-Equal 2
+            $tests.Count | Verify-Equal 4
             $tests[0].Name | Verify-Equal "passing"
             $tests[1].Name | Verify-Equal "fails"
+            $tests[2].Name | Verify-Equal "passing with testcases"
+            $tests[3].Name | Verify-Equal "passing with testcases"
+        }
+
+        t "Filtering test with testcases based on line of It" {
+            $c = [PesterConfiguration]@{
+                Run = @{
+                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                    PassThru = $true
+                }
+                Filter = @{
+                    Line = "$PSScriptRoot/testProjects/BasicTests/folder1/file1.Tests.ps1:12"
+                }
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $tests = @($r.Containers.Blocks.Tests | where { $_.ShouldRun })
+
+            $tests.Count | Verify-Equal 2
+            $tests[0].Name | Verify-Equal "passing with testcases"
+            $tests[0].Data.Value | Verify-Equal 1
+            $tests[1].Name | Verify-Equal "passing with testcases"
+            $tests[1].Data.Value | Verify-Equal 2
         }
 
         t "Filtering test based on name will find the test" {

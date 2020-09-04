@@ -136,9 +136,9 @@ about_should
     }
 
     if (any $TestCases) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
 }

@@ -88,7 +88,7 @@ about_TestDrive
 
 
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
-        New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe' } -Focus:$Focus -Skip:$Skip
+        New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe' } -Focus:$Focus -Skip:$Skip
     }
     else {
         Invoke-Interactively -CommandUsed 'Describe' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters

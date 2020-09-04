@@ -869,8 +869,49 @@ to the original.
         throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
     }
 
-    if ($PSBoundParameters.ContainsKey("Negate")) {
-        $PSBoundParameters.Remove("Negate")
+    if ($PSCmdlet.ParameterSetName -eq 'ExclusiveFilter' -and $Negate) {
+        # Using -Not with -ExclusiveFilter makes for a very confusing expectation. For example, given the following mocked function:
+        #
+        # Mock FunctionUnderTest {}
+        #
+        # Consider the normal expection:
+        # `Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' }`
+        #
+        # | Invocations               | Should raises an error |
+        # | --------------------------| ---------------------- |
+        # | FunctionUnderTest "one"   | No                     |
+        # | --------------------------| ---------------------- |
+        # | FunctionUnderTest "one"   | Yes                    |
+        # | FunctionUnderTest "two"   |                        |
+        # | --------------------------| ---------------------- |
+        # | FunctionUnderTest "two"   | Yes                    |
+        #
+        # So it follows that if we negate that, using -Not, then we should get the opposite result. That is:
+        #
+        # `Should -Not -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' }`
+        #
+        # | Invocations               | Should raises an error |
+        # | --------------------------| ---------------------- |
+        # | FunctionUnderTest "one"   | Yes                    |
+        # | --------------------------| ---------------------- |
+        # | FunctionUnderTest "one"   | No                     | <---- Problem!
+        # | FunctionUnderTest "two"   |                        |
+        # | --------------------------| ---------------------- |
+        # | FunctionUnderTest "two"   | No                     |
+        #
+        # The problem is the second row. Because there was an invocation of `{ $param1 -eq 'one' }` the
+        # expectation is not met and Should should raise an error.
+        #
+        # In fact it can be shown that
+        #
+        # `Should -Not -Invoke FunctionUnderTest -ExclusiveFilter { ... }`
+        #
+        # and
+        #
+        # `Should -Not -Invoke FunctionUnderTest -ParameterFilter { ... }`
+        #
+        # have the same result.
+        throw "Cannot use -ExclusiveFilter when -Not is specified. Use -ParameterFilter instead."
     }
 
     $isNumericScope = $Scope -match "^\d+$"
@@ -946,9 +987,6 @@ to the original.
     }
     if ($PSBoundParameters.ContainsKey('ActualValue')) {
         $PSBoundParameters.Remove('ActualValue')
-    }
-    if ($PSBoundParameters.ContainsKey('Negate')) {
-        $PSBoundParameters.Remove('Negate')
     }
     if ($PSBoundParameters.ContainsKey('CallerSessionState')) {
         $PSBoundParameters.Remove('CallerSessionState')
