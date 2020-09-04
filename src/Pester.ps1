@@ -156,7 +156,7 @@ function Add-AssertionDynamicParameterSet {
 
     $attribute = New-Object Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
-    
+
     $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
@@ -294,7 +294,7 @@ function Invoke-Pester {
     repository, see https://github.com/Pester.
 
     .PARAMETER CI
-    (Deprecated v4)
+    (Introduced v5)
     Enable Code Coverage, Test Results and Exit after Run
 
     Replace with ConfigurationProperty
@@ -470,7 +470,6 @@ function Invoke-Pester {
     Note that JUnitXml is not currently supported in Pester 5.
 
     .PARAMETER PassThru
-    (Deprecated v4)
     Replace with ConfigurationProperty Run.PassThru
     Returns a custom object (PSCustomObject) that contains the test results.
     By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
@@ -479,20 +478,21 @@ function Invoke-Pester {
     To suppress the host output, use the Show parameter set to None.
 
     .PARAMETER Path
-    (Deprecated v4)
     Aliases Script
     Specifies a test to run. The value is a path\file
     name or name pattern. Wildcards are permitted. All hash tables in a Script
     parameter values must have a Path key.
 
     .PARAMETER PesterOption
+    (Deprecated v4)
     Sets advanced options for the test execution. Enter a PesterOption object,
     such as one that you create by using the New-PesterOption cmdlet, or a hash table
     in which the keys are option names and the values are option values.
     For more information on the options available, see the help for New-PesterOption.
 
     .PARAMETER Quiet
-    The parameter Quiet is deprecated since Pester v. 4.0 and will be deleted
+    (Deprecated v4)
+    The parameter Quiet is deprecated since Pester v4.0 and will be deleted
     in the next major version of Pester. Please use the parameter Show
     with value 'None' instead.
     The parameter Quiet suppresses the output that Pester writes to the host program,
@@ -528,6 +528,7 @@ function Invoke-Pester {
     is written when you use the Output parameters.
 
     .PARAMETER Strict
+    (Deprecated v4)
     Makes Pending and Skipped tests to Failed tests. Useful for continuous
     integration where you need to make sure all tests passed.
 
