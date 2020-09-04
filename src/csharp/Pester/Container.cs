@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -31,8 +32,9 @@ namespace Pester
                 ExecutedAt = block.ExecutedAt,
                 Type = block.BlockContainer.Type,
                 Item = block.BlockContainer.Item,
-                Blocks = block.Blocks
-            };
+                Blocks = block.Blocks,
+                Data = block.Data
+        };
         }
 
         public static Container CreateFromFile(FileInfo file)
@@ -46,6 +48,7 @@ namespace Pester
 
         public string Type { get; set; }
         public object Item { get; set; }
+        public IDictionary Data { get; set; }
         public List<Block> Blocks { get; set; } = new List<Block>();
         public string Result { get; set; } = "NotRun";
         public TimeSpan Duration { get => DiscoveryDuration + UserDuration + FrameworkDuration; }

@@ -15,7 +15,8 @@ namespace Pester
         public Block()
         {
             ItemType = "Block";
-            FrameworkData =
+            FrameworkData = new Hashtable();
+            Data = new Hashtable();
             PluginData = new Hashtable();
             Tests = new List<Test>();
             Order = new List<object>();
@@ -25,6 +26,7 @@ namespace Pester
 
         public string Name { get; set; }
         public List<string> Path { get; set; }
+        public IDictionary Data { get; set; }
         public List<Block> Blocks { get; set; } = new List<Block>();
         public List<Test> Tests { get; set; } = new List<Test>();
 
