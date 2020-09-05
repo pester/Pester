@@ -517,6 +517,8 @@ WriteVSCodeMarker      : Write VSCode marker for better integration with VSCode.
 The configuration object can be constructed either via the Default static property or by casting a hashtable to it. You can also cast a hashtable to any of its sections. Here are three different ways to the same goal:
 
 ```powershell
+# import module before creating the object
+Import-Module Pester
 # get default from static property
 $configuration = [PesterConfiguration]::Default
 # assing properties & discover via intellisense
@@ -675,7 +677,7 @@ This also works for [mock](#default-parameters-for-parameterfilter)
 
 #### Mocks are scoped based on their placement
 
-Mocks are no longer effective in the whole `Describe` / `Context` in which they were placed. Instead they will defualt to the block in which they were placed. Both of these work:
+Mocks are no longer effective in the whole `Describe` / `Context` in which they were placed. Instead they will default to the block in which they were placed. Both of these work:
 
 ```powershell
 Describe "d" {

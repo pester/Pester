@@ -54,6 +54,8 @@ namespace Pester
         public bool Explicit { get; set; }
         public bool ShouldRun { get; set; }
 
+        public int StartLine { get; set; }
+
         public bool Executed { get; set; }
         public DateTime? ExecutedAt { get; set; }
         public bool Passed { get; set; }

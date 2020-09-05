@@ -90,7 +90,7 @@ https://pester.dev/docs/usage/testdrive
     }
 
     if ($ExecutionContext.SessionState.PSVariable.Get("invokedViaInvokePester")) {
-        New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus -Skip:$Skip
+        New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus -Skip:$Skip
     }
     else {
         if ($invokedInteractively) {
