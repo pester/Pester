@@ -175,6 +175,10 @@ function New-Block {
     $block = $null
     $previousBlock = $state.CurrentBlock
 
+    if (-not $PSBoundParameters.ContainsKey('StartLine')) {
+        $StartLine = $ScriptBlock.StartPosition.StartLine
+    }
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
     }
@@ -388,6 +392,10 @@ function New-Test {
     # avoid managing state by not pushing to the stack only to pop out in finally
     # simply concatenate the arrays
     $path = @(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history + $name)
+
+    if (-not $PSBoundParameters.ContainsKey('StartLine')) {
+        $StartLine = $ScriptBlock.StartPosition.StartLine
+    }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
