@@ -539,11 +539,25 @@ i -PassThru:$PassThru {
         }
 
         t "re-runs failing tests" {
-            # Tests stored in file to make StartLine predictable as it's needed for New-Block/-Test parameter for filtering to work
-            $testFile = "$PSScriptRoot/testProjects/RerunFailed.tests.ps1"
+            $sb = {
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+                    New-Block "block2" {
+                        New-Test "test2" {
+                            throw
+                        }
+                    }
+                }
+
+                New-Block "block3" {
+                    New-Test "test3" {
+                        if (-not $willPass) { throw }
+                    }
+                }
+            }
 
             $willPass = $false
-            $pre = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -Path $testFile)
+            $pre = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
             # validate the precondition
             $pre.Blocks[0].Tests[0].Executed | Verify-True
@@ -569,7 +583,7 @@ i -PassThru:$PassThru {
             Write-Host "`n`n`n"
             # set the test3 to pass this time so we have some difference
             $willPass = $true
-            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Line $lines ) -BlockContainer (New-BlockContainerObject -Path $testFile)
+            $result = Invoke-Test -SessionState $ExecutionContext.SessionState -Filter (New-FilterObject -Line $lines ) -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
 
             $actual = @($result | View-Flat | where { $_.Executed })
 
