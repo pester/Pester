@@ -40,6 +40,7 @@
         'InModuleScope'
 
         # setups
+        'BeforeDiscovery'
         'BeforeAll'
         'BeforeEach'
         'AfterEach'
