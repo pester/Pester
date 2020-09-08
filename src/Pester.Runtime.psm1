@@ -153,7 +153,7 @@ function New-Block {
         [String] $Name,
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
-        [int] $StartLine,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
@@ -174,10 +174,6 @@ function New-Block {
 
     $block = $null
     $previousBlock = $state.CurrentBlock
-
-    if (-not $PSBoundParameters.ContainsKey('StartLine')) {
-        $StartLine = $ScriptBlock.StartPosition.StartLine
-    }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Adding block $Name to discovered blocks"
@@ -373,7 +369,7 @@ function New-Test {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
-        [int] $StartLine,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
@@ -392,10 +388,6 @@ function New-Test {
     # avoid managing state by not pushing to the stack only to pop out in finally
     # simply concatenate the arrays
     $path = @(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history + $name)
-
-    if (-not $PSBoundParameters.ContainsKey('StartLine')) {
-        $StartLine = $ScriptBlock.StartPosition.StartLine
-    }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
@@ -2404,7 +2396,7 @@ function New-ParametrizedTest () {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
-        [int] $StartLine,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [System.Collections.IDictionary[]] $Data = @{ },
