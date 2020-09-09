@@ -909,4 +909,27 @@ i -PassThru:$PassThru {
             }
         }
     }
+
+    b "BeforeDiscovery" {
+         dt "Variables from BeforeDiscovery are defined in scope" {
+            $sb = {
+                BeforeDiscovery {
+                    $tests = 1,2
+                }
+
+                foreach ($t in $tests) {
+                    Describe "d$t" {
+                        It "t$t" -TestCases @{ t = $t} {
+                            $t | Should -BeLessOrEqual 2
+                        }
+                    }
+                }
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
 }
