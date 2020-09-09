@@ -86,7 +86,7 @@ Describe "Format-Null" {
 }
 
 Describe "Format-String" {
-    It "Formats empty string to '<empty>'" {
+    It "Formats empty string to '``<empty``>'" {
         Format-String -Value "" | Verify-Equal '<empty>'
     }
 

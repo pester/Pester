@@ -543,7 +543,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $level = $block.Path.Count - 1
             $margin = $ReportStrings.Margin * $level
 
-            $text = $ReportStrings.$commandUsed -f $block.Name
+            $text = $ReportStrings.$commandUsed -f $block.ExpandedName
 
             if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
                 $text += ", $($block.ScriptBlock.File):$($block.StartLine)"

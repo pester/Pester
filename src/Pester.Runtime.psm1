@@ -36,12 +36,19 @@ $state = [PSCustomObject] @{
     Stack               = [Collections.Stack]@()
 
     ExpandName          = {
-        param([string]$Name, [HashTable]$Data)
+        param([string]$Name, $Data)
+
+        if ($null -eq $Data) { return $Name }
 
         $n = $Name
-        foreach ($pair in $Data.GetEnumerator()) {
-            $n = $n -replace "<$($pair.Key)>", "$($pair.Value)"
+        $n = $n -replace "<_>", "$Data"
+
+        if ($Data -is [Collections.IDictionary]) {
+            foreach ($pair in $Data.GetEnumerator()) {
+                $n = $n -replace "<$($pair.Key)>", "$($pair.Value)"
+            }
         }
+
         $n
     }
 }
@@ -145,6 +152,26 @@ function ConvertTo-ExecutedBlockContainer {
 
 }
 
+function New-ParametrizedBlock {
+    param (
+        [Parameter(Mandatory = $true)]
+        [String] $Name,
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
+        [String[]] $Tag = @(),
+        [HashTable] $FrameworkData = @{ },
+        [Switch] $Focus,
+        [String] $Id,
+        [Switch] $Skip,
+        $Data
+    )
+
+    foreach ($d in @($Data)) {
+        New-Block -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $FrameworkData -Focus:$Focus -Skip:$Skip -Data $d
+    }
+}
+
 # endpoint for adding a block that contains tests
 # or other blocks
 function New-Block {
@@ -159,7 +186,7 @@ function New-Block {
         [Switch] $Focus,
         [String] $Id,
         [Switch] $Skip,
-        [Collections.IDictionary] $Data
+        $Data
     )
 
     # Switch-Timer -Scope Framework
@@ -204,7 +231,37 @@ function New-Block {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovering in body of block $Name"
         }
-        & $ScriptBlock
+
+        if ($null -ne $block.Data) {
+            $context = @{}
+            Add-DataToContext -Destination $context -Data $block.Data
+
+            $setVariablesAndRunBlock = {
+                param ($private:______parameters)
+
+                foreach ($private:______current in $private:______parameters.Context.GetEnumerator()) {
+                    $ExecutionContext.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
+                }
+
+                $private:______current = $null
+
+                . $private:______parameters.ScriptBlock
+            }
+
+            $parameters = @{
+                Context = $context
+                ScriptBlock = $ScriptBlock
+            }
+
+            $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
+            $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariablesAndRunBlock, $SessionStateInternal, $null)
+
+            & $setVariablesAndRunBlock $parameters
+        }
+        else {
+            & $ScriptBlock
+        }
+
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope DiscoveryCore "Finished discovering in body of block $Name"
         }
@@ -244,6 +301,10 @@ function Invoke-Block ($previousBlock) {
 
                 $block.ExecutedAt = [DateTime]::Now
                 $block.Executed = $true
+
+                $block.ExpandedName = & $state.ExpandName -Name $block.Name -Data $block.Data
+                $block.ExpandedPath = if ($block.IsRoot) { $block.ExpandedName} else { "$($block.Parent.ExpandedPath).$($Block.ExpandedName)" }
+
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
@@ -286,24 +347,40 @@ function Invoke-Block ($previousBlock) {
                         & $______pester_invoke_block_parameters.Invoke_Block -previousBlock $______pester_invoke_block_parameters.Block
                     }
 
+                    $context = @{
+                        ______pester_invoke_block_parameters = @{
+                            Invoke_Block = ${function:Invoke-Block}
+                            Block        = $block
+                        }
+                        ____Pester = $State
+                    }
+
+                    if ($null -ne $block.Data) {
+                        Add-DataToContext -Destination $context -Data $block.Data
+                    }
+
                     $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($block.ScriptBlock, $null)
                     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
 
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
                         -OuterSetup $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
+                            @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup) + @({
+                                # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
+                                # avoid using variables so we don't run into conflicts
+                                $sb = {
+                                    $____Pester.CurrentBlock.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                                }
+
+                                $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentBlock.ScriptBlock, $null)
+                                $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
+                                & $sb
+                            })
                         }) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
                             @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
                         } ) `
-                        -Context @{
-                        ______pester_invoke_block_parameters = @{
-                            Invoke_Block = ${function:Invoke-Block}
-                            Block        = $block
-                        }
-                    } `
-                        -ReduceContextToInnerScope `
+                        -Context $context `
                         -MoveBetweenScopes `
                         -Configuration $state.Configuration
 
@@ -371,7 +448,7 @@ function New-Test {
         [ScriptBlock] $ScriptBlock,
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
-        [System.Collections.IDictionary] $Data = @{ },
+        $Data,
         [String] $Id,
         [Switch] $Focus,
         [Switch] $Skip
@@ -492,21 +569,12 @@ function Invoke-TestItem {
         else {
 
             if ($frameworkSetupResult.Success) {
-                # TODO: use PesterContext as the name, or some other better reserved name to avoid conflicts
                 $context = @{
-                    # context visible in test
-                    Context = [PSCustomObject]@{ Name = $t.Name; Path = $t.Path }
+                    ____Pester = $State
                 }
 
-                # user provided data are merged with Pester provided context
-                # Merge-Hashtable -Source $Test.Data -Destination $context
-                foreach ($p in $Test.Data.GetEnumerator()) {
-                    # only add non existing keys so in case of conflict
-                    # the framework name wins, as if we had explicit parameters
-                    # on a scriptblock, then the parameter would also win
-                    if (-not $context.ContainsKey($p.Key)) {
-                        $context.Add($p.Key, $p.Value)
-                    }
+                if ($null -ne $test.Data) {
+                    Add-DataToContext -Destination $context -Data $test.Data
                 }
 
                 # recurse up Recurse-Up $Block { param ($b) $b.EachTestSetup }
@@ -535,7 +603,19 @@ function Invoke-TestItem {
                     # that is not needed, and would complicate figuring out in which session
                     # state we should run.
                     # this should run every time.
-                    { $Test.FrameworkData.Runtime.ExecutionStep = 'Test' }
+                    {
+                        $Test.FrameworkData.Runtime.ExecutionStep = 'Test'
+
+                        # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
+                        # avoid using any variables to avoid running into conflict with user variables
+                        $sb = {
+                            $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                        }
+
+                        $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentTest.ScriptBlock, $null)
+                        $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
+                        & $sb
+                    }
                 ) `
                     -ScriptBlock $Test.ScriptBlock `
                     -Teardown @(
@@ -793,6 +873,10 @@ function Discover-Test {
         $root.First = $true
         $root.Last = $true
 
+        # set the data from the container to get them
+        # set correctly as if we provided -Data to New-Block
+        $root.Data = $root.BlockContainer.Data
+
         Reset-PerContainerState -RootBlock $root
 
         $steps = $state.Plugin.ContainerDiscoveryStart
@@ -948,6 +1032,11 @@ function Run-Test {
             # before all script, but it might be better to make this a plugin, because there we can pass data.
             $setVariables = {
                 param($private:____parameters)
+
+                if ($null -eq $____parameters.Data) {
+                    return
+                }
+
                 foreach($private:____d in $____parameters.Data.GetEnumerator()) {
                     & $____parameters.Set_Variable -Name $private:____d.Name -Value $private:____d.Value
                 }
@@ -1247,6 +1336,11 @@ function Invoke-ScriptBlock {
                     if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variable '$($______current.Key)' with value '$($______current.Value)'" }
                     $ExecutionContext.SessionState.PSVariable.Set($______current.Key, $______current.Value)
                 }
+
+                if ($______outerSplat.ContainsKey("_")) {
+                    $______outerSplat.Remove("_")
+                }
+
                 $______current = $null
             }
             else {
@@ -1278,6 +1372,11 @@ function Invoke-ScriptBlock {
                             if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Setting context variable '$ ($______current.Key)' with value '$($______current.Value)'" }
                             $ExecutionContext.SessionState.PSVariable.Set($______current.Key, $______current.Value)
                         }
+
+                        if ($______outerSplat.ContainsKey("_")) {
+                            $______outerSplat.Remove("_")
+                        }
+
                         $______current = $null
                     }
                     else {
@@ -2230,7 +2329,7 @@ function New-BlockContainerObject {
         [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
         [System.IO.FileInfo] $File,
-        [Collections.IDictionary] $Data
+        $Data
     )
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
@@ -2243,7 +2342,7 @@ function New-BlockContainerObject {
     $c = [Pester.ContainerInfo]::Create()
     $c.Type = $type
     $c.Item = $item
-    $c.Data = if ($null -ne $Data) { $Data } else { @{} }
+    $c.Data = $Data
     $c
 }
 
@@ -2399,20 +2498,15 @@ function New-ParametrizedTest () {
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
-        [System.Collections.IDictionary[]] $Data = @{ },
+        [object[]] $Data,
         [Switch] $Focus,
         [Switch] $Skip
     )
 
-    # we don't need to switch the timer, all the code that runs during discovery is "overhead"
-    # Switch-Timer -Scope Framework
-    # TODO: there used to be counter, that was added to the id, seems like I am missing TestGroup on the test cases, so I can reconcile them back if they were generated from testcases
-    # $counter = 0
-
-    # using the start line of the scriptblock as the id of the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
-    $id = $ScriptBlock.StartPosition.StartLine
+    # using the position of It as Id for the the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
+    # TODO: I don't think the Id is needed anymore
+    $id = $StartLine
     foreach ($d in $Data) {
-        #    $innerId = if (-not $hasExternalId) { $null } else { "$Id-$(($counter++))" }
         New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
     }
 }

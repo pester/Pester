@@ -109,9 +109,10 @@ about_should
         [string] $Name,
 
         [Parameter(Position = 1)]
-        [ScriptBlock] $Test = {},
+        [ScriptBlock] $Test,
 
-        [System.Collections.IDictionary[]] $TestCases,
+        [Alias("ForEach")]
+        [object[]] $TestCases,
 
         [String[]] $Tag,
 
@@ -133,6 +134,15 @@ about_should
 
         $Skip = $Pending
         # $SkipBecause = "This test is pending."
+    }
+
+    if ($null -eq $Test) {
+        if ($Name.Contains("`n")) {
+            throw "Test name has multiple lines and no test scriptblock is provided. Did you provide the test name?"
+        }
+        else {
+            throw "No test scriptblock is provided. Did you put the opening curly brace on the next line?"
+        }
     }
 
     if (any $TestCases) {

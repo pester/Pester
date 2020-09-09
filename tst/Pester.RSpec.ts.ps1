@@ -911,7 +911,7 @@ i -PassThru:$PassThru {
     }
 
     b "BeforeDiscovery" {
-         t "Variables from BeforeDiscovery are defined in scope" {
+        t "Variables from BeforeDiscovery are defined in scope" {
             $sb = {
                 BeforeDiscovery {
                     $tests = 1,2
@@ -927,9 +927,263 @@ i -PassThru:$PassThru {
             }
 
             $container = New-TestContainer -ScriptBlock $sb
-            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r = Invoke-Pester -Container $container -PassThru #
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Parametric blocks" {
+        t "Providing data will generate as many blocks as there are data sets" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                    }
+                } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru #
+            $r.Containers[0].Blocks.Count | Verify-Equal 2
+        }
+
+        t "Data will be available in the respective block during Run" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    BeforeEach {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    It "i" {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    AfterEach {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    AfterAll {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+                } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "`$_ holds the whole hashtable when hastable is used, and it is not overwritten in It" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($_.Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$($_.Value)'." }
+                    }
+
+                    It "i" {
+                        if ($_.Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$($_.Value)'." }
+                    }
+                } -ForEach @(@{ Value = 1 }, @{ Value  = 2 })
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "`$_ holds the whole hashtable when hastable is used, and it is overwritten in It if it specifies its own data" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($_.Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$($_.Value)'." }
+                    }
+
+                    It "i" {
+                        if ($_.Value -ne 10) { throw "`$Value should be 10 '$($_.Value)'." }
+                    } -ForEach @{ Value = 10 }
+                } -ForEach @(@{ Value = 1 }, @{ Value  = 2 })
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "`$_ holds the current item array of any object is used, and it is overwritten in It if it specifies its own data" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($_ -notin 1,2) { throw "`$Value should be 1 or 2 but is '$_'." }
+                    }
+
+                    # maybe a bit unexpected to get the values of TestCases here, but BeforeEach
+                    # runs in the same scope as It, so the variables are available there as well
+                    BeforeEach {
+                        if ($_ -notin 3,4) { throw "`$Value should be 3 or 4 but is '$_'." }
+                    }
+
+                    It "i" {
+                        if ($_ -notin 3,4) { throw "`$Value should be 3 or 4 but is '$_'." }
+                    } -ForEach 3, 4
+                } -ForEach 1, 2
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Data provided to container are accessible in ForEach on each level" {
+            $scenarios = @(
+                @{
+                    Scenario = @{
+                        Name = "A"
+                        Contexts = @(
+                            @{
+                                Name = "AA"
+                                Examples = @(
+                                    @{ User = @{ Name = "Jakub"; Age = 31 } }
+                                    @{ User = @{ Name = "Tomas"; Age = 27 } }
+                                )
+                            }
+                            @{
+                                Name = "AB"
+                                Examples = @(
+                                    @{ User = @{ Name = "Peter"; Age = 30 } }
+                                    @{ User = @{ Name = "Jaap"; Age = 22 } }
+                                )
+                            }
+                        )
+                    }
+                }
+                @{
+                    Scenario = @{
+                        Name = "B"
+                        Contexts = @{
+                            Name = "BB"
+                            Examples = @(
+                                @{ User = @{ Name = "Jane"; Age = 25 } }
+                            )
+                        }
+                    }
+                }
+            )
+
+            $sb = {
+                param ($Scenario)
+
+                Describe "Scenario - <name>" -ForEach $Scenario {
+
+                    Context "Context - <name>" -ForEach $Contexts {
+                        It "Example - <user.name> with age <user.age> is less than 35" -ForEach $Examples {
+                            $User.Age | Should -BeLessOrEqual 35
+                        }
+                    }
+                }
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb -Data $scenarios
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal "Context - AA"
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "Example - Jakub with age 31 is less than 35"
+
+            $r.Containers[0].Blocks[0].Blocks[1].ExpandedName | Verify-Equal "Context - AB"
+            $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
+        }
+
+        t "<_> expands to `$_ in Describe and It" {
+            $sb = {
+                Describe "d <_>" {
+                    It "i <_>" { } -ForEach 2
+                } -ForEach 1
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i 2"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
+        }
+
+        t "<_> expands to `$_ in It even if It does not define any data" {
+            $sb = {
+                Describe "d <_>" {
+                    It "i <_>" {
+                        $_ | Should -Be 1
+                    }
+                } -ForEach 1
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i 1"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
+        }
+
+        t "<user.name> expands to `$user.name" {
+            $sb = {
+                Describe "d <user.name>" {
+                    It "i <user.name>" { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Jakub"
+        }
+
+        t "`$variable remains as literal text after expanding" {
+            $sb = {
+                Describe "d `$abc" {
+                    It "i `$abc" { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i `$abc"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d `$abc"
+        }
+
+        t 'template can be escaped by grave accent' {
+            $sb = {
+                Describe "d ``<fff``>" {
+                    It 'i `<fff`>' { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i `<fff`>"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d `<fff`>"
+        }
+
+        t 'template evaluates simple code' {
+            $sb = {
+                Describe "d" {
+                    It 'i <user.name> is <user.Name.GetType()>' { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
         }
     }
 }

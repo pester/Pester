@@ -129,7 +129,7 @@ Describe "Is-Dictionary" {
 
 # -- collection
 Describe "Is-Collection" {
-    It "Given a collection '<value>' of type '<type>' it returns `$true" -TestCases @(
+    It "Given a collection '<value>' of type '<value.GetType()>' it returns `$true" -TestCases @(
         @{ Value = @() }
         @{ Value = 1, 2, 3 }
         # the extra casts are for powershell v2 compatibility
@@ -146,7 +146,7 @@ Describe "Is-Collection" {
         Is-Collection -Value $null | Verify-False
     }
 
-    It "Given an object '<value>' of type '<type>' that is not a collection it returns `$false" -TestCases @(
+    It "Given an object '<value>' of type '<value.GetType()>' that is not a collection it returns `$false" -TestCases @(
         @{ Value = [char] 'a' }
         @{ Value = "a" }
 
