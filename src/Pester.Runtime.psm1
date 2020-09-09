@@ -34,23 +34,6 @@ $state = [PSCustomObject] @{
     UserCodeStopWatch   = $null
     FrameworkStopWatch  = $null
     Stack               = [Collections.Stack]@()
-
-    ExpandName          = {
-        param([string]$Name, $Data)
-
-        if ($null -eq $Data) { return $Name }
-
-        $n = $Name
-        $n = $n -replace "<_>", "$Data"
-
-        if ($Data -is [Collections.IDictionary]) {
-            foreach ($pair in $Data.GetEnumerator()) {
-                $n = $n -replace "<$($pair.Key)>", "$($pair.Value)"
-            }
-        }
-
-        $n
-    }
 }
 
 function Reset-TestSuiteState {
@@ -302,9 +285,6 @@ function Invoke-Block ($previousBlock) {
                 $block.ExecutedAt = [DateTime]::Now
                 $block.Executed = $true
 
-                $block.ExpandedName = & $state.ExpandName -Name $block.Name -Data $block.Data
-                $block.ExpandedPath = if ($block.IsRoot) { $block.ExpandedName} else { "$($block.Parent.ExpandedPath).$($Block.ExpandedName)" }
-
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
@@ -370,6 +350,7 @@ function Invoke-Block ($previousBlock) {
                                 # avoid using variables so we don't run into conflicts
                                 $sb = {
                                     $____Pester.CurrentBlock.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                                    $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.IsRoot) { $____Pester.CurrentBlock.ExpandedName} else { "$($____Pester.CurrentBlock.Parent.ExpandedPath).$($____Pester.CurrentBlock.ExpandedName)" }
                                 }
 
                                 $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentBlock.ScriptBlock, $null)
@@ -525,10 +506,6 @@ function Invoke-TestItem {
         $Test.ExecutedAt = [DateTime]::Now
         $Test.Executed = $true
 
-        $Test.ExpandedName = & $state.ExpandName -Name $Test.Name -Data $Test.Data
-
-        $test.ExpandedPath = "$($Test.Block.Path -join '.').$($Test.ExpandedName)"
-
         $block = $Test.Block
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Running test '$($Test.Name)'."
@@ -610,6 +587,7 @@ function Invoke-TestItem {
                         # avoid using any variables to avoid running into conflict with user variables
                         $sb = {
                             $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                            $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.Path -join '.').$($____Pester.CurrentTest.ExpandedName)"
                         }
 
                         $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentTest.ScriptBlock, $null)
