@@ -153,7 +153,7 @@ function New-Block {
         [String] $Name,
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
-        [int] $StartLine,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
@@ -369,7 +369,7 @@ function New-Test {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
-        [int] $StartLine,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         [System.Collections.IDictionary] $Data = @{ },
         [String] $Id,
@@ -2396,7 +2396,7 @@ function New-ParametrizedTest () {
         [String] $Name,
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
-        [int] $StartLine,
+        [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [System.Collections.IDictionary[]] $Data = @{ },
