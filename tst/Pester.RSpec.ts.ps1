@@ -911,7 +911,7 @@ i -PassThru:$PassThru {
     }
 
     b "BeforeDiscovery" {
-         dt "Variables from BeforeDiscovery are defined in scope" {
+         t "Variables from BeforeDiscovery are defined in scope" {
             $sb = {
                 BeforeDiscovery {
                     $tests = 1,2
