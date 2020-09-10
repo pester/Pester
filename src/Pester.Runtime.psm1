@@ -586,7 +586,9 @@ function Invoke-TestItem {
                         # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                         # avoid using any variables to avoid running into conflict with user variables
                         $sb = {
-                            $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                            $____s = ($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)')
+                            Write-Host "name: '$____s'"
+                            $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString($____s)
                             $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.Path -join '.').$($____Pester.CurrentTest.ExpandedName)"
                         }
 
