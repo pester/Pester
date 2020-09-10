@@ -145,7 +145,7 @@ about_should
         }
     }
 
-    if (any $TestCases) {
+    if ($null -ne  $TestCases -and 0 -lt @($TestCases).Count) {
         New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
     else {
