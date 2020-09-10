@@ -586,8 +586,8 @@ function Invoke-TestItem {
                         # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                         # avoid using any variables to avoid running into conflict with user variables
                         $sb = {
-                            $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
-                            $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.Path -join '.').$($____Pester.CurrentTest.ExpandedName)"
+                            $____Pester.CurrentBlock.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                            $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.IsRoot) { $____Pester.CurrentBlock.ExpandedName} else { "$($____Pester.CurrentBlock.Parent.ExpandedPath).$($____Pester.CurrentBlock.ExpandedName)" }
                         }
 
                         $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentTest.ScriptBlock, $null)
