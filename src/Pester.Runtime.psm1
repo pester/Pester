@@ -344,20 +344,30 @@ function Invoke-Block ($previousBlock) {
 
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
-                        -OuterSetup $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup) + @({
+                        -OuterSetup @(
+                            $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
+                                @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
+                            })
+                            $(if (-not $Block.IsRoot) {
                                 # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                                 # avoid using variables so we don't run into conflicts
                                 $sb = {
                                     $____Pester.CurrentBlock.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
-                                    $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.IsRoot) { $____Pester.CurrentBlock.ExpandedName} else { "$($____Pester.CurrentBlock.Parent.ExpandedPath).$($____Pester.CurrentBlock.ExpandedName)" }
+                                    $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
+                                        # to avoid including Root name in the path
+                                        $____Pester.CurrentBlock.ExpandedName
+                                    }
+                                    else {
+                                        "$($____Pester.CurrentBlock.Parent.ExpandedPath).$($____Pester.CurrentBlock.ExpandedName)"
+                                    }
                                 }
 
                                 $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentBlock.ScriptBlock, $null)
                                 $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
-                                & $sb
+
+                                $sb
                             })
-                        }) `
+                        ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
                             @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
                         } ) `
@@ -587,7 +597,7 @@ function Invoke-TestItem {
                         # avoid using any variables to avoid running into conflict with user variables
                         $sb = {
                             $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
-                            $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.Path -join '.').$($____Pester.CurrentTest.ExpandedName)"
+                            $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.ExpandedPath -join '.').$($____Pester.CurrentTest.ExpandedName)"
                         }
 
                         $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentTest.ScriptBlock, $null)
