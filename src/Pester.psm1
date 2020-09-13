@@ -35,7 +35,8 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Get-ShouldOperator'
 
     # config
-    'New-TestContainer',
+    'New-TestContainer'
+    'New-PesterConfiguration'
 
     # export
     'Export-NunitReport'
