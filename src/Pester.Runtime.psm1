@@ -585,14 +585,16 @@ function Invoke-TestItem {
                         [Array]::Reverse($eachTestSetups)
                         @( { $Test.FrameworkData.Runtime.ExecutionStep = 'EachTestSetup' }) + @($eachTestSetups)
                     }
-                    # setting the execution info here so I don't have to invoke change the
-                    # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
-                    # that is not needed, and would complicate figuring out in which session
-                    # state we should run.
-                    # this should run every time.
-                    {
-                        $Test.FrameworkData.Runtime.ExecutionStep = 'Test'
 
+                    {
+                        # setting the execution info here so I don't have to invoke change the
+                        # contract of Invoke-ScriptBlock to accept multiple -ScriptBlock, because
+                        # that is not needed, and would complicate figuring out in which session
+                        # state we should run.
+                        # this should run every time.
+                        $Test.FrameworkData.Runtime.ExecutionStep = 'Test'
+                    }
+                    $(
                         # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                         # avoid using any variables to avoid running into conflict with user variables
                         $sb = {
@@ -602,8 +604,8 @@ function Invoke-TestItem {
 
                         $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentTest.ScriptBlock, $null)
                         $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
-                        & $sb
-                    }
+                        $sb
+                    )
                 ) `
                     -ScriptBlock $Test.ScriptBlock `
                     -Teardown @(
