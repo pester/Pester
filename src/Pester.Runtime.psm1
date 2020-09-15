@@ -352,7 +352,7 @@ function Invoke-Block ($previousBlock) {
                                 # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                                 # avoid using variables so we don't run into conflicts
                                 $sb = {
-                                    $____Pester.CurrentBlock.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                                    $____Pester.CurrentBlock.ExpandedName = & ([ScriptBlock]::Create(('"'+ ($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
                                     $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
                                         # to avoid including Root name in the path
                                         $____Pester.CurrentBlock.ExpandedName
@@ -597,8 +597,10 @@ function Invoke-TestItem {
                     $(
                         # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                         # avoid using any variables to avoid running into conflict with user variables
+                        # $ExecutionContext.SessionState.InvokeCommand.ExpandString() has some weird bug in PowerShell 4 and 3, that makes hashtable resolve to null
+                        # instead I create a expandable string in a scriptblock and evaluate
                         $sb = {
-                            $____Pester.CurrentTest.ExpandedName = $ExecutionContext.SessionState.InvokeCommand.ExpandString(($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)'))
+                            $____Pester.CurrentTest.ExpandedName = & ([ScriptBlock]::Create(('"'+ ($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
                             $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.ExpandedPath -join '.').$($____Pester.CurrentTest.ExpandedName)"
                         }
 
