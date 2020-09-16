@@ -750,9 +750,9 @@ function Invoke-Pester {
                         $cs = @()
 
                         foreach ($c in $Container) {
-                            $data = if ($null -eq $c.Data) { @(@{}) } else { $c.Data }
+                            $data = $c.Data
                             if ($c -is [Pester.TestScriptBlock]) {
-                                foreach ($d in $data) {
+                                foreach ($d in @($data)) {
                                     $cs += New-BlockContainerObject -ScriptBlock $c.ScriptBlock -Data $d
                                 }
                             }

@@ -7,7 +7,7 @@ namespace Pester
     public abstract class TestContainer
     {
         public object Container { get; set; }
-        public IDictionary[] Data { get; set; }
+        public object[] Data { get; set; }
     }
 
     public class TestPath : TestContainer
@@ -17,7 +17,7 @@ namespace Pester
             return new TestPath(path);
         }
 
-        public static TestPath Create(string path, IDictionary[] data)
+        public static TestPath Create(string path, object[] data)
         {
             return new TestPath(path, data);
         }
@@ -28,7 +28,7 @@ namespace Pester
 
         }
 
-        public TestPath(string path, IDictionary[] data)
+        public TestPath(string path, object[] data)
         {
             Container = Path = path ?? throw new ArgumentNullException(nameof(path));
             Data = data;
@@ -46,7 +46,7 @@ namespace Pester
             return new TestScriptBlock(scriptBlock);
         }
 
-        public static TestScriptBlock Create(ScriptBlock scriptBlock, IDictionary[] data)
+        public static TestScriptBlock Create(ScriptBlock scriptBlock, object[] data)
         {
             return new TestScriptBlock(scriptBlock, data);
         }
@@ -54,7 +54,7 @@ namespace Pester
         {
         }
 
-        public TestScriptBlock(ScriptBlock scriptBlock, IDictionary[] data)
+        public TestScriptBlock(ScriptBlock scriptBlock, object[] data)
         {
             Container = ScriptBlock = scriptBlock;
             Data = data;

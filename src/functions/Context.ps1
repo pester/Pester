@@ -22,6 +22,12 @@ containing the same Tag.
 Script that is executed. This may include setup specific to the context
 and one or more It blocks that validate the expected outcomes.
 
+.PARAMETER ForEach
+Allows data driven tests to be written.
+Takes an array of data and generates one block for each item in the array, and makes the item
+available as $_ in all child blocks. When the array is an array of hashtables, it additionally
+defines each key in the hashatble as variable.
+
 .EXAMPLE
 ```ps
 function Add-Numbers($a, $b) {
@@ -76,7 +82,9 @@ https://pester.dev/docs/usage/testdrive
         [ScriptBlock] $Fixture,
 
         # [Switch] $Focus,
-        [Switch] $Skip
+        [Switch] $Skip,
+
+        $Foreach
     )
 
     $Focus = $false
@@ -89,8 +97,19 @@ https://pester.dev/docs/usage/testdrive
         }
     }
 
-    if ($ExecutionContext.SessionState.PSVariable.Get("invokedViaInvokePester")) {
-        New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = "Context" } -Focus:$Focus -Skip:$Skip
+    if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
+        if ($PSBoundParameters.ContainsKey('ForEach')) {
+            if ($null -ne  $ForEach -and 0 -lt @($ForEach).Count) {
+                New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context' } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            }
+            else {
+                # @() or $null is provided do nothing
+
+            }
+        }
+        else {
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context' } -Focus:$Focus -Skip:$Skip
+        }
     }
     else {
         if ($invokedInteractively) {
