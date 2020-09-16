@@ -528,33 +528,18 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.EachBlockSetupStart = {
+            $Context.Configuration.BlockWritePostponed = $true
+        }
+    }
+
+    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+        $p.EachTestSetupStart = {
             param ($Context)
-            # the $context does not mean Context block, it's just a generic name
-            # for the invocation context of this callback
-
-            if ($Context.Block.IsRoot) {
-                return
+            # we posponed writing the Describe / Context to grab the Expanded name, because that is done
+            # during execution to get all the variables in scope, if we are the first test then write it
+            if ($Context.Test.First) {
+                Write-BlockToScreen $Context.Test.Block
             }
-
-            $commandUsed = $Context.Block.FrameworkData.CommandUsed
-
-            $block = $Context.Block
-            # -1 moves the block closer to the start of theline
-            $level = $block.Path.Count - 1
-            $margin = $ReportStrings.Margin * $level
-
-            $text = $ReportStrings.$commandUsed -f $block.ExpandedName
-
-            if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
-                $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
-            }
-
-            if (0 -eq $level -and -not $block.First) {
-                # write extra line before top-level describe / context if it is not first
-                # in that case there are already two spaces before the name of the file
-                & $SafeCommands['Write-Host']
-            }
-            & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
         }
     }
 
@@ -664,21 +649,39 @@ function Get-WriteScreenPlugin ($Verbosity) {
             return
         }
 
-        if (-not $Context.Block.OwnPassed) {
-            if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-                $level = $Context.Block.Path.Count
-                $margin = $ReportStrings.Margin * ($level)
-                $error_margin = $margin + $ReportStrings.Margin
-            }
-
-            $level = 0
-            $margin = 0
-            $error_margin = $ReportStrings.Margin
-
-            foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
-            & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
-            Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
+        if ($Context.Block.OwnPassed) {
+            return
         }
+
+        if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+            # In Diagnostic output we postpone writing the Describing / Context until before the
+            # setup of the first test to get the correct ExpandedName of the Block with all the
+            # variables in context.
+            # if there is a failure before that (e.g. BeforeAll throws) we need to write Describing here.
+            # But not if the first test already executed.
+            if ($null -ne $Context.Block.Tests -and 0 -lt $Context.Block.Tests.Count) {
+               foreach ($t in $Context.Block.Tests) {
+                    if ($t.First -and -not $t.Executed) {
+                        Write-BlockToScreen $Context.Block
+                        break
+                    }
+                }
+            }
+        }
+
+        $level = 0
+        $margin = 0
+        $error_margin = $ReportStrings.Margin
+
+        if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+            $level = $Context.Block.Path.Count
+            $margin = $ReportStrings.Margin * ($level)
+            $error_margin = $margin + $ReportStrings.Margin
+        }
+
+        foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
+        & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
     }
 
     $p.End = {
@@ -715,4 +718,39 @@ function Write-ErrorToScreen {
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+}
+
+function Write-BlockToScreen {
+    # the $context does not mean Context block, it's just a generic name
+    # for the invocation context of this callback
+    param ($Block)
+
+    # this function will write Describe / Context expanded name right before a test setup
+    # or right before describe failure, we need to postpone this write to have the ExpandedName
+    # correctly populated when there are data given to the block
+
+    if ($Block.IsRoot) {
+        return
+    }
+
+    $commandUsed = $Block.FrameworkData.CommandUsed
+
+    # -1 moves the block closer to the start of theline
+    $level = $Block.Path.Count - 1
+    $margin = $ReportStrings.Margin * $level
+
+    $name = if (-not [string]::IsNullOrWhiteSpace($Block.ExpandedName)) { $Block.ExpandedName } else { $Block.Name }
+    $text = $ReportStrings.$commandUsed -f $name
+
+    if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
+        $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
+    }
+
+    if (0 -eq $level -and -not $block.First) {
+        # write extra line before top-level describe / context if it is not first
+        # in that case there are already two spaces before the name of the file
+        & $SafeCommands['Write-Host']
+    }
+
+    & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
 }

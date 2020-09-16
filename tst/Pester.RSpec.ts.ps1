@@ -927,9 +927,54 @@ i -PassThru:$PassThru {
             }
 
             $container = New-TestContainer -ScriptBlock $sb
-            $r = Invoke-Pester -Container $container -PassThru #
+            $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Parametric tests" {
+        t "Providing data will generate as many Its as there are data sets" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                    } -TestCases @(@{ Value = 1}, @{ Value  = 2 })
+                }
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+        }
+
+        t "-ForEach is alias to -TestCases" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                    } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
+                }
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+        }
+
+        t "Providing empty or `$null -TestCases will generate nothing" {
+            $sb = {
+                Describe "d" {
+                    It "i" { } -ForEach @()
+                }
+
+                Describe "d" {
+                    It "i" { } -ForEach $null
+                }
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 0
+            $r.Containers[0].Blocks[1].Tests.Count | Verify-Equal 0
         }
     }
 
@@ -945,6 +990,22 @@ i -PassThru:$PassThru {
             $container = New-TestContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru #
             $r.Containers[0].Blocks.Count | Verify-Equal 2
+        }
+
+        t "Providing empty or `$null -ForEach will generate nothing" {
+            $sb = {
+                Describe "d" {
+                    It "i" { }
+                } -ForEach @()
+
+                Describe "d" {
+                    It "i" { }
+                } -ForEach $null
+            }
+
+            $container = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks.Count | Verify-Equal 0
         }
 
         t "Data will be available in the respective block during Run" {

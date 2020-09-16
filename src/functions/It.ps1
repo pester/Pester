@@ -145,8 +145,13 @@ about_should
         }
     }
 
-    if ($null -ne  $TestCases -and 0 -lt @($TestCases).Count) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+    if ($PSBoundParameters.ContainsKey('TestCases')) {
+        if ($null -ne $TestCases -and 0 -lt @($TestCases).Count) {
+            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+        }
+        else {
+            # @() or $null is provided do nothing
+        }
     }
     else {
         New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Focus:$Focus -Skip:$Skip
