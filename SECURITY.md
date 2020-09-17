@@ -19,4 +19,4 @@ To report security vulnerabilities in Powershell, .NET, Windows, or other Micros
 <https://www.microsoft.com/en-us/msrc/faqs-report-an-issue>
 <https://www.microsoft.com/en-us/msrc/bounty>
 
-To report a security vulnerability in Pester framework ping me on [twitter](https://twitter.com/nohwnd)
+To report a security vulnerability in Pester framework, email security@pester.dev and ping me on [twitter](https://twitter.com/nohwnd)
