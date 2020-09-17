@@ -584,14 +584,18 @@ function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType 
 }
 
 function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
-    $XmlWriter.WriteStartElement('test-case')
+    
+    if ($TestResult.ShouldRun) {
+        $XmlWriter.WriteStartElement('test-case')
 
-    Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName -Path $Path
+        Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName -Path $Path
 
-    $XmlWriter.WriteEndElement()
+        $XmlWriter.WriteEndElement()
+	}
 }
 
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
+
     $testName = $TestResult.ExpandedPath
 
     # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time

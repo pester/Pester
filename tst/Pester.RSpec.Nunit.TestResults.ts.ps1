@@ -365,7 +365,7 @@ i -PassThru:$PassThru {
                 })
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
-            $xmlResult = ConvertTo-NUnitReport $r
+            $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
 
             $xmlTestSuite1.name | Verify-Equal "Describe #1"
@@ -382,4 +382,51 @@ i -PassThru:$PassThru {
             $xmlTestSuite2.time | Verify-XmlTime $r.Containers[1].Blocks[0].Duration
         }
     }
+
+    b "Filtering on tags" {
+
+        $sb = @( {
+            Describe "Acceptance Test #1" {
+                It "acceptance testcase" -Tag 'Acceptance' {
+                    $true | Should -Be $true
+                }
+            }
+        }, {
+            Describe "Unit Test #2" -Tag 'Unit' {
+                It "unit testcase" {
+                    $true | Should -Be $true
+                }
+            }
+        })
+
+        t "Report ignores tests filtered by ExcludeTag" {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' }; Filter = @{ ExcludeTag = 'Acceptance' }; })
+            
+            $r.Tests[0].ShouldRun | Verify-Equal "False"
+            $r.Tests[1].ShouldRun | Verify-Equal "True"
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            $xmlFirstSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
+            $xmlSecondSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[1]
+
+            $xmlFirstSuite.name | Verify-Equal "Acceptance Test #1"
+            $xmlSecondSuite.name | Verify-Equal "Unit Test #2"
+        }
+
+        t "Report includes only tests matching Tag" {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' }; Filter = @{ Tag = 'Acceptance' }; })
+
+            $r.Tests[0].ShouldRun | Verify-Equal "True"
+            $r.Tests[1].ShouldRun | Verify-Equal "False"
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            $xmlFirstSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
+
+            $xmlFirstSuite.name | Verify-Equal "Acceptance Test #1"
+        }
+
+    }
+
 }
