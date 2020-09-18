@@ -195,6 +195,11 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
     $XmlWriter.WriteStartElement('results')
 
     foreach ($container in $Result.Containers) {
+        if (-not $container.ShouldRun) {
+            # skip containers that were discovered but none of their tests run
+            continue
+        }
+
         if ("File" -eq $container.Type) {
             $path = $container.Item.FullName
         }
@@ -245,6 +250,10 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     $XmlWriter.WriteStartElement('results')
 
     foreach ($action in $Node.Blocks) {
+        if (-not $action.ShouldRun) {
+            # skip blocks that were discovered but did not run
+            continue
+        }
         Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.Path -join '.')
     }
 
@@ -584,14 +593,16 @@ function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType 
 }
 
 function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
-    
-    if ($TestResult.ShouldRun) {
-        $XmlWriter.WriteStartElement('test-case')
 
-        Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName -Path $Path
+    if (-not $TestResult.ShouldRun) {
+        return
+    }
 
-        $XmlWriter.WriteEndElement()
-	}
+    $XmlWriter.WriteStartElement('test-case')
+
+    Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName -Path $Path
+
+    $XmlWriter.WriteEndElement()
 }
 
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {

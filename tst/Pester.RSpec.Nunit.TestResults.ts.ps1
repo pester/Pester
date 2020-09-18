@@ -383,50 +383,52 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Filtering on tags" {
+    b "Filtered items should not appear in report" {
 
-        $sb = @( {
-            Describe "Acceptance Test #1" {
-                It "acceptance testcase" -Tag 'Acceptance' {
-                    $true | Should -Be $true
+        $sb = @(
+            # container 0
+            {
+                # this whole container should be excluded, it has no tests that will run
+                Describe "Excluded describe" {
+                    It "Excluded test" -Tag 'Exclude' {
+                        $true | Should -Be $true
+                    }
                 }
             }
-        }, {
-            Describe "Unit Test #2" -Tag 'Unit' {
-                It "unit testcase" {
-                    $true | Should -Be $true
-                }
-            }
-        })
 
-        t "Report ignores tests filtered by ExcludeTag" {
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' }; Filter = @{ ExcludeTag = 'Acceptance' }; })
-            
-            $r.Tests[0].ShouldRun | Verify-Equal "False"
-            $r.Tests[1].ShouldRun | Verify-Equal "True"
+            # container 1
+            {
+                # this describe should be excluded, it has no test to run
+                Describe "Excluded describe" {
+                    It "Excluded test" -Tag 'Exclude' {
+                        $true | Should -Be $true
+                    }
+                }
+
+                # but the container should still be included because it has
+                # this describe that will run
+                Describe "Included describe" {
+                    It "Included test" {
+                        $true | Should -Be $true
+                    }
+                }
+
+            }
+        )
+
+        t "Report ignores containers, blocks and tests filtered by ExcludeTag" {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' }; Filter = @{ ExcludeTag = 'Exclude' }; })
+
+            $r.Containers[0].ShouldRun | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].ShouldRun | Verify-False
+            $r.Containers[1].Blocks[1].Tests[0].ShouldRun | Verify-True
 
             $xmlResult = $r | ConvertTo-NUnitReport
 
-            $xmlFirstSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
-            $xmlSecondSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[1]
-
-            $xmlFirstSuite.name | Verify-Equal "Acceptance Test #1"
-            $xmlSecondSuite.name | Verify-Equal "Unit Test #2"
+            $xmlSuites = @($xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite')
+            $xmlSuites.Count | Verify-Equal 1 # there should be only 1 suite, the others are excluded
+            $xmlSuites[0].'description' | Verify-Equal "Included describe"
+            $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Included test"
         }
-
-        t "Report includes only tests matching Tag" {
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' }; Filter = @{ Tag = 'Acceptance' }; })
-
-            $r.Tests[0].ShouldRun | Verify-Equal "True"
-            $r.Tests[1].ShouldRun | Verify-Equal "False"
-
-            $xmlResult = $r | ConvertTo-NUnitReport
-
-            $xmlFirstSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
-
-            $xmlFirstSuite.name | Verify-Equal "Acceptance Test #1"
-        }
-
     }
-
 }
