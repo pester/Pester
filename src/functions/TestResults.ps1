@@ -276,6 +276,11 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         }
 
         foreach ($testCase in $suite.Group) {
+            if (-not $testCase.ShouldRun) {
+                # skip tests that were discovered but did not run
+                continue
+            }
+
             $suiteName = if ($testGroupId) { $parameterizedSuiteInfo.Name } else { "" }
             Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path ($testCase.Path -join '.') -ParameterizedSuiteName $suiteName
         }
@@ -593,11 +598,6 @@ function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType 
 }
 
 function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
-
-    if (-not $TestResult.ShouldRun) {
-        return
-    }
-
     $XmlWriter.WriteStartElement('test-case')
 
     Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName -Path $Path
