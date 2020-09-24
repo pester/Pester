@@ -17,6 +17,13 @@ $obj = New-MockObject -Type 'System.Diagnostics.Process'
 $obj.GetType().FullName
     System.Diagnostics.Process
 ```
+
+.LINK
+https://pester.dev/docs/commands/New-MockObject
+
+.LINK
+https://pester.dev/docs/usage/mocking
+
 #>
 
     param (
