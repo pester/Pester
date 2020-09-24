@@ -13,6 +13,6 @@ namespace Pester
 
         public string Type { get; set; } = "File";
         public object Item { get; set; }
-        public IDictionary Data { get; set; }
+        public object Data { get; set; }
     }
 }

@@ -750,9 +750,9 @@ function Invoke-Pester {
                         $cs = @()
 
                         foreach ($c in $Container) {
-                            $data = if ($null -eq $c.Data) { @(@{}) } else { $c.Data }
+                            $data = $c.Data
                             if ($c -is [Pester.TestScriptBlock]) {
-                                foreach ($d in $data) {
+                                foreach ($d in @($data)) {
                                     $cs += New-BlockContainerObject -ScriptBlock $c.ScriptBlock -Data $d
                                 }
                             }
@@ -1460,6 +1460,42 @@ function ConvertTo-Pester4Result {
 
         $legacyResult
     }
+}
+
+function BeforeDiscovery {
+    <#
+        .SYNOPSIS
+        Runs setup code that is used during Discovery phase.
+        .DESCRIPTION
+        Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
+        to be explicit about code that you need to run during Discovery, instead of just
+        putting code directly inside of Describe / Context.
+        .PARAMETER ScriptBlock
+        The ScritpBlock to run.
+
+        .EXAMPLE
+            PS > BeforeDiscovery {
+                $files = "file1.txt", "file2.txt"
+            }
+
+            Describe "File tests" {
+                foreach ($file in $files) {
+                    It "test" {
+                        # ... test code
+                    }
+                }
+            }
+
+            The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
+            will be named "Tests - Set A".
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ScriptBlock]$ScriptBlock
+    )
+
+    . $ScriptBlock
 }
 
 # Adding Add-ShouldOperator because it used to be an alias in v4, and so when we now import it will take precedence over

@@ -23,6 +23,7 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'InModuleScope'
 
     # setups
+    'BeforeDiscovery'
     'BeforeAll'
     'BeforeEach'
     'AfterEach'
