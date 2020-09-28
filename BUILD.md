@@ -25,13 +25,27 @@ Test.ps1 and optionally -skipPTests to skip the .ts.ps1 files.
 
 ## test.ps1
 
-test.ps1 can be run with the following parameters
-
-TODO document parameters, tests executed in pipelines.
+test.ps1 can be run with the following parameters:
 
 ```powershell
 .\test.ps1 -CI -SkipPTests -NoBuild -File ${filename}
 ```
+
+### Test Parameters
+
+```powershell
+.PARAMETER CI
+  Exits after run.  Enables test results and code coverage on /src/*. 
+.PARAMETER SkipPTests
+  Skips Passthrough P tests
+.NoBuild
+  Skips running build.ps1
+.File
+  If specified, set file path to test file, otherwise set to /tst folder.
+  */demo/*, */examples/*, */testProjects/* are excluded from tests.
+```
+
+Tests are excluded with Tags VersionChecks, StyleRules, Help.
 
 ## Continuous Integration
 
