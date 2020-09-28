@@ -35,7 +35,7 @@ TODO document parameters, tests executed in pipelines.
 
 ## Continuous Integration
 
-The Azure Devops Pipeline azure-pipelines.yml file contains the code used for builds, unit and integration tests.
+The Azure Devops Pipeline azure-pipelines.yml file contains the code used for builds, unit and integration tests in the CI pipeline.
 
 ## Documentation
 
