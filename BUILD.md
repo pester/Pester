@@ -55,7 +55,7 @@ Within the pipeline, tests are executed against PS7 Core on a strategy matrix of
 
 ## Documentation
 
-Documentation is available in the repo, the wiki, and at <https://pester.dev>
+Documentation is available in the repo, the [Pester wiki](https://github.com/pester/Pester/wiki), and at <https://pester.dev>
 
 Documentation is written in Markdown. Comment-based Documentation and parts of the documentation web site are generated using Docusaurus Powershell.
 
