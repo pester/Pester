@@ -1,6 +1,6 @@
 # Building Pester
 
-Pester is written in Powershell and C#.  The Microsoft .NET 4.5.2 Framework is required to build the Pester binaries.
+Pester is written in Powershell and C#.  The Microsoft .NET Framework 4.5.2 is required to build the Pester binaries.
 
 Pester has a C# Solution which requires .Net Framework SDKs and Developer Packs in order to compile. The targetted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
 
