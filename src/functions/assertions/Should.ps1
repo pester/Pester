@@ -38,9 +38,12 @@ function Should {
 
     .LINK
     about_Should
+    
+    .LINK
     about_Pester
 
     .EXAMPLE
+    ```ps
     Describe "d1" {
         BeforeEach { $be = 1 }
         It "i1" {
@@ -48,8 +51,10 @@ function Should {
         }
         AfterEach { Write-Host "AfterEach: $be" }
     }
+    ```
 
     .EXAMPLE
+    ```ps
     Describe "d1" {
         It "i1" {
             $user = Get-User
@@ -59,8 +64,10 @@ function Should {
                 Should -HaveProperty Age  -Value 30
         }
     }
+    ```
 
     .EXAMPLE
+    ```ps
     Describe "d1" {
         It "i1" {
             Mock Get-Command { }
@@ -68,8 +75,10 @@ function Should {
             Should -Invoke Get-Command -Times 1 -Exactly
         }
     }
+    ```
 
     .EXAMPLE
+    ```ps
     Describe "d1" {
         It "i1" {
             Mock Get-Command { }
@@ -77,6 +86,7 @@ function Should {
             Should -Invoke Get-Command -Times 1 -Exactly
         }
     }
+    ```
 
     .EXAMPLE
     $true | Should -BeFalse
