@@ -43,6 +43,6 @@ Documentation is available in the repo, the wiki, and at <https://pester.dev>
 
 Documentation is written in Markdown. Comment-based Documentation and parts of the documentation web site are generated using Docusaurus Powershell.
 
-Multi-line Examples added to comments should use fenced code.
+Multi-line examples added to comments should use fenced code.
 
 <https://docusaurus-powershell.netlify.app/docs/faq/multi-line-examples>
