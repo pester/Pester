@@ -51,6 +51,8 @@ Tests are excluded with Tags VersionChecks, StyleRules, Help.
 
 The Azure Devops Pipeline azure-pipelines.yml file contains the code definition used for builds, unit and integration tests in the CI pipeline.
 
+Within the pipeline, tests are executed against PS7 Core on a strategy matrix of machines, including Ubuntu 16.04, 18.04, macOS Mojave 10.14, Catalina 10.15, Windows Server 2016, 2019. Tests are also executed against PS6.2, PS4, PS3.
+
 ## Documentation
 
 Documentation is available in the repo, the wiki, and at <https://pester.dev>
