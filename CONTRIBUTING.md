@@ -1,10 +1,43 @@
+# Contributing to Pester
+
+Thanks for taking the time to contribute! We welcome and encourage contributions
+to this project.
+
 # Building Pester
 
-Pester is written in Powershell and C#.  The Microsoft .NET Framework 4.5.2 is required to build the Pester binaries.
+Pester is written in Powershell and C#. The C# solution requires .Net
+Framework SDKs and Developer Packs in order to compile, see links below
+how to install those prior to building.
 
-Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs in order to compile. The targeted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
+The first time the repository is cloned, or when the C# code changes, the
+assemblies are built by running the following from the root of the
+repository:
+
+```powershell
+.\build.ps1 -Clean
+```
+
+To build the Pester PowerShell module when the PowerShell code is changed
+run the following from the root of the repository:
+
+```powershell
+.\build.ps1
+```
+
+To use the built module you can run the below from the root of the
+repository.
+
+>**NOTE:** If the assemblies have been changed and a previous version of
+>the assemblies exist (loaded) in the session, then a new PowerShell session
+>must be started for the new assemblies to be loaded again.
+
+```powershell
+Import-Module .\bin\Pester.psd1 -Force
+```
 
 ## Required Software
+
+Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs in order to compile. The targeted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
 
 ### Install .NET Core 3.1 SDK
 
@@ -28,7 +61,7 @@ Test.ps1 and optionally -skipPTests to skip the .ts.ps1 files.
 test.ps1 can be run locally with the following parameters:
 
 ```powershell
-.\test.ps1 -File <filename> 
+.\test.ps1 -File <filename>
 ```
 
 To skip P tests:
@@ -41,7 +74,7 @@ To skip P tests:
 
 ```powershell
 .PARAMETER CI
-  Exits after run.  Enables test results and code coverage on `/src/*`. Enable exit with 1 if tests don't pass. Forces P Tests to fail when `dt` is left in the tests. `dt` only runs the specified test, so leaving it in code would run only one test from the file on the server. 
+  Exits after run.  Enables test results and code coverage on `/src/*`. Enable exit with 1 if tests don't pass. Forces P Tests to fail when `dt` is left in the tests. `dt` only runs the specified test, so leaving it in code would run only one test from the file on the server.
 .PARAMETER SkipPTests
   Skips Passthrough P tests. Skip the tests written using the P module, Unit Tests for the Runtime, and Acceptance Tests for Pester
 .NoBuild
