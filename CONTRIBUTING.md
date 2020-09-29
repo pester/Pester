@@ -3,7 +3,10 @@
 Thanks for taking the time to contribute! We welcome and encourage contributions
 to this project.
 
-# Building Pester
+Please read the [contribution introduction](https://pester.dev/docs/contributing/introduction)
+for more information.
+
+## Building Pester
 
 Pester is written in Powershell and C#. The C# solution requires .Net
 Framework SDKs and Developer Packs in order to compile, see links below
