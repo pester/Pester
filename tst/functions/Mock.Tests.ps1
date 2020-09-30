@@ -899,6 +899,18 @@ Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
     }
 }
 
+Describe "When Calling Should -Invoke with pipeline-input or -ActualValue" {
+    It "Should throw an error on pipeline-input" {
+        $scriptBlock = { "value" | Should -Invoke -CommandName "ABC" -Scope Describe }
+        $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
+    }
+
+    It "Should throw an error on ActualInput-value" {
+        $scriptBlock = { Should -Invoke -CommandName "ABC" -ActualValue "value" -Scope Describe }
+        $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
+    }
+}
+
 Describe "Using Pester Scopes (Describe,Context,It)" {
     BeforeAll {
         Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
