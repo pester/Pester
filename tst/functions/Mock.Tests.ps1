@@ -901,12 +901,12 @@ Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
 
 Describe "When Calling Should -Invoke with pipeline-input or -ActualValue" {
     It "Should throw an error on pipeline-input" {
-        $scriptBlock = { "FunctionUnderTest" | Should -Invoke -CommandName "ABC" -Scope Describe }
+        $scriptBlock = { "value" | Should -Invoke -CommandName "ABC" -Scope Describe }
         $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
     }
 
     It "Should throw an error on ActualInput-value" {
-        $scriptBlock = { Should -Invoke -CommandName "ABC" -ActualValue "FunctionUnderTest" -Scope Describe }
+        $scriptBlock = { Should -Invoke -CommandName "ABC" -ActualValue "value" -Scope Describe }
         $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
     }
 }
