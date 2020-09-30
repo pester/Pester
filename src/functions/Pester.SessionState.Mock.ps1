@@ -856,12 +856,7 @@ to the original.
     )
 
     if ($null -ne $ActualValue) {
-        if ($ActualValue -is [string]) {
-            $CommandName = $ActualValue
-        }
-        else {
-            throw "Should -Invoke does not take pipeline input or ActualValue."
-        }
+        throw "Should -Invoke does not take pipeline input or ActualValue."
     }
 
     # Assert-DescribeInProgress -CommandName Should -Invoke
