@@ -35,7 +35,7 @@ test.ps1 can be run with the following parameters:
 
 ```powershell
 .PARAMETER CI
-  Exits after run.  Enables test results and code coverage on /src/*. Enable exit with 1 if tests don't pass. Forces P Tests to fail when dt is left in the tests. dt only runs the specified test, so leaving it in code would run only one test from the file on the server. 
+  Exits after run.  Enables test results and code coverage on `/src/*`. Enable exit with 1 if tests don't pass. Forces P Tests to fail when `dt` is left in the tests. `dt` only runs the specified test, so leaving it in code would run only one test from the file on the server. 
 .PARAMETER SkipPTests
   Skips Passthrough P tests. Skip the tests written using the P module, Unit Tests for the Runtime, and Acceptance Tests for Pester
 .NoBuild
