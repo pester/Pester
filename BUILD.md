@@ -25,10 +25,16 @@ Test.ps1 and optionally -skipPTests to skip the .ts.ps1 files.
 
 ## test.ps1
 
-test.ps1 can be run with the following parameters:
+test.ps1 can be run locally with the following parameters:
 
 ```powershell
-.\test.ps1 -CI -SkipPTests -NoBuild -File ${filename}
+.\test.ps1 -File <filename> 
+```
+
+To skip P tests:
+
+```powershell
+.\test.ps1 -File <filename> -SkipPTests
 ```
 
 ### Test Parameters
