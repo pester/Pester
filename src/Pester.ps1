@@ -18,6 +18,17 @@ function Add-ShouldOperator {
     Register a Should Operator with Pester
 .DESCRIPTION
     This function allows you to create custom Should assertions.
+.PARAMETER Name
+    The name of the assertion. This will become a Named Parameter of Should.
+.PARAMETER Test
+    The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
+.PARAMETER Alias
+    A list of aliases for the Named Parameter.
+.PARAMETER SupportsArrayInput
+    Does the test function support the passing an array of values to test.
+.PARAMETER InternalName
+    If -Name is different from the actual function name, record the actual function name here.
+    Used by Get-ShouldOperator to pull function help.
 .EXAMPLE
     function BeAwesome($ActualValue, [switch] $Negate)
     {
@@ -49,17 +60,6 @@ function Add-ShouldOperator {
 
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
-.PARAMETER Name
-    The name of the assertion. This will become a Named Parameter of Should.
-.PARAMETER Test
-    The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
-.PARAMETER Alias
-    A list of aliases for the Named Parameter.
-.PARAMETER SupportsArrayInput
-    Does the test function support the passing an array of values to test.
-.PARAMETER InternalName
-    If -Name is different from the actual function name, record the actual function name here.
-    Used by Get-ShouldOperator to pull function help.
 #>
     [CmdletBinding()]
     param (

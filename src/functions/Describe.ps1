@@ -58,11 +58,27 @@ Describe "Add-Numbers" {
 }
 
 .LINK
+https://pester.dev/docs/commands/Describe
+
+.LINK
+https://github.com/pester/Pester/wiki/Describe
+
+.LINK
 It
+
+.LINK
 Context
+
+.LINK
 Invoke-Pester
+
+.LINK
 about_Should
+
+.LINK
 about_Mocking
+
+.LINK
 about_TestDrive
 
 #>
