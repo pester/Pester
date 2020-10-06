@@ -1011,12 +1011,11 @@ function Run-Test {
             }
 
             if (
-                $null -ne $rootBlock.EachTestTeardown `
-                    -or $null -ne $rootBlock.OneTimeTestTeardown #`
+                $null -ne $rootBlock.EachTestTeardown
                 #-or $null -ne $rootBlock.OneTimeBlockTeardown `
                 #-or $null -ne $rootBlock.EachBlockTeardown `
             ) {
-                throw "Teardowns are not supported in root (directly in the block container)."
+                throw "Each test Teardown is not supported in root (directly in the block container)."
             }
 
             # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope

@@ -544,6 +544,27 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "top-level AfterAll" {
+        t "AfterAll can be used in top-level" {
+            $sb = {
+                AfterAll {
+                    "teardown"
+                }
+
+                Describe "d1" {
+                    It "t1" {
+
+                    }
+                }
+            }
+
+            $c = New-TestContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $c -PassThru -Output Detailed
+
+            $r.Containers[0].StandardOutput | Verify-Equal "teardown"
+        }
+    }
+
     b "Parametric scripts" {
         t "Data can be passed to scripts" {
             $sb = {
