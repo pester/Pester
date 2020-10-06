@@ -1249,7 +1249,7 @@ i -PassThru:$PassThru {
     }
 
     b "Should with legacy syntax will throw" {
-        dt "Should with legacy syntax will throw" {
+        t "Should with legacy syntax will throw" {
             $sb = {
                 Describe "d" {
                     It "i" {
