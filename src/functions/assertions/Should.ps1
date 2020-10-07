@@ -38,7 +38,7 @@ function Should {
 
     .LINK
     about_Should
-    
+
     .LINK
     about_Pester
 
@@ -118,24 +118,8 @@ function Should {
         # A bit of Regex lets us know if the line used the old form
         if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)')
         {
-            # Now it gets tricky.  This will be called once for each unmapped parameter.
-            # So while we always want to return here, we only want to error once
-            # The message uniqueness can be one part of our error.
             $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
-
-            # The rest of the uniqueness we can cobble together out of $MyInvocation.
-            $uniqueErrorMsg = $shouldErrorMsg,
-                $MyInvocation.HistoryId, # The history ID is unique per run
-                $MyInvocation.PSCommandPath, # the command path is unique per file
-                $myLine  -join '.' # and the whole line should be.  Join all of these pieces by .
-
-
-            if ($script:lastShouldErrorMsg -ne $uniqueErrorMsg) {
-                $script:lastShouldErrorMsg  = $uniqueErrorMsg
-                Write-Error $shouldErrorMsg
-                return
-            }
-            return
+            throw $shouldErrorMsg
         } else {
             Get-AssertionDynamicParams
         }
