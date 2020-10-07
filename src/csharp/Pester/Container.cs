@@ -33,7 +33,8 @@ namespace Pester
                 Type = block.BlockContainer.Type,
                 Item = block.BlockContainer.Item,
                 Blocks = block.Blocks,
-                Data = block.Data
+                Data = block.Data,
+                StandardOutput = block.StandardOutput
         };
         }
 
@@ -68,7 +69,7 @@ namespace Pester
         public TimeSpan DiscoveryDuration { get; set; }
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }
-
+        public object StandardOutput { get; set; }
 
         public override string ToString()
         {
