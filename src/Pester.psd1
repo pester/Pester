@@ -112,7 +112,7 @@
             ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.1.0'
 
             # Prerelease string of this module
-            Prerelease   = 'beta1'
+            Prerelease   = 'beta2'
         }
     }
 
