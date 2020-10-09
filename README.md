@@ -511,7 +511,6 @@ ShowFullErrors         : Show full errors including Pester internal stack. (Fals
 WriteDebugMessages     : Write Debug messages to screen. (False, default: False)
 WriteDebugMessagesFrom : Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything. (*, default: *)
 ShowNavigationMarkers  : Write paths after every block and test, for easy navigation in VSCode. (False, default: False)
-WriteVSCodeMarker      : Write VSCode marker for better integration with VSCode. (False, default: False)
 ```
 
 The configuration object can be constructed either via the Default static property or by casting a hashtable to it. You can also cast a hashtable to any of its sections. Here are three different ways to the same goal:
