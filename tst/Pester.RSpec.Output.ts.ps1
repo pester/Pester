@@ -43,7 +43,7 @@ function Invoke-PesterInProcess ([ScriptBlock] $ScriptBlock, [ScriptBlock] $Setu
 
 # VSCode-powershell Problem Matcher pattern
 # Storing the original pattern below for easier comparison and maintenance
-$titlePattern = ('^\\s*(?:\\[-\\]\\s+)(.*?)(?:\\s+\\d+\\.?\\d*\\s*m?s)\\s*?(?:\\([\\w\\|]+\\))?\\s*?$' -replace '\\\\', '\')
+$titlePattern = ('^\\s*(?:\\[-\\]\\s+)(.*?)(?:\\s+\\d+\\.?\\d*\\s*m?s)(?:\\s+\\(\\d+\\.?\\d*m?s\\|\\d+\\.?\\d*m?s\\))?\\s*$' -replace '\\\\', '\')
 $atPattern = ('^\\s+[Aa]t\\s+([^,]+,)?(.+?):(\\s+line\\s+)?(\\d+)(\\s+char:\\d+)?$' -replace '\\\\', '\')
 
 
