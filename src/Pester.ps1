@@ -428,7 +428,6 @@ function Invoke-Pester {
     Debug.WriteDebugMessages - Write Debug messages to screen.
     Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
         Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
-    Debug.WriteVSCodeMarker - Write VSCode marker for better integration with VSCode.
 
     .PARAMETER EnableExit
     (Deprecated v4)

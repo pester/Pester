@@ -462,7 +462,6 @@ namespace Pester
             WriteDebugMessages = new BoolOption("Write Debug messages to screen.", false);
             WriteDebugMessagesFrom = new StringArrayOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", new string[] { "Discovery", "Skip", "Filter", "Mock", "CodeCoverage" });
             ShowNavigationMarkers = new BoolOption("Write paths after every block and test, for easy navigation in VSCode.", false);
-            WriteVSCodeMarker = new BoolOption("Write VSCode marker for better integration with VSCode.", false);
             ReturnRawResultObject = new BoolOption("Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.", false);
         }
 
@@ -474,7 +473,6 @@ namespace Pester
                 WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
                 WriteDebugMessagesFrom = configuration.GetArrayOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
                 ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
-                WriteVSCodeMarker = configuration.GetValueOrNull<bool>("WriteVSCodeMarker") ?? WriteVSCodeMarker;
                 ReturnRawResultObject = configuration.GetValueOrNull<bool>("ReturnRawResultObject") ?? ReturnRawResultObject;
             }
         }
@@ -483,7 +481,6 @@ namespace Pester
         private BoolOption _writeDebugMessages;
         private StringArrayOption _writeDebugMessagesFrom;
         private BoolOption _showNavigationMarkers;
-        private BoolOption _writeVsCodeMarker;
         private BoolOption _returnRawResultObject;
 
         public BoolOption ShowFullErrors
@@ -546,22 +543,6 @@ namespace Pester
                 else
                 {
                     _showNavigationMarkers = new BoolOption(_showNavigationMarkers, value.Value);
-                }
-            }
-        }
-
-        public BoolOption WriteVSCodeMarker
-        {
-            get { return _writeVsCodeMarker; }
-            set
-            {
-                if (_writeVsCodeMarker == null)
-                {
-                    _writeVsCodeMarker = value;
-                }
-                else
-                {
-                    _writeVsCodeMarker = new BoolOption(_writeVsCodeMarker, value.Value);
                 }
             }
         }

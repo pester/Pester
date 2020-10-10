@@ -156,10 +156,6 @@ i -PassThru:$PassThru {
         t "Debug.ShowNavigationMarkers is `$false" {
             [PesterConfiguration]::Default.Debug.ShowNavigationMarkers.Value | Verify-False
         }
-
-        t "Debug.WriteVSCodeMarker is `$false" {
-            [PesterConfiguration]::Default.Debug.WriteVSCodeMarker.Value | Verify-False
-        }
     }
 
     b "Assignment" {
