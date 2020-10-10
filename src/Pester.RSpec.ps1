@@ -235,10 +235,74 @@ function Get-RSpecObjectDecoratorPlugin () {
 }
 
 function New-PesterConfiguration {
-    [CmdletBinding()]
-    param()
+    <#
+    .SYNOPSIS
+    Creates a new [PesterConfiguration] object for advanced configuration of Invoke-Pester.
 
-    [PesterConfiguration]@{}
+    .DESCRIPTION
+    The New-PesterConfiguration function creates a new [PesterConfiguration] object
+    to enable advanced configurations for runnings tests using Invoke-Pester.
+
+    Without parameters, the function generates a configuration-object with default
+    options. The returned [PesterConfiguration] object can be modified to suit your
+    requirements. You may also use the -Configuration parameter to provide a pre-defined
+    dictionary of custom options to override certain default values.
+
+    .PARAMETER Default
+    Create a new [PesterConfiguration] object with default values. This switch is
+    optional and is an alternative to calling the function without parameters or
+    using [PesterConfiguration]::Default directly.
+
+    .PARAMETER Configuration
+    Override the default values for the options defined in the provided dictionary/hashtable.
+    Inspect a default [PesterConfiguration] object to learn about the schema and
+    available options.
+
+    .EXAMPLE
+    $config = New-PesterConfiguration -Default
+    $config.Run.PassThru = $true
+
+    Invoke-Pester -Configuration $c
+
+    Creates a default [PesterConfiguration] object and changes the Run.PassThru option
+    to return the result object after the test run. The configuration object is
+    provided to Invoke-Pester to alter the default behaviour.
+
+    .EXAMPLE
+    $MyOptions = @{
+        Run = @{ # <- Run configuration.
+            PassThru = $true # <- Return result object after finishing the test run.
+        }
+        Filter = @{ # <- Filter configuration
+            Tag = "Core","Integration" # <- Run only Describe/Context/It-blocks with 'Core' or 'Integration' tags
+        }
+    }
+
+    $config = New-PesterConfiguration -Configuration $MyOptions
+
+    Invoke-Pester -Configuration $config
+
+    A hashtable is created with custom options and passed to the New-PesterConfiguration to merge
+    with the default configuration. The options will override the default values.
+    The configuration object is then provided to Invoke-Pester to begin the test run using
+    the new configuration.
+
+    .LINK
+    Invoke-Pester
+    #>
+    [CmdletBinding(DefaultParameterSetName="Default")]
+    param(
+        [Parameter(ParameterSetName = "Default")]
+        [switch] $Default,
+
+        [Parameter(Mandatory, ParameterSetName = "Custom")]
+        [System.Collections.IDictionary] $Configuration
+    )
+
+    switch ($PSCmdlet.ParameterSetName) {
+        "Custom" { [PesterConfiguration]::new($Configuration) }
+        Default {  [PesterConfiguration]::Default }
+    }
 }
 
 function Remove-RSpecNonPublicProperties ($run){
