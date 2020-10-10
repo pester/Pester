@@ -68,8 +68,6 @@ i -PassThru:$PassThru {
             $hostSingleError = $output | Select-String -Pattern 'Single error' -Context 0, 1
             $hostSingleError.Line -match $titlePattern | Verify-True
             $hostSingleError.Context.PostContext[0] -match $atPattern | Verify-True
-
-
         }
 
         t "Matches problem pattern with multiple errors" {
