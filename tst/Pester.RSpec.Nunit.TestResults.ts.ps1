@@ -431,4 +431,35 @@ i -PassThru:$PassThru {
             $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Included test"
         }
     }
+
+    b "When beforeall crashes tests are reported correctly" {
+        # https://github.com/pester/Pester/issues/1715
+        t "test has name" {
+            $sb = {
+                Describe "Failing describe" {
+                    BeforeAll {
+                        throw
+                    }
+
+                    It "Test1" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true };
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            $xmlSuites = @($xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite')
+            $xmlSuites.Count | Verify-Equal 1
+            $xmlSuites[0].'description' | Verify-Equal "Failing describe"
+            $xmlSuites[0].'results'.'test-case'.'name' | Verify-Equal "Failing describe Test1"
+            $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Test1"
+
+        }
+    }
 }
