@@ -150,13 +150,13 @@ i -PassThru:$PassThru {
 
             $describe1 = $output | Select-String -Pattern 'Describing d1\s*$'
             $context1 = $output | Select-String -Pattern 'Context c1\s*$'
-            $describe1.Count | Verify-Equal 1
-            $context1.Count | Verify-Equal 1
+            @($describe1).Count | Verify-Equal 1
+            @($context1).Count | Verify-Equal 1
 
             $describeFailing = $output | Select-String -Pattern 'Describing d failing\s*$'
             $contextFailing = $output | Select-String -Pattern 'Context c1\s*$'
-            $describeFailing.Count | Verify-Equal 1
-            $contextFailing.Count | Verify-Equal 1
+            @($describeFailing).Count | Verify-Equal 1
+            @($contextFailing).Count | Verify-Equal 1
         }
     }
 
