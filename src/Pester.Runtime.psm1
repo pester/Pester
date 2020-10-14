@@ -192,7 +192,14 @@ function New-Block {
     # new block
     $block = [Pester.Block]::Create()
     $block.Name = $Name
+    # using the non-expanded name as default to fallback to it if we don't
+    # reach the point where we expand it, for example because of setup failure
+    $block.ExpandedName = $Name
+
     $block.Path = $Path
+    # using the non-expanded path as default to fallback to it if we don't
+    # reach the point where we expand it, for example because of setup failure
+    $block.ExpandedPath = $Path
     $block.Tag = $Tag
     $block.ScriptBlock = $ScriptBlock
     $block.StartLine = $StartLine
@@ -465,7 +472,13 @@ function New-Test {
     $test.Id = $Id
     $test.ScriptBlock = $ScriptBlock
     $test.Name = $Name
+    # using the non-expanded name as default to fallback to it if we don't
+    # reach the point where we expand it, for example because of setup failure
+    $test.ExpandedName = $Name
     $test.Path = $path
+    # using the non-expanded path as default to fallback to it if we don't
+    # reach the point where we expand it, for example because of setup failure
+    $test.ExpandedPath = $path
     $test.StartLine = $StartLine
     $test.Tag = $Tag
     $test.Focus = $Focus
@@ -858,9 +871,10 @@ function Discover-Test {
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
         $root = [Pester.Block]::Create()
-        $root.Name = "Root"
+        $root.ExpandedName  = $root.Name = "Root"
+
         $root.IsRoot = $true
-        $root.Path = "Path"
+        $root.ExpandedPath = $root.Path = "Path"
 
         $root.First = $true
         $root.Last = $true
