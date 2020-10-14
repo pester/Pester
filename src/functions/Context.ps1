@@ -100,7 +100,7 @@ https://pester.dev/docs/usage/testdrive
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
         if ($PSBoundParameters.ContainsKey('ForEach')) {
             if ($null -ne  $ForEach -and 0 -lt @($ForEach).Count) {
-                New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context' } -Focus:$Focus -Skip:$Skip -Data $ForEach
+                New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
             }
             else {
                 # @() or $null is provided do nothing
@@ -108,7 +108,7 @@ https://pester.dev/docs/usage/testdrive
             }
         }
         else {
-            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context' } -Focus:$Focus -Skip:$Skip
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip
         }
     }
     else {

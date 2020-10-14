@@ -666,7 +666,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
             # if there is a failure before that (e.g. BeforeAll throws) we need to write Describing here.
             # But not if the first test already executed.
             if ($null -ne $Context.Block.Tests -and 0 -lt $Context.Block.Tests.Count) {
-               foreach ($t in $Context.Block.Tests) {
+                # go through the tests to find the one that pester would invoke as first
+                # it might not be the first one in the array if there are some skipped or filtered tests
+                foreach ($t in $Context.Block.Tests) {
                     if ($t.First -and -not $t.Executed) {
                         Write-BlockToScreen $Context.Block
                         break
@@ -727,8 +729,6 @@ function Write-ErrorToScreen {
 }
 
 function Write-BlockToScreen {
-    # the $context does not mean Context block, it's just a generic name
-    # for the invocation context of this callback
     param ($Block)
 
     # this function will write Describe / Context expanded name right before a test setup
@@ -737,6 +737,15 @@ function Write-BlockToScreen {
 
     if ($Block.IsRoot) {
         return
+    }
+
+    if ($Block.FrameworkData.WrittenToScreen) {
+        return
+    }
+
+    # write your parent to screen if they were not written before you
+    if ($null -ne $Block.Parent -and -not $Block.Parent.IsRoot -and -not $Block.FrameworkData.Parent.WrittenToScreen) {
+        Write-BlockToScreen -Block $Block.Parent
     }
 
     $commandUsed = $Block.FrameworkData.CommandUsed
@@ -758,5 +767,6 @@ function Write-BlockToScreen {
         & $SafeCommands['Write-Host']
     }
 
+    $Block.FrameworkData.WrittenToScreen = $true
     & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
 }

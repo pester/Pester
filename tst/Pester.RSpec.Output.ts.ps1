@@ -37,18 +37,21 @@ function Invoke-PesterInProcess ([ScriptBlock] $ScriptBlock, [ScriptBlock] $Setu
         Invoke-Pester -Container $container
     }.ToString()
 
-    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock } -Setup { $Setup }"
+    # we need to escape " with \" because otherwise the " are eaten when the process we are starting recieves them
+    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') } -Setup { $($Setup -replace '"','\"') }"
     & $powershell -NoProfile -ExecutionPolicy Bypass -Command $cmd
 }
 
-# VSCode-powershell Problem Matcher pattern
-# Storing the original pattern below for easier comparison and maintenance
-$titlePattern = ('^\\s*(?:\\[-\\]\\s+)(.*?)(?:\\s+\\d+\\.?\\d*\\s*m?s)(?:\\s+\\(\\d+\\.?\\d*m?s\\|\\d+\\.?\\d*m?s\\))?\\s*$' -replace '\\\\', '\')
-$atPattern = ('^\\s+[Aa]t\\s+([^,]+,)?(.+?):(\\s+line\\s+)?(\\d+)(\\s+char:\\d+)?$' -replace '\\\\', '\')
 
 
 i -PassThru:$PassThru {
     b "Output in VSCode mode" {
+
+        # VSCode-powershell Problem Matcher pattern
+        # Storing the original pattern below for easier comparison and maintenance
+        $titlePattern = ('^\\s*(?:\\[-\\]\\s+)(.*?)(?:\\s+\\d+\\.?\\d*\\s*m?s)(?:\\s+\\(\\d+\\.?\\d*m?s\\|\\d+\\.?\\d*m?s\\))?\\s*$' -replace '\\\\', '\')
+        $atPattern = ('^\\s+[Aa]t\\s+([^,]+,)?(.+?):(\\s+line\\s+)?(\\d+)(\\s+char:\\d+)?$' -replace '\\\\', '\')
+
         t "Matches problem pattern with single error" {
             $setup = {
                 $env:TERM_PROGRAM = 'vscode'
@@ -98,4 +101,64 @@ i -PassThru:$PassThru {
             $hostMultipleErrors[1].Context.PostContext[0] -match $atPattern | Verify-True
         }
     }
+
+    b "Output for nested blocks" {
+        t "All describes and contexts are output in Detailed mode" {
+            # we postpone output of Describe and Context till we expand the name
+            # so without walking up the stack we don't output them automatically
+            # https://github.com/pester/Pester/issues/1716
+
+            $sb = {
+                Describe "d1" {
+                    Context "c1" {
+                        It "i1" {
+                            1 | Should -Be 1
+                        }
+
+                        It "i2" {
+                            1 | Should -Be 1
+                        }
+                    }
+
+                    Context "c2" {
+                        It "i3" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                Describe "d failing" {
+                    # this faild but we should still see "c failing" and "d failing" on the screen
+                    Context "c failing" {
+                        BeforeAll { throw }
+
+                        It "i3" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+            }
+
+            $setup = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+            }
+            $output = Invoke-PesterInProcess $sb -Setup $setup
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split "Discovery finished.*"
+            $run | Write-Host
+
+            $describe1 = $output | Select-String -Pattern 'Describing d1\s*$'
+            $context1 = $output | Select-String -Pattern 'Context c1\s*$'
+            $describe1.Count | Verify-Equal 1
+            $context1.Count | Verify-Equal 1
+
+            $describeFailing = $output | Select-String -Pattern 'Describing d failing\s*$'
+            $contextFailing = $output | Select-String -Pattern 'Context c1\s*$'
+            $describeFailing.Count | Verify-Equal 1
+            $contextFailing.Count | Verify-Equal 1
+        }
+    }
+
+
 }
