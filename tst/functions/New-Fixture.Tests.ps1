@@ -47,6 +47,7 @@ Describe "New-Fixture" {
             Join-Path -Path "$path\relative" -ChildPath "$name.ps1" | Should -Exist
             Join-Path -Path "$path\relative" -ChildPath "$name.Tests.ps1" | Should -Exist
         }
+
         It "Creates fixture if Path is set to '.'" {
             $name = "Relative2-Fixture"
             $path = "TestDrive:\"
@@ -58,6 +59,7 @@ Describe "New-Fixture" {
             Join-Path -Path "$path" -ChildPath "$name.ps1" | Should -Exist
             Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should -Exist
         }
+
         It "Creates fixture if Path is set to '(pwd)'" {
             $name = "Relative3-Fixture"
             $path = "TestDrive:\"
@@ -69,6 +71,7 @@ Describe "New-Fixture" {
             Join-Path -Path "$path" -ChildPath "$name.ps1" | Should -Exist
             Join-Path -Path "$path" -ChildPath "$name.Tests.ps1" | Should -Exist
         }
+
         It "Creates fixture if Path is set to '(pwd)' and Name contains the 'ps1' extension" {
             $name = "Relative4-Fixture.ps1"
             $nameWithoutExtension = $name.Substring(0, $($name.Length) - 4)
@@ -81,6 +84,20 @@ Describe "New-Fixture" {
             Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.ps1" | Should -Exist
             Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.Tests.ps1" | Should -Exist
         }
+
+        It "Creates fixture if Path is set to '(pwd)' and Name contains the 'psm1' extension" {
+            $name = "Relative4-Fixture.psm1"
+            $nameWithoutExtension = $name.Substring(0, $($name.Length) - 5)
+            $path = "TestDrive:\"
+
+            Push-Location -Path $path
+            New-Fixture -Name $name -Path (Get-Location) | Out-Null
+            Pop-Location
+
+            Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.ps1" | Should -Exist
+            Join-Path -Path "$path" -ChildPath "$nameWithoutExtension.Tests.ps1" | Should -Exist
+        }
+
         It "Writes warning if file exists" {
             $name = "Warning-Fixture"
             $path = "TestDrive:\"
@@ -91,9 +108,7 @@ Describe "New-Fixture" {
             New-Fixture -Name $name -Path $path | Out-Null
             New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
 
-            Assert-VerifiableMock
+            Should -InvokeVerifiable
         }
     }
-
-    #TODO add tests that validate the contents of default files
 }
