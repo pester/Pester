@@ -51,7 +51,6 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'New-MockObject'
 
     'New-Fixture'
-
 ) -Alias @(
     'Add-AssertionOperator'
     'Get-AssertionOperator'
