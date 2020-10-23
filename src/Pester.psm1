@@ -35,7 +35,7 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Get-ShouldOperator'
 
     # config
-    'New-TestContainer',
+    'New-TestContainer'
 
     # export
     'Export-NunitReport'
@@ -49,6 +49,8 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Assert-MockCalled'
     'Set-ItResult'
     'New-MockObject'
+
+    'New-Fixture'
 
 ) -Alias @(
     'Add-AssertionOperator'
