@@ -13,7 +13,8 @@ function New-Fixture {
 
     ```powershell
     function Clean {
-
+        #Do and maybe return something
+        $true
     }
     ```
 
@@ -26,8 +27,8 @@ function New-Fixture {
 
     Describe "Clean" {
 
-        It "does something useful" {
-            $true | Should -Be $false
+        It "Returns expected output" {
+            Clean | Should -Be $true
         }
     }
     ```
@@ -77,18 +78,25 @@ function New-Fixture {
         [String]$Name
     )
 
-    $Name = $Name -replace '.ps1', ''
+    $Name = $Name -replace '.ps(m?)1', ''
+
+    if($Name -notmatch '^\S+$') {
+        throw "Name is not valid. Whitespace are not allowed in a function name."
+    }
 
     #keep this formatted as is. the format is output to the file as is, including indentation
-    $scriptCode = "function $Name {$([System.Environment]::NewLine)$([System.Environment]::NewLine)}"
+    $scriptCode = "function $Name {
+    #Do something
+    `$true
+}"
 
     $testCode = 'BeforeAll {
     . $PSCommandPath.Replace(''.Tests.ps1'', ''.ps1'')
 }
 
 Describe "#name#" {
-    It "does something useful" {
-        $true | Should -Be $false
+    It "Returns expected output" {
+        #name# | Should -Be $true
     }
 }' -replace "#name#", $Name
 
