@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 Describe "New-Fixture" {
-    It "Name parameter is mandatory:" {
+    It "Name parameter is mandatory" {
         (Get-Command New-Fixture ).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should -Be $true
     }
 
@@ -86,7 +86,7 @@ Describe "New-Fixture" {
         }
 
         It "Creates fixture if Path is set to '(pwd)' and Name contains the 'psm1' extension" {
-            $name = "Relative4-Fixture.psm1"
+            $name = "Relative5-Fixture.psm1"
             $nameWithoutExtension = $name.Substring(0, $($name.Length) - 5)
             $path = "TestDrive:\"
 
@@ -109,6 +109,13 @@ Describe "New-Fixture" {
             New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
 
             Should -InvokeVerifiable
+        }
+
+        It "Throws on whitespace in Name" {
+            $name = "Test Fixture"
+            $path = "TestDrive:\"
+
+            { New-Fixture -Path $path -Name $name } | Should -Throw -Because "whitespace is not allowed in fixture name"
         }
     }
 }
