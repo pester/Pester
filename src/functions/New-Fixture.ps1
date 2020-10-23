@@ -13,7 +13,7 @@ function New-Fixture {
 
     ```powershell
     function Clean {
-        #Do and maybe return something
+        #Do something
         $true
     }
     ```
