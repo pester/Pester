@@ -1986,6 +1986,31 @@ Describe '$args handling' {
     }
 }
 
+Describe 'Mocking advanced function' {
+    It 'Avanced functions can be mocked with advanced function' {
+        # https://github.com/pester/Pester/issues/1554
+        function Get-Something {
+            [CmdletBinding()]
+            param
+            (
+                $MyParam1
+            )
+         }
+
+        Mock Get-Something -MockWith {
+            param(
+                [Parameter()]
+                [System.String]
+                $MyParam1
+            )
+
+            return $MyParam1
+        }
+
+        Get-Something -MyParam1 'SomeValue' | Should -Be 'SomeValue'
+    }
+}
+
 Describe 'Single quote in command/module name' {
     BeforeAll {
         $module = New-Module "Module '‘’‚‛" {

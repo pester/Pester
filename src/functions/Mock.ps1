@@ -140,7 +140,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $mockPrototype = @"
     if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Mock bootstrap function #FUNCTIONNAME# called from block #BLOCK#." }
-    `$MyInvocation.MyCommand.Mock.Args = `$null
+    `$MyInvocation.MyCommand.Mock.Args = @()
     if (#CANCAPTUREARGS#) {
         if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Capturing arguments of the mocked command." }
         `$MyInvocation.MyCommand.Mock.Args = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:args')
