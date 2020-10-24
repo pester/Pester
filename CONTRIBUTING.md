@@ -59,7 +59,12 @@ Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs 
 
 ## Running Tests
 
-In Powershell, run test.ps1. This defines the inherited function InPesterModuleScope and some types required for the tests.
+Pester uses two types of tests:
+ 
+1. P tests (`*.ts.ps1`) written in the P module. These are used for unit testing the runtime itself and running acceptance tests for Pester
+2. Pester tests (`*.tests.ps1`) for all functions in the module. 
+
+In Powershell, use `test.ps1`. The scripts runs a build and imports required helper-functions like `InPesterModuleScope` before starting.
 
 Afterwards, each test can be run individually using Invoke-Pester.
 
