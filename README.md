@@ -828,6 +828,7 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - Should `-Throw` is using `-like` to match the exception message instead of .Contains. Use `*` or any of the other `-like` wildcard to match only part of the message.
 - Variables defined during Discovery, are not available in Before*, After* and It. When generating tests via foreach blocks, make sure you pass all variables into the test using -TestCases.
 - Gherkin is removed, and will later move to it's own module, please keep using Pester version 4.
+- `TestDrive` is defined during Run only, it cannot be used in -TestCases / -ForEach.
 
 ### Deprecated features
 
