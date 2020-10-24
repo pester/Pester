@@ -59,13 +59,15 @@
         'ConvertTo-Pester4Result'
 
         # config
-        'New-TestContainer',
+        'New-TestContainer'
 
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'
         'Set-ItResult'
         'New-MockObject'
+
+        'New-Fixture'
     )
 
     # # Cmdlets to export from this module
