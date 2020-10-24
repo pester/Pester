@@ -38,6 +38,12 @@ repository.
 Import-Module .\bin\Pester.psd1 -Force
 ```
 
+To get more information for the parameters that can be used, run the following:
+
+```powershell
+Get-Help ./build.ps1 -Detailed
+```
+
 ## Required Software
 
 Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs in order to compile. The targeted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
@@ -73,21 +79,11 @@ To skip P tests:
 .\test.ps1 -File <filename> -SkipPTests
 ```
 
-### Test Parameters
+To get more information for the parameters that can be used, run the following:
 
 ```powershell
-.PARAMETER CI
-  Exits after run. Enables test results and code coverage on `/src/*`. Enables exit with non-zero exit code if tests don't pass. Forces P Tests to fail when `dt` is left in the tests. `dt` only runs the specified test, so leaving it in code would run only one test from the file on the server.
-.PARAMETER SkipPTests
-  Skips Passthrough P tests. Skip the tests written using the P module, Unit Tests for the Runtime, and Acceptance Tests for Pester
-.NoBuild
-  Skips running build.ps1. Do not build the underlying csharp components. Used in CI pipeline since a clean build has already been run prior to Test.
-.File
-  If specified, set file path to test file, otherwise set to /tst folder. Pass the file to run Pester (not P) tests from.
-  */demo/*, */examples/*, */testProjects/* are excluded from tests.
+Get-Help ./test.ps1 -Detailed
 ```
-
-Tests are excluded with Tags VersionChecks, StyleRules, Help.
 
 ## Continuous Integration
 
