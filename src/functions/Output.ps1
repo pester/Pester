@@ -462,6 +462,16 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+
+        if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+            $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
+            if($null -ne $activeFilters) {
+                foreach ($aFilter in $activeFilters) {
+                    # Assuming only StringArrayOption filter-types. Might break in the future.
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                }
+            }
+        }
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {

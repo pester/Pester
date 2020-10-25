@@ -856,6 +856,7 @@ function Discover-Test {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
             BlockContainers = $BlockContainer
             Configuration   = $state.PluginConfiguration
+            Filter          = $Filter
         } -ThrowOnFailure
     }
 
