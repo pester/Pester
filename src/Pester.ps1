@@ -1132,8 +1132,13 @@ function Invoke-Pester {
                 $run
             }
 
-            if ($PesterPreference.Run.Exit.Value -and 'Failed' -eq $run.Result) {
+            # exit with exit code if we fail and even if we succeed, othwerise we could inherit
+            # exit code of some other app end exit with it's exit code instead with ours
+            if ($PesterPreference.Run.Exit.Value) {
                 exit ($run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount)
+            }
+            else {
+                [System.Environment]::ExitCode = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
             }
         }
         catch {
