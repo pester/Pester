@@ -1,8 +1,8 @@
 ---
 name: 🐛 Bug Report
-about: Report erros and unexpected behavior
+about: Report errors or unexpected behavior
 title: 'My descriptive bug title'
-labels: ''
+labels: 'bug'
 assignees: ''
 
 ---

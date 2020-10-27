@@ -1,7 +1,7 @@
 contact_links:
     - name: Need help?
       url: https://pester.dev/docs/contributing/introduction#where-to-get-support
-      about: Check out the recommended communities available for usage questions before creating a general issue
+      about: Join our online communities to get help with "How to do _____ with Pester?" questions.
     - name: Documentation issue beyond Command Reference?
       url: https://github.com/pester/docs/issues/new
       about: Please report non-command documentation issue for https://pester.dev in the docs repo

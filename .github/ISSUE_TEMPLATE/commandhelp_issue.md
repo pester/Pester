@@ -11,7 +11,7 @@ assignees: ''
 
 Thank you for using Pester and taking the time to report this issue!
 
-Known issue: Documentation is mostly out of date for all commands. See [Breaking changes](https://github.com/pester/Pester#breaking-changes)
+Known issue: Documentation of Pester 5 is mostly out of date for all commands. See [Breaking changes](https://github.com/pester/Pester#breaking-changes)
 
 Command Reference documentation on the website are generated from comment-based help in the functions and should be reported here.
 
@@ -27,4 +27,3 @@ All other documentation issues on https://pester.dev should be reported in the d
 - Function: 
 
 ## General summary of the issue
-

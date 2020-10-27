@@ -18,9 +18,9 @@ If your pull request integrates Pester with another system, please tell us how t
 
 ## PR Checklist
 
-- [ ] PR has meaning title
+- [ ] PR has meaningful title
 - [ ] Summary describes changes
-- [ ] PR is ready to be merge
+- [ ] PR is ready to be merged
   - If not, use the arrow next to `Create Pull Request` to mark it as a draft. PR can be marked `Ready for review` when it's ready.
 - [ ] All tests pass
     - Run `./build.ps1 -Clean; ./test.ps1 -NoBuild`. Use  a new PowerShell process when C# code is changed.
@@ -31,6 +31,6 @@ If your pull request integrates Pester with another system, please tell us how t
 
 Before you continue, please review [Contributing to Pester](https://pester.dev/docs/contributing/introduction).
 
-Our continuous integration system doesn't send any notifications about failed tests. Please return to the opened pull request (after ~60 minutes) to check if is everything OK.
+Our continuous integration system doesn't send any notifications about failed tests. Please return to the opened pull request (after ~60 minutes) to check if everything is OK.
 
 -->
