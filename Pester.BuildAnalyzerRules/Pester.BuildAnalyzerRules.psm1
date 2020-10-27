@@ -73,30 +73,4 @@ function Measure-SafeComands {
     }
 }
 
-# $sbAst = {
-# # if -not build
-# Export-ModuleMember -Function @(
-#     'Format-Collection'
-#     'Format-Object'
-#     'Format-Null'
-#     'Format-Boolean'
-#     'Format-String'
-#     'Format-Date'
-#     'Format-ScriptBlock'
-#     'Format-Number'
-#     'Format-Hashtable'
-#     'Format-Dictionary'
-#     'Format-Type'
-#     'Format-Nicely'
-#     'Get-DisplayProperty'
-#     'Get-ShortType'
-# )
-# # endif
-
-# }.Ast
-
-# $cmdAsts = $sbAst.FindAll({$args[0] -is [System.Management.Automation.Language.CommandAst]},$true)
-
-# $cmdAsts | % { Measure-AvoidUnsafeCommand -CommandAst $_ }
-
 Export-ModuleMember -Function 'Measure-*'
