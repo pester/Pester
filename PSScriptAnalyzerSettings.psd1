@@ -1,9 +1,9 @@
 @{
     Severity = @('Error','Warning')
     IncludeDefaultRules = $true
-    CustomRulePath = './PesterAnalyzerRules'
+    CustomRulePath = './Pester.BuildAnalyzerRules'
     ExcludeRules=@(
-        'PSAvoidUsingWriteHost'
+        'PSUseShouldProcessForStateChangingFunctions'
         'PSUseApprovedVerbs'
     )
 }
