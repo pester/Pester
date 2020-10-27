@@ -1,4 +1,4 @@
-function Find-File {
+﻿function Find-File {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
@@ -17,11 +17,11 @@ function Find-File {
             }
 
             if ((& $script:SafeCommands['Test-Path'] $p)) {
-                $item = Get-Item $p
+                $item = & $SafeCommands['Get-Item'] $p
 
                 if ($item.PSIsContainer) {
                     # this is an existing directory search it for tests file
-                    Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
+                    & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
                     continue
                 }
 
@@ -31,21 +31,21 @@ function Find-File {
                 }
 
                 if (".ps1" -ne $item.Extension) {
-                    Write-Error "Script path '$p' is not a ps1 file." -ErrorAction Stop
+                    & $SafeCommands['Write-Error'] "Script path '$p' is not a ps1 file." -ErrorAction Stop
                 }
 
                 # this is some file, we don't care if it is just a .ps1 file or .Tests.ps1 file
-                Add-Member -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
+                & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
                 $item
                 continue
             }
 
             # this is a path that does not exist so let's hope it is
             # a wildcarded path that will resolve to some files
-            Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
+            & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
         }
 
-    Filter-Excluded -Files $files -ExcludePath $ExcludePath | where { $_ }
+    Filter-Excluded -Files $files -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
 }
 
 function Filter-Excluded ($Files, $ExcludePath) {
