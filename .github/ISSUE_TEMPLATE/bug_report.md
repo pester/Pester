@@ -24,18 +24,13 @@ Please be aware that Pester version 3.4.0 - which is shipped with Windows 10 and
 
 ## Describe your environment
 
-<!-- Please provide the output of a code provided below.
+<!-- Please provide the output of this script:
 
-Operating System, Pester version, and PowerShell version:
+(Invoke-WebRequest -Uri "https://git.io/JTinj" -UseBasicParsing).Content | Invoke-Expression
 
-$bugReport = &{
-    $p = Get-Command Invoke-Pester | Select-Object -ExpandProperty Module
-    "Pester version     : " + $p.Version + " " + $p.Path
-    "PowerShell version : " + $PSVersionTable.PSVersion
-    "OS version         : " + [System.Environment]::OSVersion.VersionString
-}
-$bugReport
-$bugReport | clip
+The script collects Operating System, Pester version and PowerShell version.
+You can open the URL in a browser to view the code before running it.
+
 -->
 
 ## Steps to reproduce
@@ -57,7 +52,7 @@ Tip: Placing Powershell code in a codeblock like below makes it more readable.
 
 ## Current Behavior
 
-<!-- What happens instead of the expected behavior.. -->
+<!-- What happens instead of the expected behavior. -->
 
 ## Possible Solution?
 

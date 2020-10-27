@@ -15,15 +15,15 @@ Known issue: Documentation of Pester 5 is mostly out of date for all commands. S
 
 Command Reference documentation on the website are generated from comment-based help in the functions and should be reported here.
 
-All other documentation issues on https://pester.dev should be reported in the docs-repo.
+All other documentation issues on https://pester.dev should be reported in the [docs-repo](https://github.com/pester/docs).
 
 -->
 
 ## Location
 
-<!-- Help us find the relevant help location -->
+<!-- Help us identify which documentation to update -->
 
 - Pester version:
-- Function: 
+- Function:
 
 ## General summary of the issue
