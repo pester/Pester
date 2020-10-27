@@ -45,7 +45,7 @@ function Find-File {
             Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
         }
 
-    Filter-Excluded -Files $files -ExcludePath $ExcludePath | where { $_ }
+    Filter-Excluded -Files $files -ExcludePath $ExcludePath | & $script:SafeCommands['Where-Object'] { $_ }
 }
 
 function Filter-Excluded ($Files, $ExcludePath) {

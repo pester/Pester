@@ -10,7 +10,7 @@ function Format-Collection ($Value, [switch]$Pretty) {
     }
     $count = $Value.Count
     $trimmed = $count  -gt $Limit
-    '@(' + (($Value | Select -First $Limit | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
+    '@(' + (($Value[0..$Limit] | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {
@@ -64,9 +64,12 @@ function Format-Hashtable ($Value) {
     $head = '@{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | foreach {
-        $formattedValue = Format-Nicely $Value.$_
-        "$_=$formattedValue" }
+    $keys = $Value.Keys
+    [Array]::Sort($keys)
+
+    $entries = $(foreach ($key in $keys) {
+        $formattedValue = Format-Nicely $Value.$key
+        "$key=$formattedValue" })
 
     $head + ( $entries -join '; ') + $tail
 }
@@ -75,9 +78,11 @@ function Format-Dictionary ($Value) {
     $head = 'Dictionary{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | foreach {
-        $formattedValue = Format-Nicely $Value.$_
-        "$_=$formattedValue" }
+    $keys = $Value.Keys
+    [Array]::Sort($keys)
+    $entries = $(foreach ($key in $keys) {
+        $formattedValue = Format-Nicely $Value.$key
+        "$key=$formattedValue" })
 
     $head + ( $entries -join '; ') + $tail
 }
@@ -138,10 +143,14 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 
 function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit = 4) {
 
-    $properties = @($InputObject.PSObject.Properties |
-            where { $_.Name -notlike "_*"} |
-            select -expand Name |
-            sort)
+    $properties = @(foreach ($p in $InputObject.PSObject.Properties) {
+        if ($p.Name -notlike "_*") {
+            $p.Name
+        }
+    }
+
+    [Array]::Sort($properties)
+
     $significant = @()
     $rest = @()
     foreach ($p in $properties) {
@@ -153,9 +162,12 @@ function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit =
         }
     }
 
+    [Array]::Sort($significant)
     #todo: I am assuming id, name properties, so I am just sorting the selected ones by name.
-    (@($significant | sort) + $rest) | Select -First $Limit
+    $all = @($significant) + $rest)
 
+    # select -first $limit
+    $all[0..$limit]
 }
 
 function Get-DisplayProperty ($Value) {

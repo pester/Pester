@@ -105,7 +105,7 @@ function Add-ShouldOperator {
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where { -not ([string]::IsNullOrWhiteSpace($_))}) {
+    foreach ($string in $Alias | & $script:SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_))}) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -132,7 +132,7 @@ function Assert-AssertionOperatorNameIsUnique {
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where { -not ([string]::IsNullOrWhiteSpace($_))}) {
+    foreach ($string in $name | & $script:SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_))}) {
         Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string)) {
@@ -1034,7 +1034,7 @@ function Invoke-Pester {
 
             $containers = @()
             if (any $PesterPreference.Run.ScriptBlock.Value) {
-                $containers += @( $PesterPreference.Run.ScriptBlock.Value | foreach { New-BlockContainerObject -ScriptBlock $_ })
+                $containers += @( foreach ($v in $PesterPreference.Run.ScriptBlock.Value) { New-BlockContainerObject -ScriptBlock $v })
             }
 
             foreach ($c in $PesterPreference.Run.Container.Value) {
@@ -1046,8 +1046,8 @@ function Invoke-Pester {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | where { "File" -eq $_.Type } | foreach {$_.Item.FullName }))
-                    $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | foreach { New-BlockContainerObject -File $_ })
+                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, $(foreach ($v in $PesterPreference.Run.Container.Value) { if ("File" -eq $_.Type) { $v.Item.FullName } }))
+                    $containers += @(foreach ($v in (Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value)) { New-BlockContainerObject -File $v })
                 }
             }
 

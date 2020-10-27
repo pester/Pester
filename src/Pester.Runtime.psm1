@@ -2183,7 +2183,7 @@ function Where-Failed {
         $Block
     )
 
-    $Block | View-Flat | where { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
+    $Block | View-Flat | & $script:SafeCommands['Where-Object'] { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
 }
 
 function View-Flat {
