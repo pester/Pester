@@ -2,7 +2,7 @@
 name: 🐛 Bug Report
 about: Report errors or unexpected behavior
 title: 'My descriptive bug title'
-labels: 'bug'
+labels: 'Bug'
 assignees: ''
 
 ---
