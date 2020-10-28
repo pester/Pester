@@ -1,4 +1,4 @@
-﻿# if -not build
+# if -not build
 . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
 & $SafeCommands['Import-Module'] "$PSScriptRoot/TypeClass.psm1" -DisableNameChecking
 # endif
