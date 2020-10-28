@@ -3,8 +3,8 @@ function Get-TestDrivePlugin {
     # TODO: add OnStart block and put this in it
 
     if (& $script:SafeCommands['Test-Path'] TestDrive:\) {
-        Remove-Item (Get-PSDrive TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
-        Remove-PSDrive TestDrive
+        & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
+        & $SafeCommands['Remove-PSDrive'] TestDrive
     }
     New-PluginObject -Name "TestDrive" -EachBlockSetupStart {
         param($Context)
@@ -129,8 +129,8 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
-    where-object { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-    foreach-object { $_.Delete() }
+    & $SafeCommands['where-object'] { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+    & $SafeCommands['foreach-object'] { $_.Delete() }
 }
 
 function Remove-TestDrive {

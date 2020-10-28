@@ -370,18 +370,18 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
                 if ($al2.Type -ne 'TestCase') {
                     foreach ($alt3 in $al2.Actions) {
                         $path = "$($al1.Name).$($al2.Name).$($alt3.Name)"
-                        $alt3 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                        $alt3 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
                     }
                 }
                 else {
                     $path = "$($al1.Name).$($al2.Name)"
-                    $al2 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                    $al2 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
                 }
             }
         }
         else {
             $path = "$($al1.Name)"
-            $al1 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+            $al1 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
         }
     }
 
