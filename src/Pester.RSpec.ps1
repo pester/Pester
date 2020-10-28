@@ -385,20 +385,13 @@ function New-PesterContainer {
     $dt = $Data
     # expand to ContainerInfo user can provide multiple sets of data, but ContainerInfo can hold only one
     # to keep the internal logic simple.
-
-    Write-Host "fuu $($PSCmdlet.ParameterSetName)"
     $kind = $PSCmdlet.ParameterSetName
-    if ('ScriptBlock' -eq $kind ) {
-        Write-Host "fuund scriptblock container "
-
+    if ('ScriptBlock' -eq $kind) {
         # the @() is significant here, it will make it iterate even if there are no data
         # which allows scriptblocks without data to run
         foreach ($d in @($dt)) {
             New-BlockContainerObject -ScriptBlock $ScriptBlock -Data $d
         }
-    }
-    else {
-        Write-Host "fuund no scriptblock container "
     }
 
     if ("Path" -eq $kind) {
@@ -412,6 +405,4 @@ function New-PesterContainer {
             }
         }
     }
-
-    Write-Host "done"
 }
