@@ -33,7 +33,7 @@ function Invoke-PesterInProcess ([ScriptBlock] $ScriptBlock, [ScriptBlock] $Setu
         # Modify environment
         . $Setup
 
-        $container = New-TestContainer -ScriptBlock $ScriptBlock
+        $container = New-PesterContainer -ScriptBlock $ScriptBlock
         Invoke-Pester -Container $container
     }.ToString()
 

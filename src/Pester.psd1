@@ -59,7 +59,7 @@
         'ConvertTo-Pester4Result'
 
         # config
-        'New-TestContainer'
+        'New-PesterContainer'
 
         # legacy
         'Assert-VerifiableMock'

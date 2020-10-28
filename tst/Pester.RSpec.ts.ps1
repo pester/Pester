@@ -558,7 +558,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $c = New-TestContainer -ScriptBlock $sb
+            $c = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $c -PassThru -Output Detailed
 
             $r.Containers[0].StandardOutput | Verify-Equal "teardown"
@@ -589,7 +589,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb -Data @(
+            $container = New-PesterContainer -ScriptBlock $sb -Data @(
                     @{ Value = 1 }
                     @{ Value = 2 }
                 )
@@ -629,7 +629,7 @@ i -PassThru:$PassThru {
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
 
-                $container = New-TestContainer -Path $file -Data @{ Value = 1 }
+                $container = New-PesterContainer -Path $file -Data @{ Value = 1 }
                 $r = Invoke-Pester -Container $container -PassThru
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             }
@@ -672,8 +672,8 @@ i -PassThru:$PassThru {
                 $sb | Set-Content -Path $file
 
                 $container = @(
-                    (New-TestContainer -Path $file -Data @{ Value = 1 })
-                    (New-TestContainer -Path $file -Data @{ Value = 2 })
+                    (New-PesterContainer -Path $file -Data @{ Value = 1 })
+                    (New-PesterContainer -Path $file -Data @{ Value = 2 })
                 )
                 $r = Invoke-Pester -Container $container -PassThru
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
@@ -717,7 +717,7 @@ i -PassThru:$PassThru {
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
 
-                $container = New-TestContainer -Path $file -Data @(
+                $container = New-PesterContainer -Path $file -Data @(
                         @{ Value = 1 }
                         @{ Value = 2 }
                     )
@@ -790,12 +790,12 @@ i -PassThru:$PassThru {
                 $sb2 | Set-Content -Path $file2
 
                 $container = @(
-                    (New-TestContainer -Path $file1 -Data @(
+                    (New-PesterContainer -Path $file1 -Data @(
                         @{ Value = 1 }
                         @{ Value = 2 }
                     ))
 
-                    (New-TestContainer -Path $file2 -Data @(
+                    (New-PesterContainer -Path $file2 -Data @(
                         @{ Color = "Blue" }
                         @{ Color = "Yellow" }
                     ))
@@ -846,7 +846,7 @@ i -PassThru:$PassThru {
                 $sb | Set-Content -Path $file2
 
                 # passing path to the whole directory with two test files
-                $container = New-TestContainer -Path $tmp -Data @(
+                $container = New-PesterContainer -Path $tmp -Data @(
                     @{ Value = 1 }
                     @{ Value = 2 }
                 )
@@ -909,7 +909,7 @@ i -PassThru:$PassThru {
                 $sb1 | Set-Content -Path $file1
                 $sb2 | Set-Content -Path $file2
 
-                $container = New-TestContainer -Path $file1 -Data @{ Value = 1 }
+                $container = New-PesterContainer -Path $file1 -Data @{ Value = 1 }
 
                 # the path to $file1 should be included only once, even though -Path $tmp will find that file as well
                 # because we expect the parametrized script to require the parameters, but still want to allow
@@ -931,6 +931,69 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "New-PesterContainer" {
+        t "It works when file is provided via New-PesterContainer" {
+            try {
+                $sb = {
+                    Describe "d1" {
+                        It "t1" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = New-PesterContainer -Path $file
+
+                $r = Invoke-Pester -Container $container -PassThru -Output Normal
+                $r.Containers.Count | Verify-Equal 1
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "It works when file is provided via Configuration" {
+            try {
+                $sb = {
+                    Describe "d1" {
+                        It "t1" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = New-PesterContainer -Path $file
+
+                $configuration = [PesterConfiguration]::Default
+                $configuration.Run.Container = $container
+                $configuration.Run.PassThru = $true
+                $configuration.Output.Verbosity = "Normal"
+
+                $r = Invoke-Pester -Configuration $configuration
+                $r.Containers.Count | Verify-Equal 1
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+    }
+
     b "BeforeDiscovery" {
         t "Variables from BeforeDiscovery are defined in scope" {
             $sb = {
@@ -947,7 +1010,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
@@ -963,7 +1026,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
         }
@@ -976,7 +1039,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
         }
@@ -992,7 +1055,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 0
             $r.Containers[0].Blocks[1].Tests.Count | Verify-Equal 0
@@ -1008,7 +1071,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru #
             $r.Containers[0].Blocks.Count | Verify-Equal 2
         }
@@ -1024,7 +1087,7 @@ i -PassThru:$PassThru {
                 } -ForEach $null
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks.Count | Verify-Equal 0
         }
@@ -1054,7 +1117,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
@@ -1073,7 +1136,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{ Value = 1 }, @{ Value  = 2 })
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
@@ -1092,7 +1155,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{ Value = 1 }, @{ Value  = 2 })
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
@@ -1117,7 +1180,7 @@ i -PassThru:$PassThru {
                 } -ForEach 1, 2
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
@@ -1172,7 +1235,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb -Data $scenarios
+            $container = New-PesterContainer -ScriptBlock $sb -Data $scenarios
 
             $r = Invoke-Pester -Container $container -PassThru -Output Detailed
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
@@ -1190,7 +1253,7 @@ i -PassThru:$PassThru {
                 } -ForEach 1
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i 2"
@@ -1206,7 +1269,7 @@ i -PassThru:$PassThru {
                 } -ForEach 1
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i 1"
@@ -1220,7 +1283,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{User = @{ Name = "Jakub" }})
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub"
@@ -1234,7 +1297,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{User = @{ Name = "Jakub" }})
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i `$abc"
@@ -1248,7 +1311,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{User = @{ Name = "Jakub" }})
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i `<fff`>"
@@ -1262,7 +1325,7 @@ i -PassThru:$PassThru {
                 } -ForEach @(@{User = @{ Name = "Jakub" }})
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru -Output Detailed
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
@@ -1279,7 +1342,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb
+            $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $test = $r.Containers[0].Blocks[0].Tests[0]
             $test.Result | Verify-Equal "Failed"
