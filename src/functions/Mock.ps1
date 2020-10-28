@@ -1,4 +1,4 @@
-﻿
+
 
 function Add-MockBehavior {
     [CmdletBinding()]
@@ -1038,6 +1038,7 @@ function Invoke-InMockScope {
 }
 
 function Test-ParameterFilter {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Set-StrictMode', Justification = 'Used in mock-wrapper that runs in different context.')]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
