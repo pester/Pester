@@ -2,7 +2,7 @@
 name: 💡 Feature Request/Idea
 about: Got a great idea to make Pester better? Submit a suggestion 
 title: 'My amazing idea title'
-labels: ''
+labels: 'Feature'
 assignees: ''
 
 ---
