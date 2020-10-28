@@ -103,7 +103,7 @@ i -PassThru:$PassThru {
     }
 
     b "Output for nested blocks" {
-        dt "All describes and contexts are output in Detailed mode" {
+        t "All describes and contexts are output in Detailed mode" {
             # we postpone output of Describe and Context till we expand the name
             # so without walking up the stack we don't output them automatically
             # https://github.com/pester/Pester/issues/1716

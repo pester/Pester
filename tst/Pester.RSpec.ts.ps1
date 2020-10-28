@@ -545,7 +545,7 @@ i -PassThru:$PassThru {
     }
 
     b "top-level AfterAll" {
-        dt "AfterAll can be used in top-level" {
+        t "AfterAll can be used in top-level" {
             $sb = {
                 AfterAll {
                     "teardown"
