@@ -11,7 +11,7 @@ assignees: ''
 
 Thank you for using Pester and taking the time to report this issue!
 
-Please be aware that Pester version 3.4.0 - which is shipped with Windows 10 and Windows Server 2016 - is not supported anymore.
+Only Pester 4.10.x and 5.x.x are supported, try updating to the latest version to see if that solves your problem. See [Installation and update guide](https://pester.dev/docs/introduction/installation).
 
 - Please update Pester and retest your code before submitting a bug report. See [Installation and update guide](https://pester.dev/docs/introduction/installation).
 - Search for existing issues.
