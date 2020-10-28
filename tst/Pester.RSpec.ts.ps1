@@ -545,7 +545,7 @@ i -PassThru:$PassThru {
     }
 
     b "top-level AfterAll" {
-        t "AfterAll can be used in top-level" {
+        dt "AfterAll can be used in top-level" {
             $sb = {
                 AfterAll {
                     "teardown"
@@ -557,7 +557,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-
+            write-Host "here"
             $c = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $c -PassThru -Output Detailed
 

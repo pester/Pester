@@ -381,22 +381,30 @@ function New-PesterContainer {
         [Collections.IDictionary[]] $Data
     )
 
+    # it seems that when I don't assign $Data to $dt here the foreach does not always work in 5.1 :/ some vooodo
+    $dt = $Data
     # expand to ContainerInfo user can provide multiple sets of data, but ContainerInfo can hold only one
     # to keep the internal logic simple.
 
+    Write-Host "fuu $($PSCmdlet.ParameterSetName)"
+    $kind = $PSCmdlet.ParameterSetName
+    if ('ScriptBlock' -eq $kind ) {
+        Write-Host "fuund scriptblock container "
 
-    if ('ScriptBlock' -eq $PSCmdlet.ParameterSetName) {
         # the @() is significant here, it will make it iterate even if there are no data
         # which allows scriptblocks without data to run
-        foreach ($d in @($Data)) {
+        foreach ($d in @($dt)) {
             New-BlockContainerObject -ScriptBlock $ScriptBlock -Data $d
         }
     }
+    else {
+        Write-Host "fuund no scriptblock container "
+    }
 
-    if ("Path" -eq $PSCmdlet.ParameterSetName) {
+    if ("Path" -eq $kind) {
         # the @() is significant here, it will make it iterate even if there are no data
         # which allows files without data to run
-        foreach ($d in @($Data)) {
+        foreach ($d in @($dt)) {
             # resolve the path we are given in the same way we would resolve -Path
             $files = @(Find-File -Path $Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
             foreach ($file in $files) {
@@ -404,4 +412,6 @@ function New-PesterContainer {
             }
         }
     }
+
+    Write-Host "done"
 }
