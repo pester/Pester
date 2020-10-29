@@ -369,8 +369,7 @@ function Remove-RSpecNonPublicProperties ($run){
     }
 }
 
-
-function New-TestContainer {
+function New-PesterContainer {
     [CmdletBinding(DefaultParameterSetName="Path")]
     param(
         [Parameter(Mandatory, ParameterSetName = "Path")]
@@ -382,8 +381,28 @@ function New-TestContainer {
         [Collections.IDictionary[]] $Data
     )
 
-    switch ($PSCmdlet.ParameterSetName) {
-        "ScriptBlock" { [Pester.TestScriptBlock]::Create($ScriptBlock, $Data) }
-        Default { [Pester.TestPath]::Create($Path, $Data) }
+    # it seems that when I don't assign $Data to $dt here the foreach does not always work in 5.1 :/ some vooodo
+    $dt = $Data
+    # expand to ContainerInfo user can provide multiple sets of data, but ContainerInfo can hold only one
+    # to keep the internal logic simple.
+    $kind = $PSCmdlet.ParameterSetName
+    if ('ScriptBlock' -eq $kind) {
+        # the @() is significant here, it will make it iterate even if there are no data
+        # which allows scriptblocks without data to run
+        foreach ($d in @($dt)) {
+            New-BlockContainerObject -ScriptBlock $ScriptBlock -Data $d
+        }
+    }
+
+    if ("Path" -eq $kind) {
+        # the @() is significant here, it will make it iterate even if there are no data
+        # which allows files without data to run
+        foreach ($d in @($dt)) {
+            # resolve the path we are given in the same way we would resolve -Path
+            $files = @(Find-File -Path $Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
+            foreach ($file in $files) {
+                New-BlockContainerObject -File $file -Data $d
+            }
+        }
     }
 }

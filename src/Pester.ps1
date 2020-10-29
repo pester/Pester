@@ -610,7 +610,7 @@ function Invoke-Pester {
         [Switch] $PassThru,
 
         [Parameter(ParameterSetName = "Simple")]
-        [Pester.TestContainer[]] $Container,
+        [Pester.ContainerInfo[]] $Container,
 
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration,
@@ -742,32 +742,8 @@ function Invoke-Pester {
 
 
                 if ($PSBoundParameters.ContainsKey('Container')) {
-                    # expand from the public Pester.TestContainer, or more likely Pester.TestPath types to ContainerInfo
-                    # the public types can hold multiple sets of data, ContainerInfo can hold only one to keep the internal
-                    # logic simple.
                     if ($null -ne $Container) {
-                        $cs = @()
-
-                        foreach ($c in $Container) {
-                            $data = $c.Data
-                            if ($c -is [Pester.TestScriptBlock]) {
-                                foreach ($d in @($data)) {
-                                    $cs += New-BlockContainerObject -ScriptBlock $c.ScriptBlock -Data $d
-                                }
-                            }
-
-                            if ($c -is [Pester.TestPath]) {
-                                foreach ($d in $data) {
-                                    # resolve the path we are given in the same way we would resolve -Path
-                                    $files = @(Find-File -Path $c.Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
-                                    foreach ($file in $files) {
-                                        $cs += New-BlockContainerObject -File $file -Data $d
-                                    }
-                                }
-                            }
-                        }
-
-                        $Configuration.Run.Container = $cs
+                        $Configuration.Run.Container = $Container
                     }
 
                     Get-Variable 'Container' -Scope Local | Remove-Variable
