@@ -465,8 +465,7 @@ function Invoke-Pester {
     .PARAMETER OutputFormat
     (Deprecated v4)
     Replace with ConfigurationProperty TestResult.OutputFormat
-    The format of output. Currently NUnitXml is supported.
-    Note that JUnitXml is not currently supported in Pester 5.
+    The format of output. Currently NUnitXml and JUnitXml is supported.
 
     .PARAMETER PassThru
     Replace with ConfigurationProperty Run.PassThru
@@ -862,10 +861,6 @@ function Invoke-Pester {
 
                 if ($PSBoundParameters.ContainsKey('OutputFormat')) {
                     if ($null -ne $OutputFormat -and 0 -lt @($OutputFormat).Count) {
-                        if ("JUnitXml" -eq $OutputFormat) {
-                            throw "JUnitXml is currently not supported in Pester 5."
-                        }
-
                         $Configuration.TestResult.OutputFormat = $OutputFormat
                     }
 
