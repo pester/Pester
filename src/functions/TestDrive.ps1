@@ -129,8 +129,8 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
-    & $SafeCommands['where-object'] { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-    & $SafeCommands['foreach-object'] { $_.Delete() }
+    & $SafeCommands['Where-Object'] { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+    & $SafeCommands['Foreach-Object'] { $_.Delete() }
 }
 
 function Remove-TestDrive {
