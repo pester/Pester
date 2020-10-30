@@ -65,7 +65,7 @@ function Format-Hashtable ($Value) {
     $head = '@{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | & $SafeCommands['ForEach-Object'] {
+    $entries = $Value.Keys | & $SafeCommands['Sort-Object'] | & $SafeCommands['ForEach-Object'] {
         $formattedValue = Format-Nicely $Value.$_
         "$_=$formattedValue" }
 
@@ -76,7 +76,7 @@ function Format-Dictionary ($Value) {
     $head = 'Dictionary{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | & $SafeCommands['ForEach-Object'] {
+    $entries = $Value.Keys | & $SafeCommands['Sort-Object'] | & $SafeCommands['ForEach-Object'] {
         $formattedValue = Format-Nicely $Value.$_
         "$_=$formattedValue" }
 
