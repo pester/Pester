@@ -6,8 +6,8 @@ $script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionStat
 $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
 
-Set-Alias 'Add-AssertionOperator' 'Add-ShouldOperator'
-Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
+& $SafeCommands['Set-Alias'] 'Add-AssertionOperator' 'Add-ShouldOperator'
+& $SafeCommands['Set-Alias'] 'Get-AssertionOperator' 'Get-ShouldOperator'
 
 
 & $script:SafeCommands['Export-ModuleMember'] @(

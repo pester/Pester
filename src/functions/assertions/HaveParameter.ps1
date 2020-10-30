@@ -82,7 +82,7 @@ function Should-HaveParameter (
                     $j--
                 }
                 if (-not $token.PSObject.Properties.Item('Depth')) {
-                    $token | Add-Member Depth -MemberType NoteProperty -Value $j
+                    $token | & $SafeCommands['Add-Member'] Depth -MemberType NoteProperty -Value $j
                 }
                 $token
 
@@ -94,22 +94,22 @@ function Should-HaveParameter (
         $tokens = [System.Management.Automation.PSParser]::Tokenize($Command.Definition, [Ref]$errors)
 
         # Find param block
-        $start = $tokens.IndexOf(($tokens | Where-Object { $_.Content -eq 'param' } | Select-Object -First 1)) + 1
+        $start = $tokens.IndexOf(($tokens | & $SafeCommands['Where-Object'] { $_.Content -eq 'param' } | & $SafeCommands['Select-Object'] -First 1)) + 1
         $paramBlock = Get-TokenGroup $tokens[$start..($tokens.Count - 1)]
 
         for ($i = 0; $i -lt $paramBlock.Count; $i++) {
             $token = $paramBlock[$i]
 
             if ($token.Depth -eq 1 -and $token.Type -eq 'Variable') {
-                $paramInfo = New-Object PSObject -Property @{
+                $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
                     Name = $token.Content
-                } | Select-Object Name, Type, DefaultValue, DefaultValueType
+                } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
 
                 if ($paramBlock[$i + 1].Content -ne ',') {
                     $value = $paramBlock[$i + 2]
                     if ($value.Type -eq 'GroupStart') {
                         $tokenGroup = Get-TokenGroup $paramBlock[($i + 2)..($paramBlock.Count - 1)]
-                        $paramInfo.DefaultValue = [String]::Join('', ($tokenGroup | ForEach-Object { $_.Content }))
+                        $paramInfo.DefaultValue = [String]::Join('', ($tokenGroup | & $SafeCommands['ForEach-Object'] { $_.Content }))
                         $paramInfo.DefaultValueType = 'Expression'
                     }
                     else {
@@ -147,7 +147,7 @@ function Should-HaveParameter (
         $buts += "the parameter is missing"
     }
     elseif ($Negate -and -not $hasKey) {
-        return New-Object PSObject -Property @{ Succeeded = $true }
+        return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
     }
     elseif ($Negate -and $hasKey -and -not ($Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
         $buts += "the parameter exists"
@@ -156,7 +156,7 @@ function Should-HaveParameter (
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
 
         if ($Mandatory) {
-            $testMandatory = $attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
+            $testMandatory = $attributes | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
             $filters += "which is$(if ($Negate) {" not"}) mandatory"
 
             if (-not $Negate -and -not $testMandatory) {
@@ -184,7 +184,7 @@ function Should-HaveParameter (
         }
 
         if ($PSBoundParameters.Keys -contains "DefaultValue") {
-            $parameterMetadata = Get-ParameterInfo $ActualValue | Where-Object { $_.Name -eq $ParameterName }
+            $parameterMetadata = Get-ParameterInfo $ActualValue | & $SafeCommands['Where-Object'] { $_.Name -eq $ParameterName }
             $actualDefault = if ($parameterMetadata.DefaultValue) { $parameterMetadata.DefaultValue } else { "" }
             $testDefault = ($actualDefault -eq $DefaultValue)
             $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValue)"
@@ -198,7 +198,7 @@ function Should-HaveParameter (
         }
 
         if ($HasArgumentCompleter) {
-            $testArgumentCompleter = $attributes | Where-Object { $_ -is [ArgumentCompleter] }
+            $testArgumentCompleter = $attributes | & $SafeCommands['Where-Object'] { $_ -is [ArgumentCompleter] }
             $filters += "has ArgumentCompletion"
 
             if (-not $Negate -and -not $testArgumentCompleter) {
@@ -227,13 +227,13 @@ function Should-HaveParameter (
         $but = Join-And $buts
         $failureMessage = "Expected command $($ActualValue.Name)$filter,$(Format-Because $Because) but $but."
 
-        return New-Object PSObject -Property @{
+        return & $SafeCommands['New-Object'] PSObject -Property @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
     else {
-        return New-Object PSObject -Property @{ Succeeded = $true }
+        return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
     }
 }
 

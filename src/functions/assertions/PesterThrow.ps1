@@ -148,7 +148,7 @@ It does not throw an error, so the test passes.
     }
 
     if ($PassThru) {
-        $result | Add-Member -MemberType NoteProperty -Name 'Data' -Value $actualError
+        $result | & $SafeCommands['Add-Member'] -MemberType NoteProperty -Name 'Data' -Value $actualError
     }
 
     return $result

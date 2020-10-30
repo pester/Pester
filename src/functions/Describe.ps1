@@ -152,7 +152,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         # paths don't stay attached to session state
         $invokePester =  {
             param($private:Path)
-            Invoke-Pester -Path $Path | Out-Null
+            Invoke-Pester -Path $Path | & $SafeCommands['Out-Null']
         }
 
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
@@ -181,7 +181,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
             }.GetNewClosure()
         } $BoundParameters $CommandUsed
 
-        Invoke-Pester -ScriptBlock $sb | Out-Null
+        Invoke-Pester -ScriptBlock $sb | & $SafeCommands['Out-Null']
     }
 }
 
