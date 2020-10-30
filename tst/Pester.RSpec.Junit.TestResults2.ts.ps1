@@ -18,7 +18,7 @@ $global:PesterPreference = @{
 i -PassThru:$PassThru {
 
     b "Write JUnit test results" {
-        dt "should write a successful test result" {
+        t "should write a successful test result" {
             $sb = {
                 Describe "Describe" {
                     It "Successful testcase" {
