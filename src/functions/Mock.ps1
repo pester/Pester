@@ -1038,7 +1038,6 @@ function Invoke-InMockScope {
 }
 
 function Test-ParameterFilter {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Set-StrictMode', Justification = 'Used in mock-wrapper that runs in different context.')]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -1073,7 +1072,7 @@ function Test-ParameterFilter {
 
     $wrapper = {
         param ($private:______mock_parameters)
-        Set-StrictMode -Off
+        & $private:______mock_parameters.Set_StrictMode -Off
 
         foreach ($private:______current in $private:______mock_parameters.Context.GetEnumerator()) {
             $private:______mock_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
@@ -1107,6 +1106,7 @@ function Test-ParameterFilter {
         Arguments       = $Arguments
         SessionState    = $SessionState
         Context         = $context
+        Set_StrictMode  = $SafeCommands['Set-StrictMode']
     }
 
     $result = & $wrapper $parameters
