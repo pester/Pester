@@ -142,7 +142,7 @@ function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit =
     $properties = @($InputObject.PSObject.Properties |
             & $SafeCommands['Where-Object'] { $_.Name -notlike "_*"} |
             & $SafeCommands['Select-Object'] -expand Name |
-            sort)
+            & $SafeCommands['Sort-Object'])
     $significant = @()
     $rest = @()
     foreach ($p in $properties) {
@@ -155,7 +155,7 @@ function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit =
     }
 
     #todo: I am assuming id, name properties, so I am just sorting the selected ones by name.
-    (@($significant | sort) + $rest) | & $SafeCommands['Select-Object'] -First $Limit
+    (@($significant | & $SafeCommands['Sort-Object']) + $rest) | & $SafeCommands['Select-Object'] -First $Limit
 
 }
 
