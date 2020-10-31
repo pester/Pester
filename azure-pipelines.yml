@@ -1,46 +1,135 @@
 trigger:
-  - master
+  - v5.0
 pr:
-  - master
+  - v5.0
 
-resources:
-  - repo: self
-    clean: true
-    fetchDepth: 1
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  CI: 1
 
-jobs:
-  - job: ps2
-    displayName: PowerShell 2
-    continueOnError: false
-    pool:
-      name: Default
-      demands:
-        - ps2
-    workspace:
-      clean: all
-    timeoutInMinutes: 3
-    steps:
-      - script: |
-          rem build in 32-bit version of PowerShell 2 because the 64-bit version
-          rem was butchered and replaced with PowerShell 6 to be able to run the
-          rem Azure Pipelines agent on Server 2008 R2 with only PowerShell 2
-          C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -c "$errorActionPreference = 'stop'; $global:PesterDebugPreference_ShowFullErrors = $true ; try {$PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit} catch { Write-Error $_; exit 9999 }"
-          exit %errorlevel%
+stages:
+  - stage: Build
+    jobs:
+      - job: build
+        workspace:
+          clean: all
+        pool:
+          name: Default
+          demands:
+            - net452
+            - netcoreapp3.1
+        timeoutInMinutes: 3
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - powershell: ./build.ps1 -Clean
+          - publish: $(Build.SourcesDirectory)
+            artifact: all
 
-  - job: ps3
-    displayName: PowerShell 3
-    continueOnError: false
-    pool:
-      name: Default
-      demands:
-        - ps3
-    workspace:
-      clean: all
-    timeoutInMinutes: 3
-    steps:
-      - powershell: |
-          $global:PesterDebugPreference_ShowFullErrors = $true
-          $errorActionPreference = 'stop'
-          Set-StrictMode -Version Latest
-          Import-Module .\Pester.psd1
-          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit
+  - stage: Test
+    jobs:
+      - job:
+        workspace:
+          clean: all
+        strategy:
+          matrix:
+            PS7_Ubuntu_16_04:
+              vmImage: ubuntu-16.04
+              pwsh: true
+            PS7_Ubuntu_18_04:
+              vmImage: ubuntu-18.04
+              pwsh: true
+            PS7_macOS_10_14_Mojave:
+              vmImage: macOS-10.14
+              pwsh: true
+            PS7_macOS_10_15_Catalina:
+              vmImage: macOS-10.15
+              pwsh: true
+            PS7_Windows_Server2016:
+              vmImage: vs2017-win2016
+              pwsh: true
+            PS7_Windows_Server2019:
+              vmImage: windows-2019
+              pwsh: true
+            PS_5_1_Windows_Server2016:
+              vmImage: vs2017-win2016
+              pwsh: false
+            PS_5_1_Windows_Server2019:
+              vmImage: windows-2019
+              pwsh: false
+        pool:
+          vmImage: $[ variables['vmImage'] ]
+        steps:
+          - checkout: none
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: 'all'
+              targetPath: '$(Build.SourcesDirectory)'
+          - task: PowerShell@2
+            displayName: 'Test Pester'
+            inputs:
+              targetType: inline
+              pwsh: $(pwsh)
+              script: |
+                & ./test.ps1 -CI -PassThru -NoBuild
+              workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'JaCoCo'
+              summaryFileLocation: 'coverage.xml'
+              pathToSources: 'src/'
+              failIfCoverageEmpty: true
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: 'testResults.xml'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
+      - job:
+        workspace:
+          clean: all
+        strategy:
+          matrix:
+            PS3:
+              agent: 'ps3'
+              pwsh: false
+            PS4:
+              agent: 'ps4'
+              pwsh: false
+            PS6_2:
+              agent: 'ps6'
+              pwsh: true
+        pool:
+          name: Default
+          demands:
+            - agent.name -equals $(agent)
+        steps:
+          - checkout: none
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: 'all'
+              targetPath: '$(Build.SourcesDirectory)'
+          - task: PowerShell@2
+            displayName: 'Test Pester'
+            inputs:
+              targetType: 'inline'
+              pwsh: $(pwsh)
+              script: |
+                & ./test.ps1 -CI -PassThru -NoBuild
+              workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'JaCoCo'
+              summaryFileLocation: 'coverage.xml'
+              pathToSources: 'src/'
+              failIfCoverageEmpty: true
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: 'testResults.xml'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()

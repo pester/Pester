@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Pester</id>
+    <version>$version$</version>
+    <title>Pester</title>
+    <summary>Pester is the ubiquitous test and mock framework for PowerShell</summary>
+    <description>Pester is testing framework for PowerShell, written in PowerShell.</description>
+    <tags>powershell unit testing bdd tdd mocking admin</tags>
+    <authors>Pester Team</authors>
+    <iconUrl>https://raw.githubusercontent.com/pester/pester/master/images/pester.PNG</iconUrl>
+    <projectUrl>https://github.com/Pester/Pester</projectUrl>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
+  </metadata>
+  <files>
+    <file src="..\tmp\nuget\**" target="tools" />
+    <file src="chocolateyInstall.ps1" />
+    <file src="..\tmp\nuget\VERIFICATION.txt" />
+
+  </files>
+</package>
