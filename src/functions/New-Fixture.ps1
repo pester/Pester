@@ -106,7 +106,9 @@ Describe "#name#" {
     Create-File -Path $Path -Name "$Name.Tests.ps1" -Content $testCode
 }
 
-function Create-File ($Path, $Name, $Content) {
+function Create-File {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Write-Warning', Justification = 'Mocked in unit test for New-Fixture.')]
+    param($Path, $Name, $Content)
     if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
         & $SafeCommands['New-Item'] -ItemType Directory -Path $Path | & $SafeCommands['Out-Null']
     }

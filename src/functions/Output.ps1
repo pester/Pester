@@ -76,7 +76,7 @@ function Format-PesterPath ($Path, [String]$Delimiter) {
         $Path.Path
     }
     elseif ($null -ne ($path -as [hashtable[]])) {
-        ($path | ForEach-Object { $_.Path }) -join $Delimiter
+        ($path | & $SafeCommands['ForEach-Object'] { $_.Path }) -join $Delimiter
     }
     # needs to stay at the bottom because almost everything can be upcast to array of string
     elseif ($Path -as [String[]]) {

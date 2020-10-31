@@ -2109,7 +2109,7 @@ function PostProcess-ExecutedBlock {
                     $b.OwnPassedCount++
                 }
                 else {
-                    throw "Test '$($t.Name)' is in invalid state. $($t | Format-List -Force * | Out-String)"
+                    throw "Test '$($t.Name)' is in invalid state. $($t | Format-List -Force * | & $SafeCommands['Out-String'])"
                 }
             }
 
@@ -2183,7 +2183,7 @@ function Where-Failed {
         $Block
     )
 
-    $Block | View-Flat | where { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
+    $Block | View-Flat | & $SafeCommands['Where-Object'] { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
 }
 
 function View-Flat {
@@ -2340,7 +2340,7 @@ function New-BlockContainerObject {
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { "ScriptBlock", $ScriptBlock }
-        "Path" { "File", (Get-Item $Path) }
+        "Path" { "File", (& $SafeCommands['Get-Item'] $Path) }
         "File" { "File", $File }
         default { throw [System.ArgumentOutOfRangeException]"" }
     }
@@ -2423,7 +2423,7 @@ function Import-Dependency {
         $sb = {
             param ($p)
 
-            . $($p; Remove-Variable -Scope Local -Name p)
+            . $($p; & $SafeCommands['Remove-Variable'] -Scope Local -Name p)
         }
 
         $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
@@ -2548,7 +2548,7 @@ function ConvertTo-HumanTime {
 Reset-TestSuiteState
 
 # if -not build
-Export-ModuleMember -Function @(
+& $SafeCommands['Export-ModuleMember'] -Function @(
     # the core stuff I am mostly sure about
     'Reset-TestSuiteState'
     'New-Block'

@@ -1,5 +1,6 @@
 # if -not build
-Import-Module "$PSScriptRoot/TypeClass.psm1" -DisableNameChecking
+. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+& $SafeCommands['Import-Module'] "$PSScriptRoot/TypeClass.psm1" -DisableNameChecking
 # endif
 
 function Format-Collection ($Value, [switch]$Pretty) {
@@ -10,15 +11,15 @@ function Format-Collection ($Value, [switch]$Pretty) {
     }
     $count = $Value.Count
     $trimmed = $count  -gt $Limit
-    '@(' + (($Value | Select -First $Limit | % { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
+    '@(' + (($Value | & $SafeCommands['Select-Object'] -First $Limit | & $SafeCommands['ForEach-Object'] { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {
     if ($null -eq $Property) {
-        $Property = $Value.PSObject.Properties | Select-Object -ExpandProperty Name
+        $Property = $Value.PSObject.Properties | & $SafeCommands['Select-Object'] -ExpandProperty Name
     }
     $valueType = Get-ShortType $Value
-    $valueFormatted = ([string]([PSObject]$Value | Select-Object -Property $Property))
+    $valueFormatted = ([string]([PSObject]$Value | & $SafeCommands['Select-Object'] -Property $Property))
 
     if ($Pretty) {
         $margin = "    "
@@ -64,7 +65,7 @@ function Format-Hashtable ($Value) {
     $head = '@{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | foreach {
+    $entries = $Value.Keys | & $SafeCommands['Sort-Object'] | & $SafeCommands['ForEach-Object'] {
         $formattedValue = Format-Nicely $Value.$_
         "$_=$formattedValue" }
 
@@ -75,7 +76,7 @@ function Format-Dictionary ($Value) {
     $head = 'Dictionary{'
     $tail = '}'
 
-    $entries = $Value.Keys | sort | foreach {
+    $entries = $Value.Keys | & $SafeCommands['Sort-Object'] | & $SafeCommands['ForEach-Object'] {
         $formattedValue = Format-Nicely $Value.$_
         "$_=$formattedValue" }
 
@@ -139,9 +140,9 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit = 4) {
 
     $properties = @($InputObject.PSObject.Properties |
-            where { $_.Name -notlike "_*"} |
-            select -expand Name |
-            sort)
+            & $SafeCommands['Where-Object'] { $_.Name -notlike "_*"} |
+            & $SafeCommands['Select-Object'] -expand Name |
+            & $SafeCommands['Sort-Object'])
     $significant = @()
     $rest = @()
     foreach ($p in $properties) {
@@ -154,7 +155,7 @@ function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit =
     }
 
     #todo: I am assuming id, name properties, so I am just sorting the selected ones by name.
-    (@($significant | sort) + $rest) | Select -First $Limit
+    (@($significant | & $SafeCommands['Sort-Object']) + $rest) | & $SafeCommands['Select-Object'] -First $Limit
 
 }
 
@@ -189,7 +190,7 @@ function Format-Type ([Type]$Value) {
 }
 
 # if -not build
-Export-ModuleMember -Function @(
+& $SafeCommands['Export-ModuleMember'] -Function @(
     'Format-Collection'
     'Format-Object'
     'Format-Null'

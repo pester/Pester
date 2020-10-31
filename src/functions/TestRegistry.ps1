@@ -46,7 +46,7 @@
                 # create the testdrive and the testdrive already exists, so all is good.
             }
             else {
-                Write-Error $_ -ErrorAction 'Stop'
+                & $SafeCommands['Write-Error'] $_ -ErrorAction 'Stop'
             }
         }
     }
@@ -143,8 +143,8 @@ function Get-TestRegistryPlugin {
     # TODO: add OnStart block and put this in it
 
     if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
-        Remove-Item (Get-PSDrive TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
-        Remove-PSDrive TestRegistry
+        & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
+        & $SafeCommands['Remove-PSDrive'] TestRegistry
     }
     New-PluginObject -Name "TestRegistry" -EachBlockSetupStart {
         param($Context)
