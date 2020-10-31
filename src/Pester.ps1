@@ -406,7 +406,8 @@ function Invoke-Pester {
     [PesterConfiguration]::Default.TestResult
     ----------
     TestResult.Enabled - Enable TestResult.
-    TestResult.OutputFormat - Format to use for test result report. Possible values: NUnit2.5
+    TestResult.OutputFormat - Format to use for test result report. Possible values:  NUnitXml, JUnitXml
+        Default is: NUnitXml
     TestResult.OutputPath - Path relative to the current directory where test result report is saved.
         Default is: testResults.xml
     TestResult.OutputEncoding - Encoding of the output file. Currently UTF8
@@ -1084,7 +1085,7 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.TestResult.Enabled.Value) {
-                Export-NunitReport $run $PesterPreference.TestResult.OutputPath.Value
+                Export-XmlReport -Result $run -Path $PesterPreference.TestResult.OutputPath.Value -Format $PesterPreference.TestResult.OutputFormat.Value
             }
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {

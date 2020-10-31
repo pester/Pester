@@ -101,8 +101,8 @@ i -PassThru:$PassThru {
             $message[-2] | Verify-Equal "But was:  'Testing'"
             $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
 
-            # $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n" -replace "`r"
-            # $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
+            $stackTraceText = @($xmlTestCase.failure.'#text' -split "`n" -replace "`r")
+            $stackTraceText[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
         t "should write a failed test result when there are multiple errors" {
@@ -129,11 +129,26 @@ i -PassThru:$PassThru {
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
             $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
 
-            # $sbStartLine = $sb.StartPosition.StartLine
-            # $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n" -replace "`r"
-            # $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
-            # $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
+            $sbStartLine = $sb.StartPosition.StartLine
+            $stackTraceText = @($xmlTestCase.failure.'#text' -split "`n" -replace "`r")
+            $stackTraceText[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
+            $stackTraceText[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
 
+        }
+
+        t "should use expanded path and name when there are any" {
+            $sb = {
+                Describe "Mocked Describe <value>" {
+                    It "Failed testcase <value>" {
+                        "Testing" | Should -Be "Test"
+                    }
+                } -ForEach @{ Value = "abc" }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCase.name | Verify-Equal "Mocked Describe abc.Failed testcase abc"
         }
 
         t "should write the test summary" {
@@ -251,6 +266,116 @@ i -PassThru:$PassThru {
 
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
+        }
+    }
+
+    b "Writing JUnit report into file" {
+        t "should write XML when using -OutputFormat JUnitXml" {
+            try {
+                $sb = {
+                    Describe "Mocked Describe" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+
+                $temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
+                $null = New-Item -ItemType Container -Path $temp -Force
+                $filePath = Join-Path $temp "t.Tests.ps1"
+                Set-Content -Value $sb -Path $filePath
+
+                $xmlPath = Join-Path $temp "JUnit.xml"
+
+                $r = Invoke-Pester -Path $filePath -OutputFormat JUnitXML -OutputFile $xmlPath -Show None -PassThru
+
+                $xmlResult = [xml] (Get-Content -Path $xmlPath)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $temp) {
+                    Remove-Item $temp -Force -Recurse -Confirm:$false
+                }
+            }
+        }
+
+        t "should write XML when using -Configuration object" {
+            try {
+                $sb = {
+                    Describe "Mocked Describe" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+
+                $temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
+                $null = New-Item -ItemType Container -Path $temp -Force
+                $filePath = Join-Path $temp "t.Tests.ps1"
+                Set-Content -Value $sb -Path $filePath
+
+                $xmlPath = Join-Path $temp "JUnit.xml"
+
+                $configuration = [PesterConfiguration]::Default
+                $configuration.Run.Path = $filePath
+                $configuration.Run.PassThru = $true
+                $configuration.Output.Verbosity = "None"
+
+                $configuration.TestResult.Enabled = $true
+                $configuration.TestResult.OutputFormat = "JUnitXml"
+                $configuration.TestResult.OutputPath = $xmlPath
+
+                $r = Invoke-Pester -Configuration $configuration
+
+                $xmlResult = [xml] (Get-Content -Path $xmlPath)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $temp) {
+                    Remove-Item $temp -Force -Recurse -Confirm:$false
+                }
+            }
+        }
+
+        t "should write XML using Export-JUnitReport" {
+            try {
+                $sb = {
+                    Describe "Mocked Describe" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+
+                $temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
+                $null = New-Item -ItemType Container -Path $temp -Force
+                $filePath = Join-Path $temp "t.Tests.ps1"
+                Set-Content -Value $sb -Path $filePath
+
+                $xmlPath = Join-Path $temp "JUnit.xml"
+
+                $r = Invoke-Pester -Path $filePath -Show None -PassThru
+
+                # act
+                Export-JUnitReport -Result $r -Path $xmlPath
+
+                $xmlResult = [xml] (Get-Content -Path $xmlPath)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $temp) {
+                    Remove-Item $temp -Force -Recurse -Confirm:$false
+                }
+            }
         }
     }
 }

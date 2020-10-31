@@ -58,6 +58,18 @@ function Export-NUnitReport {
     Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
 }
 
+function Export-JUnitReport {
+    param (
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Result,
+
+        [parameter(Mandatory = $true)]
+        [String] $Path
+    )
+
+    Export-XmlReport -Result $Result -Path $Path -Format JUnitXml
+}
+
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -254,7 +266,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
             # skip blocks that were discovered but did not run
             continue
         }
-        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.Path -join '.')
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $Path
     }
 
     $suites = @(
@@ -381,7 +393,7 @@ function Write-JUnitTestSuiteElements($Container, [System.Xml.XmlWriter] $XmlWri
 
 
     $testCases = [Pester.Factory]::CreateCollection()
-    Fold-Container -Container $Container -OnTest { param ($t) $testCases.Add($t) }
+    Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testCases.Add($t) } }
     foreach ($t in $testCases) {
         Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $path
     }
@@ -428,7 +440,7 @@ function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter,
 }
 
 function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
-    $XmlWriter.WriteAttributeString('name', ($Action.Path -join '.'))
+    $XmlWriter.WriteAttributeString('name', ($Action.ExpandedPath -join '.'))
 
     $statusElementName = switch ($Action.Result) {
         Passed {
@@ -458,7 +470,8 @@ function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $Xml
     $XmlWriter.WriteStartElement($StatusElementName)
 
     $result = Get-ErrorForXmlReport -TestResult $Action
-    $XmlWriter.WriteAttributeString('message', $result.FailureMessage) #TODO: Add stacktrace
+    $XmlWriter.WriteAttributeString('message', $result.FailureMessage)
+    $XmlWriter.WriteString($result.StackTrace)
 
     $XmlWriter.WriteEndElement()
 }
