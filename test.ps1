@@ -51,7 +51,7 @@ Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
-        ForEach-Object {
+        foreach {
             $r = & $_.FullName -PassThru
             if ($r.Failed -gt 0) {
                 [PSCustomObject]@{
@@ -63,9 +63,9 @@ if (-not $SkipPTests) {
 
 
     if (0 -lt $result.Count) {
-        Write-Output -ForegroundColor Red "P tests failed!"
+        Write-Host -ForegroundColor Red "P tests failed!"
         foreach ($r in $result) {
-            Write-Output -ForegroundColor Red "$($r.Count) tests failed in '$($r.FullName)'."
+            Write-Host -ForegroundColor Red "$($r.Count) tests failed in '$($r.FullName)'."
         }
 
         if ($CI) {
@@ -76,7 +76,7 @@ if (-not $SkipPTests) {
         }
     }
     else {
-        Write-Output -ForegroundColor Green "P tests passed!"
+        Write-Host -ForegroundColor Green "P tests passed!"
     }
 }
 
