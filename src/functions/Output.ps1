@@ -43,6 +43,7 @@ $script:ReportTheme = DATA {
         PassTime         = 'DarkGray'
         Fail             = 'Red'
         FailTime         = 'DarkGray'
+        FailMessage      = 'Gray'
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
         Pending          = 'Gray'
@@ -58,6 +59,12 @@ $script:ReportTheme = DATA {
         Information      = 'DarkGray'
         Coverage         = 'White'
         CoverageWarn     = 'DarkRed'
+        DiscoveryStart   = 'Magenta'
+        DiscoveryFilter  = 'Magenta'
+        Discovery        = 'Magenta'
+        DiscoveryFinish  = 'Magenta'
+        TestRunBlock     = 'Magenta'
+        TestFail         = 'Red'
     }
 }
 
@@ -461,14 +468,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryStart "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
             if($null -ne $activeFilters) {
                 foreach ($aFilter in $activeFilters) {
                     # Assuming only StringArrayOption filter-types. Might break in the future.
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                    & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryFilter "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
                 }
             }
         }
@@ -477,7 +484,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.ContainerDiscoveryStart = {
             param ($Context)
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryStart "Discovering in $($Context.BlockContainer.Item)."
         }
     }
 
@@ -485,7 +492,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         $p.ContainerDiscoveryEnd = {
             param ($Context)
             # todo: this is very very slow because of View-flat
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
     }
 
@@ -494,11 +501,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         # if ($Context.AnyFocusedTests) {
         #     $focusedTests = $Context.FocusedTests
-        #     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        #     & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.TestRunBlock "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
         # }
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryFinish "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
@@ -507,7 +514,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.TestRunBlock "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
             }
         }
     }
@@ -698,7 +705,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
-        & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.TestFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
         Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
     }
 
