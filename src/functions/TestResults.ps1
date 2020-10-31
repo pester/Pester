@@ -221,7 +221,7 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
         else {
             throw "Container type '$($container.Type)' is not supported."
         }
-        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path ($action.ExpandedPath -join '.')
+        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $path
     }
 
     $XmlWriter.WriteEndElement()
@@ -266,7 +266,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
             # skip blocks that were discovered but did not run
             continue
         }
-        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $Path
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.ExpandedPath -join '.')
     }
 
     $suites = @(
