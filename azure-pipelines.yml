@@ -125,7 +125,7 @@ stages:
               codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
               pathToSources: 'src/'
-              failIfCoverageEmpty: true
+              failIfCoverageEmpty: false
             condition: succeededOrFailed()
           - task: PublishTestResults@2
             inputs:
