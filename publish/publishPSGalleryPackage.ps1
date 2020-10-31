@@ -1,10 +1,10 @@
 param (
     [Parameter(Mandatory)]
     [string] $ApiKey,
-    # TODO path parameter is currently unused and throws warning
     [Parameter(Mandatory)]
     [string] $Path
 )
+
 
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
@@ -16,7 +16,7 @@ try {
     $psGet = Import-Module PowerShellGet -PassThru -Verbose:$false
     & $psGet { [CmdletBinding()] param () Install-NuGetClientBinaries -CallerPSCmdlet $PSCmdlet -BootstrapNuGetExe -Force }
 
-    Write-Output 'Publishing module to PowerShellGet'
+    Write-Host 'Publishing module to PowerShellGet'
     $null = Publish-Module -Path $buildDir -NuGetApiKey $ApiKey -Confirm:$false -Force
 }
 catch {
