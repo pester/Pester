@@ -31,7 +31,7 @@ if (-not @($filesToSign)) {
 $results = $filesToSign |
 ForEach-Object {
     $r = Set-AuthenticodeSignature $_ -Certificate $cert -TimestampServer 'http://timestamp.digicert.com' -ErrorAction Stop
-    $r | Out-String | Write-Output
+    $r | Out-String | Write-Host
     $r
 }
 
