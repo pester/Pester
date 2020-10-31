@@ -511,7 +511,6 @@ ShowFullErrors         : Show full errors including Pester internal stack. (Fals
 WriteDebugMessages     : Write Debug messages to screen. (False, default: False)
 WriteDebugMessagesFrom : Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything. (*, default: *)
 ShowNavigationMarkers  : Write paths after every block and test, for easy navigation in VSCode. (False, default: False)
-WriteVSCodeMarker      : Write VSCode marker for better integration with VSCode. (False, default: False)
 ```
 
 The configuration object can be constructed either via the Default static property or by casting a hashtable to it. You can also cast a hashtable to any of its sections. Here are three different ways to the same goal:
@@ -829,6 +828,7 @@ You can specify verbosity in VSCode, to see normal or detailed output, or to tak
 - Should `-Throw` is using `-like` to match the exception message instead of .Contains. Use `*` or any of the other `-like` wildcard to match only part of the message.
 - Variables defined during Discovery, are not available in Before*, After* and It. When generating tests via foreach blocks, make sure you pass all variables into the test using -TestCases.
 - Gherkin is removed, and will later move to it's own module, please keep using Pester version 4.
+- `TestDrive` is defined during Run only, it cannot be used in -TestCases / -ForEach.
 
 ### Deprecated features
 

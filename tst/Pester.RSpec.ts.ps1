@@ -544,6 +544,27 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "top-level AfterAll" {
+        t "AfterAll can be used in top-level" {
+            $sb = {
+                AfterAll {
+                    "teardown"
+                }
+
+                Describe "d1" {
+                    It "t1" {
+
+                    }
+                }
+            }
+            write-Host "here"
+            $c = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $c -PassThru -Output Detailed
+
+            $r.Containers[0].StandardOutput | Verify-Equal "teardown"
+        }
+    }
+
     b "Parametric scripts" {
         t "Data can be passed to scripts" {
             $sb = {
@@ -568,7 +589,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $container = New-TestContainer -ScriptBlock $sb -Data @(
+            $container = New-PesterContainer -ScriptBlock $sb -Data @(
                     @{ Value = 1 }
                     @{ Value = 2 }
                 )
@@ -608,7 +629,7 @@ i -PassThru:$PassThru {
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
 
-                $container = New-TestContainer -Path $file -Data @{ Value = 1 }
+                $container = New-PesterContainer -Path $file -Data @{ Value = 1 }
                 $r = Invoke-Pester -Container $container -PassThru
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             }
@@ -651,8 +672,8 @@ i -PassThru:$PassThru {
                 $sb | Set-Content -Path $file
 
                 $container = @(
-                    (New-TestContainer -Path $file -Data @{ Value = 1 })
-                    (New-TestContainer -Path $file -Data @{ Value = 2 })
+                    (New-PesterContainer -Path $file -Data @{ Value = 1 })
+                    (New-PesterContainer -Path $file -Data @{ Value = 2 })
                 )
                 $r = Invoke-Pester -Container $container -PassThru
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
@@ -696,7 +717,7 @@ i -PassThru:$PassThru {
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
 
-                $container = New-TestContainer -Path $file -Data @(
+                $container = New-PesterContainer -Path $file -Data @(
                         @{ Value = 1 }
                         @{ Value = 2 }
                     )
@@ -769,12 +790,12 @@ i -PassThru:$PassThru {
                 $sb2 | Set-Content -Path $file2
 
                 $container = @(
-                    (New-TestContainer -Path $file1 -Data @(
+                    (New-PesterContainer -Path $file1 -Data @(
                         @{ Value = 1 }
                         @{ Value = 2 }
                     ))
 
-                    (New-TestContainer -Path $file2 -Data @(
+                    (New-PesterContainer -Path $file2 -Data @(
                         @{ Color = "Blue" }
                         @{ Color = "Yellow" }
                     ))
@@ -825,7 +846,7 @@ i -PassThru:$PassThru {
                 $sb | Set-Content -Path $file2
 
                 # passing path to the whole directory with two test files
-                $container = New-TestContainer -Path $tmp -Data @(
+                $container = New-PesterContainer -Path $tmp -Data @(
                     @{ Value = 1 }
                     @{ Value = 2 }
                 )
@@ -888,7 +909,7 @@ i -PassThru:$PassThru {
                 $sb1 | Set-Content -Path $file1
                 $sb2 | Set-Content -Path $file2
 
-                $container = New-TestContainer -Path $file1 -Data @{ Value = 1 }
+                $container = New-PesterContainer -Path $file1 -Data @{ Value = 1 }
 
                 # the path to $file1 should be included only once, even though -Path $tmp will find that file as well
                 # because we expect the parametrized script to require the parameters, but still want to allow
@@ -907,6 +928,425 @@ i -PassThru:$PassThru {
                     Remove-Item $file2 -Force
                 }
             }
+        }
+    }
+
+    b "New-PesterContainer" {
+        t "It works when file is provided via New-PesterContainer" {
+            try {
+                $sb = {
+                    Describe "d1" {
+                        It "t1" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = New-PesterContainer -Path $file
+
+                $r = Invoke-Pester -Container $container -PassThru -Output Normal
+                $r.Containers.Count | Verify-Equal 1
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "It works when file is provided via Configuration" {
+            try {
+                $sb = {
+                    Describe "d1" {
+                        It "t1" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $container = New-PesterContainer -Path $file
+
+                $configuration = [PesterConfiguration]::Default
+                $configuration.Run.Container = $container
+                $configuration.Run.PassThru = $true
+                $configuration.Output.Verbosity = "Normal"
+
+                $r = Invoke-Pester -Configuration $configuration
+                $r.Containers.Count | Verify-Equal 1
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+    }
+
+    b "BeforeDiscovery" {
+        t "Variables from BeforeDiscovery are defined in scope" {
+            $sb = {
+                BeforeDiscovery {
+                    $tests = 1,2
+                }
+
+                foreach ($t in $tests) {
+                    Describe "d$t" {
+                        It "t$t" -TestCases @{ t = $t} {
+                            $t | Should -BeLessOrEqual 2
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Parametric tests" {
+        t "Providing data will generate as many Its as there are data sets" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                    } -TestCases @(@{ Value = 1}, @{ Value  = 2 })
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+        }
+
+        t "-ForEach is alias to -TestCases" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                    } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+        }
+
+        t "Providing empty or `$null -TestCases will generate nothing" {
+            $sb = {
+                Describe "d" {
+                    It "i" { } -ForEach @()
+                }
+
+                Describe "d" {
+                    It "i" { } -ForEach $null
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 0
+            $r.Containers[0].Blocks[1].Tests.Count | Verify-Equal 0
+        }
+    }
+
+    b "Parametric blocks" {
+        t "Providing data will generate as many blocks as there are data sets" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                    }
+                } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru #
+            $r.Containers[0].Blocks.Count | Verify-Equal 2
+        }
+
+        t "Providing empty or `$null -ForEach will generate nothing" {
+            $sb = {
+                Describe "d" {
+                    It "i" { }
+                } -ForEach @()
+
+                Describe "d" {
+                    It "i" { }
+                } -ForEach $null
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks.Count | Verify-Equal 0
+        }
+
+        t "Data will be available in the respective block during Run" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    BeforeEach {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    It "i" {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    AfterEach {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+
+                    AfterAll {
+                        if ($Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$Value'." }
+                    }
+                } -ForEach @(@{ Value = 1}, @{ Value  = 2 })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "`$_ holds the whole hashtable when hastable is used, and it is not overwritten in It" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($_.Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$($_.Value)'." }
+                    }
+
+                    It "i" {
+                        if ($_.Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$($_.Value)'." }
+                    }
+                } -ForEach @(@{ Value = 1 }, @{ Value  = 2 })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "`$_ holds the whole hashtable when hastable is used, and it is overwritten in It if it specifies its own data" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($_.Value -notin 1,2) { throw "`$Value should be 1 or 2 but is '$($_.Value)'." }
+                    }
+
+                    It "i" {
+                        if ($_.Value -ne 10) { throw "`$Value should be 10 '$($_.Value)'." }
+                    } -ForEach @{ Value = 10 }
+                } -ForEach @(@{ Value = 1 }, @{ Value  = 2 })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "`$_ holds the current item array of any object is used, and it is overwritten in It if it specifies its own data" {
+            $sb = {
+                Describe "d" {
+                    BeforeAll {
+                        if ($_ -notin 1,2) { throw "`$Value should be 1 or 2 but is '$_'." }
+                    }
+
+                    # maybe a bit unexpected to get the values of TestCases here, but BeforeEach
+                    # runs in the same scope as It, so the variables are available there as well
+                    BeforeEach {
+                        if ($_ -notin 3,4) { throw "`$Value should be 3 or 4 but is '$_'." }
+                    }
+
+                    It "i" {
+                        if ($_ -notin 3,4) { throw "`$Value should be 3 or 4 but is '$_'." }
+                    } -ForEach 3, 4
+                } -ForEach 1, 2
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Data provided to container are accessible in ForEach on each level" {
+            $scenarios = @(
+                @{
+                    Scenario = @{
+                        Name = "A"
+                        Contexts = @(
+                            @{
+                                Name = "AA"
+                                Examples = @(
+                                    @{ User = @{ Name = "Jakub"; Age = 31 } }
+                                    @{ User = @{ Name = "Tomas"; Age = 27 } }
+                                )
+                            }
+                            @{
+                                Name = "AB"
+                                Examples = @(
+                                    @{ User = @{ Name = "Peter"; Age = 30 } }
+                                    @{ User = @{ Name = "Jaap"; Age = 22 } }
+                                )
+                            }
+                        )
+                    }
+                }
+                @{
+                    Scenario = @{
+                        Name = "B"
+                        Contexts = @{
+                            Name = "BB"
+                            Examples = @(
+                                @{ User = @{ Name = "Jane"; Age = 25 } }
+                            )
+                        }
+                    }
+                }
+            )
+
+            $sb = {
+                param ($Scenario)
+
+                Describe "Scenario - <name>" -ForEach $Scenario {
+
+                    Context "Context - <name>" -ForEach $Contexts {
+                        It "Example - <user.name> with age <user.age> is less than 35" -ForEach $Examples {
+                            $User.Age | Should -BeLessOrEqual 35
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data $scenarios
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal "Context - AA"
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "Example - Jakub with age 31 is less than 35"
+
+            $r.Containers[0].Blocks[0].Blocks[1].ExpandedName | Verify-Equal "Context - AB"
+            $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
+        }
+
+        t "<_> expands to `$_ in Describe and It" {
+            $sb = {
+                Describe "d <_>" {
+                    It "i <_>" { } -ForEach 2
+                } -ForEach 1
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i 2"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
+        }
+
+        t "<_> expands to `$_ in It even if It does not define any data" {
+            $sb = {
+                Describe "d <_>" {
+                    It "i <_>" {
+                        $_ | Should -Be 1
+                    }
+                } -ForEach 1
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i 1"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
+        }
+
+        t "<user.name> expands to `$user.name" {
+            $sb = {
+                Describe "d <user.name>" {
+                    It "i <user.name>" { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Jakub"
+        }
+
+        t "`$variable remains as literal text after expanding" {
+            $sb = {
+                Describe "d `$abc" {
+                    It "i `$abc" { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i `$abc"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d `$abc"
+        }
+
+        t 'template can be escaped by grave accent' {
+            $sb = {
+                Describe "d ``<fff``>" {
+                    It 'i `<fff`>' { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i `<fff`>"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d `<fff`>"
+        }
+
+        t 'template evaluates simple code' {
+            $sb = {
+                Describe "d" {
+                    It 'i <user.name> is <user.Name.GetType()>' { }
+                } -ForEach @(@{User = @{ Name = "Jakub" }})
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
+        }
+    }
+
+    b "Should with legacy syntax will throw" {
+        t "Should with legacy syntax will throw" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                        1 | Should Be 1
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0] -like "*Legacy Should syntax (without dashes) is not supported in Pester 5.*"
         }
     }
 }

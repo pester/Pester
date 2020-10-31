@@ -36,7 +36,7 @@ function Get-TempRegistry {
     $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
     if (-not (& $script:SafeCommands['Test-Path'] $pesterTempRegistryRoot)) {
         try {
-            $null = New-Item -Path $pesterTempRegistryRoot -ErrorAction Stop
+            $null = & $SafeCommands['New-Item'] -Path $pesterTempRegistryRoot -ErrorAction Stop
         }
         catch [Exception] {
             throw ([Exception]"Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))

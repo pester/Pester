@@ -365,7 +365,7 @@ i -PassThru:$PassThru {
                 })
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
-            $xmlResult = ConvertTo-NUnitReport $r
+            $xmlResult = $r | ConvertTo-NUnitReport
             $xmlTestSuite1 = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'[0]
 
             $xmlTestSuite1.name | Verify-Equal "Describe #1"
@@ -380,6 +380,86 @@ i -PassThru:$PassThru {
             $xmlTestSuite2.result | Verify-Equal "Failure"
             $xmlTestSuite2.success | Verify-Equal "False"
             $xmlTestSuite2.time | Verify-XmlTime $r.Containers[1].Blocks[0].Duration
+        }
+    }
+
+    b "Filtered items should not appear in report" {
+
+        $sb = @(
+            # container 0
+            {
+                # this whole container should be excluded, it has no tests that will run
+                Describe "Excluded describe" {
+                    It "Excluded test" -Tag 'Exclude' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            # container 1
+            {
+                # this describe should be excluded, it has no test to run
+                Describe "Excluded describe" {
+                    It "Excluded test" -Tag 'Exclude' {
+                        $true | Should -Be $true
+                    }
+                }
+
+                # but the container should still be included because it has
+                # this describe that will run
+                Describe "Included describe" {
+                    It "Included test" {
+                        $true | Should -Be $true
+                    }
+                }
+
+            }
+        )
+
+        t "Report ignores containers, blocks and tests filtered by ExcludeTag" {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' }; Filter = @{ ExcludeTag = 'Exclude' }; })
+
+            $r.Containers[0].ShouldRun | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].ShouldRun | Verify-False
+            $r.Containers[1].Blocks[1].Tests[0].ShouldRun | Verify-True
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            $xmlSuites = @($xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite')
+            $xmlSuites.Count | Verify-Equal 1 # there should be only 1 suite, the others are excluded
+            $xmlSuites[0].'description' | Verify-Equal "Included describe"
+            $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Included test"
+        }
+    }
+
+    b "When beforeall crashes tests are reported correctly" {
+        # https://github.com/pester/Pester/issues/1715
+        t "test has name" {
+            $sb = {
+                Describe "Failing describe" {
+                    BeforeAll {
+                        throw
+                    }
+
+                    It "Test1" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true };
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            $xmlSuites = @($xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite')
+            $xmlSuites.Count | Verify-Equal 1
+            $xmlSuites[0].'description' | Verify-Equal "Failing describe"
+            $xmlSuites[0].'results'.'test-case'.'name' | Verify-Equal "Failing describe Test1"
+            $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Test1"
+
         }
     }
 }

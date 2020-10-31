@@ -899,6 +899,18 @@ Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
     }
 }
 
+Describe "When Calling Should -Invoke with pipeline-input or -ActualValue" {
+    It "Should throw an error on pipeline-input" {
+        $scriptBlock = { "value" | Should -Invoke -CommandName "ABC" -Scope Describe }
+        $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
+    }
+
+    It "Should throw an error on ActualInput-value" {
+        $scriptBlock = { Should -Invoke -CommandName "ABC" -ActualValue "value" -Scope Describe }
+        $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
+    }
+}
+
 Describe "Using Pester Scopes (Describe,Context,It)" {
     BeforeAll {
         Mock FunctionUnderTest {return "I am the first mock test"} -parameterFilter {$param1 -eq "one"}
@@ -1971,6 +1983,31 @@ Describe '$args handling' {
         Get-Command Invoke-CmdletWithArgs -CommandType Cmdlet |
             Select-Object -ExpandProperty Module |
             Remove-Module
+    }
+}
+
+Describe 'Mocking advanced function' {
+    It 'Avanced functions can be mocked with advanced function' {
+        # https://github.com/pester/Pester/issues/1554
+        function Get-Something {
+            [CmdletBinding()]
+            param
+            (
+                $MyParam1
+            )
+         }
+
+        Mock Get-Something -MockWith {
+            param(
+                [Parameter()]
+                [System.String]
+                $MyParam1
+            )
+
+            return $MyParam1
+        }
+
+        Get-Something -MyParam1 'SomeValue' | Should -Be 'SomeValue'
     }
 }
 

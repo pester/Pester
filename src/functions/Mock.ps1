@@ -140,7 +140,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $mockPrototype = @"
     if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Mock bootstrap function #FUNCTIONNAME# called from block #BLOCK#." }
-    `$MyInvocation.MyCommand.Mock.Args = `$null
+    `$MyInvocation.MyCommand.Mock.Args = @()
     if (#CANCAPTUREARGS#) {
         if (`$null -ne `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage) { & `$MyInvocation.MyCommand.Mock.Write_PesterDebugMessage -Message "Capturing arguments of the mocked command." }
         `$MyInvocation.MyCommand.Mock.Args = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:args')
@@ -457,26 +457,49 @@ function Remove-MockHook {
     $removeMockStub = {
         param (
             [string] $CommandName,
-            [string[]] $Aliases
+            [string[]] $Aliases,
+            [bool] $Write_Debug_Enabled,
+            $Write_Debug
         )
 
         if ($ExecutionContext.InvokeProvider.Item.Exists("Function:\$CommandName", $true, $true)) {
             $ExecutionContext.InvokeProvider.Item.Remove("Function:\$CommandName", $false, $true, $true)
+            if ($Write_Debug_Enabled) {
+                & $Write_Debug -Scope Mock -Message "Removed function $($CommandName)$(if ($ExecutionContext.SessionState.Module) { " from module $($ExecutionContext.SessionState.Module) session state"} else { " from script session state"})."
+            }
+        }
+        else {
+            # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarilly
+            # if ($Write_Debug_Enabled) {
+            #     & $Write_Debug -Scope Mock -Message "ERROR: Function $($CommandName) was not found$(if ($ExecutionContext.SessionState.Module) { " in module $($ExecutionContext.SessionState.Module) session state"} else { " in script session state"})."
+            # }
         }
 
         foreach ($alias in $Aliases) {
             if ($ExecutionContext.InvokeProvider.Item.Exists("Alias:$alias", $true, $true)) {
                 $ExecutionContext.InvokeProvider.Item.Remove("Alias:$alias", $false, $true, $true)
+                if ($Write_Debug_Enabled) {
+                    & $Write_Debug -Scope Mock -Message "Removed alias $($alias)$(if ($ExecutionContext.SessionState.Module) { " from module $($ExecutionContext.SessionState.Module) session state"} else { " from script session state"})."
+                }
+            }
+            else {
+                # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarilly
+                # if ($Write_Debug_Enabled) {
+                #     & $Write_Debug -Scope Mock -Message "ERROR: Alias $($alias) was not found$(if ($ExecutionContext.SessionState.Module) { " in module $($ExecutionContext.SessionState.Module) session state"} else { " in script session state"})."
+                # }
             }
         }
     }
+
+    $Write_Debug_Enabled = $PesterPreference.Debug.WriteDebugMessages.Value
+    $Write_Debug = $(if ($PesterPreference.Debug.WriteDebugMessages.Value) { $SafeCommands["Write-PesterDebugMessage"] } else { $null })
 
     foreach ($h in $Hooks) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommandName)."
         }
 
-        $null = Invoke-InMockScope -SessionState $h.CallerSessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases
+        $null = Invoke-InMockScope -SessionState $h.SessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases, $Write_Debug_Enabled, $Write_Debug
     }
 }
 
@@ -1049,7 +1072,7 @@ function Test-ParameterFilter {
 
     $wrapper = {
         param ($private:______mock_parameters)
-        Set-StrictMode -Off
+        & $private:______mock_parameters.Set_StrictMode -Off
 
         foreach ($private:______current in $private:______mock_parameters.Context.GetEnumerator()) {
             $private:______mock_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
@@ -1083,6 +1106,7 @@ function Test-ParameterFilter {
         Arguments       = $Arguments
         SessionState    = $SessionState
         Context         = $context
+        Set_StrictMode  = $SafeCommands['Set-StrictMode']
     }
 
     $result = & $wrapper $parameters

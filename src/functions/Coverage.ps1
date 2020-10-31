@@ -294,6 +294,25 @@ function New-CoverageBreakpoint {
     }
 }
 
+Function Get-AstTopParent {
+    param(
+        [System.Management.Automation.Language.Ast] $Ast,
+        [int] $MaxDepth = 30
+    )
+
+    if ([string]::IsNullOrEmpty($Ast.Parent)) {
+        return $Ast
+    }
+    elseif ($MaxDepth -le 0) {
+        & $SafeCommands['Write-Verbose'] "Max depth reached, moving on"
+        return $null
+    }
+    else {
+        $MaxDepth--
+        Get-AstTopParent -Ast $Ast.Parent -MaxDepth $MaxDepth
+    }
+}
+
 function IsIgnoredCommand {
     param ([System.Management.Automation.Language.Ast] $Command)
 
@@ -318,6 +337,15 @@ function IsIgnoredCommand {
             # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
             return $true
         }
+    }
+
+    if ($Command.Extent.Text -match '^{?& \$wrappedCmd @PSBoundParameters ?}?$' -and
+        (Get-AstTopParent -Ast $Command) -like '*$steppablePipeline.Begin($PSCmdlet)*$steppablePipeline.Process($_)*$steppablePipeline.End()*' ) {
+        # Fix for proxy function wrapped pipeline command. PowerShell does not increment the hit count when
+        # these functions are executed using the steppable pipeline; further, these checks are redundant, as
+        # all steppable pipeline constituents already get breakpoints set. This checks to ensure the top parent
+        # node of the command contains all three constituents of the steppable pipeline before ignoring it.
+        return $true
     }
 
     if (IsClosingLoopCondition -Command $Command) {

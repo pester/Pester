@@ -1,9 +1,25 @@
 #! /usr/bin/pwsh
 
+<#
+    .SYNOPSIS
+        Used to build and import the Pester module during Pester development.
+
+    .PARAMETER Debug
+        <Not written yet>
+
+    .PARAMETER Load
+        Imports the built Pester module in a separate PowerShell session
+        and measure how fast it imports. If the module cannot be imported it throws
+        an error.
+
+    .PARAMETER Clean
+        Cleans the build folder ./bin and rebuilds the assemblies.
+#>
+
 param (
-    [switch]$Debug,
-    [switch]$Load,
-    [switch]$Clean
+    [switch] $Debug,
+    [switch] $Load,
+    [switch] $Clean
 )
 
 $ErrorActionPreference = 'Stop'

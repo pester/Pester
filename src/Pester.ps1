@@ -18,6 +18,17 @@ function Add-ShouldOperator {
     Register a Should Operator with Pester
 .DESCRIPTION
     This function allows you to create custom Should assertions.
+.PARAMETER Name
+    The name of the assertion. This will become a Named Parameter of Should.
+.PARAMETER Test
+    The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
+.PARAMETER Alias
+    A list of aliases for the Named Parameter.
+.PARAMETER SupportsArrayInput
+    Does the test function support the passing an array of values to test.
+.PARAMETER InternalName
+    If -Name is different from the actual function name, record the actual function name here.
+    Used by Get-ShouldOperator to pull function help.
 .EXAMPLE
     function BeAwesome($ActualValue, [switch] $Negate)
     {
@@ -49,17 +60,6 @@ function Add-ShouldOperator {
 
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
-.PARAMETER Name
-    The name of the assertion. This will become a Named Parameter of Should.
-.PARAMETER Test
-    The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
-.PARAMETER Alias
-    A list of aliases for the Named Parameter.
-.PARAMETER SupportsArrayInput
-    Does the test function support the passing an array of values to test.
-.PARAMETER InternalName
-    If -Name is different from the actual function name, record the actual function name here.
-    Used by Get-ShouldOperator to pull function help.
 #>
     [CmdletBinding()]
     param (
@@ -79,7 +79,7 @@ function Add-ShouldOperator {
         [switch] $SupportsArrayInput
     )
 
-    $entry = New-Object psobject -Property @{
+    $entry = & $SafeCommands['New-Object'] psobject -Property @{
         Test               = $Test
         SupportsArrayInput = [bool]$SupportsArrayInput
         Name               = $Name
@@ -105,7 +105,7 @@ function Add-ShouldOperator {
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | Where { -not ([string]::IsNullOrWhiteSpace($_))}) {
+    foreach ($string in $Alias | & $SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_))}) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -125,14 +125,14 @@ function Test-AssertionOperatorIsDuplicate {
 
     return $Operator.SupportsArrayInput -eq $existing.SupportsArrayInput -and
     $Operator.Test.ToString() -eq $existing.Test.ToString() -and
-    -not (Compare-Object $Operator.Alias $existing.Alias)
+    -not (& $SafeCommands['Compare-Object'] $Operator.Alias $existing.Alias)
 }
 function Assert-AssertionOperatorNameIsUnique {
     param (
         [string[]] $Name
     )
 
-    foreach ($string in $name | Where { -not ([string]::IsNullOrWhiteSpace($_))}) {
+    foreach ($string in $name | & $SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_))}) {
         Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string)) {
@@ -151,32 +151,32 @@ function Add-AssertionDynamicParameterSet {
     )
 
     ${function:__AssertionTest__} = $AssertionEntry.Test
-    $commandInfo = Get-Command __AssertionTest__ -CommandType Function
+    $commandInfo = & $SafeCommands['Get-Command'] __AssertionTest__ -CommandType Function
     $metadata = [System.Management.Automation.CommandMetadata]$commandInfo
 
-    $attribute = New-Object Management.Automation.ParameterAttribute
+    $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
 
-    $attributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+    $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
         Assert-ValidAssertionAlias -Alias $AssertionEntry.Alias
-        $attribute = New-Object System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
+        $attribute = & $SafeCommands['New-Object'] System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
         $attributeCollection.Add($attribute)
     }
 
-    $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
+    $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
     $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
 
     if ($script:AssertionDynamicParams.ContainsKey('Not')) {
         $dynamic = $script:AssertionDynamicParams['Not']
     }
     else {
-        $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Not', [switch], (New-Object System.Collections.ObjectModel.Collection[Attribute]))
+        $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter('Not', [switch], (& $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[Attribute]))
         $null = $script:AssertionDynamicParams.Add('Not', $dynamic)
     }
 
-    $attribute = New-Object System.Management.Automation.ParameterAttribute
+    $attribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
     $attribute.Mandatory = $false
     $null = $dynamic.Attributes.Add($attribute)
@@ -216,11 +216,11 @@ function Add-AssertionDynamicParameterSet {
                 $type = [object]
             }
 
-            $dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter($parameter.Name, $type, (New-Object System.Collections.ObjectModel.Collection[Attribute]))
+            $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($parameter.Name, $type, (& $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[Attribute]))
             $null = $script:AssertionDynamicParams.Add($parameter.Name, $dynamic)
         }
 
-        $attribute = New-Object Management.Automation.ParameterAttribute
+        $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
@@ -428,7 +428,6 @@ function Invoke-Pester {
     Debug.WriteDebugMessages - Write Debug messages to screen.
     Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
         Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
-    Debug.WriteVSCodeMarker - Write VSCode marker for better integration with VSCode.
 
     .PARAMETER EnableExit
     (Deprecated v4)
@@ -575,6 +574,8 @@ function Invoke-Pester {
     Describe
     about_Pester
     #>
+    # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
+    # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Remove-Variable', Justification = 'Remove-Variable can't remove "optimized variables" when using "alias" for Remove-Variable.')]
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
@@ -611,7 +612,7 @@ function Invoke-Pester {
         [Switch] $PassThru,
 
         [Parameter(ParameterSetName = "Simple")]
-        [Pester.TestContainer[]] $Container,
+        [Pester.ContainerInfo[]] $Container,
 
         [Parameter(ParameterSetName = "Advanced")]
         [PesterConfiguration] $Configuration,
@@ -680,7 +681,7 @@ function Invoke-Pester {
                         $Configuration.Run.Path = $Path
                     }
 
-                    Get-Variable 'Path' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Path' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludePath')) {
@@ -688,7 +689,7 @@ function Invoke-Pester {
                         $Configuration.Run.ExcludePath = $ExcludePath
                     }
 
-                    Get-Variable 'ExcludePath' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'ExcludePath' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('TagFilter')) {
@@ -696,7 +697,7 @@ function Invoke-Pester {
                         $Configuration.Filter.Tag = $TagFilter
                     }
 
-                    Get-Variable 'TagFilter' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'TagFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
@@ -704,7 +705,7 @@ function Invoke-Pester {
                         $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
-                    Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'ExcludeTagFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
@@ -712,7 +713,7 @@ function Invoke-Pester {
                         $Configuration.Filter.FullName = $FullNameFilter
                     }
 
-                    Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'FullNameFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('CI')) {
@@ -722,7 +723,7 @@ function Invoke-Pester {
                         $Configuration.TestResult.Enabled = $true
                     }
 
-                    Get-Variable 'CI' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'CI' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('Output')) {
@@ -730,7 +731,7 @@ function Invoke-Pester {
                         $Configuration.Output.Verbosity = $Output
                     }
 
-                    Get-Variable 'Output' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Output' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('PassThru')) {
@@ -738,45 +739,21 @@ function Invoke-Pester {
                         $Configuration.Run.PassThru = [bool] $PassThru
                     }
 
-                    Get-Variable 'PassThru' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'PassThru' -Scope Local | Remove-Variable
                 }
 
 
                 if ($PSBoundParameters.ContainsKey('Container')) {
-                    # expand from the public Pester.TestContainer, or more likely Pester.TestPath types to ContainerInfo
-                    # the public types can hold multiple sets of data, ContainerInfo can hold only one to keep the internal
-                    # logic simple.
                     if ($null -ne $Container) {
-                        $cs = @()
-
-                        foreach ($c in $Container) {
-                            $data = if ($null -eq $c.Data) { @(@{}) } else { $c.Data }
-                            if ($c -is [Pester.TestScriptBlock]) {
-                                foreach ($d in $data) {
-                                    $cs += New-BlockContainerObject -ScriptBlock $c.ScriptBlock -Data $d
-                                }
-                            }
-
-                            if ($c -is [Pester.TestPath]) {
-                                foreach ($d in $data) {
-                                    # resolve the path we are given in the same way we would resolve -Path
-                                    $files = @(Find-File -Path $c.Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
-                                    foreach ($file in $files) {
-                                        $cs += New-BlockContainerObject -File $file -Data $d
-                                    }
-                                }
-                            }
-                        }
-
-                        $Configuration.Run.Container = $cs
+                        $Configuration.Run.Container = $Container
                     }
 
-                    Get-Variable 'Container' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Container' -Scope Local | Remove-Variable
                 }
             }
 
             if ('Legacy' -eq $PSCmdlet.ParameterSetName) {
-                Write-Warning "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
+                & $SafeCommands['Write-Warning'] "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
                 # populate config from parameters and remove them so we
                 # don't inherit them to child functions by accident
 
@@ -787,7 +764,7 @@ function Invoke-Pester {
                         $Configuration.Run.Path = $Path
                     }
 
-                    Get-Variable 'Path' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Path' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
@@ -795,7 +772,7 @@ function Invoke-Pester {
                         $Configuration.Filter.FullName = $FullNameFilter
                     }
 
-                    Get-Variable 'FullNameFilter' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'FullNameFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('EnableExit')) {
@@ -803,7 +780,7 @@ function Invoke-Pester {
                         $Configuration.Run.Exit = $true
                     }
 
-                    Get-Variable 'EnableExit' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'EnableExit' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('TagFilter')) {
@@ -811,7 +788,7 @@ function Invoke-Pester {
                         $Configuration.Filter.Tag = $TagFilter
                     }
 
-                    Get-Variable 'TagFilter' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'TagFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
@@ -819,7 +796,7 @@ function Invoke-Pester {
                         $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
-                    Get-Variable 'ExcludeTagFilter' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'ExcludeTagFilter' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('PassThru')) {
@@ -827,7 +804,7 @@ function Invoke-Pester {
                         $Configuration.Run.PassThru = [bool] $PassThru
                     }
 
-                    Get-Variable 'PassThru' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'PassThru' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('CodeCoverage')) {
@@ -838,7 +815,7 @@ function Invoke-Pester {
                         $Configuration.CodeCoverage.Path = $CodeCoverage
                     }
 
-                    Get-Variable 'CodeCoverage' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'CodeCoverage' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFile')) {
@@ -847,7 +824,7 @@ function Invoke-Pester {
                         $Configuration.CodeCoverage.OutputPath = $CodeCoverageOutputFile
                     }
 
-                    Get-Variable 'CodeCoverageOutputFile' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'CodeCoverageOutputFile' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileEncoding')) {
@@ -856,7 +833,7 @@ function Invoke-Pester {
                         $Configuration.CodeCoverage.OutputEncoding = $CodeCoverageOutputFileEncoding
                     }
 
-                    Get-Variable 'CodeCoverageOutputFileEncoding' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'CodeCoverageOutputFileEncoding' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileFormat')) {
@@ -865,15 +842,15 @@ function Invoke-Pester {
                         $Configuration.CodeCoverage.OutputFormat = $CodeCoverageOutputFileFormat
                     }
 
-                    Get-Variable 'CodeCoverageOutputFileFormat' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'CodeCoverageOutputFileFormat' -Scope Local | Remove-Variable
                 }
 
                 if (-not $PSBoundParameters.ContainsKey('Strict')) {
-                    Get-Variable 'Strict' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Strict' -Scope Local | Remove-Variable
                 }
 
                 if (-not $PSBoundParameters.ContainsKey('PesterOption')) {
-                    Get-Variable 'PesterOption' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'PesterOption' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('OutputFile')) {
@@ -882,7 +859,7 @@ function Invoke-Pester {
                         $Configuration.TestResult.OutputPath = $OutputFile
                     }
 
-                    Get-Variable 'OutputFile' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'OutputFile' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('OutputFormat')) {
@@ -894,7 +871,7 @@ function Invoke-Pester {
                         $Configuration.TestResult.OutputFormat = $OutputFormat
                     }
 
-                    Get-Variable 'OutputFormat' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'OutputFormat' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('Show')) {
@@ -917,7 +894,7 @@ function Invoke-Pester {
                         $Configuration.Output.Verbosity = $verbosity
                     }
 
-                    Get-Variable 'Quiet' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Quiet' -Scope Local | Remove-Variable
                 }
 
                 if ($PSBoundParameters.ContainsKey('Quiet')) {
@@ -927,7 +904,7 @@ function Invoke-Pester {
                         }
                     }
 
-                    Get-Variable 'Quiet' -Scope Local | Remove-Variable
+                    & $SafeCommands['Get-Variable'] 'Quiet' -Scope Local | Remove-Variable
                 }
             }
 
@@ -950,7 +927,7 @@ function Invoke-Pester {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
             }
 
-            Get-Variable 'Configuration' -Scope Local | Remove-Variable
+            & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
             $sessionState = $PSCmdlet.SessionState
@@ -996,12 +973,12 @@ function Invoke-Pester {
                             # and if it does and is a file then we return the
                             # parent directory, otherwise we got a directory
                             # and return just it
-                            $i = Get-Item $p
+                            $i = & $SafeCommands['Get-Item'] $p
                             if ($i.PSIsContainer) {
-                                Join-Path $i.FullName "*"
+                                & $SafeCommands['Join-Path'] $i.FullName "*"
                             }
                             else {
-                                Join-Path $i.Directory.FullName "*"
+                                & $SafeCommands['Join-Path'] $i.Directory.FullName "*"
                             }
                         })
                     })
@@ -1010,7 +987,7 @@ function Invoke-Pester {
                         $PesterPreference.CodeCoverage.OutputPath.Value
                     }
                     else {
-                        Join-Path $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
+                        & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
                     }
 
                 $CodeCoverage = @{
@@ -1035,7 +1012,7 @@ function Invoke-Pester {
 
             $containers = @()
             if (any $PesterPreference.Run.ScriptBlock.Value) {
-                $containers += @( $PesterPreference.Run.ScriptBlock.Value | foreach { New-BlockContainerObject -ScriptBlock $_ })
+                $containers += @( $PesterPreference.Run.ScriptBlock.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -ScriptBlock $_ })
             }
 
             foreach ($c in $PesterPreference.Run.Container.Value) {
@@ -1047,8 +1024,8 @@ function Invoke-Pester {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | where { "File" -eq $_.Type } | foreach {$_.Item.FullName }))
-                    $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | foreach { New-BlockContainerObject -File $_ })
+                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] {$_.Item.FullName }))
+                    $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -File $_ })
                 }
             }
 
@@ -1133,8 +1110,13 @@ function Invoke-Pester {
                 $run
             }
 
-            if ($PesterPreference.Run.Exit.Value -and 'Failed' -eq $run.Result) {
+            # exit with exit code if we fail and even if we succeed, othwerise we could inherit
+            # exit code of some other app end exit with it's exit code instead with ours
+            if ($PesterPreference.Run.Exit.Value) {
                 exit ($run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount)
+            }
+            else {
+                [System.Environment]::ExitCode = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
             }
         }
         catch {
@@ -1460,6 +1442,42 @@ function ConvertTo-Pester4Result {
 
         $legacyResult
     }
+}
+
+function BeforeDiscovery {
+    <#
+        .SYNOPSIS
+        Runs setup code that is used during Discovery phase.
+        .DESCRIPTION
+        Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
+        to be explicit about code that you need to run during Discovery, instead of just
+        putting code directly inside of Describe / Context.
+        .PARAMETER ScriptBlock
+        The ScritpBlock to run.
+
+        .EXAMPLE
+            PS > BeforeDiscovery {
+                $files = "file1.txt", "file2.txt"
+            }
+
+            Describe "File tests" {
+                foreach ($file in $files) {
+                    It "test" {
+                        # ... test code
+                    }
+                }
+            }
+
+            The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
+            will be named "Tests - Set A".
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ScriptBlock]$ScriptBlock
+    )
+
+    . $ScriptBlock
 }
 
 # Adding Add-ShouldOperator because it used to be an alias in v4, and so when we now import it will take precedence over

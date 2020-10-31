@@ -195,6 +195,11 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
     $XmlWriter.WriteStartElement('results')
 
     foreach ($container in $Result.Containers) {
+        if (-not $container.ShouldRun) {
+            # skip containers that were discovered but none of their tests run
+            continue
+        }
+
         if ("File" -eq $container.Type) {
             $path = $container.Item.FullName
         }
@@ -245,6 +250,10 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     $XmlWriter.WriteStartElement('results')
 
     foreach ($action in $Node.Blocks) {
+        if (-not $action.ShouldRun) {
+            # skip blocks that were discovered but did not run
+            continue
+        }
         Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.Path -join '.')
     }
 
@@ -267,6 +276,11 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
         }
 
         foreach ($testCase in $suite.Group) {
+            if (-not $testCase.ShouldRun) {
+                # skip tests that were discovered but did not run
+                continue
+            }
+
             $suiteName = if ($testGroupId) { $parameterizedSuiteInfo.Name } else { "" }
             Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path ($testCase.Path -join '.') -ParameterizedSuiteName $suiteName
         }
@@ -356,18 +370,18 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
                 if ($al2.Type -ne 'TestCase') {
                     foreach ($alt3 in $al2.Actions) {
                         $path = "$($al1.Name).$($al2.Name).$($alt3.Name)"
-                        $alt3 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                        $alt3 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
                     }
                 }
                 else {
                     $path = "$($al1.Name).$($al2.Name)"
-                    $al2 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+                    $al2 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
                 }
             }
         }
         else {
             $path = "$($al1.Name)"
-            $al1 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
+            $al1 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
         }
     }
 
@@ -592,6 +606,7 @@ function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWrit
 }
 
 function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
+
     $testName = $TestResult.ExpandedPath
 
     # todo: this comparison would fail if the test name would contain $(Get-Date) or something similar that changes all the time
