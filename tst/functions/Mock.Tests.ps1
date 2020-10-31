@@ -709,6 +709,70 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 }
 
+Describe "When Calling Should -Not -Invoke without exactly" {
+    BeforeEach {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest
+        }
+        Catch {
+            $result = $_
+        }
+    }
+
+    It "Should throw if mock was called once" {
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times"
+    }
+
+    It "Should not throw if mock was not called" {
+        Should -Not -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq "stupid" }
+    }
+}
+
+Describe "When Calling Should -Not -Invoke [Times] without exactly" {
+    BeforeEach {
+        Mock FunctionUnderTest {}
+    }
+
+    It "Should not throw if the mock was called less (<MockCalls>) than the number of times specified (<Times>)" -TestCases @(
+        @{ MockCalls = 3; Times = 15 }
+        @{ MockCalls = 2; Times = 5 }
+        @{ MockCalls = 0; Times = 1 }
+    ) {
+        param($MockCalls, $Times)
+
+        for ($i = 0; $i -lt $MockCalls; $i++) {
+            FunctionUnderTest "one"
+        }
+
+        Should -Not -Invoke FunctionUnderTest $Times
+    }
+
+    It "Should throw if the mock was called (<MockCalls>) at least the number of times specified (<Times>)" -TestCases @(
+        @{ MockCalls = 15; Times = 3 }
+        @{ MockCalls = 3; Times = 3 }
+        @{ MockCalls = 1; Times = 1 }
+        @{ MockCalls = 0; Times = 0 }
+    ) {
+        param($MockCalls, $Times)
+
+        for ($i = 0; $i -lt $MockCalls; $i++) {
+            FunctionUnderTest "one"
+        }
+
+        try {
+            Should -Not -Invoke FunctionUnderTest $Times
+        }
+        Catch {
+            $result = $_
+        }
+
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called less than $Times times but was called $MockCalls times"
+    }
+}
+
 Describe "When Calling Should -Invoke with exactly" {
     BeforeAll {
         Mock FunctionUnderTest {}
@@ -729,6 +793,71 @@ Describe "When Calling Should -Invoke with exactly" {
 
     It "Should not throw if mock was called the number of times specified" {
         Should -Invoke FunctionUnderTest -Exactly 2 -ParameterFilter { $param1 -eq "one" } -Scope Describe
+    }
+}
+
+Describe "When Calling Should -Not -Invoke with exactly" {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Exactly
+        }
+        Catch {
+            $result = $_
+        }
+    }
+
+    It "Should throw if mock was called" {
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times"
+    }
+
+    It "Should not throw if mock was not called" {
+        Should -Not -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq "stupid" }
+    }
+}
+
+Describe "When Calling Should -Not -Invoke [Times] with exactly" {
+    BeforeEach {
+        Mock FunctionUnderTest {}
+    }
+
+    It "Should not throw if the mock is called (<MockCalls>) less or more than the number of times specified (<Times>)" -TestCases @(
+        @{ MockCalls = 3; Times = 15 }
+        @{ MockCalls = 15; Times = 3 }
+        @{ MockCalls = 2; Times = 5 }
+        @{ MockCalls = 0; Times = 1 }
+        @{ MockCalls = 1; Times = 0 }
+    ) {
+        param($MockCalls, $Times)
+
+        for ($i = 0; $i -lt $MockCalls; $i++) {
+            FunctionUnderTest "one"
+        }
+
+        Should -Not -Invoke FunctionUnderTest $Times -Exactly
+    }
+
+    It "Should throw if mock was called at exactly the number of times specified (<Times>)" -TestCases @(
+        @{ MockCalls = 3; Times = 3 }
+        @{ MockCalls = 1; Times = 1 }
+        @{ MockCalls = 0; Times = 0 }
+    ) {
+        param($MockCalls, $Times)
+
+        for ($i = 0; $i -lt $MockCalls; $i++) {
+            FunctionUnderTest "one"
+        }
+
+        try {
+            Should -Not -Invoke FunctionUnderTest $Times -Exactly
+        }
+        Catch {
+            $result = $_
+        }
+
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly $Times times"
     }
 }
 
@@ -756,6 +885,30 @@ Describe "When Calling Should -Invoke without exactly" {
     It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
         $scriptBlock = { Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
         $scriptBlock | Should -Throw '*1 non-matching calls were made*'
+    }
+}
+
+Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+    }
+
+    It "Should throw an error" {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
+        $scriptBlock | Should -Throw 'Cannot use -ExclusiveFilter when -Not is specified. Use -ParameterFilter instead.'
+    }
+}
+
+Describe "When Calling Should -Invoke with pipeline-input or -ActualValue" {
+    It "Should throw an error on pipeline-input" {
+        $scriptBlock = { "value" | Should -Invoke -CommandName "ABC" -Scope Describe }
+        $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
+    }
+
+    It "Should throw an error on ActualInput-value" {
+        $scriptBlock = { Should -Invoke -CommandName "ABC" -ActualValue "value" -Scope Describe }
+        $scriptBlock | Should -Throw 'Should -Invoke does not take pipeline input or ActualValue.'
     }
 }
 
@@ -1831,6 +1984,31 @@ Describe '$args handling' {
         Get-Command Invoke-CmdletWithArgs -CommandType Cmdlet |
             Select-Object -ExpandProperty Module |
             Remove-Module
+    }
+}
+
+Describe 'Mocking advanced function' {
+    It 'Avanced functions can be mocked with advanced function' {
+        # https://github.com/pester/Pester/issues/1554
+        function Get-Something {
+            [CmdletBinding()]
+            param
+            (
+                $MyParam1
+            )
+         }
+
+        Mock Get-Something -MockWith {
+            param(
+                [Parameter()]
+                [System.String]
+                $MyParam1
+            )
+
+            return $MyParam1
+        }
+
+        Get-Something -MyParam1 'SomeValue' | Should -Be 'SomeValue'
     }
 }
 

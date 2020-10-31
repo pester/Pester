@@ -15,7 +15,6 @@ namespace Pester
         public Test()
         {
             ItemType = "Test";
-            Data = new Hashtable();
             PluginData = new Hashtable();
             ErrorRecord = new List<object>();
 
@@ -28,7 +27,7 @@ namespace Pester
 
         public string Name { get; set; }
         public List<string> Path { get; set; }
-        public IDictionary Data { get; set; }
+        public object Data { get; set; }
         public string ExpandedName { get; set; }
         public string ExpandedPath { get; set; }
 
@@ -53,6 +52,8 @@ namespace Pester
         public bool Exclude { get; set; }
         public bool Explicit { get; set; }
         public bool ShouldRun { get; set; }
+
+        public int StartLine { get; set; }
 
         public bool Executed { get; set; }
         public DateTime? ExecutedAt { get; set; }

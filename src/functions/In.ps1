@@ -40,7 +40,7 @@ function In {
             $doNothing = $true
         }
         else {
-            $Path = (Get-PSDrive 'TestDrive').Root
+            $Path = (& $SafeCommands['Get-PSDrive'] 'TestDrive').Root
         }
     }
 

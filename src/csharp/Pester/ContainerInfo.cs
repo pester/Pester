@@ -1,4 +1,8 @@
-﻿namespace Pester
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace Pester
 {
     public class ContainerInfo
     {
@@ -9,5 +13,6 @@
 
         public string Type { get; set; } = "File";
         public object Item { get; set; }
+        public object Data { get; set; }
     }
 }

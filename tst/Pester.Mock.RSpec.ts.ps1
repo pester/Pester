@@ -671,4 +671,53 @@ i -PassThru:$PassThru {
             $t.Result | Verify-Equal "Passed"
         }
     }
+
+    b "clean up mocks when -ModuleName is used" {
+        t "cleans up Mock in the module where it was defined" {
+            # when module name is used we should clean up in the module in which we defined the mock
+            # command and aliased, and not in the caller scope
+            # https://github.com/pester/Pester/issues/1693
+
+            Get-Module m | Remove-Module
+            $m = New-Module -Name m {
+                # calling 'a' which calls 'f' so we run the mock that is effective
+                # inside of this module
+                function a () { f }
+                function f () { "real" }
+
+                Export-ModuleMember -Function a
+            } -PassThru
+
+            $m | Import-Module
+
+            $sb = {
+                BeforeAll {
+                    Mock f -ModuleName m { "mock" }
+                }
+
+                Describe "d1" {
+                    It "i1" {
+                        # this should mock and then on the end the mock should be teared down
+                        # correctly so it is no longer effective in the next test run, when this is
+                        # done incorrectly, the alias and mock function remain defined in the module
+                        # and the mock hook remains in place. This breaks mock counting in subsequent tests.
+                        a | Should -Be "mock"
+                    }
+                }
+            }
+
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $command = & ($m) { Get-Command -Name f }
+
+            # this should be function. It should not be alias, because aliases are used for
+            # mocking
+            $command.CommandType | Verify-Equal "Function"
+            # $command.DisplayName
+        }
+    }
 }

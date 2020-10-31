@@ -4,7 +4,7 @@
     RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '5.0.2'
+    ModuleVersion     = '5.1.0'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -40,6 +40,7 @@
         'InModuleScope'
 
         # setups
+        'BeforeDiscovery'
         'BeforeAll'
         'BeforeEach'
         'AfterEach'
@@ -57,11 +58,16 @@
         # 'ConvertTo-JUnitReport'
         'ConvertTo-Pester4Result'
 
+        # config
+        'New-PesterContainer'
+
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'
         'Set-ItResult'
         'New-MockObject'
+
+        'New-Fixture'
     )
 
     # # Cmdlets to export from this module
@@ -105,10 +111,10 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.0.2'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.1.0-beta3'
 
             # Prerelease string of this module
-            Prerelease   = ''
+            Prerelease   = 'beta3'
         }
     }
 

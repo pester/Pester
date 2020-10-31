@@ -15,7 +15,7 @@ namespace Pester
         public Block()
         {
             ItemType = "Block";
-            FrameworkData =
+            FrameworkData = new Hashtable();
             PluginData = new Hashtable();
             Tests = new List<Test>();
             Order = new List<object>();
@@ -25,6 +25,9 @@ namespace Pester
 
         public string Name { get; set; }
         public List<string> Path { get; set; }
+        public object Data { get; set; }
+        public string ExpandedName { get; set; }
+        public string ExpandedPath { get; set; }
         public List<Block> Blocks { get; set; } = new List<Block>();
         public List<Test> Tests { get; set; } = new List<Test>();
 
@@ -74,6 +77,7 @@ namespace Pester
         public TimeSpan OwnDuration { get; set; }
 
         public ScriptBlock ScriptBlock { get; set; }
+        public int StartLine { get; set; }
         public Hashtable FrameworkData { get; set; } = new Hashtable();
         public Hashtable PluginData { get; set; } = new Hashtable();
 
@@ -88,6 +92,7 @@ namespace Pester
         public int OwnPendingCount { get; set; }
         public int OwnNotRunCount { get; set; }
         public int OwnInconclusiveCount { get; set; }
+
         public override string ToString()
         {
             return ToStringConverter.BlockToString(this);

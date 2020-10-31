@@ -1,6 +1,7 @@
 using Pester;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
@@ -282,6 +283,60 @@ namespace Pester
         }
     }
 
+    public class ContainerInfoArrayOption : Option<ContainerInfo[]>
+    {
+        public ContainerInfoArrayOption(ContainerInfoArrayOption option, ContainerInfo[] value) : base(option, value)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(string description, ContainerInfo[] defaultValue) : base(description, defaultValue, defaultValue)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(string description, ContainerInfo[] defaultValue, ContainerInfo[] value) : base(description, defaultValue, value)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(object[] value) : base("", new ContainerInfo[0], value.Cast<ContainerInfo>().ToArray())
+        {
+
+        }
+
+        public ContainerInfoArrayOption(ContainerInfo[] value) : base("", new ContainerInfo[0], value)
+        {
+
+        }
+
+        public ContainerInfoArrayOption(List<object> value) : base("", new ContainerInfo[0], value.Cast<ContainerInfo>().ToArray())
+        {
+
+        }
+
+        public ContainerInfoArrayOption(List<ContainerInfo> value) : base("", new ContainerInfo[0], value.ToArray())
+        {
+
+        }
+
+        public ContainerInfoArrayOption(ContainerInfo value) : this(new ContainerInfo[] { value })
+        {
+
+        }
+
+        public static implicit operator ContainerInfoArrayOption(ContainerInfo[] value)
+        {
+            return new ContainerInfoArrayOption(string.Empty, value, value);
+        }
+
+        public static implicit operator ContainerInfoArrayOption(ContainerInfo value)
+        {
+            var array = new[] { value };
+            return new ContainerInfoArrayOption(string.Empty, array, array);
+        }
+    }
+
     public abstract class ConfigurationSection
     {
         private string _description;
@@ -407,7 +462,6 @@ namespace Pester
             WriteDebugMessages = new BoolOption("Write Debug messages to screen.", false);
             WriteDebugMessagesFrom = new StringArrayOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", new string[] { "Discovery", "Skip", "Filter", "Mock", "CodeCoverage" });
             ShowNavigationMarkers = new BoolOption("Write paths after every block and test, for easy navigation in VSCode.", false);
-            WriteVSCodeMarker = new BoolOption("Write VSCode marker for better integration with VSCode.", false);
             ReturnRawResultObject = new BoolOption("Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.", false);
         }
 
@@ -419,7 +473,6 @@ namespace Pester
                 WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
                 WriteDebugMessagesFrom = configuration.GetArrayOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
                 ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
-                WriteVSCodeMarker = configuration.GetValueOrNull<bool>("WriteVSCodeMarker") ?? WriteVSCodeMarker;
                 ReturnRawResultObject = configuration.GetValueOrNull<bool>("ReturnRawResultObject") ?? ReturnRawResultObject;
             }
         }
@@ -428,7 +481,6 @@ namespace Pester
         private BoolOption _writeDebugMessages;
         private StringArrayOption _writeDebugMessagesFrom;
         private BoolOption _showNavigationMarkers;
-        private BoolOption _writeVsCodeMarker;
         private BoolOption _returnRawResultObject;
 
         public BoolOption ShowFullErrors
@@ -491,22 +543,6 @@ namespace Pester
                 else
                 {
                     _showNavigationMarkers = new BoolOption(_showNavigationMarkers, value.Value);
-                }
-            }
-        }
-
-        public BoolOption WriteVSCodeMarker
-        {
-            get { return _writeVsCodeMarker; }
-            set
-            {
-                if (_writeVsCodeMarker == null)
-                {
-                    _writeVsCodeMarker = value;
-                }
-                else
-                {
-                    _writeVsCodeMarker = new BoolOption(_writeVsCodeMarker, value.Value);
                 }
             }
         }
@@ -786,9 +822,9 @@ namespace Pester
         private StringArrayOption _path;
         private StringArrayOption _excludePath;
         private ScriptBlockArrayOption _scriptBlock;
+        private ContainerInfoArrayOption _container;
         private StringOption _testExtension;
         private BoolOption _exit;
-        private BoolOption _strict;
         private BoolOption _passThru;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
@@ -804,6 +840,7 @@ namespace Pester
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludePath = configuration.GetArrayOrNull<string>("ExcludePath") ?? ExcludePath;
                 ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>("ScriptBlock") ?? ScriptBlock;
+                Container = configuration.GetArrayOrNull<ContainerInfo>("Container") ?? Container;
                 TestExtension = configuration.GetObjectOrNull<string>("TestExtension") ?? TestExtension;
                 Exit = configuration.GetValueOrNull<bool>("Exit") ?? Exit;
                 PassThru = configuration.GetValueOrNull<bool>("PassThru") ?? PassThru;
@@ -815,6 +852,7 @@ namespace Pester
             Path = new StringArrayOption("Directories to be searched for tests, paths directly to test files, or combination of both.", new string[] { "." });
             ExcludePath = new StringArrayOption("Directories or files to be excluded from the run.", new string[0]);
             ScriptBlock = new ScriptBlockArrayOption("ScriptBlocks containing tests to be executed.", new ScriptBlock[0]);
+            Container = new ContainerInfoArrayOption("ContainerInfo objects containing tests to be executed.", new ContainerInfo[0]);
             TestExtension = new StringOption("Filter used to identify test files.", ".Tests.ps1");
             Exit = new BoolOption("Exit with non-zero exit code when the test run fails.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
@@ -864,6 +902,22 @@ namespace Pester
                 else
                 {
                     _scriptBlock = new ScriptBlockArrayOption(_scriptBlock, value?.Value);
+                }
+            }
+        }
+
+        public ContainerInfoArrayOption Container
+        {
+            get { return _container; }
+            set
+            {
+                if (_container == null)
+                {
+                    _container = value;
+                }
+                else
+                {
+                    _container = new ContainerInfoArrayOption(_container, value?.Value);
                 }
             }
         }

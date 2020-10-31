@@ -109,9 +109,10 @@ about_should
         [string] $Name,
 
         [Parameter(Position = 1)]
-        [ScriptBlock] $Test = {},
+        [ScriptBlock] $Test,
 
-        [System.Collections.IDictionary[]] $TestCases,
+        [Alias("ForEach")]
+        [object[]] $TestCases,
 
         [String[]] $Tag,
 
@@ -135,10 +136,24 @@ about_should
         # $SkipBecause = "This test is pending."
     }
 
-    if (any $TestCases) {
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+    if ($null -eq $Test) {
+        if ($Name.Contains("`n")) {
+            throw "Test name has multiple lines and no test scriptblock is provided. Did you provide the test name?"
+        }
+        else {
+            throw "No test scriptblock is provided. Did you put the opening curly brace on the next line?"
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey('TestCases')) {
+        if ($null -ne $TestCases -and 0 -lt @($TestCases).Count) {
+            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+        }
+        else {
+            # @() or $null is provided do nothing
+        }
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
 }

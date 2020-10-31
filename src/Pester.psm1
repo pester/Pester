@@ -6,8 +6,8 @@ $script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionStat
 $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
 
-Set-Alias 'Add-AssertionOperator' 'Add-ShouldOperator'
-Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
+& $SafeCommands['Set-Alias'] 'Add-AssertionOperator' 'Add-ShouldOperator'
+& $SafeCommands['Set-Alias'] 'Get-AssertionOperator' 'Get-ShouldOperator'
 
 
 & $script:SafeCommands['Export-ModuleMember'] @(
@@ -23,6 +23,7 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'InModuleScope'
 
     # setups
+    'BeforeDiscovery'
     'BeforeAll'
     'BeforeEach'
     'AfterEach'
@@ -32,6 +33,9 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Should'
     'Add-ShouldOperator'
     'Get-ShouldOperator'
+
+    # config
+    'New-PesterContainer'
 
     # export
     'Export-NunitReport'
@@ -46,6 +50,7 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Set-ItResult'
     'New-MockObject'
 
+    'New-Fixture'
 ) -Alias @(
     'Add-AssertionOperator'
     'Get-AssertionOperator'

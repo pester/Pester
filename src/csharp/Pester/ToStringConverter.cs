@@ -25,10 +25,10 @@ namespace Pester
             string path;
             switch (container.Type)
             {
-                case "File":
+                case Constants.File:
                     path = container.Item.ToString();
                     break;
-                case "ScriptBlock":
+                case Constants.ScriptBlock:
                     path = $"<ScriptBlock>"; 
                     if (container.Item is ScriptBlock s) { 
                         if (!string.IsNullOrWhiteSpace(s.File))

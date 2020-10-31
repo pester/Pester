@@ -23,6 +23,13 @@ Describe "Format-Collection" {
         param ($Value, $Expected)
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
+
+    It "Formats collection that is longer than 10 with elipsis" -TestCases @(
+        @{ Value = (1..20); Expected = "@(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...)" }
+    ) {
+        param ($Value, $Expected)
+        Format-Collection -Value $Value | Verify-Equal $Expected
+    }
 }
 
 Describe "Format-Number" {
@@ -79,7 +86,7 @@ Describe "Format-Null" {
 }
 
 Describe "Format-String" {
-    It "Formats empty string to '<empty>'" {
+    It "Formats empty string to '``<empty``>'" {
         Format-String -Value "" | Verify-Equal '<empty>'
     }
 

@@ -24,6 +24,12 @@ Optional parameter containing an array of strings.  When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Describe blocks
 containing the same Tag.
 
+.PARAMETER ForEach
+Allows data driven tests to be written.
+Takes an array of data and generates one block for each item in the array, and makes the item
+available as $_ in all child blocks. When the array is an array of hashtables, it additionally
+defines each key in the hashatble as variable.
+
 .EXAMPLE
 function Add-Numbers($a, $b) {
     return $a + $b
@@ -52,11 +58,27 @@ Describe "Add-Numbers" {
 }
 
 .LINK
+https://pester.dev/docs/commands/Describe
+
+.LINK
+https://github.com/pester/Pester/wiki/Describe
+
+.LINK
 It
+
+.LINK
 Context
+
+.LINK
 Invoke-Pester
+
+.LINK
 about_Should
+
+.LINK
 about_Mocking
+
+.LINK
 about_TestDrive
 
 #>
@@ -73,7 +95,9 @@ about_TestDrive
         [ScriptBlock] $Fixture,
 
         # [Switch] $Focus,
-        [Switch] $Skip
+        [Switch] $Skip,
+
+        $ForEach
     )
 
     $Focus = $false
@@ -88,7 +112,17 @@ about_TestDrive
 
 
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
-        New-Block -Name $Name -ScriptBlock $Fixture -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe' } -Focus:$Focus -Skip:$Skip
+        if ($PSBoundParameters.ContainsKey('ForEach')) {
+            if ($null -ne  $ForEach -and 0 -lt @($ForEach).Count) {
+                New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            }
+            else {
+                # @() or $null is provided do nothing
+            }
+        }
+        else {
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip
+        }
     }
     else {
         Invoke-Interactively -CommandUsed 'Describe' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
@@ -118,7 +152,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         # paths don't stay attached to session state
         $invokePester =  {
             param($private:Path)
-            Invoke-Pester -Path $Path | Out-Null
+            Invoke-Pester -Path $Path | & $SafeCommands['Out-Null']
         }
 
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
@@ -147,7 +181,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
             }.GetNewClosure()
         } $BoundParameters $CommandUsed
 
-        Invoke-Pester -ScriptBlock $sb | Out-Null
+        Invoke-Pester -ScriptBlock $sb | & $SafeCommands['Out-Null']
     }
 }
 

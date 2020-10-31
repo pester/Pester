@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -31,8 +32,10 @@ namespace Pester
                 ExecutedAt = block.ExecutedAt,
                 Type = block.BlockContainer.Type,
                 Item = block.BlockContainer.Item,
-                Blocks = block.Blocks
-            };
+                Blocks = block.Blocks,
+                Data = block.Data,
+                StandardOutput = block.StandardOutput
+        };
         }
 
         public static Container CreateFromFile(FileInfo file)
@@ -46,6 +49,7 @@ namespace Pester
 
         public string Type { get; set; }
         public object Item { get; set; }
+        public object Data { get; set; }
         public List<Block> Blocks { get; set; } = new List<Block>();
         public string Result { get; set; } = "NotRun";
         public TimeSpan Duration { get => DiscoveryDuration + UserDuration + FrameworkDuration; }
@@ -65,7 +69,7 @@ namespace Pester
         public TimeSpan DiscoveryDuration { get; set; }
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }
-
+        public object StandardOutput { get; set; }
 
         public override string ToString()
         {

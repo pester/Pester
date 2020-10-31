@@ -22,7 +22,7 @@ i -PassThru:$PassThru {
     b "Backward compatibility for Invoke-Pester" {
         t "Invoke-Pester Legacy parameter set" {
             try {
-                $tmp = Join-Path ([IO.Path]::GetTempPath())  "simple1"
+                $tmp = Join-Path ([IO.Path]::GetTempPath())  "simple$((Get-Date).Ticks)"
                 $null = New-Item -ItemType Directory -Force $tmp
 
                 $codeFile = Join-Path $tmp "code-file.ps1"

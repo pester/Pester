@@ -22,23 +22,86 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
 function Should {
     <#
     .SYNOPSIS
-    Should is a keyword what is used to define an assertion inside It block.
+    Should is a keyword that is used to define an assertion inside an It block.
 
     .DESCRIPTION
-    Should is a keyword what is used to define an assertion inside the It block.
-    Should provides assertion methods for verify assertion e.g. comparing objects.
-    If assertion is not met the test fails and an exception is throwed up.
+    Should is a keyword that is used to define an assertion inside an It block.
+    Should provides assertion methods to verify assertions e.g. comparing objects.
+    If assertion is not met the test fails and an exception is thrown.
 
     Should can be used more than once in the It block if more than one assertion
-    need to be verified. Each Should keywords need to be located in a new line.
+    need to be verified. Each Should keyword needs to be on a separate line.
     Test will be passed only when all assertion will be met (logical conjuction).
 
     .LINK
-    https://github.com/pester/Pester/wiki/Should
+    https://pester.dev/docs/usage/assertions
 
     .LINK
     about_Should
+
+    .LINK
     about_Pester
+
+    .EXAMPLE
+    ```ps
+    Describe "d1" {
+        BeforeEach { $be = 1 }
+        It "i1" {
+            $be = 2
+        }
+        AfterEach { Write-Host "AfterEach: $be" }
+    }
+    ```
+
+    .EXAMPLE
+    ```ps
+    Describe "d1" {
+        It "i1" {
+            $user = Get-User
+            $user | Should -NotBeNullOrEmpty -ErrorAction Stop
+            $user |
+                Should -HaveProperty Name -Value "Jakub" |
+                Should -HaveProperty Age  -Value 30
+        }
+    }
+    ```
+
+    .EXAMPLE
+    ```ps
+    Describe "d1" {
+        It "i1" {
+            Mock Get-Command { }
+            Get-Command -CommandName abc
+            Should -Invoke Get-Command -Times 1 -Exactly
+        }
+    }
+    ```
+
+    .EXAMPLE
+    ```ps
+    Describe "d1" {
+        It "i1" {
+            Mock Get-Command { }
+            Get-Command -CommandName abc
+            Should -Invoke Get-Command -Times 1 -Exactly
+        }
+    }
+    ```
+
+    .EXAMPLE
+    $true | Should -BeFalse
+
+    .EXAMPLE
+    $a | Should -Be 10
+
+    .EXAMPLE
+    Should -Invoke Get-Command -Times 1 -Exactly
+
+    .EXAMPLE
+    $user | Should -NotBeNullOrEmpty -ErrorAction Stop
+
+    .EXAMPLE
+    $planets.Name | Should -Be $Expected
 #>
 
     [CmdletBinding()]
@@ -55,24 +118,8 @@ function Should {
         # A bit of Regex lets us know if the line used the old form
         if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)')
         {
-            # Now it gets tricky.  This will be called once for each unmapped parameter.
-            # So while we always want to return here, we only want to error once
-            # The message uniqueness can be one part of our error.
             $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
-
-            # The rest of the uniqueness we can cobble together out of $MyInvocation.
-            $uniqueErrorMsg = $shouldErrorMsg,
-                $MyInvocation.HistoryId, # The history ID is unique per run
-                $MyInvocation.PSCommandPath, # the command path is unique per file
-                $myLine  -join '.' # and the whole line should be.  Join all of these pieces by .
-
-
-            if ($script:lastShouldErrorMsg -ne $uniqueErrorMsg) {
-                $script:lastShouldErrorMsg  = $uniqueErrorMsg
-                Write-Error $shouldErrorMsg
-                return
-            }
-            return
+            throw $shouldErrorMsg
         } else {
             Get-AssertionDynamicParams
         }
@@ -157,7 +204,7 @@ function Should {
             AddErrorCallback   = $addErrorCallback
         }
 
-        if (-not $entry) { return } 
+        if (-not $entry) { return }
 
         if ($inputArray.Count -eq 0) {
             Invoke-Assertion @assertionParams -ValueToTest $null
