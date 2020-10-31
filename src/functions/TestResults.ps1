@@ -221,7 +221,7 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
         else {
             throw "Container type '$($container.Type)' is not supported."
         }
-        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $path
+        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path ($action.ExpandedPath -join '.')
     }
 
     $XmlWriter.WriteEndElement()
