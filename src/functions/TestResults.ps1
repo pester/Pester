@@ -266,7 +266,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
             # skip blocks that were discovered but did not run
             continue
         }
-        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.ExpandedPath -join '.')
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $action.ExpandedPath
     }
 
     $suites = @(
@@ -440,7 +440,7 @@ function Write-JUnitTestCaseElements($TestResult, [System.Xml.XmlWriter] $XmlWri
 }
 
 function Write-JUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
-    $XmlWriter.WriteAttributeString('name', ($TestResult.ExpandedPath -join '.'))
+    $XmlWriter.WriteAttributeString('name', $TestResult.ExpandedPath)
 
     $statusElementName = switch ($TestResult.Result) {
         Passed {
