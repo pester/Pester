@@ -1087,7 +1087,7 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.TestResult.Enabled.Value) {
-                Export-XmlReport -Result $run -Path $PesterPreference.TestResult.OutputPath.Value -Format $PesterPreference.TestResult.OutputFormat.Value
+                Export-PesterResults -Result $run -Path $PesterPreference.TestResult.OutputPath.Value -Format $PesterPreference.TestResult.OutputFormat.Value
             }
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
