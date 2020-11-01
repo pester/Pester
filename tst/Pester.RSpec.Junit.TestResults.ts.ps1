@@ -105,6 +105,37 @@ i -PassThru:$PassThru {
             $stackTraceText[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
+        t "should write skipped and filtered test results counts" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+
+                    It "Failed testcase" {
+                        $true | Should -Be $false
+                    }
+
+                    It "Skipped testcase" -Skip {
+                        $true | Should -Be $true
+                    }
+
+                    It "Filtered-out testcase" -Tag "exclude" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None -ExcludeTag "exclude"
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestSuite = $xmlResult.'testsuites'.'testsuite'
+            $xmlTestSuite.tests | Verify-Equal 4
+            $xmlTestSuite.failures | Verify-Equal 1
+            $xmlTestSuite.skipped | Verify-Equal 1
+            $xmlTestSuite.disabled | Verify-Equal 1
+        }
+
         t "should write a failed test result when there are multiple errors" {
             $sb = {
                 Describe "Mocked Describe" {

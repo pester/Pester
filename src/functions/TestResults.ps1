@@ -411,7 +411,7 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteAttributeString('hostname', $environment.'machine-name')
     $XmlWriter.WriteAttributeString('id', $Id)
     $XmlWriter.WriteAttributeString('skipped', $Action.SkippedCount)
-    $XmlWriter.WriteAttributeString('disabled', $Action.InconclusiveCount + $Action.PendingCount)
+    $XmlWriter.WriteAttributeString('disabled', $Action.NotRunCount)
     $XmlWriter.WriteAttributeString('package', $Package)
     $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
