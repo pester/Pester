@@ -199,7 +199,7 @@ function New-Block {
     $block.Path = $Path
     # using the non-expanded path as default to fallback to it if we don't
     # reach the point where we expand it, for example because of setup failure
-    $block.ExpandedPath = $Path
+    $block.ExpandedPath = $Path -join '.'
     $block.Tag = $Tag
     $block.ScriptBlock = $ScriptBlock
     $block.StartLine = $StartLine
@@ -478,7 +478,7 @@ function New-Test {
     $test.Path = $path
     # using the non-expanded path as default to fallback to it if we don't
     # reach the point where we expand it, for example because of setup failure
-    $test.ExpandedPath = $path
+    $test.ExpandedPath = $path -join '.'
     $test.StartLine = $StartLine
     $test.Tag = $Tag
     $test.Focus = $Focus
