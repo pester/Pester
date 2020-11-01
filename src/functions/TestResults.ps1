@@ -431,18 +431,18 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+function Write-JUnitTestCaseElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
     $XmlWriter.WriteStartElement('testcase')
 
-    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter -ClassName $Package
+    Write-JUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ClassName $Package
 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
-    $XmlWriter.WriteAttributeString('name', ($Action.ExpandedPath -join '.'))
+function Write-JUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
+    $XmlWriter.WriteAttributeString('name', ($TestResult.ExpandedPath -join '.'))
 
-    $statusElementName = switch ($Action.Result) {
+    $statusElementName = switch ($TestResult.Result) {
         Passed {
             $null
         }
@@ -456,20 +456,20 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
         }
     }
 
-    $XmlWriter.WriteAttributeString('status', $Action.Result)
+    $XmlWriter.WriteAttributeString('status', $TestResult.Result)
     $XmlWriter.WriteAttributeString('classname', $ClassName)
     $XmlWriter.WriteAttributeString('assertions', '0')
-    $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+    $XmlWriter.WriteAttributeString('time', $TestResult.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
     if ($null -ne $statusElementName) {
-        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -StatusElementName $statusElementName
+        Write-JUnitTestCaseMessageElements -TestResult $TestResult -XmlWriter $XmlWriter -StatusElementName $statusElementName
     }
 }
 
-function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
+function Write-JUnitTestCaseMessageElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
     $XmlWriter.WriteStartElement($StatusElementName)
 
-    $result = Get-ErrorForXmlReport -TestResult $Action
+    $result = Get-ErrorForXmlReport -TestResult $TestResult
     $XmlWriter.WriteAttributeString('message', $result.FailureMessage)
     $XmlWriter.WriteString($result.StackTrace)
 
