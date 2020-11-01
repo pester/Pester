@@ -373,10 +373,10 @@ function New-PesterContainer {
     [CmdletBinding(DefaultParameterSetName="Path")]
     param(
         [Parameter(Mandatory, ParameterSetName = "Path")]
-        [String] $Path,
+        [String[]] $Path,
 
         [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
-        [ScriptBlock] $ScriptBlock,
+        [ScriptBlock[]] $ScriptBlock,
 
         [Collections.IDictionary[]] $Data
     )
@@ -390,7 +390,9 @@ function New-PesterContainer {
         # the @() is significant here, it will make it iterate even if there are no data
         # which allows scriptblocks without data to run
         foreach ($d in @($dt)) {
-            New-BlockContainerObject -ScriptBlock $ScriptBlock -Data $d
+            foreach ($sb in $ScriptBlock) {
+                New-BlockContainerObject -ScriptBlock $sb -Data $d
+            }
         }
     }
 
@@ -398,10 +400,12 @@ function New-PesterContainer {
         # the @() is significant here, it will make it iterate even if there are no data
         # which allows files without data to run
         foreach ($d in @($dt)) {
-            # resolve the path we are given in the same way we would resolve -Path
-            $files = @(Find-File -Path $Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
-            foreach ($file in $files) {
-                New-BlockContainerObject -File $file -Data $d
+            foreach ($p in $Path) {
+                # resolve the path we are given in the same way we would resolve -Path on Invoke-Pester
+                $files = @(Find-File -Path $p -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
+                foreach ($file in $files) {
+                    New-BlockContainerObject -File $file -Data $d
+                }
             }
         }
     }

@@ -54,8 +54,8 @@
         # export
         'Export-NUnitReport'
         'ConvertTo-NUnitReport'
-        # 'Export-JUnitReport'
-        # 'ConvertTo-JUnitReport'
+        'Export-JUnitReport'
+        'ConvertTo-JUnitReport'
         'ConvertTo-Pester4Result'
 
         # config
