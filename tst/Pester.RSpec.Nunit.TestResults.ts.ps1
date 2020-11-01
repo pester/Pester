@@ -457,7 +457,7 @@ i -PassThru:$PassThru {
             $xmlSuites = @($xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite')
             $xmlSuites.Count | Verify-Equal 1
             $xmlSuites[0].'description' | Verify-Equal "Failing describe"
-            $xmlSuites[0].'results'.'test-case'.'name' | Verify-Equal "Failing describe Test1"
+            $xmlSuites[0].'results'.'test-case'.'name' | Verify-Equal "Failing describe.Test1"
             $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Test1"
 
         }
