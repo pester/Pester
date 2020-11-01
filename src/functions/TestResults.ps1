@@ -392,10 +392,10 @@ function Write-JUnitTestSuiteElements($Container, [System.Xml.XmlWriter] $XmlWri
     Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $path -Id $Id
 
 
-    $testCases = [Pester.Factory]::CreateCollection()
-    Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testCases.Add($t) } }
-    foreach ($t in $testCases) {
-        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $path
+    $testResults = [Pester.Factory]::CreateCollection()
+    Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
+    foreach ($t in $testResults) {
+        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $path
     }
 
     $XmlWriter.WriteEndElement()
