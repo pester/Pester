@@ -59,10 +59,7 @@ $script:ReportTheme = DATA {
         Information      = 'DarkGray'
         Coverage         = 'White'
         CoverageWarn     = 'DarkRed'
-        DiscoveryStart   = 'Magenta'
-        DiscoveryFilter  = 'Magenta'
         Discovery        = 'Magenta'
-        DiscoveryFinish  = 'Magenta'
         TestRunBlock     = 'Magenta'
         TestFail         = 'Red'
     }
@@ -468,14 +465,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryStart "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
             if($null -ne $activeFilters) {
                 foreach ($aFilter in $activeFilters) {
                     # Assuming only StringArrayOption filter-types. Might break in the future.
-                    & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryFilter "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                    & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
                 }
             }
         }
@@ -484,7 +481,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.ContainerDiscoveryStart = {
             param ($Context)
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryStart "Discovering in $($Context.BlockContainer.Item)."
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovering in $($Context.BlockContainer.Item)."
         }
     }
 
@@ -505,7 +502,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         # }
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.DiscoveryFinish "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
