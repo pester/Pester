@@ -111,10 +111,10 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.1.0-beta4'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.1.0-rc1'
 
             # Prerelease string of this module
-            Prerelease   = 'beta4'
+            Prerelease   = 'rc1'
         }
     }
 
