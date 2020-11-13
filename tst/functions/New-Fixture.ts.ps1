@@ -9,7 +9,7 @@ Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors         = $true
+        ShowFullErrors         = $false
     }
 }
 
@@ -26,7 +26,8 @@ i -PassThru:$PassThru {
                 New-Fixture -Path $tempFolder -Name $name
 
                 $r = Invoke-Pester -Path $testsPath -PassThru
-                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Failed"
+                $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.Exception | Verify-Type ([System.NotImplementedException])
             }
             finally {
                 if (Test-Path $scriptPath) {
