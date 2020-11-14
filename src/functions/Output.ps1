@@ -43,7 +43,7 @@ $script:ReportTheme = DATA {
         PassTime         = 'DarkGray'
         Fail             = 'Red'
         FailTime         = 'DarkGray'
-        FailMessage      = 'Gray'
+        FailDetail       = 'Gray'
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
         Pending          = 'Gray'
@@ -60,8 +60,8 @@ $script:ReportTheme = DATA {
         Coverage         = 'White'
         CoverageWarn     = 'DarkRed'
         Discovery        = 'Magenta'
-        TestRunBlock     = 'Magenta'
-        TestFail         = 'Red'
+        Container        = 'Magenta'
+        BlockFail        = 'Red'
     }
 }
 
@@ -495,13 +495,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
     $p.DiscoveryEnd = {
         param ($Context)
-
-        # if ($Context.AnyFocusedTests) {
-        #     $focusedTests = $Context.FocusedTests
-        #     & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.TestRunBlock "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
-        # }
-
-        # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
         & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
     }
 
@@ -511,7 +504,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.TestRunBlock "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
             }
         }
     }
@@ -702,7 +695,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
-        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.TestFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
         Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
     }
 
