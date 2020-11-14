@@ -43,7 +43,7 @@ $script:ReportTheme = DATA {
         PassTime         = 'DarkGray'
         Fail             = 'Red'
         FailTime         = 'DarkGray'
-        FailDetail       = 'Gray'
+        FailDetail       = 'Red'
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
         Pending          = 'Gray'
@@ -270,7 +270,7 @@ function Write-PesterReport {
 
     if (0 -lt $RunResult.FailedBlocksCount) {
         & $SafeCommands['Write-Host'] ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
-        & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+        & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.FailDetail
     }
 
     if (0 -lt $RunResult.FailedContainersCount) {
@@ -288,7 +288,7 @@ function Write-PesterReport {
             "  - $path"
         }
         & $SafeCommands['Write-Host'] ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
-        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.FailDetail
     }
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
@@ -601,8 +601,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($e.DisplayStackTrace -replace '(?m)^',$error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($e.DisplayErrorMessage -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayStackTrace -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^',$error_margin)
                     }
 
                 } else {
