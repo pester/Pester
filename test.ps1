@@ -130,7 +130,7 @@ $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
 if ($CI) {
     $configuration.Run.Exit = $true
 
-    $configuration.CodeCoverage.Enabled = $true
+    $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
 
     $configuration.TestResult.Enabled = $true

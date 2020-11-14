@@ -718,7 +718,7 @@ namespace Pester
         public TestResultConfiguration() : base("TestResult configuration.")
         {
             Enabled = new BoolOption("Enable TestResult.", false);
-            OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnit2.5", "NUnit2.5");
+            OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnitXml, JUnitXml", "NUnitXml");
             OutputPath = new StringOption("Path relative to the current directory where test result report is saved.", "testResults.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             TestSuiteName = new StringOption("Set the name assigned to the root 'test-suite' element.", "Pester");

@@ -1,6 +1,4 @@
 param ([switch] $PassThru)
-# TODO: fix these tests
-return (i -PassThru:$PassThru { })
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -16,47 +14,52 @@ $global:PesterPreference = @{
     }
 }
 
-# function Verify-XmlTime {
-#     param (
-#         [Parameter(ValueFromPipeline = $true)]
-#         $Actual,
-#         [Parameter(Mandatory = $true, Position = 0)]
-#         [AllowNull()]
-#         [Nullable[TimeSpan]]
-#         $Expected
-#     )
+function Verify-XmlTime {
+    param (
+        [Parameter(ValueFromPipeline = $true)]
+        $Actual,
+        [Parameter(Mandatory = $true, Position = 0)]
+        [AllowNull()]
+        [Nullable[TimeSpan]]
+        $Expected
+    )
 
-#     if ($null -eq $Expected) {
-#         throw [Exception]'Expected value is $null.'
-#     }
+    if ($null -eq $Expected) {
+        throw [Exception]'Expected value is $null.'
+    }
 
-#     if ($null -eq $Actual) {
-#         throw [Exception]'Actual value is $null.'
-#     }
+    if ($null -eq $Actual) {
+        throw [Exception]'Actual value is $null.'
+    }
 
-#     if ('0.0000' -eq $Actual) {
-#         # it is unlikely that anything takes less than
-#         # 0.0001 seconds (one tenth of a millisecond) so
-#         # throw when we see 0, because that probably means
-#         # we are not measuring at all
-#         throw [Exception]'Actual value is zero.'
-#     }
+    if ('0.0000' -eq $Actual) {
+        # it is unlikely that anything takes less than
+        # 0.0001 seconds (one tenth of a millisecond) so
+        # throw when we see 0, because that probably means
+        # we are not measuring at all
+        throw [Exception]'Actual value is zero.'
+    }
 
-#     $e = [string][Math]::Round($Expected.TotalSeconds, 4)
-#     if ($e -ne $Actual) {
-#         $message = "Expected and actual values differ!`n" +
-#         "Expected: '$e' seconds (raw '$($Expected.TotalSeconds)' seconds)`n" +
-#         "Actual  : '$Actual' seconds"
+    # using this over Math.Round because it will output all the numbers for 0.1
+    $e = $Expected.TotalSeconds.ToString('0.000', [CultureInfo]::InvariantCulture)
+    if ($e -ne $Actual) {
+        $message = "Expected and actual values differ!`n" +
+        "Expected: '$e' seconds (raw '$($Expected.TotalSeconds)' seconds)`n" +
+        "Actual  : '$Actual' seconds"
 
-#         throw [Exception]$message
-#     }
+        throw [Exception]$message
+    }
 
-#     $Actual
-# }
+    $Actual
+}
+
+function Get-ScriptBlockName ($ScriptBlock) {
+    "<ScriptBlock>$($ScriptBlock.File):$($ScriptBlock.StartPosition.StartLine)"
+}
 
 i -PassThru:$PassThru {
 
-    b "Write nunit test results" {
+    b "Write JUnit test results" {
         t "should write a successful test result" {
             $sb = {
                 Describe "Mocked Describe" {
@@ -65,132 +68,345 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
 
             $xmlResult = $r | ConvertTo-JUnitReport
             $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
-            $xmlTestCase.name | Verify-Equal "Successful testcase"
+            $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
             $xmlTestCase.status | Verify-Equal "Passed"
-            $xmlTestCase.time | Verify-Equal "1.000"
+            $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
         }
 
-        # It "should write a failed test result" {
-        #     #create state
-        #     $TestResults = New-PesterState -Path TestDrive:\
-        #     $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-        #     $time = [TimeSpan]25000000 #2.5 seconds
-        #     $TestResults.AddTestResult("Failed testcase", 'Failed', $time, 'Assert failed: "Expected: Test. But was: Testing"', 'at line: 28 in  C:\Pester\Result.Tests.ps1')
+        t "should write a failed test result" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Failed testcase" {
+                        "Testing" | Should -Be "Test"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
 
-        #     #export and validate the file
-        #     [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-        #     Export-XmlReport $testResults $testFile 'JUnitXml'
-        #     $xmlResult = [xml] (Get-Content $testFile)
-        #     $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
-        #     $xmlTestCase.name | Should -Be "Failed testcase"
-        #     $xmlTestCase.status | Should -Be "Failed"
-        #     $xmlTestCase.time | Should -Be "2.500"
-        #     $xmlTestCase.failure.message | Should -Be 'Assert failed: "Expected: Test. But was: Testing"'
-        # }
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
+            $xmlTestCase.status | Verify-Equal "Failed"
+            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-        # It "should write the test summary" {
-        #     #create state
-        #     $TestResults = New-PesterState -Path TestDrive:\
-        #     $testResults.EnterTestGroup('Mocked Describe', 'Describe')
-        #     $TestResults.AddTestResult("Testcase", 'Passed', (New-TimeSpan -Seconds 1))
+            $failureLine = $sb.StartPosition.StartLine+3
+            $message = $xmlTestCase.failure.message -split "`n" -replace "`r"
+            $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
+            $message[-3] | Verify-Equal "Expected: 'Test'"
+            $message[-2] | Verify-Equal "But was:  'Testing'"
+            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
 
-        #     #export and validate the file
-        #     [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-        #     Export-XmlReport $testResults $testFile 'JUnitXml'
-        #     $xmlResult = [xml] (Get-Content $testFile)
-        #     $xmlTestResult = $xmlResult.'testsuites'
-        #     $xmlTestResult.tests | Should -Be 1
-        #     $xmlTestResult.failures | Should -Be 0
-        #     $xmlTestResult.time | Should -Not -BeNullOrEmpty
-        # }
+            $stackTraceText = @($xmlTestCase.failure.'#text' -split "`n" -replace "`r")
+            $stackTraceText[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
+        }
 
-        # it "should write two test-suite elements for two describes" {
-        #     #create state
-        #     $TestResults = New-PesterState -Path TestDrive:\
-        #     $TestResults.EnterTestGroup('Describe #1', 'Describe')
-        #     $TestResults.EnterTest()
-        #     Start-Sleep -Milliseconds 200
-        #     $TestResults.LeaveTest()
-        #     $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
-        #     $TestResults.LeaveTestGroup('Describe #1', 'Describe')
-        #     $Describe1 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
-        #     $testResults.EnterTestGroup('Describe #2', 'Describe')
-        #     $TestResults.EnterTest()
-        #     Start-Sleep -Milliseconds 200
-        #     $TestResults.LeaveTest()
-        #     $TestResults.AddTestResult("Failed testcase", 'Failed', $null)
-        #     $TestResults.LeaveTestGroup('Describe #2', 'Describe')
-        #     $Describe2 = $testResults.TestGroupStack.peek().Actions.ToArray()[-1]
+        t "should write skipped and filtered test results counts" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
 
-        #     Set-PesterStatistics -Node $TestResults.TestActions
+                    It "Failed testcase" {
+                        $true | Should -Be $false
+                    }
 
-        #     #export and validate the file
-        #     [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-        #     Export-XmlReport $testResults $testFile 'JUnitXml'
-        #     $xmlResult = [xml] (Get-Content $testFile)
+                    It "Skipped testcase" -Skip {
+                        $true | Should -Be $true
+                    }
 
-        #     $xmlTestSuite1 = $xmlResult.'testsuites'.'testsuite'[0]
-        #     $xmlTestSuite1.name | Should -Be "Describe #1"
-        #     # there is a slight variation between what is recorded in the xml and what comes from the testresult
-        #     # e.g. xml = 0.202, testresult - 0.201
-        #     # therefore we only test for 1 digits after decimal point
-        #     ([decimal]$xmlTestSuite1.time).ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture) | Should -Be ($Describe1.time.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture))
+                    It "Filtered-out testcase" -Tag "exclude" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
 
-        #     $xmlTestSuite2 = $xmlResult.'testsuites'.'testsuite'[1]
-        #     $xmlTestSuite2.name | Should -Be "Describe #2"
-        #     ([decimal]$xmlTestSuite2.time).ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture) | Should -Be ($Describe2.time.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture))
-        # }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None -ExcludeTag "exclude"
 
-        # it "should write the environment information in properties" {
-        #     $TestResults = New-PesterState -Path TestDrive:\
-        #     $TestResults.EnterTestGroup('Describe #1', 'Describe')
-        #     $TestResults.EnterTest()
-        #     Start-Sleep -Milliseconds 200
-        #     $TestResults.LeaveTest()
-        #     $TestResults.AddTestResult("Successful testcase", 'Passed', $null)
-        #     $TestResults.LeaveTestGroup('Describe #1', 'Describe')
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestSuite = $xmlResult.'testsuites'.'testsuite'
+            $xmlTestSuite.tests | Verify-Equal 4
+            $xmlTestSuite.failures | Verify-Equal 1
+            $xmlTestSuite.skipped | Verify-Equal 1
+            $xmlTestSuite.disabled | Verify-Equal 1
+        }
 
-        #     [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
+        t "should write a failed test result when there are multiple errors" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Failed testcase" {
+                        "Testing" | Should -Be "Test"
+                    }
 
-        #     Export-XmlReport $TestResults $testFile 'JUnitXml'
-        #     $xmlResult = [xml] (Get-Content $testFile)
+                    AfterEach {
+                        throw "teardown failed"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
 
-        #     $xmlProperties = @{ }
-        #     foreach ($property in $xmlResult.'testsuites'.'testsuite'.'properties'.'property') {
-        #         $xmlProperties.Add($property.name, $property.value)
-        #     }
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
+            $xmlTestCase.status | Verify-Equal "Failed"
+            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-        #     $xmlProperties['os-version'] | Should -Not -BeNullOrEmpty
-        #     $xmlProperties['platform'] | Should -Not -BeNullOrEmpty
-        #     $xmlProperties['cwd'] | Should -Be (Get-Location).Path
-        #     if ($env:Username) {
-        #         $xmlProperties['user'] | Should -Be $env:Username
-        #     }
-        #     $xmlProperties['machine-name'] | Should -Be $(hostname)
-        #     $xmlProperties['junit-version'] | Should -Not -BeNullOrEmpty
-        # }
+            $message = $xmlTestCase.failure.message -split "`n" -replace "`r"
+            $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
+            $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
 
-        # it "Should validate test results against the junit 4 schema" {
-        #     #create state
-        #     $TestResults = New-PesterState -Path TestDrive:\
-        #     $testResults.EnterTestGroup('Describe #1', 'Describe')
-        #     $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -mi 1))
-        #     $testResults.LeaveTestGroup('Describe #1', 'Describe')
-        #     $testResults.EnterTestGroup('Describe #2', 'Describe')
-        #     $TestResults.AddTestResult("Failed testcase", 'Failed', (New-TimeSpan -Seconds 2))
+            $sbStartLine = $sb.StartPosition.StartLine
+            $stackTraceText = @($xmlTestCase.failure.'#text' -split "`n" -replace "`r")
+            $stackTraceText[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
+            $stackTraceText[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
 
-        #     #export and validate the file
-        #     [String]$testFile = "$TestDrive{0}Results{0}Tests.xml" -f [System.IO.Path]::DirectorySeparatorChar
-        #     Export-XmlReport $testResults $testFile 'JUnitXml'
-        #     $xml = [xml] (Get-Content $testFile)
+        }
 
-        #     $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "junit_schema_4.xsd"
-        #     $xml.Schemas.Add($null, $schemePath) > $null
-        #     { $xml.Validate( { throw $args.Exception }) } | Should -Not -Throw
-        # }
+        t "should use expanded path and name when there are any" {
+            $sb = {
+                Describe "Mocked Describe <value>" {
+                    It "Failed testcase <value>" {
+                        "Testing" | Should -Be "Test"
+                    }
+                } -ForEach @{ Value = "abc" }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCase.name | Verify-Equal "Mocked Describe abc.Failed testcase abc"
+        }
+
+        t "should write the test summary" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestResult = $xmlResult.'testsuites'
+            $xmlTestResult.tests | Verify-Equal 1
+            $xmlTestResult.failures | Verify-Equal 0
+            $xmlTestResult.time | Verify-XmlTime $r.Containers[0].Duration
+        }
+
+        t "should write two test-suite elements for two containers" {
+            $sb1 = {
+                Describe "Describe #1" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "Describe #2" {
+                    It "Failed testcase" {
+                        $false | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb1, $sb2) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestSuite1 = $xmlResult.'testsuites'.'testsuite'[0]
+            $xmlTestSuite1.name | Verify-Equal (Get-ScriptBlockName $sb1)
+            $xmlTestSuite1.time | Verify-XmlTime $r.Containers[0].Duration
+
+            $xmlTestSuite2 = $xmlResult.'testsuites'.'testsuite'[1]
+            $xmlTestSuite2.name | Verify-Equal (Get-ScriptBlockName $sb2)
+            $xmlTestSuite2.time | Verify-XmlTime $r.Containers[1].Duration
+        }
+
+        t "should write the environment information in properties" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+
+            $xmlProperties = @{ }
+            foreach ($property in $xmlResult.'testsuites'.'testsuite'.'properties'.'property') {
+                $xmlProperties.Add($property.name, $property.value)
+            }
+
+            $xmlProperties['os-version'] | Verify-NotNull
+            $xmlProperties['platform'] | Verify-NotNull
+            $xmlProperties['cwd'] | Verify-Equal (Get-Location).Path
+            if ($env:Username) {
+                $xmlProperties['user'] | Verify-Equal $env:Username
+            }
+            $xmlProperties['machine-name'] | Verify-Equal $(hostname)
+            $xmlProperties['junit-version'] | Verify-NotNull
+        }
+
+        t "Should validate test results against the junit 4 schema" {
+            $sb = {
+                Describe "Describe #1" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+
+                Describe "Describe #2" {
+                    It "Failed testcase" {
+                        $false | Should -Be $true 5
+                    }
+                }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = [xml] ($r | ConvertTo-JUnitReport)
+
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "junit_schema_4.xsd"
+            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Validate( {
+                    throw $args[1].Exception
+                })
+        }
+
+        t "handles special characters in block descriptions well" {
+
+            $sb = {
+                Describe 'Describe -!@#$%^&*()_+`1234567890[];,./"- #1' {
+                    It "Successful testcase -!@#$%^&*()_+`1234567890[];'',./`"`"-" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = [xml] ($r | ConvertTo-JUnitReport)
+
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "junit_schema_4.xsd"
+
+            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
+    }
+
+    b "Writing JUnit report into file" {
+        t "should write XML when using -OutputFormat JUnitXml" {
+            try {
+                $sb = {
+                    Describe "Mocked Describe" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+
+                $temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
+                $null = New-Item -ItemType Container -Path $temp -Force
+                $filePath = Join-Path $temp "t.Tests.ps1"
+                Set-Content -Value $sb -Path $filePath
+
+                $xmlPath = Join-Path $temp "JUnit.xml"
+
+                $r = Invoke-Pester -Path $filePath -OutputFormat JUnitXML -OutputFile $xmlPath -Show None -PassThru
+
+                $xmlResult = [xml] (Get-Content -Path $xmlPath)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $temp) {
+                    Remove-Item $temp -Force -Recurse -Confirm:$false
+                }
+            }
+        }
+
+        t "should write XML when using -Configuration object" {
+            try {
+                $sb = {
+                    Describe "Mocked Describe" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+
+                $temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
+                $null = New-Item -ItemType Container -Path $temp -Force
+                $filePath = Join-Path $temp "t.Tests.ps1"
+                Set-Content -Value $sb -Path $filePath
+
+                $xmlPath = Join-Path $temp "JUnit.xml"
+
+                $configuration = [PesterConfiguration]::Default
+                $configuration.Run.Path = $filePath
+                $configuration.Run.PassThru = $true
+                $configuration.Output.Verbosity = "None"
+
+                $configuration.TestResult.Enabled = $true
+                $configuration.TestResult.OutputFormat = "JUnitXml"
+                $configuration.TestResult.OutputPath = $xmlPath
+
+                $r = Invoke-Pester -Configuration $configuration
+
+                $xmlResult = [xml] (Get-Content -Path $xmlPath)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $temp) {
+                    Remove-Item $temp -Force -Recurse -Confirm:$false
+                }
+            }
+        }
+
+        t "should write XML using Export-JUnitReport" {
+            try {
+                $sb = {
+                    Describe "Mocked Describe" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+
+                $temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
+                $null = New-Item -ItemType Container -Path $temp -Force
+                $filePath = Join-Path $temp "t.Tests.ps1"
+                Set-Content -Value $sb -Path $filePath
+
+                $xmlPath = Join-Path $temp "JUnit.xml"
+
+                $r = Invoke-Pester -Path $filePath -Show None -PassThru
+
+                # act
+                Export-JUnitReport -Result $r -Path $xmlPath
+
+                $xmlResult = [xml] (Get-Content -Path $xmlPath)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $temp) {
+                    Remove-Item $temp -Force -Recurse -Confirm:$false
+                }
+            }
+        }
     }
 }
