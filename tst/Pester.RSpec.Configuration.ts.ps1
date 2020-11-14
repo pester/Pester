@@ -122,8 +122,8 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.TestResult.Enabled.Value | Verify-False
         }
 
-        t "TestResult.OutputFormat is NUnit2.5" {
-            [PesterConfiguration]::Default.TestResult.OutputFormat.Value | Verify-Equal "NUnit2.5"
+        t "TestResult.OutputFormat is NUnitXml" {
+            [PesterConfiguration]::Default.TestResult.OutputFormat.Value | Verify-Equal "NUnitXml"
         }
 
         t "TestResult.OutputPath is testResults.xml" {

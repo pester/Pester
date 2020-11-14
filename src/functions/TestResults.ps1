@@ -58,6 +58,18 @@ function Export-NUnitReport {
     Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
 }
 
+function Export-JUnitReport {
+    param (
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Result,
+
+        [parameter(Mandatory = $true)]
+        [String] $Path
+    )
+
+    Export-XmlReport -Result $Result -Path $Path -Format JUnitXml
+}
+
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -254,7 +266,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
             # skip blocks that were discovered but did not run
             continue
         }
-        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.Path -join '.')
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $action.ExpandedPath
     }
 
     $suites = @(
@@ -307,7 +319,12 @@ function Write-JUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
 
     $testSuiteNumber = 0
     foreach ($container in $Result.Containers) {
-        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Id $testSuiteNumber
+        if (-not $container.ShouldRun) {
+            # skip containers that were discovered but none of their tests run
+            continue
+        }
+
+        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Container $container -Id $testSuiteNumber
         $testSuiteNumber++
     }
 
@@ -352,41 +369,33 @@ function Write-JUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
-    $XmlWriter.WriteAttributeString('tests', $Result.PassedCount)
-    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('tests', $Result.TotalCount)
+    $XmlWriter.WriteAttributeString('errors', $Result.FailedContainersCount + $Result.FailedBlocksCount)
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('disabled', $Result.NotRunCount + $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('time', ($Result.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
 }
 
-function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
+function Write-JUnitTestSuiteElements($Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
     $XmlWriter.WriteStartElement('testsuite')
 
-    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Node.Name -Id $Id
-
-    $testCases = foreach ($al1 in $node.Actions) {
-        if ($al1.Type -ne 'TestCase') {
-            foreach ($al2 in $al1.Actions) {
-                if ($al2.Type -ne 'TestCase') {
-                    foreach ($alt3 in $al2.Actions) {
-                        $path = "$($al1.Name).$($al2.Name).$($alt3.Name)"
-                        $alt3 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
-                    }
-                }
-                else {
-                    $path = "$($al1.Name).$($al2.Name)"
-                    $al2 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
-                }
-            }
-        }
-        else {
-            $path = "$($al1.Name)"
-            $al1 | & $SafeCommands['Add-Member'] -PassThru -MemberType NoteProperty -Name Path -Value $path
-        }
+    if ("File" -eq $Container.Type) {
+        $path = $Container.Item.FullName
+    }
+    elseif ("ScriptBlock" -eq $Container.Type) {
+        $path = "<ScriptBlock>$($Container.Item.File):$($Container.Item.StartPosition.StartLine)"
+    }
+    else {
+        throw "Container type '$($Container.Type)' is not supported."
     }
 
-    foreach ($t in $testCases) {
-        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $Node.Name
+    Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $path -Id $Id
+
+
+    $testResults = [Pester.Factory]::CreateCollection()
+    Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
+    foreach ($t in $testResults) {
+        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $path
     }
 
     $XmlWriter.WriteEndElement()
@@ -395,14 +404,14 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id) {
     $environment = Get-RunTimeEnvironment
 
-    $XmlWriter.WriteAttributeString('name', $Action.Name)
+    $XmlWriter.WriteAttributeString('name', $Package)
     $XmlWriter.WriteAttributeString('tests', $Action.TotalCount)
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Action.FailedCount)
     $XmlWriter.WriteAttributeString('hostname', $environment.'machine-name')
     $XmlWriter.WriteAttributeString('id', $Id)
     $XmlWriter.WriteAttributeString('skipped', $Action.SkippedCount)
-    $XmlWriter.WriteAttributeString('disabled', $Action.InconclusiveCount + $Action.PendingCount)
+    $XmlWriter.WriteAttributeString('disabled', $Action.NotRunCount)
     $XmlWriter.WriteAttributeString('package', $Package)
     $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
@@ -422,18 +431,18 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+function Write-JUnitTestCaseElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
     $XmlWriter.WriteStartElement('testcase')
 
-    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter -ClassName $Package
+    Write-JUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ClassName $Package
 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
-    $XmlWriter.WriteAttributeString('name', $Action.Path)
+function Write-JUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
+    $XmlWriter.WriteAttributeString('name', $TestResult.ExpandedPath)
 
-    $statusElementName = switch ($Action.Result) {
+    $statusElementName = switch ($TestResult.Result) {
         Passed {
             $null
         }
@@ -447,20 +456,22 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
         }
     }
 
-    $XmlWriter.WriteAttributeString('status', $Action.Result)
+    $XmlWriter.WriteAttributeString('status', $TestResult.Result)
     $XmlWriter.WriteAttributeString('classname', $ClassName)
     $XmlWriter.WriteAttributeString('assertions', '0')
-    $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+    $XmlWriter.WriteAttributeString('time', $TestResult.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
     if ($null -ne $statusElementName) {
-        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -StatusElementName $statusElementName
+        Write-JUnitTestCaseMessageElements -TestResult $TestResult -XmlWriter $XmlWriter -StatusElementName $statusElementName
     }
 }
 
-function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
+function Write-JUnitTestCaseMessageElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
     $XmlWriter.WriteStartElement($StatusElementName)
 
-    $XmlWriter.WriteAttributeString('message', $Action.FailureMessage) #TODO: Add stacktrace
+    $result = Get-ErrorForXmlReport -TestResult $TestResult
+    $XmlWriter.WriteAttributeString('message', $result.FailureMessage)
+    $XmlWriter.WriteString($result.StackTrace)
 
     $XmlWriter.WriteEndElement()
 }
@@ -699,42 +710,51 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             # TODO: remove monkey patching the error message when parent setup failed so this test never run
             # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
 
-            $failureMessage = if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
-                "This test should run but it did not. Most likely a setup in some parent block failed."
-            }
-            else {
-                $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+            $result = Get-ErrorForXmlReport -TestResult $TestResult
 
-                if ($multipleErrors) {
-                    $c = 0
-                    $(foreach ($err in $TestResult.ErrorRecord) {
-                        "[$(($c++))] $($err.DisplayErrorMessage)"
-                    }) -join [Environment]::NewLine
-                }
-                else {
-                    $TestResult.ErrorRecord.DisplayErrorMessage
-                }
-            }
-
-            $stackTrace = & {
-                $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
-
-                if ($multipleErrors) {
-                    $c = 0
-                    $(foreach ($err in $TestResult.ErrorRecord) {
-                        "[$(($c++))] $($err.DisplayStackTrace)"
-                    }) -join [Environment]::NewLine
-                }
-                else {
-                    [string] $TestResult.ErrorRecord.DisplayStackTrace
-                }
-            }
-
-            $xmlWriter.WriteElementString('message', $failureMessage)
-            $XmlWriter.WriteElementString('stack-trace', $stackTrace)
+            $xmlWriter.WriteElementString('message', $result.FailureMessage)
+            $XmlWriter.WriteElementString('stack-trace', $result.StackTrace)
             $XmlWriter.WriteEndElement() # Close failure tag
             break
         }
+    }
+}
+
+function Get-ErrorForXmlReport ($TestResult) {
+    $failureMessage = if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
+        "This test should run but it did not. Most likely a setup in some parent block failed."
+    }
+    else {
+        $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+
+        if ($multipleErrors) {
+            $c = 0
+            $(foreach ($err in $TestResult.ErrorRecord) {
+                "[$(($c++))] $($err.DisplayErrorMessage)"
+            }) -join [Environment]::NewLine
+        }
+        else {
+            $TestResult.ErrorRecord.DisplayErrorMessage
+        }
+    }
+
+    $st = & {
+        $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+
+        if ($multipleErrors) {
+            $c = 0
+            $(foreach ($err in $TestResult.ErrorRecord) {
+                "[$(($c++))] $($err.DisplayStackTrace)"
+            }) -join [Environment]::NewLine
+        }
+        else {
+            [string] $TestResult.ErrorRecord.DisplayStackTrace
+        }
+    }
+
+    @{
+        FailureMessage = $failureMessage
+        StackTrace = $st
     }
 }
 

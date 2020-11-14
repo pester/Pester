@@ -128,7 +128,7 @@ i -PassThru:$PassThru {
                 }
 
                 Describe "d failing" {
-                    # this faild but we should still see "c failing" and "d failing" on the screen
+                    # this failed but we should still see "c failing" and "d failing" on the screen
                     Context "c failing" {
                         BeforeAll { throw }
 
@@ -160,5 +160,36 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Output for data-driven blocks" {
+        t "Each block generated from dataset is output" {
+            # we incorrectly shared reference to the same framework data hashtable
+            # so we only output the first context / describe, this test ensures each one is output
+            # https://github.com/pester/Pester/issues/1759
 
+            $sb = {
+                Describe "d1 <value>" -ForEach @(
+                    @{ Value = "abc" }
+                    @{ Value = "def" }
+                ) {
+                    It "i1" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $setup = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+            }
+            $output = Invoke-PesterInProcess $sb -Setup $setup
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split "Discovery finished.*"
+            $run | Write-Host
+
+            $describe1 = $output | Select-String -Pattern 'Describing d1 abc\s*$'
+            $describe2 = $output | Select-String -Pattern 'Describing d1 def\s*$'
+            @($describe1).Count | Verify-Equal 1
+            @($describe2).Count | Verify-Equal 1
+        }
+    }
 }
