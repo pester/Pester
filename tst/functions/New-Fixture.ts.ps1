@@ -15,7 +15,7 @@ $global:PesterPreference = @{
 
 i -PassThru:$PassThru {
     b "New-Fixture" {
-        t "Generated fixture works" {
+        t "Generated fixture fails as expected" {
             $tempFolder = [IO.Path]::GetTempPath()
             $name = "Fixture$([Guid]::NewGuid().Guid)"
 
