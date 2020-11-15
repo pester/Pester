@@ -1246,6 +1246,30 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
         }
 
+        t "Data provided to container are accessible during Discovery and Run" {
+            # issue: https://github.com/pester/Pester/issues/1770
+            $sb = {
+                param (
+                    # the issue uses mandatory, I tried it with and without it and it works
+                    # I am avoiding mandatory, because it will make the test ask for value when
+                    # the parameter passing breaks
+                    # [parameter(mandatory = $true)]
+                    [string] $EnvironmentName
+                )
+
+                Describe "Application"  {
+                    It "Environment is <environmentName>" {
+                        $EnvironmentName | Should -Be "Production"
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @{ EnvironmentName = "Production"}
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
         t "<_> expands to `$_ in Describe and It" {
             $sb = {
                 Describe "d <_>" {
