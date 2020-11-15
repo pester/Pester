@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 
 Describe "New-Fixture" {
     It "Name parameter is mandatory" {
-        (Get-Command New-Fixture ).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should -Be $true
+        (Get-Command New-Fixture).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should -Be $true
     }
 
     Context "Only Name parameter is specified" {
@@ -115,7 +115,7 @@ Describe "New-Fixture" {
             $name = "Test Fixture"
             $path = "TestDrive:\"
 
-            { New-Fixture -Path $path -Name $name } | Should -Throw -Because "whitespace is not allowed in fixture name"
+            { New-Fixture -Name $name -Path $path } | Should -Throw -Because "whitespace is not allowed in fixture name"
         }
     }
 }

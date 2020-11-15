@@ -73,9 +73,9 @@ function New-Fixture {
     #>
 
     param (
-        [String]$Path = $PWD,
         [Parameter(Mandatory = $true)]
-        [String]$Name
+        [String]$Name,
+        [String]$Path = $PWD
     )
 
     $Name = $Name -replace '.ps(m?)1', ''
@@ -86,8 +86,7 @@ function New-Fixture {
 
     #keep this formatted as is. the format is output to the file as is, including indentation
     $scriptCode = "function $Name {
-    #Do something
-    `$true
+    throw [NotImplementedException]'$Name is not implemented.'
 }"
 
     $testCode = 'BeforeAll {
@@ -96,7 +95,7 @@ function New-Fixture {
 
 Describe "#name#" {
     It "Returns expected output" {
-        #name# | Should -Be $true
+        #name# | Should -Be "YOUR_EXPECTED_VALUE"
     }
 }' -replace "#name#", $Name
 
