@@ -151,12 +151,12 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         # but make sure we are invoking it in the caller session state, because
         # paths don't stay attached to session state
         $invokePester =  {
-            param($private:Path)
-            Invoke-Pester -Path $Path | & $SafeCommands['Out-Null']
+            param($private:Path, $private:Out_Null)
+            Invoke-Pester -Path $Path | & $Out_Null
         }
 
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
-        & $invokePester $ScriptName
+        & $invokePester $ScriptName $SafeCommands['Out-Null']
         $script:lastExecutedFile = $ScriptName
         $script:lastExecutedAt = [datetime]::Now
     }
