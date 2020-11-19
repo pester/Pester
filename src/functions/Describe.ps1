@@ -151,7 +151,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         # but make sure we are invoking it in the caller session state, because
         # paths don't stay attached to session state
         $invokePester =  {
-            param($private:Path, $Out_Null)
+            param($private:Path, $private:Out_Null)
             Invoke-Pester -Path $Path | & $Out_Null
         }
 
