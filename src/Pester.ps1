@@ -30,6 +30,7 @@ function Add-ShouldOperator {
     If -Name is different from the actual function name, record the actual function name here.
     Used by Get-ShouldOperator to pull function help.
 .EXAMPLE
+    ```powershell
     function BeAwesome($ActualValue, [switch] $Negate)
     {
 
@@ -60,6 +61,7 @@ function Add-ShouldOperator {
 
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
+    ```
 #>
     [CmdletBinding()]
     param (
@@ -548,6 +550,7 @@ function Invoke-Pester {
     with 'Util' and their subdirectories.
 
     .EXAMPLE
+    ```powershell
     $config = [PesterConfiguration]@{
     Should = @{ <- # Should configuration.
         ErrorAction = 'Stop' # <- "Controls if Should throws on error."
@@ -555,10 +558,10 @@ function Invoke-Pester {
     }
 
     Invoke-Pester -Configuration $config
+    ```
 
     .EXAMPLE
     $config = [PesterConfiguration]::Default
-
     Invoke-Pester -Configuration $config
 
     .LINK
@@ -1452,6 +1455,7 @@ function BeforeDiscovery {
         The ScritpBlock to run.
 
         .EXAMPLE
+            ```powershell
             PS > BeforeDiscovery {
                 $files = "file1.txt", "file2.txt"
             }
@@ -1463,6 +1467,7 @@ function BeforeDiscovery {
                     }
                 }
             }
+            ```
 
             The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
             will be named "Tests - Set A".

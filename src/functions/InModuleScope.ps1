@@ -18,7 +18,7 @@ function InModuleScope {
 .PARAMETER ScriptBlock
    The code to be executed within the script module.
 .EXAMPLE
-    ```ps
+    ```powershell
     # The script module:
     function PublicFunction
     {

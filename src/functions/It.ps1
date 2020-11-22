@@ -47,6 +47,7 @@ parameter with the syntax 'Adds numbers <A> and <B>' (assuming you have keys nam
 in your TestCases hashtables.)
 
 .EXAMPLE
+```powershell
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -72,8 +73,10 @@ Describe "Add-Numbers" {
         $sum | Should -Be "twothree"
     }
 }
+```
 
 .EXAMPLE
+```powershell
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -93,6 +96,7 @@ Describe "Add-Numbers" {
         $sum | Should -Be $expectedResult
     }
 }
+```
 
 .LINK
 https://github.com/pester/Pester/wiki/It

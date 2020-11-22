@@ -31,6 +31,7 @@ available as $_ in all child blocks. When the array is an array of hashtables, i
 defines each key in the hashatble as variable.
 
 .EXAMPLE
+```powershell
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -56,6 +57,7 @@ Describe "Add-Numbers" {
         $sum | Should -Be "twothree"
     }
 }
+```
 
 .LINK
 https://pester.dev/docs/commands/Describe

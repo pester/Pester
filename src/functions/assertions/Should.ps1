@@ -43,7 +43,7 @@ function Should {
     about_Pester
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         BeforeEach { $be = 1 }
         It "i1" {
@@ -54,7 +54,7 @@ function Should {
     ```
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         It "i1" {
             $user = Get-User
@@ -67,7 +67,7 @@ function Should {
     ```
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         It "i1" {
             Mock Get-Command { }
@@ -78,7 +78,7 @@ function Should {
     ```
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         It "i1" {
             Mock Get-Command { }
