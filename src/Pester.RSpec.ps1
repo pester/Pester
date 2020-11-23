@@ -422,6 +422,9 @@ function New-PesterContainer {
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
+
+    .LINK
+    https://pester.dev/docs/usage/data-driven-tests
     #>
     [CmdletBinding(DefaultParameterSetName="Path")]
     param(
