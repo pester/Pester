@@ -1351,6 +1351,34 @@ function Contain-AnyStringLike ($Filter, $Collection) {
 }
 
 function ConvertTo-Pester4Result {
+    <#
+    .SYNOPSIS
+    Converts a Pester 5 result-object to an Pester 4-compatible object
+
+    .DESCRIPTION
+    Pester 5 uses a new format for it's result-object compared to previous
+    versions of Pester. This function is provided as a way to convert the
+    result-object into an object using the previous format. This can be
+    useful as a temporary measure to easier migrate to Pester 5 without
+    having to redesign compelx CI/CD-pipelines.
+
+    .PARAMETER PesterResult
+    Result object from a Pester 5-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .EXAMPLE
+    $pester5Result = Invoke-Pester -Passthru
+    $pester4Result = $pester5Result | ConvertTo-Pester4Result
+
+    This example runs Pester using the Passthru option to retrieve a result-object
+    in the Pester 5 format and converts it to a new Pester 4-compatible result-object.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-Pester4Result
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
