@@ -27,7 +27,7 @@ function Set-ItResult {
     to provide information to the user why the test is neither successful nor failed.
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "Example" {
         It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
