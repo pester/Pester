@@ -480,9 +480,8 @@ function Invoke-Pester {
 
     .PARAMETER Path
     Aliases Script
-    Specifies a test to run. The value is a path\file
-    name or name pattern. Wildcards are permitted. All hash tables in a Script
-    parameter values must have a Path key.
+    Specifies one or more paths to files containing tests. The value is a path\file
+    name or name pattern. Wildcards are permitted.
 
     .PARAMETER PesterOption
     (Deprecated v4)
