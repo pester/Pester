@@ -103,13 +103,16 @@ Describe "Add-Numbers" {
 ```
 
 .LINK
-https://github.com/pester/Pester/wiki/It
+https://pester.dev/docs/commands/It
 
 .LINK
-Describe
-Context
-Set-TestInconclusive
-about_should
+https://pester.dev/docs/commands/Describe
+
+.LINK
+https://pester.dev/docs/commands/Context
+
+.LINK
+https://pester.dev/docs/commands/Set-ItResult
 #>
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(

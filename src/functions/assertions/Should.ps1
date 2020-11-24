@@ -1,4 +1,4 @@
-function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
+﻿function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
     if ($negate) {
         $failureMessageFunction = $assertionEntry.GetNegativeFailureMessage
     }
@@ -36,6 +36,9 @@ function Should {
     .PARAMETER ActualValue
     The actual value that was obtained in the test which should be verified against
     a expected value.
+
+    .LINK
+    https://pester.dev/docs/commands/Should
 
     .LINK
     https://pester.dev/docs/usage/assertions

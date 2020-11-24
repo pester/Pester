@@ -286,7 +286,7 @@ LONG DESCRIPTION
 
 
 SEE ALSO
-    Pester wiki: https://github.com/pester/pester/wiki
+    Pester website: https://pester.dev
     Describe
     Context
     It

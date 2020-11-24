@@ -69,9 +69,7 @@ function New-Fixture {
 
     .LINK
     https://pester.dev/docs/commands/Should
-
     #>
-
     param (
         [Parameter(Mandatory = $true)]
         [String]$Name,

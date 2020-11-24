@@ -587,7 +587,9 @@ function Invoke-Pester {
     https://pswiki.net/invoke-pester-pester/
 
     .LINK
-    Describe
+    https://pester.dev/docs/commands/Describe
+
+    .LINK
     about_Pester
     #>
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
