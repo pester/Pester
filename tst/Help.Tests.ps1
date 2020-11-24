@@ -5,13 +5,13 @@ BeforeDiscovery {
     $exportedFunctions = Get-Command -CommandType Cmdlet, Function -Module $moduleName
 }
 
-Describe "Testing module help for exported commands" -ForEach @{ exportedFunctions = $exportedFunctions; moduleName = $moduleName } {
+Describe "Testing module help" -ForEach @{ exportedFunctions = $exportedFunctions; moduleName = $moduleName } {
     Context "<_.CommandType> <_.Name>" -Foreach $exportedFunctions {
         BeforeAll {
             $help = Get-Help -Name $_.Name
         }
 
-        It "Help is found" -Skip {
+        It "Help is found" {
             $help.Name | Should -Be $_.Name
             $help.Category | Should -Be $_.CommandType
             $help.ModuleName | Should -Be $moduleName
@@ -26,6 +26,19 @@ Describe "Testing module help for exported commands" -ForEach @{ exportedFunctio
         # Skipped until Assert-MockCalled and Assert-VerifiableMock are removed
         It "Has at least one example" -Skip {
              $help.Examples | Should -Not -BeNullOrEmpty
+        }
+
+        # Skipped until Assert-MockCalled are removed
+        It "All static parameters have description" -Skip {
+            if ($help.parameters) {
+                $parametersMissingHelp = @($help.parameters | ForEach-Object Parameter |
+                Where-Object { $_.psobject.properties.name -notcontains 'description' } |
+                ForEach-Object name)
+
+                $parametersMissingHelp | Should -Be @()
+            } else {
+                Set-ItResult -Skipped -Because "no static parameters to test"
+            }
         }
     }
 }
