@@ -1359,7 +1359,7 @@ function ConvertTo-Pester4Result {
     )
     process {
         $legacyResult = [PSCustomObject] @{
-            Version = 4.99.0
+            Version = "4.99.0"
             TagFilter = $null
             ExcludeTagFilter = $null
             TestNameFilter = $null
