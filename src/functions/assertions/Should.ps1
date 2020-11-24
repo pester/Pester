@@ -1,4 +1,4 @@
-﻿function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
+function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
     if ($negate) {
         $failureMessageFunction = $assertionEntry.GetNegativeFailureMessage
     }
@@ -32,6 +32,10 @@ function Should {
     Should can be used more than once in the It block if more than one assertion
     need to be verified. Each Should keyword needs to be on a separate line.
     Test will be passed only when all assertion will be met (logical conjuction).
+
+    .PARAMETER ActualValue
+    The actual value that was obtained in the test which should be verified against
+    a expected value.
 
     .LINK
     https://pester.dev/docs/usage/assertions

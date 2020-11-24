@@ -380,7 +380,7 @@ function New-PesterContainer {
     created using this funciton, that specify test containers in the form of paths
     to the test files or scriptblocks containing the tests directly.
 
-    An optional Data-dictionary can be provided to supply the containers with any
+    A optional Data-dictionary can be provided to supply the containers with any
     required parameter-values. This is useful in when tests are generated dynamically
     based on parameter-input. This method enables complex test-solutions while being
     able to re-use a lot of test-code.

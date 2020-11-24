@@ -388,8 +388,12 @@ function Invoke-Pester {
     Run.Path - Directories to be searched for tests, paths directly to test files, or combination of both.
         Default is: .
     Run.ScriptBlock - ScriptBlocks containing tests to be executed.
+    Run.Container - ContainerInfo objects containing tests to be executed.
     Run.TestExtension - Filter used to identify test files.
         Default is: *.Tests.ps1*
+
+    [PesterConfiguration]::Default.Output
+    ------------
     Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
         Default is: Normal
 
@@ -424,6 +428,11 @@ function Invoke-Pester {
     Filter.Tag - Tags of Describe, Context or It to be run.
     Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
 
+    [PesterConfiguration]::Default.Should
+    ------------
+    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
+        Default is: Stop
+
     [PesterConfiguration]::Default.Debug
     -----
     Debug.ShowFullErrors - Show full errors including Pester internal stack.
@@ -431,6 +440,11 @@ function Invoke-Pester {
     Debug.WriteDebugMessages - Write Debug messages to screen.
     Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
         Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+
+    .PARAMETER Container
+    Specifies one or more ContainerInfo-objects that define containers with tests.
+    ContainerInfo-objects are generated using New-PesterContainer. Useful for
+    scenarios where data-driven test are generated, e.g. parametrized test files.
 
     .PARAMETER EnableExit
     (Deprecated v4)

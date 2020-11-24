@@ -49,7 +49,6 @@ function Get-MockPlugin () {
 }
 
 function Mock {
-
     <#
 .SYNOPSIS
 Mocks the behavior of an existing command with an alternate
@@ -112,6 +111,14 @@ Optional string specifying the name of the module where this command
 is to be mocked.  This should be a module that _calls_ the mocked
 command; it doesn't necessarily have to be the same module which
 originally implemented the command.
+
+.PARAMETER RemoveParameterType
+Optional list of parameter names in the original command
+that should not keep the same type-requirement in the mock.
+
+.PARAMETER RemoveParameterValidation
+Optional list of parameter names in the original command
+that should not have the same valdiation rules in the mock.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }

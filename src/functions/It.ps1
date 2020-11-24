@@ -46,6 +46,10 @@ the test to appear differently for each test case, you can embed tokens into the
 parameter with the syntax 'Adds numbers <A> and <B>' (assuming you have keys named A and B
 in your TestCases hashtables.)
 
+.PARAMETER Tag
+Optional parameter containing an array of strings. When calling Invoke-Pester,
+it is possible to include or exclude tests containing the same Tag.
+
 .EXAMPLE
 ```powershell
 function Add-Numbers($a, $b) {
