@@ -92,7 +92,8 @@ foreach ($f in $files) {
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
 if ($Clean) {
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
+    $manifest = (Get-Content -Path $PSScriptRoot/src/Pester.psd1 -Raw) | Invoke-Expression
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release /p:VersionPrefix="$($manifest.ModuleVersion)" "$(if($manifest.PrivateData.PSData.Prerelease) { "/p:VersionSuffix=$($manifest.PrivateData.PSData.Prerelease)" })"
     if (0 -ne $LASTEXITCODE) {
         throw "build failed!"
     }
