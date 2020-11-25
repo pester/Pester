@@ -388,8 +388,12 @@ function Invoke-Pester {
     Run.Path - Directories to be searched for tests, paths directly to test files, or combination of both.
         Default is: .
     Run.ScriptBlock - ScriptBlocks containing tests to be executed.
+    Run.Container - ContainerInfo objects containing tests to be executed.
     Run.TestExtension - Filter used to identify test files.
         Default is: *.Tests.ps1*
+
+    [PesterConfiguration]::Default.Output
+    ------------
     Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
         Default is: Normal
 
@@ -424,6 +428,11 @@ function Invoke-Pester {
     Filter.Tag - Tags of Describe, Context or It to be run.
     Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
 
+    [PesterConfiguration]::Default.Should
+    ------------
+    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
+        Default is: Stop
+
     [PesterConfiguration]::Default.Debug
     -----
     Debug.ShowFullErrors - Show full errors including Pester internal stack.
@@ -431,6 +440,11 @@ function Invoke-Pester {
     Debug.WriteDebugMessages - Write Debug messages to screen.
     Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
         Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+
+    .PARAMETER Container
+    Specifies one or more ContainerInfo-objects that define containers with tests.
+    ContainerInfo-objects are generated using New-PesterContainer. Useful for
+    scenarios where data-driven test are generated, e.g. parametrized test files.
 
     .PARAMETER EnableExit
     (Deprecated v4)
@@ -480,9 +494,8 @@ function Invoke-Pester {
 
     .PARAMETER Path
     Aliases Script
-    Specifies a test to run. The value is a path\file
-    name or name pattern. Wildcards are permitted. All hash tables in a Script
-    parameter values must have a Path key.
+    Specifies one or more paths to files containing tests. The value is a path\file
+    name or name pattern. Wildcards are permitted.
 
     .PARAMETER PesterOption
     (Deprecated v4)
@@ -574,7 +587,9 @@ function Invoke-Pester {
     https://pswiki.net/invoke-pester-pester/
 
     .LINK
-    Describe
+    https://pester.dev/docs/commands/Describe
+
+    .LINK
     about_Pester
     #>
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
@@ -1352,6 +1367,34 @@ function Contain-AnyStringLike ($Filter, $Collection) {
 }
 
 function ConvertTo-Pester4Result {
+    <#
+    .SYNOPSIS
+    Converts a Pester 5 result-object to an Pester 4-compatible object
+
+    .DESCRIPTION
+    Pester 5 uses a new format for it's result-object compared to previous
+    versions of Pester. This function is provided as a way to convert the
+    result-object into an object using the previous format. This can be
+    useful as a temporary measure to easier migrate to Pester 5 without
+    having to redesign compelx CI/CD-pipelines.
+
+    .PARAMETER PesterResult
+    Result object from a Pester 5-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .EXAMPLE
+    $pester5Result = Invoke-Pester -Passthru
+    $pester4Result = $pester5Result | ConvertTo-Pester4Result
+
+    This example runs Pester using the Passthru option to retrieve a result-object
+    in the Pester 5 format and converts it to a new Pester 4-compatible result-object.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-Pester4Result
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]

@@ -47,6 +47,39 @@ function Export-PesterResults {
 }
 
 function Export-NUnitReport {
+    <#
+    .SYNOPSIS
+    Exports a Pester result-object to an NUnit-compatible XML-report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This object can then be exported to an
+    NUnit-compatible XML-report using this function. The report is generated
+    using the NUnit 2.5-schema.
+
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER Path
+    The path where the XML-report should  to the ou the XML report as string.
+
+    .EXAMPLE
+    $p = Invoke-Pester -Passthru
+    $p | Export-NUnitReport -Path TestResults.xml
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    exports it as an NUnit 2.5-compatible XML-report.
+
+    .LINK
+    https://pester.dev/docs/commands/Export-NUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
@@ -59,6 +92,39 @@ function Export-NUnitReport {
 }
 
 function Export-JUnitReport {
+    <#
+    .SYNOPSIS
+    Exports a Pester result-object to an JUnit-compatible XML-report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This object can then be exported to an
+    JUnit-compatible XML-report using this function. The report is generated
+    using the JUnit 4-schema.
+
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER Path
+    The path where the XML-report should  to the ou the XML report as string.
+
+    .EXAMPLE
+    $p = Invoke-Pester -Passthru
+    $p | Export-JUnitReport -Path TestResults.xml
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    exports it as an JUnit 4-compatible XML-report.
+
+    .LINK
+    https://pester.dev/docs/commands/Export-JUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
@@ -132,6 +198,47 @@ function Export-XmlReport {
 }
 
 function ConvertTo-NUnitReport {
+    <#
+    .SYNOPSIS
+    Converts a Pester result-object to an NUnit 2.5-compatible XML-report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This objects can then be converted to an
+    NUnit-compatible XML-report using this function. The report is generated
+    using the NUnit 2.5-schema.
+
+    The function can convert to both XML-object or a string containing the XML.
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER AsString
+    Returns the XML-report as a string.
+
+    .EXAMPLE
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-NUnitReport
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an NUnit 2.5-compatible XML-report. The report is returned as an XML-object.
+
+    .EXAMPLE
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-NUnitReport -AsString
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an NUnit 2.5-compatible XML-report. The returned object is a string.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-NUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
@@ -332,6 +439,47 @@ function Write-JUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
 }
 
 function ConvertTo-JUnitReport {
+    <#
+    .SYNOPSIS
+    Converts a Pester result-object to an JUnit-compatible XML report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This objects can then be converted to an
+    NUnit-compatible XML-report using this function. The report is generated
+    using the JUnit 4-schema.
+
+    The function can convert to both XML-object or a string containing the XML.
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER AsString
+    Returns the XML-report as a string.
+
+    .EXAMPLE
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-JUnitReport
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an JUnit 4-compatible XML-report. The report is returned as an XML-object.
+
+    .EXAMPLE
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-JUnitReport -AsString
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an JUnit 4-compatible XML-report. The returned object is a string.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-JUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,

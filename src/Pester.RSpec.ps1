@@ -370,6 +370,62 @@ function Remove-RSpecNonPublicProperties ($run){
 }
 
 function New-PesterContainer {
+    <#
+    .SYNOPSIS
+    Generates ContainerInfo-objects used as for Invoke-Pester -Container
+
+    .DESCRIPTION
+    Pester 5 supports running tests files and scriptblocks using parameter-input.
+    To use this feature, Invoke-Pester expects one or more ContainerInfo-objects
+    created using this funciton, that specify test containers in the form of paths
+    to the test files or scriptblocks containing the tests directly.
+
+    A optional Data-dictionary can be provided to supply the containers with any
+    required parameter-values. This is useful in when tests are generated dynamically
+    based on parameter-input. This method enables complex test-solutions while being
+    able to re-use a lot of test-code.
+
+    .PARAMETER Path
+    Specifies one or more paths to files containing tests. The value is a path\file
+    name or name pattern. Wildcards are permitted.
+
+    .PARAMETER ScriptBlock
+    Specifies one or more scriptblocks containing tests.
+
+    .PARAMETER Data
+    Allows a dictionary to be provided with parameter-values that should be used during
+    execution of the test containers defined in Path or ScriptBlock.
+
+    .EXAMPLE
+    $container = New-PesterContainer -Path 'CodingStyle.Tests.ps1' -Data @{ File = "Get-Emoji.ps1" }
+    Invoke-Pester -Container $container
+
+    This example runs Pester using a generated ContainerInfo-object referencing a file and
+    required parameters that's provided to the test-file during execution.
+
+    .EXAMPLE
+    $sb = {
+        Describe 'Testing New-PesterContainer' {
+            It 'Useless test' {
+                "foo" | Should -Not -Be "bar"
+            }
+        }
+    }
+    $container = New-PesterContainer -ScriptBlock $sb
+    Invoke-Pester -Container $container
+
+    This example runs Pester agianst a scriptblock. New-PesterContainer is used to genreated
+    the requried ContainerInfo-object that enables us to do this directly.
+
+    .LINK
+    https://pester.dev/docs/commands/New-PesterContainer
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+
+    .LINK
+    https://pester.dev/docs/usage/data-driven-tests
+    #>
     [CmdletBinding(DefaultParameterSetName="Path")]
     param(
         [Parameter(Mandatory, ParameterSetName = "Path")]

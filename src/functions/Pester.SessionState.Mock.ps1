@@ -49,7 +49,6 @@ function Get-MockPlugin () {
 }
 
 function Mock {
-
     <#
 .SYNOPSIS
 Mocks the behavior of an existing command with an alternate
@@ -112,6 +111,18 @@ Optional string specifying the name of the module where this command
 is to be mocked.  This should be a module that _calls_ the mocked
 command; it doesn't necessarily have to be the same module which
 originally implemented the command.
+
+.PARAMETER RemoveParameterType
+Optional list of parameter names that should use Object as the parameter
+type instead of the parameter type defined by the function. This relaxes the
+type requirements and allows some strongly typed functions to be mocked
+more easily.
+
+.PARAMETER RemoveParameterValidation
+Optional list of parameter names in the original command
+that should not have any validation rules applied. This relaxes the 
+validation requirements, and allows functions that are strict about their
+parameter validation to be mocked more easily.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
@@ -201,14 +212,12 @@ Describe "ModuleMockExample" {
 This example shows how calls to commands made from inside a module can be
 mocked by using the -ModuleName parameter.
 
+.LINK
+https://pester.dev/docs/commands/Mock
 
 .LINK
-Should
-Describe
-Context
-It
-about_Should
-about_Mocking
+https://pester.dev/docs/usage/mocking
+
 #>
     # Mock
     [CmdletBinding()]
@@ -1106,7 +1115,6 @@ function Assert-RunInProgress {
         throw "$CommandName can run only during Run, but not during Discovery."
     }
 }
-
 
 
 

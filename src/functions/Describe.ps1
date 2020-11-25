@@ -20,7 +20,7 @@ in this block but are typically nested each in its own It block. Assertions are
 typically performed by the Should command within the It blocks.
 
 .PARAMETER Tag
-Optional parameter containing an array of strings.  When calling Invoke-Pester,
+Optional parameter containing an array of strings. When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Describe blocks
 containing the same Tag.
 
@@ -63,16 +63,13 @@ Describe "Add-Numbers" {
 https://pester.dev/docs/commands/Describe
 
 .LINK
-https://github.com/pester/Pester/wiki/Describe
+https://pester.dev/docs/commands/It
 
 .LINK
-It
+https://pester.dev/docs/commands/Context
 
 .LINK
-Context
-
-.LINK
-Invoke-Pester
+https://pester.dev/docs/commands/Invoke-Pester
 
 .LINK
 about_Should
@@ -82,7 +79,6 @@ about_Mocking
 
 .LINK
 about_TestDrive
-
 #>
 
     param(
