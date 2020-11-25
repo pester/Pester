@@ -158,8 +158,8 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
             Invoke-Pester -Container $c Path | & $Out_Null
         }
 
-        # get PSBoundParameters from script to allow interactive execution of parameterized tests.
-        $scriptBoundParameters = $PSCmdlet.SessionState.PSVariable.GetValue("PSBoundParameters")
+        # get PSBoundParameters from caller script to allow interactive execution of parameterized tests.
+        $scriptBoundParameters = $SessionState.PSVariable.GetValue("PSBoundParameters")
 
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
         & $invokePester $ScriptName $scriptBoundParameters $SafeCommands['Out-Null']
