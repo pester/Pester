@@ -116,6 +116,9 @@
             # Prerelease string of this module
             Prerelease   = 'beta1'
         }
+
+        # Minimum assembly version required
+        RequiredAssemblyVersion = '1.0.0.0'
     }
 
     # HelpInfo URI of this module

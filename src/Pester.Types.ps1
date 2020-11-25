@@ -1,6 +1,15 @@
-if ($PSVersionTable.PSVersion.Major -ge 6) {
-    & $SafeCommands['Add-Type'] -Path "$PSScriptRoot/bin/netstandard2.0/Pester.dll"
-}
-else {
-    & $SafeCommands['Add-Type'] -Path "$PSScriptRoot/bin/net452/Pester.dll"
+# e.g. $minimumVersionRequired = "5.1.0.0" -as [version]
+$minimumVersionRequired = $ExecutionContext.SessionState.Module.PrivateData.RequiredAssemblyVersion -as [version]
+
+# Check if assembly loaded
+$configurationType = 'PesterConfiguration' -as [type]
+if ($null -ne $configurationType -and $configurationType.Assembly.GetName().Version -lt $minimumVersionRequired) {
+    throw [System.NotSupportedException]'An incompatible version of the Pester.dll assembly is already loaded. A new PowerShell session is required.'
+} elseif ($null -eq $configurationType) {
+    if ($PSVersionTable.PSVersion.Major -ge 6) {
+        & $SafeCommands['Add-Type'] -Path "$PSScriptRoot/bin/netstandard2.0/Pester.dll"
+    }
+    else {
+        & $SafeCommands['Add-Type'] -Path "$PSScriptRoot/bin/net452/Pester.dll"
+    }
 }
