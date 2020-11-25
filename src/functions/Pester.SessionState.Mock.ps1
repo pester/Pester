@@ -113,12 +113,16 @@ command; it doesn't necessarily have to be the same module which
 originally implemented the command.
 
 .PARAMETER RemoveParameterType
-Optional list of parameter names in the original command
-that should not keep the same type-requirement in the mock.
+Optional list of parameter names that should use Object as the parameter
+type instead of the parameter type defined by the function. This relaxes the
+type requirements and allows some strongly typed functions to be mocked
+more easily.
 
 .PARAMETER RemoveParameterValidation
 Optional list of parameter names in the original command
-that should not have the same valdiation rules in the mock.
+that should not have any validation rules applied. This relaxes the 
+validation requirements, and allows functions that are strict about their
+parameter validation to be mocked more easily.
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
@@ -1111,7 +1115,6 @@ function Assert-RunInProgress {
         throw "$CommandName can run only during Run, but not during Discovery."
     }
 }
-
 
 
 
