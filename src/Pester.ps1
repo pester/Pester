@@ -565,17 +565,27 @@ function Invoke-Pester {
     .EXAMPLE
     ```powershell
     $config = [PesterConfiguration]@{
-    Should = @{ <- # Should configuration.
-        ErrorAction = 'Stop' # <- "Controls if Should throws on error."
+        Should = @{ # <- Should configuration.
+            ErrorAction = 'Continue' # <- Always run all Should-assertions in a test
         }
     }
 
     Invoke-Pester -Configuration $config
     ```
 
+    This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    It shows how advanced configuration can be used by casting a hashtable to override
+    default settings, in this case to make Pester run all Should-assertions in a test
+    even if the first fails.
+
     .EXAMPLE
     $config = [PesterConfiguration]::Default
+    $config.TestResults.Enabled = $true
     Invoke-Pester -Configuration $config
+
+    This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    It uses advanced configuration to enable testresult-output to file. Access $config.TestResults
+    to see other testresult options like  output path and format and their default values.
 
     .LINK
     https://pester.dev/docs/quick-start
