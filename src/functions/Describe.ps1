@@ -31,33 +31,33 @@ available as $_ in all child blocks. When the array is an array of hashtables, i
 defines each key in the hashatble as variable.
 
 .EXAMPLE
-```powershell
-function Add-Numbers($a, $b) {
-    return $a + $b
-}
-
-Describe "Add-Numbers" {
-    It "adds positive numbers" {
-        $sum = Add-Numbers 2 3
-        $sum | Should -Be 5
+    ```powershell
+    function Add-Numbers($a, $b) {
+        return $a + $b
     }
 
-    It "adds negative numbers" {
-        $sum = Add-Numbers (-2) (-2)
-        $sum | Should -Be (-4)
-    }
+    Describe "Add-Numbers" {
+        It "adds positive numbers" {
+            $sum = Add-Numbers 2 3
+            $sum | Should -Be 5
+        }
 
-    It "adds one negative number to positive number" {
-        $sum = Add-Numbers (-2) 2
-        $sum | Should -Be 0
-    }
+        It "adds negative numbers" {
+            $sum = Add-Numbers (-2) (-2)
+            $sum | Should -Be (-4)
+        }
 
-    It "concatenates strings if given strings" {
-        $sum = Add-Numbers two three
-        $sum | Should -Be "twothree"
+        It "adds one negative number to positive number" {
+            $sum = Add-Numbers (-2) 2
+            $sum | Should -Be 0
+        }
+
+        It "concatenates strings if given strings" {
+            $sum = Add-Numbers two three
+            $sum | Should -Be "twothree"
+        }
     }
-}
-```
+    ```
 
 .LINK
 https://pester.dev/docs/commands/Describe
