@@ -6,7 +6,8 @@
 # this clean up is not removing all unneeded files,
 # it only removes the main parts
 # each package then decides what will be part of it
-
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
+param()
 $buildDir = "$PSScriptRoot\build"
 $ErrorActionPreference = 'Stop'
 

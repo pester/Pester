@@ -15,7 +15,7 @@
     .PARAMETER Clean
         Cleans the build folder ./bin and rebuilds the assemblies.
 #>
-
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
 param (
     [switch] $Debug,
     [switch] $Load,

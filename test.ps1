@@ -26,21 +26,30 @@
     .NOTES
         Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "ErrorView")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "PesterPreference")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
 param (
     # force P to fail when I leave `dt` in the tests
+    [Parameter(Mandatory=$false)]
     [switch] $CI,
+    [Parameter(Mandatory=$false)]
     [switch] $SkipPTests,
+    [Parameter(Mandatory=$false)]
     [switch] $NoBuild,
+    [Parameter(Mandatory=$false)]
     [string[]] $File
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-# assigning error view explicitly to change it from the default on PowerShell 7
-$ErrorView = "NormalView"
-"Using PS: $($PsVersionTable.PSVersion)"
-"In path: $($pwd.Path)"
 
+# Assign error view explicitly to change it from the default on PowerShell 7
+$ErrorView = "NormalView"
+
+Write-Output "Using PS: $($PsVersionTable.PSVersion)"
+Write-Output "In path: $($pwd.Path)"
 
 if (-not $NoBuild) {
     & "$PSScriptRoot/build.ps1"
@@ -51,7 +60,7 @@ Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
-        foreach {
+        ForEach-Object {
             $r = & $_.FullName -PassThru
             if ($r.Failed -gt 0) {
                 [PSCustomObject]@{

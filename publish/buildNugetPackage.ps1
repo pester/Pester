@@ -1,3 +1,5 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
+param()
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 

@@ -1,4 +1,7 @@
 # build should provide '%system.teamcity.build.checkoutDir%'
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidOverwritingBuiltInCmdlets", "Get-FileHash")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
 param (
     [Parameter(Mandatory)]
     [String] $PsGalleryApiKey,
