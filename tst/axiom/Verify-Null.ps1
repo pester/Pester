@@ -3,10 +3,11 @@ function Verify-Null {
         [Parameter(ValueFromPipeline = $true)]
         $Actual
     )
+    PROCESS {
+        if ($null -ne $Actual) {
+            throw [Exception]"Expected `$null but got '$Actual'."
+        }
 
-    if ($null -ne $Actual) {
-        throw [Exception]"Expected `$null but got '$Actual'."
+        $Actual
     }
-
-    $Actual
 }

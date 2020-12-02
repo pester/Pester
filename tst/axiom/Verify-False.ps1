@@ -3,14 +3,15 @@ function Verify-False {
         [Parameter(ValueFromPipeline = $true)]
         $Actual
     )
+    PROCESS {
+        if ($null -eq $Actual) {
+            throw [Exception]"Expected `$false but got '`$null'."
+        }
 
-    if ($null -eq $Actual) {
-        throw [Exception]"Expected `$false but got '`$null'."
+        if ($Actual) {
+            throw [Exception]"Expected `$false but got '$Actual'."
+        }
+
+        $Actual
     }
-
-    if ($Actual) {
-        throw [Exception]"Expected `$false but got '$Actual'."
-    }
-
-    $Actual
 }

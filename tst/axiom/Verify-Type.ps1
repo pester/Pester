@@ -5,17 +5,18 @@
         [Parameter(Mandatory = $true, Position = 0)]
         [Type]$Expected
     )
+    PROCESS {
+        if ($Actual -isnot $Expected) {
+            $message = "Expected value to be of type $($Expected.FullName)"
+            $Actual = "but got " + $(if ($null -eq $Actual) {
+                    "'<null>'"
+                }
+                else {
+                    "'$($Actual.GetType().FullName)'"
+                })
+            throw [Exception]"$message, $Actual"
+        }
 
-    if ($Actual -isnot $Expected) {
-        $message = "Expected value to be of type $($Expected.FullName)"
-        $Actual = "but got " + $(if ($null -eq $Actual) {
-                "'<null>'"
-            }
-            else {
-                "'$($Actual.GetType().FullName)'"
-            })
-        throw [Exception]"$message, $Actual"
+        $Actual
     }
-
-    $Actual
 }
