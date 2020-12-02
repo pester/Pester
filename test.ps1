@@ -32,13 +32,9 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
 param (
     # force P to fail when I leave `dt` in the tests
-    [Parameter(Mandatory=$false)]
     [switch] $CI,
-    [Parameter(Mandatory=$false)]
     [switch] $SkipPTests,
-    [Parameter(Mandatory=$false)]
     [switch] $NoBuild,
-    [Parameter(Mandatory=$false)]
     [string[]] $File
 )
 
