@@ -5,7 +5,7 @@
         [Parameter(Mandatory = $true, Position = 0)]
         [Type]$Expected
     )
-    PROCESS {
+    END {
         if ($Actual -isnot $Expected) {
             $message = "Expected value to be of type $($Expected.FullName)"
             $Actual = "but got " + $(if ($null -eq $Actual) {
