@@ -4,7 +4,7 @@ function Verify-AssertionFailed {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ScriptBlock]$ScriptBlock
     )
-    PROCESS {
+    END {
         $assertionExceptionThrown = $false
         $err = $null
 
