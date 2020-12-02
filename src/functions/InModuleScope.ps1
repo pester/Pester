@@ -17,8 +17,12 @@ function InModuleScope {
    PowerShell session.
 .PARAMETER ScriptBlock
    The code to be executed within the script module.
+.PARAMETER Parameters
+   A optional hashtable of parameters to be passed to the scriptblock.
+.PARAMETER ArgumentList
+   A optional list of arguments to be passed to the scriptblock.
 .EXAMPLE
-    ```ps
+    ```powershell
     # The script module:
     function PublicFunction
     {

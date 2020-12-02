@@ -33,6 +33,13 @@ function Should {
     need to be verified. Each Should keyword needs to be on a separate line.
     Test will be passed only when all assertion will be met (logical conjuction).
 
+    .PARAMETER ActualValue
+    The actual value that was obtained in the test which should be verified against
+    a expected value.
+
+    .LINK
+    https://pester.dev/docs/commands/Should
+
     .LINK
     https://pester.dev/docs/usage/assertions
 
@@ -43,7 +50,7 @@ function Should {
     about_Pester
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         BeforeEach { $be = 1 }
         It "i1" {
@@ -54,7 +61,7 @@ function Should {
     ```
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         It "i1" {
             $user = Get-User
@@ -67,7 +74,7 @@ function Should {
     ```
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         It "i1" {
             Mock Get-Command { }
@@ -78,7 +85,7 @@ function Should {
     ```
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "d1" {
         It "i1" {
             Mock Get-Command { }

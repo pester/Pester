@@ -14,7 +14,7 @@ apply to tests within that Context .
 The name of the Context. This is a phrase describing a set of tests within a describe.
 
 .PARAMETER Tag
-Optional parameter containing an array of strings.  When calling Invoke-Pester,
+Optional parameter containing an array of strings. When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Context blocks
 containing the same Tag.
 
@@ -29,7 +29,7 @@ available as $_ in all child blocks. When the array is an array of hashtables, i
 defines each key in the hashatble as variable.
 
 .EXAMPLE
-```ps
+```powershell
 function Add-Numbers($a, $b) {
     return $a + $b
 }
