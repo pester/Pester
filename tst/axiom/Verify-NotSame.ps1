@@ -5,7 +5,7 @@
         [Parameter(Mandatory = $true, Position = 0)]
         $Expected
     )
-    PROCESS {
+    END {
         if ([object]::ReferenceEquals($Expected, $Actual)) {
             throw [Exception]"Expected the objects to be different instance but they were the same instance."
         }
