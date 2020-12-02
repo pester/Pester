@@ -3,7 +3,7 @@ function Verify-False {
         [Parameter(ValueFromPipeline = $true)]
         $Actual
     )
-    PROCESS {
+    END {
         if ($null -eq $Actual) {
             throw [Exception]"Expected `$false but got '`$null'."
         }
