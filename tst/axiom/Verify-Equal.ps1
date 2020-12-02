@@ -6,7 +6,7 @@
         [Parameter(Mandatory = $true, Position = 0)]
         $Expected
     )
-    PROCESS {
+    END {
         if ($Expected -ne $Actual) {
             $message = "Expected and actual values differ!`n" +
             "Expected: '$Expected'`n" +
