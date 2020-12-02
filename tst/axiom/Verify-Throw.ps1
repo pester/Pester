@@ -3,7 +3,7 @@ function Verify-Throw {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ScriptBlock]$ScriptBlock
     )
-    PROCESS {
+    END {
         $exceptionThrown = $false
         try {
             $null = & $ScriptBlock
