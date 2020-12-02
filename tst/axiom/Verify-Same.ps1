@@ -5,7 +5,7 @@ function Verify-Same {
         [Parameter(Mandatory = $true, Position = 0)]
         $Expected
     )
-    PROCESS {
+    END {
         if (-not [object]::ReferenceEquals($Expected, $Actual)) {
             throw [Exception]"Expected the objects to be the same instance but they were not."
         }
