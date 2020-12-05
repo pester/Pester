@@ -118,4 +118,10 @@ InPesterModuleScope {
             { throw "abc" } | Should -ErrorId "abc" # -Throw is not used
         }
     }
+
+    Describe 'Using Should without MyInvocation when generating help' {
+        It 'Get-Command Should -Syntax should show all help' {
+            Get-Command Should -Syntax | Should -Not -BeNullOrEmpty
+        }
+    }
 }
