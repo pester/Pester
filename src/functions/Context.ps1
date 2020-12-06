@@ -49,6 +49,9 @@ Describe "Add-Numbers" {
 ```
 
 .LINK
+https://pester.dev/docs/commands/Context
+
+.LINK
 https://pester.dev/docs/commands/Describe
 
 .LINK

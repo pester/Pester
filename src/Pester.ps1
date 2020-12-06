@@ -62,6 +62,8 @@ function Add-ShouldOperator {
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
     ```
+.LINK
+    https://pester.dev/docs/commands/Add-ShouldOperator
 #>
     [CmdletBinding()]
     param (
@@ -578,10 +580,10 @@ function Invoke-Pester {
     Invoke-Pester -Configuration $config
 
     .LINK
-    https://pester.dev/docs/quick-start
+    https://pester.dev/docs/commands/Invoke-Pester
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/quick-start
 
     .LINK
     https://pswiki.net/invoke-pester-pester/

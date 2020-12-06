@@ -619,6 +619,9 @@ Checks if all verifiable Mocks has been called at least once.
 
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -InvokeVerifiable INSTEAD.
+
+.LINK
+https://pester.dev/docs/commands/Assert-VerifiableMock
 #>
 
     # Should does not accept a session state, so invoking it directly would
@@ -681,6 +684,9 @@ and throws an exception if it has not.
 
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -Invoke INSTEAD.
+
+.LINK
+https://pester.dev/docs/commands/Assert-MockCalled
 #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
