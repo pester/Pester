@@ -63,22 +63,13 @@ Describe "Add-Numbers" {
 https://pester.dev/docs/commands/Describe
 
 .LINK
-https://pester.dev/docs/commands/It
+https://pester.dev/docs/usage/test-file-structure
 
 .LINK
-https://pester.dev/docs/commands/Context
+https://pester.dev/docs/usage/mocking
 
 .LINK
-https://pester.dev/docs/commands/Invoke-Pester
-
-.LINK
-about_Should
-
-.LINK
-about_Mocking
-
-.LINK
-about_TestDrive
+https://pester.dev/docs/usage/testdrive
 #>
 
     param(
