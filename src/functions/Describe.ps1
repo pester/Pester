@@ -69,6 +69,15 @@ https://pester.dev/docs/usage/test-file-structure
 https://pester.dev/docs/usage/mocking
 
 .LINK
+about_Should
+
+.LINK
+about_Mocking
+
+.LINK
+about_TestDrive
+
+.LINK
 https://pester.dev/docs/usage/testdrive
 #>
 
