@@ -1137,7 +1137,7 @@ function Invoke-Pester {
                 # just set exit code but don't fail when the option is not set
                 # or when there are no failed tests, to ensure that we can run
                 # multiple successful runs of Invoke-Pester in a row.
-                [System.Environment]::ExitCode = $failedCount
+                [System.Environment]::ExitCode = $global:LASTEXITCODE = $failedCount
             }
         }
         catch {
