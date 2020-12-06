@@ -1488,32 +1488,44 @@ function ConvertTo-Pester4Result {
 
 function BeforeDiscovery {
     <#
-        .SYNOPSIS
-        Runs setup code that is used during Discovery phase.
-        .DESCRIPTION
-        Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
-        to be explicit about code that you need to run during Discovery, instead of just
-        putting code directly inside of Describe / Context.
-        .PARAMETER ScriptBlock
-        The ScritpBlock to run.
+    .SYNOPSIS
+    Runs setup code that is used during Discovery phase.
 
-        .EXAMPLE
-            ```powershell
-            PS > BeforeDiscovery {
-                $files = "file1.txt", "file2.txt"
-            }
+    .DESCRIPTION
+    Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
+    to be explicit about code that you need to run during Discovery, instead of just
+    putting code directly inside of Describe / Context.
 
-            Describe "File tests" {
-                foreach ($file in $files) {
-                    It "test" {
-                        # ... test code
-                    }
+    .PARAMETER ScriptBlock
+    The ScritpBlock to run.
+
+    .EXAMPLE
+        ```powershell
+        BeforeDiscovery {
+            $files = Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' -Recurse
+        }
+
+        Describe "File - <_>" -ForEach $files {
+            Context "Whitespace" {
+                It "There is no extra whitespace following a line" {
+                    # ...
+                }
+
+                It "File ends with an empty line" {
+                    # ...
                 }
             }
-            ```
+        }
+        ```
 
-            The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
-            will be named "Tests - Set A".
+        BeforeDiscovery is used to gather a list of files which is used during Discovery-phase to
+        dynamically create a Describe-block and tests for each file found.
+
+    .LINK
+    https://pester.dev/docs/commands/BeforeDiscovery
+
+    .LINK
+    https://pester.dev/docs/usage/data-driven-tests
     #>
     [CmdletBinding()]
     param (
