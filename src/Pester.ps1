@@ -659,7 +659,7 @@ function Invoke-Pester {
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
-        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated

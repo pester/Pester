@@ -1,7 +1,10 @@
 trigger:
   - v5.0
+  - rel/*
+
 pr:
   - v5.0
+  - rel/*
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
