@@ -250,6 +250,9 @@ function AfterAll {
         the tests in the Describe-block.
 
     .LINK
+        https://pester.dev/docs/commands/AfterAll
+
+    .LINK
         https://pester.dev/docs/usage/setup-and-teardown
 #>
     [CmdletBinding()]
