@@ -1502,26 +1502,26 @@ function BeforeDiscovery {
     The ScritpBlock to run.
 
     .EXAMPLE
-        ```powershell
-        BeforeDiscovery {
-            $files = Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' -Recurse
-        }
+    ```powershell
+    BeforeDiscovery {
+        $files = Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' -Recurse
+    }
 
-        Describe "File - <_>" -ForEach $files {
-            Context "Whitespace" {
-                It "There is no extra whitespace following a line" {
-                    # ...
-                }
+    Describe "File - <_>" -ForEach $files {
+        Context "Whitespace" {
+            It "There is no extra whitespace following a line" {
+                # ...
+            }
 
-                It "File ends with an empty line" {
-                    # ...
-                }
+            It "File ends with an empty line" {
+                # ...
             }
         }
-        ```
+    }
+    ```
 
-        BeforeDiscovery is used to gather a list of files which is used during Discovery-phase to
-        dynamically create a Describe-block and tests for each file found.
+    BeforeDiscovery is used to gather a list of script-files during Discovery-phase to
+    dynamically create a Describe-block and tests for each file found.
 
     .LINK
     https://pester.dev/docs/commands/BeforeDiscovery
