@@ -43,12 +43,6 @@ function Should {
     .LINK
     https://pester.dev/docs/usage/assertions
 
-    .LINK
-    about_Should
-
-    .LINK
-    about_Pester
-
     .EXAMPLE
     ```powershell
     Describe "d1" {

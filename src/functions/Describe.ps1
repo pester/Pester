@@ -70,15 +70,6 @@ https://pester.dev/docs/commands/Context
 
 .LINK
 https://pester.dev/docs/commands/Invoke-Pester
-
-.LINK
-about_Should
-
-.LINK
-about_Mocking
-
-.LINK
-about_TestDrive
 #>
 
     param(

@@ -46,9 +46,6 @@ function BeforeEach {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -115,9 +112,6 @@ function AfterEach {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -194,9 +188,6 @@ function BeforeAll {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -259,13 +250,7 @@ function AfterAll {
         the tests in the Describe-block.
 
     .LINK
-        https://pester.dev/docs/commands/AfterAll
-
-    .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
 #>
     [CmdletBinding()]
     param

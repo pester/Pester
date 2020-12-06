@@ -588,9 +588,6 @@ function Invoke-Pester {
 
     .LINK
     https://pester.dev/docs/commands/Describe
-
-    .LINK
-    about_Pester
     #>
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
     # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable', Justification = 'Remove-Variable can't remove "optimized variables" when using "alias" for Remove-Variable.')]
