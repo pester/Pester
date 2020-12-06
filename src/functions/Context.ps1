@@ -35,15 +35,19 @@ function Add-Numbers($a, $b) {
 }
 
 Describe "Add-Numbers" {
-
     Context "when root does not exist" {
-         It "..." { ... }
+        It "..." {
+            # ...
+        }
     }
 
     Context "when root does exist" {
-        It "..." { ... }
-        It "..." { ... }
-        It "..." { ... }
+        It "..." {
+            # ...
+        }
+        It "..." {
+            # ...
+        }
     }
 }
 ```
