@@ -1128,7 +1128,7 @@ function Invoke-Pester {
             # exit code of some other app end exit with it's exit code instead with ours
             $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
             if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
-                # fail with the number of failed tests when there are any
+                # exit with the number of failed tests when there are any
                 # and the exit preference is set. This will fail the run in CI
                 # when any tests failed.
                 exit $failedCount
