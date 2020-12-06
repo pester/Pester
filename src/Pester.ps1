@@ -1385,8 +1385,10 @@ function ConvertTo-Pester4Result {
     -Passthru or by using the Run.PassThru configuration-option.
 
     .EXAMPLE
+    ```powershell
     $pester5Result = Invoke-Pester -Passthru
     $pester4Result = $pester5Result | ConvertTo-Pester4Result
+    ```
 
     This example runs Pester using the Passthru option to retrieve a result-object
     in the Pester 5 format and converts it to a new Pester 4-compatible result-object.

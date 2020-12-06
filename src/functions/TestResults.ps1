@@ -68,8 +68,10 @@ function Export-NUnitReport {
     The path where the XML-report should  to the ou the XML report as string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | Export-NUnitReport -Path TestResults.xml
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     exports it as an NUnit 2.5-compatible XML-report.
@@ -113,8 +115,10 @@ function Export-JUnitReport {
     The path where the XML-report should  to the ou the XML report as string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | Export-JUnitReport -Path TestResults.xml
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     exports it as an JUnit 4-compatible XML-report.
@@ -220,15 +224,19 @@ function ConvertTo-NUnitReport {
     Returns the XML-report as a string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-NUnitReport
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an NUnit 2.5-compatible XML-report. The report is returned as an XML-object.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-NUnitReport -AsString
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an NUnit 2.5-compatible XML-report. The returned object is a string.
@@ -461,15 +469,19 @@ function ConvertTo-JUnitReport {
     Returns the XML-report as a string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-JUnitReport
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an JUnit 4-compatible XML-report. The report is returned as an XML-object.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-JUnitReport -AsString
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an JUnit 4-compatible XML-report. The returned object is a string.

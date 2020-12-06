@@ -120,7 +120,7 @@ more easily.
 
 .PARAMETER RemoveParameterValidation
 Optional list of parameter names in the original command
-that should not have any validation rules applied. This relaxes the 
+that should not have any validation rules applied. This relaxes the
 validation requirements, and allows functions that are strict about their
 parameter validation to be mocked more easily.
 
@@ -140,9 +140,11 @@ Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $V
 When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
+```powershell
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
 Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
+```
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
