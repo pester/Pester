@@ -135,7 +135,7 @@ i -PassThru:$PassThru {
                     `$codeAfterPester = `$true
                 }
                 finally {
-                    # exitcode was set to 9999 because one test failed in the test
+                    # exitcode was set to 99 because one test failed in the test
                     # but some test failed we should immediately fail and the codeAfterPester should not run
 
                     if (`$codeAfterPester) {
