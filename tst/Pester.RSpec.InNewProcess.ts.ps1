@@ -121,9 +121,9 @@ i -PassThru:$PassThru {
                 $c = "
                 Describe 'd' {
                     It 'i' {
-                        # an executable exits with 9999 (we use powershell as the executable, because we know it will work cross platform)
+                        # an executable exits with 99 (we use powershell as the executable, because we know it will work cross platform)
                         # we use this to fail the test
-                        & '$powershell' -Command { exit 9999 }
+                        & '$powershell' -Command { exit 99 }
                         `$LASTEXITCODE | Should -Be 0
                     }
                 }"
