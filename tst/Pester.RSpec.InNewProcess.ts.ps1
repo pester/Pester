@@ -70,9 +70,9 @@ i -PassThru:$PassThru {
                 $c = "
                 Describe 'd' {
                     It 'i' {
-                        # an executable exits with 9999 (we use powershell as the executable, because we know it will work cross platform)
-                        & '$powershell' -Command { exit 9999 }
-                        `$LASTEXITCODE | Should -Be 9999
+                        # an executable exits with 99 (we use powershell as the executable, because we know it will work cross platform)
+                        & '$powershell' -Command { exit 99 }
+                        `$LASTEXITCODE | Should -Be 99
                     }
                 }"
                 Set-Content -Path $testpath -Value $c
