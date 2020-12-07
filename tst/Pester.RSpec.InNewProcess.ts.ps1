@@ -83,7 +83,7 @@ i -PassThru:$PassThru {
                     `$exitCode = `$LASTEXITCODE
                 }
                 finally {
-                    # exitcode was set to 9999 in the test because the test passed,
+                    # exitcode was set to 99 in the test because the test passed,
                     # BUT after the run the exit code should be 0 because all tests pass
                     # AND we should NOT exit the process even though the -EnableExit is used
                     # to allow running multiple successful runs in the same process.
