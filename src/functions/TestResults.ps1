@@ -36,6 +36,10 @@ function Export-PesterResults {
     )
 
     switch -Wildcard ($Format) {
+        'NUnit2.5' {
+            Export-XmlReport -Result $Result -Path $Path -Format $Format
+        }
+
         '*Xml' {
             Export-XmlReport -Result $Result -Path $Path -Format $Format
         }
@@ -149,14 +153,17 @@ function Export-XmlReport {
         [String] $Path,
 
         [parameter(Mandatory = $true)]
-        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $Format
     )
+
+    if ('NUnit2.5' -eq $Format) {
+        $Format = 'NUnitXml'
+    }
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
     #be different from what PowerShell sees as the current directory so I have to resolve the path beforehand
     #working around the limitations of Resolve-Path
-
     $Path = GetFullPath -Path $Path
 
     $settings = [Xml.XmlWriterSettings] @{
