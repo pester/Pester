@@ -1,7 +1,6 @@
 trigger:
   - v5.0
   - rel/*
-
 pr:
   - v5.0
   - rel/*

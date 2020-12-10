@@ -58,4 +58,102 @@ i -PassThru:$PassThru {
             }
         }
     }
+
+    b "Exit codes" {
+
+        t "Exitcode is set to 0 without exiting the process when tests pass, even when some executable fails within test" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+            $powershell = (Get-Process -Id $pid).Path
+
+            try {
+                $c = "
+                Describe 'd' {
+                    It 'i' {
+                        # an executable exits with 99 (we use powershell as the executable, because we know it will work cross platform)
+                        & '$powershell' -Command { exit 99 }
+                        `$LASTEXITCODE | Should -Be 99
+                    }
+                }"
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("
+                try {
+                    Invoke-Pester -Path $testpath -EnableExit
+                    `$exitCode = `$LASTEXITCODE
+                }
+                finally {
+                    # exitcode was set to 99 in the test because the test passed,
+                    # BUT after the run the exit code should be 0 because all tests pass
+                    # AND we should NOT exit the process even though the -EnableExit is used
+                    # to allow running multiple successful runs in the same process.
+                    # So to ensure we did not exit too early we set exitcode and
+                    # check it in finally.
+
+                    if (`$null -eq `$exitCode) {
+                        throw 'Pester exited the process prematurely, `$exitcode variable was not set.'
+                    }
+
+                    if (0 -ne `$exitCode) {
+                        throw `"`$exitCode is not 0.`"
+                    }
+                }
+                ")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]'
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $LASTEXITCODE | Verify-Equal 0
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Exitcode is set to the number of failed tests and the process exits when tests fail, even when some executable fails within test" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+            $powershell = (Get-Process -Id $pid).Path
+
+            try {
+                $c = "
+                Describe 'd' {
+                    It 'i' {
+                        # an executable exits with 99 (we use powershell as the executable, because we know it will work cross platform)
+                        # we use this to fail the test
+                        & '$powershell' -Command { exit 99 }
+                        `$LASTEXITCODE | Should -Be 0
+                    }
+                }"
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("
+                try {
+                    Invoke-Pester -Path $testpath -EnableExit
+                    `$codeAfterPester = `$true
+                }
+                finally {
+                    # exitcode was set to 99 because one test failed in the test
+                    # but some test failed we should immediately fail and the codeAfterPester should not run
+
+                    if (`$codeAfterPester) {
+                        throw 'Pester did not exit the process immediately, `$codeAfterPester should not run.'
+                    }
+                }
+                ")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[-]'
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $LASTEXITCODE | Verify-Equal 1
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+    }
 }

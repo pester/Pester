@@ -1122,11 +1122,18 @@ function Invoke-Pester {
 
             # exit with exit code if we fail and even if we succeed, othwerise we could inherit
             # exit code of some other app end exit with it's exit code instead with ours
-            if ($PesterPreference.Run.Exit.Value) {
-                exit ($run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount)
+            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
+                # exit with the number of failed tests when there are any
+                # and the exit preference is set. This will fail the run in CI
+                # when any tests failed.
+                exit $failedCount
             }
             else {
-                [System.Environment]::ExitCode = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+                # just set exit code but don't fail when the option is not set
+                # or when there are no failed tests, to ensure that we can run
+                # multiple successful runs of Invoke-Pester in a row.
+                $global:LASTEXITCODE = $failedCount
             }
         }
         catch {
