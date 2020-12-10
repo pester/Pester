@@ -4,7 +4,7 @@
     RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '5.2.0'
+    ModuleVersion     = '5.1.1'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -111,7 +111,7 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.0-beta1'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.1.1-beta1'
 
             # Prerelease string of this module
             Prerelease   = 'beta1'
