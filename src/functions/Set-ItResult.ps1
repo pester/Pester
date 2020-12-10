@@ -42,6 +42,9 @@ function Set-ItResult {
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
     ```
+
+    .LINK
+    https://pester.dev/docs/commands/Set-ItResult
 #>
     [CmdletBinding()]
     param(
