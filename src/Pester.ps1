@@ -62,6 +62,8 @@ function Add-ShouldOperator {
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
     ```
+.LINK
+    https://pester.dev/docs/commands/Add-ShouldOperator
 #>
     [CmdletBinding()]
     param (
@@ -565,33 +567,38 @@ function Invoke-Pester {
     .EXAMPLE
     ```powershell
     $config = [PesterConfiguration]@{
-    Should = @{ <- # Should configuration.
-        ErrorAction = 'Stop' # <- "Controls if Should throws on error."
+        Should = @{ # <- Should configuration.
+            ErrorAction = 'Continue' # <- Always run all Should-assertions in a test
         }
     }
 
     Invoke-Pester -Configuration $config
     ```
 
+    This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    It shows how advanced configuration can be used by casting a hashtable to override
+    default settings, in this case to make Pester run all Should-assertions in a test
+    even if the first fails.
+
     .EXAMPLE
     $config = [PesterConfiguration]::Default
+    $config.TestResults.Enabled = $true
     Invoke-Pester -Configuration $config
 
-    .LINK
-    https://pester.dev/docs/quick-start
+    This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    It uses advanced configuration to enable testresult-output to file. Access $config.TestResults
+    to see other testresult options like  output path and format and their default values.
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
 
     .LINK
-    https://pswiki.net/invoke-pester-pester/
-
-    .LINK
-    https://pester.dev/docs/commands/Describe
+    https://pester.dev/docs/quick-start
 
     .LINK
     about_Pester
     #>
+
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
     # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable', Justification = 'Remove-Variable can't remove "optimized variables" when using "alias" for Remove-Variable.')]
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
@@ -659,7 +666,7 @@ function Invoke-Pester {
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
-        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
@@ -1126,11 +1133,18 @@ function Invoke-Pester {
 
             # exit with exit code if we fail and even if we succeed, othwerise we could inherit
             # exit code of some other app end exit with it's exit code instead with ours
-            if ($PesterPreference.Run.Exit.Value) {
-                exit ($run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount)
+            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
+                # exit with the number of failed tests when there are any
+                # and the exit preference is set. This will fail the run in CI
+                # when any tests failed.
+                exit $failedCount
             }
             else {
-                [System.Environment]::ExitCode = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+                # just set exit code but don't fail when the option is not set
+                # or when there are no failed tests, to ensure that we can run
+                # multiple successful runs of Invoke-Pester in a row.
+                $global:LASTEXITCODE = $failedCount
             }
         }
         catch {
@@ -1383,8 +1397,10 @@ function ConvertTo-Pester4Result {
     -Passthru or by using the Run.PassThru configuration-option.
 
     .EXAMPLE
+    ```powershell
     $pester5Result = Invoke-Pester -Passthru
     $pester4Result = $pester5Result | ConvertTo-Pester4Result
+    ```
 
     This example runs Pester using the Passthru option to retrieve a result-object
     in the Pester 5 format and converts it to a new Pester 4-compatible result-object.
@@ -1488,32 +1504,44 @@ function ConvertTo-Pester4Result {
 
 function BeforeDiscovery {
     <#
-        .SYNOPSIS
-        Runs setup code that is used during Discovery phase.
-        .DESCRIPTION
-        Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
-        to be explicit about code that you need to run during Discovery, instead of just
-        putting code directly inside of Describe / Context.
-        .PARAMETER ScriptBlock
-        The ScritpBlock to run.
+    .SYNOPSIS
+    Runs setup code that is used during Discovery phase.
 
-        .EXAMPLE
-            ```powershell
-            PS > BeforeDiscovery {
-                $files = "file1.txt", "file2.txt"
+    .DESCRIPTION
+    Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
+    to be explicit about code that you need to run during Discovery, instead of just
+    putting code directly inside of Describe / Context.
+
+    .PARAMETER ScriptBlock
+    The ScritpBlock to run.
+
+    .EXAMPLE
+    ```powershell
+    BeforeDiscovery {
+        $files = Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' -Recurse
+    }
+
+    Describe "File - <_>" -ForEach $files {
+        Context "Whitespace" {
+            It "There is no extra whitespace following a line" {
+                # ...
             }
 
-            Describe "File tests" {
-                foreach ($file in $files) {
-                    It "test" {
-                        # ... test code
-                    }
-                }
+            It "File ends with an empty line" {
+                # ...
             }
-            ```
+        }
+    }
+    ```
 
-            The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
-            will be named "Tests - Set A".
+    BeforeDiscovery is used to gather a list of script-files during Discovery-phase to
+    dynamically create a Describe-block and tests for each file found.
+
+    .LINK
+    https://pester.dev/docs/commands/BeforeDiscovery
+
+    .LINK
+    https://pester.dev/docs/usage/data-driven-tests
     #>
     [CmdletBinding()]
     param (

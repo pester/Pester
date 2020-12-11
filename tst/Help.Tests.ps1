@@ -23,6 +23,13 @@ Describe "Testing module help" -ForEach @{ exportedFunctions = $exportedFunction
             $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[?-\w+)|$)"
         }
 
+        It "Has link sections" {
+            $help.psobject.properties.name -match 'relatedLinks' | Should -Not -BeNullOrEmpty -Because "all exported functions should at least have link to online version as first Uri"
+
+            $firstUri = $help.relatedLinks.navigationLink | Where-Object uri | Select-Object -First 1 -ExpandProperty uri
+            $firstUri | Should -Be "https://pester.dev/docs/commands/$($help.Name)" -Because "first uri-link should be to online version of this help topic"
+        }
+
         # Skipped until Assert-MockCalled and Assert-VerifiableMock are removed
         It "Has at least one example" -Skip {
              $help.Examples | Should -Not -BeNullOrEmpty

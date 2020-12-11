@@ -397,13 +397,16 @@ function New-PesterContainer {
     execution of the test containers defined in Path or ScriptBlock.
 
     .EXAMPLE
+    ```powershell
     $container = New-PesterContainer -Path 'CodingStyle.Tests.ps1' -Data @{ File = "Get-Emoji.ps1" }
     Invoke-Pester -Container $container
+    ```
 
     This example runs Pester using a generated ContainerInfo-object referencing a file and
     required parameters that's provided to the test-file during execution.
 
     .EXAMPLE
+    ```powershell
     $sb = {
         Describe 'Testing New-PesterContainer' {
             It 'Useless test' {
@@ -413,6 +416,7 @@ function New-PesterContainer {
     }
     $container = New-PesterContainer -ScriptBlock $sb
     Invoke-Pester -Container $container
+    ```
 
     This example runs Pester agianst a scriptblock. New-PesterContainer is used to genreated
     the requried ContainerInfo-object that enables us to do this directly.

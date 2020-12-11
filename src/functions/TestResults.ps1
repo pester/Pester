@@ -36,6 +36,10 @@ function Export-PesterResults {
     )
 
     switch -Wildcard ($Format) {
+        'NUnit2.5' {
+            Export-XmlReport -Result $Result -Path $Path -Format $Format
+        }
+
         '*Xml' {
             Export-XmlReport -Result $Result -Path $Path -Format $Format
         }
@@ -68,8 +72,10 @@ function Export-NUnitReport {
     The path where the XML-report should  to the ou the XML report as string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | Export-NUnitReport -Path TestResults.xml
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     exports it as an NUnit 2.5-compatible XML-report.
@@ -113,8 +119,10 @@ function Export-JUnitReport {
     The path where the XML-report should  to the ou the XML report as string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | Export-JUnitReport -Path TestResults.xml
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     exports it as an JUnit 4-compatible XML-report.
@@ -145,14 +153,17 @@ function Export-XmlReport {
         [String] $Path,
 
         [parameter(Mandatory = $true)]
-        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $Format
     )
+
+    if ('NUnit2.5' -eq $Format) {
+        $Format = 'NUnitXml'
+    }
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
     #be different from what PowerShell sees as the current directory so I have to resolve the path beforehand
     #working around the limitations of Resolve-Path
-
     $Path = GetFullPath -Path $Path
 
     $settings = [Xml.XmlWriterSettings] @{
@@ -220,15 +231,19 @@ function ConvertTo-NUnitReport {
     Returns the XML-report as a string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-NUnitReport
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an NUnit 2.5-compatible XML-report. The report is returned as an XML-object.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-NUnitReport -AsString
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an NUnit 2.5-compatible XML-report. The returned object is a string.
@@ -461,15 +476,19 @@ function ConvertTo-JUnitReport {
     Returns the XML-report as a string.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-JUnitReport
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an JUnit 4-compatible XML-report. The report is returned as an XML-object.
 
     .EXAMPLE
+    ```powershell
     $p = Invoke-Pester -Passthru
     $p | ConvertTo-JUnitReport -AsString
+    ```
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an JUnit 4-compatible XML-report. The returned object is a string.

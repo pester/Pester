@@ -152,7 +152,7 @@ LONG DESCRIPTION
     name pattern, a test name, or a test tag.
 
     Invoke-Pester parameters also let you save the test output in NUnitXml or
-    LegacyNUnitXml formats that are commonly used by reporting tools.
+    JUnitXml formats that are commonly used by reporting tools.
 
     For example, the following command runs all tests in the current directory
     and all subdirectories recursively. It writes output to the host, but does
@@ -267,7 +267,7 @@ LONG DESCRIPTION
 
     To save the custom objects to a file, use the OutputFile and OutputFormat
     parameters of Invoke-Pester, which save the output in NUnitXml and
-    LegacyNUnitXml formats that are easy to parse and commonly used by reporting
+    JUnitXml formats that are easy to parse and commonly used by reporting
     tools.
 
 

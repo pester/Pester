@@ -53,6 +53,9 @@ function InModuleScope {
     the PowerShell session, because the module only exported
     "PublicFunction".  Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
+
+.LINK
+    https://pester.dev/docs/commands/InModuleScope
 #>
 
     [CmdletBinding()]
