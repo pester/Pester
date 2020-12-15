@@ -107,30 +107,24 @@ function Convert-UnknownValueToInt {
 function Resolve-CoverageInfo {
     param ([psobject] $UnresolvedCoverageInfo)
 
-    $path = $UnresolvedCoverageInfo.Path
+    $paths = $UnresolvedCoverageInfo.Path
 
     $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
+    $resolvedPaths = @()
 
     try {
-        $resolvedPaths = & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
-            & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notlike $testsPattern }
+        foreach ($path in $paths) {
+            $resolvedPaths += & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
+                & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notlike $testsPattern }
+        }
     }
     catch {
         & $SafeCommands['Write-Error'] "Could not resolve coverage path '$path': $($_.Exception.Message)"
         return
     }
 
-    $filePaths = foreach ($resolvedPath in $resolvedPaths) {
-        $item = & $SafeCommands['Get-Item'] -LiteralPath $resolvedPath
-        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension) {
-            $item.FullName
-        }
-        elseif (-not $item.PsIsContainer) {
-            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
-            # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
-        }
-    }
+    $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths
 
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
@@ -143,6 +137,33 @@ function Resolve-CoverageInfo {
         $params['Path'] = $filePath
         New-CoverageInfo @params
     }
+}
+
+function Get-CodeCoverageFilePaths {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [object]
+        $Paths
+    )
+
+    $filePaths = foreach ($path in $Paths) {
+        $item = & $SafeCommands['Get-Item'] -LiteralPath $path
+        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension) {
+            $item.FullName
+        }
+        elseif ($item -is [System.IO.DirectoryInfo] -and $PesterPreference.CodeCoverage.RecursePaths) {
+            $children = & $SafeCommands['Get-ChildItem'] -LiteralPath $item
+            Get-CodeCoverageFilePaths -Paths $children
+        }
+        elseif (-not $item.PsIsContainer) {
+            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
+            # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
+        }
+    }
+
+    return $filePaths
+
 }
 
 function Get-CoverageBreakpoints {
