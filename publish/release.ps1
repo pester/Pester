@@ -34,12 +34,12 @@ else {
 $isPreRelease = $version -match '-'
 
 if (-not $isPreRelease -or $Force) {
-    if ($null -eq $NugetApiKey) {
-        throw "NugetApiKey is needed."
+    if ([string]::IsNullOrWhiteSpace($NugetApiKey)) {
+        throw "This is stable release NugetApiKey is needed."
     }
 
-    if ($null -eq $ChocolateyApiKey) {
-        throw "ChocolateyApiKey is needed."
+    if ([string]::IsNullOrWhiteSpace($ChocolateyApiKey)) {
+        throw "This is stable release ChocolateyApiKey is needed."
     }
 }
 
