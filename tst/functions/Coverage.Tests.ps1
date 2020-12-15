@@ -284,7 +284,7 @@ InPesterModuleScope {
                         <counter type="CLASS" missed="0" covered="2" />
                     </package>
                     <package name="CommonRoot/TestSubFolder">
-                        <class name="CommonRoot/TestSubFolder/TestScript3" sourcefilename="TestScript3.ps1">
+                        <class name="CommonRoot/TestSubFolder/TestScript3" sourcefilename="TestSubFolder/TestScript3.ps1">
                             <method name="&lt;script&gt;" desc="()" line="1">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
@@ -295,7 +295,7 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="0" covered="1" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
-                        <sourcefile name="TestScript3.ps1">
+                        <sourcefile name="TestSubFolder/TestScript3.ps1">
                             <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />

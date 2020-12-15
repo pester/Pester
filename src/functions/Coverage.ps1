@@ -815,7 +815,7 @@ function Get-JaCoCoReportXml {
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = (& $SafeCommands["Split-Path"] -Path $classElementRelativePath -Leaf)
+                    sourcefilename = $classElementRelativePath
                 })
 
             foreach ($function in $class.Methods.Keys) {
@@ -838,8 +838,9 @@ function Get-JaCoCoReportXml {
 
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                    name = (& $SafeCommands["Split-Path"] -Path $file -Leaf)
+                    name = $classElementRelativePath
                 })
 
             foreach ($line in $class.Lines.Keys) {
