@@ -108,15 +108,12 @@ function Resolve-CoverageInfo {
     param ([psobject] $UnresolvedCoverageInfo)
 
     $paths = $UnresolvedCoverageInfo.Path
-
-    $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
     $resolvedPaths = @()
 
     try {
-        foreach ($path in $paths) {
-            $resolvedPaths += & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
-                & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notlike $testsPattern }
+        $resolvedPaths = foreach ($path in $paths) {
+            & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop
         }
     }
     catch {
@@ -124,7 +121,7 @@ function Resolve-CoverageInfo {
         return
     }
 
-    $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths
+    $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths -IncludeTests $includeTests
 
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
@@ -140,21 +137,21 @@ function Resolve-CoverageInfo {
 }
 
 function Get-CodeCoverageFilePaths {
-    [CmdletBinding()]
     param (
-        [Parameter()]
-        [object]
-        $Paths
+        [object]$Paths,
+        [bool]$IncludeTests
     )
+
+    $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
 
     $filePaths = foreach ($path in $Paths) {
         $item = & $SafeCommands['Get-Item'] -LiteralPath $path
-        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension) {
+        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension -and ($IncludeTests -or $item.Name -notlike $testsPattern)) {
             $item.FullName
         }
-        elseif ($item -is [System.IO.DirectoryInfo] -and $PesterPreference.CodeCoverage.RecursePaths) {
+        elseif ($item -is [System.IO.DirectoryInfo] -and $PesterPreference.CodeCoverage.RecursePaths.Value) {
             $children = & $SafeCommands['Get-ChildItem'] -LiteralPath $item
-            Get-CodeCoverageFilePaths -Paths $children
+            Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests
         }
         elseif (-not $item.PsIsContainer) {
             # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
