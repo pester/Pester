@@ -150,7 +150,7 @@ function Get-CodeCoverageFilePaths {
             $item.FullName
         }
         elseif ($item -is [System.IO.DirectoryInfo] -and $PesterPreference.CodeCoverage.RecursePaths.Value) {
-            $children = & $SafeCommands['Get-ChildItem'] -LiteralPath $item
+            $children = & $SafeCommands['Get-ChildItem'] -LiteralPath $item | Select-Object -ExpandProperty FullName
             Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests
         }
         elseif (-not $item.PsIsContainer) {

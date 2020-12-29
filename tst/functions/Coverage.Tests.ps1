@@ -617,12 +617,15 @@ InPesterModuleScope {
 Describe 'Path resolution for test files' {
     BeforeAll {
         $root = (Get-PSDrive TestDrive).Root
+        $rootSubFolder = Join-Path -Path $root -ChildPath TestSubFolder
+
+        $null = New-Item -Path $rootSubFolder -ItemType Directory -ErrorAction SilentlyContinue
         $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.psm1) -ItemType File -ErrorAction SilentlyContinue
         $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.ps1) -ItemType File -ErrorAction SilentlyContinue
         $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
         $null = New-Item -Path $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1) -ItemType File -ErrorAction SilentlyContinue
-        $null = New-Item -Path $(Join-Path -Path $root -ChildPath SubFolder\TestScript3.ps1) -ItemType File -Force -ErrorAction SilentlyContinue
-        $null = New-Item -Path $(Join-Path -Path $root -ChildPath SubFolder\TestScript3.tests.ps1) -ItemType File -Force -ErrorAction SilentlyContinue
+        $null = New-Item -Path $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1) -Force -ItemType File -ErrorAction SilentlyContinue
+        $null = New-Item -Path $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.tests.ps1) -Force -ItemType File -ErrorAction SilentlyContinue
     }
     Context 'Using Path-input (auto-detect)' {
         It 'Includes script files by default when using wildcard path' {
@@ -633,7 +636,7 @@ Describe 'Path resolution for test files' {
             $PesterTests.Count | Should -Be 3
             $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.psm1)
             $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.ps1)
-            $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath SubFolder\TestScript3.ps1)
+            $PesterTests | Should -Contain $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1)
         }
         It 'Excludes test files by default when using wildcard path' {
             $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
@@ -683,8 +686,8 @@ Describe 'Path resolution for test files' {
             $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.ps1)
             $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
             $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
-            $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath SubFolder\TestScript3.ps1)
-            $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath SubFolder\TestScript3.tests.ps1)
+            $PesterTests | Should -Contain $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1)
+            $PesterTests | Should -Contain $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.tests.ps1)
         }
     }
 }
