@@ -386,11 +386,11 @@ function New-PesterContainer {
     able to re-use a lot of test-code.
 
     .PARAMETER Path
-    Specifies one or more paths to files containing tests. The value is a path\file
-    name or name pattern. Wildcards are permitted.
+    Specifies one or more paths to files containing tests. The value is a path\file
+    name or name pattern. Wildcards are permitted.
 
     .PARAMETER ScriptBlock
-    Specifies one or more scriptblocks containing tests.
+    Specifies one or more scriptblocks containing tests.
 
     .PARAMETER Data
     Allows a dictionary to be provided with parameter-values that should be used during
