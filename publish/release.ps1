@@ -4,6 +4,8 @@ param (
     [String] $PsGalleryApiKey,
     [String] $NugetApiKey,
     [String] $ChocolateyApiKey,
+    [String] $GitHubUsername,
+    [String] $GitHubToken,
     [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43',
     [Switch] $Force
 )
@@ -132,6 +134,27 @@ Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
 if (-not $isPreRelease -or $Force) {
     & nuget push $nupkg -Source https://api.nuget.org/v3/index.json -apikey $NugetApiKey
     & nuget push $nupkg -Source https://push.chocolatey.org/ -apikey $ChocolateyApiKey
+
+    if ([string]::IsNullOrWhiteSpace($GitHubUsername) -or [string]::IsNullOrWhiteSpace($GitHubToken)) {
+        Write-Host "Missing GitHub credentials, not triggering a Pester documentation update for $version"
+    } else {
+        $encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$($GitHubUsername):$($GitHubToken)"))
+        $Headers = @{
+            'Accept' = 'application/vnd.github.v3+json'
+            'Authorization' = "Basic $encodedCreds"
+        }
+        $Body = @{
+            'ref' = 'master'
+            'inputs' = @{
+                'pester-version' = $Version
+            }
+        }
+        # There can be caching issues between the time a packaged is pushed to the PS Gallery, and when it becomes searchable. Hopefully waiting one
+        # minute gives the Gallery enough time to process the new package and make it available
+        Start-Sleep -Seconds 60
+        # See https://docs.github.com/rest/reference/actions#create-a-workflow-dispatch-event for more information
+        Invoke-WebRequest -Uri 'https://api.github.com/repos/pester/docs/actions/workflows/update-from-pester.yml/dispatches' -Method POST -Headers $Headers -Body (ConvertTo-JSON -InputObject $Body)
+    }
 }
 else {
     Write-Host "This is pre-release $version, not pushing to Nuget and Chocolatey."
