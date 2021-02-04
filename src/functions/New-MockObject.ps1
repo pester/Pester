@@ -18,6 +18,11 @@ $obj.GetType().FullName
     System.Diagnostics.Process
 ```
 
+.EXAMPLE
+```powershell
+$obj = New-MockObject -Type 'System.Diagnostics.Process' -Type 'Microsoft.ActiveDirectory.Management.ADObject' -Properties @{Name = 'Mocked' }
+```
+
 .LINK
 https://pester.dev/docs/commands/New-MockObject
 
@@ -29,9 +34,25 @@ https://pester.dev/docs/usage/mocking
     param (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [type]$Type
+        [type]$Type,
+        [ValidateNotNullOrEmpty()]
+        [hashtable]$Properties
     )
 
-    [System.Runtime.Serialization.Formatterservices]::GetUninitializedObject($Type)
+    $mock = [System.Runtime.Serialization.Formatterservices]::GetUninitializedObject($Type)
+
+    if ($null -ne $Properties) {
+        foreach ($property in $Properties.GetEnumerator()) {
+            $addMemberSplat = @{
+                MemberType = [System.Management.Automation.PSMemberTypes]::NoteProperty
+                Name       = "$($property.Key)"
+                Value      = "$($property.Value)"
+                Force      = $true
+            }
+            $mock | Add-Member @addMemberSplat
+        }
+    }
+
+    $mock
 
 }

@@ -7,3 +7,19 @@ describe 'New-MockObject' {
         New-MockObject -Type $type | should -beoftype $type
     }
 }
+
+Describe 'New-MockObject-With-Properties' {
+    # System.Diagnostics.Process.Id is normally read only, using the
+    # Properties switch in New-MockObject should allow us to mock these.
+    it 'Fails with just a normal mock' {
+        $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process'
+
+        { $mockedProcess.Id = 123 } | Should -Throw
+    }
+
+    it 'Works when you mock the property' {
+        $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{Id = 123 }
+
+        $mockedProcess.Id | Should -Be 123
+    }
+}
