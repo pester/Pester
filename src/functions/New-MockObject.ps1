@@ -20,7 +20,7 @@ $obj.GetType().FullName
 
 .EXAMPLE
 ```powershell
-$obj = New-MockObject -Type 'System.Diagnostics.Process' -Type 'Microsoft.ActiveDirectory.Management.ADObject' -Properties @{Name = 'Mocked' }
+$obj = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{ Id = 123 }
 ```
 
 .LINK
