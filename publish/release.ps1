@@ -99,6 +99,7 @@ if (Test-Path $nugetDir) {
 }
 $null = New-Item -ItemType Directory -Path $nugetDir
 Copy-Item "$PSScriptRoot/../bin/*" $nugetDir -Recurse
+Copy-Item "$PSScriptRoot/../LICENSE" $nugetDir -Recurse
 
 Out-File $nugetDir\VERIFICATION.txt -InputObject @"
 VERIFICATION
