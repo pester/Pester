@@ -22,4 +22,9 @@ Describe 'New-MockObject-With-Properties' {
 
         $mockedProcess.Id | Should -Be 123
     }
+
+    it 'Should preserve types' {
+        $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{Id = 123 }
+        $mockedProcess.Id | Should -BeOfType [int]
+    }
 }

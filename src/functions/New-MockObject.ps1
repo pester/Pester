@@ -46,7 +46,7 @@ https://pester.dev/docs/usage/mocking
             $addMemberSplat = @{
                 MemberType = [System.Management.Automation.PSMemberTypes]::NoteProperty
                 Name       = "$($property.Key)"
-                Value      = "$($property.Value)"
+                Value      = $property.Value
                 Force      = $true
             }
             $mock | Add-Member @addMemberSplat
