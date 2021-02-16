@@ -540,7 +540,7 @@ $configuration = [PesterConfiguration]@{
         ErrorAction = 'Continue'
     }
     CodeCoverage = @{
-        Enable = $true
+        Enabled = $true
     }
 }
 
