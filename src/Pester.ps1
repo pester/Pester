@@ -980,51 +980,6 @@ function Invoke-Pester {
 
             $plugins +=  @(Get-MockPlugin)
 
-            if ($PesterPreference.CodeCoverage.Enabled.Value) {
-                $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
-                        $PesterPreference.CodeCoverage.Path.Value
-                    }
-                    else {
-                        # no paths specific to CodeCoverage were provided, resolve them from
-                        # tests by using the whole directory in which the test or the
-                        # provided directory. We might need another option to disable this convention.
-                        @(foreach ($p in $PesterPreference.Run.Path.Value) {
-                            # this is a bit ugly, but the logic here is
-                            # that we check if the path exists,
-                            # and if it does and is a file then we return the
-                            # parent directory, otherwise we got a directory
-                            # and return just it
-                            $i = & $SafeCommands['Get-Item'] $p
-                            if ($i.PSIsContainer) {
-                                & $SafeCommands['Join-Path'] $i.FullName "*"
-                            }
-                            else {
-                                & $SafeCommands['Join-Path'] $i.Directory.FullName "*"
-                            }
-                        })
-                    })
-
-                $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
-                        $PesterPreference.CodeCoverage.OutputPath.Value
-                    }
-                    else {
-                        & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
-                    }
-
-                $CodeCoverage = @{
-                    Enabled = $PesterPreference.CodeCoverage.Enabled.Value
-                    OutputFormat = $PesterPreference.CodeCoverage.OutputFormat.Value
-                    OutputPath = $outputPath
-                    OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
-                    ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
-                    Path = @($paths)
-                    TestExtension = $PesterPreference.Run.TestExtension.Value
-                }
-
-                $plugins += (Get-CoveragePlugin)
-                $pluginConfiguration["Coverage"] = $CodeCoverage
-            }
-
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
                 -ExcludeTag $PesterPreference.Filter.ExcludeTag.Value `
@@ -1048,6 +1003,55 @@ function Invoke-Pester {
                     $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] {$_.Item.FullName }))
                     $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -File $_ })
                 }
+            }
+
+            if ($PesterPreference.CodeCoverage.Enabled.Value) {
+                $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
+                    $PesterPreference.CodeCoverage.Path.Value
+                }
+                else {
+                    $uniquePaths = [System.Collections.Generic.HashSet[string]]@()
+
+                    # no paths specific to CodeCoverage were provided, resolve them from
+                    # containers following the default convention where all files in the directory in which
+                    # the test file is placed are included
+                    @(foreach ($c in $containers.GetEnumerator()) {
+                        # this is a bit ugly, but the logic here is
+                        # that we check if the path exists,
+                        # and if it does and is a file then we return the
+                        # parent directory, otherwise we got a directory
+                        # and return just it
+                        $p = $c.Item
+                        $i = & $SafeCommands['Get-Item'] $p
+                        if ($i.PSIsContainer) {
+                            $null = $uniquePaths.Add((& $SafeCommands['Join-Path'] $i.FullName "*"))
+                        }
+                        else {
+                            $null = $uniquePaths.Add((& $SafeCommands['Join-Path'] $i.Directory.FullName "*"))
+                        }
+                    })
+                    $uniquePaths
+                })
+
+                $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
+                        $PesterPreference.CodeCoverage.OutputPath.Value
+                    }
+                    else {
+                        & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
+                    }
+
+                $CodeCoverage = @{
+                    Enabled = $PesterPreference.CodeCoverage.Enabled.Value
+                    OutputFormat = $PesterPreference.CodeCoverage.OutputFormat.Value
+                    OutputPath = $outputPath
+                    OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
+                    ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
+                    Path = @($paths)
+                    TestExtension = $PesterPreference.Run.TestExtension.Value
+                }
+
+                $plugins += (Get-CoveragePlugin)
+                $pluginConfiguration["Coverage"] = $CodeCoverage
             }
 
             # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
