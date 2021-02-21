@@ -582,11 +582,11 @@ function Invoke-Pester {
 
     .EXAMPLE
     $config = [PesterConfiguration]::Default
-    $config.TestResults.Enabled = $true
+    $config.TestResult.Enabled = $true
     Invoke-Pester -Configuration $config
 
     This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
-    It uses advanced configuration to enable testresult-output to file. Access $config.TestResults
+    It uses advanced configuration to enable testresult-output to file. Access $config.TestResult
     to see other testresult options like  output path and format and their default values.
 
     .LINK
