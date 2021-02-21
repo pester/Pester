@@ -89,6 +89,7 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20
       - job:
         workspace:
           clean: all
@@ -135,3 +136,4 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20
