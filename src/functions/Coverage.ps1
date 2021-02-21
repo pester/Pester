@@ -53,14 +53,14 @@ function Get-CoverageInfoFromUserInput {
         # Auto-detect IncludeTests-value from path-input if user provides path that is a test
         $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension.Value)"
 
-        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
+        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests -RecursePaths $PesterPreference.CodeCoverage.RecursePaths.Value
     }
 
     Resolve-CoverageInfo -UnresolvedCoverageInfo $unresolvedCoverageInfo
 }
 
 function New-CoverageInfo {
-    param ($Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false)
+    param ($Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false, $RecursePaths = $true)
 
     return [pscustomobject]@{
         Path         = $Path
@@ -69,6 +69,7 @@ function New-CoverageInfo {
         StartLine    = $StartLine
         EndLine      = $EndLine
         IncludeTests = $IncludeTests
+        RecursePaths = $RecursePaths
     }
 }
 
@@ -85,12 +86,14 @@ function Get-CoverageInfoFromDictionary {
     [string] $class = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Class', 'c'
     [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
     $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests'
+    $recursePaths = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'RecursePaths'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
     [bool] $includeTests = Convert-UnknownValueToInt -Value $includeTests -DefaultValue 0
+    [bool] $recursePaths = Convert-UnknownValueToInt -Value $recursePaths -DefaultValue 1
 
-    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests
+    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests -RecursePaths $recursePaths
 }
 
 function Convert-UnknownValueToInt {
@@ -109,6 +112,7 @@ function Resolve-CoverageInfo {
 
     $paths = $UnresolvedCoverageInfo.Path
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
+    $recursePaths = $UnresolvedCoverageInfo.RecursePaths
     $resolvedPaths = @()
 
     try {
@@ -121,7 +125,7 @@ function Resolve-CoverageInfo {
         return
     }
 
-    $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths -IncludeTests $includeTests
+    $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths -IncludeTests $includeTests -RecursePaths $recursePaths
 
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
@@ -139,7 +143,8 @@ function Resolve-CoverageInfo {
 function Get-CodeCoverageFilePaths {
     param (
         [object]$Paths,
-        [bool]$IncludeTests
+        [bool]$IncludeTests,
+        [bool]$RecursePaths
     )
 
     $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
@@ -149,9 +154,17 @@ function Get-CodeCoverageFilePaths {
         if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension -and ($IncludeTests -or $item.Name -notlike $testsPattern)) {
             $item.FullName
         }
-        elseif ($item -is [System.IO.DirectoryInfo] -and $PesterPreference.CodeCoverage.RecursePaths.Value) {
-            $children = & $SafeCommands['Get-ChildItem'] -LiteralPath $item | Select-Object -ExpandProperty FullName
-            Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests
+        elseif ($item -is [System.IO.DirectoryInfo]) {
+            $children = foreach ($i in & $SafeCommands['Get-ChildItem'] -LiteralPath $item) {
+                # if we recurse paths return both directories and files so they can be resolved in the
+                # recursive call to Get-CodeCoverageFilePaths, otherwise return just files
+                if ($RecursePaths) {
+                    $i
+                }
+                elseif (-not $i.PSIsContainer) {
+                    $i.FullName
+                }}
+            Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
         }
         elseif (-not $item.PsIsContainer) {
             # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
