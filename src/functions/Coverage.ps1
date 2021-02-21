@@ -159,10 +159,10 @@ function Get-CodeCoverageFilePaths {
                 # if we recurse paths return both directories and files so they can be resolved in the
                 # recursive call to Get-CodeCoverageFilePaths, otherwise return just files
                 if ($RecursePaths) {
-                    $i
+                    $i.PSPath
                 }
                 elseif (-not $i.PSIsContainer) {
-                    $i.FullName
+                    $i.PSPath
                 }}
             Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
         }
