@@ -1018,6 +1018,7 @@ function Invoke-Pester {
                     OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
                     ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
                     Path = @($paths)
+                    RecursePaths = $PesterPreference.CodeCoverage.RecursePaths.Value
                     TestExtension = $PesterPreference.Run.TestExtension.Value
                 }
 

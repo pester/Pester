@@ -572,6 +572,7 @@ namespace Pester
         private StringOption _outputEncoding;
         private StringArrayOption _path;
         private BoolOption _excludeTests;
+        private BoolOption _recursePaths;
 
         public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
 
@@ -587,7 +588,7 @@ namespace Pester
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
-
+            RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
         }
 
         public CodeCoverageConfiguration(IDictionary configuration) : this()
@@ -600,6 +601,7 @@ namespace Pester
                 OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputEncoding;
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
+                RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
             }
         }
 
@@ -695,6 +697,22 @@ namespace Pester
                 else
                 {
                     _excludeTests = new BoolOption(_excludeTests, value.Value);
+                }
+            }
+        }
+
+        public BoolOption RecursePaths
+        {
+            get { return _recursePaths; }
+            set
+            {
+                if (_recursePaths == null)
+                {
+                    _recursePaths = value;
+                }
+                else
+                {
+                    _recursePaths = new BoolOption(_recursePaths, value.Value);
                 }
             }
         }
