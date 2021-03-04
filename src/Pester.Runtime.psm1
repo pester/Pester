@@ -2383,7 +2383,7 @@ function Invoke-File {
         $Path,
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
-        [Collections.IDictionary] $Data
+        [Collections.IDictionary] $Data = @{}
     )
 
     $sb = {
