@@ -409,13 +409,13 @@ function Should-InvokeInternal {
 
     if ($Negate) {
         # Negative checks
-        if ($Exactly -and $matchingCalls.Count -eq $Times) {
+        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey("Times"))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less or more than $Times, but it was called exactly $Times times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times"
             }
         }
-        elseif (-Not $Exactly -and $matchingCalls.Count -ge $Times) {
+        elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times but was called $($matchingCalls.Count) times"
