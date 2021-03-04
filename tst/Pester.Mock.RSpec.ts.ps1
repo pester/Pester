@@ -717,4 +717,30 @@ i -PassThru:$PassThru {
             # $command.DisplayName
         }
     }
+
+    b "parameter filter conflicting arguments" {
+        t "Should -Invoke parameter filter should not use 'arguments' name internally to avoid conflict" {
+            # https://github.com/pester/Pester/issues/1819
+            $sb = {
+                Context "a" {
+                    It "b" {
+                        function a ($Arguments) {}
+
+                        Mock a
+
+                        a -Arguments @{ Name = "Jakub" }
+
+                        Should -Invoke a -ParameterFilter { "Jakub" -eq $Arguments.Name }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
 }
