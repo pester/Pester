@@ -1046,7 +1046,7 @@ function Run-Test {
                 }
 
                 foreach($private:____d in $____parameters.Data.GetEnumerator()) {
-                    & $____parameters.Set_Variable -Name $private:____d.Name -Value $private:____d.Value
+                    & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
                 }
             }
 

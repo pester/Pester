@@ -149,12 +149,16 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         # but make sure we are invoking it in the caller session state, because
         # paths don't stay attached to session state
         $invokePester =  {
-            param($private:Path, $private:Out_Null)
-            Invoke-Pester -Path $Path | & $Out_Null
+            param($private:Path, $private:ScriptParameters, $private:Out_Null)
+            $private:c = New-PesterContainer -Path $Path -Data $ScriptParameters
+            Invoke-Pester -Container $c Path | & $Out_Null
         }
 
+        # get PSBoundParameters from caller script to allow interactive execution of parameterized tests.
+        $scriptBoundParameters = $SessionState.PSVariable.GetValue("PSBoundParameters")
+
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
-        & $invokePester $ScriptName $SafeCommands['Out-Null']
+        & $invokePester $ScriptName $scriptBoundParameters $SafeCommands['Out-Null']
         $script:lastExecutedFile = $ScriptName
         $script:lastExecutedAt = [datetime]::Now
     }
