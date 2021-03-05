@@ -868,6 +868,59 @@ i -PassThru:$PassThru {
             }
         }
 
+        dt "Providing path with wildcard that is in directory names should expand to all directories and all their test files" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1 -and $Value -ne 2) {
+                                throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $tmp1 = $tmp + "PrefixDir1"
+                $tmp2 = $tmp + "PrefixDir2"
+                $null = New-Item ($tmp1) -Force -ItemType Container
+                $null = New-Item ($tmp2) -Force -ItemType container
+                $file1 = "$tmp1/file1.Tests.ps1"
+                $file2 = "$tmp2/file2.Tests.ps1"
+                $sb | Set-Content -Path $file1
+                $sb | Set-Content -Path $file2
+
+                # passing path to a wildcarded directory, that only uses part of the name as prefix
+                $container = New-PesterContainer -Path ($tmp + "Prefix*" ) -Data @(
+                    @{ Value = 1 }
+                    @{ Value = 2 }
+                )
+
+                $r = Invoke-Pester -Container $container -PassThru # -Output Normal
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[2].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[3].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file1 -and (Test-Path $file1)) {
+                    Remove-Item $file1 -Force
+                }
+
+                if ($null -ne $file2 -and (Test-Path $file2)) {
+                    Remove-Item $file2 -Force
+                }
+            }
+        }
+
         t "Providing -Path that resolves to the same path as a parametrized script should skip that path" {
             try {
                 $sb1 = {

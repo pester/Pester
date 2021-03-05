@@ -17,32 +17,35 @@ function Find-File {
             }
 
             if ((& $script:SafeCommands['Test-Path'] $p)) {
-                $item = & $SafeCommands['Get-Item'] $p
+                # this can expand to more than one path when wildcard is used
+                $items = & $SafeCommands['Get-Item'] $p
 
-                if ($item.PSIsContainer) {
-                    # this is an existing directory search it for tests file
-                    & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
-                    continue
+                foreach ($item in $items) {
+                    if ($item.PSIsContainer) {
+                        # this is an existing directory search it for tests file
+                        & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File
+                    }
+                    elseif ("FileSystem" -ne $item.PSProvider.Name) {
+                        # item is not a directory and exists but is not a file so we are not interested
+                    }
+                    else {
+                        if (".ps1" -ne $item.Extension) {
+                            & $SafeCommands['Write-Error'] "Script path '$item' is not a ps1 file." -ErrorAction Stop
+                        }
+
+                        # this is some file, we don't care if it is just a .ps1 file or .Tests.ps1 file, what the user provided we use
+
+                        # add unresolved path to have a note of the original path used to resolve this
+                        & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
+                        $item
+                    }
                 }
-
-                if ("FileSystem" -ne $item.PSProvider.Name) {
-                    # item is not a directory and exists but is not a file so we are not interested
-                    continue
-                }
-
-                if (".ps1" -ne $item.Extension) {
-                    & $SafeCommands['Write-Error'] "Script path '$p' is not a ps1 file." -ErrorAction Stop
-                }
-
-                # this is some file, we don't care if it is just a .ps1 file or .Tests.ps1 file
-                & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
-                $item
-                continue
             }
-
-            # this is a path that does not exist so let's hope it is
-            # a wildcarded path that will resolve to some files
-            & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
+            else {
+                # this is a path that does not exist so let's hope it is
+                # a wildcarded path that will resolve to some files
+                & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
+            }
         }
 
     Filter-Excluded -Files $files -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
