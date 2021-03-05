@@ -17,8 +17,18 @@ function Find-File {
             }
 
             if ((& $script:SafeCommands['Test-Path'] $p)) {
-                # this can expand to more than one path when wildcard is used
+                # This can expand to more than one path when wildcard is used, those paths can be folders or files.
+                # We want to avoid expanding to paths that are not matching our filters, but also want to ensure that if
+                # user passes in MyTestFile.ps1 without the .Tests.ps1 it will still run.
+
+                # So at this step we look if we expanded the path to more than 1 item and use stricter rules with filtering.
+                # Or if the file was just a single file, we won't use stricter filtering for files.
+
+                # This allows us to use wildcards to get all .Tests.ps1 in the folder and all child folders, which is very useful.
+                # But prevents a rare scenario where you provide C:\files\*\MyTest.ps1, because in that case only .Tests.ps1 would be included.
+
                 $items = & $SafeCommands['Get-Item'] $p
+                $resolvedToMultipleFiles = $null -ne $items -and 1 -lt @($items).Length
 
                 foreach ($item in $items) {
                     if ($item.PSIsContainer) {
@@ -28,12 +38,22 @@ function Find-File {
                     elseif ("FileSystem" -ne $item.PSProvider.Name) {
                         # item is not a directory and exists but is not a file so we are not interested
                     }
+                    elseif ($resolvedToMultipleFiles) {
+                        # item was resolved from a wildcarded path only use it if it has test extension
+                        if ($item.FullName -like "*$Extension")
+                        {
+                            # add unresolved path to have a note of the original path used to resolve this
+                            & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
+                            $item
+                        }
+                    }
                     else {
+                        # this is some file, that was either provided directly, or resolved from wildcarded path as a single item,
+                        # we don't care what type of file it is, or if it has test extension (.Tests.ps1) we should try to run it
+                        # to allow any file that is provided directly to run
                         if (".ps1" -ne $item.Extension) {
                             & $SafeCommands['Write-Error'] "Script path '$item' is not a ps1 file." -ErrorAction Stop
                         }
-
-                        # this is some file, we don't care if it is just a .ps1 file or .Tests.ps1 file, what the user provided we use
 
                         # add unresolved path to have a note of the original path used to resolve this
                         & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item

@@ -868,7 +868,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        dt "Providing path with wildcard that is in directory names should expand to all directories and all their test files" {
+        t "Providing path with wildcard that is in directory names should expand to all directories and all their test files" {
             try {
                 $sb = {
                     param (
