@@ -4,7 +4,7 @@ param (
     [String] $PsGalleryApiKey,
     [String] $NugetApiKey,
     [String] $ChocolateyApiKey,
-    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43',
+    [String] $CertificateThumbprint = 'c7b0582906e5205b8399d92991694a614d0c0b22',
     [Switch] $Force
 )
 
