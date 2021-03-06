@@ -1122,6 +1122,7 @@ function Invoke-Pester {
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+                Write-CoverageReport $coverageReport
             }
 
             if (-not $PesterPreference.Debug.ReturnRawResultObject.Value) {

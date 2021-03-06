@@ -294,7 +294,7 @@ function Write-PesterReport {
 function Write-CoverageReport {
     param ([object] $CoverageReport)
 
-    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+    if ($null -eq $CoverageReport -or ($PesterPreference.Output.Verbosity.Value -notin 'Normal', 'Detailed', 'Diagnostic') -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
     }
 
