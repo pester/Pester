@@ -130,8 +130,18 @@ $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
 if ($CI) {
     $configuration.Run.Exit = $true
 
-    $configuration.CodeCoverage.Enabled = $false
+    $configuration.CodeCoverage.Enabled = $true
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
+
+    # experimental, will try to write breakpoints close together
+    # not one by one while it is figuring out AST.
+    # this appears to be significantly faster.
+    $configuration.CodeCoverage.DelayWritingBreakpoints = $true
+    # experimental, will delete BP as soon as it is hit
+    # only effective when DelayWritingBreakpoints is $true.
+    # this is me trying out an approach. Not sure about the impact.
+    $configuration.CodeCoverage.SingleHitBreakpoints = $true
+
 
     $configuration.TestResult.Enabled = $true
 }
