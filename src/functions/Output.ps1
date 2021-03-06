@@ -6,7 +6,7 @@ $script:ReportStrings = DATA {
         MessageOfs        = "', '"
 
         CoverageTitle     = 'Code coverage report:'
-        CoverageMessage   = 'Covered {2:P2} of {3:N0} analyzed {0} in {4:N0} {1}.'
+        CoverageMessage   = 'Covered {2:N2} % of {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
         MissedPlural      = 'Missed commands:'
         CommandSingular   = 'Command'
@@ -294,13 +294,14 @@ function Write-PesterReport {
 function Write-CoverageReport {
     param ([object] $CoverageReport)
 
-    if ($null -eq $CoverageReport -or ($PesterPreference.Output.Verbosity.Value -notin 'Normal', 'Detailed', 'Diagnostic') -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+    $writeToScreen = $PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic'
+    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
     }
 
     $totalCommandCount = $CoverageReport.NumberOfCommandsAnalyzed
     $fileCount = $CoverageReport.NumberOfFilesAnalyzed
-    $executedPercent = ($CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed).ToString("P2")
+    $executedPercent = $CoverageReport.CoveragePercent
 
     $command = if ($totalCommandCount -gt 1) {
         $ReportStrings.CommandPlural
@@ -324,21 +325,42 @@ function Write-CoverageReport {
         'Command'
     )
 
-    & $SafeCommands['Write-Host']
-    & $SafeCommands['Write-Host'] $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
+    $ReportStrings.CoverageTitle + "`n"
+    if ($writeToScreen) {
+        & $SafeCommands['Write-Host']
+        & $SafeCommands['Write-Host'] $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
+    }
 
     if ($CoverageReport.MissedCommands.Count -gt 0) {
-        & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
+        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount
+        $coverageMessage + "`n"
+        if ($writeToScreen) {
+            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.CoverageWarn
+        }
         if ($CoverageReport.MissedCommands.Count -eq 1) {
-            & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
+            $ReportStrings.MissedSingular + "`n"
+            if ($writeToScreen) {
+                & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
+            }
         }
         else {
-            & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
+            $ReportStrings.MissedPlural + "`n"
+            if ($writeToScreen) {
+                & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
+            }
         }
-        $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-Host']
+        $reportTable = $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-String']
+        $reportTable + "`n"
+        if ($writeToScreen) {
+            $reportTable | & $SafeCommands['Write-Host']
+        }
     }
     else {
-        & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
+        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount
+        $coverageMessage + "`n"
+        if ($writeToScreen) {
+            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.Coverage
+        }
     }
 }
 
