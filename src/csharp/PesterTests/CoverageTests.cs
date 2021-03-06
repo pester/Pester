@@ -1,9 +1,12 @@
-using System.IO;
-using Pester;
-using Xunit;
-
 namespace PesterTests
 {
+    using System.IO;
+    using Pester;
+    using Xunit;
+
+    /// <summary>
+    /// Coverage Tests
+    /// </summary>
     public class CoverageTests
     {
         Coverage coverage;

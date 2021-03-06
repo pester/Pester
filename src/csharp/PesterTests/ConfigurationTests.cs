@@ -1,8 +1,11 @@
-using Pester;
-using Xunit;
-
 namespace PesterTests
 {
+    using Pester;
+    using Xunit;
+
+    /// <summary>
+    /// Configuration Tests
+    /// </summary>
     public class ConfigurationTests
     {
         [Fact]

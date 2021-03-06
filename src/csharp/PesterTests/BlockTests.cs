@@ -1,8 +1,11 @@
-using Pester;
-using Xunit;
-
 namespace PesterTests
 {
+    using Pester;
+    using Xunit;
+
+    /// <summary>
+    /// Block Tests
+    /// </summary>
     public class BlockTests
     {
         public readonly Block block;

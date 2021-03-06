@@ -1,9 +1,12 @@
-using Pester;
-using System.IO;
-using Xunit;
-
 namespace PesterTests
 {
+    using Pester;
+    using System.IO;
+    using Xunit;
+
+    /// <summary>
+    /// Container Tests
+    /// </summary>
     public class ContainerTests
     {
         Container container;
