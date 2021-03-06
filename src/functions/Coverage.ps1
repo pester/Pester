@@ -614,6 +614,7 @@ function Get-CoverageReport {
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
         AnalyzedFiles            = $analyzedFiles
+        CoveragePercent          = if ($null -eq $CommandCoverage -or $CommandCoverage.Count -eq 0) { 0 } else { ($hitCommands.Count / $CommandCoverage.Count) * 100 }
     }
 }
 
