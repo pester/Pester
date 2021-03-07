@@ -23,31 +23,18 @@ function Enter-CoverageAnalysis {
     $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
     if ($PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
         Write-Host "Figuring out $($breakpoints.Count) bps took $($sw.ElapsedMilliseconds) ms"
-        $action = {}
+        $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        }
+        else {
+            # empty ScriptBlock
+            {}
+        }
         foreach ($breakpoint in $breakpoints) {
             $params = $breakpoint.Breakpointlocation
-
-            # this is reference object, we pass it to the closure and update it when we create the object
-            # later we will update the Id to pass it back to the action so the BP can disable itself when hit
-            # so we only eat the overhead of running the action once
-            $breakpointReference = @{ Id = $null }
-            # closure captures variables in the local scope
-            # create an extra scope to capture only reference to the params
-            if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
-                $params.Action = & {
-                    param($BreakpointReference)
-                        $BreakpointReference = $BreakpointReference
-                        return {
-                            & $SafeCommands['Remove-PSBreakpoint'] -Id $BreakpointReference.Id
-                        }.GetNewClosure()
-                } -BreakpointReference $breakpointReference
-            }
-            else {
-                $params.Action = $action
-            }
+            $params.Action = $action
 
             $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
-            $breakpointReference.Id = $breakpoint.Breakpoint.Id
         }
 
         $sw.Stop()
