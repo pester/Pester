@@ -1,12 +1,9 @@
+using System.IO;
+using Pester;
+using Xunit;
+
 namespace PesterTests
 {
-    using System.IO;
-    using Pester;
-    using Xunit;
-
-    /// <summary>
-    /// Coverage Tests
-    /// </summary>
     public class CoverageTests
     {
         Coverage coverage;
@@ -17,19 +14,13 @@ namespace PesterTests
         }
 
         [Fact]
-        /// <summary>
-        /// Test create
-        /// </summary>
         public void Test_Create()
         {
             Coverage testCoverage = Coverage.Create();
-            Assert.NotNull (testCoverage);
+            Assert.NotNull(testCoverage);
         }
 
         [Fact]
-        /// <summary>
-        /// Test Coverage String
-        /// </summary>
         public void Test_ToString_ShouldReturnPercentStringForLiteralDecimal()
         {
             coverage.CoveragePercent = 1.000M;
@@ -39,9 +30,6 @@ namespace PesterTests
         }
 
         [Fact]
-        /// <summary>
-        /// Test Coverage String
-        /// </summary>
         public void Test_ToString_ShouldReturnPercentStringForTypedDecimal()
         {
             coverage.CoveragePercent = (decimal)1.0;
@@ -50,10 +38,7 @@ namespace PesterTests
             Assert.Equal("100%", coveragePercent);
         }
 
-                [Fact]
-        /// <summary>
-        /// Test Coverage String
-        /// </summary>
+        [Fact]
         public void Test_ToString_ShouldReturnPercentStringForValidDecimal()
         {
             coverage.CoveragePercent = (decimal)1;

@@ -1,8 +1,8 @@
+using Pester;
+using Xunit;
+
 namespace PesterTests
 {
-    using Pester;
-    using Xunit;
-
     /// <summary>
     /// Factory Tests
     /// TODO test implementations
@@ -10,9 +10,6 @@ namespace PesterTests
     public class FactoryTests
     {
         [Fact]
-        /// <summary>
-        /// Test CreateNoteProperty
-        /// </summary>
         public void Test_CreateNoteProperty()
         {
             var name = "test";
@@ -22,36 +19,24 @@ namespace PesterTests
         }
 
         [Fact]
-        /// <summary>
-        /// Test CreateNoteProperty
-        /// </summary>
         public void Test_CreateDictionary()
         {
             var actual = Factory.CreateDictionary();
         }
 
         [Fact]
-        /// <summary>
-        /// Test CreateRuntimeDefinedParameterDictionary
-        /// </summary>
         public void Test_CreateRuntimeDefinedParameterDictionary()
         {
             var actual = Factory.CreateDictionary();
         }
 
         [Fact]
-        /// <summary>
-        /// Test CreateCollection
-        /// </summary>
         public void Test_CreateCollection()
         {
             var actual = Factory.CreateCollection();
         }
 
         [Fact]
-        /// <summary>
-        /// Test CreateShouldErrorRecord
-        /// </summary>
         public void Test_CreateShouldErrorRecord()
         {
             string message = null;
@@ -70,9 +55,6 @@ namespace PesterTests
         }
 
         [Fact]
-        /// <summary>
-        /// Test CreateErrorRecord
-        /// </summary>
         public void Test_CreateErrorRecord()
         {
             string errorId = null;

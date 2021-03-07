@@ -1,15 +1,12 @@
 namespace PesterTests
 {
-    using Pester;
     using System.IO;
+    using Pester;
     using Xunit;
 
-    /// <summary>
-    /// Container Tests
-    /// </summary>
     public class ContainerTests
     {
-        Container container;
+        private readonly Container container;
 
         public ContainerTests()
         {
@@ -17,16 +14,13 @@ namespace PesterTests
         }
 
         [Fact]
-        /// <summary>
-        /// Test create
-        /// </summary>
         public void Test_Create()
         {
             Container testContainer = Container.Create();
             Assert.NotNull (testContainer);
         }
 
-        [Fact(Skip="check null")]
+        [Fact(Skip = "check null")]
         /// <summary>
         /// Test create from block
         /// </summary>
@@ -38,7 +32,7 @@ namespace PesterTests
             Assert.NotNull (testContainer);
         }
 
-        [Fact(Skip="check null")]
+        [Fact(Skip = "check null")]
         /// <summary>
         /// Test create from file
         /// </summary>
