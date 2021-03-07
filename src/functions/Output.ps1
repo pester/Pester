@@ -5,8 +5,8 @@ $script:ReportStrings = DATA {
         TagMessage        = ' with Tags {0}'
         MessageOfs        = "', '"
 
-        CoverageTitle     = 'Code coverage report:'
-        CoverageMessage   = 'Covered {2:N2} % of {3:N0} analyzed {0} in {4:N0} {1}.'
+        CoverageTitle     = 'Code Coverage report:'
+        CoverageMessage   = 'Covered {2:0.##}% / {5:0.##}%. {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
         MissedPlural      = 'Missed commands:'
         CommandSingular   = 'Command'
@@ -57,7 +57,6 @@ $script:ReportTheme = DATA {
         Foreground       = 'White'
         Information      = 'DarkGray'
         Coverage         = 'White'
-        CoverageWarn     = 'DarkRed'
     }
 }
 
@@ -295,6 +294,7 @@ function Write-CoverageReport {
     param ([object] $CoverageReport)
 
     $writeToScreen = $PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic'
+    $writeMissedCommands = $PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic'
     if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
     }
@@ -325,41 +325,36 @@ function Write-CoverageReport {
         'Command'
     )
 
-    $ReportStrings.CoverageTitle + "`n"
-    if ($writeToScreen) {
-        & $SafeCommands['Write-Host']
-        & $SafeCommands['Write-Host'] $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
-    }
-
     if ($CoverageReport.MissedCommands.Count -gt 0) {
-        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount
+        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount, $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
         $coverageMessage + "`n"
+        $color = if ($writeToScreen -and $CoverageReport.CoveragePercent -ge $PesterPreference.CodeCoverage.CoveragePercentTarget.Value) { $ReportTheme.Pass } else { $ReportTheme.Fail }
         if ($writeToScreen) {
-            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.CoverageWarn
+            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $color
         }
         if ($CoverageReport.MissedCommands.Count -eq 1) {
             $ReportStrings.MissedSingular + "`n"
-            if ($writeToScreen) {
-                & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
+            if ($writeMissedCommands) {
+                & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $color
             }
         }
         else {
             $ReportStrings.MissedPlural + "`n"
-            if ($writeToScreen) {
-                & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
+            if ($writeMissedCommands) {
+                & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $color
             }
         }
         $reportTable = $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-String']
         $reportTable + "`n"
-        if ($writeToScreen) {
-            $reportTable | & $SafeCommands['Write-Host']
+        if ($writeMissedCommands) {
+            $reportTable | & $SafeCommands['Write-Host'] -Foreground $ReportTheme.Coverage
         }
     }
     else {
         $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount
         $coverageMessage + "`n"
         if ($writeToScreen) {
-            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.Coverage
+            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.Pass
         }
     }
 }
@@ -521,6 +516,13 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+    }
+
+
+    $p.ContainerRunStart = {
+        param ($Context)
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
