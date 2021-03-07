@@ -11,6 +11,7 @@ namespace Pester
         }
 
         public decimal CoveragePercent { get; set; }
+        public decimal CoveragePercentTarget { get; set; }
 
         public string CoverageReport { get; set; }
 
@@ -25,7 +26,7 @@ namespace Pester
 
         public override string ToString()
         {
-            return string.Format("{0:N2} %", CoveragePercent);
+            return string.Format("{0:0.##}% / {1:0.##}%", CoveragePercent, CoveragePercentTarget);
         }
     }
 }

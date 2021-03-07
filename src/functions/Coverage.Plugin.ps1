@@ -1,9 +1,9 @@
 function Get-CoveragePlugin {
-    New-PluginObject -Name "Coverage" -Start {
+    New-PluginObject -Name "Coverage" -RunStart {
         param($Context)
 
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $logger = if ($Context.WriteDebugMessages) {
-            $sw = [System.Diagnostics.Stopwatch]::StartNew()
             # return partially apply callback to the logger when the logging is enabled
             # or implicit null
             {
@@ -16,6 +16,10 @@ function Get-CoveragePlugin {
             & $logger "Starting code coverage."
         }
 
+        if ($PesterPreference.Output.Verbosity.Value -ne "None") {
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting code coverage."
+        }
+
         $config = $Context.Configuration['Coverage']
 
         if ($null -ne $logger) {
@@ -24,13 +28,17 @@ function Get-CoveragePlugin {
 
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger
 
-        $Context.GlobalPluginData.Add('Coverage', @{
+        $Context.Data.Add('Coverage', @{
             CommandCoverage = $breakpoints
             CoverageReport = $null
         })
 
+        $count = @($breakpoints).Count
         if ($null -ne $logger) {
-            & $logger "Added $($breakpoints.Counts) breakpoints in $($sw.ElapsedMilliseconds) ms."
+            & $logger "Added $count breakpoints in $($sw.ElapsedMilliseconds) ms."
+        }
+        if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage set $count breakpoints in $($sw.ElapsedMilliseconds) ms."
         }
     } -End {
         param($Context)
