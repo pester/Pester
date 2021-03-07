@@ -519,9 +519,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     }
 
 
-    $p.ContainerRunStart = {
-        param ($Context)
-
+    $p.RunStart = {
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests."
     }
 
