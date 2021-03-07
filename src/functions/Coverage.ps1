@@ -5,7 +5,10 @@ function Enter-CoverageAnalysis {
         [ScriptBlock] $Logger
     )
 
-    Write-Host "Setting bps"
+    if ($null -ne $logger) {
+        & $logger "Figuring out breakpoint positions."
+    }
+
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $coverageInfo = foreach ($object in $CodeCoverage) {
             Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
@@ -21,25 +24,37 @@ function Enter-CoverageAnalysis {
 
 
     $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
-    if ($PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
-        Write-Host "Figuring out $($breakpoints.Count) bps took $($sw.ElapsedMilliseconds) ms"
-        $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
-            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
-        }
-        else {
-            # empty ScriptBlock
-            {}
-        }
-        foreach ($breakpoint in $breakpoints) {
-            $params = $breakpoint.Breakpointlocation
-            $params.Action = $action
-
-            $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
-        }
-
-        $sw.Stop()
+    if ($null -ne $logger) {
+        & $logger "Figuring out $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
     }
-    Write-Host "Setting $($breakpoints.Count) bps took $($sw.ElapsedMilliseconds) ms"
+    $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+        if ($null -ne $logger) {
+            & $logger "Using single hit breakpoints."
+        }
+
+        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+    }
+    else {
+        if ($null -ne $logger) {
+            & $logger "Using normal breakpoints."
+        }
+
+        {} # empty ScriptBlock
+    }
+
+    foreach ($breakpoint in $breakpoints) {
+        $params = $breakpoint.Breakpointlocation
+        $params.Action = $action
+
+        $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+    }
+
+    $sw.Stop()
+
+    if ($null -ne $logger) {
+        & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+    }
+
     return $breakpoints
 }
 
@@ -47,6 +62,12 @@ function Exit-CoverageAnalysis {
     param ([object] $CommandCoverage)
 
     & $SafeCommands['Set-StrictMode'] -Off
+
+    if ($null -ne $logger) {
+        & $logger "Removing breakpoints."
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne.
     # BUT that is correct in this case. We are filtering the list of breakpoints
@@ -56,6 +77,10 @@ function Exit-CoverageAnalysis {
     $breakpoints = @($CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0) {
         & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
+    }
+
+    if ($null -ne $logger) {
+        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
     }
 }
 

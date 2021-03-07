@@ -193,6 +193,16 @@ namespace Pester
         {
             return new DecimalOption(string.Empty, value, value);
         }
+
+        public static implicit operator DecimalOption(int value)
+        {
+            return new DecimalOption(string.Empty, value, value);
+        }
+
+        public static implicit operator DecimalOption(double value)
+        {
+            return new DecimalOption(string.Empty, (decimal) value, (decimal) value);
+        }
     }
 
     public class StringArrayOption : Option<string[]>
@@ -573,6 +583,10 @@ namespace Pester
         private StringArrayOption _path;
         private BoolOption _excludeTests;
         private BoolOption _recursePaths;
+        private BoolOption _delayBps;
+        private BoolOption _shBp;
+        private DecimalOption _coveragePercentTarget;
+
 
         public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
 
@@ -589,6 +603,7 @@ namespace Pester
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
+            CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%", 75m);
 
             SingleHitBreakpoints = new BoolOption("EXPERIMENTAL: Remove breakpoint when it is hit.", true);
             DelayWritingBreakpoints = new BoolOption("EXPERIMENTAL: Try writing breakpoints all at once.", true);
@@ -606,6 +621,7 @@ namespace Pester
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
                 RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
+                CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
 
                 SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
                 DelayWritingBreakpoints = configuration.GetValueOrNull<bool>("DelayWritingBreakpoints") ?? DelayWritingBreakpoints;
@@ -725,7 +741,23 @@ namespace Pester
         }
 
 
-        private BoolOption _delayBps;
+        public DecimalOption CoveragePercentTarget
+        {
+            get { return _coveragePercentTarget; }
+            set
+            {
+                if (_coveragePercentTarget == null)
+                {
+                    _coveragePercentTarget = value;
+                }
+                else
+                {
+                    _coveragePercentTarget = new DecimalOption(_coveragePercentTarget, value.Value);
+                }
+            }
+        }
+
+
         public BoolOption DelayWritingBreakpoints
         {
             get { return _delayBps; }
@@ -742,7 +774,6 @@ namespace Pester
             }
         }
 
-        private BoolOption _shBp;
         public BoolOption SingleHitBreakpoints
         {
             get { return _shBp; }

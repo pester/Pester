@@ -28,6 +28,7 @@ $state = [PSCustomObject] @{
 
     Plugin              = $null
     PluginConfiguration = $null
+    PluginData          = $null
     Configuration       = $null
 
     TotalStopWatch      = $null
@@ -45,6 +46,7 @@ function Reset-TestSuiteState {
 
     $state.Plugin = $null
     $state.PluginConfiguration = $null
+    $state.PluginData = $null
     $state.Configuration = $null
 
     $state.CurrentBlock = $null
@@ -991,6 +993,16 @@ function Run-Test {
     )
 
     $state.Discovery = $false
+    $steps = $state.Plugin.RunStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
+            Blocks        = $Block
+            Configuration = $state.PluginConfiguration
+            Data          = $state.PluginData
+            WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+        } -ThrowOnFailure
+    }
     foreach ($rootBlock in $Block) {
         $blockStartTime = $state.UserCodeStopWatch.Elapsed
         $overheadStartTime = $state.FrameworkStopWatch.Elapsed
@@ -1823,6 +1835,7 @@ function Invoke-Test {
         $Filter,
         $Plugin,
         $PluginConfiguration,
+        $PluginData,
         $Configuration
     )
 
@@ -1832,6 +1845,7 @@ function Invoke-Test {
 
     $state.Plugin = $Plugin
     $state.PluginConfiguration = $PluginConfiguration
+    $state.PluginData = $PluginData
     $state.Configuration = $Configuration
 
     # # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
