@@ -589,6 +589,10 @@ namespace Pester
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
+
+            SingleHitBreakpoints = new BoolOption("EXPERIMENTAL: Remove breakpoint when it is hit.", true);
+            DelayWritingBreakpoints = new BoolOption("EXPERIMENTAL: Try writing breakpoints all at once.", true);
+
         }
 
         public CodeCoverageConfiguration(IDictionary configuration) : this()
@@ -602,6 +606,9 @@ namespace Pester
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
                 RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
+
+                SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
+                DelayWritingBreakpoints = configuration.GetValueOrNull<bool>("DelayWritingBreakpoints") ?? DelayWritingBreakpoints;
             }
         }
 
@@ -713,6 +720,41 @@ namespace Pester
                 else
                 {
                     _recursePaths = new BoolOption(_recursePaths, value.Value);
+                }
+            }
+        }
+
+
+        private BoolOption _delayBps;
+        public BoolOption DelayWritingBreakpoints
+        {
+            get { return _delayBps; }
+            set
+            {
+                if (_delayBps == null)
+                {
+                    _delayBps = value;
+                }
+                else
+                {
+                    _delayBps = new BoolOption(_delayBps, value.Value);
+                }
+            }
+        }
+
+        private BoolOption _shBp;
+        public BoolOption SingleHitBreakpoints
+        {
+            get { return _shBp; }
+            set
+            {
+                if (_shBp == null)
+                {
+                    _shBp = value;
+                }
+                else
+                {
+                    _shBp = new BoolOption(_shBp, value.Value);
                 }
             }
         }

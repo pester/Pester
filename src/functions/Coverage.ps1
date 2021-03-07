@@ -5,6 +5,8 @@ function Enter-CoverageAnalysis {
         [ScriptBlock] $Logger
     )
 
+    Write-Host "Setting bps"
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $coverageInfo = foreach ($object in $CodeCoverage) {
             Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
         }
@@ -17,7 +19,28 @@ function Enter-CoverageAnalysis {
         return @()
     }
 
-    @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
+
+    $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
+    if ($PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
+        Write-Host "Figuring out $($breakpoints.Count) bps took $($sw.ElapsedMilliseconds) ms"
+        $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        }
+        else {
+            # empty ScriptBlock
+            {}
+        }
+        foreach ($breakpoint in $breakpoints) {
+            $params = $breakpoint.Breakpointlocation
+            $params.Action = $action
+
+            $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+        }
+
+        $sw.Stop()
+    }
+    Write-Host "Setting $($breakpoints.Count) bps took $($sw.ElapsedMilliseconds) ms"
+    return $breakpoints
 }
 
 function Exit-CoverageAnalysis {
@@ -303,25 +326,32 @@ function New-CoverageBreakpoint {
         return
     }
 
-    $params = @{
+    $params =  @{
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
-        Action = { }
+        Action = if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) { {} } else { $null }
     }
 
-    $breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+
+    if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
+        $breakpoint = & $SafeCommands['Set-PSBreakPoint'] @params
+    }
+    else {
+        $breakpoint = $null
+    }
 
     [pscustomobject] @{
-        File        = $Command.Extent.File
-        Class       = Get-ParentClassName -Ast $Command
-        Function    = Get-ParentFunctionName -Ast $Command
-        StartLine   = $Command.Extent.StartLineNumber
-        EndLine     = $Command.Extent.EndLineNumber
-        StartColumn = $Command.Extent.StartColumnNumber
-        EndColumn   = $Command.Extent.EndColumnNumber
-        Command     = Get-CoverageCommandText -Ast $Command
-        Breakpoint  = $breakpoint
+        File                = $Command.Extent.File
+        Class               = Get-ParentClassName -Ast $Command
+        Function            = Get-ParentFunctionName -Ast $Command
+        StartLine           = $Command.Extent.StartLineNumber
+        EndLine             = $Command.Extent.EndLineNumber
+        StartColumn         = $Command.Extent.StartColumnNumber
+        EndColumn           = $Command.Extent.EndColumnNumber
+        Command             = Get-CoverageCommandText -Ast $Command
+        Breakpoint          = $breakpoint
+        BreakpointLocation  = $params
     }
 }
 

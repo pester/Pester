@@ -1124,7 +1124,7 @@ function Invoke-Pester {
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
                 $reportText = Write-CoverageReport $coverageReport
 
-                $coverage = [Pester.Coverage]::Create()
+                $coverage = [Pester.CodeCoverage]::Create()
                 $coverage.CoverageReport = $reportText
                 $coverage.CoveragePercent = $coverageReport.CoveragePercent
                 $coverage.CommandsAnalyzedCount = $coverageReport.NumberOfCommandsAnalyzed
@@ -1135,7 +1135,7 @@ function Invoke-Pester {
                 $coverage.CommandsExecuted = $coverageReport.HitCommands
                 $coverage.FilesAnalyzed = $coverageReport.AnalyzedFiles
 
-                $run.Coverage = $coverage
+                $run.CodeCoverage = $coverage
 
             }
 
