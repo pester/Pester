@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <LangVersion>8.0</LangVersion>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <TargetFrameworks>netstandard2.1;net48</TargetFrameworks>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
