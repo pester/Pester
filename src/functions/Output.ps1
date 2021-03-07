@@ -351,7 +351,7 @@ function Write-CoverageReport {
         }
     }
     else {
-        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount
+        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount, $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
         $coverageMessage + "`n"
         if ($writeToScreen) {
             & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.Pass
