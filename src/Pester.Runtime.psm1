@@ -94,35 +94,37 @@ function ConvertTo-DiscoveredBlockContainer {
         $Block
     )
 
-    # takes a root block and converts it to a discovered block container
-    # that we can publish from Find-Test, because keeping everything a block makes the internal
-    # code simpler
-    $container = $Block.BlockContainer
-    $content = tryGetProperty $container Content
-    $type = tryGetProperty $container Type
+    # # takes a root block and converts it to a discovered block container
+    # # that we can publish from Find-Test, because keeping everything a block makes the internal
+    # # code simpler
+    # $container = $Block.BlockContainer
+    # $content = tryGetProperty $container Content
+    # $type = tryGetProperty $container Type
 
-    # TODO: Add other properties that are relevant to found tests
-    $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
-        "Parent"
-        "Name"
-        "Tag"
-        "First"
-        "Last"
-        "StandardOutput"
-        "Passed"
-        "Skipped"
-        "Executed"
-        "Path",
-        "StartedAt",
-        "Duration",
-        "Aggregated*"
-    ) -Property @(
-        @{n = "Content"; e = { $content } }
-        @{n = "Type"; e = { $type } },
-        '*'
-    )
+    [Pester.Container]::CreateFromBlock($Block)
 
-    $b
+    # # TODO: Add other properties that are irrelevant to found tests
+    # $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
+    #     "Parent"
+    #     "Name"
+    #     "Tag"
+    #     "First"
+    #     "Last"
+    #     "StandardOutput"
+    #     "Passed"
+    #     "Skipped"
+    #     "Executed"
+    #     "Path",
+    #     "StartedAt",
+    #     "Duration",
+    #     "Aggregated*"
+    # ) -Property @(
+    #     @{n = "Content"; e = { $content } }
+    #     @{n = "Type"; e = { $type } },
+    #     '*'
+    # )
+
+    # $b
 }
 
 function ConvertTo-ExecutedBlockContainer {
@@ -1850,6 +1852,12 @@ function Invoke-Test {
 
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
+    if ($global:DiscoveryOnly) {
+        foreach ($f in $found) {
+            ConvertTo-DiscoveredBlockContainer -Block $f
+        }
+        return
+    }
     # $errs = $SessionState.PSVariable.Get("Error").Value
     # $errsCount = $errs.Count
     # if ($errsCount -lt $originalErrorCount) {
