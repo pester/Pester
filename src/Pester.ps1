@@ -683,6 +683,11 @@ function Invoke-Pester {
         # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
         $invokedViaInvokePester = $true
 
+        # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
+        # already defined because we want a clean state for this Invoke-Pester even if it runs inside another
+        # testrun (which calls Invoke-Pester itself)
+        $state = New-PesterState
+
         # TODO: Remove all references to mock table, there should not be many.
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
