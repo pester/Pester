@@ -1426,4 +1426,28 @@ i -PassThru:$PassThru {
             $test.ErrorRecord[0] -like "*Legacy Should syntax (without dashes) is not supported in Pester 5.*"
         }
     }
+
+    b "Running Pester in Pester" {
+        t "Invoke-Pester can run in Invoke-Pester" {
+            $container = New-PesterContainer -ScriptBlock {
+                Describe "Run Pester in Pester" {
+                    It "Runs the test" {
+                        $c = New-PesterContainer -ScriptBlock {
+                            Describe "d" {
+                                It "i" {
+                                    1 | Should -Be 1
+                                }
+                            }
+                        }
+
+                        $r = Invoke-Pester -Container $c -PassThru
+                        $r.TotalCount | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container $container -PassThru
+            $result.TotalCount | Should -Be 1
+        }
+    }
 }
