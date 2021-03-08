@@ -193,6 +193,16 @@ namespace Pester
         {
             return new DecimalOption(string.Empty, value, value);
         }
+
+        public static implicit operator DecimalOption(int value)
+        {
+            return new DecimalOption(string.Empty, value, value);
+        }
+
+        public static implicit operator DecimalOption(double value)
+        {
+            return new DecimalOption(string.Empty, (decimal) value, (decimal) value);
+        }
     }
 
     public class StringArrayOption : Option<string[]>
@@ -572,6 +582,11 @@ namespace Pester
         private StringOption _outputEncoding;
         private StringArrayOption _path;
         private BoolOption _excludeTests;
+        private BoolOption _recursePaths;
+        private BoolOption _delayBps;
+        private BoolOption _shBp;
+        private DecimalOption _coveragePercentTarget;
+
 
         public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
 
@@ -587,6 +602,11 @@ namespace Pester
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
+            RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
+            CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%", 75m);
+
+            SingleHitBreakpoints = new BoolOption("EXPERIMENTAL: Remove breakpoint when it is hit.", true);
+            DelayWritingBreakpoints = new BoolOption("EXPERIMENTAL: Try writing breakpoints all at once.", true);
 
         }
 
@@ -600,6 +620,11 @@ namespace Pester
                 OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputEncoding;
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
                 ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
+                RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
+                CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
+
+                SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
+                DelayWritingBreakpoints = configuration.GetValueOrNull<bool>("DelayWritingBreakpoints") ?? DelayWritingBreakpoints;
             }
         }
 
@@ -698,6 +723,72 @@ namespace Pester
                 }
             }
         }
+
+        public BoolOption RecursePaths
+        {
+            get { return _recursePaths; }
+            set
+            {
+                if (_recursePaths == null)
+                {
+                    _recursePaths = value;
+                }
+                else
+                {
+                    _recursePaths = new BoolOption(_recursePaths, value.Value);
+                }
+            }
+        }
+
+
+        public DecimalOption CoveragePercentTarget
+        {
+            get { return _coveragePercentTarget; }
+            set
+            {
+                if (_coveragePercentTarget == null)
+                {
+                    _coveragePercentTarget = value;
+                }
+                else
+                {
+                    _coveragePercentTarget = new DecimalOption(_coveragePercentTarget, value.Value);
+                }
+            }
+        }
+
+
+        public BoolOption DelayWritingBreakpoints
+        {
+            get { return _delayBps; }
+            set
+            {
+                if (_delayBps == null)
+                {
+                    _delayBps = value;
+                }
+                else
+                {
+                    _delayBps = new BoolOption(_delayBps, value.Value);
+                }
+            }
+        }
+
+        public BoolOption SingleHitBreakpoints
+        {
+            get { return _shBp; }
+            set
+            {
+                if (_shBp == null)
+                {
+                    _shBp = value;
+                }
+                else
+                {
+                    _shBp = new BoolOption(_shBp, value.Value);
+                }
+            }
+        }
     }
 
     public class TestResultConfiguration : ConfigurationSection
@@ -718,7 +809,7 @@ namespace Pester
         public TestResultConfiguration() : base("TestResult configuration.")
         {
             Enabled = new BoolOption("Enable TestResult.", false);
-            OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnitXml, JUnitXml", "NUnitXml");
+            OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnitXml, NUnit2.5 or JUnitXml", "NUnitXml");
             OutputPath = new StringOption("Path relative to the current directory where test result report is saved.", "testResults.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             TestSuiteName = new StringOption("Set the name assigned to the root 'test-suite' element.", "Pester");

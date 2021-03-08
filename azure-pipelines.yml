@@ -1,7 +1,9 @@
 trigger:
   - v5.0
+  - rel/*
 pr:
   - v5.0
+  - rel/*
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -87,6 +89,7 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20
       - job:
         workspace:
           clean: all
@@ -133,3 +136,4 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20

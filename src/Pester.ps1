@@ -62,6 +62,8 @@ function Add-ShouldOperator {
     PS C:\> "bad" | should -BeAwesome
     {bad} is not Awesome
     ```
+.LINK
+    https://pester.dev/docs/commands/Add-ShouldOperator
 #>
     [CmdletBinding()]
     param (
@@ -307,47 +309,47 @@ function Invoke-Pester {
     .PARAMETER CodeCoverage
     (Deprecated v4)
     Replace with ConfigurationProperty CodeCoverage.Enabled = $true
-    Adds a code coverage report to the Pester tests. Takes strings or hash table values.
-    A code coverage report lists the lines of code that did and did not run during
-    a Pester test. This report does not tell whether code was tested; only whether
-    the code ran during the test.
-    By default, the code coverage report is written to the host program
-    (like Write-Host). When you use the PassThru parameter, the custom object
-    that Invoke-Pester returns has an additional CodeCoverage property that contains
-    a custom object with detailed results of the code coverage test, including lines
-    hit, lines missed, and helpful statistics.
-    However, NUnitXml and JUnitXml output (OutputXML, OutputFormat) do not include
-    any code coverage information, because it's not supported by the schema.
-    Enter the path to the files of code under test (not the test file).
-    Wildcard characters are supported. If you omit the path, the default is local
-    directory, not the directory specified by the Script parameter. Pester test files
-    are by default excluded from code coverage when a directory is provided. When you
-    provide a test file directly using string, code coverage will be measured. To include
-    tests in code coverage of a directory, use the dictionary syntax and provide
-    IncludeTests = $true option, as shown below.
-    To run a code coverage test only on selected classes, functions or lines in a script,
-    enter a hash table value with the following keys:
-    -- Path (P)(mandatory) <string>: Enter one path to the files. Wildcard characters
-    are supported, but only one string is permitted.
-    -- IncludeTests <bool>: Includes code coverage for Pester test files (*.tests.ps1).
-    Default is false.
-    One of the following: Class/Function or StartLine/EndLine
-    -- Class (C) <string>: Enter the class name. Wildcard characters are
-    supported, but only one string is permitted. Default is *.
-    -- Function (F) <string>: Enter the function name. Wildcard characters are
-    supported, but only one string is permitted. Default is *.
-    -or-
-    -- StartLine (S): Performs code coverage analysis beginning with the specified
-    line. Default is line 1.
-    -- EndLine (E): Performs code coverage analysis ending with the specified line.
-    Default is the last line of the script.
+    Adds a code coverage report to the Pester tests. Takes strings or hash table values.
+    A code coverage report lists the lines of code that did and did not run during
+    a Pester test. This report does not tell whether code was tested; only whether
+    the code ran during the test.
+    By default, the code coverage report is written to the host program
+    (like Write-Host). When you use the PassThru parameter, the custom object
+    that Invoke-Pester returns has an additional CodeCoverage property that contains
+    a custom object with detailed results of the code coverage test, including lines
+    hit, lines missed, and helpful statistics.
+    However, NUnitXml and JUnitXml output (OutputXML, OutputFormat) do not include
+    any code coverage information, because it's not supported by the schema.
+    Enter the path to the files of code under test (not the test file).
+    Wildcard characters are supported. If you omit the path, the default is local
+    directory, not the directory specified by the Script parameter. Pester test files
+    are by default excluded from code coverage when a directory is provided. When you
+    provide a test file directly using string, code coverage will be measured. To include
+    tests in code coverage of a directory, use the dictionary syntax and provide
+    IncludeTests = $true option, as shown below.
+    To run a code coverage test only on selected classes, functions or lines in a script,
+    enter a hash table value with the following keys:
+    -- Path (P)(mandatory) <string>: Enter one path to the files. Wildcard characters
+    are supported, but only one string is permitted.
+    -- IncludeTests <bool>: Includes code coverage for Pester test files (*.tests.ps1).
+    Default is false.
+    One of the following: Class/Function or StartLine/EndLine
+    -- Class (C) <string>: Enter the class name. Wildcard characters are
+    supported, but only one string is permitted. Default is *.
+    -- Function (F) <string>: Enter the function name. Wildcard characters are
+    supported, but only one string is permitted. Default is *.
+    -or-
+    -- StartLine (S): Performs code coverage analysis beginning with the specified
+    line. Default is line 1.
+    -- EndLine (E): Performs code coverage analysis ending with the specified line.
+    Default is the last line of the script.
 
     .PARAMETER CodeCoverageOutputFile
     (Deprecated v4)
-    The path where Invoke-Pester will save formatted code coverage results file.
-    The path must include the location and name of the folder and file name with
-    a required extension (usually the xml).
-    If this path is not provided, no file will be generated.
+    The path where Invoke-Pester will save formatted code coverage results file.
+    The path must include the location and name of the folder and file name with
+    a required extension (usually the xml).
+    If this path is not provided, no file will be generated.
 
     .PARAMETER CodeCoverageOutputFileEncoding
     (Deprecated v4)
@@ -358,10 +360,10 @@ function Invoke-Pester {
     .PARAMETER CodeCoverageOutputFileFormat
     (Deprecated v4)
     Replace with ConfigurationProperty CodeCoverage.CodeCoverageOutputFileFormat
-    The name of a code coverage report file format.
-    Default value is: JaCoCo.
-    Currently supported formats are:
-    - JaCoCo - this XML file format is compatible with Azure Devops, VSTS/TFS
+    The name of a code coverage report file format.
+    Default value is: JaCoCo.
+    Currently supported formats are:
+    - JaCoCo - this XML file format is compatible with Azure Devops, VSTS/TFS
 
     The ReportGenerator tool can be used to consolidate multiple reports and provide code coverage reporting.
     https://github.com/danielpalme/ReportGenerator
@@ -388,8 +390,12 @@ function Invoke-Pester {
     Run.Path - Directories to be searched for tests, paths directly to test files, or combination of both.
         Default is: .
     Run.ScriptBlock - ScriptBlocks containing tests to be executed.
+    Run.Container - ContainerInfo objects containing tests to be executed.
     Run.TestExtension - Filter used to identify test files.
         Default is: *.Tests.ps1*
+
+    [PesterConfiguration]::Default.Output
+    ------------
     Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
         Default is: Normal
 
@@ -424,6 +430,11 @@ function Invoke-Pester {
     Filter.Tag - Tags of Describe, Context or It to be run.
     Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
 
+    [PesterConfiguration]::Default.Should
+    ------------
+    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
+        Default is: Stop
+
     [PesterConfiguration]::Default.Debug
     -----
     Debug.ShowFullErrors - Show full errors including Pester internal stack.
@@ -432,11 +443,16 @@ function Invoke-Pester {
     Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
         Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
 
+    .PARAMETER Container
+    Specifies one or more ContainerInfo-objects that define containers with tests.
+    ContainerInfo-objects are generated using New-PesterContainer. Useful for
+    scenarios where data-driven test are generated, e.g. parametrized test files.
+
     .PARAMETER EnableExit
     (Deprecated v4)
     Replace with ConfigurationProperty Run.EnableExit
-    Will cause Invoke-Pester to exit with a exit code equal to the number of failed
-    tests once all tests have been run. Use this to "fail" a build when any tests fail.
+    Will cause Invoke-Pester to exit with a exit code equal to the number of failed
+    tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
     .PARAMETER ExcludePath
     (Deprecated v4)
@@ -460,53 +476,52 @@ function Invoke-Pester {
     .PARAMETER OutputFile
     (Deprecated v4)
     Replace with ConfigurationProperty TestResult.OutputFile
-    The path where Invoke-Pester will save formatted test results log file.
-    The path must include the location and name of the folder and file name with
-    the xml extension.
-    If this path is not provided, no log will be generated.
+    The path where Invoke-Pester will save formatted test results log file.
+    The path must include the location and name of the folder and file name with
+    the xml extension.
+    If this path is not provided, no log will be generated.
 
     .PARAMETER OutputFormat
     (Deprecated v4)
     Replace with ConfigurationProperty TestResult.OutputFormat
-    The format of output. Currently NUnitXml and JUnitXml is supported.
+    The format of output. Currently NUnitXml and JUnitXml is supported.
 
     .PARAMETER PassThru
     Replace with ConfigurationProperty Run.PassThru
-    Returns a custom object (PSCustomObject) that contains the test results.
-    By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
-    If you try to save the result in a variable, the variable is empty unless you
-    use the PassThru parameter.
-    To suppress the host output, use the Show parameter set to None.
+    Returns a custom object (PSCustomObject) that contains the test results.
+    By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
+    If you try to save the result in a variable, the variable is empty unless you
+    use the PassThru parameter.
+    To suppress the host output, use the Show parameter set to None.
 
     .PARAMETER Path
     Aliases Script
-    Specifies a test to run. The value is a path\file
-    name or name pattern. Wildcards are permitted. All hash tables in a Script
-    parameter values must have a Path key.
+    Specifies one or more paths to files containing tests. The value is a path\file
+    name or name pattern. Wildcards are permitted.
 
     .PARAMETER PesterOption
     (Deprecated v4)
-    Sets advanced options for the test execution. Enter a PesterOption object,
-    such as one that you create by using the New-PesterOption cmdlet, or a hash table
-    in which the keys are option names and the values are option values.
-    For more information on the options available, see the help for New-PesterOption.
+    Sets advanced options for the test execution. Enter a PesterOption object,
+    such as one that you create by using the New-PesterOption cmdlet, or a hash table
+    in which the keys are option names and the values are option values.
+    For more information on the options available, see the help for New-PesterOption.
 
     .PARAMETER Quiet
     (Deprecated v4)
-    The parameter Quiet is deprecated since Pester v4.0 and will be deleted
-    in the next major version of Pester. Please use the parameter Show
-    with value 'None' instead.
-    The parameter Quiet suppresses the output that Pester writes to the host program,
-    including the result summary and CodeCoverage output.
-    This parameter does not affect the PassThru custom object or the XML output that
-    is written when you use the Output parameters.
+    The parameter Quiet is deprecated since Pester v4.0 and will be deleted
+    in the next major version of Pester. Please use the parameter Show
+    with value 'None' instead.
+    The parameter Quiet suppresses the output that Pester writes to the host program,
+    including the result summary and CodeCoverage output.
+    This parameter does not affect the PassThru custom object or the XML output that
+    is written when you use the Output parameters.
 
     .PARAMETER Show
     (Deprecated v4)
     Replace with ConfigurationProperty Output.Verbosity
-    Customizes the output Pester writes to the screen. Available options are None, Default,
-    Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
-    The options can be combined to define presets.
+    Customizes the output Pester writes to the screen. Available options are None, Default,
+    Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+    The options can be combined to define presets.
     ConfigurationProperty Output.Verbosity supports the following values:
     None
     Minimal
@@ -514,24 +529,24 @@ function Invoke-Pester {
     Detailed
     Diagnostic
 
-    Show parameter supports the following parameter values:
-    None - (None) to write no output to the screen.
-    All - (Detailed) to write all available information (this is default option).
-    Default - (Detailed)
+    Show parameter supports the following parameter values:
+    None - (None) to write no output to the screen.
+    All - (Detailed) to write all available information (this is default option).
+    Default - (Detailed)
     Detailed - (Detailed)
-    Fails - (Normal) to write everything except Passed (but including Describes etc.).
+    Fails - (Normal) to write everything except Passed (but including Describes etc.).
     Diagnostic - (Diagnostic)
     Normal - (Normal)
     Minimal - (Minimal)
 
-    A common setting is also Failed, Summary, to write only failed tests and test summary.
-    This parameter does not affect the PassThru custom object or the XML output that
-    is written when you use the Output parameters.
+    A common setting is also Failed, Summary, to write only failed tests and test summary.
+    This parameter does not affect the PassThru custom object or the XML output that
+    is written when you use the Output parameters.
 
     .PARAMETER Strict
     (Deprecated v4)
-    Makes Pending and Skipped tests to Failed tests. Useful for continuous
-    integration where you need to make sure all tests passed.
+    Makes Pending and Skipped tests to Failed tests. Useful for continuous
+    integration where you need to make sure all tests passed.
 
     .PARAMETER TagFilter
     (Deprecated v4)
@@ -552,33 +567,40 @@ function Invoke-Pester {
     .EXAMPLE
     ```powershell
     $config = [PesterConfiguration]@{
-    Should = @{ <- # Should configuration.
-        ErrorAction = 'Stop' # <- "Controls if Should throws on error."
+        Should = @{ # <- Should configuration.
+            ErrorAction = 'Continue' # <- Always run all Should-assertions in a test
         }
     }
 
     Invoke-Pester -Configuration $config
     ```
 
+    This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    It shows how advanced configuration can be used by casting a hashtable to override
+    default settings, in this case to make Pester run all Should-assertions in a test
+    even if the first fails.
+
     .EXAMPLE
     $config = [PesterConfiguration]::Default
+    $config.TestResult.Enabled = $true
     Invoke-Pester -Configuration $config
 
-    .LINK
-    https://pester.dev/docs/quick-start
+    This example runs all *.Tests.ps1 files in the current directory and its subdirectories.
+    It uses advanced configuration to enable testresult-output to file. Access $config.TestResult
+    to see other testresult options like  output path and format and their default values.
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
 
     .LINK
-    https://pswiki.net/invoke-pester-pester/
+    https://pester.dev/docs/quick-start
 
     .LINK
-    Describe
     about_Pester
     #>
+
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
-    # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Remove-Variable', Justification = 'Remove-Variable can't remove "optimized variables" when using "alias" for Remove-Variable.')]
+    # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable', Justification = 'Remove-Variable can't remove "optimized variables" when using "alias" for Remove-Variable.')]
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
     param(
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
@@ -644,7 +666,7 @@ function Invoke-Pester {
         [string] $OutputFile,
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
-        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
         [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
@@ -660,6 +682,11 @@ function Invoke-Pester {
         $start = [DateTime]::Now
         # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
         $invokedViaInvokePester = $true
+
+        # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
+        # already defined because we want a clean state for this Invoke-Pester even if it runs inside another
+        # testrun (which calls Invoke-Pester itself)
+        $state = New-PesterState
 
         # TODO: Remove all references to mock table, there should not be many.
         $script:mockTable = @{}
@@ -932,6 +959,7 @@ function Invoke-Pester {
             $sessionState = $PSCmdlet.SessionState
 
             $pluginConfiguration = @{}
+            $pluginData = @{}
             $plugins = @()
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
@@ -996,6 +1024,7 @@ function Invoke-Pester {
                     OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
                     ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
                     Path = @($paths)
+                    RecursePaths = $PesterPreference.CodeCoverage.RecursePaths.Value
                     TestExtension = $PesterPreference.Run.TestExtension.Value
                 }
 
@@ -1028,15 +1057,12 @@ function Invoke-Pester {
                 }
             }
 
-            # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
-            $pluginData = @{}
-
             $steps = $Plugins.Start
             if ($null -ne $steps -and 0 -lt @($steps).Count) {
                 Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
                     Containers = $containers
                     Configuration = $pluginConfiguration
-                    GlobalPluginData = $pluginData
+                    GlobalPluginData = $state.PluginData
                     WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
                     Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
                 } -ThrowOnFailure
@@ -1047,7 +1073,7 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
+            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
 
             foreach ($c in $r) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
@@ -1094,11 +1120,34 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -ne "None") {
+                    $sw = [Diagnostics.Stopwatch]::StartNew()
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
+                }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+                if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+                }
+                $reportText = Write-CoverageReport $coverageReport
+
+                $coverage = [Pester.CodeCoverage]::Create()
+                $coverage.CoverageReport = $reportText
+                $coverage.CoveragePercent = $coverageReport.CoveragePercent
+                $coverage.CommandsAnalyzedCount = $coverageReport.NumberOfCommandsAnalyzed
+                $coverage.CommandsExecutedCount = $coverageReport.NumberOfCommandsExecuted
+                $coverage.CommandsMissedCount = $coverageReport.NumberOfCommandsMissed
+                $coverage.FilesAnalyzedCount = $coverageReport.NumberOfFilesAnalyzed
+                $coverage.CommandsMissed = $coverageReport.MissedCommands
+                $coverage.CommandsExecuted = $coverageReport.HitCommands
+                $coverage.FilesAnalyzed = $coverageReport.AnalyzedFiles
+                $coverage.CoveragePercentTarget = $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
+
+                $run.CodeCoverage = $coverage
+
             }
 
             if (-not $PesterPreference.Debug.ReturnRawResultObject.Value) {
@@ -1111,11 +1160,18 @@ function Invoke-Pester {
 
             # exit with exit code if we fail and even if we succeed, othwerise we could inherit
             # exit code of some other app end exit with it's exit code instead with ours
-            if ($PesterPreference.Run.Exit.Value) {
-                exit ($run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount)
+            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
+                # exit with the number of failed tests when there are any
+                # and the exit preference is set. This will fail the run in CI
+                # when any tests failed.
+                exit $failedCount
             }
             else {
-                [System.Environment]::ExitCode = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+                # just set exit code but don't fail when the option is not set
+                # or when there are no failed tests, to ensure that we can run
+                # multiple successful runs of Invoke-Pester in a row.
+                $global:LASTEXITCODE = $failedCount
             }
         }
         catch {
@@ -1352,6 +1408,36 @@ function Contain-AnyStringLike ($Filter, $Collection) {
 }
 
 function ConvertTo-Pester4Result {
+    <#
+    .SYNOPSIS
+    Converts a Pester 5 result-object to an Pester 4-compatible object
+
+    .DESCRIPTION
+    Pester 5 uses a new format for it's result-object compared to previous
+    versions of Pester. This function is provided as a way to convert the
+    result-object into an object using the previous format. This can be
+    useful as a temporary measure to easier migrate to Pester 5 without
+    having to redesign compelx CI/CD-pipelines.
+
+    .PARAMETER PesterResult
+    Result object from a Pester 5-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .EXAMPLE
+    ```powershell
+    $pester5Result = Invoke-Pester -Passthru
+    $pester4Result = $pester5Result | ConvertTo-Pester4Result
+    ```
+
+    This example runs Pester using the Passthru option to retrieve a result-object
+    in the Pester 5 format and converts it to a new Pester 4-compatible result-object.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-Pester4Result
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -1445,32 +1531,44 @@ function ConvertTo-Pester4Result {
 
 function BeforeDiscovery {
     <#
-        .SYNOPSIS
-        Runs setup code that is used during Discovery phase.
-        .DESCRIPTION
-        Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
-        to be explicit about code that you need to run during Discovery, instead of just
-        putting code directly inside of Describe / Context.
-        .PARAMETER ScriptBlock
-        The ScritpBlock to run.
+    .SYNOPSIS
+    Runs setup code that is used during Discovery phase.
 
-        .EXAMPLE
-            ```powershell
-            PS > BeforeDiscovery {
-                $files = "file1.txt", "file2.txt"
+    .DESCRIPTION
+    Runs your code as is, in the place where this function is defined. This is a semantic block to allow you
+    to be explicit about code that you need to run during Discovery, instead of just
+    putting code directly inside of Describe / Context.
+
+    .PARAMETER ScriptBlock
+    The ScritpBlock to run.
+
+    .EXAMPLE
+    ```powershell
+    BeforeDiscovery {
+        $files = Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' -Recurse
+    }
+
+    Describe "File - <_>" -ForEach $files {
+        Context "Whitespace" {
+            It "There is no extra whitespace following a line" {
+                # ...
             }
 
-            Describe "File tests" {
-                foreach ($file in $files) {
-                    It "test" {
-                        # ... test code
-                    }
-                }
+            It "File ends with an empty line" {
+                # ...
             }
-            ```
+        }
+    }
+    ```
 
-            The result of commands will be execution of tests and saving results of them in a NUnitMXL file where the root "test-suite"
-            will be named "Tests - Set A".
+    BeforeDiscovery is used to gather a list of script-files during Discovery-phase to
+    dynamically create a Describe-block and tests for each file found.
+
+    .LINK
+    https://pester.dev/docs/commands/BeforeDiscovery
+
+    .LINK
+    https://pester.dev/docs/usage/data-driven-tests
     #>
     [CmdletBinding()]
     param (

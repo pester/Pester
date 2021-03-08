@@ -18,12 +18,17 @@ function Get-ShouldOperator {
 
     .EXAMPLE
     Get-ShouldOperator
+
     Return all available Should assertion operators and their aliases.
 
     .EXAMPLE
     Get-ShouldOperator -Name Be
+
     Return help examples for the Be assertion operator.
     -Name is a dynamic parameter that tab completes all available options.
+
+    .LINK
+    https://pester.dev/docs/commands/Get-ShouldOperator
 
     .LINK
     https://pester.dev/docs/commands/Should

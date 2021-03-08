@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Pester
 {
@@ -50,6 +49,8 @@ namespace Pester
         public List<Test> Skipped { get; set; } = new List<Test>();
         public List<Test> NotRun { get; set; } = new List<Test>();
         public List<Test> Tests { get; set; } = new List<Test>();
+
+        public CodeCoverage CodeCoverage { get; set; }
 
         public override string ToString()
         {

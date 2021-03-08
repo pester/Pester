@@ -14,7 +14,7 @@ apply to tests within that Context .
 The name of the Context. This is a phrase describing a set of tests within a describe.
 
 .PARAMETER Tag
-Optional parameter containing an array of strings.  When calling Invoke-Pester,
+Optional parameter containing an array of strings. When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Context blocks
 containing the same Tag.
 
@@ -35,33 +35,28 @@ function Add-Numbers($a, $b) {
 }
 
 Describe "Add-Numbers" {
-
     Context "when root does not exist" {
-         It "..." { ... }
+        It "..." {
+            # ...
+        }
     }
 
     Context "when root does exist" {
-        It "..." { ... }
-        It "..." { ... }
-        It "..." { ... }
+        It "..." {
+            # ...
+        }
+        It "..." {
+            # ...
+        }
     }
 }
 ```
 
 .LINK
-https://pester.dev/docs/commands/Describe
+https://pester.dev/docs/commands/Context
 
 .LINK
-https://pester.dev/docs/commands/It
-
-.LINK
-https://pester.dev/docs/commands/BeforeEach
-
-.LINK
-https://pester.dev/docs/commands/AfterEach
-
-.LINK
-https://pester.dev/docs/commands/Should
+https://pester.dev/docs/usage/test-file-structure
 
 .LINK
 https://pester.dev/docs/usage/mocking
