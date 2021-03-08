@@ -1,4 +1,4 @@
-# TODO: Pester state no longer exists, keeping this for reference, to see if there are some egde cases worth testing
+# TODO: the OLD Pester state no longer exists, keeping this for reference, to see if there are some egde cases worth testing
 return
 Set-StrictMode -Version Latest
 
