@@ -1,8 +1,55 @@
-# if -not build
-. "$PSScriptRoot/Pester.Utility.ps1"
-. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-# . "$PSScriptRoot/Pester.Types.ps1"
-# endif
+if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+    . "$PSScriptRoot/Pester.Utility.ps1"
+    . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+    . "$PSScriptRoot/Pester.Types.ps1"
+
+    if ($null -eq $PesterPreference) {
+        $PesterPreference = [PesterConfiguration]::Default
+    }
+}
+else {
+    if ($null -eq $PesterPreference) {
+        $PesterPreference = [PesterConfiguration]::Default
+    }
+} # endif
+
+# interesting commands
+# # the core stuff I am mostly sure about
+# 'New-PesterState'
+# 'New-Block'
+# 'New-ParametrizedBlock'
+# 'New-Test'
+# 'New-ParametrizedTest'
+# 'New-EachTestSetup'
+# 'New-EachTestTeardown'
+# 'New-OneTimeTestSetup'
+# 'New-OneTimeTestTeardown'
+# 'New-EachBlockSetup'
+# 'New-EachBlockTeardown'
+# 'New-OneTimeBlockSetup'
+# 'New-OneTimeBlockTeardown'
+# 'Add-FrameworkDependency'
+# 'Anywhere'
+# 'Invoke-Test',
+# 'Find-Test',
+# 'Invoke-PluginStep'
+
+# # here I have doubts if that is too much to expose
+# 'Get-CurrentTest'
+# 'Get-CurrentBlock'
+# 'Recurse-Up',
+# 'Is-Discovery'
+
+# # those are quickly implemented to be useful for demo
+# 'Where-Failed'
+# 'View-Flat'
+
+# # those need to be refined and probably wrapped to something
+# # that is like an object builder
+# 'New-FilterObject'
+# 'New-PluginObject'
+# 'New-BlockContainerObject'
+
 
 # instances
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
@@ -27,9 +74,9 @@ function New-PesterState {
         CurrentBlock        = $null
         CurrentTest         = $null
 
-        Plugin              = $null
-        PluginConfiguration = $null
-        PluginData          = $null
+        Plugin              = @()
+        PluginConfiguration = @{}
+        PluginData          = @{}
         Configuration       = $null
 
         TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
@@ -304,9 +351,9 @@ function Invoke-Block ($previousBlock) {
                 # no callbacks are provided because we are not transitioning between any states
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
+                    if ($block.First -and $null -ne $state.Plugin) { $state.Plugin.OneTimeBlockSetupStart }
                 ) `
-                    -Setup @( $state.Plugin.EachBlockSetupStart ) `
+                    -Setup @(if ($null -ne $state.Plugin) { $state.Plugin.EachBlockSetupStart }) `
                     -Context @{
                     Context = @{
                         # context that is visible to plugins
@@ -396,8 +443,8 @@ function Invoke-Block ($previousBlock) {
                     }
                 }
 
-                $frameworkEachBlockTeardowns = @($state.Plugin.EachBlockTeardownEnd )
-                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardownEnd } )
+                $frameworkEachBlockTeardowns = @(if ($null -ne $state.Plugin) { $state.Plugin.EachBlockTeardownEnd })
+                $frameworkOneTimeBlockTeardowns = @(if ($block.Last -and $null -ne $state.Plugin) { $state.Plugin.OneTimeBlockTeardownEnd })
                 # reverse the teardowns so they run in opposite order to setups
                 [Array]::Reverse($frameworkEachBlockTeardowns)
                 [Array]::Reverse($frameworkOneTimeBlockTeardowns)
@@ -542,9 +589,9 @@ function Invoke-TestItem {
         # no callbacks are provided because we are not transitioning between any states
         $frameworkSetupResult = Invoke-ScriptBlock `
             -OuterSetup @(
-            if ($Test.First) { $state.Plugin.OneTimeTestSetupStart }
+            if ($Test.First -and $null -ne $state.Plugin) { $state.Plugin.OneTimeTestSetupStart }
         ) `
-            -Setup @( $state.Plugin.EachTestSetupStart ) `
+            -Setup @( if ($null -ne $state.Plugin) { $state.Plugin.EachTestSetupStart }) `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -640,7 +687,7 @@ function Invoke-TestItem {
 
                 $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
 
-                if ($Result.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+                if ($null -ne $Result.ErrorRecord -and $Result.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
                     #Same logic as when setting a test block to skip
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $Test.Path -join '.'
@@ -665,8 +712,8 @@ function Invoke-TestItem {
         $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
 
-        $frameworkEachTestTeardowns = @( $state.Plugin.EachTestTeardownEnd )
-        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.Plugin.OneTimeTestTeardownEnd })
+        $frameworkEachTestTeardowns = @( if ($null -ne $null -ne $state.Plugin) { $state.Plugin.EachTestTeardownEnd } )
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last -and $null -ne $state.Plugin) { $state.Plugin.OneTimeTestTeardownEnd })
         [array]::Reverse($frameworkEachTestTeardowns)
         [array]::Reverse($frameworkOneTimeTestTeardowns)
 
@@ -856,7 +903,7 @@ function Discover-Test {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
-    $steps = $state.Plugin.DiscoveryStart
+    $steps = if ($null -ne $state.Plugin) { $state.Plugin.DiscoveryStart }
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
             BlockContainers = $BlockContainer
@@ -887,11 +934,11 @@ function Discover-Test {
 
         # set the data from the container to get them
         # set correctly as if we provided -Data to New-Block
-        $root.Data = $root.BlockContainer.Data
+        $root.Data = $container.Data
 
         Reset-PerContainerState -RootBlock $root
 
-        $steps = $state.Plugin.ContainerDiscoveryStart
+        $steps = if ($null -ne $state.Plugin) { $state.Plugin.ContainerDiscoveryStart }
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
                 BlockContainer = $container
@@ -906,7 +953,7 @@ function Discover-Test {
             Block     = $root
         }
 
-        $steps = $state.Plugin.ContainerDiscoveryEnd
+        $steps = if ($null -ne $state.Plugin) { $state.Plugin.ContainerDiscoveryEnd }
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
                 BlockContainer = $container
@@ -969,7 +1016,7 @@ function Discover-Test {
         $f.Block
     }
 
-    $steps = $state.Plugin.DiscoveryEnd
+    $steps = if ($null -ne $state.Plugin) { $state.Plugin.DiscoveryEnd }
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
             BlockContainers = $found.Block
@@ -994,7 +1041,7 @@ function Run-Test {
     )
 
     $state.Discovery = $false
-    $steps = $state.Plugin.RunStart
+    $steps =  if ($null -ne $state.Plugin) { $state.Plugin.RunStart }
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
             Blocks        = $Block
@@ -1019,7 +1066,7 @@ function Run-Test {
         $rootBlock.Executed = $true
         $rootBlock.ExecutedAt = [DateTime]::now
 
-        $steps = $state.Plugin.ContainerRunStart
+        $steps = if ($null -ne $state.Plugin) { $state.Plugin.ContainerRunStart }
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
                 Block         = $rootBlock
@@ -1110,7 +1157,7 @@ function Run-Test {
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
 
-        $steps = $state.Plugin.ContainerRunEnd
+        $steps =  if ($null -ne $state.Plugin) { $state.Plugin.ContainerRunEnd }
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
                 Result        = $result
@@ -1829,6 +1876,11 @@ function Invoke-Test {
     # set the incoming value for all the child scopes
     # TODO: revisit this because this will probably act weird as we jump between session states
     $PesterPreference = $Configuration
+
+    if ($null -eq $PesterPreference) { # PESTER_BUILD
+        $Configuration = $PesterPreference = [PesterConfiguration]::Default
+    } # end if
+
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
     # it here.
@@ -2036,7 +2088,7 @@ function PostProcess-DiscoveredBlock {
             # if we determined that the block should run we can still make it not run if
             # none of it's children will run
             if ($b.ShouldRun) {
-                $testsToRun = foreach ($t in $tests) { if ($t.ShouldRun) { $t } }
+                $testsToRun = @(foreach ($t in $tests) { if ($t.ShouldRun) { $t } })
                 if ($testsToRun -and 0 -ne $testsToRun.Count) {
                     $testsToRun[0].First = $true
                     $testsToRun[-1].Last = $true
@@ -2055,7 +2107,7 @@ function PostProcess-DiscoveredBlock {
             # passing the array as a whole to cross the function boundary as few times as I can
             PostProcess-DiscoveredBlock -Block $childBlocks -Filter $Filter -BlockContainer $BlockContainer -RootBlock $RootBlock
 
-            $childBlocksToRun = foreach ($cb in $childBlocks) { if ($cb.ShouldRun) { $cb } }
+            $childBlocksToRun = @(foreach ($cb in $childBlocks) { if ($cb.ShouldRun) { $cb } })
             $anyChildBlockShouldRun = $childBlocksToRun -and 0 -ne $childBlocksToRun.Count
             if ($anyChildBlockShouldRun) {
                 $childBlocksToRun[0].First = $true
@@ -2552,44 +2604,3 @@ function ConvertTo-HumanTime {
         "$([int]($TimeSpan.TotalSeconds))s"
     }
 }
-
-# if -not build
-& $SafeCommands['Export-ModuleMember'] -Function @(
-    # the core stuff I am mostly sure about
-    'New-PesterState'
-    'New-Block'
-    'New-ParametrizedBlock'
-    'New-Test'
-    'New-ParametrizedTest'
-    'New-EachTestSetup'
-    'New-EachTestTeardown'
-    'New-OneTimeTestSetup'
-    'New-OneTimeTestTeardown'
-    'New-EachBlockSetup'
-    'New-EachBlockTeardown'
-    'New-OneTimeBlockSetup'
-    'New-OneTimeBlockTeardown'
-    'Add-FrameworkDependency'
-    'Anywhere'
-    'Invoke-Test',
-    'Find-Test',
-    'Invoke-PluginStep'
-
-    # here I have doubts if that is too much to expose
-    'Get-CurrentTest'
-    'Get-CurrentBlock'
-    'Recurse-Up',
-    'Is-Discovery'
-
-    # those are quickly implemented to be useful for demo
-    'Where-Failed'
-    'View-Flat'
-
-    # those need to be refined and probably wrapped to something
-    # that is like an object builder
-    'New-FilterObject'
-    'New-PluginObject'
-    'New-BlockContainerObject'
-)
-
-# endif

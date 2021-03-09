@@ -5,7 +5,7 @@ Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom | Remove-Module
 
-Import-Module $PSScriptRoot\..\src\Pester.Runtime.psm1 -DisableNameChecking
+. $PSScriptRoot\..\src\Pester.Runtime.ps1
 . $PSScriptRoot\..\src\Pester.Utility.ps1
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
@@ -20,7 +20,7 @@ $global:PesterPreference = @{
 }
 
 
-Set-StrictMode -Version Latest
+# Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {

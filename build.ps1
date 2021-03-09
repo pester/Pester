@@ -4,6 +4,25 @@
     .SYNOPSIS
         Used to build and import the Pester module during Pester development.
 
+        The code that should be excluded from the build is wrapped in this if:
+        if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+            ...Your code here...
+        } # endif
+
+        This will exclude the code from execution when dot-sourcing, but keep it when running the
+        file directly. When inlining into single file, the regex below will omit the wrapped code.
+        The # endif comment is significant, because it allows the regex to identify the correct end }.
+
+        You can also include the code in build. Which will run the code only when dot-sources into Pester.psm1.
+
+        if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+            ...Your code here...
+        } # endif
+
+        Or any other if that uses the variable.
+
+        Any such blocks will be excluded entrily when inlining.
+
     .PARAMETER Debug
         <Not written yet>
 
@@ -14,18 +33,30 @@
 
     .PARAMETER Clean
         Cleans the build folder ./bin and rebuilds the assemblies.
+
+    .PARAMETER Clean
+        Inline all files into the main file, instead of dot-sourcing. This is how the real build is done,
+        but inlinig the files is annoying for local development.
 #>
 
 param (
     [switch] $Debug,
     [switch] $Load,
-    [switch] $Clean
+    [switch] $Clean,
+    [switch] $Inline
 )
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
+}
+
+# force inlining by env variable, build.ps1 is used in
+# multiple places and passing the $inline everywhere is
+# difficult
+if ($env:PESTER_BUILD_INLINE -eq 1) {
+    $Inline = $true
 }
 
 $null = New-Item "$PSScriptRoot/bin" -ItemType Directory -Force
@@ -35,57 +66,62 @@ $script = @(
     "$PSScriptRoot/src/Pester.Types.ps1"
     "$PSScriptRoot/src/Pester.State.ps1"
     "$PSScriptRoot/src/Pester.Utility.ps1"
-    "$PSScriptRoot/src/Pester.Runtime.psm1"
-    "$PSScriptRoot/src/TypeClass.psm1"
-    "$PSScriptRoot/src/Format.psm1"
+    "$PSScriptRoot/src/Pester.Runtime.ps1"
+    "$PSScriptRoot/src/TypeClass.ps1"
+    "$PSScriptRoot/src/Format.ps1"
     "$PSScriptRoot/src/Pester.RSpec.ps1"
     "$PSScriptRoot/src/Pester.ps1"
 
     "$PSScriptRoot/src/functions/assertions/*"
     "$PSScriptRoot/src/functions/*"
 
-    "$PSScriptRoot/src/Pester.psm1"
+    "$PSScriptRoot/src/Module.ps1"
 )
 
 $files = Get-ChildItem $script -File | Select-Object -Unique
 
 $sb = [System.Text.StringBuilder]""
+if (-not $inline) {
+    # define this on the top of the module to skip
+    # the code that is wrapped in this if in different source files
+    $null = $sb.AppendLine('$PESTER_BUILD=1')
+}
+
 foreach ($f in $files) {
     $lineNumber = 1
     $hereString = $false
     $lines = Get-Content $f
 
-    $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
-    $null = $sb.AppendLine("# file $relativePath")
-    $noBuild = $false
-    foreach ($l in $lines) {
-        if ($l -match "^\s*#\s*if\s*-not\s*build\s*$") {
-            $noBuild = $true
-        }
-
-        if (-not $noBuild) {
-
-            if ($Debug) {
-                # don't add the source navigation marker when we are in a here string
-                # or on a line that is empty or ends with an escape
-                if ($l -match '@"\s*$') {
-                    $hereString = $true
-                }
-                if (-not $hereString -and -not [string]::IsNullOrWhiteSpace($l) -and $l -notmatch '`\s*$') {
-                    $l = $l + " # $($f.FullName):$($lineNumber)"
-                }
-                if ($l -match '"@\s*$') {
-                    $hereString = $false
-                }
-                $lineNumber++
+    if ($inline) {
+        $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
+        $null = $sb.AppendLine("# file $relativePath")
+        $noBuild = $false
+        foreach ($l in $lines) {
+            # when inlining the code skip everything wrapped in this if
+            # if (something with PESTER_BUILD) {
+            # } # endif
+            if ($l -match '^\s*if.*PESTER_BUILD') {
+                # start skipping lines
+                $noBuild = $true
             }
-            $null = $sb.AppendLine($l)
 
-        }
+            if (-not $noBuild) {
+                # append lines when we are not skipping them
+                $null = $sb.AppendLine($l)
+            }
 
-        if ($l -match "#\s*endif\s*$") {
-            $noBuild = $false
+            if ($l -match "\s*}\s*#\s*end\s*if\s*$") {
+                # stop skipping lines
+                $noBuild = $false
+            }
         }
+    }
+    else {
+        # when not inlining just dot-source the file
+        if ($f.FullName -notlike "*.ps1") {
+            throw "$($f.FullName) is not a ps1 file"
+        }
+        $null = $sb.AppendLine(". '$($f.FullName)'")
     }
 }
 

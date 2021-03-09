@@ -7,7 +7,7 @@ Get-Module Pester.Runtime, P, Pester, Axiom, Stack | Remove-Module
 # Import-Module Pester -MinimumVersion 4.4.3
 
 . $PSScriptRoot\..\src\Pester.Utility.ps1
-Import-Module $PSScriptRoot\..\src\Pester.Runtime.psm1 -DisableNameChecking
+. $PSScriptRoot\..\src\Pester.Runtime.ps1
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
@@ -51,450 +51,447 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {
+       function New-TestObject {
+        param (
+            [Parameter(Mandatory = $true)]
+            [String] $Name,
+            [String[]] $Path,
+            [String[]] $Tag,
+            [System.Collections.IDictionary] $Data,
+            [String] $Id,
+            [ScriptBlock] $ScriptBlock,
+            [int] $StartLine,
+            [Switch] $Focus,
+            [Switch] $Skip
+        )
 
-    & (Get-Module Pester.Runtime) {
+        $t = [Pester.Test]::Create()
+        $t.ScriptBlock = $ScriptBlock
+        $t.Name = $Name
+        $t.Path = $Path
+        $t.Tag = $Tag
+        $t.StartLine = $StartLine
+        $t.Focus = [Bool]$Focus
+        $t.Skip = [Bool]$Skip
+        $t.Data = $Data
 
-        function New-TestObject {
-            param (
-                [Parameter(Mandatory = $true)]
-                [String] $Name,
-                [String[]] $Path,
-                [String[]] $Tag,
-                [System.Collections.IDictionary] $Data,
-                [String] $Id,
-                [ScriptBlock] $ScriptBlock,
-                [int] $StartLine,
-                [Switch] $Focus,
-                [Switch] $Skip
-            )
+        return $t
+    }
 
-            $t = [Pester.Test]::Create()
-            $t.ScriptBlock = $ScriptBlock
-            $t.Name = $Name
-            $t.Path = $Path
-            $t.Tag = $Tag
-            $t.StartLine = $StartLine
-            $t.Focus = [Bool]$Focus
-            $t.Skip = [Bool]$Skip
-            $t.Data = $Data
 
-            return $t
+    b "tryGetProperty" {
+        t "given null it returns null" {
+            tryGetProperty $null Name | Verify-Null
         }
 
+        t "given an object that has the property it return the correct value" {
+            $p = (Get-Process -Id $Pid)
+            tryGetProperty $p Name | Verify-Equal $p.Name
+        }
+    }
 
-        b "tryGetProperty" {
-            t "given null it returns null" {
-                tryGetProperty $null Name | Verify-Null
-            }
+    b "or" {
 
-            t "given an object that has the property it return the correct value" {
-                $p = (Get-Process -Id $Pid)
-                tryGetProperty $p Name | Verify-Equal $p.Name
-            }
+        t "given a non-null value it returns it" {
+            "a" | or "b" | Verify-Equal "a"
         }
 
-        b "or" {
+        t "given null it returns the default value" {
+            $null | or "b" | Verify-Equal "b"
+        }
+    }
 
-            t "given a non-null value it returns it" {
-                "a" | or "b" | Verify-Equal "a"
-            }
+    b "combineNonNull" {
+        t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
+            $r = combineNonNull @(@(1, $null), @(1, 2, 3), $null, $null, 10)
+            # expecting: 1, $null, 1, 2, 3, 10
+            $r[0] | Verify-Equal 1
+            $r[1] | Verify-Null
+            $r[2] | Verify-Equal 1
+            $r[3] | Verify-Equal 2
+            $r[4] | Verify-Equal 3
+            $r[5] | Verify-Equal 10
+        }
+    }
 
-            t "given null it returns the default value" {
-                $null | or "b" | Verify-Equal "b"
-            }
+    b "any" {
+
+        t "given a non-null value it returns true" {
+            any "b" | Verify-True
         }
 
-        b "combineNonNull" {
-            t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
-                $r = combineNonNull @(@(1, $null), @(1, 2, 3), $null, $null, 10)
-                # expecting: 1, $null, 1, 2, 3, 10
-                $r[0] | Verify-Equal 1
-                $r[1] | Verify-Null
-                $r[2] | Verify-Equal 1
-                $r[3] | Verify-Equal 2
-                $r[4] | Verify-Equal 3
-                $r[5] | Verify-Equal 10
-            }
+        t "given null it returns false" {
+            any $null | Verify-False
         }
 
-        b "any" {
-
-            t "given a non-null value it returns true" {
-                any "b" | Verify-True
-            }
-
-            t "given null it returns false" {
-                any $null | Verify-False
-            }
-
-            t "given empty array it returns false" {
-                any @() | Verify-False
-            }
-
-            t "given null in array it returns false" {
-                any @($null) | Verify-False
-            }
-
-            t "given array with value it returns true" {
-                any @("b") | Verify-True
-            }
-
-            t "given array with multiple values it returns true" {
-                any @("b", "c") | Verify-True
-            }
+        t "given empty array it returns false" {
+            any @() | Verify-False
         }
 
-        b "Basic" {
-            t "Given a scriptblock with 1 test in it, it finds 1 test" {
-                $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+        t "given null in array it returns false" {
+            any @($null) | Verify-False
+        }
+
+        t "given array with value it returns true" {
+            any @("b") | Verify-True
+        }
+
+        t "given array with multiple values it returns true" {
+            any @("b", "c") | Verify-True
+        }
+    }
+
+    b "Basic" {
+        t "Given a scriptblock with 1 test in it, it finds 1 test" {
+            $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "block1" {
+                    New-Test "test1" { }
+                }
+                })).Blocks.Tests
+
+            @($actual).Length | Verify-Equal 1
+            $actual.Name | Verify-Equal "test1"
+        }
+
+        t "Given scriptblock with 2 tests in it it finds 2 tests" {
+            $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "block1" {
+                    New-Test "test1" { }
+                    New-Test "test2" { }
+                }
+                })).Blocks.Tests
+
+            @($actual).Length | Verify-Equal 2
+            $actual.Name[0] | Verify-Equal "test1"
+            $actual.Name[1] | Verify-Equal "test2"
+        }
+    }
+
+    b "block" {
+        t "Given 0 tests it returns block containing no tests" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock { })
+
+            $actual.Blocks[0].Tests.Count | Verify-Equal 0
+        }
+
+        t "Given 0 tests it returns block containing 0 tests" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-Block "block1" {
+                    New-Test "test1" { }
+                }
+                })
+
+            $actual.Blocks[0].Tests.Count | Verify-Equal 1
+        }
+    }
+
+    b "Find common setup for each test" {
+        t "Given block that has test setup for each test it finds it" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                    New-EachTestSetup { setup }
+                    New-Test "test1" { }
+                    }
+                })
+
+            $actual[0].Blocks[0].EachTestSetup.ToString().Trim() | Verify-Equal 'setup'
+        }
+    }
+
+    b "Finding setup for all tests" {
+        t "Find setup to run before all tests in the block" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                        New-OneTimeTestSetup { oneTimeSetup }
+                        New-Test "test1" { }
+                    }
+                })
+
+            $actual[0].Blocks[0].OneTimeTestSetup.ToString().Trim() | Verify-Equal 'oneTimeSetup'
+        }
+    }
+
+    b "Finding blocks" {
+        t "Find tests in block that is explicitly specified" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { }
                     }
-                    })).Blocks.Tests
+                })
 
-                @($actual).Length | Verify-Equal 1
-                $actual.Name | Verify-Equal "test1"
-            }
+            $actual.Blocks[0].Tests.Count | Verify-Equal 1
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+        }
 
-            t "Given scriptblock with 2 tests in it it finds 2 tests" {
-                $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+        t "Find tests in blocks that are next to each other" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { }
+                    }
+
+                    New-Block "block2" {
                         New-Test "test2" { }
                     }
-                    })).Blocks.Tests
+                })
 
-                @($actual).Length | Verify-Equal 2
-                $actual.Name[0] | Verify-Equal "test1"
-                $actual.Name[1] | Verify-Equal "test2"
-            }
+            $actual.Blocks.Count | Verify-Equal 2
+            $actual.Blocks[0].Tests.Count | Verify-Equal 1
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[1].Tests.Count | Verify-Equal 1
+            $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
         }
 
-        b "block" {
-            t "Given 0 tests it returns block containing no tests" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock { })
-
-                $actual.Blocks[0].Tests.Count | Verify-Equal 0
-            }
-
-            t "Given 0 tests it returns block containing 0 tests" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+        t "Find tests in blocks that are inside of each other" {
+            $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { }
-                    }
-                    })
-
-                $actual.Blocks[0].Tests.Count | Verify-Equal 1
-            }
-        }
-
-        b "Find common setup for each test" {
-            t "Given block that has test setup for each test it finds it" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                        New-EachTestSetup { setup }
-                        New-Test "test1" { }
-                        }
-                    })
-
-                $actual[0].Blocks[0].EachTestSetup.ToString().Trim() | Verify-Equal 'setup'
-            }
-        }
-
-        b "Finding setup for all tests" {
-            t "Find setup to run before all tests in the block" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-OneTimeTestSetup { oneTimeSetup }
-                            New-Test "test1" { }
-                        }
-                    })
-
-                $actual[0].Blocks[0].OneTimeTestSetup.ToString().Trim() | Verify-Equal 'oneTimeSetup'
-            }
-        }
-
-        b "Finding blocks" {
-            t "Find tests in block that is explicitly specified" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-Test "test1" { }
-                        }
-                    })
-
-                $actual.Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-            }
-
-            t "Find tests in blocks that are next to each other" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-Test "test1" { }
-                        }
-
                         New-Block "block2" {
                             New-Test "test2" { }
                         }
-                    })
+                    }
+                })
 
-                $actual.Blocks.Count | Verify-Equal 2
-                $actual.Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[1].Tests.Count | Verify-Equal 1
-                $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
-            }
+            $actual.Blocks.Count | Verify-Equal 1
+            $actual.Blocks[0].Tests.Count | Verify-Equal 1
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
 
-            t "Find tests in blocks that are inside of each other" {
-                $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-Test "test1" { }
-                            New-Block "block2" {
-                                New-Test "test2" { }
-                            }
-                        }
-                    })
+            $actual.Blocks[0].Blocks.Count | Verify-Equal 1
+            $actual.Blocks[0].Blocks[0].Tests.Count | Verify-Equal 1
+            $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+        }
+    }
 
-                $actual.Blocks.Count | Verify-Equal 1
-                $actual.Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+    b "Executing tests" {
+        t "Executes 1 test" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                        New-Test "test1" { "a" }
+                    }
+                })
 
-                $actual.Blocks[0].Blocks.Count | Verify-Equal 1
-                $actual.Blocks[0].Blocks[0].Tests.Count | Verify-Equal 1
-                $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
-            }
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
         }
 
-        b "Executing tests" {
-            t "Executes 1 test" {
-                $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-Test "test1" { "a" }
-                        }
-                    })
+        t "Executes 2 tests next to each other" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                        New-Test "test1" { "a" }
+                        New-Test "test2" { "b" }
+                    }
+                })
 
-                $actual.Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
-            }
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-            t "Executes 2 tests next to each other" {
-                $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-Test "test1" { "a" }
-                            New-Test "test2" { "b" }
-                        }
-                    })
+            $actual.Blocks[0].Tests[1].Executed | Verify-True
+            $actual.Blocks[0].Tests[1].Passed | Verify-True
+            $actual.Blocks[0].Tests[1].Name | Verify-Equal "test2"
+            $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "b"
+        }
 
-                $actual.Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+        t "Executes 2 tests in blocks next to each other" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                        New-Test "test1" { "a" }
+                    }
+                    New-Block "block2" {
+                        New-Test "test2" { "b" }
+                    }
+                })
 
-                $actual.Blocks[0].Tests[1].Executed | Verify-True
-                $actual.Blocks[0].Tests[1].Passed | Verify-True
-                $actual.Blocks[0].Tests[1].Name | Verify-Equal "test2"
-                $actual.Blocks[0].Tests[1].StandardOutput | Verify-Equal "b"
-            }
+            $actual.Blocks[0].Name | Verify-Equal "block1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-            t "Executes 2 tests in blocks next to each other" {
-                $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                        New-Block "block1" {
-                            New-Test "test1" { "a" }
-                        }
+            $actual.Blocks[1].Name | Verify-Equal "block2"
+            $actual.Blocks[1].Tests[0].Executed | Verify-True
+            $actual.Blocks[1].Tests[0].Passed | Verify-True
+            $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
+            $actual.Blocks[1].Tests[0].StandardOutput | Verify-Equal "b"
+        }
+
+        t "Executes 2 tests deeper in blocks" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                    New-Block "block1" {
+                        New-Test "test1" { "a" }
                         New-Block "block2" {
                             New-Test "test2" { "b" }
                         }
-                    })
+                    }
+                })
 
-                $actual.Blocks[0].Name | Verify-Equal "block1"
-                $actual.Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+            $actual.Blocks[0].Name | Verify-Equal "block1"
+            $actual.Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
 
-                $actual.Blocks[1].Name | Verify-Equal "block2"
-                $actual.Blocks[1].Tests[0].Executed | Verify-True
-                $actual.Blocks[1].Tests[0].Passed | Verify-True
-                $actual.Blocks[1].Tests[0].Name | Verify-Equal "test2"
-                $actual.Blocks[1].Tests[0].StandardOutput | Verify-Equal "b"
+            $actual.Blocks[0].Blocks[0].Name | Verify-Equal "block2"
+            $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
+            $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
+        }
+
+        t "Executes container only if it contains anything that should run" {
+            $c = @{
+                Call = 0
             }
-
-            t "Executes 2 tests deeper in blocks" {
-                $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
+                (New-BlockContainerObject -ScriptBlock {
+                        $c.Call++
                         New-Block "block1" {
-                            New-Test "test1" { "a" }
-                            New-Block "block2" {
-                                New-Test "test2" { "b" }
-                            }
+                            New-Test "test1" { "a" } -Tag "a"
+                        }
+                    }),
+                (New-BlockContainerObject -ScriptBlock {
+                        New-Block "block1" {
+                            New-Test "test1" { "a" } -Tag "b"
                         }
                     })
+            ) -Filter (New-FilterObject -Tag "b")
 
-                $actual.Blocks[0].Name | Verify-Equal "block1"
-                $actual.Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual.Blocks[0].Tests[0].StandardOutput | Verify-Equal "a"
+            # should add once during discovery
+            $c.Call | Verify-Equal 1
 
-                $actual.Blocks[0].Blocks[0].Name | Verify-Equal "block2"
-                $actual.Blocks[0].Blocks[0].Tests[0].Executed | Verify-True
-                $actual.Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
-                $actual.Blocks[0].Blocks[0].Tests[0].Name | Verify-Equal "test2"
-                $actual.Blocks[0].Blocks[0].Tests[0].StandardOutput | Verify-Equal "b"
-            }
-
-            t "Executes container only if it contains anything that should run" {
-                $c = @{
-                    Call = 0
-                }
-                $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
-                    (New-BlockContainerObject -ScriptBlock {
-                            $c.Call++
-                            New-Block "block1" {
-                                New-Test "test1" { "a" } -Tag "a"
-                            }
-                        }),
-                    (New-BlockContainerObject -ScriptBlock {
-                            New-Block "block1" {
-                                New-Test "test1" { "a" } -Tag "b"
-                            }
-                        })
-                ) -Filter (New-FilterObject -Tag "b")
-
-                # should add once during discovery
-                $c.Call | Verify-Equal 1
-
-                $actual[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
-                $actual[1].Blocks[0].Tests[0].Executed | Verify-True
-            }
-        }
-
-        b "filtering" {
-
-            # include = true, exclude = false, maybe = $null
-            # when the filter is restrictive and the test
-            t "Given null filter and a tagged test it includes it" {
-                $t = New-TestObject -Name "test1" -Path "p" -Tag a
-
-                $actual = Test-ShouldRun -Item $t -Filter $null
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with tag it excludes it when it matches the exclude filter" {
-                $t = New-TestObject -Name "test1" -Path "p"  -Tag a
-
-                $f = New-FilterObject -ExcludeTag "a"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Exclude | Verify-True
-            }
-
-            t "Given a test without tags it includes it when it does not match exclude filter " {
-                $t = New-TestObject -Name "test1" -Path "p"
-
-                $f = New-FilterObject -ExcludeTag "a"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with tags it includes it when it does not match exclude filter " {
-                $t = New-TestObject -Name "test1" -Path "p" -Tag "h"
-
-                $f = New-FilterObject -ExcludeTag "a"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with tag it includes it when it matches the tag filter" {
-                $t = New-TestObject -Name "test1" -Path "p"  -Tag a
-
-                $f = New-FilterObject -Tag "a"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test without tags it returns `$null when it does not match any other filter" {
-                $t = New-TestObject -Name "test1" -Path "p"
-
-                $f = New-FilterObject -Tag "a"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-False
-                $actual.Exclude | Verify-False
-            }
-
-            t "Given a test without tags it include it when it matches path filter" {
-                $t = New-TestObject -Name "test1" -Path "p"
-
-                $f = New-FilterObject -Tag "a" -FullName "p"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with path it includes it when it matches path filter " {
-                $t = New-TestObject -Name "test1" -Path "p"
-
-                $f = New-FilterObject -FullName "p"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with path it maybes it when it does not match path filter " {
-                $t = New-TestObject -Name "test1" -Path "p"
-
-                $f = New-FilterObject -FullName "r"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-False
-                $actual.Exclude | Verify-False
-            }
-
-            t "Given a test with file path and line number it includes it when it matches the lines filter" {
-                $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
-
-                $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine)"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with file path and line number it maybes it when it does not match the lines filter" {
-                $t = New-TestObject -Name "test1" -ScriptBlock { "test" } -StartLine 1
-
-                $f = New-FilterObject -Line "C:\file.tests.ps1:10"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-False
-                $actual.Exclude | Verify-False
-            }
-        }
-
-        b "path filter" {
-            t "Given a test with path it includes it when it matches path filter " {
-                $t = New-TestObject -Name "test1" -Path "r", "p", "s"
-
-                $f = New-FilterObject -FullName "*s"
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-True
-            }
-
-            t "Given a test with path it maybes it when it does not match path filter " {
-                $t = New-TestObject -Name "test1" -Path "r", "p", "s"
-
-                $f = New-FilterObject -FullName "x"
-
-                $actual = Test-ShouldRun -Item $t -Filter $f
-                $actual.Include | Verify-False
-                $actual.Exclude | Verify-False
-            }
-
+            $actual[0].Blocks[0].Tests[0].Name | Verify-Equal "test1"
+            $actual[1].Blocks[0].Tests[0].Executed | Verify-True
         }
     }
+
+    b "filtering" {
+
+        # include = true, exclude = false, maybe = $null
+        # when the filter is restrictive and the test
+        t "Given null filter and a tagged test it includes it" {
+            $t = New-TestObject -Name "test1" -Path "p" -Tag a
+
+            $actual = Test-ShouldRun -Item $t -Filter $null
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with tag it excludes it when it matches the exclude filter" {
+            $t = New-TestObject -Name "test1" -Path "p"  -Tag a
+
+            $f = New-FilterObject -ExcludeTag "a"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Exclude | Verify-True
+        }
+
+        t "Given a test without tags it includes it when it does not match exclude filter " {
+            $t = New-TestObject -Name "test1" -Path "p"
+
+            $f = New-FilterObject -ExcludeTag "a"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with tags it includes it when it does not match exclude filter " {
+            $t = New-TestObject -Name "test1" -Path "p" -Tag "h"
+
+            $f = New-FilterObject -ExcludeTag "a"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with tag it includes it when it matches the tag filter" {
+            $t = New-TestObject -Name "test1" -Path "p"  -Tag a
+
+            $f = New-FilterObject -Tag "a"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test without tags it returns `$null when it does not match any other filter" {
+            $t = New-TestObject -Name "test1" -Path "p"
+
+            $f = New-FilterObject -Tag "a"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-False
+            $actual.Exclude | Verify-False
+        }
+
+        t "Given a test without tags it include it when it matches path filter" {
+            $t = New-TestObject -Name "test1" -Path "p"
+
+            $f = New-FilterObject -Tag "a" -FullName "p"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with path it includes it when it matches path filter " {
+            $t = New-TestObject -Name "test1" -Path "p"
+
+            $f = New-FilterObject -FullName "p"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with path it maybes it when it does not match path filter " {
+            $t = New-TestObject -Name "test1" -Path "p"
+
+            $f = New-FilterObject -FullName "r"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-False
+            $actual.Exclude | Verify-False
+        }
+
+        t "Given a test with file path and line number it includes it when it matches the lines filter" {
+            $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
+
+            $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine)"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with file path and line number it maybes it when it does not match the lines filter" {
+            $t = New-TestObject -Name "test1" -ScriptBlock { "test" } -StartLine 1
+
+            $f = New-FilterObject -Line "C:\file.tests.ps1:10"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-False
+            $actual.Exclude | Verify-False
+        }
+    }
+
+    b "path filter" {
+        t "Given a test with path it includes it when it matches path filter " {
+            $t = New-TestObject -Name "test1" -Path "r", "p", "s"
+
+            $f = New-FilterObject -FullName "*s"
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-True
+        }
+
+        t "Given a test with path it maybes it when it does not match path filter " {
+            $t = New-TestObject -Name "test1" -Path "r", "p", "s"
+
+            $f = New-FilterObject -FullName "x"
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-False
+            $actual.Exclude | Verify-False
+        }
+
+    }
+
 
     # outside of module
 
