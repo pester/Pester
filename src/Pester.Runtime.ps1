@@ -74,9 +74,9 @@ function New-PesterState {
         CurrentBlock        = $null
         CurrentTest         = $null
 
-        Plugin              = @()
-        PluginConfiguration = @{}
-        PluginData          = @{}
+        Plugin              = $null
+        PluginConfiguration = $null
+        PluginData          = $null
         Configuration       = $null
 
         TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
@@ -351,9 +351,9 @@ function Invoke-Block ($previousBlock) {
                 # no callbacks are provided because we are not transitioning between any states
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First -and $null -ne $state.Plugin) { $state.Plugin.OneTimeBlockSetupStart }
+                    if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
                 ) `
-                    -Setup @(if ($null -ne $state.Plugin) { $state.Plugin.EachBlockSetupStart }) `
+                    -Setup @( $state.Plugin.EachBlockSetupStart ) `
                     -Context @{
                     Context = @{
                         # context that is visible to plugins
@@ -443,8 +443,8 @@ function Invoke-Block ($previousBlock) {
                     }
                 }
 
-                $frameworkEachBlockTeardowns = @(if ($null -ne $state.Plugin) { $state.Plugin.EachBlockTeardownEnd })
-                $frameworkOneTimeBlockTeardowns = @(if ($block.Last -and $null -ne $state.Plugin) { $state.Plugin.OneTimeBlockTeardownEnd })
+                $frameworkEachBlockTeardowns = @($state.Plugin.EachBlockTeardownEnd )
+                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardownEnd } )
                 # reverse the teardowns so they run in opposite order to setups
                 [Array]::Reverse($frameworkEachBlockTeardowns)
                 [Array]::Reverse($frameworkOneTimeBlockTeardowns)
@@ -589,9 +589,9 @@ function Invoke-TestItem {
         # no callbacks are provided because we are not transitioning between any states
         $frameworkSetupResult = Invoke-ScriptBlock `
             -OuterSetup @(
-            if ($Test.First -and $null -ne $state.Plugin) { $state.Plugin.OneTimeTestSetupStart }
+            if ($Test.First) { $state.Plugin.OneTimeTestSetupStart }
         ) `
-            -Setup @( if ($null -ne $state.Plugin) { $state.Plugin.EachTestSetupStart }) `
+            -Setup @( $state.Plugin.EachTestSetupStart ) `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -687,7 +687,7 @@ function Invoke-TestItem {
 
                 $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
 
-                if ($null -ne $Result.ErrorRecord -and $Result.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+                if ($Result.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
                     #Same logic as when setting a test block to skip
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $Test.Path -join '.'
@@ -712,8 +712,8 @@ function Invoke-TestItem {
         $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
 
-        $frameworkEachTestTeardowns = @( if ($null -ne $null -ne $state.Plugin) { $state.Plugin.EachTestTeardownEnd } )
-        $frameworkOneTimeTestTeardowns = @(if ($Test.Last -and $null -ne $state.Plugin) { $state.Plugin.OneTimeTestTeardownEnd })
+        $frameworkEachTestTeardowns = @( $state.Plugin.EachTestTeardownEnd )
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.Plugin.OneTimeTestTeardownEnd })
         [array]::Reverse($frameworkEachTestTeardowns)
         [array]::Reverse($frameworkOneTimeTestTeardowns)
 
@@ -903,7 +903,7 @@ function Discover-Test {
         Write-PesterDebugMessage -Scope Discovery -Message "Starting test discovery in $(@($BlockContainer).Length) test containers."
     }
 
-    $steps = if ($null -ne $state.Plugin) { $state.Plugin.DiscoveryStart }
+    $steps = $state.Plugin.DiscoveryStart
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
             BlockContainers = $BlockContainer
@@ -938,7 +938,7 @@ function Discover-Test {
 
         Reset-PerContainerState -RootBlock $root
 
-        $steps = if ($null -ne $state.Plugin) { $state.Plugin.ContainerDiscoveryStart }
+        $steps = $state.Plugin.ContainerDiscoveryStart
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
                 BlockContainer = $container
@@ -953,7 +953,7 @@ function Discover-Test {
             Block     = $root
         }
 
-        $steps = if ($null -ne $state.Plugin) { $state.Plugin.ContainerDiscoveryEnd }
+        $steps = $state.Plugin.ContainerDiscoveryEnd
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
                 BlockContainer = $container
@@ -1016,7 +1016,7 @@ function Discover-Test {
         $f.Block
     }
 
-    $steps = if ($null -ne $state.Plugin) { $state.Plugin.DiscoveryEnd }
+    $steps = $state.Plugin.DiscoveryEnd
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
             BlockContainers = $found.Block
@@ -1041,7 +1041,7 @@ function Run-Test {
     )
 
     $state.Discovery = $false
-    $steps =  if ($null -ne $state.Plugin) { $state.Plugin.RunStart }
+    $steps = $state.Plugin.RunStart
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
             Blocks        = $Block
@@ -1066,7 +1066,7 @@ function Run-Test {
         $rootBlock.Executed = $true
         $rootBlock.ExecutedAt = [DateTime]::now
 
-        $steps = if ($null -ne $state.Plugin) { $state.Plugin.ContainerRunStart }
+        $steps = $state.Plugin.ContainerRunStart
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
                 Block         = $rootBlock
@@ -1157,7 +1157,7 @@ function Run-Test {
         $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
         $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
 
-        $steps =  if ($null -ne $state.Plugin) { $state.Plugin.ContainerRunEnd }
+        $steps = $state.Plugin.ContainerRunEnd
         if ($null -ne $steps -and 0 -lt @($steps).Count) {
             Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
                 Result        = $result
@@ -2088,7 +2088,7 @@ function PostProcess-DiscoveredBlock {
             # if we determined that the block should run we can still make it not run if
             # none of it's children will run
             if ($b.ShouldRun) {
-                $testsToRun = @(foreach ($t in $tests) { if ($t.ShouldRun) { $t } })
+                $testsToRun = foreach ($t in $tests) { if ($t.ShouldRun) { $t } }
                 if ($testsToRun -and 0 -ne $testsToRun.Count) {
                     $testsToRun[0].First = $true
                     $testsToRun[-1].Last = $true
@@ -2107,7 +2107,7 @@ function PostProcess-DiscoveredBlock {
             # passing the array as a whole to cross the function boundary as few times as I can
             PostProcess-DiscoveredBlock -Block $childBlocks -Filter $Filter -BlockContainer $BlockContainer -RootBlock $RootBlock
 
-            $childBlocksToRun = @(foreach ($cb in $childBlocks) { if ($cb.ShouldRun) { $cb } })
+            $childBlocksToRun = foreach ($cb in $childBlocks) { if ($cb.ShouldRun) { $cb } }
             $anyChildBlockShouldRun = $childBlocksToRun -and 0 -ne $childBlocksToRun.Count
             if ($anyChildBlockShouldRun) {
                 $childBlocksToRun[0].First = $true
