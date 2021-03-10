@@ -40,7 +40,7 @@
         use -Inline:$false to reset it to 0.
 #>
 
-[PSCmdletBinding()]
+[CmdletBinding()]
 param (
     [switch] $Load,
     [switch] $Clean,
