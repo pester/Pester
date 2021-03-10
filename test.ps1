@@ -50,11 +50,9 @@ $ErrorView = "NormalView"
 
 if (-not $NoBuild) {
     if ($CI) {
-        $env:PESTER_INLINE = 1
         & "$PSScriptRoot/build.ps1" -Inline
     }
     else {
-        $env:PESTER_INLINE = [int][bool]$inline
         & "$PSScriptRoot/build.ps1" -Inline:$Inline
     }
 }
@@ -161,7 +159,6 @@ if ($CI) {
 
 $r = Invoke-Pester -Configuration $configuration
 
-$env:PESTER_INLINE = 0
 if ("Failed" -eq $r.Result) {
     throw "Run failed!"
 }

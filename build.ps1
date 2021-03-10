@@ -23,9 +23,6 @@
 
         Any such blocks will be excluded entrily when inlining.
 
-    .PARAMETER Debug
-        <Not written yet>
-
     .PARAMETER Load
         Imports the built Pester module in a separate PowerShell session
         and measure how fast it imports. If the module cannot be imported it throws
@@ -34,13 +31,17 @@
     .PARAMETER Clean
         Cleans the build folder ./bin and rebuilds the assemblies.
 
-    .PARAMETER Clean
-        Inline all files into the main file, instead of dot-sourcing. This is how the real build is done,
+    .PARAMETER Inline
+        Inline all files into Pester.psm1, instead of dot-sourcing. This is how the real build is done,
         but inlinig the files is annoying for local development.
+
+        $env:PESTER_BUILD_INLINE=1 environment variable is used to force inlining in files that don't provide
+        the -Inline parameter. When this gets stuck, and you see your module inline even when it should not,
+        use -Inline:$false to reset it to 0.
 #>
 
+[PSCmdletBinding()]
 param (
-    [switch] $Debug,
     [switch] $Load,
     [switch] $Clean,
     [switch] $Inline
@@ -52,12 +53,25 @@ if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
 }
 
-# force inlining by env variable, build.ps1 is used in
-# multiple places and passing the $inline everywhere is
-# difficult
-if ($env:PESTER_BUILD_INLINE -eq 1) {
-    $Inline = $true
+if (-not $PSBoundParameters.ContainsKey("Inline")) {
+    # Force inlining by env variable, build.ps1 is used in
+    # multiple places and passing the $inline everywhere is
+    # difficult.
+    # Only read this option here. Don't write it.
+    if ($env:PESTER_BUILD_INLINE -eq "1") {
+        $Inline = $true
+    }
+    else {
+        $Inline = $false
+    }
 }
+else {
+    # We provided Inline explicitly, write the option. This assumes that
+    # you don't use -Inline:$false in any of the test scripts, otherwise the
+    # test script would reset the option incorrectly.
+    $env:PESTER_BUILD_INLINE = [string][int][bool] $Inline
+}
+
 
 $null = New-Item "$PSScriptRoot/bin" -ItemType Directory -Force
 
