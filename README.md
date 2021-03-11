@@ -1,7 +1,7 @@
 # Pester
 
 > 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
->
+
 > 🌵 Documentation is available at [https://pester.dev/docs/quick-start](https://pester.dev/docs/quick-start).
 
 > 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10.
@@ -172,7 +172,7 @@ Pester is sponsored by [Octopus Deploy](https://octopus.com).
 
 <a href="https://octopus.com"><img src="https://octopus.com/images/company/OctopusDeploy-logo-RGB.svg" alt="Octopus deploy"  height="150"></a>
 
-As well as all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors)
+As well as all the great folks on [OpenCollective](https://opencollective.com/pester) and [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors).
 
 
 ## Contributors
