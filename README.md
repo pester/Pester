@@ -164,13 +164,16 @@ Do you like what you see? Learn how to use Pester with our [quick start guide](h
 
 Got questions or you just want to get in touch? Use our issues page or one of these channels:
 
-[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester) [![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester) [![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS) or try [GitHub discussions](https://github.com/pester/Pester/discussions).
+[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester) [![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester) [![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS) or try github discussions <a href="https://github.com/pester/Pester/discussions"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub discussions" height="64"></a>.
 
 ## Sponsored by
 
-Pester is sponsored by all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors) and by the
+Pester is sponsored by [Octopus Deploy](https://octopus.com).
 
-[![Octopus Deploy]](https://avatars.githubusercontent.com/u/72904542?s=400&u=0350c6ca958a6081a2e1c0150e6ff1f4d436bd8e&v=4)(https://octopus.com)
+<a href="https://octopus.com"><img src="https://octopus.com/images/company/OctopusDeploy-logo-RGB.svg" alt="Octopus deploy"  height="150"></a>
+
+As well as all the great folks on [OpenCollective](https://opencollective.com/pester),  [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors)
+
 
 ## Contributors
 
