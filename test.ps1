@@ -141,7 +141,8 @@ $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
 if ($CI) {
     $configuration.Run.Exit = $true
 
-    $configuration.CodeCoverage.Enabled = $true
+    # not using code coverage, it is still very slow
+    $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
 
     # experimental, will try to write breakpoints close together
