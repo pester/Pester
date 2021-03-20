@@ -5,6 +5,7 @@
         Used to run the tests locally for Pester development.
 
     .PARAMETER CI
+        Builds the module using the inlined mode.
         Exits after run. Enables test results and code coverage on `/src/*`.
         Enables exit with non-zero exit code if tests don't pass. Forces P Tests
         to fail when `dt` is left in the tests. `dt` only runs the specified test,
@@ -23,6 +24,11 @@
         Pass the file to run Pester (not P) tests from.
         */demo/*, */examples/*, */testProjects/* are excluded from tests.
 
+    .PARAMETER Inline
+        Forces inlining the module into a single file. This is how real build is
+        done, but makes local debugging difficult. When -CI is used, inlining is
+        forced.
+
     .NOTES
         Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
@@ -31,6 +37,7 @@ param (
     [switch] $CI,
     [switch] $SkipPTests,
     [switch] $NoBuild,
+    [switch] $Inline,
     [string[]] $File
 )
 
@@ -41,9 +48,13 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
-
 if (-not $NoBuild) {
-    & "$PSScriptRoot/build.ps1"
+    if ($CI) {
+        & "$PSScriptRoot/build.ps1" -Inline
+    }
+    else {
+        & "$PSScriptRoot/build.ps1" -Inline:$Inline
+    }
 }
 
 # remove pester because we will be reimporting it in multiple other places
@@ -130,13 +141,25 @@ $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
 if ($CI) {
     $configuration.Run.Exit = $true
 
+    # not using code coverage, it is still very slow
     $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
+
+    # experimental, will try to write breakpoints close together
+    # not one by one while it is figuring out AST.
+    # this appears to be significantly faster.
+    $configuration.CodeCoverage.DelayWritingBreakpoints = $true
+    # experimental, will delete BP as soon as it is hit
+    # only effective when DelayWritingBreakpoints is $true.
+    # this is me trying out an approach. Not sure about the impact.
+    $configuration.CodeCoverage.SingleHitBreakpoints = $true
+
 
     $configuration.TestResult.Enabled = $true
 }
 
 $r = Invoke-Pester -Configuration $configuration
+
 if ("Failed" -eq $r.Result) {
     throw "Run failed!"
 }

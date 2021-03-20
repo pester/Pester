@@ -1,8 +1,55 @@
-# if -not build
-. "$PSScriptRoot/Pester.Utility.ps1"
-. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-# . "$PSScriptRoot/Pester.Types.ps1"
-# endif
+if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+    . "$PSScriptRoot/Pester.Utility.ps1"
+    . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+    . "$PSScriptRoot/Pester.Types.ps1"
+
+    if ($null -eq $PesterPreference) {
+        $PesterPreference = [PesterConfiguration]::Default
+    }
+}
+else {
+    if ($null -eq $PesterPreference) {
+        $PesterPreference = [PesterConfiguration]::Default
+    }
+} # endif
+
+# interesting commands
+# # the core stuff I am mostly sure about
+# 'New-PesterState'
+# 'New-Block'
+# 'New-ParametrizedBlock'
+# 'New-Test'
+# 'New-ParametrizedTest'
+# 'New-EachTestSetup'
+# 'New-EachTestTeardown'
+# 'New-OneTimeTestSetup'
+# 'New-OneTimeTestTeardown'
+# 'New-EachBlockSetup'
+# 'New-EachBlockTeardown'
+# 'New-OneTimeBlockSetup'
+# 'New-OneTimeBlockTeardown'
+# 'Add-FrameworkDependency'
+# 'Anywhere'
+# 'Invoke-Test',
+# 'Find-Test',
+# 'Invoke-PluginStep'
+
+# # here I have doubts if that is too much to expose
+# 'Get-CurrentTest'
+# 'Get-CurrentBlock'
+# 'Recurse-Up',
+# 'Is-Discovery'
+
+# # those are quickly implemented to be useful for demo
+# 'Where-Failed'
+# 'View-Flat'
+
+# # those need to be refined and probably wrapped to something
+# # that is like an object builder
+# 'New-FilterObject'
+# 'New-PluginObject'
+# 'New-BlockContainerObject'
+
 
 # instances
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
@@ -17,40 +64,35 @@ else {
     $PesterPreference = [PesterConfiguration] $PesterPreference
 }
 
-$state = [PSCustomObject] @{
-    # indicate whether or not we are currently
-    # running in discovery mode se we can change
-    # behavior of the commands appropriately
-    Discovery           = $false
+function New-PesterState {
+    $o = [PSCustomObject] @{
+        # indicate whether or not we are currently
+        # running in discovery mode se we can change
+        # behavior of the commands appropriately
+        Discovery           = $false
 
-    CurrentBlock        = $null
-    CurrentTest         = $null
+        CurrentBlock        = $null
+        CurrentTest         = $null
 
-    Plugin              = $null
-    PluginConfiguration = $null
-    Configuration       = $null
+        Plugin              = $null
+        PluginConfiguration = $null
+        PluginData          = $null
+        Configuration       = $null
 
-    TotalStopWatch      = $null
-    UserCodeStopWatch   = $null
-    FrameworkStopWatch  = $null
-    Stack               = [Collections.Stack]@()
-}
+        TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
+        UserCodeStopWatch = [Diagnostics.Stopwatch]::StartNew()
+        FrameworkStopWatch = [Diagnostics.Stopwatch]::StartNew()
 
-function Reset-TestSuiteState {
-    # resets the module state to the default
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Runtime "Resetting all state to default."
+        Stack               = [Collections.Stack]@()
     }
-    $state.Discovery = $false
 
-    $state.Plugin = $null
-    $state.PluginConfiguration = $null
-    $state.Configuration = $null
+    $o.TotalStopWatch.Restart()
+    $o.FrameworkStopWatch.Restart()
+    # user code stopwatch should not be running
+    # because we are not in user code
+    $o.UserCodeStopWatch.Reset()
 
-    $state.CurrentBlock = $null
-    $state.CurrentTest = $null
-    $state.Stack.Clear()
-    Reset-TestSuiteTimer
+    return $o
 }
 
 function Reset-PerContainerState {
@@ -78,6 +120,14 @@ function Find-Test {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Running just discovery."
     }
+
+    # define the state if we don't have it yet, this will happen when we call this function directly
+    # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
+    # it here.
+    if (notDefined state) {
+        $state = New-PesterState
+    }
+
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
     foreach ($f in $found) {
@@ -884,7 +934,7 @@ function Discover-Test {
 
         # set the data from the container to get them
         # set correctly as if we provided -Data to New-Block
-        $root.Data = $root.BlockContainer.Data
+        $root.Data = $container.Data
 
         Reset-PerContainerState -RootBlock $root
 
@@ -991,6 +1041,16 @@ function Run-Test {
     )
 
     $state.Discovery = $false
+    $steps = $state.Plugin.RunStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
+            Blocks        = $Block
+            Configuration = $state.PluginConfiguration
+            Data          = $state.PluginData
+            WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+        } -ThrowOnFailure
+    }
     foreach ($rootBlock in $Block) {
         $blockStartTime = $state.UserCodeStopWatch.Elapsed
         $overheadStartTime = $state.FrameworkStopWatch.Elapsed
@@ -1046,7 +1106,7 @@ function Run-Test {
                 }
 
                 foreach($private:____d in $____parameters.Data.GetEnumerator()) {
-                    & $____parameters.Set_Variable -Name $private:____d.Name -Value $private:____d.Value
+                    & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
                 }
             }
 
@@ -1563,22 +1623,8 @@ function Invoke-ScriptBlock {
     return $r
 }
 
-function Reset-TestSuiteTimer {
-    if ($null -eq $state.TotalStopWatch) {
-        $state.TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
-    }
+function Reset-TestSuiteTimer ($o) {
 
-    if ($null -eq $state.UserCodeStopWatch) {
-        $state.UserCodeStopWatch = [Diagnostics.Stopwatch]::StartNew()
-    }
-
-    if ($null -eq $state.FrameworkStopWatch) {
-        $state.FrameworkStopWatch = [Diagnostics.Stopwatch]::StartNew()
-    }
-
-    $state.TotalStopWatch.Restart()
-    $state.FrameworkStopWatch.Restart()
-    $state.UserCodeStopWatch.Reset()
 }
 
 function Switch-Timer {
@@ -1823,6 +1869,7 @@ function Invoke-Test {
         $Filter,
         $Plugin,
         $PluginConfiguration,
+        $PluginData,
         $Configuration
     )
 
@@ -1830,8 +1877,20 @@ function Invoke-Test {
     # TODO: revisit this because this will probably act weird as we jump between session states
     $PesterPreference = $Configuration
 
+    if ($null -eq $PesterPreference) { # PESTER_BUILD
+        $Configuration = $PesterPreference = [PesterConfiguration]::Default
+    } # end if
+
+    # define the state if we don't have it yet, this will happen when we call this function directly
+    # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
+    # it here.
+    if (notDefined state) {
+        $state = New-PesterState
+    }
+
     $state.Plugin = $Plugin
     $state.PluginConfiguration = $PluginConfiguration
+    $state.PluginData = $PluginData
     $state.Configuration = $Configuration
 
     # # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
@@ -2383,7 +2442,7 @@ function Invoke-File {
         $Path,
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
-        [Collections.IDictionary] $Data
+        [Collections.IDictionary] $Data = @{}
     )
 
     $sb = {
@@ -2545,47 +2604,3 @@ function ConvertTo-HumanTime {
         "$([int]($TimeSpan.TotalSeconds))s"
     }
 }
-
-# initialize internal state
-Reset-TestSuiteState
-
-# if -not build
-& $SafeCommands['Export-ModuleMember'] -Function @(
-    # the core stuff I am mostly sure about
-    'Reset-TestSuiteState'
-    'New-Block'
-    'New-ParametrizedBlock'
-    'New-Test'
-    'New-ParametrizedTest'
-    'New-EachTestSetup'
-    'New-EachTestTeardown'
-    'New-OneTimeTestSetup'
-    'New-OneTimeTestTeardown'
-    'New-EachBlockSetup'
-    'New-EachBlockTeardown'
-    'New-OneTimeBlockSetup'
-    'New-OneTimeBlockTeardown'
-    'Add-FrameworkDependency'
-    'Anywhere'
-    'Invoke-Test',
-    'Find-Test',
-    'Invoke-PluginStep'
-
-    # here I have doubts if that is too much to expose
-    'Get-CurrentTest'
-    'Get-CurrentBlock'
-    'Recurse-Up',
-    'Is-Discovery'
-
-    # those are quickly implemented to be useful for demo
-    'Where-Failed'
-    'View-Flat'
-
-    # those need to be refined and probably wrapped to something
-    # that is like an object builder
-    'New-FilterObject'
-    'New-PluginObject'
-    'New-BlockContainerObject'
-)
-
-# endif

@@ -71,7 +71,7 @@ function InModuleScope {
         [HashTable]
         $Parameters,
 
-        $ArgumentList
+        $ArgumentList = @()
     )
 
     $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop

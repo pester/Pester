@@ -683,6 +683,11 @@ function Invoke-Pester {
         # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
         $invokedViaInvokePester = $true
 
+        # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
+        # already defined because we want a clean state for this Invoke-Pester even if it runs inside another
+        # testrun (which calls Invoke-Pester itself)
+        $state = New-PesterState
+
         # TODO: Remove all references to mock table, there should not be many.
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
@@ -954,6 +959,7 @@ function Invoke-Pester {
             $sessionState = $PSCmdlet.SessionState
 
             $pluginConfiguration = @{}
+            $pluginData = @{}
             $plugins = @()
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
@@ -1051,15 +1057,12 @@ function Invoke-Pester {
                 }
             }
 
-            # monkey patching that we need global data for code coverage, this is problematic because code coverage should be setup once for the whole run, but because at the start everything was separated on container level the discovery is not done at this point, and we don't have any info about the containers apart from the path, or scriptblock content
-            $pluginData = @{}
-
             $steps = $Plugins.Start
             if ($null -ne $steps -and 0 -lt @($steps).Count) {
                 Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
                     Containers = $containers
                     Configuration = $pluginConfiguration
-                    GlobalPluginData = $pluginData
+                    GlobalPluginData = $state.PluginData
                     WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
                     Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
                 } -ThrowOnFailure
@@ -1070,7 +1073,7 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
+            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
 
             foreach ($c in $r) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
@@ -1117,11 +1120,34 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
+                if ($PesterPreference.Output.Verbosity.Value -ne "None") {
+                    $sw = [Diagnostics.Stopwatch]::StartNew()
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
+                }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+                if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+                }
+                $reportText = Write-CoverageReport $coverageReport
+
+                $coverage = [Pester.CodeCoverage]::Create()
+                $coverage.CoverageReport = $reportText
+                $coverage.CoveragePercent = $coverageReport.CoveragePercent
+                $coverage.CommandsAnalyzedCount = $coverageReport.NumberOfCommandsAnalyzed
+                $coverage.CommandsExecutedCount = $coverageReport.NumberOfCommandsExecuted
+                $coverage.CommandsMissedCount = $coverageReport.NumberOfCommandsMissed
+                $coverage.FilesAnalyzedCount = $coverageReport.NumberOfFilesAnalyzed
+                $coverage.CommandsMissed = $coverageReport.MissedCommands
+                $coverage.CommandsExecuted = $coverageReport.HitCommands
+                $coverage.FilesAnalyzed = $coverageReport.AnalyzedFiles
+                $coverage.CoveragePercentTarget = $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
+
+                $run.CodeCoverage = $coverage
+
             }
 
             if (-not $PesterPreference.Debug.ReturnRawResultObject.Value) {
@@ -1419,7 +1445,7 @@ function ConvertTo-Pester4Result {
     )
     process {
         $legacyResult = [PSCustomObject] @{
-            Version = 4.99.0
+            Version = "4.99.0"
             TagFilter = $null
             ExcludeTagFilter = $null
             TestNameFilter = $null

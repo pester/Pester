@@ -266,6 +266,63 @@ i -PassThru:$PassThru {
             $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
             $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[1].Passed | Verify-True
         }
+
+        t "asserting in scope describe finds all mocks in the nearest describe even when it is more than 2 levels away" {
+            # https://github.com/pester/Pester/issues/1833
+            # there is special logic that handles the first two levels in easy way,
+            # the next levels were off by one
+            $sb = {
+                Describe 'd2' {
+                    # scope 5
+                    BeforeAll {
+                        function a { }
+                        Mock a {}
+
+                        # calling it 3 times, this should not be reached
+                        # we should search only till Describe that is nearest
+                        # to the test, which is Describe d1
+                        a
+                        a
+                        a
+                    }
+                    Describe 'd1' {
+                        # scope 4
+                        BeforeAll {
+                            a
+                        }
+
+                        Context 'c3' {
+                            # scope 3
+
+                            Context 'c2' {
+                                # scope 2
+
+                                Context 'c1' {
+                                    # scope 1
+
+                                    It 'i1' {
+                                        # scope 0
+
+                                        Should -Invoke a -Exactly 0 -Scope 0
+                                        # checking by name
+                                        Should -Invoke a -Exactly 1 -Scope Describe
+                                        # double checking by scope number
+                                        Should -Invoke a -Exactly 1 -Scope 4
+
+                                        # make sure we would fail if we searched too low or too high
+                                        Should -Invoke a -Exactly 0 -Scope 3
+                                        Should -Invoke a -Exactly (3+1) -Scope 5
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            $actual = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
+            $actual.Containers[0].Blocks[0].Blocks[0].Blocks[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+        }
     }
 
     b "should in mock" {
@@ -715,6 +772,32 @@ i -PassThru:$PassThru {
             # mocking
             $command.CommandType | Verify-Equal "Function"
             # $command.DisplayName
+        }
+    }
+
+    b "parameter filter conflicting arguments" {
+        t "Should -Invoke parameter filter should not use 'arguments' name internally to avoid conflict" {
+            # https://github.com/pester/Pester/issues/1819
+            $sb = {
+                Context "a" {
+                    It "b" {
+                        function a ($Arguments) {}
+
+                        Mock a
+
+                        a -Arguments @{ Name = "Jakub" }
+
+                        Should -Invoke a -ParameterFilter { "Jakub" -eq $Arguments.Name }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
         }
     }
 }

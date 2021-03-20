@@ -3,11 +3,17 @@ param ([switch] $PassThru)
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 
-Get-Module Pester.Runtime, P, Pester, Axiom, Stack | Remove-Module
-# Import-Module Pester -MinimumVersion 4.4.3
+Get-Module Pester.Runtime.Wrapper, Pester.Utility, P, Pester, Axiom | Remove-Module
 
 . $PSScriptRoot\..\src\Pester.Utility.ps1
-Import-Module $PSScriptRoot\..\src\Pester.Runtime.psm1 -DisableNameChecking
+New-Module -Name Pester.Runtime.Wrapper -ScriptBlock {
+    # make sure that the Pester.Runtime code runs in a module,
+    # because in the end it would be inlined into a module as well
+    # so the behavior here needs to reflect that to avoid false positive
+    # issues, like $Data variable in test conflicting with a parameter $Data
+    # in the runtime, which won't happen when they are isolated by a module
+    . $PSScriptRoot\..\src\Pester.Runtime.ps1
+} | Import-Module -DisableNameChecking
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
@@ -52,7 +58,7 @@ $ErrorActionPreference = 'Stop'
 
 i -PassThru:$PassThru {
 
-    & (Get-Module Pester.Runtime) {
+    & (Get-Module Pester.Runtime.Wrapper) {
 
         function New-TestObject {
             param (
@@ -146,7 +152,6 @@ i -PassThru:$PassThru {
 
         b "Basic" {
             t "Given a scriptblock with 1 test in it, it finds 1 test" {
-                Reset-TestSuiteState
                 $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { }
@@ -158,7 +163,6 @@ i -PassThru:$PassThru {
             }
 
             t "Given scriptblock with 2 tests in it it finds 2 tests" {
-                Reset-TestSuiteState
                 $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { }
@@ -174,14 +178,12 @@ i -PassThru:$PassThru {
 
         b "block" {
             t "Given 0 tests it returns block containing no tests" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock { })
 
                 $actual.Blocks[0].Tests.Count | Verify-Equal 0
             }
 
             t "Given 0 tests it returns block containing 0 tests" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { }
@@ -194,7 +196,6 @@ i -PassThru:$PassThru {
 
         b "Find common setup for each test" {
             t "Given block that has test setup for each test it finds it" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                         New-EachTestSetup { setup }
@@ -208,7 +209,6 @@ i -PassThru:$PassThru {
 
         b "Finding setup for all tests" {
             t "Find setup to run before all tests in the block" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-OneTimeTestSetup { oneTimeSetup }
@@ -222,7 +222,6 @@ i -PassThru:$PassThru {
 
         b "Finding blocks" {
             t "Find tests in block that is explicitly specified" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { }
@@ -234,7 +233,6 @@ i -PassThru:$PassThru {
             }
 
             t "Find tests in blocks that are next to each other" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { }
@@ -253,7 +251,6 @@ i -PassThru:$PassThru {
             }
 
             t "Find tests in blocks that are inside of each other" {
-                Reset-TestSuiteState
                 $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { }
@@ -275,7 +272,6 @@ i -PassThru:$PassThru {
 
         b "Executing tests" {
             t "Executes 1 test" {
-                Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { "a" }
@@ -289,7 +285,6 @@ i -PassThru:$PassThru {
             }
 
             t "Executes 2 tests next to each other" {
-                Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { "a" }
@@ -309,7 +304,6 @@ i -PassThru:$PassThru {
             }
 
             t "Executes 2 tests in blocks next to each other" {
-                Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { "a" }
@@ -333,7 +327,6 @@ i -PassThru:$PassThru {
             }
 
             t "Executes 2 tests deeper in blocks" {
-                Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                         New-Block "block1" {
                             New-Test "test1" { "a" }
@@ -360,7 +353,6 @@ i -PassThru:$PassThru {
                 $c = @{
                     Call = 0
                 }
-                Reset-TestSuiteState
                 $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer @(
                     (New-BlockContainerObject -ScriptBlock {
                             $c.Call++
@@ -875,7 +867,6 @@ i -PassThru:$PassThru {
         }
 
         t "continues to second block even if the first block is excluded" {
-            Reset-TestSuiteState
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" -Tag "DoNotRun" {
                         New-Test "test1" { "a" }
@@ -894,7 +885,6 @@ i -PassThru:$PassThru {
         }
 
         t "continues to second test even if the first test is excluded" {
-            Reset-TestSuiteState
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
                         New-Test "test1" { "a" } -Tag "DoNotRun"
