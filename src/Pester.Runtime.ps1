@@ -1,8 +1,55 @@
-# if -not build
-. "$PSScriptRoot/Pester.Utility.ps1"
-. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-# . "$PSScriptRoot/Pester.Types.ps1"
-# endif
+if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+    . "$PSScriptRoot/Pester.Utility.ps1"
+    . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+    . "$PSScriptRoot/Pester.Types.ps1"
+
+    if ($null -eq $PesterPreference) {
+        $PesterPreference = [PesterConfiguration]::Default
+    }
+}
+else {
+    if ($null -eq $PesterPreference) {
+        $PesterPreference = [PesterConfiguration]::Default
+    }
+} # endif
+
+# interesting commands
+# # the core stuff I am mostly sure about
+# 'New-PesterState'
+# 'New-Block'
+# 'New-ParametrizedBlock'
+# 'New-Test'
+# 'New-ParametrizedTest'
+# 'New-EachTestSetup'
+# 'New-EachTestTeardown'
+# 'New-OneTimeTestSetup'
+# 'New-OneTimeTestTeardown'
+# 'New-EachBlockSetup'
+# 'New-EachBlockTeardown'
+# 'New-OneTimeBlockSetup'
+# 'New-OneTimeBlockTeardown'
+# 'Add-FrameworkDependency'
+# 'Anywhere'
+# 'Invoke-Test',
+# 'Find-Test',
+# 'Invoke-PluginStep'
+
+# # here I have doubts if that is too much to expose
+# 'Get-CurrentTest'
+# 'Get-CurrentBlock'
+# 'Recurse-Up',
+# 'Is-Discovery'
+
+# # those are quickly implemented to be useful for demo
+# 'Where-Failed'
+# 'View-Flat'
+
+# # those need to be refined and probably wrapped to something
+# # that is like an object builder
+# 'New-FilterObject'
+# 'New-PluginObject'
+# 'New-BlockContainerObject'
+
 
 # instances
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
@@ -887,7 +934,7 @@ function Discover-Test {
 
         # set the data from the container to get them
         # set correctly as if we provided -Data to New-Block
-        $root.Data = $root.BlockContainer.Data
+        $root.Data = $container.Data
 
         Reset-PerContainerState -RootBlock $root
 
@@ -1829,6 +1876,11 @@ function Invoke-Test {
     # set the incoming value for all the child scopes
     # TODO: revisit this because this will probably act weird as we jump between session states
     $PesterPreference = $Configuration
+
+    if ($null -eq $PesterPreference) { # PESTER_BUILD
+        $Configuration = $PesterPreference = [PesterConfiguration]::Default
+    } # end if
+
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
     # it here.
@@ -2552,44 +2604,3 @@ function ConvertTo-HumanTime {
         "$([int]($TimeSpan.TotalSeconds))s"
     }
 }
-
-# if -not build
-& $SafeCommands['Export-ModuleMember'] -Function @(
-    # the core stuff I am mostly sure about
-    'New-PesterState'
-    'New-Block'
-    'New-ParametrizedBlock'
-    'New-Test'
-    'New-ParametrizedTest'
-    'New-EachTestSetup'
-    'New-EachTestTeardown'
-    'New-OneTimeTestSetup'
-    'New-OneTimeTestTeardown'
-    'New-EachBlockSetup'
-    'New-EachBlockTeardown'
-    'New-OneTimeBlockSetup'
-    'New-OneTimeBlockTeardown'
-    'Add-FrameworkDependency'
-    'Anywhere'
-    'Invoke-Test',
-    'Find-Test',
-    'Invoke-PluginStep'
-
-    # here I have doubts if that is too much to expose
-    'Get-CurrentTest'
-    'Get-CurrentBlock'
-    'Recurse-Up',
-    'Is-Discovery'
-
-    # those are quickly implemented to be useful for demo
-    'Where-Failed'
-    'View-Flat'
-
-    # those need to be refined and probably wrapped to something
-    # that is like an object builder
-    'New-FilterObject'
-    'New-PluginObject'
-    'New-BlockContainerObject'
-)
-
-# endif
