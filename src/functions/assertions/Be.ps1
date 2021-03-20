@@ -150,9 +150,21 @@ function Get-CompareStringMessage {
         [AllowEmptyString()]
         [String]$Actual,
         [switch]$CaseSensitive,
-        $Because
+        $Because,
+        # this is here for testing, we normally would fallback to the buffer size
+        $MaximumLineLength,
+        $ContextLength
     )
 
+    if ($null -eq $MaximumLineLength) {
+        # this is how long the line is, check how this is defined on headless / non-interactive client
+        $MaximumLineLength = 50 #$host.UI.RawUI.BufferSize.Width
+    }
+
+    if ($null -eq $ContextLength) {
+        # this is how much text we want to see after difference in the excerpt
+        $ContextLength = 10
+    }
     $ExpectedValueLength = $ExpectedValue.Length
     $actualLength = $actual.Length
     $maxLength = if ($ExpectedValueLength -gt $actualLength) { $ExpectedValueLength } else { $actualLength }
@@ -179,48 +191,131 @@ function Get-CompareStringMessage {
             "String lengths are both $ExpectedValueLength."
             "Strings differ at index $differenceIndex."
         }
+
+        # find the difference in the string with expanded characters, this is the fastest and most foolproof way of
+        # getting the updated difference index. we could also inspect the new string and try to find every occurence
+        # of special character before the difference index, but '\n' is valid piece of string
+        # or inspect the original string, but then we need to make sure that we look for all the special characters.
+        # instead we just compare it again.
+
+        $actualExpanded = Expand-SpecialCharacters -InputObject $actual
+        $expectedExpanded = Expand-SpecialCharacters -InputObject $ExpectedValue
+        $maxLength = if ($expectedExpanded.Length -gt $actualExpanded.Length) { $expectedExpanded.Length } else { $actualExpanded.Length }
+        $differenceIndex = $null
+        for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i) {
+            $differenceIndex = if ($CaseSensitive -and ($expectedExpanded[$i] -cne $actualExpanded[$i])) {
+                $i
+            }
+            elseif ($expectedExpanded[$i] -ne $actualExpanded[$i]) {
+                $i
+            }
+        }
+
         $ellipsis = "..."
-        $excerptSize = 5;
-        "Expected: '{0}'" -f (  Expand-SpecialCharacters -InputObject (Format-AsExcerpt -InputObject $ExpectedValue -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis) )
-        "But was:  '{0}'" -f ( Expand-SpecialCharacters -InputObject (Format-AsExcerpt -InputObject $actual -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis ) )
+        # we will sorround the output with Expected: '' and But was: '', from which the Expected: '' is longer
+        # so subtract that from the maximum line length, to get how much of the line we actually have available
+        $sorroundLength = "Expected: ''".Length
+        $availableLineLength = $maximumLineLength - $sorroundLength
+
+        $expectedExcerpt = Format-AsExcerpt -InputObject $expectedExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength -MaxLength $MaxLength
+
+        $actualExcerpt = Format-AsExcerpt -Actual $Actual -Expected  $actualExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength -MaxLength $MaxLength
+
+        "Expected: '{0}'" -f $expectedExcerpt.Line
+        "But was:  '{0}'" -f $actualExcerpt.Line
+        " " * ($sorroundLength - 1)  + '-' * $actualExcerpt.DifferenceIndex + '^'
     }
 }
+
 function Format-AsExcerpt {
     param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory = $true)]
         [AllowEmptyString()]
-        [string]$InputObject,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$startIndex,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$excerptSize,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [string]$excerptMarker
+        [string] $InputObject,
+        [Parameter(Mandatory = $true)]
+        [int] $DifferenceIndex,
+        [Parameter(Mandatory = $true)]
+        [int] $LineLength,
+        [Parameter(Mandatory = $true)]
+        [string] $ExcerptMarker,
+        [Parameter(Mandatory = $true)]
+        [int] $ContextLength
     )
-    $InputObjectDisplay = [string]::Empty
-    $displayDifferenceIndex = $startIndex - $excerptSize
-    $maximumStringLength = 40
-    $maximumSubstringLength = $excerptSize * 2
-    $substringLength = $InputObject.Length - $displayDifferenceIndex
-    if ($substringLength -gt $maximumSubstringLength) {
-        $substringLength = $maximumSubstringLength
-    }
-    if ($displayDifferenceIndex + $substringLength -lt $InputObject.Length) {
-        $endExcerptMarker = $excerptMarker
-    }
-    if ($displayDifferenceIndex -lt 0) {
-        $displayDifferenceIndex = 0
-    }
-    if ($InputObject.length -ge $maximumStringLength) {
-        if ($displayDifferenceIndex -ne 0) {
-            $InputObjectDisplay = $excerptMarker
+
+    $markerLength = $ExcerptMarker.Length
+    $inputLength = $InputObject.Length
+    # e.g. <marker><precontext><diffchar><postcontext><marker> ...precontextXpostcontext...
+    $minimumLineLength = $ContextLength + $markerLength + 1 + $markerLength + $ContextLength
+    if ($LineLength -lt $minimumLineLength -or $inputLength -le $LineLength ) {
+        # the available line length is so short that we can't reasonable work with it. Ignore formatting and just print it as is.
+        # User will see output with a lot of line breaks, but they probably expect that with having super narrow window.
+        # or when input is shorter than available line length,
+        # there won't be any cutting
+        return @{
+            Line = $InputObject
+            DifferenceIndex = $DifferenceIndex
+            CutStart = $false
+            CutEnd = $false
         }
-        $InputObjectDisplay += $InputObject.Substring($displayDifferenceIndex, $substringLength) + $endExcerptMarker
     }
-    else {
-        $InputObjectDisplay = $InputObject
+
+    if ($DifferenceIndex -lt ($markerLength + $ContextLength)) {
+        # difference index is within the length of cut marker and pre-context
+        # we won't be cutting the start, if anything we will cut the end
+
+        return @{
+            Line = $InputObject.Substring(0, $LineLength - $markerLength) + $ExcerptMarker
+            DifferenceIndex = $DifferenceIndex
+            CutStart = $false
+            CutEnd = $true
+        }
     }
-    $InputObjectDisplay
+
+    if ($DifferenceIndex -ge ($inputLength - $ContextLength - $markerLength)) {
+        # difference index is so close to the end of the string that it
+        # would hit context and marker if we just cut the end we need to cut
+        # the start of the string
+
+        $start = $inputLength - $LineLength
+
+        return @{
+            # remove the amount of extra characters we have over the line length
+            # and also the length of the marker so we can prepend it
+            Line = $ExcerptMarker + $InputObject.Substring($start + $markerLength, $inputLength - $start - $markerLength)
+            DifferenceIndex = $DifferenceIndex - $start
+            CutStart = $true
+            CutEnd = $false
+        }
+    }
+
+    # check how much space for the start string we have on the line, we will print
+    # 1 char + context + end cut marker
+    $startSpace = $LineLength - $markerLength - $ContextLength
+    $startIndex = $DifferenceIndex - $startSpace + 1
+
+    if ($startIndex -le 0) {
+        $startIndex = 0
+    }
+
+    $cutStart = $false
+    $start = $startIndex
+    $length = $startSpace + $ContextLength
+
+    if ($startIndex -ne 0) {
+        $cutStart = $true
+        $start = $startIndex + $markerLength
+        $length -= $markerLength
+    }
+
+    return @{
+        # remove the amount of extra characters we have over the line length
+        # and also the length of the marker so we can prepend it
+        Line = $(if ($cutStart) { $ExcerptMarker }) + $InputObject.Substring($start, $length) + $ExcerptMarker
+        DifferenceIndex = $DifferenceIndex - $startIndex
+        CutStart = $true
+        CutEnd = $true
+    }
+
 }
 
 
