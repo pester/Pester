@@ -320,7 +320,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:302"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:303"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -331,7 +331,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:302"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:303"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -392,7 +392,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:368"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:369"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -401,7 +401,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:368"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:369"
                         $r.Trace.Count | Should -be 2
                     }
                 }
