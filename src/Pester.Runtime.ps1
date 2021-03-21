@@ -141,37 +141,8 @@ function ConvertTo-DiscoveredBlockContainer {
         $Block
     )
 
-    # # takes a root block and converts it to a discovered block container
-    # # that we can publish from Find-Test, because keeping everything a block makes the internal
-    # # code simpler
-    # $container = $Block.BlockContainer
-    # $content = tryGetProperty $container Content
-    # $type = tryGetProperty $container Type
-
-    [Pester.Container]::CreateFromBlock($Block)
-
-    # # TODO: Add other properties that are irrelevant to found tests
-    # $b = $Block | &$SafeCommands['Select-Object'] -ExcludeProperty @(
-    #     "Parent"
-    #     "Name"
-    #     "Tag"
-    #     "First"
-    #     "Last"
-    #     "StandardOutput"
-    #     "Passed"
-    #     "Skipped"
-    #     "Executed"
-    #     "Path",
-    #     "StartedAt",
-    #     "Duration",
-    #     "Aggregated*"
-    # ) -Property @(
-    #     @{n = "Content"; e = { $content } }
-    #     @{n = "Type"; e = { $type } },
-    #     '*'
-    # )
-
-    # $b
+    $b = [Pester.Container]::CreateFromBlock($Block)
+    $b
 }
 
 function ConvertTo-ExecutedBlockContainer {
@@ -1904,10 +1875,13 @@ function Invoke-Test {
 
     $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
 
-    if ($global:DiscoveryOnly) {
+    if ($PesterPreference.Run.SkipRun.Value) {
         foreach ($f in $found) {
             ConvertTo-DiscoveredBlockContainer -Block $f
         }
+
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nTest run was skipped."
+
         return
     }
     # $errs = $SessionState.PSVariable.Get("Error").Value
