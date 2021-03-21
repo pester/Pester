@@ -124,7 +124,7 @@ $configuration = [PesterConfiguration]::Default
 $configuration.Debug.WriteDebugMessages = $false
 # $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
-$configuration.Output.Verbosity = "Detailed"
+# $configuration.Output.Verbosity = "Detailed"
 $configuration.Debug.ShowFullErrors = $false
 $configuration.Debug.ShowNavigationMarkers = $false
 

@@ -240,8 +240,9 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.message[2] | Should -be 'Strings differ at index 0.'
             $r.Message[3] | Should -be "Expected: 'Two'"
             $r.Message[4] | Should -be "But was:  'One'"
-            $r.Message[5] | Should -match "'One' | Should -be 'Two'"
-            $r.Message.Count | Should -be 6
+            $r.Message[5] | Should -be "           ^"
+            $r.Message[6] | Should -match "'One' | Should -be 'Two'"
+            $r.Message.Count | Should -be 7
         }
 # TODO: should fails with a very weird error, probably has something to do with dynamic params...
 #         Context 'Should fails in file' {
