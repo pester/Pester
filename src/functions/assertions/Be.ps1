@@ -158,7 +158,7 @@ function Get-CompareStringMessage {
 
     if ($null -eq $MaximumLineLength) {
         # this is how long the line is, check how this is defined on headless / non-interactive client
-        $MaximumLineLength = 50 #$host.UI.RawUI.BufferSize.Width
+        $MaximumLineLength = $host.UI.RawUI.BufferSize.Width
     }
 
     if ($null -eq $ContextLength) {
@@ -215,11 +215,14 @@ function Get-CompareStringMessage {
         # we will sorround the output with Expected: '' and But was: '', from which the Expected: '' is longer
         # so subtract that from the maximum line length, to get how much of the line we actually have available
         $sorroundLength = "Expected: ''".Length
-        $availableLineLength = $maximumLineLength - $sorroundLength
+        # the deeper we are in the test structure the less space we have on screen because we are adding margin
+        # before the output each describe level adds one space + 3 spaces for the test output margin
+        $sideOffset = @((Get-CurrentTest).Path).Length + 3
+        $availableLineLength = $maximumLineLength - $sorroundLength - $sideOffset
 
-        $expectedExcerpt = Format-AsExcerpt -InputObject $expectedExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength -MaxLength $MaxLength
+        $expectedExcerpt = Format-AsExcerpt -InputObject $expectedExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength
 
-        $actualExcerpt = Format-AsExcerpt -Actual $Actual -Expected  $actualExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength -MaxLength $MaxLength
+        $actualExcerpt = Format-AsExcerpt -InputObject $actualExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength
 
         "Expected: '{0}'" -f $expectedExcerpt.Line
         "But was:  '{0}'" -f $actualExcerpt.Line
@@ -245,7 +248,7 @@ function Format-AsExcerpt {
     $markerLength = $ExcerptMarker.Length
     $inputLength = $InputObject.Length
     # e.g. <marker><precontext><diffchar><postcontext><marker> ...precontextXpostcontext...
-    $minimumLineLength = $ContextLength + $markerLength + 1 + $markerLength + $ContextLength
+    $minimumLineLength = $ContextLength + $markerLength + 1 +  $markerLength + $ContextLength
     if ($LineLength -lt $minimumLineLength -or $inputLength -le $LineLength ) {
         # the available line length is so short that we can't reasonable work with it. Ignore formatting and just print it as is.
         # User will see output with a lot of line breaks, but they probably expect that with having super narrow window.
@@ -254,68 +257,36 @@ function Format-AsExcerpt {
         return @{
             Line = $InputObject
             DifferenceIndex = $DifferenceIndex
-            CutStart = $false
-            CutEnd = $false
         }
     }
 
-    if ($DifferenceIndex -lt ($markerLength + $ContextLength)) {
-        # difference index is within the length of cut marker and pre-context
-        # we won't be cutting the start, if anything we will cut the end
+    # this will make the whole string shorter as diff index gets closer to the end, so it won't use the whole screen
+    # but otherwise we would have to share which operations we did on one string and repeat them on the other
+    # which would get very complicated. This way it just works.
+    # We need to shift to left by 1 diff char, post-context and end marker length
+    $shiftToLeft = $DifferenceIndex - ($LineLength - 1 - $ContextLength - $markerLength)
 
-        return @{
-            Line = $InputObject.Substring(0, $LineLength - $markerLength) + $ExcerptMarker
-            DifferenceIndex = $DifferenceIndex
-            CutStart = $false
-            CutEnd = $true
-        }
+    if ($shiftToLeft -lt 0) {
+        # diff index fits on screen
+        $shiftToLeft = 0
     }
 
-    if ($DifferenceIndex -ge ($inputLength - $ContextLength - $markerLength)) {
-        # difference index is so close to the end of the string that it
-        # would hit context and marker if we just cut the end we need to cut
-        # the start of the string
+    $shiftedToLeft = $InputObject.Substring($shiftToLeft, $inputLength - $shiftToLeft)
 
-        $start = $inputLength - $LineLength
-
-        return @{
-            # remove the amount of extra characters we have over the line length
-            # and also the length of the marker so we can prepend it
-            Line = $ExcerptMarker + $InputObject.Substring($start + $markerLength, $inputLength - $start - $markerLength)
-            DifferenceIndex = $DifferenceIndex - $start
-            CutStart = $true
-            CutEnd = $false
-        }
+    if ($shiftedToLeft.Length -lt $inputLength) {
+        # we shortened it show cut marker
+        $shiftedToLeft = $ExcerptMarker + $shiftedToLeft.Substring($markerLength,$shiftedToLeft.Length - $markerLength)
     }
 
-    # check how much space for the start string we have on the line, we will print
-    # 1 char + context + end cut marker
-    $startSpace = $LineLength - $markerLength - $ContextLength
-    $startIndex = $DifferenceIndex - $startSpace + 1
-
-    if ($startIndex -le 0) {
-        $startIndex = 0
-    }
-
-    $cutStart = $false
-    $start = $startIndex
-    $length = $startSpace + $ContextLength
-
-    if ($startIndex -ne 0) {
-        $cutStart = $true
-        $start = $startIndex + $markerLength
-        $length -= $markerLength
+    if ($shiftedToLeft.Length -gt $LineLength) {
+        # we would be out of screen cut end
+        $shiftedToLeft = $shiftedToLeft.Substring(0, $LineLength - $markerLength) + $ExcerptMarker
     }
 
     return @{
-        # remove the amount of extra characters we have over the line length
-        # and also the length of the marker so we can prepend it
-        Line = $(if ($cutStart) { $ExcerptMarker }) + $InputObject.Substring($start, $length) + $ExcerptMarker
-        DifferenceIndex = $DifferenceIndex - $startIndex
-        CutStart = $true
-        CutEnd = $true
+        Line = $shiftedToLeft
+        DifferenceIndex = $DifferenceIndex - $shiftToLeft
     }
-
 }
 
 

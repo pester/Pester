@@ -223,8 +223,6 @@ InPesterModuleScope {
             $actual.Line | Verify-Equal "0123456789"
             $actual.Line.Length | Verify-Equal 10
             $actual.DifferenceIndex | Verify-Equal $DifferenceIndex
-            $actual.CutStart | Verify-False
-            $actual.CutEnd | Verify-False
         }
 
         It "When difference is at the start and the string does not fit on the screen it cuts the end" -TestCases @(
@@ -238,23 +236,15 @@ InPesterModuleScope {
             $actual.Line | Verify-Equal "0123456..."
             $actual.Line.Length | Verify-Equal 10
             $actual.DifferenceIndex | Verify-Equal $DifferenceIndex
-            $actual.CutStart | Verify-False
-            $actual.CutEnd | Verify-True
         }
 
         It "When difference is at the end and the string does not fit on the screen it cuts the start" -TestCases @(
             @{ DifferenceIndex = 9  }
-            @{ DifferenceIndex = 10 }
-            @{ DifferenceIndex = 11 }
-            @{ DifferenceIndex = 12 }
          ) {
-            $actual = Format-AsExcerpt -InputObject "cut0123456789" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
-            #                                                 ^^^^
-            $actual.Line | Verify-Equal "...3456789"
+            $actual = Format-AsExcerpt -InputObject "cut01234567890" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
+            $actual.Line | Verify-Equal "...4567890"
             $actual.Line.Length | Verify-Equal 10
-            $actual.DifferenceIndex | Verify-Equal ($DifferenceIndex - 3)
-            $actual.CutStart | Verify-True
-            $actual.CutEnd | Verify-False
+            $actual.DifferenceIndex | Verify-Equal 5
         }
 
         It "When difference is in the middle it cuts start and end" -TestCases @(
@@ -289,7 +279,7 @@ InPesterModuleScope {
             -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
             -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
 
-            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 65.`nStrings differ at index 64.`nExpected: '...aaaaaaaaaaaaaaa'`nBut was:  '...aaaaaaaaaaaaaab'`n           -----------------^"
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 65.`nStrings differ at index 64.`nExpected: '...aaaaaaaaa'`nBut was:  '...aaaaaaaab'`n           -----------^"
         }
 
         It "The strings remain in the same relative positions if both their starts are cut" {
@@ -297,7 +287,7 @@ InPesterModuleScope {
                 -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" `
                 -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
 
-            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 10.`nActual length:   56`nStrings differ at index 9.`nExpected: 'aaaaaaaaab'`nBut was:  'aaaaaaaaaaaaaaa...'`n           -----------------^"
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 44`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaaab'`nBut was:  '...aaaaaaaaaaaa...'`n           -----------^"
         }
 
         It "The strings remain in the same relative positions when one is much shorter than the other" {
@@ -321,7 +311,7 @@ InPesterModuleScope {
                 -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
                 -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
 
-            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 43`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaa'`nBut was:  '...aaaaaaaaaaaa...'`n           ----------^"
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 43`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaaa'`nBut was:  '...aaaaaaaaaaaa...'`n           -----------^"
         }
     }
 }
