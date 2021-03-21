@@ -61,7 +61,7 @@ namespace Pester
             TestExtension = new StringOption("Filter used to identify test files.", ".Tests.ps1");
             Exit = new BoolOption("Exit with non-zero exit code when the test run fails.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
-            SkipRun = new BoolOption("Runs the discovery phase but skips run. When used with PassThru it returns the object populated with all tests. All tests appear to be failed, but in reality they did not run at all.", false);
+            SkipRun = new BoolOption("Runs the discovery phase but skips run. When used with PassThru it returns the object populated with all tests.", false);
         }
 
         public StringArrayOption Path
