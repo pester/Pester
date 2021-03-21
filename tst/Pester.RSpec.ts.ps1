@@ -1447,7 +1447,24 @@ i -PassThru:$PassThru {
             }
 
             $result = Invoke-Pester -Container $container -PassThru
-            $result.TotalCount | Should -Be 1
+            $result.TotalCount | Verify-Equal 1
+        }
+    }
+
+    b "Converting Pester 5 to Pester4 result" {
+        t "It uses version 4.99.0" {
+            # https://github.com/pester/Pester/issues/1786
+            # .0 because I want some spare numbers if needed in the future
+            $container = New-PesterContainer -ScriptBlock {
+                Describe "d" {
+                    It "t" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container $container -PassThru | ConvertTo-Pester4Result
+            $result.Version | Verify-Equal "4.99.0"
         }
     }
 }

@@ -150,9 +150,21 @@ function Get-CompareStringMessage {
         [AllowEmptyString()]
         [String]$Actual,
         [switch]$CaseSensitive,
-        $Because
+        $Because,
+        # this is here for testing, we normally would fallback to the buffer size
+        $MaximumLineLength,
+        $ContextLength
     )
 
+    if ($null -eq $MaximumLineLength) {
+        # this is how long the line is, check how this is defined on headless / non-interactive client
+        $MaximumLineLength = $host.UI.RawUI.BufferSize.Width
+    }
+
+    if ($null -eq $ContextLength) {
+        # this is how much text we want to see after difference in the excerpt
+        $ContextLength = 10
+    }
     $ExpectedValueLength = $ExpectedValue.Length
     $actualLength = $actual.Length
     $maxLength = if ($ExpectedValueLength -gt $actualLength) { $ExpectedValueLength } else { $actualLength }
@@ -179,48 +191,102 @@ function Get-CompareStringMessage {
             "String lengths are both $ExpectedValueLength."
             "Strings differ at index $differenceIndex."
         }
+
+        # find the difference in the string with expanded characters, this is the fastest and most foolproof way of
+        # getting the updated difference index. we could also inspect the new string and try to find every occurence
+        # of special character before the difference index, but '\n' is valid piece of string
+        # or inspect the original string, but then we need to make sure that we look for all the special characters.
+        # instead we just compare it again.
+
+        $actualExpanded = Expand-SpecialCharacters -InputObject $actual
+        $expectedExpanded = Expand-SpecialCharacters -InputObject $ExpectedValue
+        $maxLength = if ($expectedExpanded.Length -gt $actualExpanded.Length) { $expectedExpanded.Length } else { $actualExpanded.Length }
+        $differenceIndex = $null
+        for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i) {
+            $differenceIndex = if ($CaseSensitive -and ($expectedExpanded[$i] -cne $actualExpanded[$i])) {
+                $i
+            }
+            elseif ($expectedExpanded[$i] -ne $actualExpanded[$i]) {
+                $i
+            }
+        }
+
         $ellipsis = "..."
-        $excerptSize = 5;
-        "Expected: '{0}'" -f (  Expand-SpecialCharacters -InputObject (Format-AsExcerpt -InputObject $ExpectedValue -startIndex $differenceIndex -excerptSize $excerptSize  -excerptMarker $ellipsis) )
-        "But was:  '{0}'" -f ( Expand-SpecialCharacters -InputObject (Format-AsExcerpt -InputObject $actual -startIndex $differenceIndex -excerptSize $excerptSize -excerptMarker $ellipsis ) )
+        # we will sorround the output with Expected: '' and But was: '', from which the Expected: '' is longer
+        # so subtract that from the maximum line length, to get how much of the line we actually have available
+        $sorroundLength = "Expected: ''".Length
+        # the deeper we are in the test structure the less space we have on screen because we are adding margin
+        # before the output each describe level adds one space + 3 spaces for the test output margin
+        $sideOffset = @((Get-CurrentTest).Path).Length + 3
+        $availableLineLength = $maximumLineLength - $sorroundLength - $sideOffset
+
+        $expectedExcerpt = Format-AsExcerpt -InputObject $expectedExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength
+
+        $actualExcerpt = Format-AsExcerpt -InputObject $actualExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength
+
+        "Expected: '{0}'" -f $expectedExcerpt.Line
+        "But was:  '{0}'" -f $actualExcerpt.Line
+        " " * ($sorroundLength - 1)  + '-' * $actualExcerpt.DifferenceIndex + '^'
     }
 }
+
 function Format-AsExcerpt {
     param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory = $true)]
         [AllowEmptyString()]
-        [string]$InputObject,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$startIndex,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [int]$excerptSize,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [string]$excerptMarker
+        [string] $InputObject,
+        [Parameter(Mandatory = $true)]
+        [int] $DifferenceIndex,
+        [Parameter(Mandatory = $true)]
+        [int] $LineLength,
+        [Parameter(Mandatory = $true)]
+        [string] $ExcerptMarker,
+        [Parameter(Mandatory = $true)]
+        [int] $ContextLength
     )
-    $InputObjectDisplay = [string]::Empty
-    $displayDifferenceIndex = $startIndex - $excerptSize
-    $maximumStringLength = 40
-    $maximumSubstringLength = $excerptSize * 2
-    $substringLength = $InputObject.Length - $displayDifferenceIndex
-    if ($substringLength -gt $maximumSubstringLength) {
-        $substringLength = $maximumSubstringLength
-    }
-    if ($displayDifferenceIndex + $substringLength -lt $InputObject.Length) {
-        $endExcerptMarker = $excerptMarker
-    }
-    if ($displayDifferenceIndex -lt 0) {
-        $displayDifferenceIndex = 0
-    }
-    if ($InputObject.length -ge $maximumStringLength) {
-        if ($displayDifferenceIndex -ne 0) {
-            $InputObjectDisplay = $excerptMarker
+
+    $markerLength = $ExcerptMarker.Length
+    $inputLength = $InputObject.Length
+    # e.g. <marker><precontext><diffchar><postcontext><marker> ...precontextXpostcontext...
+    $minimumLineLength = $ContextLength + $markerLength + 1 +  $markerLength + $ContextLength
+    if ($LineLength -lt $minimumLineLength -or $inputLength -le $LineLength ) {
+        # the available line length is so short that we can't reasonable work with it. Ignore formatting and just print it as is.
+        # User will see output with a lot of line breaks, but they probably expect that with having super narrow window.
+        # or when input is shorter than available line length,
+        # there won't be any cutting
+        return @{
+            Line = $InputObject
+            DifferenceIndex = $DifferenceIndex
         }
-        $InputObjectDisplay += $InputObject.Substring($displayDifferenceIndex, $substringLength) + $endExcerptMarker
     }
-    else {
-        $InputObjectDisplay = $InputObject
+
+    # this will make the whole string shorter as diff index gets closer to the end, so it won't use the whole screen
+    # but otherwise we would have to share which operations we did on one string and repeat them on the other
+    # which would get very complicated. This way it just works.
+    # We need to shift to left by 1 diff char, post-context and end marker length
+    $shiftToLeft = $DifferenceIndex - ($LineLength - 1 - $ContextLength - $markerLength)
+
+    if ($shiftToLeft -lt 0) {
+        # diff index fits on screen
+        $shiftToLeft = 0
     }
-    $InputObjectDisplay
+
+    $shiftedToLeft = $InputObject.Substring($shiftToLeft, $inputLength - $shiftToLeft)
+
+    if ($shiftedToLeft.Length -lt $inputLength) {
+        # we shortened it show cut marker
+        $shiftedToLeft = $ExcerptMarker + $shiftedToLeft.Substring($markerLength,$shiftedToLeft.Length - $markerLength)
+    }
+
+    if ($shiftedToLeft.Length -gt $LineLength) {
+        # we would be out of screen cut end
+        $shiftedToLeft = $shiftedToLeft.Substring(0, $LineLength - $markerLength) + $ExcerptMarker
+    }
+
+    return @{
+        Line = $shiftedToLeft
+        DifferenceIndex = $DifferenceIndex - $shiftToLeft
+    }
 }
 
 

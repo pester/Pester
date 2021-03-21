@@ -424,6 +424,14 @@ function ConvertTo-FailureLines {
                 [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
+            if ($true) { # PESTER_BUILD
+                # no code
+                # non inlined scripts will have different paths just omit everything from the src folder
+                $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
+                [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
+                [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
+            } # endif
+
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
             # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
             # what we don't want to do here is shorten the stack on the Should or Invoke-Assertion. That would remove any

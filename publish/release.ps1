@@ -17,7 +17,7 @@ if (Test-Path $bin) {
     Remove-Item $bin -Recurse -Force
 }
 
-pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -clean"
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Clean -Inline"
 if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
@@ -48,6 +48,10 @@ if ($LASTEXITCODE -ne 0) {
     throw "test failed!"
 }
 
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Inline"
+if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
+    throw "Module is too small, are you publishing non-inlined module?"
+}
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
