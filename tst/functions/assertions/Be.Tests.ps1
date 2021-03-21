@@ -277,7 +277,7 @@ InPesterModuleScope {
         It "The arrow points to the correct position when start of the string is cut" {
             $actual = Get-CompareStringMessage `
             -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
-            -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
+            -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
 
             $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 65.`nStrings differ at index 64.`nExpected: '...aaaaaaaaa'`nBut was:  '...aaaaaaaab'`n           -----------^"
         }
@@ -285,7 +285,7 @@ InPesterModuleScope {
         It "The strings remain in the same relative positions if both their starts are cut" {
             $actual = Get-CompareStringMessage `
                 -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" `
-                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
 
             $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 44`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaaab'`nBut was:  '...aaaaaaaaaaaa...'`n           -----------^"
         }
@@ -293,7 +293,7 @@ InPesterModuleScope {
         It "The strings remain in the same relative positions when one is much shorter than the other" {
             $actual = Get-CompareStringMessage `
                 -ExpectedValue "aaaaaaaaab" `
-                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
 
             $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 10`nActual length:   56`nStrings differ at index 9.`nExpected: 'aaaaaaaaab'`nBut was:  'aaaaaaaaaaaaaaa...'`n           ---------^"
         }
@@ -301,7 +301,7 @@ InPesterModuleScope {
         It "The arrow points to the right place when difference is after the end of the shorter string" {
             $actual = Get-CompareStringMessage `
                 -ExpectedValue "aaaaaaaaaa" `
-                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
 
             $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 10`nActual length:   56`nStrings differ at index 10.`nExpected: 'aaaaaaaaaa'`nBut was:  'aaaaaaaaaaaaaaa...'`n           ----------^"
         }
@@ -309,7 +309,7 @@ InPesterModuleScope {
         It "The arrow points to the right place when difference is after the end of the shorter string and both were shortened" {
             $actual = Get-CompareStringMessage `
                 -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
-                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 30 -ContextLength 3
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
 
             $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 43`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaaa'`nBut was:  '...aaaaaaaaaaaa...'`n           -----------^"
         }
