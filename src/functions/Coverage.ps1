@@ -2,7 +2,9 @@ function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
         [object[]] $CodeCoverage,
-        [ScriptBlock] $Logger
+        [ScriptBlock] $Logger,
+        [bool] $UseSingleHitBreakpoints = $true,
+        [bool] $UseBreakpoints = $true
     )
 
     if ($null -ne $logger) {
@@ -22,37 +24,50 @@ function Enter-CoverageAnalysis {
         return @()
     }
 
-
+    # breakpoints collection actually contains locations in script that are interesting,
+    # not actual breakpoints
     $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
     if ($null -ne $logger) {
-        & $logger "Figuring out $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+        & $logger "Figuring out $($breakpoints.Count) measurable code locations took $($sw.ElapsedMilliseconds) ms."
     }
-    $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+
+    if ($UseBreakpoints) {
         if ($null -ne $logger) {
-            & $logger "Using single hit breakpoints."
+            & $logger "Using breakpoints for code coverage. Setting $($breakpoints.Count) breakpoints."
         }
 
-        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        $action = if ($UseSingleHitBreakpoints) {
+            if ($null -ne $logger) {
+                & $logger "Using single hit breakpoints."
+            }
+
+            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        }
+        else {
+            if ($null -ne $logger) {
+                & $logger "Using normal breakpoints."
+            }
+
+            {} # empty ScriptBlock
+        }
+
+        foreach ($breakpoint in $breakpoints) {
+            $params = $breakpoint.Breakpointlocation
+            $params.Action = $action
+
+            $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+        }
+
+        $sw.Stop()
+
+        if ($null -ne $logger) {
+            & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+        }
     }
     else {
         if ($null -ne $logger) {
-            & $logger "Using normal breakpoints."
+            & $logger "Using Measure-Script for code coverage, not setting any breakpoints."
         }
-
-        {} # empty ScriptBlock
-    }
-
-    foreach ($breakpoint in $breakpoints) {
-        $params = $breakpoint.Breakpointlocation
-        $params.Action = $action
-
-        $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
-    }
-
-    $sw.Stop()
-
-    if ($null -ne $logger) {
-        & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
     }
 
     return $breakpoints
@@ -355,15 +370,7 @@ function New-CoverageBreakpoint {
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
-        Action = if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) { {} } else { $null }
-    }
-
-
-    if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
-        $breakpoint = & $SafeCommands['Set-PSBreakPoint'] @params
-    }
-    else {
-        $breakpoint = $null
+        Action = $null
     }
 
     [pscustomobject] @{
@@ -641,7 +648,73 @@ function Merge-CommandCoverage {
 function Get-CoverageReport {
     # make sure this is an array, otherwise the counts start failing
     # on powershell 3
-    param ([object[]] $CommandCoverage)
+    param ([object[]] $CommandCoverage, $Measure)
+
+    # Measure is null when we used Breakpoints to do code coverage, otherwise it is populated with the measure
+    if ($null -ne $Measure) {
+        # adapting the measurements to breakpoints type of measuring
+        # by filtering the measures down to the files we are actually interested in and then
+        # ordering them by file, line and column, this could be optimized by using dictionary and TryGetValu
+        # or just using list lookup when there are less than 100 points to search through
+        $hashset = [System.Collections.Generic.HashSet[string]]@()
+        foreach ($c in $CommandCoverage) {
+            $null = $hashset.Add($c.File)
+        }
+
+        foreach ($f in $hashset) {
+            Write-Host "File: $f"
+        }
+
+        $pointsByPath = @{}
+        foreach ($i in $Measure) {
+            Write-Host "Hit: $($i.Extent.File), $($i.Extent.StartLineNumber), $($i.Extent.StartColumnNumber), $($i.Source)"
+
+            if ($hashset.Contains($i.Extent.File)) {
+                if (-not $pointsByPath.ContainsKey($i.Extent.File)) {
+
+                    $pointByLine = @{ $i.Extent.StartLineNumber = @{ $i.Extent.StartColumnNumber = $i }}
+                    $pointsByPath.Add($i.Extent.File, $pointByLine)
+                }
+                else {
+                    $pointByLine = $pointsByPath[$i.Extent.File]
+                    if (-not $pointByLine.ContainsKey($i.Extent.StartLineNumber)) {
+                        $pointByLine.Add($i.Extent.StartLineNumber, @{ $i.Extent.StartColumnNumber = $i })
+                    }
+                    else {
+                        $pointByColumn = $pointByLine[$i.Extent.StartLineNumber]
+                        if (-not $pointByColumn.ContainsKey($i.Extent.StartColumnNumber)) {
+                            $pointByColumn.Add($i.Extent.StartColumnNumber, $i)
+                        }
+                        else {
+                            # do nothing, having one hit per point is enough
+                        }
+                    }
+                }
+            }
+        }
+
+        # Write-Host "points by path $($pointsByPath | fl | out-string )"
+
+        # Write-Host ($CommandCoverage[0] | fl | Out-String)
+
+        # Populate the breakpoint object so the next commands searching for
+        # not-hit breakpoints don't have to change
+        foreach ($i in $CommandCoverage) {
+            Write-Host "CC: $($i.File), $($i.StartLine), $($i.StartColumn)"
+            $bp = @{ HitCount = 0 }
+            if ($pointsByPath.ContainsKey($i.File)) {
+            $f = $pointsByPath[$i.File]
+                if ($f.ContainsKey($i.StartLine)) {
+                    $l = $f[$i.StartLine]
+                    if ($l.ContainsKey($i.StartColumn)) {
+                        $bp.HitCount = 1
+                    }
+                }
+            }
+
+            $i.Breakpoint = $bp
+        }
+    }
 
     $properties = @(
         'File'

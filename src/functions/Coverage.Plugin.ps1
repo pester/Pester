@@ -26,19 +26,16 @@ function Get-CoveragePlugin {
             & $logger "Config: $($config | & $script:SafeCommands['Out-String'])"
         }
 
-        $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger
+        $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger -UseBreakpoints $config.UseBreakpoints -UseSingleHitBreakpoints $config.UseSingleHitBreakpoints
 
         $Context.Data.Add('Coverage', @{
             CommandCoverage = $breakpoints
             CoverageReport = $null
+            Measure = $null
         })
 
-        $count = @($breakpoints).Count
-        if ($null -ne $logger) {
-            & $logger "Added $count breakpoints in $($sw.ElapsedMilliseconds) ms."
-        }
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage set $count breakpoints in $($sw.ElapsedMilliseconds) ms."
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
         }
     } -End {
         param($Context)
@@ -48,8 +45,10 @@ function Get-CoveragePlugin {
         }
 
         $coverageData = $Context.TestRun.PluginData.Coverage
-        $breakpoints = $coverageData.CommandCoverage
-
-        Exit-CoverageAnalysis -CommandCoverage $breakpoints
+        #TODO: rather check the config to see which mode of coverage we used
+        if ($null -eq $coverageData.Measure) {
+            # we used breakpoints to measure CC, clean them up
+            Exit-CoverageAnalysis -CommandCoverage $coverageData.CommandCoverage
+        }
     }
 }

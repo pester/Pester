@@ -121,6 +121,7 @@ New-Module -Name TestHelpers -ScriptBlock {
 
 $configuration = [PesterConfiguration]::Default
 
+$configuration.Output.Verbosity = "Detailed"
 $configuration.Debug.WriteDebugMessages = $false
 # $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
@@ -144,15 +145,14 @@ if ($CI) {
     $configuration.Run.Exit = $true
 
     # not using code coverage, it is still very slow
-    $configuration.CodeCoverage.Enabled = $false
+    $configuration.CodeCoverage.Enabled = $true
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
 
-    # experimental, will try to write breakpoints close together
-    # not one by one while it is figuring out AST.
-    # this appears to be significantly faster.
-    $configuration.CodeCoverage.DelayWritingBreakpoints = $true
+    # experimental, works only in a custom build of PowerShell that has this change
+    # https://github.com/PowerShell/PowerShell/pull/13673, set to true to use Measure-Script instead of
+    # using breakpoints
+    $configuration.CodeCoverage.UseBreakpoints = $false
     # experimental, will delete BP as soon as it is hit
-    # only effective when DelayWritingBreakpoints is $true.
     # this is me trying out an approach. Not sure about the impact.
     $configuration.CodeCoverage.SingleHitBreakpoints = $true
 

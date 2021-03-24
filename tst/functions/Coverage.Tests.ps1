@@ -117,22 +117,44 @@ InPesterModuleScope {
         Set-Content -Path $testScript3Path -Value @'
             'Some {0} file' `
                 -f `
-                'other'
+                'other'; Write-Host ">>>>>>>>>>>>>>>>>>>>>>tp3"
 
 '@
         }
 
-        Context 'Entire file' {
+        Context 'Entire file measured using <description>' -Foreach @(
+            @{ UseBreakpoints = $true; Description = "breakpoints" }
+            @{ UseBreakpoints = $false; Description = "Measure-Script" }
+         ) {
             BeforeAll {
+                # TODO: renaming, breakpoints mean "code point of interests" in most cases here, not actual breakpoints
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
-                $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
+                # @($breakpoints).Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
 
-                $null = & $testScriptPath
-                $null = & $testScript2Path
-                $null = & $testScript3Path
-                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
+                $sb = {
+                    $null = & $testScriptPath
+                    $null = & $testScript2Path
+                    $null = & $testScript3Path
+                }
+                if ($UseBreakpoints) {
+                    Write-Host "with breakpoints"
+                   & $sb
+                }
+                else {
+                    $measure = Measure-Script {
+                        Write-Host "without breakpoints"
+
+                        $null = & $testScriptPath
+                        $null = & $testScript2Path
+                        $null = & $testScript3Path
+                    }
+                }
+
+                Write-Host "is measure null? $($null -eq $measure) $($measure | fl | out-string)"
+
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
             }
 
             It 'Reports the proper number of executed commands' {

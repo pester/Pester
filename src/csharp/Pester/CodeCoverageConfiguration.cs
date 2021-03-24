@@ -28,7 +28,7 @@ namespace Pester
         private StringArrayOption _path;
         private BoolOption _excludeTests;
         private BoolOption _recursePaths;
-        private BoolOption _delayBps;
+        private BoolOption _useBps;
         private BoolOption _shBp;
         private DecimalOption _coveragePercentTarget;
 
@@ -51,7 +51,7 @@ namespace Pester
             CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%", 75m);
 
             SingleHitBreakpoints = new BoolOption("EXPERIMENTAL: Remove breakpoint when it is hit.", true);
-            DelayWritingBreakpoints = new BoolOption("EXPERIMENTAL: Try writing breakpoints all at once.", true);
+            UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Measure-Script to do CodeCoverage instead of setting breakpoints. This only works in a custom PowerShell build that has this change https://github.com/PowerShell/PowerShell/pull/13673.", true);
 
         }
 
@@ -69,7 +69,7 @@ namespace Pester
                 CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
 
                 SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
-                DelayWritingBreakpoints = configuration.GetValueOrNull<bool>("DelayWritingBreakpoints") ?? DelayWritingBreakpoints;
+                UseBreakpoints = configuration.GetValueOrNull<bool>("UseBreakpoints") ?? UseBreakpoints;
             }
         }
 
@@ -203,18 +203,18 @@ namespace Pester
         }
 
 
-        public BoolOption DelayWritingBreakpoints
+        public BoolOption UseBreakpoints
         {
-            get { return _delayBps; }
+            get { return _useBps; }
             set
             {
-                if (_delayBps == null)
+                if (_useBps == null)
                 {
-                    _delayBps = value;
+                    _useBps = value;
                 }
                 else
                 {
-                    _delayBps = new BoolOption(_delayBps, value.Value);
+                    _useBps = new BoolOption(_useBps, value.Value);
                 }
             }
         }

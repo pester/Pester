@@ -1026,6 +1026,8 @@ function Invoke-Pester {
                     Path = @($paths)
                     RecursePaths = $PesterPreference.CodeCoverage.RecursePaths.Value
                     TestExtension = $PesterPreference.Run.TestExtension.Value
+                    UseSingleHitBreakpoints = $PesterPreference.CodeCoverage.SingleHitBreakpoints.Value
+                    UseBreakpoints = $PesterPreference.CodeCoverage.UseBreakpoints.Value
                 }
 
                 $plugins += (Get-CoveragePlugin)
@@ -1064,7 +1066,7 @@ function Invoke-Pester {
                     Configuration = $pluginConfiguration
                     GlobalPluginData = $state.PluginData
                     WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
-                    Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+                    Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
                 } -ThrowOnFailure
             }
 
@@ -1073,7 +1075,23 @@ function Invoke-Pester {
                 return
             }
 
-            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
+            if ($PesterPreference.CodeCoverage.Enabled.Value -and -not $CodeCoverage.UseBreakpoints) {
+
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope CodeCoverage "Using Measure-Script for CodeCoverage."
+                }
+                $o = @{ r = $null }
+                $measure = Measure-Script {
+                    $o.r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
+                }
+                $PluginData["Coverage"].Measure = $measure
+                $r = $o.r
+                $o.r = $null
+                $o = $null
+            }
+            else {
+                $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
+            }
 
             foreach ($c in $r) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
@@ -1125,7 +1143,8 @@ function Invoke-Pester {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
                 }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
-                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
+                $measure = $run.PluginData.Coverage.Measure
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
                 $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
                 $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
