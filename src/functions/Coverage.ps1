@@ -750,7 +750,6 @@ function Get-JaCoCoReportXml {
     )
 
     $isGutters = "CoverageGutters" -eq $Format
-    $isGutters = $true
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return

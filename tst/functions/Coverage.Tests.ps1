@@ -186,7 +186,7 @@ InPesterModuleScope {
             }
 
             It 'JaCoCo report must be correct' {
-                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "JaCoCo"
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*', 'Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"', 'start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"', 'dump=""'
@@ -316,8 +316,9 @@ InPesterModuleScope {
             }
 
             It 'JaCoCo for CoverageGutters report must be correct' {
-                # when using output for coverage gutters the output needs to be slightly different
-                # adding a new formatter, instead of changing the old one
+                # when using output for CoverageGutters in VSCodethe output needs to be slightly different,
+                # paths need to be reported relative to the output file and sourcefile name must be just the
+                # file name, adding a new formatter, instead of changing the default one
                 [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "CoverageGutters"
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*', 'Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"', 'start=""'
@@ -330,8 +331,8 @@ InPesterModuleScope {
                 <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
                 <report name="Pester (date)">
                     <sessioninfo id="this" start="" dump="" />
-                    <package name="CommonRoot">
-                        <class name="CommonRoot/TestScript" sourcefilename="TestScript.ps1">
+                    <package name=".">
+                        <class name="TestScript" sourcefilename="TestScript.ps1">
                             <method name="NestedFunction" desc="()" line="5">
                                 <counter type="INSTRUCTION" missed="0" covered="2" />
                                 <counter type="LINE" missed="0" covered="2" />
@@ -372,7 +373,7 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="2" covered="5" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
-                        <class name="CommonRoot/TestScript2" sourcefilename="TestScript2.ps1">
+                        <class name="TestScript2" sourcefilename="TestScript2.ps1">
                             <method name="&lt;script&gt;" desc="()" line="1">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
@@ -415,8 +416,8 @@ InPesterModuleScope {
                         <counter type="METHOD" missed="2" covered="6" />
                         <counter type="CLASS" missed="0" covered="2" />
                     </package>
-                    <package name="CommonRoot/TestSubFolder">
-                        <class name="CommonRoot/TestSubFolder/TestScript3" sourcefilename="TestSubFolder/TestScript3.ps1">
+                    <package name="TestSubFolder">
+                        <class name="TestSubFolder/TestScript3" sourcefilename="TestScript3.ps1">
                             <method name="&lt;script&gt;" desc="()" line="1">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
@@ -427,7 +428,7 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="0" covered="1" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
-                        <sourcefile name="TestSubFolder/TestScript3.ps1">
+                        <sourcefile name="TestScript3.ps1">
                             <line nr="1" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="0" covered="1" />
                             <counter type="LINE" missed="0" covered="1" />
