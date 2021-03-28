@@ -1127,8 +1127,51 @@ function Invoke-Pester {
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
-                $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
-                $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+
+                $configuration = $run.PluginConfiguration.Coverage
+
+                if ("JaCoCo" -eq $configuration.OutputFormat -or "CoverageGutters" -eq $configuration.OutputFormat) {
+                [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                }
+                else {
+                    throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($configuration.OutputFormat), please review your configuration."
+                }
+
+                $settings = [Xml.XmlWriterSettings] @{
+                    Indent              = $true
+                    NewLineOnAttributes = $false
+                }
+
+
+                $stringWriter = $null
+                $xmlWriter = $null
+                try {
+                    $stringWriter = [Pester.Factory]::CreateStringWriter()
+                    $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
+
+                    $jaCocoReport.WriteContentTo($xmlWriter)
+
+                    $xmlWriter.Flush()
+                    $stringWriter.Flush()
+                }
+                finally {
+                    if ($null -ne $xmlWriter) {
+                        try {
+                            $xmlWriter.Close()
+                        }
+                        catch {
+                        }
+                    }
+                    if ($null -ne $stringWriter) {
+                        try {
+                            $stringWriter.Close()
+                        }
+                        catch {
+                        }
+                    }
+                }
+
+                $stringWriter.ToString() | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }

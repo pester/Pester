@@ -676,6 +676,11 @@ function Get-CoverageReport {
 function Get-CommonParentPath {
     param ([string[]] $Path)
 
+    if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
+        # for coverage gutters the root path is relative to the coverage.xml
+        return (& $SafeCommands['Split-Path'] -Path $PesterPreference.CodeCoverage.OutputPath.Value | Normalize-Path )
+    }
+
     $pathsToTest = @(
         $Path |
             Normalize-Path |
@@ -740,8 +745,11 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
-        [long] $TotalMilliseconds
+        [long] $TotalMilliseconds,
+        [string] $Format
     )
+
+    $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
@@ -863,11 +871,24 @@ function Get-JaCoCoReportXml {
     foreach ($package in $packageList) {
         $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
 
-        if ($null -eq $packageRelativePath) {
-            $packageName = $commonParentLeaf
+        # e.g. "." for gutters, and "package" for non gutters in root
+        # and "sub-dir" for gutters, and "package/sub-dir" for non-gutters
+        $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
+            if ($isGutters) {
+                "."
+            }
+            else {
+                $commonParentLeaf
+            }
         }
         else {
-            $packageName = "{0}/{1}" -f $commonParentLeaf, $($packageRelativePath.Replace("\", "/"))
+            $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
+            if ($isGutters) {
+                $packageRelativePathFormatted
+            }
+            else {
+                "$commonParentLeaf/$packageRelativePathFormatted"
+            }
         }
 
         $packageElement = Add-XmlElement $reportElement "package" @{
@@ -877,11 +898,21 @@ function Get-JaCoCoReportXml {
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
+            $classElementName = if ($isGutters) {
+                    $classElementRelativePath
+                }
+                else {
+                    "$commonParentLeaf/$classElementRelativePath"
+                }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = $classElementRelativePath
+                    sourcefilename = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($function in $class.Methods.Keys) {
@@ -906,7 +937,12 @@ function Get-JaCoCoReportXml {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                    name = $classElementRelativePath
+                    name = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($line in $class.Lines.Keys) {

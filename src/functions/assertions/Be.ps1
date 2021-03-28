@@ -163,7 +163,7 @@ function Get-CompareStringMessage {
 
     if ($null -eq $ContextLength) {
         # this is how much text we want to see after difference in the excerpt
-        $ContextLength = 10
+        $ContextLength = $MaximumLineLength / 7
     }
     $ExpectedValueLength = $ExpectedValue.Length
     $actualLength = $actual.Length

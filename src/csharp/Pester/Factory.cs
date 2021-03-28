@@ -2,6 +2,7 @@ using System.Management.Automation;
 using System.Collections.Generic;
 using System;
 using System.Text;
+using System.IO;
 
 namespace Pester
 {
@@ -51,6 +52,11 @@ namespace Pester
         public static StringBuilder CreateStringBuilder()
         {
             return new StringBuilder();
+        }
+
+        public static StringWriter CreateStringWriter()
+        {
+            return new StringWriter();
         }
     }
 }
