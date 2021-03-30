@@ -102,7 +102,7 @@ InPesterModuleScope {
 
 '@
             }
-
+            # Write-Host $($i = 0; (Get-Content $testScriptPath) -split "`n" | foreach  { "$((++$i).ToString("00")) $_`n"})
             $null = New-Item -Path $testScript2Path -ItemType File -ErrorAction SilentlyContinue
 
             Set-Content -Path $testScript2Path -Value @'
@@ -117,7 +117,7 @@ InPesterModuleScope {
         Set-Content -Path $testScript3Path -Value @'
             'Some {0} file' `
                 -f `
-                'other'; Write-Host ">>>>>>>>>>>>>>>>>>>>>>tp3"
+                'other'
 
 '@
         }
@@ -139,12 +139,12 @@ InPesterModuleScope {
                     $null = & $testScript3Path
                 }
                 if ($UseBreakpoints) {
-                    Write-Host "with breakpoints"
+                    # Write-Host "with breakpoints"
                    & $sb
                 }
                 else {
                     $measure = Measure-Script {
-                        Write-Host "without breakpoints"
+                        # Write-Host "without breakpoints"
 
                         $null = & $testScriptPath
                         $null = & $testScript2Path
@@ -152,7 +152,7 @@ InPesterModuleScope {
                     }
                 }
 
-                Write-Host "is measure null? $($null -eq $measure) $($measure | fl | out-string)"
+                # Write-Host "is measure null? $($null -eq $measure) $($measure | % source | out-string)"
 
                 $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
             }
@@ -170,6 +170,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of missed commands' {
+                # Write-Host ($coverageReport.MissedCommands | format-table | out-string)
                 $coverageReport.MissedCommands.Count | Should -Be 3
             }
 
@@ -349,7 +350,9 @@ InPesterModuleScope {
             }
 
             AfterAll {
-                Exit-CoverageAnalysis -CommandCoverage $breakpoints
+                if ($UseBreakpoints) {
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
+                }
             }
         }
 

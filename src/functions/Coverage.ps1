@@ -13,8 +13,8 @@ function Enter-CoverageAnalysis {
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $coverageInfo = foreach ($object in $CodeCoverage) {
-            Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
-        }
+        Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
+    }
 
     if ($null -eq $coverageInfo) {
         if ($null -ne $logger) {
@@ -226,7 +226,8 @@ function Get-CodeCoverageFilePaths {
                 }
                 elseif (-not $i.PSIsContainer) {
                     $i.PSPath
-                }}
+                }
+            }
             Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
         }
         elseif (-not $item.PsIsContainer) {
@@ -366,7 +367,7 @@ function New-CoverageBreakpoint {
         return
     }
 
-    $params =  @{
+    $params = @{
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
@@ -374,16 +375,16 @@ function New-CoverageBreakpoint {
     }
 
     [pscustomobject] @{
-        File                = $Command.Extent.File
-        Class               = Get-ParentClassName -Ast $Command
-        Function            = Get-ParentFunctionName -Ast $Command
-        StartLine           = $Command.Extent.StartLineNumber
-        EndLine             = $Command.Extent.EndLineNumber
-        StartColumn         = $Command.Extent.StartColumnNumber
-        EndColumn           = $Command.Extent.EndColumnNumber
-        Command             = Get-CoverageCommandText -Ast $Command
-        Breakpoint          = $breakpoint
-        BreakpointLocation  = $params
+        File               = $Command.Extent.File
+        Class              = Get-ParentClassName -Ast $Command
+        Function           = Get-ParentFunctionName -Ast $Command
+        StartLine          = $Command.Extent.StartLineNumber
+        EndLine            = $Command.Extent.EndLineNumber
+        StartColumn        = $Command.Extent.StartColumnNumber
+        EndColumn          = $Command.Extent.EndColumnNumber
+        Command            = Get-CoverageCommandText -Ast $Command
+        Breakpoint         = $breakpoint
+        BreakpointLocation = $params
     }
 }
 
@@ -661,29 +662,46 @@ function Get-CoverageReport {
             $null = $hashset.Add($c.File)
         }
 
-        foreach ($f in $hashset) {
-            Write-Host "File: $f"
-        }
+        # foreach ($f in $hashset) {
+        #     Write-Host "File: $f"
+        # }
 
         $pointsByPath = @{}
         foreach ($i in $Measure) {
-            Write-Host "Hit: $($i.Extent.File), $($i.Extent.StartLineNumber), $($i.Extent.StartColumnNumber), $($i.Source)"
+            # Write-Host "Hit: $($i.Extent.File), $($i.Extent.StartLineNumber), $($i.Extent.StartColumnNumber), $($i.Source)"
+
+
+            $StartColumnNumber = $i.Extent.StartColumnNumber
+
+            # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
+            # but we are getting the whole assignment from profiler
+            if ($i.Source -like "*=*") {
+                $ast = [System.Management.Automation.Language.Parser]::ParseInput($i.Source, [ref]$null, [ref]$null)
+
+                $assignment = $ast.Find( { param ($item) $item -is [System.Management.Automation.Language.AssignmentStatementAst] }, $false)
+                if ($assignment) {
+                    if ($assignment.Right) {
+                        $StartColumnNumber = $i.Extent.StartColumnNumber + $assignment.Right.Extent.StartColumnNumber - 1
+                        # Write-Host "Line $($i.Extent.StartLineNumber) is assignment $($i.Source), using $StartColumnNumber instead of $($i.Extent.StartColumnNumber)"
+                    }
+                }
+            }
 
             if ($hashset.Contains($i.Extent.File)) {
                 if (-not $pointsByPath.ContainsKey($i.Extent.File)) {
 
-                    $pointByLine = @{ $i.Extent.StartLineNumber = @{ $i.Extent.StartColumnNumber = $i }}
+                    $pointByLine = @{ $i.Extent.StartLineNumber = @{ $StartColumnNumber = $i } }
                     $pointsByPath.Add($i.Extent.File, $pointByLine)
                 }
                 else {
                     $pointByLine = $pointsByPath[$i.Extent.File]
                     if (-not $pointByLine.ContainsKey($i.Extent.StartLineNumber)) {
-                        $pointByLine.Add($i.Extent.StartLineNumber, @{ $i.Extent.StartColumnNumber = $i })
+                        $pointByLine.Add($i.Extent.StartLineNumber, @{ $StartColumnNumber = $i })
                     }
                     else {
                         $pointByColumn = $pointByLine[$i.Extent.StartLineNumber]
-                        if (-not $pointByColumn.ContainsKey($i.Extent.StartColumnNumber)) {
-                            $pointByColumn.Add($i.Extent.StartColumnNumber, $i)
+                        if (-not $pointByColumn.ContainsKey($StartColumnNumber)) {
+                            $pointByColumn.Add($StartColumnNumber, $i)
                         }
                         else {
                             # do nothing, having one hit per point is enough
@@ -700,10 +718,10 @@ function Get-CoverageReport {
         # Populate the breakpoint object so the next commands searching for
         # not-hit breakpoints don't have to change
         foreach ($i in $CommandCoverage) {
-            Write-Host "CC: $($i.File), $($i.StartLine), $($i.StartColumn)"
+            # Write-Host "CC: $($i.File), $($i.StartLine), $($i.StartColumn)"
             $bp = @{ HitCount = 0 }
             if ($pointsByPath.ContainsKey($i.File)) {
-            $f = $pointsByPath[$i.File]
+                $f = $pointsByPath[$i.File]
                 if ($f.ContainsKey($i.StartLine)) {
                     $l = $f[$i.StartLine]
                     if ($l.ContainsKey($i.StartColumn)) {
@@ -751,8 +769,8 @@ function Get-CommonParentPath {
 
     $pathsToTest = @(
         $Path |
-            Normalize-Path |
-            & $SafeCommands['Select-Object'] -Unique
+        Normalize-Path |
+        & $SafeCommands['Select-Object'] -Unique
     )
 
     if ($pathsToTest.Count -gt 0) {
