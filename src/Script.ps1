@@ -1,0 +1,4 @@
+param ($ScriptBlock)
+
+. $ScriptBlock
+

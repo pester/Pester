@@ -153,6 +153,7 @@ $content = @(
     ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/Script.ps1", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
 )
 

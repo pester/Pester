@@ -1110,16 +1110,20 @@ function Run-Test {
 
             # we add one more artificial block so the root can run
             # all of it's setups and teardowns
-            $private:parent = [Pester.Block]::Create()
-            $private:parent.Name = "ParentBlock"
-            $private:parent.Path = "Path"
+            $parent = [Pester.Block]::Create()
+            $parent.Name = "ParentBlock"
+            $parent.Path = "Path"
 
-            $private:parent.First = $false
-            $private:parent.Last = $false
+            $parent.First = $false
+            $parent.Last = $false
 
-            $private:parent.Order.Add($rootBlock)
+            $parent.Order.Add($rootBlock)
 
-            $null = Invoke-Block -previousBlock $private:parent
+            $wrapper = {
+                $null = Invoke-Block -previousBlock $parent
+            }
+
+            Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
         }
         catch {
             $rootBlock.ErrorRecord.Add($_)
@@ -2351,7 +2355,7 @@ function Invoke-BlockContainer {
         foreach ($d in $BlockContainer.Data) {
             switch ($BlockContainer.Type) {
                 "ScriptBlock" {
-                    & $BlockContainer.Item @d
+                    Invoke-InNewScriptScope -ScriptBlock { & $BlockContainer.Item @d } -SessionState $SessionState
                 }
                 "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d }
                 default { throw [System.ArgumentOutOfRangeException]"" }
@@ -2361,7 +2365,7 @@ function Invoke-BlockContainer {
     else {
         switch ($BlockContainer.Type) {
             "ScriptBlock" {
-                & $BlockContainer.Item
+                Invoke-InNewScriptScope -ScriptBlock { & $BlockContainer.Item } -SessionState $SessionState
             }
             "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
             default { throw [System.ArgumentOutOfRangeException]"" }
@@ -2585,4 +2589,25 @@ function ConvertTo-HumanTime {
     else {
         "$([int]($TimeSpan.TotalSeconds))s"
     }
+}
+
+function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
+    # running in a script file will push a new script scope up the stack in the provided
+    # session state. To do this from a module we need to transport the file invocation into the
+    # correct session state, and then invoke the file. We can also pass a script block tied
+    # to the current module to invoke internal function in the newly pushed script scope.
+
+    $Path = "$PSScriptRoot/Script.ps1"
+    $Data = @{ ScriptBlock = $ScriptBlock }
+
+    $wrapper = {
+        param ($private:p, $private:d)
+        & $private:p @d
+    }
+
+    # set the original session state to the wrapper scriptblock
+    $script:SessionStateInternal = $SessionStateInternalProperty.GetValue($SessionState, $null)
+    $script:ScriptBlockSessionStateInternalProperty.SetValue($wrapper, $SessionStateInternal, $null)
+
+    . $wrapper $Path $Data
 }
