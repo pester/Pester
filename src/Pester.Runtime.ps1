@@ -2192,7 +2192,7 @@ function PostProcess-ExecutedBlock {
                 foreach ($child in $childBlocks) {
                     # check that no child block failed, the Passed is aggregate failed, so it will be false
                     # when any test fails in the child, or if the block itself fails
-                    if (-not $child.Passed) {
+                    if ($child.ShouldRun -and -not $child.Passed) {
                         $anyChildBlockFailed = $true
                     }
 

@@ -2209,6 +2209,90 @@ i -PassThru:$PassThru {
             $actual.Blocks[0].Tests[0] | Verify-TestPassed
         }
     }
+
+    b "Results for multiple blocks in a block when some are excluded" {
+        # issue: https://github.com/pester/Pester/issues/1848, the parent block was actually marked as
+        # failed because one of the blocks were not executed and we only check for .passed in the code
+        # and not consider not run blocks
+        dt "Multiple blocks in one block will mark the block as passed even when one of them is filtered out" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    # describe
+                    New-Block -Name "block1" {
+                        # context
+                        New-Block -Name "block2" {
+                            New-Test "test" {
+
+                            }
+                        }
+
+                        # context
+                        New-Block -Name "block3" {
+                            New-Test "test" {
+
+                            }
+                        } -Tag t
+
+                        New-Block -Name "block4" {
+                            New-Test "test" {
+
+                            }
+                        } -Skip
+                    }
+                }
+            ) -Filter (New-FilterObject -ExcludeTag t)
+
+            $actual.Blocks[0].Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[0].Passed | Verify-True
+
+            $actual.Blocks[0].Blocks[1].ShouldRun | Verify-False
+            $actual.Blocks[0].Blocks[1].Passed | Verify-False
+
+            $actual.Blocks[0].Blocks[2].ShouldRun | Verify-True
+            $actual.Blocks[0].Blocks[2].Skip | Verify-True
+            $actual.Blocks[0].Blocks[2].Passed | Verify-True
+
+            $actual.Blocks[0].Passed | Verify-True
+        }
+
+        dt "Multiple blocks in root block will mark the block as passed when one of them is filtered out" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    # context
+                    New-Block -Name "block2" {
+                        New-Test "test" {
+
+                        }
+                    }
+
+                    # context
+                    New-Block -Name "block3" {
+                        New-Test "test" {
+
+                        }
+                    } -Tag t
+
+                    New-Block -Name "block4" {
+                        New-Test "test" {
+
+                        }
+                    } -Skip
+                }
+            ) -Filter (New-FilterObject -ExcludeTag t)
+
+            $actual.Blocks[0].ShouldRun | Verify-True
+            $actual.Blocks[0].Passed | Verify-True
+
+            $actual.Blocks[1].ShouldRun | Verify-False
+            $actual.Blocks[1].Passed | Verify-False
+
+            $actual.Blocks[2].ShouldRun | Verify-True
+            $actual.Blocks[2].Skip | Verify-True
+            $actual.Blocks[2].Passed | Verify-True
+
+            $actual.Passed | Verify-True
+        }
+    }
 }
 
 
