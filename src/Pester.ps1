@@ -501,6 +501,9 @@ function Invoke-Pester {
 
     .PARAMETER PesterOption
     (Deprecated v4)
+    This parameter is ignored in v5, and is only present for backwards compatibility
+    when migrating from v4.
+
     Sets advanced options for the test execution. Enter a PesterOption object,
     such as one that you create by using the New-PesterOption cmdlet, or a hash table
     in which the keys are option names and the values are option values.
@@ -1296,6 +1299,8 @@ function New-PesterOption {
     }
 
     return & $script:SafeCommands['New-Object'] psobject -Property @{
+        ReadMe = "New-PesterOption is deprecated and kept only for backwards compatibility when executing Pester v5 using the " +
+        "legacy parameter set. When the object is used with Invoke-Pester -PesterOption it will be ignored."
         IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
         ShowScopeHints      = $ShowScopeHints
