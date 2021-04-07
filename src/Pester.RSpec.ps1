@@ -208,10 +208,10 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+        elseif (0 -lt $b.ErrorRecord.Count) {
             "Failed"
         }
-        elseif ($discoveryOnly -and 0 -lt $b.ErrorRecord.Count) {
+        elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {
