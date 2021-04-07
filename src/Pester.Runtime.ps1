@@ -1110,17 +1110,17 @@ function Run-Test {
 
             # we add one more artificial block so the root can run
             # all of it's setups and teardowns
-            $parent = [Pester.Block]::Create()
-            $parent.Name = "ParentBlock"
-            $parent.Path = "Path"
+            $Pester___parent = [Pester.Block]::Create()
+            $Pester___parent.Name = "ParentBlock"
+            $Pester___parent.Path = "Path"
 
-            $parent.First = $false
-            $parent.Last = $false
+            $Pester___parent.First = $false
+            $Pester___parent.Last = $false
 
-            $parent.Order.Add($rootBlock)
+            $Pester___parent.Order.Add($rootBlock)
 
             $wrapper = {
-                $null = Invoke-Block -previousBlock $parent
+                $null = Invoke-Block -previousBlock $Pester___parent
             }
 
             Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
