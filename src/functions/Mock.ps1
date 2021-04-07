@@ -1089,12 +1089,12 @@ function Test-ParameterFilter {
         #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
         # this should not be private, it should leak into Should command when used in ParameterFilter
         $______isInMockParameterFilter = $true
-        # $private:BoundParameters = $private:______mock_parameters.BoundParameters
+        $private:BoundParameters = $private:______mock_parameters.BoundParameters
         $private:______arguments = $private:______mock_parameters.Arguments
         # TODO: not binding the bound parameters here because it would make the parameters unbound when the user does
         # not provide a param block, which they would never provide, so that is okay, but if there is a workaround this then
         # it would be nice to have. maybe changing the order in which I bind?
-        & $private:______mock_parameters.ScriptBlock @______arguments
+        & $private:______mock_parameters.ScriptBlock  @______arguments @BoundParameters
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
