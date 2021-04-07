@@ -292,4 +292,70 @@ i -PassThru:$PassThru {
             $result.Containers[0].Blocks[3].Result | Verify-Equal "NotRun"
         }
     }
+
+    b "Failing in discovery" {
+        t "Result object indicates failure when discovery fails in container or in block" {
+            $sb = @(
+                {
+                    throw "container 1 failed"
+                }
+
+                {
+
+                    Describe "d1" {
+                        throw "code in container 2 failed in describe"
+                        AfterAll { throw "abc" }
+                        It "pass" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                {
+                    # container 3 is discovered just fine
+                    Describe "d2" {
+                        Describe "d3" {
+                            It "pass" {
+                                1 | Should -Be 1
+                            }
+                        }
+
+                        It "pass" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+            )
+
+            $result = Invoke-Pester -Configuration @{
+                Run = @{
+                    ScriptBlock = $sb
+                    PassThru = $true
+                }
+                Output = @{ Verbosity = "Normal" }
+            }
+
+            $result | Verify-NotNull
+            $result | Verify-Property "Result"
+            $result.Result | Verify-Equal "Failed"
+            $result | Verify-Property "Version"
+            ($result.Version -split "-")[0] | Verify-Equal (Get-Module Pester).Version.ToString()
+            $result.PSVersion | Verify-Equal $PSVersionTable.PSVersion
+            $result | Verify-Property "FailedBlocksCount"
+            $result.FailedBlocksCount | Verify-Equal 0
+            $result | Verify-Property "FailedContainersCount"
+            $result.FailedContainersCount | Verify-Equal 2
+
+            $result | Verify-Property "Containers"
+            $result.Containers.Count | Verify-Equal 3
+            $result.Containers[0] | Verify-Property "Result"
+            $result.Containers[0].Result | Verify-Equal "Failed"
+
+            $result.Containers[1] | Verify-Property "Result"
+            $result.Containers[1].Result | Verify-Equal "Failed"
+
+            $result.Containers[2] | Verify-Property "Result"
+            $result.Containers[2].Result | Verify-Equal "Passed"
+        }
+    }
 }

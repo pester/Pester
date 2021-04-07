@@ -919,7 +919,14 @@ function Discover-Test {
             } -ThrowOnFailure
         }
 
-        $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
+        try {
+            $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
+        }
+        catch {
+            $root.Passed = $false
+            $root.Result = "Failed"
+            $root.ErrorRecord.Add($_)
+        }
 
         [PSCustomObject] @{
             Container = $container
