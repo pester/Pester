@@ -2214,7 +2214,7 @@ i -PassThru:$PassThru {
         # issue: https://github.com/pester/Pester/issues/1848, the parent block was actually marked as
         # failed because one of the blocks were not executed and we only check for .passed in the code
         # and not consider not run blocks
-        dt "Multiple blocks in one block will mark the block as passed even when one of them is filtered out" {
+        t "Multiple blocks in one block will mark the block as passed even when one of them is filtered out" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
                     # describe
@@ -2255,7 +2255,7 @@ i -PassThru:$PassThru {
             $actual.Blocks[0].Passed | Verify-True
         }
 
-        dt "Multiple blocks in root block will mark the block as passed when one of them is filtered out" {
+        t "Multiple blocks in root block will mark the block as passed when one of them is filtered out" {
             $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
                 New-BlockContainerObject -ScriptBlock {
                     # context
