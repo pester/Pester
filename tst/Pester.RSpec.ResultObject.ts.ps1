@@ -301,7 +301,6 @@ i -PassThru:$PassThru {
                 }
 
                 {
-
                     Describe "d1" {
                         throw "code in container 2 failed in describe"
                         AfterAll { throw "abc" }
@@ -356,6 +355,46 @@ i -PassThru:$PassThru {
 
             $result.Containers[2] | Verify-Property "Result"
             $result.Containers[2].Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Nulling internal properties" {
+        t "Result object nulls plugins, and recursive properties" {
+            $sb = {
+                Describe "d2" {
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Configuration @{
+                Run = @{
+                    ScriptBlock = $sb
+                    PassThru = $true
+                }
+                Output = @{ Verbosity = "Normal" }
+                Debug = @{ ReturnRawResultObject  = $false }
+            }
+
+            $result | Verify-NotNull
+            $result | Verify-Property "Plugins"
+            $result.Plugins | Verify-Null
+            $result | Verify-Property "PluginConfiguration"
+            $result.PluginConfiguration | Verify-Null
+            $result | Verify-Property "PluginData"
+            $result.PluginData | Verify-Null
+
+            $result.Containers[0].Blocks[0] | Verify-Property "FrameworkData"
+            $result.Containers[0].Blocks[0].FrameworkData | Verify-Null
+            $result.Containers[0].Blocks[0] | Verify-Property "PluginData"
+            $result.Containers[0].Blocks[0].PluginData | Verify-Null
+
+            $result.Containers[0].Blocks[0].Tests[0] | Verify-Property "FrameworkData"
+            $result.Containers[0].Blocks[0].Tests[0].FrameworkData | Verify-Null
+            $result.Containers[0].Blocks[0].Tests[0] | Verify-Property "PluginData"
+            $result.Containers[0].Blocks[0].Tests[0].PluginData | Verify-Null
+
         }
     }
 }
