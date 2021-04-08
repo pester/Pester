@@ -359,7 +359,7 @@ i -PassThru:$PassThru {
     }
 
     b "Nulling internal properties" {
-        dt "Result object nulls plugins, and recursive properties" {
+        t "Result object nulls plugins, and recursive properties" {
             $sb = {
                 Describe "d2" {
                     It "pass" {
