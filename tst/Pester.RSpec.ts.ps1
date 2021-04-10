@@ -868,6 +868,59 @@ i -PassThru:$PassThru {
             }
         }
 
+        t "Providing path with wildcard that is in directory names should expand to all directories and all their test files" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value
+                    )
+
+                    if ($Value -ne 1 -and $Value -ne 2) {
+                        throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 1 -and $Value -ne 2) {
+                                throw "Expected `$Value to be 1 or 2 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $tmp1 = $tmp + "PrefixDir1"
+                $tmp2 = $tmp + "PrefixDir2"
+                $null = New-Item ($tmp1) -Force -ItemType Container
+                $null = New-Item ($tmp2) -Force -ItemType container
+                $file1 = "$tmp1/file1.Tests.ps1"
+                $file2 = "$tmp2/file2.Tests.ps1"
+                $sb | Set-Content -Path $file1
+                $sb | Set-Content -Path $file2
+
+                # passing path to a wildcarded directory, that only uses part of the name as prefix
+                $container = New-PesterContainer -Path ($tmp + "Prefix*" ) -Data @(
+                    @{ Value = 1 }
+                    @{ Value = 2 }
+                )
+
+                $r = Invoke-Pester -Container $container -PassThru # -Output Normal
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[2].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[3].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file1 -and (Test-Path $file1)) {
+                    Remove-Item $file1 -Force
+                }
+
+                if ($null -ne $file2 -and (Test-Path $file2)) {
+                    Remove-Item $file2 -Force
+                }
+            }
+        }
+
         t "Providing -Path that resolves to the same path as a parametrized script should skip that path" {
             try {
                 $sb1 = {
@@ -1372,5 +1425,112 @@ i -PassThru:$PassThru {
             $test.Result | Verify-Equal "Failed"
             $test.ErrorRecord[0] -like "*Legacy Should syntax (without dashes) is not supported in Pester 5.*"
         }
+    }
+
+    b "Running Pester in Pester" {
+        t "Invoke-Pester can run in Invoke-Pester" {
+            $container = New-PesterContainer -ScriptBlock {
+                Describe "Run Pester in Pester" {
+                    It "Runs the test" {
+                        $c = New-PesterContainer -ScriptBlock {
+                            Describe "d" {
+                                It "i" {
+                                    1 | Should -Be 1
+                                }
+                            }
+                        }
+
+                        $r = Invoke-Pester -Container $c -PassThru
+                        $r.TotalCount | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container $container -PassThru
+            $result.TotalCount | Verify-Equal 1
+        }
+    }
+
+    b "Converting Pester 5 to Pester4 result" {
+        t "It uses version 4.99.0" {
+            # https://github.com/pester/Pester/issues/1786
+            # .0 because I want some spare numbers if needed in the future
+            $container = New-PesterContainer -ScriptBlock {
+                Describe "d" {
+                    It "t" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container $container -PassThru | ConvertTo-Pester4Result
+            $result.Version | Verify-Equal "4.99.0"
+        }
+    }
+
+    b "Script variables do not leak in between containers" {
+        t "Script scoped variables do not leak to next scriptblock" {
+
+            $sb1 = {
+                $script:v1 = "v1"
+                Describe "d1" {
+                    BeforeAll {
+                        $script:v2 = "v2"
+                    }
+                    It "i1" {
+                        Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                        Get-Variable -Name "v2" -Scope Script -ValueOnly -ErrorAction Ignore | Should -Be "v2"
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "d1" {
+                    It "i1" {
+                        Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                        Get-Variable -Name "v2" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb1, $sb2) -PassThru
+            $result.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $result.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Script scoped variables defined in discovery do not leak to next scriptblock" {
+
+            $sb1 = {
+                $script:v1 = "v1"
+                Describe "d1" {
+                    BeforeAll {
+                        $script:v2 = "v2"
+                    }
+                    It "i1" {
+                        Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                        Get-Variable -Name "v2" -Scope Script -ValueOnly -ErrorAction Ignore | Should -Be "v2"
+                    }
+                }
+            }
+
+            $sb2 = {
+                if ($null -ne (Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore)) {
+                    throw "v1 leaked into discovery"
+                }
+                Describe "d1" {
+                    It "i1" {
+                    }
+                }
+            }
+
+
+            $result = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb1, $sb2) -PassThru
+            if ($null -eq $result) {
+                throw "Run failed, variable leaked into discovery."
+            }
+            $result.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $result.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
     }
 }

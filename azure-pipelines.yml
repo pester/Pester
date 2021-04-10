@@ -24,7 +24,7 @@ stages:
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -Clean
+          - powershell: ./build.ps1 -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
@@ -89,6 +89,7 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20
       - job:
         workspace:
           clean: all
@@ -135,3 +136,4 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20

@@ -82,3 +82,61 @@ Describe "Get-ScriptModule behavior" {
     }
 
 }
+
+Describe 'InModuleScope parameter binding' {
+    # do not put this into BeforeAll this needs to be imported before calling InModuleScope
+    # that is below, because it requires the module to be loaded
+
+    Get-Module TestModule2 | Remove-Module
+    New-Module -Name TestModule2 { } | Import-Module -Force
+
+    It 'Works with parameters while using advanced function/script' {
+        # https://github.com/pester/Pester/issues/1809
+        $inModuleScopeParameters = @{
+            SomeParam = 'SomeValue'
+        }
+
+        $sb = {
+            param
+            (
+                [Parameter()]
+                [System.String]
+                $SomeParam
+            )
+            "$SomeParam"
+        }
+
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb | Should -Be $inModuleScopeParameters.SomeParam
+    }
+
+    It 'Works with parameters and arguments while using advanced function/script' {
+        # https://github.com/pester/Pester/issues/1809
+        $inModuleScopeParameters = @{
+            SomeParam = 'SomeValue'
+        }
+
+        $myArgs = "foo",123
+
+        $sb = {
+            param
+            (
+                [Parameter()]
+                [System.String]
+                $SomeParam,
+
+                [Parameter(ValueFromRemainingArguments=$true)]
+                $RemainingArgs
+            )
+            "$SomeParam"
+            $RemainingArgs.Count
+        }
+
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb -ArgumentList $myArgs | Should -Be @($inModuleScopeParameters.SomeParam, $myArgs.Count)
+    }
+
+    AfterAll {
+        # keep this in AfterAll so we remove the module after tests are invoked
+        # and not while the tests are discovered
+        Remove-Module TestModule2 -Force
+    }
+}

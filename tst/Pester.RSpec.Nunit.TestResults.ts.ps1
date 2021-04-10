@@ -91,8 +91,8 @@ i -PassThru:$PassThru {
             $failureLine = $sb.StartPosition.StartLine+3
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
-            $message[-3] | Verify-Equal "Expected: 'Test'"
-            $message[-2] | Verify-Equal "But was:  'Testing'"
+            $message[-4] | Verify-Equal "Expected: 'Test'"
+            $message[-3] | Verify-Equal "But was:  'Testing'"
             $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
 
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
@@ -121,7 +121,7 @@ i -PassThru:$PassThru {
 
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
-            $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
+            $message[8] | Verify-Equal "[1] RuntimeException: teardown failed"
 
             $sbStartLine = $sb.StartPosition.StartLine
             $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"

@@ -528,7 +528,7 @@ function Get-AssertMockTable {
         # cases
         $i = $currentBlock
         $level = $scope - 1
-        while ($level -gt 0 -and ($null -ne $i.Parent)) {
+        while ($level -ge 0 -and ($null -ne $i.Parent)) {
             $level--
             $i = $i.Parent
         }
