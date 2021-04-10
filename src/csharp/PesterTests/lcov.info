@@ -1,0 +1,2038 @@
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Configuration.cs
+FN:1134,PesterConfiguration PesterConfiguration::get_Default()
+FNDA:3,PesterConfiguration PesterConfiguration::get_Default()
+DA:1135,3
+FN:1137,PesterConfiguration PesterConfiguration::ShallowClone(PesterConfiguration)
+FNDA:0,PesterConfiguration PesterConfiguration::ShallowClone(PesterConfiguration)
+DA:1138,0
+DA:1139,0
+DA:1140,0
+DA:1141,0
+DA:1142,0
+DA:1143,0
+DA:1144,0
+DA:1145,0
+DA:1146,0
+DA:1147,0
+DA:1148,0
+FN:1150,PesterConfiguration PesterConfiguration::Merge(PesterConfiguration,PesterConfiguration)
+FNDA:0,PesterConfiguration PesterConfiguration::Merge(PesterConfiguration,PesterConfiguration)
+DA:1151,0
+DA:1152,0
+DA:1153,0
+DA:1154,0
+DA:1155,0
+DA:1156,0
+DA:1157,0
+DA:1158,0
+DA:1159,0
+DA:1160,0
+DA:1161,0
+FN:1187,Pester.RunConfiguration PesterConfiguration::get_Run()
+FNDA:2,Pester.RunConfiguration PesterConfiguration::get_Run()
+DA:1188,2
+FN:1188,Pester.FilterConfiguration PesterConfiguration::get_Filter()
+FNDA:2,Pester.FilterConfiguration PesterConfiguration::get_Filter()
+DA:1189,2
+FN:1189,Pester.CodeCoverageConfiguration PesterConfiguration::get_CodeCoverage()
+FNDA:1,Pester.CodeCoverageConfiguration PesterConfiguration::get_CodeCoverage()
+DA:1190,1
+FN:1190,Pester.TestResultConfiguration PesterConfiguration::get_TestResult()
+FNDA:1,Pester.TestResultConfiguration PesterConfiguration::get_TestResult()
+DA:1191,1
+FN:1191,Pester.ShouldConfiguration PesterConfiguration::get_Should()
+FNDA:1,Pester.ShouldConfiguration PesterConfiguration::get_Should()
+DA:1192,1
+FN:1192,Pester.DebugConfiguration PesterConfiguration::get_Debug()
+FNDA:1,Pester.DebugConfiguration PesterConfiguration::get_Debug()
+DA:1193,1
+FN:1193,Pester.OutputConfiguration PesterConfiguration::get_Output()
+FNDA:1,Pester.OutputConfiguration PesterConfiguration::get_Output()
+DA:1194,1
+FN:1162,System.Void PesterConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void PesterConfiguration::.ctor(System.Collections.IDictionary)
+DA:1163,0
+DA:1164,0
+DA:1165,0
+DA:1166,0
+DA:1167,0
+DA:1168,0
+DA:1169,0
+DA:1170,0
+DA:1171,0
+DA:1172,0
+DA:1173,0
+DA:1174,0
+DA:1175,0
+BRDA:1165,14,0,0
+BRDA:1165,14,1,0
+FN:1176,System.Void PesterConfiguration::.ctor()
+FNDA:1,System.Void PesterConfiguration::.ctor()
+DA:1177,1
+DA:1178,1
+DA:1179,1
+DA:1180,1
+DA:1181,1
+DA:1182,1
+DA:1183,1
+DA:1184,1
+DA:1185,1
+DA:1186,1
+FN:29,T Pester.Cloner::ShallowClone(T)
+FNDA:0,T Pester.Cloner::ShallowClone(T)
+DA:30,0
+DA:31,0
+DA:32,0
+DA:34,0
+DA:35,0
+DA:36,0
+DA:37,0
+DA:38,0
+DA:40,0
+DA:41,0
+BRDA:34,36,0,0
+BRDA:34,36,1,0
+BRDA:34,118,1,0
+BRDA:34,118,0,0
+FN:46,T Pester.Merger::Merge(T,T)
+FNDA:0,T Pester.Merger::Merge(T,T)
+DA:47,0
+DA:48,0
+DA:49,0
+DA:51,0
+DA:52,0
+DA:54,0
+DA:55,0
+DA:56,0
+DA:57,0
+DA:58,0
+DA:60,0
+DA:61,0
+DA:62,0
+DA:64,0
+DA:65,0
+DA:67,0
+DA:68,0
+BRDA:51,36,0,0
+BRDA:51,36,1,0
+BRDA:51,163,1,0
+BRDA:55,115,0,0
+BRDA:55,115,1,0
+BRDA:51,163,0,0
+FN:75,System.Boolean Pester.Option::IsOriginalValue()
+FNDA:0,System.Boolean Pester.Option::IsOriginalValue()
+DA:76,0
+DA:77,0
+DA:78,0
+FN:95,T Pester.Option`1::get_Default()
+FNDA:34,T Pester.Option`1::get_Default()
+DA:96,34
+FN:96,System.String Pester.Option`1::get_Description()
+FNDA:34,System.String Pester.Option`1::get_Description()
+DA:97,34
+FN:97,T Pester.Option`1::get_Value()
+FNDA:32,T Pester.Option`1::get_Value()
+DA:98,32
+FN:100,System.String Pester.Option`1::ToString()
+FNDA:0,System.String Pester.Option`1::ToString()
+DA:101,0
+DA:102,0
+DA:103,0
+FN:82,System.Void Pester.Option`1::.ctor(Pester.Option`1<T>,T)
+FNDA:2,System.Void Pester.Option`1::.ctor(Pester.Option`1<T>,T)
+DA:83,2
+DA:84,2
+DA:85,2
+DA:86,2
+FN:87,System.Void Pester.Option`1::.ctor(System.String,T,T)
+FNDA:32,System.Void Pester.Option`1::.ctor(System.String,T,T)
+DA:88,32
+DA:89,32
+DA:90,32
+DA:91,32
+DA:92,32
+DA:93,32
+DA:94,32
+FN:123,Pester.StringOption Pester.StringOption::op_Implicit(System.String)
+FNDA:0,Pester.StringOption Pester.StringOption::op_Implicit(System.String)
+DA:124,0
+DA:125,0
+DA:126,0
+FN:107,System.Void Pester.StringOption::.ctor(Pester.StringOption,System.String)
+FNDA:0,System.Void Pester.StringOption::.ctor(Pester.StringOption,System.String)
+DA:108,0
+DA:109,0
+DA:111,0
+FN:112,System.Void Pester.StringOption::.ctor(System.String,System.String)
+FNDA:10,System.Void Pester.StringOption::.ctor(System.String,System.String)
+DA:113,10
+DA:114,10
+DA:116,10
+FN:117,System.Void Pester.StringOption::.ctor(System.String,System.String,System.String)
+FNDA:0,System.Void Pester.StringOption::.ctor(System.String,System.String,System.String)
+DA:118,0
+DA:119,0
+DA:121,0
+FN:146,Pester.BoolOption Pester.BoolOption::op_Implicit(System.Boolean)
+FNDA:0,Pester.BoolOption Pester.BoolOption::op_Implicit(System.Boolean)
+DA:147,0
+DA:148,0
+DA:149,0
+FN:130,System.Void Pester.BoolOption::.ctor(Pester.BoolOption,System.Boolean)
+FNDA:0,System.Void Pester.BoolOption::.ctor(Pester.BoolOption,System.Boolean)
+DA:131,0
+DA:132,0
+DA:134,0
+FN:135,System.Void Pester.BoolOption::.ctor(System.String,System.Boolean)
+FNDA:10,System.Void Pester.BoolOption::.ctor(System.String,System.Boolean)
+DA:136,10
+DA:137,10
+DA:139,10
+FN:140,System.Void Pester.BoolOption::.ctor(System.String,System.Boolean,System.Boolean)
+FNDA:0,System.Void Pester.BoolOption::.ctor(System.String,System.Boolean,System.Boolean)
+DA:141,0
+DA:142,0
+DA:144,0
+FN:169,Pester.IntOption Pester.IntOption::op_Implicit(System.Int32)
+FNDA:0,Pester.IntOption Pester.IntOption::op_Implicit(System.Int32)
+DA:170,0
+DA:171,0
+DA:172,0
+FN:153,System.Void Pester.IntOption::.ctor(Pester.IntOption,System.Int32)
+FNDA:0,System.Void Pester.IntOption::.ctor(Pester.IntOption,System.Int32)
+DA:154,0
+DA:155,0
+DA:157,0
+FN:158,System.Void Pester.IntOption::.ctor(System.String,System.Int32)
+FNDA:0,System.Void Pester.IntOption::.ctor(System.String,System.Int32)
+DA:159,0
+DA:160,0
+DA:162,0
+FN:163,System.Void Pester.IntOption::.ctor(System.String,System.Int32,System.Int32)
+FNDA:0,System.Void Pester.IntOption::.ctor(System.String,System.Int32,System.Int32)
+DA:164,0
+DA:165,0
+DA:167,0
+FN:192,Pester.DecimalOption Pester.DecimalOption::op_Implicit(System.Decimal)
+FNDA:0,Pester.DecimalOption Pester.DecimalOption::op_Implicit(System.Decimal)
+DA:193,0
+DA:194,0
+DA:195,0
+FN:176,System.Void Pester.DecimalOption::.ctor(Pester.DecimalOption,System.Decimal)
+FNDA:0,System.Void Pester.DecimalOption::.ctor(Pester.DecimalOption,System.Decimal)
+DA:177,0
+DA:178,0
+DA:180,0
+FN:181,System.Void Pester.DecimalOption::.ctor(System.String,System.Decimal)
+FNDA:0,System.Void Pester.DecimalOption::.ctor(System.String,System.Decimal)
+DA:182,0
+DA:183,0
+DA:185,0
+FN:186,System.Void Pester.DecimalOption::.ctor(System.String,System.Decimal,System.Decimal)
+FNDA:0,System.Void Pester.DecimalOption::.ctor(System.String,System.Decimal,System.Decimal)
+DA:187,0
+DA:188,0
+DA:190,0
+FN:230,Pester.StringArrayOption Pester.StringArrayOption::op_Implicit(System.String[])
+FNDA:0,Pester.StringArrayOption Pester.StringArrayOption::op_Implicit(System.String[])
+DA:231,0
+DA:232,0
+DA:233,0
+FN:235,Pester.StringArrayOption Pester.StringArrayOption::op_Implicit(System.String)
+FNDA:0,Pester.StringArrayOption Pester.StringArrayOption::op_Implicit(System.String)
+DA:236,0
+DA:237,0
+DA:238,0
+DA:239,0
+FN:199,System.Void Pester.StringArrayOption::.ctor(Pester.StringArrayOption,System.String[])
+FNDA:2,System.Void Pester.StringArrayOption::.ctor(Pester.StringArrayOption,System.String[])
+DA:200,2
+DA:201,2
+DA:203,2
+FN:204,System.Void Pester.StringArrayOption::.ctor(System.String,System.String[])
+FNDA:8,System.Void Pester.StringArrayOption::.ctor(System.String,System.String[])
+DA:205,8
+DA:206,8
+DA:208,8
+FN:209,System.Void Pester.StringArrayOption::.ctor(System.String,System.String[],System.String[])
+FNDA:0,System.Void Pester.StringArrayOption::.ctor(System.String,System.String[],System.String[])
+DA:210,0
+DA:211,0
+DA:213,0
+FN:214,System.Void Pester.StringArrayOption::.ctor(System.String[])
+FNDA:0,System.Void Pester.StringArrayOption::.ctor(System.String[])
+DA:215,0
+DA:216,0
+DA:218,0
+FN:219,System.Void Pester.StringArrayOption::.ctor(System.String)
+FNDA:0,System.Void Pester.StringArrayOption::.ctor(System.String)
+DA:220,0
+DA:221,0
+DA:223,0
+FN:224,System.Void Pester.StringArrayOption::.ctor(System.Object[])
+FNDA:0,System.Void Pester.StringArrayOption::.ctor(System.Object[])
+DA:225,0
+DA:226,0
+DA:228,0
+FN:274,Pester.ScriptBlockArrayOption Pester.ScriptBlockArrayOption::op_Implicit(System.Management.Automation.ScriptBlock[])
+FNDA:0,Pester.ScriptBlockArrayOption Pester.ScriptBlockArrayOption::op_Implicit(System.Management.Automation.ScriptBlock[])
+DA:275,0
+DA:276,0
+DA:277,0
+FN:279,Pester.ScriptBlockArrayOption Pester.ScriptBlockArrayOption::op_Implicit(System.Management.Automation.ScriptBlock)
+FNDA:0,Pester.ScriptBlockArrayOption Pester.ScriptBlockArrayOption::op_Implicit(System.Management.Automation.ScriptBlock)
+DA:280,0
+DA:281,0
+DA:282,0
+DA:283,0
+FN:243,System.Void Pester.ScriptBlockArrayOption::.ctor(Pester.ScriptBlockArrayOption,System.Management.Automation.ScriptBlock[])
+FNDA:0,System.Void Pester.ScriptBlockArrayOption::.ctor(Pester.ScriptBlockArrayOption,System.Management.Automation.ScriptBlock[])
+DA:244,0
+DA:245,0
+DA:247,0
+FN:248,System.Void Pester.ScriptBlockArrayOption::.ctor(System.String,System.Management.Automation.ScriptBlock[])
+FNDA:1,System.Void Pester.ScriptBlockArrayOption::.ctor(System.String,System.Management.Automation.ScriptBlock[])
+DA:249,1
+DA:250,1
+DA:252,1
+FN:253,System.Void Pester.ScriptBlockArrayOption::.ctor(System.String,System.Management.Automation.ScriptBlock[],System.Management.Automation.ScriptBlock[])
+FNDA:0,System.Void Pester.ScriptBlockArrayOption::.ctor(System.String,System.Management.Automation.ScriptBlock[],System.Management.Automation.ScriptBlock[])
+DA:254,0
+DA:255,0
+DA:257,0
+FN:258,System.Void Pester.ScriptBlockArrayOption::.ctor(System.Object[])
+FNDA:0,System.Void Pester.ScriptBlockArrayOption::.ctor(System.Object[])
+DA:259,0
+DA:260,0
+DA:262,0
+FN:263,System.Void Pester.ScriptBlockArrayOption::.ctor(System.Management.Automation.ScriptBlock[])
+FNDA:0,System.Void Pester.ScriptBlockArrayOption::.ctor(System.Management.Automation.ScriptBlock[])
+DA:264,0
+DA:265,0
+DA:267,0
+FN:268,System.Void Pester.ScriptBlockArrayOption::.ctor(System.Management.Automation.ScriptBlock)
+FNDA:0,System.Void Pester.ScriptBlockArrayOption::.ctor(System.Management.Automation.ScriptBlock)
+DA:269,0
+DA:270,0
+DA:272,0
+FN:328,Pester.ContainerInfoArrayOption Pester.ContainerInfoArrayOption::op_Implicit(Pester.ContainerInfo[])
+FNDA:0,Pester.ContainerInfoArrayOption Pester.ContainerInfoArrayOption::op_Implicit(Pester.ContainerInfo[])
+DA:329,0
+DA:330,0
+DA:331,0
+FN:333,Pester.ContainerInfoArrayOption Pester.ContainerInfoArrayOption::op_Implicit(Pester.ContainerInfo)
+FNDA:0,Pester.ContainerInfoArrayOption Pester.ContainerInfoArrayOption::op_Implicit(Pester.ContainerInfo)
+DA:334,0
+DA:335,0
+DA:336,0
+DA:337,0
+FN:287,System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfoArrayOption,Pester.ContainerInfo[])
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfoArrayOption,Pester.ContainerInfo[])
+DA:288,0
+DA:289,0
+DA:291,0
+FN:292,System.Void Pester.ContainerInfoArrayOption::.ctor(System.String,Pester.ContainerInfo[])
+FNDA:1,System.Void Pester.ContainerInfoArrayOption::.ctor(System.String,Pester.ContainerInfo[])
+DA:293,1
+DA:294,1
+DA:296,1
+FN:297,System.Void Pester.ContainerInfoArrayOption::.ctor(System.String,Pester.ContainerInfo[],Pester.ContainerInfo[])
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(System.String,Pester.ContainerInfo[],Pester.ContainerInfo[])
+DA:298,0
+DA:299,0
+DA:301,0
+FN:302,System.Void Pester.ContainerInfoArrayOption::.ctor(System.Object[])
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(System.Object[])
+DA:303,0
+DA:304,0
+DA:306,0
+FN:307,System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfo[])
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfo[])
+DA:308,0
+DA:309,0
+DA:311,0
+FN:312,System.Void Pester.ContainerInfoArrayOption::.ctor(System.Collections.Generic.List`1<System.Object>)
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(System.Collections.Generic.List`1<System.Object>)
+DA:313,0
+DA:314,0
+DA:316,0
+FN:317,System.Void Pester.ContainerInfoArrayOption::.ctor(System.Collections.Generic.List`1<Pester.ContainerInfo>)
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(System.Collections.Generic.List`1<Pester.ContainerInfo>)
+DA:318,0
+DA:319,0
+DA:321,0
+FN:322,System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfo)
+FNDA:0,System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfo)
+DA:323,0
+DA:324,0
+DA:326,0
+FN:348,System.String Pester.ConfigurationSection::ToString()
+FNDA:0,System.String Pester.ConfigurationSection::ToString()
+DA:349,0
+DA:350,0
+DA:351,0
+FN:342,System.Void Pester.ConfigurationSection::.ctor(System.String)
+FNDA:7,System.Void Pester.ConfigurationSection::.ctor(System.String)
+DA:343,7
+DA:344,7
+DA:345,7
+DA:346,7
+FN:357,System.Nullable`1<T> Pester.DictionaryExtensions::GetValueOrNull(System.Collections.IDictionary,System.String)
+FNDA:0,System.Nullable`1<T> Pester.DictionaryExtensions::GetValueOrNull(System.Collections.IDictionary,System.String)
+DA:358,0
+DA:359,0
+DA:360,0
+BRDA:359,8,0,0
+BRDA:359,8,1,0
+FN:362,T Pester.DictionaryExtensions::GetObjectOrNull(System.Collections.IDictionary,System.String)
+FNDA:0,T Pester.DictionaryExtensions::GetObjectOrNull(System.Collections.IDictionary,System.String)
+DA:363,0
+DA:364,0
+DA:365,0
+DA:367,0
+DA:368,0
+DA:369,0
+DA:371,0
+DA:372,0
+BRDA:364,13,0,0
+BRDA:364,13,1,0
+BRDA:367,54,0,0
+BRDA:368,79,0,0
+BRDA:367,54,1,0
+BRDA:368,79,1,0
+FN:374,System.Collections.IDictionary Pester.DictionaryExtensions::GetIDictionaryOrNull(System.Collections.IDictionary,System.String)
+FNDA:0,System.Collections.IDictionary Pester.DictionaryExtensions::GetIDictionaryOrNull(System.Collections.IDictionary,System.String)
+DA:375,0
+DA:376,0
+DA:377,0
+BRDA:376,8,0,0
+BRDA:376,8,1,0
+FN:379,T[] Pester.DictionaryExtensions::GetArrayOrNull(System.Collections.IDictionary,System.String)
+FNDA:0,T[] Pester.DictionaryExtensions::GetArrayOrNull(System.Collections.IDictionary,System.String)
+DA:380,0
+DA:381,0
+DA:382,0
+DA:383,0
+DA:385,0
+DA:386,0
+DA:387,0
+DA:390,0
+DA:391,0
+DA:393,0
+DA:394,0
+DA:396,0
+DA:397,0
+DA:399,0
+DA:400,0
+DA:401,0
+DA:404,0
+DA:405,0
+BRDA:381,13,0,0
+BRDA:381,13,1,0
+BRDA:385,53,0,0
+BRDA:385,53,1,0
+BRDA:390,90,0,0
+BRDA:390,90,1,0
+BRDA:399,144,0,0
+BRDA:399,144,1,0
+FN:412,Pester.ShouldConfiguration Pester.ShouldConfiguration::get_Default()
+FNDA:0,Pester.ShouldConfiguration Pester.ShouldConfiguration::get_Default()
+DA:413,0
+FN:415,Pester.ShouldConfiguration Pester.ShouldConfiguration::ShallowClone(Pester.ShouldConfiguration)
+FNDA:0,Pester.ShouldConfiguration Pester.ShouldConfiguration::ShallowClone(Pester.ShouldConfiguration)
+DA:416,0
+DA:417,0
+DA:418,0
+FN:434,Pester.StringOption Pester.ShouldConfiguration::get_ErrorAction()
+FNDA:0,Pester.StringOption Pester.ShouldConfiguration::get_ErrorAction()
+DA:435,0
+FN:436,System.Void Pester.ShouldConfiguration::set_ErrorAction(Pester.StringOption)
+FNDA:1,System.Void Pester.ShouldConfiguration::set_ErrorAction(Pester.StringOption)
+DA:437,1
+DA:438,1
+DA:439,1
+DA:440,1
+DA:441,1
+DA:443,0
+DA:444,0
+DA:445,0
+DA:446,1
+BRDA:438,12,0,1
+BRDA:438,12,1,0
+BRDA:444,34,0,0
+BRDA:444,34,1,0
+FN:419,System.Void Pester.ShouldConfiguration::.ctor()
+FNDA:1,System.Void Pester.ShouldConfiguration::.ctor()
+DA:420,1
+DA:421,1
+DA:422,1
+DA:423,1
+FN:424,System.Void Pester.ShouldConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.ShouldConfiguration::.ctor(System.Collections.IDictionary)
+DA:425,0
+DA:426,0
+DA:427,0
+DA:428,0
+DA:429,0
+DA:430,0
+DA:431,0
+BRDA:427,14,0,0
+BRDA:429,31,0,0
+BRDA:429,31,1,0
+BRDA:427,14,1,0
+FN:451,Pester.DebugConfiguration Pester.DebugConfiguration::get_Default()
+FNDA:0,Pester.DebugConfiguration Pester.DebugConfiguration::get_Default()
+DA:452,0
+FN:454,Pester.DebugConfiguration Pester.DebugConfiguration::ShallowClone(Pester.DebugConfiguration)
+FNDA:0,Pester.DebugConfiguration Pester.DebugConfiguration::ShallowClone(Pester.DebugConfiguration)
+DA:455,0
+DA:456,0
+DA:457,0
+FN:487,Pester.BoolOption Pester.DebugConfiguration::get_ShowFullErrors()
+FNDA:0,Pester.BoolOption Pester.DebugConfiguration::get_ShowFullErrors()
+DA:488,0
+FN:489,System.Void Pester.DebugConfiguration::set_ShowFullErrors(Pester.BoolOption)
+FNDA:1,System.Void Pester.DebugConfiguration::set_ShowFullErrors(Pester.BoolOption)
+DA:490,1
+DA:491,1
+DA:492,1
+DA:493,1
+DA:494,1
+DA:496,0
+DA:497,0
+DA:498,0
+DA:499,1
+BRDA:491,12,0,1
+BRDA:491,12,1,0
+FN:503,Pester.BoolOption Pester.DebugConfiguration::get_WriteDebugMessages()
+FNDA:0,Pester.BoolOption Pester.DebugConfiguration::get_WriteDebugMessages()
+DA:504,0
+FN:505,System.Void Pester.DebugConfiguration::set_WriteDebugMessages(Pester.BoolOption)
+FNDA:1,System.Void Pester.DebugConfiguration::set_WriteDebugMessages(Pester.BoolOption)
+DA:506,1
+DA:507,1
+DA:508,1
+DA:509,1
+DA:510,1
+DA:512,0
+DA:513,0
+DA:514,0
+DA:515,1
+BRDA:507,12,0,1
+BRDA:507,12,1,0
+FN:519,Pester.StringArrayOption Pester.DebugConfiguration::get_WriteDebugMessagesFrom()
+FNDA:0,Pester.StringArrayOption Pester.DebugConfiguration::get_WriteDebugMessagesFrom()
+DA:520,0
+FN:521,System.Void Pester.DebugConfiguration::set_WriteDebugMessagesFrom(Pester.StringArrayOption)
+FNDA:1,System.Void Pester.DebugConfiguration::set_WriteDebugMessagesFrom(Pester.StringArrayOption)
+DA:522,1
+DA:523,1
+DA:524,1
+DA:525,1
+DA:526,1
+DA:528,0
+DA:529,0
+DA:530,0
+DA:531,1
+BRDA:523,12,0,1
+BRDA:523,12,1,0
+BRDA:529,34,0,0
+BRDA:529,34,1,0
+FN:535,Pester.BoolOption Pester.DebugConfiguration::get_ShowNavigationMarkers()
+FNDA:0,Pester.BoolOption Pester.DebugConfiguration::get_ShowNavigationMarkers()
+DA:536,0
+FN:537,System.Void Pester.DebugConfiguration::set_ShowNavigationMarkers(Pester.BoolOption)
+FNDA:1,System.Void Pester.DebugConfiguration::set_ShowNavigationMarkers(Pester.BoolOption)
+DA:538,1
+DA:539,1
+DA:540,1
+DA:541,1
+DA:542,1
+DA:544,0
+DA:545,0
+DA:546,0
+DA:547,1
+BRDA:539,12,0,1
+BRDA:539,12,1,0
+FN:551,Pester.BoolOption Pester.DebugConfiguration::get_ReturnRawResultObject()
+FNDA:0,Pester.BoolOption Pester.DebugConfiguration::get_ReturnRawResultObject()
+DA:552,0
+FN:553,System.Void Pester.DebugConfiguration::set_ReturnRawResultObject(Pester.BoolOption)
+FNDA:1,System.Void Pester.DebugConfiguration::set_ReturnRawResultObject(Pester.BoolOption)
+DA:554,1
+DA:555,1
+DA:556,1
+DA:557,1
+DA:558,1
+DA:560,0
+DA:561,0
+DA:562,0
+DA:563,1
+BRDA:555,12,0,1
+BRDA:555,12,1,0
+FN:458,System.Void Pester.DebugConfiguration::.ctor()
+FNDA:1,System.Void Pester.DebugConfiguration::.ctor()
+DA:459,1
+DA:460,1
+DA:461,1
+DA:462,1
+DA:463,1
+DA:464,1
+DA:465,1
+DA:466,1
+FN:467,System.Void Pester.DebugConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.DebugConfiguration::.ctor(System.Collections.IDictionary)
+DA:468,0
+DA:469,0
+DA:470,0
+DA:471,0
+DA:472,0
+DA:473,0
+DA:474,0
+DA:475,0
+DA:476,0
+DA:477,0
+DA:478,0
+BRDA:470,14,0,0
+BRDA:472,40,0,0
+BRDA:472,40,1,0
+BRDA:473,88,0,0
+BRDA:473,88,1,0
+BRDA:474,130,0,0
+BRDA:474,130,1,0
+BRDA:475,172,0,0
+BRDA:475,172,1,0
+BRDA:476,220,0,0
+BRDA:476,220,1,0
+BRDA:470,14,1,0
+FN:576,Pester.CodeCoverageConfiguration Pester.CodeCoverageConfiguration::get_Default()
+FNDA:0,Pester.CodeCoverageConfiguration Pester.CodeCoverageConfiguration::get_Default()
+DA:577,0
+FN:579,Pester.CodeCoverageConfiguration Pester.CodeCoverageConfiguration::ShallowClone(Pester.CodeCoverageConfiguration)
+FNDA:0,Pester.CodeCoverageConfiguration Pester.CodeCoverageConfiguration::ShallowClone(Pester.CodeCoverageConfiguration)
+DA:580,0
+DA:581,0
+DA:582,0
+FN:609,Pester.BoolOption Pester.CodeCoverageConfiguration::get_Enabled()
+FNDA:0,Pester.BoolOption Pester.CodeCoverageConfiguration::get_Enabled()
+DA:610,0
+FN:611,System.Void Pester.CodeCoverageConfiguration::set_Enabled(Pester.BoolOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_Enabled(Pester.BoolOption)
+DA:612,1
+DA:613,1
+DA:614,1
+DA:615,1
+DA:616,1
+DA:618,0
+DA:619,0
+DA:620,0
+DA:621,1
+BRDA:613,12,0,1
+BRDA:613,12,1,0
+FN:625,Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputFormat()
+FNDA:0,Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputFormat()
+DA:626,0
+FN:627,System.Void Pester.CodeCoverageConfiguration::set_OutputFormat(Pester.StringOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_OutputFormat(Pester.StringOption)
+DA:628,1
+DA:629,1
+DA:630,1
+DA:631,1
+DA:632,1
+DA:634,0
+DA:635,0
+DA:636,0
+DA:637,1
+BRDA:629,12,0,1
+BRDA:629,12,1,0
+BRDA:635,34,0,0
+BRDA:635,34,1,0
+FN:641,Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputPath()
+FNDA:0,Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputPath()
+DA:642,0
+FN:643,System.Void Pester.CodeCoverageConfiguration::set_OutputPath(Pester.StringOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_OutputPath(Pester.StringOption)
+DA:644,1
+DA:645,1
+DA:646,1
+DA:647,1
+DA:648,1
+DA:650,0
+DA:651,0
+DA:652,0
+DA:653,1
+BRDA:645,12,0,1
+BRDA:645,12,1,0
+BRDA:651,34,0,0
+BRDA:651,34,1,0
+FN:657,Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputEncoding()
+FNDA:0,Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputEncoding()
+DA:658,0
+FN:659,System.Void Pester.CodeCoverageConfiguration::set_OutputEncoding(Pester.StringOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_OutputEncoding(Pester.StringOption)
+DA:660,1
+DA:661,1
+DA:662,1
+DA:663,1
+DA:664,1
+DA:666,0
+DA:667,0
+DA:668,0
+DA:669,1
+BRDA:661,12,0,1
+BRDA:661,12,1,0
+BRDA:667,34,0,0
+BRDA:667,34,1,0
+FN:673,Pester.StringArrayOption Pester.CodeCoverageConfiguration::get_Path()
+FNDA:0,Pester.StringArrayOption Pester.CodeCoverageConfiguration::get_Path()
+DA:674,0
+FN:675,System.Void Pester.CodeCoverageConfiguration::set_Path(Pester.StringArrayOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_Path(Pester.StringArrayOption)
+DA:676,1
+DA:677,1
+DA:678,1
+DA:679,1
+DA:680,1
+DA:682,0
+DA:683,0
+DA:684,0
+DA:685,1
+BRDA:677,12,0,1
+BRDA:677,12,1,0
+BRDA:683,34,0,0
+BRDA:683,34,1,0
+FN:689,Pester.BoolOption Pester.CodeCoverageConfiguration::get_ExcludeTests()
+FNDA:0,Pester.BoolOption Pester.CodeCoverageConfiguration::get_ExcludeTests()
+DA:690,0
+FN:691,System.Void Pester.CodeCoverageConfiguration::set_ExcludeTests(Pester.BoolOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_ExcludeTests(Pester.BoolOption)
+DA:692,1
+DA:693,1
+DA:694,1
+DA:695,1
+DA:696,1
+DA:698,0
+DA:699,0
+DA:700,0
+DA:701,1
+BRDA:693,12,0,1
+BRDA:693,12,1,0
+FN:705,Pester.BoolOption Pester.CodeCoverageConfiguration::get_RecursePaths()
+FNDA:0,Pester.BoolOption Pester.CodeCoverageConfiguration::get_RecursePaths()
+DA:706,0
+FN:707,System.Void Pester.CodeCoverageConfiguration::set_RecursePaths(Pester.BoolOption)
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::set_RecursePaths(Pester.BoolOption)
+DA:708,1
+DA:709,1
+DA:710,1
+DA:711,1
+DA:712,1
+DA:714,0
+DA:715,0
+DA:716,0
+DA:717,1
+BRDA:709,12,0,1
+BRDA:709,12,1,0
+FN:582,System.Void Pester.CodeCoverageConfiguration::.ctor()
+FNDA:1,System.Void Pester.CodeCoverageConfiguration::.ctor()
+DA:583,1
+DA:584,1
+DA:585,1
+DA:586,1
+DA:587,1
+DA:588,1
+DA:589,1
+DA:590,1
+DA:591,1
+DA:592,1
+FN:593,System.Void Pester.CodeCoverageConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.CodeCoverageConfiguration::.ctor(System.Collections.IDictionary)
+DA:594,0
+DA:595,0
+DA:596,0
+DA:597,0
+DA:598,0
+DA:599,0
+DA:600,0
+DA:601,0
+DA:602,0
+DA:603,0
+DA:604,0
+DA:605,0
+DA:606,0
+BRDA:596,14,0,0
+BRDA:598,40,0,0
+BRDA:598,40,1,0
+BRDA:599,82,0,0
+BRDA:599,82,1,0
+BRDA:600,118,0,0
+BRDA:600,118,1,0
+BRDA:601,154,0,0
+BRDA:601,154,1,0
+BRDA:602,190,0,0
+BRDA:602,190,1,0
+BRDA:603,232,0,0
+BRDA:603,232,1,0
+BRDA:604,280,0,0
+BRDA:604,280,1,0
+BRDA:596,14,1,0
+FN:728,Pester.TestResultConfiguration Pester.TestResultConfiguration::get_Default()
+FNDA:0,Pester.TestResultConfiguration Pester.TestResultConfiguration::get_Default()
+DA:729,0
+FN:731,Pester.TestResultConfiguration Pester.TestResultConfiguration::ShallowClone(Pester.TestResultConfiguration)
+FNDA:0,Pester.TestResultConfiguration Pester.TestResultConfiguration::ShallowClone(Pester.TestResultConfiguration)
+DA:732,0
+DA:733,0
+DA:734,0
+FN:758,Pester.BoolOption Pester.TestResultConfiguration::get_Enabled()
+FNDA:0,Pester.BoolOption Pester.TestResultConfiguration::get_Enabled()
+DA:759,0
+FN:760,System.Void Pester.TestResultConfiguration::set_Enabled(Pester.BoolOption)
+FNDA:1,System.Void Pester.TestResultConfiguration::set_Enabled(Pester.BoolOption)
+DA:761,1
+DA:762,1
+DA:763,1
+DA:764,1
+DA:765,1
+DA:767,0
+DA:768,0
+DA:769,0
+DA:770,1
+BRDA:762,12,0,1
+BRDA:762,12,1,0
+FN:774,Pester.StringOption Pester.TestResultConfiguration::get_OutputFormat()
+FNDA:0,Pester.StringOption Pester.TestResultConfiguration::get_OutputFormat()
+DA:775,0
+FN:776,System.Void Pester.TestResultConfiguration::set_OutputFormat(Pester.StringOption)
+FNDA:1,System.Void Pester.TestResultConfiguration::set_OutputFormat(Pester.StringOption)
+DA:777,1
+DA:778,1
+DA:779,1
+DA:780,1
+DA:781,1
+DA:783,0
+DA:784,0
+DA:785,0
+DA:786,1
+BRDA:778,12,0,1
+BRDA:778,12,1,0
+BRDA:784,34,0,0
+BRDA:784,34,1,0
+FN:790,Pester.StringOption Pester.TestResultConfiguration::get_OutputPath()
+FNDA:0,Pester.StringOption Pester.TestResultConfiguration::get_OutputPath()
+DA:791,0
+FN:792,System.Void Pester.TestResultConfiguration::set_OutputPath(Pester.StringOption)
+FNDA:1,System.Void Pester.TestResultConfiguration::set_OutputPath(Pester.StringOption)
+DA:793,1
+DA:794,1
+DA:795,1
+DA:796,1
+DA:797,1
+DA:799,0
+DA:800,0
+DA:801,0
+DA:802,1
+BRDA:794,12,0,1
+BRDA:794,12,1,0
+BRDA:800,34,0,0
+BRDA:800,34,1,0
+FN:806,Pester.StringOption Pester.TestResultConfiguration::get_OutputEncoding()
+FNDA:0,Pester.StringOption Pester.TestResultConfiguration::get_OutputEncoding()
+DA:807,0
+FN:808,System.Void Pester.TestResultConfiguration::set_OutputEncoding(Pester.StringOption)
+FNDA:1,System.Void Pester.TestResultConfiguration::set_OutputEncoding(Pester.StringOption)
+DA:809,1
+DA:810,1
+DA:811,1
+DA:812,1
+DA:813,1
+DA:815,0
+DA:816,0
+DA:817,0
+DA:818,1
+BRDA:810,12,0,1
+BRDA:810,12,1,0
+BRDA:816,34,0,0
+BRDA:816,34,1,0
+FN:822,Pester.StringOption Pester.TestResultConfiguration::get_TestSuiteName()
+FNDA:0,Pester.StringOption Pester.TestResultConfiguration::get_TestSuiteName()
+DA:823,0
+FN:824,System.Void Pester.TestResultConfiguration::set_TestSuiteName(Pester.StringOption)
+FNDA:1,System.Void Pester.TestResultConfiguration::set_TestSuiteName(Pester.StringOption)
+DA:825,1
+DA:826,1
+DA:827,1
+DA:828,1
+DA:829,1
+DA:831,0
+DA:832,0
+DA:833,0
+DA:834,1
+BRDA:826,12,0,1
+BRDA:826,12,1,0
+BRDA:832,34,0,0
+BRDA:832,34,1,0
+FN:735,System.Void Pester.TestResultConfiguration::.ctor()
+FNDA:1,System.Void Pester.TestResultConfiguration::.ctor()
+DA:736,1
+DA:737,1
+DA:738,1
+DA:739,1
+DA:740,1
+DA:741,1
+DA:742,1
+DA:743,1
+FN:744,System.Void Pester.TestResultConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.TestResultConfiguration::.ctor(System.Collections.IDictionary)
+DA:745,0
+DA:746,0
+DA:747,0
+DA:748,0
+DA:749,0
+DA:750,0
+DA:751,0
+DA:752,0
+DA:753,0
+DA:754,0
+DA:755,0
+BRDA:747,14,0,0
+BRDA:749,40,0,0
+BRDA:749,40,1,0
+BRDA:750,82,0,0
+BRDA:750,82,1,0
+BRDA:751,118,0,0
+BRDA:751,118,1,0
+BRDA:752,154,0,0
+BRDA:752,154,1,0
+BRDA:753,190,0,0
+BRDA:753,190,1,0
+BRDA:747,14,1,0
+FN:847,Pester.RunConfiguration Pester.RunConfiguration::get_Default()
+FNDA:0,Pester.RunConfiguration Pester.RunConfiguration::get_Default()
+DA:848,0
+FN:849,Pester.RunConfiguration Pester.RunConfiguration::ShallowClone(Pester.RunConfiguration)
+FNDA:0,Pester.RunConfiguration Pester.RunConfiguration::ShallowClone(Pester.RunConfiguration)
+DA:850,0
+DA:851,0
+DA:852,0
+FN:880,Pester.StringArrayOption Pester.RunConfiguration::get_Path()
+FNDA:0,Pester.StringArrayOption Pester.RunConfiguration::get_Path()
+DA:881,0
+FN:882,System.Void Pester.RunConfiguration::set_Path(Pester.StringArrayOption)
+FNDA:2,System.Void Pester.RunConfiguration::set_Path(Pester.StringArrayOption)
+DA:883,2
+DA:884,2
+DA:885,1
+DA:886,1
+DA:887,1
+DA:889,1
+DA:890,1
+DA:891,1
+DA:892,2
+BRDA:884,12,0,1
+BRDA:884,12,1,1
+BRDA:890,34,0,1
+BRDA:890,34,1,0
+FN:896,Pester.StringArrayOption Pester.RunConfiguration::get_ExcludePath()
+FNDA:0,Pester.StringArrayOption Pester.RunConfiguration::get_ExcludePath()
+DA:897,0
+FN:898,System.Void Pester.RunConfiguration::set_ExcludePath(Pester.StringArrayOption)
+FNDA:1,System.Void Pester.RunConfiguration::set_ExcludePath(Pester.StringArrayOption)
+DA:899,1
+DA:900,1
+DA:901,1
+DA:902,1
+DA:903,1
+DA:905,0
+DA:906,0
+DA:907,0
+DA:908,1
+BRDA:900,12,0,1
+BRDA:900,12,1,0
+BRDA:906,34,0,0
+BRDA:906,34,1,0
+FN:912,Pester.ScriptBlockArrayOption Pester.RunConfiguration::get_ScriptBlock()
+FNDA:0,Pester.ScriptBlockArrayOption Pester.RunConfiguration::get_ScriptBlock()
+DA:913,0
+FN:914,System.Void Pester.RunConfiguration::set_ScriptBlock(Pester.ScriptBlockArrayOption)
+FNDA:1,System.Void Pester.RunConfiguration::set_ScriptBlock(Pester.ScriptBlockArrayOption)
+DA:915,1
+DA:916,1
+DA:917,1
+DA:918,1
+DA:919,1
+DA:921,0
+DA:922,0
+DA:923,0
+DA:924,1
+BRDA:916,12,0,1
+BRDA:916,12,1,0
+BRDA:922,34,0,0
+BRDA:922,34,1,0
+FN:928,Pester.ContainerInfoArrayOption Pester.RunConfiguration::get_Container()
+FNDA:0,Pester.ContainerInfoArrayOption Pester.RunConfiguration::get_Container()
+DA:929,0
+FN:930,System.Void Pester.RunConfiguration::set_Container(Pester.ContainerInfoArrayOption)
+FNDA:1,System.Void Pester.RunConfiguration::set_Container(Pester.ContainerInfoArrayOption)
+DA:931,1
+DA:932,1
+DA:933,1
+DA:934,1
+DA:935,1
+DA:937,0
+DA:938,0
+DA:939,0
+DA:940,1
+BRDA:932,12,0,1
+BRDA:932,12,1,0
+BRDA:938,34,0,0
+BRDA:938,34,1,0
+FN:944,Pester.StringOption Pester.RunConfiguration::get_TestExtension()
+FNDA:0,Pester.StringOption Pester.RunConfiguration::get_TestExtension()
+DA:945,0
+FN:946,System.Void Pester.RunConfiguration::set_TestExtension(Pester.StringOption)
+FNDA:1,System.Void Pester.RunConfiguration::set_TestExtension(Pester.StringOption)
+DA:947,1
+DA:948,1
+DA:949,1
+DA:950,1
+DA:951,1
+DA:953,0
+DA:954,0
+DA:955,0
+DA:956,1
+BRDA:948,12,0,1
+BRDA:948,12,1,0
+BRDA:954,34,0,0
+BRDA:954,34,1,0
+FN:960,Pester.BoolOption Pester.RunConfiguration::get_Exit()
+FNDA:0,Pester.BoolOption Pester.RunConfiguration::get_Exit()
+DA:961,0
+FN:962,System.Void Pester.RunConfiguration::set_Exit(Pester.BoolOption)
+FNDA:1,System.Void Pester.RunConfiguration::set_Exit(Pester.BoolOption)
+DA:963,1
+DA:964,1
+DA:965,1
+DA:966,1
+DA:967,1
+DA:969,0
+DA:970,0
+DA:971,0
+DA:972,1
+BRDA:964,12,0,1
+BRDA:964,12,1,0
+FN:976,Pester.BoolOption Pester.RunConfiguration::get_PassThru()
+FNDA:0,Pester.BoolOption Pester.RunConfiguration::get_PassThru()
+DA:977,0
+FN:978,System.Void Pester.RunConfiguration::set_PassThru(Pester.BoolOption)
+FNDA:1,System.Void Pester.RunConfiguration::set_PassThru(Pester.BoolOption)
+DA:979,1
+DA:980,1
+DA:981,1
+DA:982,1
+DA:983,1
+DA:985,0
+DA:986,0
+DA:987,0
+DA:988,1
+BRDA:980,12,0,1
+BRDA:980,12,1,0
+FN:853,System.Void Pester.RunConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.RunConfiguration::.ctor(System.Collections.IDictionary)
+DA:854,0
+DA:855,0
+DA:856,0
+DA:857,0
+DA:858,0
+DA:859,0
+DA:860,0
+DA:861,0
+DA:862,0
+DA:863,0
+DA:864,0
+DA:865,0
+DA:866,0
+BRDA:856,14,0,0
+BRDA:858,34,0,0
+BRDA:858,34,1,0
+BRDA:859,70,0,0
+BRDA:859,70,1,0
+BRDA:860,106,0,0
+BRDA:860,106,1,0
+BRDA:861,142,0,0
+BRDA:861,142,1,0
+BRDA:862,180,0,0
+BRDA:862,180,1,0
+BRDA:863,224,0,0
+BRDA:863,224,1,0
+BRDA:864,273,0,0
+BRDA:864,273,1,0
+BRDA:856,14,1,0
+FN:867,System.Void Pester.RunConfiguration::.ctor()
+FNDA:1,System.Void Pester.RunConfiguration::.ctor()
+DA:868,1
+DA:869,1
+DA:870,1
+DA:871,1
+DA:872,1
+DA:873,1
+DA:874,1
+DA:875,1
+DA:876,1
+DA:877,1
+FN:998,Pester.FilterConfiguration Pester.FilterConfiguration::get_Default()
+FNDA:0,Pester.FilterConfiguration Pester.FilterConfiguration::get_Default()
+DA:999,0
+FN:1000,Pester.FilterConfiguration Pester.FilterConfiguration::ShallowClone(Pester.FilterConfiguration)
+FNDA:0,Pester.FilterConfiguration Pester.FilterConfiguration::ShallowClone(Pester.FilterConfiguration)
+DA:1001,0
+DA:1002,0
+DA:1003,0
+FN:1024,Pester.StringArrayOption Pester.FilterConfiguration::get_Tag()
+FNDA:0,Pester.StringArrayOption Pester.FilterConfiguration::get_Tag()
+DA:1025,0
+FN:1026,System.Void Pester.FilterConfiguration::set_Tag(Pester.StringArrayOption)
+FNDA:1,System.Void Pester.FilterConfiguration::set_Tag(Pester.StringArrayOption)
+DA:1027,1
+DA:1028,1
+DA:1029,1
+DA:1030,1
+DA:1031,1
+DA:1033,0
+DA:1034,0
+DA:1035,0
+DA:1036,1
+BRDA:1028,12,0,1
+BRDA:1028,12,1,0
+BRDA:1034,34,0,0
+BRDA:1034,34,1,0
+FN:1040,Pester.StringArrayOption Pester.FilterConfiguration::get_ExcludeTag()
+FNDA:0,Pester.StringArrayOption Pester.FilterConfiguration::get_ExcludeTag()
+DA:1041,0
+FN:1042,System.Void Pester.FilterConfiguration::set_ExcludeTag(Pester.StringArrayOption)
+FNDA:1,System.Void Pester.FilterConfiguration::set_ExcludeTag(Pester.StringArrayOption)
+DA:1043,1
+DA:1044,1
+DA:1045,1
+DA:1046,1
+DA:1047,1
+DA:1049,0
+DA:1050,0
+DA:1051,0
+DA:1052,1
+BRDA:1044,12,0,1
+BRDA:1044,12,1,0
+BRDA:1050,34,0,0
+BRDA:1050,34,1,0
+FN:1055,Pester.StringArrayOption Pester.FilterConfiguration::get_Line()
+FNDA:0,Pester.StringArrayOption Pester.FilterConfiguration::get_Line()
+DA:1056,0
+FN:1057,System.Void Pester.FilterConfiguration::set_Line(Pester.StringArrayOption)
+FNDA:1,System.Void Pester.FilterConfiguration::set_Line(Pester.StringArrayOption)
+DA:1058,1
+DA:1059,1
+DA:1060,1
+DA:1061,1
+DA:1062,1
+DA:1064,0
+DA:1065,0
+DA:1066,0
+DA:1067,1
+BRDA:1059,12,0,1
+BRDA:1059,12,1,0
+BRDA:1065,34,0,0
+BRDA:1065,34,1,0
+FN:1071,Pester.StringArrayOption Pester.FilterConfiguration::get_FullName()
+FNDA:0,Pester.StringArrayOption Pester.FilterConfiguration::get_FullName()
+DA:1072,0
+FN:1073,System.Void Pester.FilterConfiguration::set_FullName(Pester.StringArrayOption)
+FNDA:2,System.Void Pester.FilterConfiguration::set_FullName(Pester.StringArrayOption)
+DA:1074,2
+DA:1075,2
+DA:1076,1
+DA:1077,1
+DA:1078,1
+DA:1080,1
+DA:1081,1
+DA:1082,1
+DA:1083,2
+BRDA:1075,12,0,1
+BRDA:1075,12,1,1
+BRDA:1081,34,0,1
+BRDA:1081,34,1,0
+FN:1004,System.Void Pester.FilterConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.FilterConfiguration::.ctor(System.Collections.IDictionary)
+DA:1005,0
+DA:1006,0
+DA:1007,0
+DA:1008,0
+DA:1009,0
+DA:1010,0
+DA:1011,0
+DA:1012,0
+DA:1013,0
+DA:1014,0
+BRDA:1007,14,0,0
+BRDA:1009,34,0,0
+BRDA:1009,34,1,0
+BRDA:1010,70,0,0
+BRDA:1010,70,1,0
+BRDA:1011,106,0,0
+BRDA:1011,106,1,0
+BRDA:1012,142,0,0
+BRDA:1012,142,1,0
+BRDA:1007,14,1,0
+FN:1014,System.Void Pester.FilterConfiguration::.ctor()
+FNDA:1,System.Void Pester.FilterConfiguration::.ctor()
+DA:1015,1
+DA:1016,1
+DA:1017,1
+DA:1018,1
+DA:1019,1
+DA:1020,1
+DA:1021,1
+FN:1090,Pester.OutputConfiguration Pester.OutputConfiguration::get_Default()
+FNDA:0,Pester.OutputConfiguration Pester.OutputConfiguration::get_Default()
+DA:1091,0
+FN:1092,Pester.OutputConfiguration Pester.OutputConfiguration::ShallowClone(Pester.OutputConfiguration)
+FNDA:0,Pester.OutputConfiguration Pester.OutputConfiguration::ShallowClone(Pester.OutputConfiguration)
+DA:1093,0
+DA:1094,0
+DA:1095,0
+FN:1111,Pester.StringOption Pester.OutputConfiguration::get_Verbosity()
+FNDA:0,Pester.StringOption Pester.OutputConfiguration::get_Verbosity()
+DA:1112,0
+FN:1113,System.Void Pester.OutputConfiguration::set_Verbosity(Pester.StringOption)
+FNDA:1,System.Void Pester.OutputConfiguration::set_Verbosity(Pester.StringOption)
+DA:1114,1
+DA:1115,1
+DA:1116,1
+DA:1117,1
+DA:1118,1
+DA:1120,0
+DA:1121,0
+DA:1122,0
+DA:1123,1
+BRDA:1115,12,0,1
+BRDA:1115,12,1,0
+BRDA:1121,35,0,0
+BRDA:1121,35,1,0
+FN:1126,System.String Pester.OutputConfiguration::FixMinimal(System.String)
+FNDA:0,System.String Pester.OutputConfiguration::FixMinimal(System.String)
+DA:1127,0
+DA:1128,0
+DA:1129,0
+BRDA:1128,13,0,0
+BRDA:1128,13,1,0
+FN:1096,System.Void Pester.OutputConfiguration::.ctor(System.Collections.IDictionary)
+FNDA:0,System.Void Pester.OutputConfiguration::.ctor(System.Collections.IDictionary)
+DA:1097,0
+DA:1098,0
+DA:1099,0
+DA:1100,0
+DA:1101,0
+DA:1102,0
+DA:1103,0
+BRDA:1099,14,0,0
+BRDA:1101,31,0,0
+BRDA:1101,31,1,0
+BRDA:1099,14,1,0
+FN:1104,System.Void Pester.OutputConfiguration::.ctor()
+FNDA:1,System.Void Pester.OutputConfiguration::.ctor()
+DA:1105,1
+DA:1106,1
+DA:1107,1
+DA:1108,1
+LF:722
+LH:291
+BRF:206
+BRH:34
+FNF:158
+FNH:58
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Block.cs
+FN:10,Pester.Block Pester.Block::Create()
+FNDA:1,Pester.Block Pester.Block::Create()
+DA:11,1
+DA:12,1
+DA:13,1
+FN:25,System.String Pester.Block::get_Name()
+FNDA:2,System.String Pester.Block::get_Name()
+DA:26,2
+FN:26,System.Collections.Generic.List`1<System.String> Pester.Block::get_Path()
+FNDA:0,System.Collections.Generic.List`1<System.String> Pester.Block::get_Path()
+DA:27,0
+FN:27,System.Object Pester.Block::get_Data()
+FNDA:0,System.Object Pester.Block::get_Data()
+DA:28,0
+FN:28,System.String Pester.Block::get_ExpandedName()
+FNDA:0,System.String Pester.Block::get_ExpandedName()
+DA:29,0
+FN:29,System.String Pester.Block::get_ExpandedPath()
+FNDA:0,System.String Pester.Block::get_ExpandedPath()
+DA:30,0
+FN:30,System.Collections.Generic.List`1<Pester.Block> Pester.Block::get_Blocks()
+FNDA:8,System.Collections.Generic.List`1<Pester.Block> Pester.Block::get_Blocks()
+DA:31,8
+FN:31,System.Collections.Generic.List`1<Pester.Test> Pester.Block::get_Tests()
+FNDA:8,System.Collections.Generic.List`1<Pester.Test> Pester.Block::get_Tests()
+DA:32,8
+FN:33,System.String Pester.Block::get_Result()
+FNDA:6,System.String Pester.Block::get_Result()
+DA:34,6
+FN:34,System.Int32 Pester.Block::get_FailedCount()
+FNDA:0,System.Int32 Pester.Block::get_FailedCount()
+DA:35,0
+FN:35,System.Int32 Pester.Block::get_PassedCount()
+FNDA:0,System.Int32 Pester.Block::get_PassedCount()
+DA:36,0
+FN:36,System.Int32 Pester.Block::get_SkippedCount()
+FNDA:0,System.Int32 Pester.Block::get_SkippedCount()
+DA:37,0
+FN:37,System.Int32 Pester.Block::get_NotRunCount()
+FNDA:0,System.Int32 Pester.Block::get_NotRunCount()
+DA:38,0
+FN:38,System.Int32 Pester.Block::get_TotalCount()
+FNDA:0,System.Int32 Pester.Block::get_TotalCount()
+DA:39,0
+FN:39,System.Collections.Generic.List`1<System.Object> Pester.Block::get_ErrorRecord()
+FNDA:4,System.Collections.Generic.List`1<System.Object> Pester.Block::get_ErrorRecord()
+DA:40,4
+FN:40,System.TimeSpan Pester.Block::get_Duration()
+FNDA:0,System.TimeSpan Pester.Block::get_Duration()
+DA:41,0
+FN:42,System.String Pester.Block::get_Id()
+FNDA:0,System.String Pester.Block::get_Id()
+DA:43,0
+FN:43,System.Collections.Generic.List`1<System.String> Pester.Block::get_Tag()
+FNDA:0,System.Collections.Generic.List`1<System.String> Pester.Block::get_Tag()
+DA:44,0
+FN:44,System.Boolean Pester.Block::get_Focus()
+FNDA:0,System.Boolean Pester.Block::get_Focus()
+DA:45,0
+FN:45,System.Boolean Pester.Block::get_Skip()
+FNDA:0,System.Boolean Pester.Block::get_Skip()
+DA:46,0
+FN:47,System.String Pester.Block::get_ItemType()
+FNDA:6,System.String Pester.Block::get_ItemType()
+DA:48,6
+FN:49,Pester.ContainerInfo Pester.Block::get_BlockContainer()
+FNDA:0,Pester.ContainerInfo Pester.Block::get_BlockContainer()
+DA:50,0
+FN:50,System.Object Pester.Block::get_Root()
+FNDA:0,System.Object Pester.Block::get_Root()
+DA:51,0
+FN:51,System.Boolean Pester.Block::get_IsRoot()
+FNDA:0,System.Boolean Pester.Block::get_IsRoot()
+DA:52,0
+FN:52,System.Object Pester.Block::get_Parent()
+FNDA:0,System.Object Pester.Block::get_Parent()
+DA:53,0
+FN:53,System.Management.Automation.ScriptBlock Pester.Block::get_EachTestSetup()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_EachTestSetup()
+DA:54,0
+FN:54,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeTestSetup()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeTestSetup()
+DA:55,0
+FN:55,System.Management.Automation.ScriptBlock Pester.Block::get_EachTestTeardown()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_EachTestTeardown()
+DA:56,0
+FN:56,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeTestTeardown()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeTestTeardown()
+DA:57,0
+FN:57,System.Management.Automation.ScriptBlock Pester.Block::get_EachBlockSetup()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_EachBlockSetup()
+DA:58,0
+FN:58,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeBlockSetup()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeBlockSetup()
+DA:59,0
+FN:59,System.Management.Automation.ScriptBlock Pester.Block::get_EachBlockTeardown()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_EachBlockTeardown()
+DA:60,0
+FN:60,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeBlockTeardown()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeBlockTeardown()
+DA:61,0
+FN:61,System.Collections.Generic.List`1<System.Object> Pester.Block::get_Order()
+FNDA:8,System.Collections.Generic.List`1<System.Object> Pester.Block::get_Order()
+DA:62,8
+FN:63,System.Boolean Pester.Block::get_Passed()
+FNDA:0,System.Boolean Pester.Block::get_Passed()
+DA:64,0
+FN:64,System.Boolean Pester.Block::get_First()
+FNDA:0,System.Boolean Pester.Block::get_First()
+DA:65,0
+FN:65,System.Boolean Pester.Block::get_Last()
+FNDA:0,System.Boolean Pester.Block::get_Last()
+DA:66,0
+FN:66,System.Object Pester.Block::get_StandardOutput()
+FNDA:0,System.Object Pester.Block::get_StandardOutput()
+DA:67,0
+FN:67,System.Boolean Pester.Block::get_ShouldRun()
+FNDA:0,System.Boolean Pester.Block::get_ShouldRun()
+DA:68,0
+FN:68,System.Boolean Pester.Block::get_Executed()
+FNDA:0,System.Boolean Pester.Block::get_Executed()
+DA:69,0
+FN:69,System.DateTime Pester.Block::get_ExecutedAt()
+FNDA:0,System.DateTime Pester.Block::get_ExecutedAt()
+DA:70,0
+FN:70,System.Boolean Pester.Block::get_Exclude()
+FNDA:0,System.Boolean Pester.Block::get_Exclude()
+DA:71,0
+FN:71,System.Boolean Pester.Block::get_Include()
+FNDA:0,System.Boolean Pester.Block::get_Include()
+DA:72,0
+FN:72,System.Boolean Pester.Block::get_Explicit()
+FNDA:0,System.Boolean Pester.Block::get_Explicit()
+DA:73,0
+FN:73,System.TimeSpan Pester.Block::get_DiscoveryDuration()
+FNDA:0,System.TimeSpan Pester.Block::get_DiscoveryDuration()
+DA:74,0
+FN:74,System.TimeSpan Pester.Block::get_FrameworkDuration()
+FNDA:0,System.TimeSpan Pester.Block::get_FrameworkDuration()
+DA:75,0
+FN:75,System.TimeSpan Pester.Block::get_UserDuration()
+FNDA:0,System.TimeSpan Pester.Block::get_UserDuration()
+DA:76,0
+FN:76,System.TimeSpan Pester.Block::get_OwnDuration()
+FNDA:0,System.TimeSpan Pester.Block::get_OwnDuration()
+DA:77,0
+FN:78,System.Management.Automation.ScriptBlock Pester.Block::get_ScriptBlock()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Block::get_ScriptBlock()
+DA:79,0
+FN:79,System.Int32 Pester.Block::get_StartLine()
+FNDA:0,System.Int32 Pester.Block::get_StartLine()
+DA:80,0
+FN:80,System.Collections.Hashtable Pester.Block::get_FrameworkData()
+FNDA:8,System.Collections.Hashtable Pester.Block::get_FrameworkData()
+DA:81,8
+FN:81,System.Collections.Hashtable Pester.Block::get_PluginData()
+FNDA:8,System.Collections.Hashtable Pester.Block::get_PluginData()
+DA:82,8
+FN:83,System.Int32 Pester.Block::get_PendingCount()
+FNDA:0,System.Int32 Pester.Block::get_PendingCount()
+DA:84,0
+FN:84,System.Int32 Pester.Block::get_InconclusiveCount()
+FNDA:0,System.Int32 Pester.Block::get_InconclusiveCount()
+DA:85,0
+FN:86,System.Boolean Pester.Block::get_OwnPassed()
+FNDA:0,System.Boolean Pester.Block::get_OwnPassed()
+DA:87,0
+FN:87,System.Int32 Pester.Block::get_OwnTotalCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnTotalCount()
+DA:88,0
+FN:88,System.Int32 Pester.Block::get_OwnPassedCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnPassedCount()
+DA:89,0
+FN:89,System.Int32 Pester.Block::get_OwnFailedCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnFailedCount()
+DA:90,0
+FN:90,System.Int32 Pester.Block::get_OwnSkippedCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnSkippedCount()
+DA:91,0
+FN:91,System.Int32 Pester.Block::get_OwnPendingCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnPendingCount()
+DA:92,0
+FN:92,System.Int32 Pester.Block::get_OwnNotRunCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnNotRunCount()
+DA:93,0
+FN:93,System.Int32 Pester.Block::get_OwnInconclusiveCount()
+FNDA:0,System.Int32 Pester.Block::get_OwnInconclusiveCount()
+DA:94,0
+FN:96,System.String Pester.Block::ToString()
+FNDA:1,System.String Pester.Block::ToString()
+DA:97,1
+DA:98,1
+DA:99,1
+FN:14,System.Void Pester.Block::.ctor()
+FNDA:4,System.Void Pester.Block::.ctor()
+DA:15,4
+DA:16,4
+DA:17,4
+DA:18,4
+DA:19,4
+DA:20,4
+DA:21,4
+DA:22,4
+DA:23,4
+DA:24,4
+LF:77
+LH:25
+BRF:0
+BRH:0
+FNF:64
+FNH:12
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Container.cs
+FN:9,Pester.Container Pester.Container::Create()
+FNDA:2,Pester.Container Pester.Container::Create()
+DA:10,2
+DA:11,2
+DA:12,2
+FN:13,Pester.Container Pester.Container::CreateFromBlock(Pester.Block)
+FNDA:0,Pester.Container Pester.Container::CreateFromBlock(Pester.Block)
+DA:14,0
+DA:15,0
+DA:16,0
+DA:17,0
+DA:18,0
+DA:19,0
+DA:20,0
+DA:21,0
+DA:22,0
+DA:23,0
+DA:24,0
+DA:25,0
+DA:26,0
+DA:27,0
+DA:28,0
+DA:29,0
+DA:30,0
+DA:31,0
+DA:32,0
+DA:33,0
+DA:34,0
+DA:35,0
+DA:36,0
+DA:37,0
+DA:38,0
+DA:39,0
+BRDA:15,92,0,0
+BRDA:15,92,1,0
+FN:41,Pester.Container Pester.Container::CreateFromFile(System.IO.FileInfo)
+FNDA:0,Pester.Container Pester.Container::CreateFromFile(System.IO.FileInfo)
+DA:42,0
+DA:43,0
+DA:44,0
+DA:45,0
+DA:46,0
+DA:47,0
+DA:48,0
+FN:49,System.String Pester.Container::get_Type()
+FNDA:0,System.String Pester.Container::get_Type()
+DA:50,0
+FN:50,System.Object Pester.Container::get_Item()
+FNDA:0,System.Object Pester.Container::get_Item()
+DA:51,0
+FN:51,System.Object Pester.Container::get_Data()
+FNDA:0,System.Object Pester.Container::get_Data()
+DA:52,0
+FN:52,System.Collections.Generic.List`1<Pester.Block> Pester.Container::get_Blocks()
+FNDA:3,System.Collections.Generic.List`1<Pester.Block> Pester.Container::get_Blocks()
+DA:53,3
+FN:53,System.String Pester.Container::get_Result()
+FNDA:3,System.String Pester.Container::get_Result()
+DA:54,3
+FN:54,System.TimeSpan Pester.Container::get_Duration()
+FNDA:0,System.TimeSpan Pester.Container::get_Duration()
+DA:55,0
+FN:55,System.Int32 Pester.Container::get_FailedCount()
+FNDA:0,System.Int32 Pester.Container::get_FailedCount()
+DA:56,0
+FN:56,System.Int32 Pester.Container::get_PassedCount()
+FNDA:0,System.Int32 Pester.Container::get_PassedCount()
+DA:57,0
+FN:57,System.Int32 Pester.Container::get_SkippedCount()
+FNDA:0,System.Int32 Pester.Container::get_SkippedCount()
+DA:58,0
+FN:58,System.Int32 Pester.Container::get_NotRunCount()
+FNDA:0,System.Int32 Pester.Container::get_NotRunCount()
+DA:59,0
+FN:59,System.Int32 Pester.Container::get_TotalCount()
+FNDA:0,System.Int32 Pester.Container::get_TotalCount()
+DA:60,0
+FN:60,System.Collections.Generic.List`1<System.Object> Pester.Container::get_ErrorRecord()
+FNDA:3,System.Collections.Generic.List`1<System.Object> Pester.Container::get_ErrorRecord()
+DA:61,3
+FN:61,System.Boolean Pester.Container::get_Passed()
+FNDA:0,System.Boolean Pester.Container::get_Passed()
+DA:62,0
+FN:62,System.Boolean Pester.Container::get_OwnPassed()
+FNDA:0,System.Boolean Pester.Container::get_OwnPassed()
+DA:63,0
+FN:63,System.Boolean Pester.Container::get_Skip()
+FNDA:0,System.Boolean Pester.Container::get_Skip()
+DA:64,0
+FN:64,System.Boolean Pester.Container::get_ShouldRun()
+FNDA:0,System.Boolean Pester.Container::get_ShouldRun()
+DA:65,0
+FN:65,System.Boolean Pester.Container::get_Executed()
+FNDA:0,System.Boolean Pester.Container::get_Executed()
+DA:66,0
+FN:66,System.DateTime Pester.Container::get_ExecutedAt()
+FNDA:0,System.DateTime Pester.Container::get_ExecutedAt()
+DA:67,0
+FN:68,System.TimeSpan Pester.Container::get_DiscoveryDuration()
+FNDA:0,System.TimeSpan Pester.Container::get_DiscoveryDuration()
+DA:69,0
+FN:69,System.TimeSpan Pester.Container::get_UserDuration()
+FNDA:0,System.TimeSpan Pester.Container::get_UserDuration()
+DA:70,0
+FN:70,System.TimeSpan Pester.Container::get_FrameworkDuration()
+FNDA:0,System.TimeSpan Pester.Container::get_FrameworkDuration()
+DA:71,0
+FN:71,System.Object Pester.Container::get_StandardOutput()
+FNDA:0,System.Object Pester.Container::get_StandardOutput()
+DA:72,0
+FN:74,System.String Pester.Container::ToString()
+FNDA:0,System.String Pester.Container::ToString()
+DA:75,0
+DA:76,0
+DA:77,0
+LF:61
+LH:6
+BRF:2
+BRH:0
+FNF:26
+FNH:4
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\ContainerInfo.cs
+FN:9,Pester.ContainerInfo Pester.ContainerInfo::Create()
+FNDA:0,Pester.ContainerInfo Pester.ContainerInfo::Create()
+DA:10,0
+DA:11,0
+DA:12,0
+FN:13,System.String Pester.ContainerInfo::get_Type()
+FNDA:0,System.String Pester.ContainerInfo::get_Type()
+DA:14,0
+FN:14,System.Object Pester.ContainerInfo::get_Item()
+FNDA:0,System.Object Pester.ContainerInfo::get_Item()
+DA:15,0
+FN:15,System.Object Pester.ContainerInfo::get_Data()
+FNDA:0,System.Object Pester.ContainerInfo::get_Data()
+DA:16,0
+LF:6
+LH:0
+BRF:0
+BRH:0
+FNF:4
+FNH:0
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Coverage.cs
+FN:7,Pester.Coverage Pester.Coverage::Create()
+FNDA:1,Pester.Coverage Pester.Coverage::Create()
+DA:8,1
+DA:9,1
+DA:10,1
+FN:11,System.Decimal Pester.Coverage::get_CoveragePercent()
+FNDA:0,System.Decimal Pester.Coverage::get_CoveragePercent()
+DA:12,0
+FN:13,System.String Pester.Coverage::get_CoverageReport()
+FNDA:0,System.String Pester.Coverage::get_CoverageReport()
+DA:14,0
+FN:15,System.Int64 Pester.Coverage::get_CommandsAnalyzedCount()
+FNDA:0,System.Int64 Pester.Coverage::get_CommandsAnalyzedCount()
+DA:16,0
+FN:16,System.Int64 Pester.Coverage::get_CommandsExecutedCount()
+FNDA:0,System.Int64 Pester.Coverage::get_CommandsExecutedCount()
+DA:17,0
+FN:17,System.Int64 Pester.Coverage::get_CommandsMissedCount()
+FNDA:0,System.Int64 Pester.Coverage::get_CommandsMissedCount()
+DA:18,0
+FN:18,System.Int64 Pester.Coverage::get_FilesAnalyzedCount()
+FNDA:0,System.Int64 Pester.Coverage::get_FilesAnalyzedCount()
+DA:19,0
+FN:25,System.String Pester.Coverage::ToString()
+FNDA:0,System.String Pester.Coverage::ToString()
+DA:26,0
+DA:27,0
+DA:28,0
+FN:20,System.Void Pester.Coverage::.ctor()
+FNDA:2,System.Void Pester.Coverage::.ctor()
+DA:21,2
+DA:22,2
+DA:23,2
+LF:15
+LH:6
+BRF:0
+BRH:0
+FNF:9
+FNH:2
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Factory.cs
+FN:12,System.Management.Automation.PSNoteProperty Pester.Factory::CreateNoteProperty(System.String,System.Object)
+FNDA:1,System.Management.Automation.PSNoteProperty Pester.Factory::CreateNoteProperty(System.String,System.Object)
+DA:13,1
+DA:14,1
+DA:15,1
+FN:17,System.Collections.Generic.Dictionary`2<System.String,System.Object> Pester.Factory::CreateDictionary()
+FNDA:0,System.Collections.Generic.Dictionary`2<System.String,System.Object> Pester.Factory::CreateDictionary()
+DA:18,0
+DA:19,0
+DA:20,0
+FN:21,System.Management.Automation.RuntimeDefinedParameterDictionary Pester.Factory::CreateRuntimeDefinedParameterDictionary()
+FNDA:0,System.Management.Automation.RuntimeDefinedParameterDictionary Pester.Factory::CreateRuntimeDefinedParameterDictionary()
+DA:22,0
+DA:23,0
+DA:24,0
+FN:26,System.Collections.Generic.List`1<System.Object> Pester.Factory::CreateCollection()
+FNDA:0,System.Collections.Generic.List`1<System.Object> Pester.Factory::CreateCollection()
+DA:27,0
+DA:28,0
+DA:29,0
+FN:31,System.Management.Automation.ErrorRecord Pester.Factory::CreateShouldErrorRecord(System.String,System.String,System.String,System.String,System.Boolean)
+FNDA:0,System.Management.Automation.ErrorRecord Pester.Factory::CreateShouldErrorRecord(System.String,System.String,System.String,System.String,System.Boolean)
+DA:32,0
+DA:33,0
+DA:34,0
+FN:36,System.Management.Automation.ErrorRecord Pester.Factory::CreateErrorRecord(System.String,System.String,System.String,System.String,System.String,System.Boolean)
+FNDA:0,System.Management.Automation.ErrorRecord Pester.Factory::CreateErrorRecord(System.String,System.String,System.String,System.String,System.String,System.Boolean)
+DA:37,0
+DA:38,0
+DA:39,0
+DA:41,0
+DA:42,0
+DA:43,0
+DA:44,0
+DA:45,0
+DA:46,0
+DA:47,0
+DA:48,0
+DA:49,0
+FN:51,System.Text.StringBuilder Pester.Factory::CreateStringBuilder()
+FNDA:0,System.Text.StringBuilder Pester.Factory::CreateStringBuilder()
+DA:52,0
+DA:53,0
+DA:54,0
+LF:30
+LH:3
+BRF:0
+BRH:0
+FNF:7
+FNH:1
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\InvocationResult.cs
+FN:8,Pester.InvocationResult Pester.InvocationResult::Create(System.Boolean,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord>,System.Object)
+FNDA:1,Pester.InvocationResult Pester.InvocationResult::Create(System.Boolean,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord>,System.Object)
+DA:9,1
+DA:10,1
+DA:11,1
+FN:19,System.Boolean Pester.InvocationResult::get_Success()
+FNDA:0,System.Boolean Pester.InvocationResult::get_Success()
+DA:20,0
+FN:20,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord> Pester.InvocationResult::get_ErrorRecord()
+FNDA:0,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord> Pester.InvocationResult::get_ErrorRecord()
+DA:21,0
+FN:21,System.Object Pester.InvocationResult::get_StandardOutput()
+FNDA:0,System.Object Pester.InvocationResult::get_StandardOutput()
+DA:22,0
+FN:12,System.Void Pester.InvocationResult::.ctor(System.Boolean,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord>,System.Object)
+FNDA:2,System.Void Pester.InvocationResult::.ctor(System.Boolean,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord>,System.Object)
+DA:13,2
+DA:14,2
+DA:15,2
+DA:16,2
+DA:17,2
+DA:18,2
+BRDA:16,18,0,0
+BRDA:16,18,1,2
+LF:12
+LH:9
+BRF:2
+BRH:1
+FNF:5
+FNH:2
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Run.cs
+FN:9,Pester.Run Pester.Run::Create()
+FNDA:0,Pester.Run Pester.Run::Create()
+DA:10,0
+DA:11,0
+DA:12,0
+FN:13,System.Collections.Generic.List`1<Pester.Container> Pester.Run::get_Containers()
+FNDA:0,System.Collections.Generic.List`1<Pester.Container> Pester.Run::get_Containers()
+DA:14,0
+FN:15,System.String Pester.Run::get_Result()
+FNDA:0,System.String Pester.Run::get_Result()
+DA:16,0
+FN:16,System.Int32 Pester.Run::get_FailedCount()
+FNDA:0,System.Int32 Pester.Run::get_FailedCount()
+DA:17,0
+FN:17,System.Int32 Pester.Run::get_FailedBlocksCount()
+FNDA:0,System.Int32 Pester.Run::get_FailedBlocksCount()
+DA:18,0
+FN:18,System.Int32 Pester.Run::get_FailedContainersCount()
+FNDA:0,System.Int32 Pester.Run::get_FailedContainersCount()
+DA:19,0
+FN:20,System.Int32 Pester.Run::get_PassedCount()
+FNDA:0,System.Int32 Pester.Run::get_PassedCount()
+DA:21,0
+FN:21,System.Int32 Pester.Run::get_SkippedCount()
+FNDA:0,System.Int32 Pester.Run::get_SkippedCount()
+DA:22,0
+FN:22,System.Int32 Pester.Run::get_NotRunCount()
+FNDA:0,System.Int32 Pester.Run::get_NotRunCount()
+DA:23,0
+FN:23,System.Int32 Pester.Run::get_TotalCount()
+FNDA:0,System.Int32 Pester.Run::get_TotalCount()
+DA:24,0
+FN:25,System.TimeSpan Pester.Run::get_Duration()
+FNDA:0,System.TimeSpan Pester.Run::get_Duration()
+DA:26,0
+FN:27,System.Boolean Pester.Run::get_Executed()
+FNDA:0,System.Boolean Pester.Run::get_Executed()
+DA:28,0
+FN:28,System.DateTime Pester.Run::get_ExecutedAt()
+FNDA:0,System.DateTime Pester.Run::get_ExecutedAt()
+DA:29,0
+FN:30,System.String Pester.Run::get_Version()
+FNDA:0,System.String Pester.Run::get_Version()
+DA:31,0
+FN:31,System.String Pester.Run::get_PSVersion()
+FNDA:0,System.String Pester.Run::get_PSVersion()
+DA:32,0
+FN:33,System.Object Pester.Run::get_PSBoundParameters()
+FNDA:0,System.Object Pester.Run::get_PSBoundParameters()
+DA:34,0
+FN:34,System.Collections.Generic.List`1<System.Object> Pester.Run::get_Plugins()
+FNDA:0,System.Collections.Generic.List`1<System.Object> Pester.Run::get_Plugins()
+DA:35,0
+FN:35,System.Collections.Hashtable Pester.Run::get_PluginConfiguration()
+FNDA:0,System.Collections.Hashtable Pester.Run::get_PluginConfiguration()
+DA:36,0
+FN:36,System.Collections.Hashtable Pester.Run::get_PluginData()
+FNDA:0,System.Collections.Hashtable Pester.Run::get_PluginData()
+DA:37,0
+FN:37,PesterConfiguration Pester.Run::get_Configuration()
+FNDA:0,PesterConfiguration Pester.Run::get_Configuration()
+DA:38,0
+FN:39,System.TimeSpan Pester.Run::get_DiscoveryDuration()
+FNDA:0,System.TimeSpan Pester.Run::get_DiscoveryDuration()
+DA:40,0
+FN:40,System.TimeSpan Pester.Run::get_UserDuration()
+FNDA:0,System.TimeSpan Pester.Run::get_UserDuration()
+DA:41,0
+FN:41,System.TimeSpan Pester.Run::get_FrameworkDuration()
+FNDA:0,System.TimeSpan Pester.Run::get_FrameworkDuration()
+DA:42,0
+FN:43,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Failed()
+FNDA:0,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Failed()
+DA:44,0
+FN:44,System.Collections.Generic.List`1<Pester.Block> Pester.Run::get_FailedBlocks()
+FNDA:0,System.Collections.Generic.List`1<Pester.Block> Pester.Run::get_FailedBlocks()
+DA:45,0
+FN:45,System.Collections.Generic.List`1<Pester.Container> Pester.Run::get_FailedContainers()
+FNDA:0,System.Collections.Generic.List`1<Pester.Container> Pester.Run::get_FailedContainers()
+DA:46,0
+FN:47,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Passed()
+FNDA:0,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Passed()
+DA:48,0
+FN:48,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Skipped()
+FNDA:0,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Skipped()
+DA:49,0
+FN:49,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_NotRun()
+FNDA:0,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_NotRun()
+DA:50,0
+FN:50,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Tests()
+FNDA:0,System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Tests()
+DA:51,0
+FN:52,Pester.Coverage Pester.Run::get_Coverage()
+FNDA:0,Pester.Coverage Pester.Run::get_Coverage()
+DA:53,0
+FN:55,System.String Pester.Run::ToString()
+FNDA:0,System.String Pester.Run::ToString()
+DA:56,0
+DA:57,0
+DA:58,0
+LF:36
+LH:0
+BRF:0
+BRH:0
+FNF:32
+FNH:0
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\Test.cs
+FN:10,Pester.Test Pester.Test::Create()
+FNDA:0,Pester.Test Pester.Test::Create()
+DA:11,0
+DA:12,0
+DA:13,0
+FN:27,System.String Pester.Test::get_Name()
+FNDA:0,System.String Pester.Test::get_Name()
+DA:28,0
+FN:28,System.Collections.Generic.List`1<System.String> Pester.Test::get_Path()
+FNDA:0,System.Collections.Generic.List`1<System.String> Pester.Test::get_Path()
+DA:29,0
+FN:29,System.Object Pester.Test::get_Data()
+FNDA:0,System.Object Pester.Test::get_Data()
+DA:30,0
+FN:30,System.String Pester.Test::get_ExpandedName()
+FNDA:0,System.String Pester.Test::get_ExpandedName()
+DA:31,0
+FN:31,System.String Pester.Test::get_ExpandedPath()
+FNDA:0,System.String Pester.Test::get_ExpandedPath()
+DA:32,0
+FN:33,System.String Pester.Test::get_Result()
+FNDA:0,System.String Pester.Test::get_Result()
+DA:34,0
+FN:34,System.Collections.Generic.List`1<System.Object> Pester.Test::get_ErrorRecord()
+FNDA:1,System.Collections.Generic.List`1<System.Object> Pester.Test::get_ErrorRecord()
+DA:35,1
+FN:35,System.Object Pester.Test::get_StandardOutput()
+FNDA:0,System.Object Pester.Test::get_StandardOutput()
+DA:36,0
+FN:36,System.TimeSpan Pester.Test::get_Duration()
+FNDA:0,System.TimeSpan Pester.Test::get_Duration()
+DA:37,0
+FN:38,System.String Pester.Test::get_ItemType()
+FNDA:2,System.String Pester.Test::get_ItemType()
+DA:39,2
+FN:39,System.String Pester.Test::get_Id()
+FNDA:0,System.String Pester.Test::get_Id()
+DA:40,0
+FN:40,System.Management.Automation.ScriptBlock Pester.Test::get_ScriptBlock()
+FNDA:0,System.Management.Automation.ScriptBlock Pester.Test::get_ScriptBlock()
+DA:41,0
+FN:41,System.Collections.Generic.List`1<System.String> Pester.Test::get_Tag()
+FNDA:0,System.Collections.Generic.List`1<System.String> Pester.Test::get_Tag()
+DA:42,0
+FN:42,System.Boolean Pester.Test::get_Focus()
+FNDA:0,System.Boolean Pester.Test::get_Focus()
+DA:43,0
+FN:43,System.Boolean Pester.Test::get_Skip()
+FNDA:0,System.Boolean Pester.Test::get_Skip()
+DA:44,0
+FN:46,System.Object Pester.Test::get_Block()
+FNDA:0,System.Object Pester.Test::get_Block()
+DA:47,0
+FN:48,System.Boolean Pester.Test::get_First()
+FNDA:0,System.Boolean Pester.Test::get_First()
+DA:49,0
+FN:49,System.Boolean Pester.Test::get_Last()
+FNDA:0,System.Boolean Pester.Test::get_Last()
+DA:50,0
+FN:50,System.Boolean Pester.Test::get_Include()
+FNDA:0,System.Boolean Pester.Test::get_Include()
+DA:51,0
+FN:51,System.Boolean Pester.Test::get_Exclude()
+FNDA:0,System.Boolean Pester.Test::get_Exclude()
+DA:52,0
+FN:52,System.Boolean Pester.Test::get_Explicit()
+FNDA:0,System.Boolean Pester.Test::get_Explicit()
+DA:53,0
+FN:53,System.Boolean Pester.Test::get_ShouldRun()
+FNDA:0,System.Boolean Pester.Test::get_ShouldRun()
+DA:54,0
+FN:55,System.Int32 Pester.Test::get_StartLine()
+FNDA:0,System.Int32 Pester.Test::get_StartLine()
+DA:56,0
+FN:57,System.Boolean Pester.Test::get_Executed()
+FNDA:0,System.Boolean Pester.Test::get_Executed()
+DA:58,0
+FN:58,System.Nullable`1<System.DateTime> Pester.Test::get_ExecutedAt()
+FNDA:0,System.Nullable`1<System.DateTime> Pester.Test::get_ExecutedAt()
+DA:59,0
+FN:59,System.Boolean Pester.Test::get_Passed()
+FNDA:0,System.Boolean Pester.Test::get_Passed()
+DA:60,0
+FN:60,System.Boolean Pester.Test::get_Skipped()
+FNDA:0,System.Boolean Pester.Test::get_Skipped()
+DA:61,0
+FN:62,System.TimeSpan Pester.Test::get_UserDuration()
+FNDA:0,System.TimeSpan Pester.Test::get_UserDuration()
+DA:63,0
+FN:63,System.TimeSpan Pester.Test::get_FrameworkDuration()
+FNDA:0,System.TimeSpan Pester.Test::get_FrameworkDuration()
+DA:64,0
+FN:64,System.Collections.Hashtable Pester.Test::get_PluginData()
+FNDA:1,System.Collections.Hashtable Pester.Test::get_PluginData()
+DA:65,1
+FN:65,System.Collections.Hashtable Pester.Test::get_FrameworkData()
+FNDA:2,System.Collections.Hashtable Pester.Test::get_FrameworkData()
+DA:66,2
+FN:67,System.String Pester.Test::ToString()
+FNDA:0,System.String Pester.Test::ToString()
+DA:68,0
+FN:14,System.Void Pester.Test::.ctor()
+FNDA:1,System.Void Pester.Test::.ctor()
+DA:15,1
+DA:16,1
+DA:17,1
+DA:18,1
+DA:19,1
+DA:21,1
+DA:22,1
+DA:23,1
+DA:24,1
+DA:25,1
+DA:26,1
+LF:46
+LH:15
+BRF:0
+BRH:0
+FNF:34
+FNH:5
+end_of_record
+SF:d:\projects\powershell\Pester\src\csharp\Pester\ToStringConverter.cs
+FN:8,System.String Pester.ToStringConverter::ResultToString(System.String)
+FNDA:1,System.String Pester.ToStringConverter::ResultToString(System.String)
+DA:9,1
+DA:10,1
+DA:12,0
+DA:14,0
+DA:16,0
+DA:18,0
+DA:19,1
+DA:21,1
+BRDA:10,6,0,1
+BRDA:10,19,0,1
+BRDA:10,32,0,1
+BRDA:10,45,0,1
+BRDA:10,19,1,0
+BRDA:10,32,1,0
+BRDA:10,45,1,0
+BRDA:10,58,1,0
+BRDA:10,6,1,1
+BRDA:10,58,0,1
+FN:23,System.String Pester.ToStringConverter::ContainerToString(Pester.Container)
+FNDA:0,System.String Pester.ToStringConverter::ContainerToString(Pester.Container)
+DA:24,0
+DA:26,0
+DA:29,0
+DA:30,0
+DA:32,0
+DA:33,0
+DA:34,0
+DA:35,0
+DA:36,0
+DA:37,0
+DA:38,0
+DA:39,0
+DA:41,0
+DA:42,0
+DA:45,0
+DA:46,0
+BRDA:26,11,0,0
+BRDA:26,27,0,0
+BRDA:26,27,1,0
+BRDA:26,40,1,0
+BRDA:33,84,0,0
+BRDA:34,105,0,0
+BRDA:34,105,1,0
+BRDA:26,11,1,0
+BRDA:26,40,0,0
+BRDA:33,84,1,0
+FN:48,System.String Pester.ToStringConverter::TestToString(Pester.Test)
+FNDA:0,System.String Pester.ToStringConverter::TestToString(Pester.Test)
+DA:49,0
+DA:50,0
+DA:51,0
+BRDA:50,24,0,0
+BRDA:50,24,1,0
+FN:53,System.String Pester.ToStringConverter::BlockToString(Pester.Block)
+FNDA:1,System.String Pester.ToStringConverter::BlockToString(Pester.Block)
+DA:54,1
+DA:55,1
+DA:56,1
+FN:58,System.String Pester.ToStringConverter::RunToString(Pester.Run)
+FNDA:0,System.String Pester.ToStringConverter::RunToString(Pester.Run)
+DA:59,0
+DA:60,0
+DA:61,0
+LF:33
+LH:7
+BRF:22
+BRH:6
+FNF:5
+FNH:2
+end_of_record

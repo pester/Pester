@@ -1075,7 +1075,15 @@ function Test-ParameterFilter {
         & $private:______mock_parameters.Set_StrictMode -Off
 
         foreach ($private:______current in $private:______mock_parameters.Context.GetEnumerator()) {
+            if ($private:______mock_parameters.WriteDebugMessages) {
+                $value = $private:______mock_parameters.SessionState.PSVariable.Get($private:______current.Key)
+            }
             $private:______mock_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
+            if ($private:______mock_parameters.WriteDebugMessages) {
+                if ($null -ne $value) {
+                    & $private:______mock_parameters.Write_DebugMessage -Message "Parameter $($private:______current.Key) defined variable with value '$($private:______current.Value)', but the variable already existed in the current scope with value '$($value.Value)', are your test variables conflicting with parameter names?"
+                }
+            }
         }
 
         #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
@@ -1101,23 +1109,28 @@ function Test-ParameterFilter {
         Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $wrapper
     }
     $parameters = @{
-        ScriptBlock     = $ScriptBlock
-        BoundParameters = $BoundParameters
-        Arguments       = $Arguments
-        SessionState    = $SessionState
-        Context         = $context
-        Set_StrictMode  = $SafeCommands['Set-StrictMode']
+        ScriptBlock        = $ScriptBlock
+        BoundParameters    = $BoundParameters
+        Arguments          = $Arguments
+        SessionState       = $SessionState
+        Context            = $context
+        Set_StrictMode     = $SafeCommands['Set-StrictMode']
+        WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+        Write_DebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            { param ($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message }
+        }
+        else { $null }
     }
 
     $result = & $wrapper $parameters
     if ($result) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
+            Write-PesterDebugMessage -Scope Mock -Message "Mock filter returned value '$result', which is truthy. Filter passed."
         }
     }
     else {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "Mock filter did not pass."
+            Write-PesterDebugMessage -Scope Mock -Message "Mock filter returned value '$result', which is falsy. Filter did not pass."
         }
     }
     $result

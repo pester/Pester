@@ -349,8 +349,8 @@ i -PassThru:$PassThru {
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.StandardOutput | Verify-Null # the "won't reach this" should not run because the mock filter will throw before it
             $err = $t.ErrorRecord[0] -split "`n"
-            $err[-2] | Verify-Equal "Expected: 'a'"
-            $err[-1] | Verify-Equal "But was:  'b'"
+            $err[-3] | Verify-Equal "Expected: 'a'"
+            $err[-2] | Verify-Equal "But was:  'b'"
         }
     }
 

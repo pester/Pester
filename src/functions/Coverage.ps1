@@ -5,6 +5,11 @@ function Enter-CoverageAnalysis {
         [ScriptBlock] $Logger
     )
 
+    if ($null -ne $logger) {
+        & $logger "Figuring out breakpoint positions."
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $coverageInfo = foreach ($object in $CodeCoverage) {
             Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
         }
@@ -17,13 +22,52 @@ function Enter-CoverageAnalysis {
         return @()
     }
 
-    @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
+
+    $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
+    if ($null -ne $logger) {
+        & $logger "Figuring out $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+    }
+    $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+        if ($null -ne $logger) {
+            & $logger "Using single hit breakpoints."
+        }
+
+        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+    }
+    else {
+        if ($null -ne $logger) {
+            & $logger "Using normal breakpoints."
+        }
+
+        {} # empty ScriptBlock
+    }
+
+    foreach ($breakpoint in $breakpoints) {
+        $params = $breakpoint.Breakpointlocation
+        $params.Action = $action
+
+        $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+    }
+
+    $sw.Stop()
+
+    if ($null -ne $logger) {
+        & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+    }
+
+    return $breakpoints
 }
 
 function Exit-CoverageAnalysis {
     param ([object] $CommandCoverage)
 
     & $SafeCommands['Set-StrictMode'] -Off
+
+    if ($null -ne $logger) {
+        & $logger "Removing breakpoints."
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne.
     # BUT that is correct in this case. We are filtering the list of breakpoints
@@ -33,6 +77,10 @@ function Exit-CoverageAnalysis {
     $breakpoints = @($CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0) {
         & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
+    }
+
+    if ($null -ne $logger) {
+        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
     }
 }
 
@@ -303,25 +351,32 @@ function New-CoverageBreakpoint {
         return
     }
 
-    $params = @{
+    $params =  @{
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
-        Action = { }
+        Action = if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) { {} } else { $null }
     }
 
-    $breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+
+    if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
+        $breakpoint = & $SafeCommands['Set-PSBreakPoint'] @params
+    }
+    else {
+        $breakpoint = $null
+    }
 
     [pscustomobject] @{
-        File        = $Command.Extent.File
-        Class       = Get-ParentClassName -Ast $Command
-        Function    = Get-ParentFunctionName -Ast $Command
-        StartLine   = $Command.Extent.StartLineNumber
-        EndLine     = $Command.Extent.EndLineNumber
-        StartColumn = $Command.Extent.StartColumnNumber
-        EndColumn   = $Command.Extent.EndColumnNumber
-        Command     = Get-CoverageCommandText -Ast $Command
-        Breakpoint  = $breakpoint
+        File                = $Command.Extent.File
+        Class               = Get-ParentClassName -Ast $Command
+        Function            = Get-ParentFunctionName -Ast $Command
+        StartLine           = $Command.Extent.StartLineNumber
+        EndLine             = $Command.Extent.EndLineNumber
+        StartColumn         = $Command.Extent.StartColumnNumber
+        EndColumn           = $Command.Extent.EndColumnNumber
+        Command             = Get-CoverageCommandText -Ast $Command
+        Breakpoint          = $breakpoint
+        BreakpointLocation  = $params
     }
 }
 
@@ -621,6 +676,11 @@ function Get-CoverageReport {
 function Get-CommonParentPath {
     param ([string[]] $Path)
 
+    if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
+        # for coverage gutters the root path is relative to the coverage.xml
+        return (& $SafeCommands['Split-Path'] -Path $PesterPreference.CodeCoverage.OutputPath.Value | Normalize-Path )
+    }
+
     $pathsToTest = @(
         $Path |
             Normalize-Path |
@@ -685,8 +745,11 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
-        [long] $TotalMilliseconds
+        [long] $TotalMilliseconds,
+        [string] $Format
     )
+
+    $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
@@ -808,11 +871,24 @@ function Get-JaCoCoReportXml {
     foreach ($package in $packageList) {
         $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
 
-        if ($null -eq $packageRelativePath) {
-            $packageName = $commonParentLeaf
+        # e.g. "." for gutters, and "package" for non gutters in root
+        # and "sub-dir" for gutters, and "package/sub-dir" for non-gutters
+        $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
+            if ($isGutters) {
+                "."
+            }
+            else {
+                $commonParentLeaf
+            }
         }
         else {
-            $packageName = "{0}/{1}" -f $commonParentLeaf, $($packageRelativePath.Replace("\", "/"))
+            $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
+            if ($isGutters) {
+                $packageRelativePathFormatted
+            }
+            else {
+                "$commonParentLeaf/$packageRelativePathFormatted"
+            }
         }
 
         $packageElement = Add-XmlElement $reportElement "package" @{
@@ -822,11 +898,21 @@ function Get-JaCoCoReportXml {
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
+            $classElementName = if ($isGutters) {
+                    $classElementRelativePath
+                }
+                else {
+                    "$commonParentLeaf/$classElementRelativePath"
+                }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = $classElementRelativePath
+                    sourcefilename = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($function in $class.Methods.Keys) {
@@ -851,7 +937,12 @@ function Get-JaCoCoReportXml {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                    name = $classElementRelativePath
+                    name = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($line in $class.Lines.Keys) {

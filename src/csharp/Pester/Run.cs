@@ -50,7 +50,7 @@ namespace Pester
         public List<Test> NotRun { get; set; } = new List<Test>();
         public List<Test> Tests { get; set; } = new List<Test>();
 
-        public Coverage Coverage { get; set; }
+        public CodeCoverage CodeCoverage { get; set; }
 
         public override string ToString()
         {

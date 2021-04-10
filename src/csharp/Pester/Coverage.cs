@@ -1,15 +1,17 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Pester
 {
-    public class Coverage
+    public class CodeCoverage
+
     {
-        public static Coverage Create()
+        public static CodeCoverage Create()
         {
-            return new Coverage();
+            return new CodeCoverage();
         }
 
         public decimal CoveragePercent { get; set; }
+        public decimal CoveragePercentTarget { get; set; }
 
         public string CoverageReport { get; set; }
 
@@ -24,7 +26,7 @@ namespace Pester
 
         public override string ToString()
         {
-            return CoveragePercent.ToString("N2 %");
+            return string.Format("{0:0.##}% / {1:0.##}%", CoveragePercent, CoveragePercentTarget);
         }
     }
 }

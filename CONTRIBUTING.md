@@ -27,6 +27,11 @@ run the following from the root of the repository:
 .\build.ps1
 ```
 
+> ✏ You can also build the module into a single file: `.\build.ps1 -Inline`
+> This is how the real build is done, but it is hard to debug and change the code because it runs
+> from the Pester.psm1 but you need to change it in it's respective file. Use this only when
+> necessary.
+
 To use the built module you can run the below from the root of the
 repository.
 
@@ -60,9 +65,9 @@ Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs 
 ## Running Tests
 
 Pester uses two types of tests:
- 
+
 1. P tests (`*.ts.ps1`) written in the P module. These are used for unit testing the runtime itself and running acceptance tests for Pester
-2. Pester tests (`*.tests.ps1`) for all functions in the module. 
+2. Pester tests (`*.tests.ps1`) for all functions in the module.
 
 In Powershell, use `test.ps1`. The scripts runs a build and imports required helper-functions like `InPesterModuleScope` before starting.
 

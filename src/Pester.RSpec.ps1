@@ -104,6 +104,7 @@ function Add-RSpecTestObjectProperties {
     # adds properties that are specific to RSpec to the result object
     # this includes figuring out the result
     # formatting the failure message and stacktrace
+    $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
     $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
@@ -111,7 +112,10 @@ function Add-RSpecTestObjectProperties {
     elseif ($TestObject.Passed) {
         "Passed"
     }
-    elseif ($TestObject.ShouldRun -and (-not $TestObject.Executed -or -not $TestObject.Passed)) {
+    elseif (-not $discoveryOnly -and $TestObject.ShouldRun -and (-not $TestObject.Executed -or -not $TestObject.Passed)) {
+        "Failed"
+    }
+    elseif ($discoveryOnly -and 0 -lt $TestObject.ErrorRecord.Count) {
         "Failed"
     }
     else {
@@ -134,6 +138,7 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
 }
 
 function PostProcess-RspecTestRun ($TestRun) {
+    $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
     Fold-Run $Run -OnTest {
         param($t)
@@ -173,7 +178,10 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+        elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+            "Failed"
+        }
+        elseif ($discoveryOnly -and 0 -lt $b.ErrorRecord.Count) {
             "Failed"
         }
         else {
@@ -200,7 +208,10 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+        elseif (0 -lt $b.ErrorRecord.Count) {
+            "Failed"
+        }
+        elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {

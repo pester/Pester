@@ -1426,4 +1426,111 @@ i -PassThru:$PassThru {
             $test.ErrorRecord[0] -like "*Legacy Should syntax (without dashes) is not supported in Pester 5.*"
         }
     }
+
+    b "Running Pester in Pester" {
+        t "Invoke-Pester can run in Invoke-Pester" {
+            $container = New-PesterContainer -ScriptBlock {
+                Describe "Run Pester in Pester" {
+                    It "Runs the test" {
+                        $c = New-PesterContainer -ScriptBlock {
+                            Describe "d" {
+                                It "i" {
+                                    1 | Should -Be 1
+                                }
+                            }
+                        }
+
+                        $r = Invoke-Pester -Container $c -PassThru
+                        $r.TotalCount | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container $container -PassThru
+            $result.TotalCount | Verify-Equal 1
+        }
+    }
+
+    b "Converting Pester 5 to Pester4 result" {
+        t "It uses version 4.99.0" {
+            # https://github.com/pester/Pester/issues/1786
+            # .0 because I want some spare numbers if needed in the future
+            $container = New-PesterContainer -ScriptBlock {
+                Describe "d" {
+                    It "t" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container $container -PassThru | ConvertTo-Pester4Result
+            $result.Version | Verify-Equal "4.99.0"
+        }
+    }
+
+    b "Script variables do not leak in between containers" {
+        t "Script scoped variables do not leak to next scriptblock" {
+
+            $sb1 = {
+                $script:v1 = "v1"
+                Describe "d1" {
+                    BeforeAll {
+                        $script:v2 = "v2"
+                    }
+                    It "i1" {
+                        Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                        Get-Variable -Name "v2" -Scope Script -ValueOnly -ErrorAction Ignore | Should -Be "v2"
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "d1" {
+                    It "i1" {
+                        Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                        Get-Variable -Name "v2" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb1, $sb2) -PassThru
+            $result.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $result.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Script scoped variables defined in discovery do not leak to next scriptblock" {
+
+            $sb1 = {
+                $script:v1 = "v1"
+                Describe "d1" {
+                    BeforeAll {
+                        $script:v2 = "v2"
+                    }
+                    It "i1" {
+                        Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore | Should -BeNullOrEmpty
+                        Get-Variable -Name "v2" -Scope Script -ValueOnly -ErrorAction Ignore | Should -Be "v2"
+                    }
+                }
+            }
+
+            $sb2 = {
+                if ($null -ne (Get-Variable -Name "v1" -Scope Script -ValueOnly -ErrorAction Ignore)) {
+                    throw "v1 leaked into discovery"
+                }
+                Describe "d1" {
+                    It "i1" {
+                    }
+                }
+            }
+
+
+            $result = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb1, $sb2) -PassThru
+            if ($null -eq $result) {
+                throw "Run failed, variable leaked into discovery."
+            }
+            $result.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $result.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+    }
 }
