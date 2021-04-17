@@ -1535,7 +1535,7 @@ i -PassThru:$PassThru {
     }
 
     b "Pester can throw on failed run" {
-        dt "Exception is thrown" {
+        t "Exception is thrown" {
 
             $sb1 = {
                 Describe "d1" {
