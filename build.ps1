@@ -84,7 +84,7 @@ $script = @(
     "$PSScriptRoot/src/TypeClass.ps1"
     "$PSScriptRoot/src/Format.ps1"
     "$PSScriptRoot/src/Pester.RSpec.ps1"
-    "$PSScriptRoot/src/Pester.ps1"
+    "$PSScriptRoot/src/Main.ps1"
 
     "$PSScriptRoot/src/functions/assertions/*"
     "$PSScriptRoot/src/functions/*"
@@ -102,8 +102,6 @@ if (-not $inline) {
 }
 
 foreach ($f in $files) {
-    $lineNumber = 1
-    $hereString = $false
     $lines = Get-Content $f
 
     if ($inline) {
@@ -153,7 +151,7 @@ $content = @(
     ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/Script.ps1", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
     ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
 )
 
