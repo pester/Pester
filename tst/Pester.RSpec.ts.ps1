@@ -1533,4 +1533,59 @@ i -PassThru:$PassThru {
         }
 
     }
+
+    b "Pester can throw on failed run" {
+        t "Exception is thrown" {
+
+            $sb1 = {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should -Be 0
+                    }
+
+                    It "i2" {
+                        1 | Should -Be 0
+                    }
+                }
+
+                Describe "d2" {
+                    BeforeAll {
+                        throw "fail block in Run"
+                    }
+
+                    It "i3" {
+                        1 | Should -Be 1
+                    }
+                }
+
+                Describe "d3" {
+                    throw "fail block in Discovery"
+                }
+            }
+
+            $sb2 = {
+                throw "fail container"
+            }
+
+
+            $result = try {
+                $c = @{
+                    Run = @{
+                        ScriptBlock = $sb1, $sb2
+                        PassThru = $true
+                        Throw = $true
+                    }
+                }
+
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $err = $_
+            }
+
+            # result should be passed before throwing
+            $result | Verify-NotNull
+            $err | Verify-Equal "Pester run failed, because 3 tests failed, 1 block failed and 2 containers failed"
+        }
+    }
 }
