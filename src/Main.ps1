@@ -1204,28 +1204,39 @@ function Invoke-Pester {
                 $run
             }
 
-            # exit with exit code if we fail and even if we succeed, othwerise we could inherit
-            # exit code of some other app end exit with it's exit code instead with ours
-            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
-            if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
-                # exit with the number of failed tests when there are any
-                # and the exit preference is set. This will fail the run in CI
-                # when any tests failed.
-                exit $failedCount
-            }
-            else {
-                # just set exit code but don't fail when the option is not set
-                # or when there are no failed tests, to ensure that we can run
-                # multiple successful runs of Invoke-Pester in a row.
-                $global:LASTEXITCODE = $failedCount
-            }
         }
         catch {
-            Write-ErrorToScreen $_
+            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }
         }
+
+        # exit with exit code if we fail and even if we succeed, othwerise we could inherit
+        # exit code of some other app end exit with it's exit code instead with ours
+        $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+        if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
+            $messages = combineNonNull @(
+                $(if (0 -lt $run.FailedCount) { "$($run.FailedCount) test$(if (1 -lt $run.FailedCount) { "s" }) failed" })
+                $(if (0 -lt $run.FailedBlocksCount) { "$($run.FailedBlocksCount) block$(if (1 -lt $run.FailedBlocksCount) { "s" }) failed" })
+                $(if (0 -lt $run.FailedContainersCount) { "$($run.FailedContainersCount) container$(if (1 -lt $run.FailedContainersCount) { "s" }) failed" })
+            )
+            throw "Pester run failed, because $(Join-And $messages)"
+        }
+
+        if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
+            # exit with the number of failed tests when there are any
+            # and the exit preference is set. This will fail the run in CI
+            # when any tests failed.
+            exit $failedCount
+        }
+        else {
+            # just set exit code but don't fail when the option is not set
+            # or when there are no failed tests, to ensure that we can run
+            # multiple successful runs of Invoke-Pester in a row.
+            $global:LASTEXITCODE = $failedCount
+        }
+
     }
 }
 

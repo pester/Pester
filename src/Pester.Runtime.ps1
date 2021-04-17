@@ -410,7 +410,7 @@ function Invoke-Block ($previousBlock) {
                     $block.OwnPassed = $result.Success
                     $block.StandardOutput = $result.StandardOutput
 
-                    $block.ErrorRecord = $result.ErrorRecord
+                    $block.ErrorRecord.AddRange($result.ErrorRecord)
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
                     }
@@ -673,7 +673,7 @@ function Invoke-TestItem {
                 }
 
                 $Test.StandardOutput = $result.StandardOutput
-                $Test.ErrorRecord = $result.ErrorRecord
+                $Test.ErrorRecord.AddRange($result.ErrorRecord)
             }
         }
 
