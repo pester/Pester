@@ -3,8 +3,20 @@ $minimumVersionRequired = $ExecutionContext.SessionState.Module.PrivateData.Requ
 
 # Check if assembly loaded
 $configurationType = 'PesterConfiguration' -as [type]
-if ($null -ne $configurationType -and $configurationType.Assembly.GetName().Version -lt $minimumVersionRequired) {
-    throw [System.NotSupportedException]'An incompatible version of the Pester.dll assembly is already loaded. A new PowerShell session is required.'
+if ($null -ne $configurationType) {
+    $loadedVersion = $configurationType.Assembly.GetName().Version
+    $m = $ExecutionContext.SessionState.Module
+    $pesterVersion = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
+    {
+        "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
+    }
+    else {
+        $m.Version
+    }
+
+    if ($loadedVersion -lt $minimumVersionRequired) {
+        throw [System.InvalidOperationException]"An incompatible version of the Pester.dll assembly is already loaded. The loaded dll version is $loadedVersion, but at least version $minimumVersionRequired is required Pester $pesterVersion to work correctly. This usually happens if you load two versions of Pester into the same PowerShell session, for example after Pester update. To fix this restart your powershell session and load only one version of Pester. It also happens in VSCode if you are developing Pester and load it from non standard location. To solve this in VSCode close all *.Tests.ps1 files, to prevent automatic loading of Pester from PSModulePath, and then restart your session."
+    }
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 6) {
