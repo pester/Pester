@@ -336,7 +336,7 @@ function New-PesterConfiguration {
     )
 
     if ($PSBoundParameters.ContainsKey('Hashtable')) {
-        [PesterConfiguration]::new($Hashtable)
+        [PesterConfiguration]$Hashtable
     } else {
         [PesterConfiguration]::Default
     }
