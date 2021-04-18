@@ -245,30 +245,27 @@ function New-PesterConfiguration {
 
     Without parameters, the function generates a configuration-object with default
     options. The returned [PesterConfiguration] object can be modified to suit your
-    requirements. You may also use the -Configuration parameter to provide a pre-defined
-    dictionary of custom options to override certain default values.
+    requirements.
 
-    .PARAMETER Default
-    Create a new [PesterConfiguration] object with default values. This switch is
-    optional and is an alternative to calling the function without parameters or
-    using [PesterConfiguration]::Default directly.
-
-    .PARAMETER Configuration
+    .PARAMETER Hashtable
     Override the default values for the options defined in the provided dictionary/hashtable.
     Inspect a default [PesterConfiguration] object to learn about the schema and
     available options.
 
     .EXAMPLE
-    $config = New-PesterConfiguration -Default
+    ```powershell
+    $config = New-PesterConfiguration
     $config.Run.PassThru = $true
 
     Invoke-Pester -Configuration $c
+    ```
 
     Creates a default [PesterConfiguration] object and changes the Run.PassThru option
     to return the result object after the test run. The configuration object is
     provided to Invoke-Pester to alter the default behaviour.
 
     .EXAMPLE
+    ```powershell
     $MyOptions = @{
         Run = @{ # <- Run configuration.
             PassThru = $true # <- Return result object after finishing the test run.
@@ -278,30 +275,36 @@ function New-PesterConfiguration {
         }
     }
 
-    $config = New-PesterConfiguration -Configuration $MyOptions
+    $config = New-PesterConfiguration -Hashtable $MyOptions
 
     Invoke-Pester -Configuration $config
+    ```
 
     A hashtable is created with custom options and passed to the New-PesterConfiguration to merge
-    with the default configuration. The options will override the default values.
+    with the default configuration. The options in the hashtable will override the default values.
     The configuration object is then provided to Invoke-Pester to begin the test run using
     the new configuration.
 
     .LINK
-    Invoke-Pester
-    #>
-    [CmdletBinding(DefaultParameterSetName="Default")]
-    param(
-        [Parameter(ParameterSetName = "Default")]
-        [switch] $Default,
+    https://pester.dev/docs/commands/New-PesterConfiguration
 
-        [Parameter(Mandatory, ParameterSetName = "Custom")]
-        [System.Collections.IDictionary] $Configuration
+    .LINK
+    https://pester.dev/docs/usage/Configuration
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+
+
+    #>
+    [CmdletBinding()]
+    param(
+        [System.Collections.IDictionary] $Hashtable
     )
 
-    switch ($PSCmdlet.ParameterSetName) {
-        "Custom" { [PesterConfiguration]::new($Configuration) }
-        Default {  [PesterConfiguration]::Default }
+    if ($PSBoundParameters.ContainsKey('Hashtable')) {
+        [PesterConfiguration]::new($Hashtable)
+    } else {
+        [PesterConfiguration]::Default
     }
 }
 
