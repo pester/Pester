@@ -1215,6 +1215,11 @@ function Invoke-Pester {
         # exit with exit code if we fail and even if we succeed, othwerise we could inherit
         # exit code of some other app end exit with it's exit code instead with ours
         $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+        # alwaays set exit code. This both to:
+        # - prevent previous commands failing with non-zero exit code from failing the run
+        # - setting the exit code when there were some failed tests, blocks, or containers
+        $global:LASTEXITCODE = $failedCount
+
         if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
             $messages = combineNonNull @(
                 $(if (0 -lt $run.FailedCount) { "$($run.FailedCount) test$(if (1 -lt $run.FailedCount) { "s" }) failed" })
@@ -1230,13 +1235,6 @@ function Invoke-Pester {
             # when any tests failed.
             exit $failedCount
         }
-        else {
-            # just set exit code but don't fail when the option is not set
-            # or when there are no failed tests, to ensure that we can run
-            # multiple successful runs of Invoke-Pester in a row.
-            $global:LASTEXITCODE = $failedCount
-        }
-
     }
 }
 
