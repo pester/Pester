@@ -299,12 +299,15 @@ function Invoke-Pester {
 
     .PARAMETER CI
     (Introduced v5)
-    Enable Code Coverage, Test Results and Exit after Run
+    Enable Test Results and Exit after Run.
 
     Replace with ConfigurationProperty
-        CodeCoverage.Enabled = $true
         TestResult.Enabled = $true
         Run.Exit = $true
+
+    Since 5.2.0, this option no longer enables CodeCoverage.
+    To also enable CodeCoverage use this configuration option:
+        CodeCoverage.Enabled = $true
 
     .PARAMETER CodeCoverage
     (Deprecated v4)
@@ -752,7 +755,6 @@ function Invoke-Pester {
                 if ($PSBoundParameters.ContainsKey('CI')) {
                     if ($CI) {
                         $Configuration.Run.Exit = $true
-                        $Configuration.CodeCoverage.Enabled = $true
                         $Configuration.TestResult.Enabled = $true
                     }
 
