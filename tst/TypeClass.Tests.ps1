@@ -10,7 +10,7 @@ function New-Dictionary ([hashtable]$Hashtable) {
 }
 
 BeforeAll {
-    Import-Module $PSScriptRoot\../src/TypeClass.psm1 -DisableNameChecking
+    . "$PSScriptRoot\../src/TypeClass.ps1"
 }
 
 Describe "Is-Value" {

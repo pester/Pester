@@ -2,16 +2,16 @@
 $SafeCommands = & { . "$PSScriptRoot/../src/functions/Pester.SafeCommands.ps1"; $Script:SafeCommands }
 # Workaround as RuleSuppressionID-based suppression is bugged. returns error.
 # Should be replaced with the following line when PSScriptAnalyzer is fixed. See Invoke-Pester
-# [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Remove-Variable')]
+# [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable')]
 $IgnoreUnsafeCommands = @('Remove-Variable')
-function Measure-SafeComands {
+function Measure-SafeCommands {
     <#
     .SYNOPSIS
     Should use $SafeCommand-variant of external function when available.
     .DESCRIPTION
-    Pester module defines a $SafeCommands dictionary for external commands to avoid hijacking. To fix a violation of this rule, update the call to use SafeCoomands variant, ex. `& $SafeCommands['CommandName'] -Param1 Value1`.
+    Pester module defines a $SafeCommands dictionary for external commands to avoid hijacking. To fix a violation of this rule, update the call to use SafeCommands variant, ex. `& $SafeCommands['CommandName'] -Param1 Value1`.
     .EXAMPLE
-    Measure-SafeComands -CommandAst $CommandAst
+    Measure-SafeCommands -CommandAst $CommandAst
     .INPUTS
     [System.Management.Automation.Language.CommandAst]
     .OUTPUTS
@@ -19,6 +19,9 @@ function Measure-SafeComands {
     .NOTES
     None
     #>
+    # TODO This warning is currently thrown for SafeCommand
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseOutputTypeCorrectly", "")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("Pester.BuildAnalyzerRules\Measure-SafeCommands", "")]
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param

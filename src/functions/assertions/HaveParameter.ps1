@@ -30,24 +30,6 @@ function Should-HaveParameter (
         throw "The ParameterName can't be empty"
     }
 
-    #region HelperFunctions
-    function Join-And ($Items, $Threshold = 2) {
-
-        if ($null -eq $items -or $items.count -lt $Threshold) {
-            $items -join ', '
-        }
-        else {
-            $c = $items.count
-            ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
-        }
-    }
-
-    function Add-SpaceToNonEmptyString ([string]$Value) {
-        if ($Value) {
-            " $Value"
-        }
-    }
-
     function Get-ParameterInfo {
         param(
             [Parameter( Mandatory = $true )]

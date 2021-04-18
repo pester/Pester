@@ -120,7 +120,7 @@ more easily.
 
 .PARAMETER RemoveParameterValidation
 Optional list of parameter names in the original command
-that should not have any validation rules applied. This relaxes the 
+that should not have any validation rules applied. This relaxes the
 validation requirements, and allows functions that are strict about their
 parameter validation to be mocked more easily.
 
@@ -140,9 +140,11 @@ Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $V
 When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
+```powershell
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
 Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
+```
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
@@ -526,7 +528,7 @@ function Get-AssertMockTable {
         # cases
         $i = $currentBlock
         $level = $scope - 1
-        while ($level -gt 0 -and ($null -ne $i.Parent)) {
+        while ($level -ge 0 -and ($null -ne $i.Parent)) {
             $level--
             $i = $i.Parent
         }
@@ -619,6 +621,9 @@ Checks if all verifiable Mocks has been called at least once.
 
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -InvokeVerifiable INSTEAD.
+
+.LINK
+https://pester.dev/docs/commands/Assert-VerifiableMock
 #>
 
     # Should does not accept a session state, so invoking it directly would
@@ -681,6 +686,9 @@ and throws an exception if it has not.
 
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -Invoke INSTEAD.
+
+.LINK
+https://pester.dev/docs/commands/Assert-MockCalled
 #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
