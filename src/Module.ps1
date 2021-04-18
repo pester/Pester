@@ -36,6 +36,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 
     # config
     'New-PesterContainer'
+    'New-PesterConfiguration'
 
     # export
     'Export-NunitReport'

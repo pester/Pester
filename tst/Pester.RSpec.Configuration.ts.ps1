@@ -425,4 +425,29 @@ i -PassThru:$PassThru {
             $r.Configuration.Run.ScriptBlock.Value | Verify-Equal $sb
         }
     }
+
+    b "New-PesterConfiguration" {
+        t "Creates default configuration when no parameters are specified" {
+            $config = New-PesterConfiguration
+
+            $config | Verify-Type ([PesterConfiguration])
+            $config.Run.Path.Value | Verify-Equal $config.Run.Path.Default
+            $config.Run.PassThru.Value | Verify-Equal $config.Run.PassThru.Default
+        }
+
+        t "Merges configuration when hashtable is provided" {
+            $MyOptions = @{
+                Run = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+    }
 }

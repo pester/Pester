@@ -269,10 +269,77 @@ function Get-RSpecObjectDecoratorPlugin () {
 }
 
 function New-PesterConfiguration {
-    [CmdletBinding()]
-    param()
+    <#
+    .SYNOPSIS
+    Creates a new [PesterConfiguration] object for advanced configuration of Invoke-Pester.
 
-    [PesterConfiguration]@{}
+    .DESCRIPTION
+    The New-PesterConfiguration function creates a new [PesterConfiguration] object
+    to enable advanced configurations for runnings tests using Invoke-Pester.
+
+    Without parameters, the function generates a configuration-object with default
+    options. The returned [PesterConfiguration] object can be modified to suit your
+    requirements.
+
+    .PARAMETER Hashtable
+    Override the default values for the options defined in the provided dictionary/hashtable.
+    Inspect a default [PesterConfiguration] object to learn about the schema and
+    available options.
+
+    .EXAMPLE
+    ```powershell
+    $config = New-PesterConfiguration
+    $config.Run.PassThru = $true
+
+    Invoke-Pester -Configuration $c
+    ```
+
+    Creates a default [PesterConfiguration] object and changes the Run.PassThru option
+    to return the result object after the test run. The configuration object is
+    provided to Invoke-Pester to alter the default behaviour.
+
+    .EXAMPLE
+    ```powershell
+    $MyOptions = @{
+        Run = @{ # <- Run configuration.
+            PassThru = $true # <- Return result object after finishing the test run.
+        }
+        Filter = @{ # <- Filter configuration
+            Tag = "Core","Integration" # <- Run only Describe/Context/It-blocks with 'Core' or 'Integration' tags
+        }
+    }
+
+    $config = New-PesterConfiguration -Hashtable $MyOptions
+
+    Invoke-Pester -Configuration $config
+    ```
+
+    A hashtable is created with custom options and passed to the New-PesterConfiguration to merge
+    with the default configuration. The options in the hashtable will override the default values.
+    The configuration object is then provided to Invoke-Pester to begin the test run using
+    the new configuration.
+
+    .LINK
+    https://pester.dev/docs/commands/New-PesterConfiguration
+
+    .LINK
+    https://pester.dev/docs/usage/Configuration
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+
+
+    #>
+    [CmdletBinding()]
+    param(
+        [System.Collections.IDictionary] $Hashtable
+    )
+
+    if ($PSBoundParameters.ContainsKey('Hashtable')) {
+        [PesterConfiguration]$Hashtable
+    } else {
+        [PesterConfiguration]::Default
+    }
 }
 
 function Remove-RSpecNonPublicProperties ($run){

@@ -60,6 +60,7 @@
 
         # config
         'New-PesterContainer'
+        'New-PesterConfiguration'
 
         # legacy
         'Assert-VerifiableMock'
