@@ -6,8 +6,8 @@ $script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionStat
 $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
 
-Set-Alias 'Add-AssertionOperator' 'Add-ShouldOperator'
-Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
+& $SafeCommands['Set-Alias'] 'Add-AssertionOperator' 'Add-ShouldOperator'
+& $SafeCommands['Set-Alias'] 'Get-AssertionOperator' 'Get-ShouldOperator'
 
 
 & $script:SafeCommands['Export-ModuleMember'] @(
@@ -35,14 +35,14 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Get-ShouldOperator'
 
     # config
-    'New-TestContainer',
+    'New-PesterContainer'
     'New-PesterConfiguration'
 
     # export
     'Export-NunitReport'
     'ConvertTo-NUnitReport'
-    # 'Export-JUnitReport' does not work yet, it needs similar rework as NUnit to work with the new structure
-    # 'ConvertTo-JUnitReport'
+    'Export-JUnitReport'
+    'ConvertTo-JUnitReport'
     'ConvertTo-Pester4Result'
 
     # legacy
@@ -51,6 +51,7 @@ Set-Alias 'Get-AssertionOperator' 'Get-ShouldOperator'
     'Set-ItResult'
     'New-MockObject'
 
+    'New-Fixture'
 ) -Alias @(
     'Add-AssertionOperator'
     'Get-AssertionOperator'

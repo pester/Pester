@@ -27,7 +27,7 @@ function Set-ItResult {
     to provide information to the user why the test is neither successful nor failed.
 
     .EXAMPLE
-    ```ps
+    ```powershell
     Describe "Example" {
         It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
@@ -42,6 +42,9 @@ function Set-ItResult {
     Tests completed in 0ms
     Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
     ```
+
+    .LINK
+    https://pester.dev/docs/commands/Set-ItResult
 #>
     [CmdletBinding()]
     param(

@@ -5,6 +5,11 @@ function Enter-CoverageAnalysis {
         [ScriptBlock] $Logger
     )
 
+    if ($null -ne $logger) {
+        & $logger "Figuring out breakpoint positions."
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $coverageInfo = foreach ($object in $CodeCoverage) {
             Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
         }
@@ -17,13 +22,52 @@ function Enter-CoverageAnalysis {
         return @()
     }
 
-    @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
+
+    $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
+    if ($null -ne $logger) {
+        & $logger "Figuring out $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+    }
+    $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+        if ($null -ne $logger) {
+            & $logger "Using single hit breakpoints."
+        }
+
+        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+    }
+    else {
+        if ($null -ne $logger) {
+            & $logger "Using normal breakpoints."
+        }
+
+        {} # empty ScriptBlock
+    }
+
+    foreach ($breakpoint in $breakpoints) {
+        $params = $breakpoint.Breakpointlocation
+        $params.Action = $action
+
+        $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+    }
+
+    $sw.Stop()
+
+    if ($null -ne $logger) {
+        & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+    }
+
+    return $breakpoints
 }
 
 function Exit-CoverageAnalysis {
     param ([object] $CommandCoverage)
 
     & $SafeCommands['Set-StrictMode'] -Off
+
+    if ($null -ne $logger) {
+        & $logger "Removing breakpoints."
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     # PSScriptAnalyzer it will flag this line because $null is on the LHS of -ne.
     # BUT that is correct in this case. We are filtering the list of breakpoints
@@ -33,6 +77,10 @@ function Exit-CoverageAnalysis {
     $breakpoints = @($CommandCoverage.Breakpoint) -ne $null
     if ($breakpoints.Count -gt 0) {
         & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
+    }
+
+    if ($null -ne $logger) {
+        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
     }
 }
 
@@ -53,14 +101,14 @@ function Get-CoverageInfoFromUserInput {
         # Auto-detect IncludeTests-value from path-input if user provides path that is a test
         $IncludeTests = $Path -like "*$($PesterPreference.Run.TestExtension.Value)"
 
-        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests
+        $unresolvedCoverageInfo = New-CoverageInfo -Path $Path -IncludeTests $IncludeTests -RecursePaths $PesterPreference.CodeCoverage.RecursePaths.Value
     }
 
     Resolve-CoverageInfo -UnresolvedCoverageInfo $unresolvedCoverageInfo
 }
 
 function New-CoverageInfo {
-    param ($Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false)
+    param ($Path, [string] $Class = $null, [string] $Function = $null, [int] $StartLine = 0, [int] $EndLine = 0, [bool] $IncludeTests = $false, $RecursePaths = $true)
 
     return [pscustomobject]@{
         Path         = $Path
@@ -69,6 +117,7 @@ function New-CoverageInfo {
         StartLine    = $StartLine
         EndLine      = $EndLine
         IncludeTests = $IncludeTests
+        RecursePaths = $RecursePaths
     }
 }
 
@@ -85,12 +134,14 @@ function Get-CoverageInfoFromDictionary {
     [string] $class = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Class', 'c'
     [string] $function = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'Function', 'f'
     $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests'
+    $recursePaths = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'RecursePaths'
 
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
     [bool] $includeTests = Convert-UnknownValueToInt -Value $includeTests -DefaultValue 0
+    [bool] $recursePaths = Convert-UnknownValueToInt -Value $recursePaths -DefaultValue 1
 
-    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests
+    return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests -RecursePaths $recursePaths
 }
 
 function Convert-UnknownValueToInt {
@@ -107,30 +158,22 @@ function Convert-UnknownValueToInt {
 function Resolve-CoverageInfo {
     param ([psobject] $UnresolvedCoverageInfo)
 
-    $path = $UnresolvedCoverageInfo.Path
-
-    $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
+    $paths = $UnresolvedCoverageInfo.Path
     $includeTests = $UnresolvedCoverageInfo.IncludeTests
+    $recursePaths = $UnresolvedCoverageInfo.RecursePaths
+    $resolvedPaths = @()
 
     try {
-        $resolvedPaths = & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop |
-            & $SafeCommands['Where-Object'] { $includeTests -or $_.Path -notlike $testsPattern }
+        $resolvedPaths = foreach ($path in $paths) {
+            & $SafeCommands['Resolve-Path'] -Path $path -ErrorAction Stop
+        }
     }
     catch {
         & $SafeCommands['Write-Error'] "Could not resolve coverage path '$path': $($_.Exception.Message)"
         return
     }
 
-    $filePaths = foreach ($resolvedPath in $resolvedPaths) {
-        $item = & $SafeCommands['Get-Item'] -LiteralPath $resolvedPath
-        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension) {
-            $item.FullName
-        }
-        elseif (-not $item.PsIsContainer) {
-            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
-            # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
-        }
-    }
+    $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths -IncludeTests $includeTests -RecursePaths $recursePaths
 
     $params = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
@@ -143,6 +186,42 @@ function Resolve-CoverageInfo {
         $params['Path'] = $filePath
         New-CoverageInfo @params
     }
+}
+
+function Get-CodeCoverageFilePaths {
+    param (
+        [object]$Paths,
+        [bool]$IncludeTests,
+        [bool]$RecursePaths
+    )
+
+    $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
+
+    $filePaths = foreach ($path in $Paths) {
+        $item = & $SafeCommands['Get-Item'] -LiteralPath $path
+        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension -and ($IncludeTests -or $item.Name -notlike $testsPattern)) {
+            $item.FullName
+        }
+        elseif ($item -is [System.IO.DirectoryInfo]) {
+            $children = foreach ($i in & $SafeCommands['Get-ChildItem'] -LiteralPath $item) {
+                # if we recurse paths return both directories and files so they can be resolved in the
+                # recursive call to Get-CodeCoverageFilePaths, otherwise return just files
+                if ($RecursePaths) {
+                    $i.PSPath
+                }
+                elseif (-not $i.PSIsContainer) {
+                    $i.PSPath
+                }}
+            Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
+        }
+        elseif (-not $item.PsIsContainer) {
+            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
+            # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
+        }
+    }
+
+    return $filePaths
+
 }
 
 function Get-CoverageBreakpoints {
@@ -272,25 +351,32 @@ function New-CoverageBreakpoint {
         return
     }
 
-    $params = @{
+    $params =  @{
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
-        Action = { }
+        Action = if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) { {} } else { $null }
     }
 
-    $breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+
+    if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
+        $breakpoint = & $SafeCommands['Set-PSBreakPoint'] @params
+    }
+    else {
+        $breakpoint = $null
+    }
 
     [pscustomobject] @{
-        File        = $Command.Extent.File
-        Class       = Get-ParentClassName -Ast $Command
-        Function    = Get-ParentFunctionName -Ast $Command
-        StartLine   = $Command.Extent.StartLineNumber
-        EndLine     = $Command.Extent.EndLineNumber
-        StartColumn = $Command.Extent.StartColumnNumber
-        EndColumn   = $Command.Extent.EndColumnNumber
-        Command     = Get-CoverageCommandText -Ast $Command
-        Breakpoint  = $breakpoint
+        File                = $Command.Extent.File
+        Class               = Get-ParentClassName -Ast $Command
+        Function            = Get-ParentFunctionName -Ast $Command
+        StartLine           = $Command.Extent.StartLineNumber
+        EndLine             = $Command.Extent.EndLineNumber
+        StartColumn         = $Command.Extent.StartColumnNumber
+        EndColumn           = $Command.Extent.EndColumnNumber
+        Command             = Get-CoverageCommandText -Ast $Command
+        Breakpoint          = $breakpoint
+        BreakpointLocation  = $params
     }
 }
 
@@ -583,11 +669,17 @@ function Get-CoverageReport {
         MissedCommands           = $missedCommands
         HitCommands              = $hitCommands
         AnalyzedFiles            = $analyzedFiles
+        CoveragePercent          = if ($null -eq $CommandCoverage -or $CommandCoverage.Count -eq 0) { 0 } else { ($hitCommands.Count / $CommandCoverage.Count) * 100 }
     }
 }
 
 function Get-CommonParentPath {
     param ([string[]] $Path)
+
+    if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
+        # for coverage gutters the root path is relative to the coverage.xml
+        return (& $SafeCommands['Split-Path'] -Path $PesterPreference.CodeCoverage.OutputPath.Value | Normalize-Path )
+    }
 
     $pathsToTest = @(
         $Path |
@@ -653,8 +745,11 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
-        [long] $TotalMilliseconds
+        [long] $TotalMilliseconds,
+        [string] $Format
     )
+
+    $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
@@ -776,11 +871,24 @@ function Get-JaCoCoReportXml {
     foreach ($package in $packageList) {
         $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
 
-        if ($null -eq $packageRelativePath) {
-            $packageName = $commonParentLeaf
+        # e.g. "." for gutters, and "package" for non gutters in root
+        # and "sub-dir" for gutters, and "package/sub-dir" for non-gutters
+        $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
+            if ($isGutters) {
+                "."
+            }
+            else {
+                $commonParentLeaf
+            }
         }
         else {
-            $packageName = "{0}/{1}" -f $commonParentLeaf, $($packageRelativePath.Replace("\", "/"))
+            $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
+            if ($isGutters) {
+                $packageRelativePathFormatted
+            }
+            else {
+                "$commonParentLeaf/$packageRelativePathFormatted"
+            }
         }
 
         $packageElement = Add-XmlElement $reportElement "package" @{
@@ -790,11 +898,21 @@ function Get-JaCoCoReportXml {
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
+            $classElementName = if ($isGutters) {
+                    $classElementRelativePath
+                }
+                else {
+                    "$commonParentLeaf/$classElementRelativePath"
+                }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = (& $SafeCommands["Split-Path"] -Path $classElementRelativePath -Leaf)
+                    sourcefilename = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($function in $class.Methods.Keys) {
@@ -817,8 +935,14 @@ function Get-JaCoCoReportXml {
 
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                    name = (& $SafeCommands["Split-Path"] -Path $file -Leaf)
+                    name = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($line in $class.Lines.Keys) {

@@ -36,6 +36,10 @@ function Export-PesterResults {
     )
 
     switch -Wildcard ($Format) {
+        'NUnit2.5' {
+            Export-XmlReport -Result $Result -Path $Path -Format $Format
+        }
+
         '*Xml' {
             Export-XmlReport -Result $Result -Path $Path -Format $Format
         }
@@ -47,6 +51,41 @@ function Export-PesterResults {
 }
 
 function Export-NUnitReport {
+    <#
+    .SYNOPSIS
+    Exports a Pester result-object to an NUnit-compatible XML-report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This object can then be exported to an
+    NUnit-compatible XML-report using this function. The report is generated
+    using the NUnit 2.5-schema.
+
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER Path
+    The path where the XML-report should  to the ou the XML report as string.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | Export-NUnitReport -Path TestResults.xml
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    exports it as an NUnit 2.5-compatible XML-report.
+
+    .LINK
+    https://pester.dev/docs/commands/Export-NUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
@@ -58,6 +97,53 @@ function Export-NUnitReport {
     Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
 }
 
+function Export-JUnitReport {
+    <#
+    .SYNOPSIS
+    Exports a Pester result-object to an JUnit-compatible XML-report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This object can then be exported to an
+    JUnit-compatible XML-report using this function. The report is generated
+    using the JUnit 4-schema.
+
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER Path
+    The path where the XML-report should  to the ou the XML report as string.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | Export-JUnitReport -Path TestResults.xml
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    exports it as an JUnit 4-compatible XML-report.
+
+    .LINK
+    https://pester.dev/docs/commands/Export-JUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
+    param (
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Result,
+
+        [parameter(Mandatory = $true)]
+        [String] $Path
+    )
+
+    Export-XmlReport -Result $Result -Path $Path -Format JUnitXml
+}
+
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -67,14 +153,17 @@ function Export-XmlReport {
         [String] $Path,
 
         [parameter(Mandatory = $true)]
-        [ValidateSet('NUnitXml', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $Format
     )
+
+    if ('NUnit2.5' -eq $Format) {
+        $Format = 'NUnitXml'
+    }
 
     #the xmlwriter create method can resolve relatives paths by itself. but its current directory might
     #be different from what PowerShell sees as the current directory so I have to resolve the path beforehand
     #working around the limitations of Resolve-Path
-
     $Path = GetFullPath -Path $Path
 
     $settings = [Xml.XmlWriterSettings] @{
@@ -120,6 +209,51 @@ function Export-XmlReport {
 }
 
 function ConvertTo-NUnitReport {
+    <#
+    .SYNOPSIS
+    Converts a Pester result-object to an NUnit 2.5-compatible XML-report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This objects can then be converted to an
+    NUnit-compatible XML-report using this function. The report is generated
+    using the NUnit 2.5-schema.
+
+    The function can convert to both XML-object or a string containing the XML.
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER AsString
+    Returns the XML-report as a string.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-NUnitReport
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an NUnit 2.5-compatible XML-report. The report is returned as an XML-object.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-NUnitReport -AsString
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an NUnit 2.5-compatible XML-report. The returned object is a string.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-NUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
@@ -254,7 +388,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
             # skip blocks that were discovered but did not run
             continue
         }
-        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path ($action.Path -join '.')
+        Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $action.ExpandedPath
     }
 
     $suites = @(
@@ -307,7 +441,12 @@ function Write-JUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
 
     $testSuiteNumber = 0
     foreach ($container in $Result.Containers) {
-        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Id $testSuiteNumber
+        if (-not $container.ShouldRun) {
+            # skip containers that were discovered but none of their tests run
+            continue
+        }
+
+        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Container $container -Id $testSuiteNumber
         $testSuiteNumber++
     }
 
@@ -315,6 +454,51 @@ function Write-JUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
 }
 
 function ConvertTo-JUnitReport {
+    <#
+    .SYNOPSIS
+    Converts a Pester result-object to an JUnit-compatible XML report
+
+    .DESCRIPTION
+    Pester can generate a result-object containing information about all
+    tests that are processed in a run. This objects can then be converted to an
+    NUnit-compatible XML-report using this function. The report is generated
+    using the JUnit 4-schema.
+
+    The function can convert to both XML-object or a string containing the XML.
+    This can be useful for further processing or publishing of test results,
+    e.g. as part of a CI/CD pipeline.
+
+    .PARAMETER Result
+    Result object from a Pester-run. This can be retrieved using Invoke-Pester
+    -Passthru or by using the Run.PassThru configuration-option.
+
+    .PARAMETER AsString
+    Returns the XML-report as a string.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-JUnitReport
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an JUnit 4-compatible XML-report. The report is returned as an XML-object.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-JUnitReport -AsString
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an JUnit 4-compatible XML-report. The returned object is a string.
+
+    .LINK
+    https://pester.dev/docs/commands/ConvertTo-JUnitReport
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+    #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
@@ -352,41 +536,33 @@ function Write-JUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
-    $XmlWriter.WriteAttributeString('tests', $Result.PassedCount)
-    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('tests', $Result.TotalCount)
+    $XmlWriter.WriteAttributeString('errors', $Result.FailedContainersCount + $Result.FailedBlocksCount)
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('disabled', $Result.NotRunCount + $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('time', ($Result.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
 }
 
-function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
+function Write-JUnitTestSuiteElements($Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
     $XmlWriter.WriteStartElement('testsuite')
 
-    Write-JUnitTestSuiteAttributes -Action $Node -XmlWriter $XmlWriter -Package $Node.Name -Id $Id
-
-    $testCases = foreach ($al1 in $node.Actions) {
-        if ($al1.Type -ne 'TestCase') {
-            foreach ($al2 in $al1.Actions) {
-                if ($al2.Type -ne 'TestCase') {
-                    foreach ($alt3 in $al2.Actions) {
-                        $path = "$($al1.Name).$($al2.Name).$($alt3.Name)"
-                        $alt3 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
-                    }
-                }
-                else {
-                    $path = "$($al1.Name).$($al2.Name)"
-                    $al2 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
-                }
-            }
-        }
-        else {
-            $path = "$($al1.Name)"
-            $al1 | Add-Member -PassThru -MemberType NoteProperty -Name Path -Value $path
-        }
+    if ("File" -eq $Container.Type) {
+        $path = $Container.Item.FullName
+    }
+    elseif ("ScriptBlock" -eq $Container.Type) {
+        $path = "<ScriptBlock>$($Container.Item.File):$($Container.Item.StartPosition.StartLine)"
+    }
+    else {
+        throw "Container type '$($Container.Type)' is not supported."
     }
 
-    foreach ($t in $testCases) {
-        Write-JUnitTestCaseElements -Action $t -XmlWriter $XmlWriter -Package $Node.Name
+    Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $path -Id $Id
+
+
+    $testResults = [Pester.Factory]::CreateCollection()
+    Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
+    foreach ($t in $testResults) {
+        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $path
     }
 
     $XmlWriter.WriteEndElement()
@@ -395,14 +571,14 @@ function Write-JUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
 function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id) {
     $environment = Get-RunTimeEnvironment
 
-    $XmlWriter.WriteAttributeString('name', $Action.Name)
+    $XmlWriter.WriteAttributeString('name', $Package)
     $XmlWriter.WriteAttributeString('tests', $Action.TotalCount)
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Action.FailedCount)
     $XmlWriter.WriteAttributeString('hostname', $environment.'machine-name')
     $XmlWriter.WriteAttributeString('id', $Id)
     $XmlWriter.WriteAttributeString('skipped', $Action.SkippedCount)
-    $XmlWriter.WriteAttributeString('disabled', $Action.InconclusiveCount + $Action.PendingCount)
+    $XmlWriter.WriteAttributeString('disabled', $Action.NotRunCount)
     $XmlWriter.WriteAttributeString('package', $Package)
     $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
@@ -422,18 +598,18 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+function Write-JUnitTestCaseElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
     $XmlWriter.WriteStartElement('testcase')
 
-    Write-JUnitTestCaseAttributes -Action $Action -XmlWriter $XmlWriter -ClassName $Package
+    Write-JUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ClassName $Package
 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
-    $XmlWriter.WriteAttributeString('name', $Action.Path)
+function Write-JUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
+    $XmlWriter.WriteAttributeString('name', $TestResult.ExpandedPath)
 
-    $statusElementName = switch ($Action.Result) {
+    $statusElementName = switch ($TestResult.Result) {
         Passed {
             $null
         }
@@ -447,20 +623,22 @@ function Write-JUnitTestCaseAttributes($Action, [System.Xml.XmlWriter] $XmlWrite
         }
     }
 
-    $XmlWriter.WriteAttributeString('status', $Action.Result)
+    $XmlWriter.WriteAttributeString('status', $TestResult.Result)
     $XmlWriter.WriteAttributeString('classname', $ClassName)
     $XmlWriter.WriteAttributeString('assertions', '0')
-    $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+    $XmlWriter.WriteAttributeString('time', $TestResult.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
     if ($null -ne $statusElementName) {
-        Write-JUnitTestCaseMessageElements -Action $Action -XmlWriter $XmlWriter -StatusElementName $statusElementName
+        Write-JUnitTestCaseMessageElements -TestResult $TestResult -XmlWriter $XmlWriter -StatusElementName $statusElementName
     }
 }
 
-function Write-JUnitTestCaseMessageElements($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
+function Write-JUnitTestCaseMessageElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
     $XmlWriter.WriteStartElement($StatusElementName)
 
-    $XmlWriter.WriteAttributeString('message', $Action.FailureMessage) #TODO: Add stacktrace
+    $result = Get-ErrorForXmlReport -TestResult $TestResult
+    $XmlWriter.WriteAttributeString('message', $result.FailureMessage)
+    $XmlWriter.WriteString($result.StackTrace)
 
     $XmlWriter.WriteEndElement()
 }
@@ -699,42 +877,51 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             # TODO: remove monkey patching the error message when parent setup failed so this test never run
             # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
 
-            $failureMessage = if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
-                "This test should run but it did not. Most likely a setup in some parent block failed."
-            }
-            else {
-                $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+            $result = Get-ErrorForXmlReport -TestResult $TestResult
 
-                if ($multipleErrors) {
-                    $c = 0
-                    $(foreach ($err in $TestResult.ErrorRecord) {
-                        "[$(($c++))] $($err.DisplayErrorMessage)"
-                    }) -join [Environment]::NewLine
-                }
-                else {
-                    $TestResult.ErrorRecord.DisplayErrorMessage
-                }
-            }
-
-            $stackTrace = & {
-                $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
-
-                if ($multipleErrors) {
-                    $c = 0
-                    $(foreach ($err in $TestResult.ErrorRecord) {
-                        "[$(($c++))] $($err.DisplayStackTrace)"
-                    }) -join [Environment]::NewLine
-                }
-                else {
-                    [string] $TestResult.ErrorRecord.DisplayStackTrace
-                }
-            }
-
-            $xmlWriter.WriteElementString('message', $failureMessage)
-            $XmlWriter.WriteElementString('stack-trace', $stackTrace)
+            $xmlWriter.WriteElementString('message', $result.FailureMessage)
+            $XmlWriter.WriteElementString('stack-trace', $result.StackTrace)
             $XmlWriter.WriteEndElement() # Close failure tag
             break
         }
+    }
+}
+
+function Get-ErrorForXmlReport ($TestResult) {
+    $failureMessage = if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
+        "This test should run but it did not. Most likely a setup in some parent block failed."
+    }
+    else {
+        $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+
+        if ($multipleErrors) {
+            $c = 0
+            $(foreach ($err in $TestResult.ErrorRecord) {
+                "[$(($c++))] $($err.DisplayErrorMessage)"
+            }) -join [Environment]::NewLine
+        }
+        else {
+            $TestResult.ErrorRecord.DisplayErrorMessage
+        }
+    }
+
+    $st = & {
+        $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
+
+        if ($multipleErrors) {
+            $c = 0
+            $(foreach ($err in $TestResult.ErrorRecord) {
+                "[$(($c++))] $($err.DisplayStackTrace)"
+            }) -join [Environment]::NewLine
+        }
+        else {
+            [string] $TestResult.ErrorRecord.DisplayStackTrace
+        }
+    }
+
+    @{
+        FailureMessage = $failureMessage
+        StackTrace = $st
     }
 }
 

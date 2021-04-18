@@ -17,35 +17,58 @@ function Find-File {
             }
 
             if ((& $script:SafeCommands['Test-Path'] $p)) {
-                $item = Get-Item $p
+                # This can expand to more than one path when wildcard is used, those paths can be folders or files.
+                # We want to avoid expanding to paths that are not matching our filters, but also want to ensure that if
+                # user passes in MyTestFile.ps1 without the .Tests.ps1 it will still run.
 
-                if ($item.PSIsContainer) {
-                    # this is an existing directory search it for tests file
-                    Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
-                    continue
+                # So at this step we look if we expanded the path to more than 1 item and use stricter rules with filtering.
+                # Or if the file was just a single file, we won't use stricter filtering for files.
+
+                # This allows us to use wildcards to get all .Tests.ps1 in the folder and all child folders, which is very useful.
+                # But prevents a rare scenario where you provide C:\files\*\MyTest.ps1, because in that case only .Tests.ps1 would be included.
+
+                $items = & $SafeCommands['Get-Item'] $p
+                $resolvedToMultipleFiles = $null -ne $items -and 1 -lt @($items).Length
+
+                foreach ($item in $items) {
+                    if ($item.PSIsContainer) {
+                        # this is an existing directory search it for tests file
+                        & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File
+                    }
+                    elseif ("FileSystem" -ne $item.PSProvider.Name) {
+                        # item is not a directory and exists but is not a file so we are not interested
+                    }
+                    elseif ($resolvedToMultipleFiles) {
+                        # item was resolved from a wildcarded path only use it if it has test extension
+                        if ($item.FullName -like "*$Extension")
+                        {
+                            # add unresolved path to have a note of the original path used to resolve this
+                            & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
+                            $item
+                        }
+                    }
+                    else {
+                        # this is some file, that was either provided directly, or resolved from wildcarded path as a single item,
+                        # we don't care what type of file it is, or if it has test extension (.Tests.ps1) we should try to run it
+                        # to allow any file that is provided directly to run
+                        if (".ps1" -ne $item.Extension) {
+                            & $SafeCommands['Write-Error'] "Script path '$item' is not a ps1 file." -ErrorAction Stop
+                        }
+
+                        # add unresolved path to have a note of the original path used to resolve this
+                        & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
+                        $item
+                    }
                 }
-
-                if ("FileSystem" -ne $item.PSProvider.Name) {
-                    # item is not a directory and exists but is not a file so we are not interested
-                    continue
-                }
-
-                if (".ps1" -ne $item.Extension) {
-                    Write-Error "Script path '$p' is not a ps1 file." -ErrorAction Stop
-                }
-
-                # this is some file, we don't care if it is just a .ps1 file or .Tests.ps1 file
-                Add-Member -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
-                $item
-                continue
             }
-
-            # this is a path that does not exist so let's hope it is
-            # a wildcarded path that will resolve to some files
-            Get-ChildItem -Recurse -Path $p -Filter "*$Extension" -File
+            else {
+                # this is a path that does not exist so let's hope it is
+                # a wildcarded path that will resolve to some files
+                & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
+            }
         }
 
-    Filter-Excluded -Files $files -ExcludePath $ExcludePath | where { $_ }
+    Filter-Excluded -Files $files -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
 }
 
 function Filter-Excluded ($Files, $ExcludePath) {
@@ -81,6 +104,7 @@ function Add-RSpecTestObjectProperties {
     # adds properties that are specific to RSpec to the result object
     # this includes figuring out the result
     # formatting the failure message and stacktrace
+    $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
     $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
@@ -88,7 +112,10 @@ function Add-RSpecTestObjectProperties {
     elseif ($TestObject.Passed) {
         "Passed"
     }
-    elseif ($TestObject.ShouldRun -and (-not $TestObject.Executed -or -not $TestObject.Passed)) {
+    elseif (-not $discoveryOnly -and $TestObject.ShouldRun -and (-not $TestObject.Executed -or -not $TestObject.Passed)) {
+        "Failed"
+    }
+    elseif ($discoveryOnly -and 0 -lt $TestObject.ErrorRecord.Count) {
         "Failed"
     }
     else {
@@ -111,6 +138,7 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
 }
 
 function PostProcess-RspecTestRun ($TestRun) {
+    $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
     Fold-Run $Run -OnTest {
         param($t)
@@ -150,7 +178,10 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+        elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+            "Failed"
+        }
+        elseif ($discoveryOnly -and 0 -lt $b.ErrorRecord.Count) {
             "Failed"
         }
         else {
@@ -177,7 +208,10 @@ function PostProcess-RspecTestRun ($TestRun) {
         elseif ($b.Passed) {
             "Passed"
         }
-        elseif ($b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
+        elseif (0 -lt $b.ErrorRecord.Count) {
+            "Failed"
+        }
+        elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
         }
         else {
@@ -436,21 +470,104 @@ function Remove-RSpecNonPublicProperties ($run){
     }
 }
 
+function New-PesterContainer {
+    <#
+    .SYNOPSIS
+    Generates ContainerInfo-objects used as for Invoke-Pester -Container
 
-function New-TestContainer {
+    .DESCRIPTION
+    Pester 5 supports running tests files and scriptblocks using parameter-input.
+    To use this feature, Invoke-Pester expects one or more ContainerInfo-objects
+    created using this funciton, that specify test containers in the form of paths
+    to the test files or scriptblocks containing the tests directly.
+
+    A optional Data-dictionary can be provided to supply the containers with any
+    required parameter-values. This is useful in when tests are generated dynamically
+    based on parameter-input. This method enables complex test-solutions while being
+    able to re-use a lot of test-code.
+
+    .PARAMETER Path
+    Specifies one or more paths to files containing tests. The value is a path\file
+    name or name pattern. Wildcards are permitted.
+
+    .PARAMETER ScriptBlock
+    Specifies one or more scriptblocks containing tests.
+
+    .PARAMETER Data
+    Allows a dictionary to be provided with parameter-values that should be used during
+    execution of the test containers defined in Path or ScriptBlock.
+
+    .EXAMPLE
+    ```powershell
+    $container = New-PesterContainer -Path 'CodingStyle.Tests.ps1' -Data @{ File = "Get-Emoji.ps1" }
+    Invoke-Pester -Container $container
+    ```
+
+    This example runs Pester using a generated ContainerInfo-object referencing a file and
+    required parameters that's provided to the test-file during execution.
+
+    .EXAMPLE
+    ```powershell
+    $sb = {
+        Describe 'Testing New-PesterContainer' {
+            It 'Useless test' {
+                "foo" | Should -Not -Be "bar"
+            }
+        }
+    }
+    $container = New-PesterContainer -ScriptBlock $sb
+    Invoke-Pester -Container $container
+    ```
+
+    This example runs Pester agianst a scriptblock. New-PesterContainer is used to genreated
+    the requried ContainerInfo-object that enables us to do this directly.
+
+    .LINK
+    https://pester.dev/docs/commands/New-PesterContainer
+
+    .LINK
+    https://pester.dev/docs/commands/Invoke-Pester
+
+    .LINK
+    https://pester.dev/docs/usage/data-driven-tests
+    #>
     [CmdletBinding(DefaultParameterSetName="Path")]
     param(
         [Parameter(Mandatory, ParameterSetName = "Path")]
-        [String] $Path,
+        [String[]] $Path,
 
         [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
-        [ScriptBlock] $ScriptBlock,
+        [ScriptBlock[]] $ScriptBlock,
 
         [Collections.IDictionary[]] $Data
     )
 
-    switch ($PSCmdlet.ParameterSetName) {
-        "ScriptBlock" { [Pester.TestScriptBlock]::Create($ScriptBlock, $Data) }
-        Default { [Pester.TestPath]::Create($Path, $Data) }
+    # it seems that when I don't assign $Data to $dt here the foreach does not always work in 5.1 :/ some vooodo
+    $dt = $Data
+    # expand to ContainerInfo user can provide multiple sets of data, but ContainerInfo can hold only one
+    # to keep the internal logic simple.
+    $kind = $PSCmdlet.ParameterSetName
+    if ('ScriptBlock' -eq $kind) {
+        # the @() is significant here, it will make it iterate even if there are no data
+        # which allows scriptblocks without data to run
+        foreach ($d in @($dt)) {
+            foreach ($sb in $ScriptBlock) {
+                New-BlockContainerObject -ScriptBlock $sb -Data $d
+            }
+        }
+    }
+
+    if ("Path" -eq $kind) {
+        # the @() is significant here, it will make it iterate even if there are no data
+        # which allows files without data to run
+        foreach ($d in @($dt)) {
+            foreach ($p in $Path) {
+                # resolve the path we are given in the same way we would resolve -Path on Invoke-Pester
+                $files = @(Find-File -Path $p -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
+                foreach ($file in $files) {
+                    New-BlockContainerObject -File $file -Data $d
+                }
+            }
+        }
     }
 }

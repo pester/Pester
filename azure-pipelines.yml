@@ -1,7 +1,9 @@
 trigger:
   - v5.0
+  - rel/*
 pr:
   - v5.0
+  - rel/*
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -22,7 +24,7 @@ stages:
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -Clean
+          - powershell: ./build.ps1 -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
@@ -79,7 +81,7 @@ stages:
               codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
               pathToSources: 'src/'
-              failIfCoverageEmpty: true
+              failIfCoverageEmpty: false
             condition: succeededOrFailed()
           - task: PublishTestResults@2
             inputs:
@@ -87,6 +89,7 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20
       - job:
         workspace:
           clean: all
@@ -125,7 +128,7 @@ stages:
               codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
               pathToSources: 'src/'
-              failIfCoverageEmpty: true
+              failIfCoverageEmpty: false
             condition: succeededOrFailed()
           - task: PublishTestResults@2
             inputs:
@@ -133,3 +136,4 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20

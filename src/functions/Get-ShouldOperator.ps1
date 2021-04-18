@@ -18,12 +18,17 @@ function Get-ShouldOperator {
 
     .EXAMPLE
     Get-ShouldOperator
+
     Return all available Should assertion operators and their aliases.
 
     .EXAMPLE
     Get-ShouldOperator -Name Be
+
     Return help examples for the Be assertion operator.
     -Name is a dynamic parameter that tab completes all available options.
+
+    .LINK
+    https://pester.dev/docs/commands/Get-ShouldOperator
 
     .LINK
     https://pester.dev/docs/commands/Should
@@ -46,8 +51,8 @@ function Get-ShouldOperator {
         $AttributeCollection.Add($ParameterAttribute)
 
         $arrSet = $AssertionOperators.Values |
-        Select-Object -Property Name, Alias |
-        ForEach-Object { $_.Name; $_.Alias }
+        & $SafeCommands['Select-Object'] -Property Name, Alias |
+        & $SafeCommands['ForEach-Object'] { $_.Name; $_.Alias }
 
         $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($arrSet)
 
@@ -65,18 +70,18 @@ function Get-ShouldOperator {
 
     END {
         if ($Name) {
-            $operator = $AssertionOperators.Values | Where-Object { $Name -eq $_.Name -or $_.Alias -contains $Name }
+            $operator = $AssertionOperators.Values | & $SafeCommands['Where-Object'] { $Name -eq $_.Name -or $_.Alias -contains $Name }
             $help = Get-Help $operator.InternalName -Examples -ErrorAction SilentlyContinue
 
-            if (($help | Measure-Object).Count -ne 1) {
-                Write-Warning ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
+            if (($help | & $SafeCommands['Measure-Object']).Count -ne 1) {
+                & $SafeCommands['Write-Warning'] ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
             }
             else {
                 $help
             }
         }
         else {
-            $AssertionOperators.Keys | ForEach-Object {
+            $AssertionOperators.Keys | & $SafeCommands['ForEach-Object'] {
                 $aliases = (Get-AssertionOperatorEntry $_).Alias
 
                 # Return name and alias(es) for all registered Should operators

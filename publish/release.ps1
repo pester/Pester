@@ -4,7 +4,7 @@ param (
     [String] $PsGalleryApiKey,
     [String] $NugetApiKey,
     [String] $ChocolateyApiKey,
-    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43',
+    [String] $CertificateThumbprint = 'c7b0582906e5205b8399d92991694a614d0c0b22',
     [Switch] $Force
 )
 
@@ -17,7 +17,7 @@ if (Test-Path $bin) {
     Remove-Item $bin -Recurse -Force
 }
 
-pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -clean"
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Clean -Inline"
 if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
@@ -34,12 +34,12 @@ else {
 $isPreRelease = $version -match '-'
 
 if (-not $isPreRelease -or $Force) {
-    if ($null -eq $NugetApiKey) {
-        throw "NugetApiKey is needed."
+    if ([string]::IsNullOrWhiteSpace($NugetApiKey)) {
+        throw "This is stable release NugetApiKey is needed."
     }
 
-    if ($null -eq $ChocolateyApiKey) {
-        throw "ChocolateyApiKey is needed."
+    if ([string]::IsNullOrWhiteSpace($ChocolateyApiKey)) {
+        throw "This is stable release ChocolateyApiKey is needed."
     }
 }
 
@@ -48,6 +48,10 @@ if ($LASTEXITCODE -ne 0) {
     throw "test failed!"
 }
 
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Inline"
+if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
+    throw "Module is too small, are you publishing non-inlined module?"
+}
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
@@ -99,6 +103,7 @@ if (Test-Path $nugetDir) {
 }
 $null = New-Item -ItemType Directory -Path $nugetDir
 Copy-Item "$PSScriptRoot/../bin/*" $nugetDir -Recurse
+Copy-Item "$PSScriptRoot/../LICENSE" $nugetDir -Recurse
 
 Out-File $nugetDir\VERIFICATION.txt -InputObject @"
 VERIFICATION

@@ -75,7 +75,7 @@ function Test-Hint {
         return $true
     }
 
-    $property = $InputObject | Get-Member -Name Hint -MemberType NoteProperty
+    $property = $InputObject | & $SafeCommands['Get-Member'] -Name Hint -MemberType NoteProperty
     if ($null -eq $property) {
         return $false
     }
@@ -96,7 +96,7 @@ function Set-Hint {
         return
     }
 
-    if ($InputObject | Get-Member -Name Hint -MemberType NoteProperty) {
+    if ($InputObject | & $SafeCommands['Get-Member'] -Name Hint -MemberType NoteProperty) {
         $hintIsNotSet = [string]::IsNullOrWhiteSpace($InputObject.Hint)
         if ($Force -or $hintIsNotSet) {
             $InputObject.Hint = $Hint
@@ -104,7 +104,7 @@ function Set-Hint {
     }
     else {
         # do not change this to be called without the pipeline, it will throw: Cannot evaluate parameter 'InputObject' because its argument is specified as a script block and there is no input. A script block cannot be evaluated without input.
-        $InputObject | Add-Member -Name Hint -Value $Hint -MemberType NoteProperty
+        $InputObject | & $SafeCommands['Add-Member'] -Name Hint -Value $Hint -MemberType NoteProperty
     }
 }
 
