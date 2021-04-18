@@ -163,8 +163,9 @@ Copy-Content -Content $content
 
 
 if ($Clean) {
-    $manifest = Test-ModuleManifest -Path "$PSScriptRoot/bin/Pester.psd1"
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.Version)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
+    # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
+    $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/bin"
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
     if (0 -ne $LASTEXITCODE) {
         throw "build failed!"
     }
