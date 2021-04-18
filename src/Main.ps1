@@ -755,7 +755,6 @@ function Invoke-Pester {
                 if ($PSBoundParameters.ContainsKey('CI')) {
                     if ($CI) {
                         $Configuration.Run.Exit = $true
-                        $Configuration.CodeCoverage.Enabled = $true
                         $Configuration.TestResult.Enabled = $true
                     }
 
