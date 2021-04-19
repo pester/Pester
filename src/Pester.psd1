@@ -118,7 +118,7 @@
         }
 
         # Minimum assembly version required
-        RequiredAssemblyVersion = '5.2.0.0'
+        RequiredAssemblyVersion = '5.2.0'
     }
 
     # HelpInfo URI of this module
