@@ -2277,7 +2277,7 @@ function flattenBlock ($Block, $Accumulator) {
 function New-FilterObject {
     [CmdletBinding()]
     param (
-        [String[][]] $FullName,
+        [String[]] $FullName,
         [String[]] $Tag,
         [String[]] $ExcludeTag,
         [String[]] $Line
