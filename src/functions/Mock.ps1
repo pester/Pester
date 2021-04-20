@@ -55,14 +55,13 @@ function EscapeSingleQuotedStringContent ($Content) {
 function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $commandName = $contextInfo.Command.Name
     $moduleName = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { '' }
-    $metadata = $null
+    $metadata = $contextInfo.CommandMetadata
     $cmdletBinding = ''
     $paramBlock = ''
     $dynamicParamBlock = ''
     $dynamicParamScriptBlock = $null
 
     if ($contextInfo.Command.psobject.Properties['ScriptBlock'] -or $contextInfo.Command.CommandType -eq 'Cmdlet') {
-        $metadata = [System.Management.Automation.CommandMetaData]$contextInfo.Command
         $null = $metadata.Parameters.Remove('Verbose')
         $null = $metadata.Parameters.Remove('Debug')
         $null = $metadata.Parameters.Remove('ErrorAction')
@@ -89,8 +88,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
         }
 
-        # Will modify $metadata object in-place
-        $originalMetadata = $metadata
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
@@ -101,7 +98,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
 
             if ($dynamicParamStatements -match '\S') {
-                $metadataSafeForDynamicParams = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+                $metadataSafeForDynamicParams = $contextInfo.CommandMetadata2
                 foreach ($param in $metadataSafeForDynamicParams.Parameters.Values) {
                     $param.ParameterSets.Clear()
                 }
@@ -203,6 +200,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $mock = @{
         OriginalCommand         = $contextInfo.Command
+        OriginalMetadata        = $contextInfo.CommandMetadata
+        OriginalMetadata2        = $contextInfo.CommandMetadata2
         CommandName             = $commandName
         SessionState            = $contextInfo.SessionState
         CallerSessionState      = $contextInfo.CallerSessionState
@@ -536,7 +535,15 @@ function Resolve-Command {
             $command = $resolved
         }
 
-        return $command
+        if ($command) {
+            $command
+            # Resolve command metadata in the same scope where we resolved the command to have
+            # all custom attributes available https://github.com/pester/Pester/issues/1772
+            [System.Management.Automation.CommandMetaData] $command
+            # resolve it one more time because we need two instances sometimes for dynamic
+            # parameters resolve
+            [System.Management.Automation.CommandMetaData] $command
+        }
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -552,7 +559,7 @@ function Resolve-Command {
         }
         # this is the target session state in which we will insert the mock
         $SessionState = $module.SessionState
-        $command = & $module $findAndResolveCommand -Name $CommandName
+        $command, $commandMetadata, $commandMetadata2 = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($command.Module -eq $module) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -581,7 +588,7 @@ function Resolve-Command {
             Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the caller scope."
         }
         Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $SessionState
-        $command = & $findAndResolveCommand -Name $CommandName
+        $command, $commandMetadata, $commandMetadata2 = & $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
@@ -607,6 +614,8 @@ function Resolve-Command {
         $module = $command.Mock.Hook.SessionState.Module
         return @{
             Command                 = $command.Mock.Hook.OriginalCommand
+            CommandMetadata         = $command.Mock.Hook.OriginalMetadata
+            CommandMetadata2         = $command.Mock.Hook.OriginalMetadata2
             # the session state of the target module
             SessionState            = $command.Mock.Hook.SessionState
             # the session state in which we invoke the mock body (where the test runs)
@@ -625,6 +634,8 @@ function Resolve-Command {
     $module = $command.Module
     return @{
         Command                 = $command
+        CommandMetadata         = $commandMetadata
+        CommandMetadata2        = $commandMetadata2
         SessionState            = $SessionState
         CallerSessionState      = $callerSessionState
         Module                  = $module

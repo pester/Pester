@@ -800,4 +800,20 @@ i -PassThru:$PassThru {
             $t.Result | Verify-Equal "Passed"
         }
     }
+
+    b "Mocking function with custom class attribute" {
+        dt "generating parametrized tests from foreach without external id" {
+            if ($PSVersionTable.PSVersion.Major -le 4) {
+                return
+            }
+
+            # https://github.com/pester/Pester/issues/1772
+            # there is using, it needs to be in a separate file so we can skip it on <PS5
+            $result = Invoke-Pester $PSScriptRoot/Pester.Mock.ClassMetadata.ps1 -PassThru
+
+            $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+            $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+            $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+        }
+    }
 }
