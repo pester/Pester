@@ -139,10 +139,13 @@ foreach ($f in $files) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
-if ($Clean) {
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release
-    if (0 -ne $LASTEXITCODE) {
-        throw "build failed!"
+function Copy-Content ($Content) {
+    foreach ($c in $content) {
+        $source, $destination = $c
+
+        $null = New-Item -Force $destination -ItemType Directory
+
+        Get-ChildItem $source -File | Copy-Item -Destination $destination
     }
 }
 
@@ -155,23 +158,26 @@ $content = @(
     ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
 )
 
+Copy-Content -Content $content
+
+
 if ($Clean) {
-    $content += @(
+    # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
+    $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/bin"
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
+    if (0 -ne $LASTEXITCODE) {
+        throw "build failed!"
+    }
+
+    $builtDlls += @(
         ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
         ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
         ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
         ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
     )
+
+    Copy-Content -Content $builtDlls
 }
-
-foreach ($c in $content) {
-    $source, $destination = $c
-
-    $null = New-Item -Force $destination -ItemType Directory
-
-    Get-ChildItem $source -File | Copy-Item -Destination $destination
-}
-
 
 $powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
 
