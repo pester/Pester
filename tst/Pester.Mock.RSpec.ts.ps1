@@ -802,7 +802,7 @@ i -PassThru:$PassThru {
     }
 
     b "Mocking function with custom class attribute" {
-        dt "generating parametrized tests from foreach without external id" {
+        t "generating parametrized tests from foreach without external id" {
             if ($PSVersionTable.PSVersion.Major -le 4) {
                 return
             }
