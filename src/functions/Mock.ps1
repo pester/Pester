@@ -537,12 +537,18 @@ function Resolve-Command {
 
         if ($command) {
             $command
-            # Resolve command metadata in the same scope where we resolved the command to have
-            # all custom attributes available https://github.com/pester/Pester/issues/1772
-            [System.Management.Automation.CommandMetaData] $command
-            # resolve it one more time because we need two instances sometimes for dynamic
-            # parameters resolve
-            [System.Management.Automation.CommandMetaData] $command
+
+            # trying to resolve metadate for non scriptblock / cmdlet results in this beautiful error:
+            # PSInvalidCastException: Cannot convert value "notepad.exe" to type "System.Management.Automation.CommandMetadata".
+            # Error: "Cannot perform operation because operation "NewNotSupportedException at offset 34 in file:line:column <filename unknown>:0:0
+            if ($command.PSObject.Properties['ScriptBlock'] -or $command.CommandType -eq 'Cmdlet') {
+                # Resolve command metadata in the same scope where we resolved the command to have
+                # all custom attributes available https://github.com/pester/Pester/issues/1772
+                [System.Management.Automation.CommandMetaData] $command
+                # resolve it one more time because we need two instances sometimes for dynamic
+                # parameters resolve
+                [System.Management.Automation.CommandMetaData] $command
+            }
         }
     }
 
