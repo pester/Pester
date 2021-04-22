@@ -228,7 +228,7 @@ https://pester.dev/docs/usage/mocking
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
         [ScriptBlock]$ParameterFilter,
-        [string]$_moduleName,
+        [string]$ModuleName,
         [string[]]$RemoveParameterType,
         [string[]]$RemoveParameterValidation
     )
