@@ -239,7 +239,7 @@ https://pester.dev/docs/usage/mocking
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($_moduleName) {" $_moduleName -"}) $CommandName."
+        Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
 
     $SessionState = $PSCmdlet.SessionState
@@ -253,7 +253,7 @@ https://pester.dev/docs/usage/mocking
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     $mockData = Get-MockDataForCurrentScope
-    $contextInfo = Resolve-Command $CommandName $_moduleName -SessionState $SessionState
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
 
     if ($contextInfo.IsMockBootstrapFunction) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -432,7 +432,7 @@ function Get-AssertMockTable {
         $Frame,
         [Parameter(Mandatory)]
         [String] $CommandName,
-        [String] $_moduleName
+        [String] $ModuleName
     )
     # frame looks like this
     # [PSCustomObject]@{
@@ -441,7 +441,7 @@ function Get-AssertMockTable {
     #     IsTest = bool
     # }
 
-    $key = "$_moduleName||$CommandName"
+    $key = "$ModuleName||$CommandName"
     $scope = $Frame.Scope
     $inTest = $Frame.IsTest
     # this is used for assertions, in here we need to collect
@@ -490,7 +490,7 @@ function Get-AssertMockTable {
             #     }
 
             #     if (none $mockInBlock) {
-            #         throw "Could not find any mock definition for $CommandName$(if ($_moduleName) { " from module $_moduleName"})."
+            #         throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
             #     }
             #     else {
             #         # the mock was defined in some upper scope but it was not called in this it
@@ -703,7 +703,7 @@ https://pester.dev/docs/commands/Assert-MockCalled
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
-        [string] $_moduleName,
+        [string] $ModuleName,
 
         [string] $Scope = 0,
         [switch] $Exactly
@@ -868,7 +868,7 @@ to the original.
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
-        [string] $_moduleName,
+        [string] $ModuleName,
         [string] $Scope = 0,
         [switch] $Exactly,
 
@@ -989,7 +989,7 @@ to the original.
     }
 
     $SessionState = $CallerSessionState
-    $contextInfo = Resolve-Command $CommandName $_moduleName -SessionState $SessionState
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     $resolvedModule = $contextInfo.TargetModule
     $resolvedCommand = $contextInfo.Command.Name
 
