@@ -228,7 +228,7 @@ https://pester.dev/docs/usage/mocking
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
         [ScriptBlock]$ParameterFilter,
-        [string]$ModuleName,
+        [string]$_moduleName,
         [string[]]$RemoveParameterType,
         [string[]]$RemoveParameterValidation
     )
@@ -239,7 +239,7 @@ https://pester.dev/docs/usage/mocking
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
+        Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($_moduleName) {" $_moduleName -"}) $CommandName."
     }
 
     $SessionState = $PSCmdlet.SessionState
@@ -253,7 +253,7 @@ https://pester.dev/docs/usage/mocking
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     $mockData = Get-MockDataForCurrentScope
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
+    $contextInfo = Resolve-Command $CommandName $_moduleName -SessionState $SessionState
 
     if ($contextInfo.IsMockBootstrapFunction) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -279,7 +279,7 @@ https://pester.dev/docs/usage/mocking
 
     $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { " $($behavior.ModuleName) -"})$($behavior.CommandName)."
+        Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { "$($behavior.ModuleName) - "})$($behavior.CommandName)."
     }
     $behaviors.Add($behavior)
 }
@@ -432,7 +432,7 @@ function Get-AssertMockTable {
         $Frame,
         [Parameter(Mandatory)]
         [String] $CommandName,
-        [String] $ModuleName
+        [String] $_moduleName
     )
     # frame looks like this
     # [PSCustomObject]@{
@@ -441,7 +441,7 @@ function Get-AssertMockTable {
     #     IsTest = bool
     # }
 
-    $key = "$ModuleName||$CommandName"
+    $key = "$_moduleName||$CommandName"
     $scope = $Frame.Scope
     $inTest = $Frame.IsTest
     # this is used for assertions, in here we need to collect
@@ -490,7 +490,7 @@ function Get-AssertMockTable {
             #     }
 
             #     if (none $mockInBlock) {
-            #         throw "Could not find any mock definition for $CommandName$(if ($ModuleName) { " from module $ModuleName"})."
+            #         throw "Could not find any mock definition for $CommandName$(if ($_moduleName) { " from module $_moduleName"})."
             #     }
             #     else {
             #         # the mock was defined in some upper scope but it was not called in this it
@@ -703,7 +703,7 @@ https://pester.dev/docs/commands/Assert-MockCalled
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
-        [string] $ModuleName,
+        [string] $_moduleName,
 
         [string] $Scope = 0,
         [switch] $Exactly
@@ -868,7 +868,7 @@ to the original.
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
-        [string] $ModuleName,
+        [string] $_moduleName,
         [string] $Scope = 0,
         [switch] $Exactly,
 
@@ -989,8 +989,8 @@ to the original.
     }
 
     $SessionState = $CallerSessionState
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
-    $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { $null }
+    $contextInfo = Resolve-Command $CommandName $_moduleName -SessionState $SessionState
+    $resolvedModule = $contextInfo.TargetModule
     $resolvedCommand = $contextInfo.Command.Name
 
     $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule
@@ -1080,14 +1080,19 @@ function Invoke-Mock {
         Write-PesterDebugMessage -Scope Mock "Mock for $CommandName was invoked from block $FromBlock, resolving call history and behaviors."
     }
 
+
+    # there is some conflict that keeps ModuleName constant without throwing. It is not a problem
+    # because it does not contain whitespace, but if someone mistypes we won't be able to fix it
+    # to be empty string in the below condition.
+    $_moduleName = $ModuleName
     # this function is called by the mock bootstrap function, so every implementer
     # should implement this (but I keep it separate from the core function so I can
     # test without dependency on scopes)
     $allBehaviors = Get-AllMockBehaviors -CommandName $CommandName
-    if ([string]::IsNullOrWhiteSpace($ModuleName)) {
-        $ModuleName = $null
+    if ([string]::IsNullOrWhiteSpace($_moduleName)) {
+        $_moduleName = ""
     }
-    $fromModule = $null -ne $ModuleName
+    $fromModule = $null -ne $_moduleName
     $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
     $nonModuleBehaviors = [System.Collections.Generic.List[Object]]@()
     foreach ($b in $allBehaviors) {
@@ -1096,7 +1101,7 @@ function Invoke-Mock {
         # the behaviors for other modules we don't care about so we
         # don't collect them
         if ($fromModule) {
-            if ($ModuleName -eq $b.ModuleName) {
+            if ($_moduleName -eq $b.ModuleName) {
                 $moduleBehaviors.Add($b)
             }
         }
@@ -1107,7 +1112,7 @@ function Invoke-Mock {
     }
 
     # if any behaviors exist for this module, use them. Otherwise use the non module behaviors
-    $detectedModule, $behaviors = if ($null -ne $moduleBehaviors -and 0 -ne $moduleBehaviors.Count) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
+    $detectedModule, $behaviors = if ($null -ne $moduleBehaviors -and 0 -ne $moduleBehaviors.Count) { $_moduleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 
     Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory

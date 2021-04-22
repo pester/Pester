@@ -33,7 +33,7 @@ function New-MockBehavior {
 
     [PSCustomObject] @{
         CommandName = $ContextInfo.Command.Name
-        ModuleName  = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
+        ModuleName  = $ContextInfo.TargetModule
         Filter      = $ParameterFilter
         IsDefault   = $null -eq $ParameterFilter
         Verifiable  = $Verifiable
@@ -54,7 +54,7 @@ function EscapeSingleQuotedStringContent ($Content) {
 
 function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $commandName = $contextInfo.Command.Name
-    $moduleName = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { '' }
+    $moduleName = $contextInfo.TargetModule
     $metadata = $contextInfo.CommandMetadata
     $cmdletBinding = ''
     $paramBlock = ''
@@ -201,7 +201,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $mock = @{
         OriginalCommand         = $contextInfo.Command
         OriginalMetadata        = $contextInfo.CommandMetadata
-        OriginalMetadata2        = $contextInfo.CommandMetadata2
+        OriginalMetadata2       = $contextInfo.CommandMetadata2
         CommandName             = $commandName
         SessionState            = $contextInfo.SessionState
         CallerSessionState      = $contextInfo.CallerSessionState
@@ -367,7 +367,7 @@ function Should-InvokeInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $ModuleName = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
+    $ModuleName =  $ContextInfo.TargetModule
     $CommandName = $ContextInfo.Command.Name
 
     $callHistory = $MockTable["$ModuleName||$CommandName"]
@@ -420,7 +420,8 @@ function Should-InvokeInternal {
                 FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times but was called $($matchingCalls.Count) times"
             }
         }
-    } else {
+    }
+    else {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
@@ -621,7 +622,7 @@ function Resolve-Command {
         return @{
             Command                 = $command.Mock.Hook.OriginalCommand
             CommandMetadata         = $command.Mock.Hook.OriginalMetadata
-            CommandMetadata2         = $command.Mock.Hook.OriginalMetadata2
+            CommandMetadata2        = $command.Mock.Hook.OriginalMetadata2
             # the session state of the target module
             SessionState            = $command.Mock.Hook.SessionState
             # the session state in which we invoke the mock body (where the test runs)
@@ -630,8 +631,9 @@ function Resolve-Command {
             Module                  = $command.Mock.Hook.OriginalCommand.Module
             # true if we inserted the mock into a module
             IsFromModule            = $null -ne $module
+            TargetModule            = $ModuleName
             # true if the commmand comes from the target module
-            IsFromRequestedModule   = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
+            IsFromTargetModule      = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
             IsMockBootstrapFunction = $true
             Hook                    = $command.Mock.Hook
         }
@@ -647,7 +649,11 @@ function Resolve-Command {
         Module                  = $module
 
         IsFromModule            = $null -ne $module
-        IsFromRequestedModule   = $null -ne $module -and $module.Name -eq $ModuleName
+        # The target module in which we are inserting the mock, this may not be the same as the module in which the
+        # function is defined. For example when module m exports function f, and we mock it in script scope or in module o.
+        # They would be the same if we mock an internal function in module m by specifying -ModuleName m, to be able to test it.
+        TargetModule            = $ModuleName
+        IsFromTargetModule      = $null -ne $module -and $module.Name -eq $ModuleName
         IsMockBootstrapFunction = $false
         Hook                    = $null
     }
@@ -1108,7 +1114,7 @@ function Test-ParameterFilter {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) {foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" }}) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
