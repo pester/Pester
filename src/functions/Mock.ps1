@@ -36,6 +36,7 @@ function New-MockBehavior {
         ModuleName  = $ContextInfo.TargetModule
         Filter      = $ParameterFilter
         IsDefault   = $null -eq $ParameterFilter
+        IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
         Verifiable  = $Verifiable
         ScriptBlock = $MockWith
         Hook        = $Hook
@@ -878,7 +879,7 @@ function FindMatchingBehavior {
     )
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Finding a mock behavior."
+        Write-PesterDebugMessage -Scope Mock "Finding behavior to use, one that passes filter or a default:"
     }
 
     $foundDefaultBehavior = $false
