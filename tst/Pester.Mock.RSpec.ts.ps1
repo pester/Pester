@@ -992,7 +992,7 @@ i -PassThru:$PassThru {
     }
 
     b "Mock not found throws" {
-        dt "Resolving to function that is not a mock in Should -Invoke throws helpful message" {
+        t "Resolving to function that is not a mock in Should -Invoke throws helpful message" {
             # https://github.com/pester/Pester/issues/1878
             $sb = {
                 BeforeAll {
