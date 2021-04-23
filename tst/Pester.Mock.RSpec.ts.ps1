@@ -1020,8 +1020,8 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Mock `$PesterBoundParameters with bound parameters in body and filter" {
-        t "Mock has `$PesterBoundParameters with bound parameters in body and filter" {
+    b "Mock `$PesterBoundParameters" {
+        dt "Mock has `$PesterBoundParameters with bound parameters in body and filter" {
             # https://github.com/pester/Pester/issues/1542
             $sb = {
                 BeforeAll {
@@ -1042,15 +1042,15 @@ i -PassThru:$PassThru {
 
                         $container = @{}
                         Mock i -MockWith {
-                            $container.MockBoundParamters = $PesterBoundParameters
-                        } -ModuleName $_.ModuleName -ParameterFilter {
-                            $container.FilterBoundParamters = $PesterBoundParameters
+                            $container.MockBoundParameters = $PesterBoundParameters
+                        } -ParameterFilter {
+                            $container.FilterBoundParameters = $PesterBoundParameters
                             $true
                         }
 
                         i -a aaa
-                        $container.MockBoundParamters.a | Should -Be "aaa"
-                        $container.FilterBoundParamters.a | Should -Be "aaa"
+                        $container.MockBoundParameters.a | Should -Be "aaa"
+                        $container.FilterBoundParameters.a | Should -Be "aaa"
                     }
                 }
             }
