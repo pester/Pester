@@ -1021,7 +1021,7 @@ i -PassThru:$PassThru {
     }
 
     b "Mock `$PesterBoundParameters" {
-        dt "Mock has `$PesterBoundParameters with bound parameters in body and filter" {
+        t "Mock has `$PesterBoundParameters with bound parameters in body and filter" {
             # https://github.com/pester/Pester/issues/1542
             $sb = {
                 BeforeAll {
