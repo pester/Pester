@@ -697,7 +697,7 @@ function Invoke-Pester {
         # TODO: Remove all references to mock table, there should not be many.
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
-        Remove-MockFunctionsAndAliases
+        Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
     }
 
     end {
