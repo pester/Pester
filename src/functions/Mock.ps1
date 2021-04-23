@@ -199,6 +199,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $mockScript = [scriptblock]::Create($code)
 
+    $mockName = "PesterMock_$(if ([string]::IsNullOrEmpty($ModuleName)) { "<none>" } else { $ModuleName })_$CommandName_$([Guid]::NewGuid().Guid)"
+
     $mock = @{
         OriginalCommand         = $contextInfo.Command
         OriginalMetadata        = $contextInfo.CommandMetadata
@@ -209,7 +211,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Metadata                = $metadata
         DynamicParamScriptBlock = $dynamicParamScriptBlock
         Aliases                 = [Collections.Generic.List[object]]@($commandName)
-        BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
+        BootstrapFunctionName   = $mockName
     }
 
     if ($mock.OriginalCommand.ModuleName) {
@@ -557,6 +559,7 @@ function Resolve-Command {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName."
     }
+
     if ($ModuleName) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
@@ -586,25 +589,24 @@ function Resolve-Command {
             }
         }
     }
-
-    if (-not $command) {
-
-
-        # TODO: this resolves the command in the caller scope if the command was not found in the module scope, but that does not make sense does it? When the user specifies that he want's to use Module it should use just Module. Disabling the fall through makes tests fail.
+    else {
+        # we used to fallback to the script scope when command was not found in the module, we no longer do that
+        # now we just search the script scope when module name is not specified. This was probably needed because of
+        # some incosistencies of resolving the mocks. But it never made sense to me.
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the caller scope."
+            Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the script scope."
         }
         Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $SessionState
         $command, $commandMetadata, $commandMetadata2 = & $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
+                Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the script scope$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
             }
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in the caller scope."
+                Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in the script scope."
             }
         }
     }
@@ -1519,12 +1521,32 @@ function Remove-MockFunctionsAndAliases {
     # So before putting Pester state in place we should make sure that all Pester mocks are gone
     # by deleting every alias pointing to a function that starts with PesterMock_. Then we also delete the
     # bootstrap function.
-    foreach ($alias in (& $script:SafeCommands['Get-Alias'] -Definition "PesterMock_*")) {
-        & $script:SafeCommands['Remove-Item'] "alias:/$($alias.Name)"
+    $Get_Alias = $script:SafeCommands['Get-Alias']
+    $Get_Command = $script:SafeCommands['Get-Command']
+    $Remove_Item = $script:SafeCommands['Remove-Item']
+    foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
+        & $Remove_Item "alias:/$($alias.Name)"
     }
 
-    foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*")) {
-        & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
+    foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
+        & $Remove_Item "function:/$($bootstrapFunction.Name)"
+    }
+
+    # clean up also in all loaded script modules
+    $modules = & $script:SafeCommands['Get-Module']
+    foreach ($module in $modules) {
+        if ('Script' -eq $module.ModuleType) {
+            & ($module) {
+                param ($Get_Alias, $Get_Command, $Remove_Item)
+                foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
+                    & $Remove_Item "alias:/$($alias.Name)"
+                }
+
+                foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
+                    & $Remove_Item "function:/$($bootstrapFunction.Name)"
+                }
+            } $Get_Alias $Get_Command $Remove_Item
+        }
     }
 }
 

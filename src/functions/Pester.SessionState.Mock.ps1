@@ -990,7 +990,18 @@ to the original.
     }
 
     $SessionState = $CallerSessionState
+    # This resolve happens only because we need to resolve from an alias to the real command
+    # name, and we cannot know what all aliases are there for a command in the module, easily,
+    # we could short circuit this resolve when we find history, and only resolve if we don't
+    # have any history. We could also keep info about the alias from which we originally
+    # resolved the command, which would give us another piece of info. But without scanning
+    # all the aliases in the module we won't be able to get rid of this, but that would be
+    # cost we would have to pay all the time, instead of just doing extra resolve when we find
+    # no history.
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
+    if ($null -eq $contextInfo.Hook) {
+        throw "Should -Invoke: Could not find Mock for command $CommandName in module $ModuleName. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are both Mock and Should -Invoke using the same -ModuleName?"
+    }
     $resolvedModule = $contextInfo.TargetModule
     $resolvedCommand = $contextInfo.Command.Name
 
