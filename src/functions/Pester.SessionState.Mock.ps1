@@ -238,11 +238,17 @@ https://pester.dev/docs/usage/mocking
         return
     }
 
+    $SessionState = $PSCmdlet.SessionState
+
+    # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
+    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+        $ModuleName = $SessionState.Module.Name
+    }
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
 
-    $SessionState = $PSCmdlet.SessionState
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
@@ -875,6 +881,12 @@ to the original.
     # Assert-DescribeInProgress -CommandName Should -Invoke
     if ('Describe', 'Context', 'It' -notcontains $Scope -and $Scope -notmatch "^\d+$") {
         throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
+    }
+
+    if (-not $PSBoundParameters.ContainsKey("ModuleName")) {
+        # user did not specify the target module, using the caller session state module name
+        # to ensure we bind to the current module when running in InModuleScope
+        $ModuleName = if ($CallerSessionState.Module) { $CallerSessionState.Module.Name } else { $null }
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'ExclusiveFilter' -and $Negate) {
