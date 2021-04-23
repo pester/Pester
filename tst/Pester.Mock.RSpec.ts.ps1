@@ -941,7 +941,6 @@ i -PassThru:$PassThru {
 
                         g | Should -Be "mock in script"
 
-                        # Should -Invoke f -ModuleName m -Exactly 0
                         Should -Invoke f -Exactly 1
                     }
                 }
@@ -989,6 +988,35 @@ i -PassThru:$PassThru {
             $commands | Verify-Null
             $pesterCommands = & (Get-Module Pester) { Get-Command | Where-Object { $_.Name -like "*ccc" } }
             $pesterCommands | Verify-Null
+        }
+    }
+
+    b "Mock not found throws" {
+        dt "Resolving to function that is not a mock in Should -Invoke throws helpful message" {
+            # https://github.com/pester/Pester/issues/1878
+            $sb = {
+                BeforeAll {
+                    Get-Module m | Remove-Module
+                    New-Module m -ScriptBlock { } | Import-Module
+                }
+
+                Describe "d" {
+                    It "i" {
+                        Mock Start-Job -ModuleName m
+
+                        # trying to assert on command that is not mocked in script scope
+                        Should -Invoke Start-Job
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Failed"
+            $t.ErrorRecord[0] | Verify-Equal 'Should -Invoke: Could not find Mock for command Start-Job in script scope. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?'
         }
     }
 }
