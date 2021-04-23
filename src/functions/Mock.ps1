@@ -1513,7 +1513,7 @@ function Test-IsClosure {
     )
 }
 
-function Remove-MockFunctionsAndAliases {
+function Remove-MockFunctionsAndAliases ($SessionState) {
     # when a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
     # the aliases and bootstrap functions for the currently mocked functions will remain in place
     # Then on subsequent runs the bootstrap function will be picked up instead of the real command,
@@ -1532,20 +1532,26 @@ function Remove-MockFunctionsAndAliases {
         & $Remove_Item "function:/$($bootstrapFunction.Name)"
     }
 
+    $ScriptBlock = {
+        param ($Get_Alias, $Get_Command, $Remove_Item)
+        foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
+            & $Remove_Item "alias:/$($alias.Name)"
+        }
+
+        foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
+            & $Remove_Item "function:/$($bootstrapFunction.Name)"
+        }
+    }
+
+    # clean up in caller session state
+    Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
+    & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+
     # clean up also in all loaded script modules
     $modules = & $script:SafeCommands['Get-Module']
     foreach ($module in $modules) {
         if ('Script' -eq $module.ModuleType) {
-            & ($module) {
-                param ($Get_Alias, $Get_Command, $Remove_Item)
-                foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
-                    & $Remove_Item "alias:/$($alias.Name)"
-                }
-
-                foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
-                    & $Remove_Item "function:/$($bootstrapFunction.Name)"
-                }
-            } $Get_Alias $Get_Command $Remove_Item
+            & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
         }
     }
 }

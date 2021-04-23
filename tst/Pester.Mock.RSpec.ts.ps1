@@ -816,4 +816,179 @@ i -PassThru:$PassThru {
             $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
         }
     }
+
+    b "Mocking across modules" {
+        t "Mock defined in module is not called when calling from script" {
+            $sb = {
+                BeforeAll {
+                    Get-Module m | Remove-Module
+                    New-Module m -ScriptBlock {
+                        function f ($a) { "real in module m" }
+                    } | Import-Module
+                }
+
+                Describe "d" {
+                    It "i" {
+                        Mock f -ModuleName m { "mock in m" }
+
+                        # called in script, invokes real function
+                        f | Should -Be "real in module m"
+
+                        Should -Invoke f -ModuleName m -Exactly 0
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+
+        t "Mock defined in module is called when calling from that module" {
+            $sb = {
+                BeforeAll {
+                    Get-Module m | Remove-Module
+                    New-Module m -ScriptBlock {
+                        function f ($a) { "real in module m" }
+                    } | Import-Module
+                }
+
+                Describe "d" {
+                    It "i" {
+                        Mock f -ModuleName m { "mock in module m" }
+
+                        # called in script, invokes real function
+                        & (Get-Module m ) { f } | Should -Be "mock in module m"
+
+                        Should -Invoke f -ModuleName m -Exactly 1
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+
+        t "Mock defined in module is called when public function invokes the mocked function in that module" {
+            $sb = {
+                BeforeAll {
+                    Get-Module m, n | Remove-Module
+                    New-Module m -ScriptBlock {
+                        function f ($a) { "real in module m" }
+                    } | Import-Module
+
+                    New-Module n -ScriptBlock {
+                        # n can call f that is exported from m, but it calls it from within
+                        # module n, so the mock needs to be effective in n
+                        function g () { f }
+                    } | Import-Module
+                }
+
+                Describe "d" {
+                    It "i" {
+                        Mock f -ModuleName n { "mock in module n" }
+
+                        # this mock in m is ignored
+                        Mock f -ModuleName m { "mock in module m" }
+
+                        # this mock in script is ignored
+                        Mock f { "mock in script" }
+
+
+                        # called in script, but invokes function in module n
+                        g | Should -Be "mock in module n"
+
+                        Should -Invoke f -ModuleName n -Exactly 1
+                        Should -Invoke f -ModuleName m -Exactly 0
+                        Should -Invoke f -Exactly 0
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+
+        t "Mock defined in module falls back to script default behavior when no default behavior is defined in the module" {
+            $sb = {
+                BeforeAll {
+                    Get-Module m | Remove-Module
+                    New-Module m -ScriptBlock {
+                        function f ($a) { "real in module m" }
+
+                        function g () { f }
+                    } | Import-Module
+                }
+
+                Describe "d" {
+                    It "i" {
+                        # we fallback to this from the module when no filtered mock is matched there
+                        # but we don't fallback to it when we don't have any mock in the module, because
+                        # there is no hook
+                        Mock f { "mock in script" }
+                        Mock f -ModuleName m { "mock in module" } -ParameterFilter { $false }
+
+                        g | Should -Be "mock in script"
+
+                        # Should -Invoke f -ModuleName m -Exactly 0
+                        Should -Invoke f -Exactly 1
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Mock cleanup" {
+        t "Invoke-Pester cleans up orphaned mock hooks and aliases in modules" {
+
+            # define mock like functions in third party module
+            Get-Module m | Remove-Module
+            New-Module m -ScriptBlock {
+                function PesterMock_aaa () { }
+                Set-Alias -Name aaa -Value PesterMock_aaa
+
+                Export-ModuleMember -Function ""
+            } | Import-Module
+
+            # in caller scope
+            function PesterMock_bbb () { }
+            Set-Alias -Name bbb -Value PesterMock_bbb
+
+            # and in Pester module
+            . (Get-Module Pester) {
+                function PesterMock_ccc () { }
+                Set-Alias -Name aaa -Value PesterMock_aaa
+            }
+
+            # just trigger empty run to get cleanup
+            Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = {}; PassThru = $true }
+            })
+
+            $moduleCommands = & (Get-Module m) { Get-Command | Where-Object { $_.Name -like "*aaa" } }
+            $moduleCommands | Verify-Null
+            $commands = Get-Command | Where-Object { $_.Name -like "*bbb" }
+            $commands | Verify-Null
+            $pesterCommands = & (Get-Module Pester) { Get-Command | Where-Object { $_.Name -like "*ccc" } }
+            $pesterCommands | Verify-Null
+        }
+    }
 }
