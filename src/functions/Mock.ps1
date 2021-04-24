@@ -996,6 +996,8 @@ function ExecuteBehavior {
             }
             catch {
             }) -ScriptBlock ${Script Block}
+        # define this in the current scope to be used instead of $PSBoundParameter if needed
+        $PesterBoundParameters = if ($null -ne $___BoundParameters___) { $___BoundParameters___ } else { @{} }
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
@@ -1103,6 +1105,9 @@ function Test-ParameterFilter {
         foreach ($private:______current in $private:______mock_parameters.Context.GetEnumerator()) {
             $private:______mock_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
         }
+
+        # define this in the current scope to be used instead of $PSBoundParameter if needed
+        $PesterBoundParameters = if ($null -ne $private:______mock_parameters.Context) { $private:______mock_parameters.Context } else { @{} }
 
         #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
         # this should not be private, it should leak into Should command when used in ParameterFilter

@@ -1019,4 +1019,48 @@ i -PassThru:$PassThru {
             $t.ErrorRecord[0] | Verify-Equal 'Should -Invoke: Could not find Mock for command Start-Job in script scope. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?'
         }
     }
+
+    b "Mock `$PesterBoundParameters" {
+        t "Mock has `$PesterBoundParameters with bound parameters in body and filter" {
+            # https://github.com/pester/Pester/issues/1542
+            $sb = {
+                BeforeAll {
+                    Get-Module m | Remove-Module
+                    New-Module m -ScriptBlock {
+                        function i {
+                            [CmdletBinding()]
+                            param ($a, $b)
+                        }
+                    } | Import-Module
+                }
+
+                Describe "d" {
+                    BeforeAll {
+                    }
+
+                    It "i" {
+
+                        $container = @{}
+                        Mock i -MockWith {
+                            $container.MockBoundParameters = $PesterBoundParameters
+                        } -ParameterFilter {
+                            $container.FilterBoundParameters = $PesterBoundParameters
+                            $true
+                        }
+
+                        i -a aaa
+                        $container.MockBoundParameters.a | Should -Be "aaa"
+                        $container.FilterBoundParameters.a | Should -Be "aaa"
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run = @{ ScriptBlock = $sb; PassThru = $true }
+            })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
 }
