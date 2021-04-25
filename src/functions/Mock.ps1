@@ -199,7 +199,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $mockScript = [scriptblock]::Create($code)
 
-    $mockName = "PesterMock_$(if ([string]::IsNullOrEmpty($ModuleName)) { "<none>" } else { $ModuleName })_$CommandName_$([Guid]::NewGuid().Guid)"
+    $mockName = "PesterMock_$(if ([string]::IsNullOrEmpty($ModuleName)) { "script" } else { $ModuleName })_${CommandName}_$([Guid]::NewGuid().Guid)"
 
     $mock = @{
         OriginalCommand         = $contextInfo.Command

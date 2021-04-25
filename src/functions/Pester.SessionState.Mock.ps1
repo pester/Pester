@@ -1116,7 +1116,7 @@ function Invoke-Mock {
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Filtering behaviors for command $CommandName, for target module $(if ($targettingAModule) { $TargetModule } else { '$null' }) (shows all behaviors, actual filtered list is further in the log, look for 'Filtered parametrized behaviors:' and 'Filtered default behaviors:'):"
+        Write-PesterDebugMessage -Scope Mock -Message "Filtering behaviors for command $CommandName, for target module $(if ($targettingAModule) { $TargetModule } else { '$null' }) (Showing all behaviors for this command, actual filtered list is further in the log, look for 'Filtered parametrized behaviors:' and 'Filtered default behaviors:'):"
     }
 
     $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
@@ -1156,7 +1156,7 @@ function Invoke-Mock {
             else {
                 # not the targetted module, skip it
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $TargetModule, skipping it:`n$(& $getBehaviorMessage $b)"
+                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targettingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
                 }
             }
         }
@@ -1231,7 +1231,7 @@ function Invoke-Mock {
             }
         }
         if (-not $any) {
-            $message = "<none>"
+            $message = '$null'
         }
         Write-PesterDebugMessage -Scope Mock -Message "Filtered parametrized behaviors:`n$message"
 
@@ -1241,7 +1241,7 @@ function Invoke-Mock {
                 break
             }
         }
-        $message = if ($null -ne $default) { & $getBehaviorMessage $b } else { "<none>" }
+        $message = if ($null -ne $default) { & $getBehaviorMessage $b } else { '$null' }
         $fallBack = if ($null -ne $default -and $targettingAModule -and [string]::IsNullOrEmpty($b.ModuleName) ) { " (fallback to script scope default behavior)" } else { $null }
         Write-PesterDebugMessage -Scope Mock -Message "Filtered default behavior$($fallBack):`n$message"
     }
