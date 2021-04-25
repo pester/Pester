@@ -32,6 +32,7 @@ function Enter-CoverageAnalysis {
             & $logger "Using single hit breakpoints."
         }
 
+        # remove itself on hit
         { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
     }
     else {
@@ -39,7 +40,8 @@ function Enter-CoverageAnalysis {
             & $logger "Using normal breakpoints."
         }
 
-        {} # empty ScriptBlock
+        # empty ScriptBlock
+        {}
     }
 
     foreach ($breakpoint in $breakpoints) {
@@ -355,15 +357,9 @@ function New-CoverageBreakpoint {
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
-        Action = if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) { {} } else { $null }
-    }
-
-
-    if (!$PesterPreference.CodeCoverage.DelayWritingBreakpoints.Value) {
-        $breakpoint = & $SafeCommands['Set-PSBreakPoint'] @params
-    }
-    else {
-        $breakpoint = $null
+        # we write the breakpoint later, the action will become empty scriptblock
+        # or scriptblock that removes the breakpoint on hit depending on configuration
+        Action = $null
     }
 
     [pscustomobject] @{
@@ -375,7 +371,8 @@ function New-CoverageBreakpoint {
         StartColumn         = $Command.Extent.StartColumnNumber
         EndColumn           = $Command.Extent.EndColumnNumber
         Command             = Get-CoverageCommandText -Ast $Command
-        Breakpoint          = $breakpoint
+        # keep property for breakpoint but we will set it later
+        Breakpoint          = $null
         BreakpointLocation  = $params
     }
 }

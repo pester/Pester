@@ -28,8 +28,7 @@ namespace Pester
         private StringArrayOption _path;
         private BoolOption _excludeTests;
         private BoolOption _recursePaths;
-        private BoolOption _delayBps;
-        private BoolOption _shBp;
+        private BoolOption _singleHitBreakpoints;
         private DecimalOption _coveragePercentTarget;
 
 
@@ -48,11 +47,8 @@ namespace Pester
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
-            CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%", 75m);
-
-            SingleHitBreakpoints = new BoolOption("EXPERIMENTAL: Remove breakpoint when it is hit.", true);
-            DelayWritingBreakpoints = new BoolOption("EXPERIMENTAL: Try writing breakpoints all at once.", true);
-
+            CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%.", 75m);
+            SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit.", true);
         }
 
         public CodeCoverageConfiguration(IDictionary configuration) : this()
@@ -69,7 +65,6 @@ namespace Pester
                 CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
 
                 SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
-                DelayWritingBreakpoints = configuration.GetValueOrNull<bool>("DelayWritingBreakpoints") ?? DelayWritingBreakpoints;
             }
         }
 
@@ -202,35 +197,18 @@ namespace Pester
             }
         }
 
-
-        public BoolOption DelayWritingBreakpoints
-        {
-            get { return _delayBps; }
-            set
-            {
-                if (_delayBps == null)
-                {
-                    _delayBps = value;
-                }
-                else
-                {
-                    _delayBps = new BoolOption(_delayBps, value.Value);
-                }
-            }
-        }
-
         public BoolOption SingleHitBreakpoints
         {
-            get { return _shBp; }
+            get { return _singleHitBreakpoints; }
             set
             {
-                if (_shBp == null)
+                if (_singleHitBreakpoints == null)
                 {
-                    _shBp = value;
+                    _singleHitBreakpoints = value;
                 }
                 else
                 {
-                    _shBp = new BoolOption(_shBp, value.Value);
+                    _singleHitBreakpoints = new BoolOption(_singleHitBreakpoints, value.Value);
                 }
             }
         }
