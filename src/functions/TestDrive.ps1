@@ -8,105 +8,90 @@ function Get-TestDrivePlugin {
     }
     New-PluginObject -Name "TestDrive" -EachBlockSetupStart {
         param($Context)
-        if (-not ($Context.Block.PluginData.ContainsKey('TestDrive'))) {
-            $Context.Block.PluginData.Add('TestDrive', @{
-                    TestDriveAdded   = $false
-                    TestDriveContent = $null
-                })
+
+        if ($Context.Block.IsRoot)
+        {
+            return
         }
 
-        # TODO: Add option, but probably in a more generic way
-        # if (-not $NoTestDrive)
-        # {
-        if (-not (& $script:SafeCommands['Test-Path'] TestDrive:\)) {
-            New-TestDrive
-            $Context.Block.PluginData.TestDrive.TestDriveAdded = $true
+        # we check parent in both cases, if there is none we are in root
+        $td = if ($Context.Block.Parent.IsRoot) {
+            # this is top-level block setup test drive
+            $path = New-TestDrive
+            @{
+                TestDriveAdded   = $true
+                TestDriveContent = $null
+                TestDrivePath    = $path
+            }
         }
         else {
-            $Context.Block.PluginData.TestDrive.TestDriveContent = Get-TestDriveChildItem
+            $testDrivePath = $Context.Block.Parent.PluginData['TestDrive'].TestDrivePath
+            @{
+                TestDriveAdded   = $false
+                TestDriveContent = Get-TestDriveChildItem -TestDrivePath $testDrivePath
+                TestDrivePath    = $testDrivePath
+            }
         }
-        # }
-
     } -EachBlockTearDownEnd {
-        # if (-not $NoTestDrive)
-        # {
-        if ($Context.Block.PluginData.TestDrive.TestDriveAdded) {
-            Remove-TestDrive
+        param($Context)
+
+        if ($Context.Block.IsRoot)
+        {
+            return
+        }
+
+        if ($Context.Block.Parent -and $Context.Block.Parent.IsRoot) {
+            # this is top-level block remove test drive
+            Remove-TestDrive -TestDrivePath $Context.Block.PluginData['TestDrive'].TestDrivePath
         }
         else {
-            Clear-TestDrive -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent | & $SafeCommands['Select-Object'] -ExpandProperty FullName)
+            Clear-TestDrive -TestDrivePath $Context.Block.PluginData['TestDrive'].TestDrivePath -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent )
         }
-        # }
     }
 }
 
-function New-TestDrive ([Switch]$PassThru, [string] $Path) {
-    if ($Path -notmatch '\S') {
-        $directory = New-RandomTempDirectory
-    }
-    else {
-        if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
-            $null = & $SafeCommands['New-Item'] -ItemType Container -Path $Path
-        }
-
-        $directory = & $SafeCommands['Get-Item'] $Path
-    }
-
+function New-TestDrive () {
+    $directory = New-RandomTempDirectory
     $DriveName = "TestDrive"
-
-    #setup the test drive
-    if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") ) {
-        $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description "Pester test drive"
-    }
+    $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description "Pester test drive"
 
     #publish the global TestDrive variable used in few places within the module
     if (-not (& $SafeCommands['Test-Path'] "Variable:Global:$DriveName")) {
         & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $directory
     }
 
-    if ( $PassThru ) {
-        & $SafeCommands['Get-PSDrive'] -Name $DriveName
-    }
+    $directory
 }
 
 
-function Clear-TestDrive ([String[]]$Exclude) {
-    $drive = & $SafeCommands['Get-PSDrive'] -Name TestDrive -ErrorAction Ignore
+function Clear-TestDrive ([string]$TestDrivePath, [string[]]$Exclude) {
 
-    if ($null -eq $drive) {
-        # someone cleared it up before us, maybe a Pester running in a child scope
-        return
-    }
+    if ([IO.Directory]::Exists($TestDrivePath)) {
 
-    $Path = $drive.Root
+        Remove-TestDriveSymbolicLinks -Path $TestDrivePath
 
-    $Path = (& $SafeCommands['Get-PSDrive'] -Name TestDrive).Root
-    if (& $SafeCommands['Test-Path'] -Path $Path ) {
+        foreach ($i in [IO.Directory]::GetFileSystemEntries($TestDrivePath, "*.*", [System.IO.SearchOption]::AllDirectories)) {
+            if ($Exclude -contains $i) {
+                continue
+            }
 
-        Remove-TestDriveSymbolicLinks -Path $Path
-
-        #Get-ChildItem -Exclude did not seem to work with full paths
-        & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
-        & $SafeCommands['Sort-Object'] -Descending  -Property "FullName" |
-        & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.FullName } |
-        & $SafeCommands['Remove-Item'] -Force -Recurse
-
+            & $SafeCommands['Remove-Item'] -Force -Recurse $i -ErrorAction Ignore
+        }
     }
 }
 
 function New-RandomTempDirectory {
     do {
         $tempPath = Get-TempDirectory
-        $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
-    } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
+        $Path = [IO.Path]::Combine($tempPath, ([Guid]::NewGuid()));
+    } until (-not [IO.Directory]::Exists($Path))
 
-    & $SafeCommands['New-Item'] -ItemType Container -Path $Path
+    [IO.Directory]::CreateDirectory($Path)
 }
 
-function Get-TestDriveChildItem {
-    $Path = (& $SafeCommands['Get-PSDrive'] -Name TestDrive).Root
-    if (& $SafeCommands['Test-Path'] -Path $Path ) {
-        & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path
+function Get-TestDriveChildItem ($TestDrivePath) {
+    if ([IO.Directory]::Exists($TestDrivePath)) {
+        [IO.Directory]::GetFileSystemEntries($TestDrivePath, "*.*", [System.IO.SearchOption]::AllDirectories)
     }
 }
 
@@ -133,7 +118,7 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     & $SafeCommands['Foreach-Object'] { $_.Delete() }
 }
 
-function Remove-TestDrive {
+function Remove-TestDrive ($TestDrivePath) {
 
     $DriveName = "TestDrive"
     $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
