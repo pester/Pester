@@ -47,7 +47,7 @@ param (
     [switch] $Inline
 )
 
-
+"PSVersion: $($PSVersionTable)"
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
