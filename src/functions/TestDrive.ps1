@@ -14,23 +14,22 @@ function Get-TestDrivePlugin {
             return
         }
 
-        # we check parent in both cases, if there is none we are in root
-        $td = if ($Context.Block.Parent.IsRoot) {
+        if ($Context.Block.Parent.IsRoot) {
             # this is top-level block setup test drive
             $path = New-TestDrive
-            @{
+            $Context.Block.PluginData.Add('TestDrive', @{
                 TestDriveAdded   = $true
                 TestDriveContent = $null
                 TestDrivePath    = $path
-            }
+            })
         }
         else {
-            $testDrivePath = $Context.Block.Parent.PluginData['TestDrive'].TestDrivePath
-            @{
+            $testDrivePath = $Context.Block.Parent.PluginData.TestDrive.TestDrivePath
+            $Context.Block.PluginData.Add('TestDrive', @{
                 TestDriveAdded   = $false
                 TestDriveContent = Get-TestDriveChildItem -TestDrivePath $testDrivePath
                 TestDrivePath    = $testDrivePath
-            }
+            })
         }
     } -EachBlockTearDownEnd {
         param($Context)
@@ -42,10 +41,10 @@ function Get-TestDrivePlugin {
 
         if ($Context.Block.Parent -and $Context.Block.Parent.IsRoot) {
             # this is top-level block remove test drive
-            Remove-TestDrive -TestDrivePath $Context.Block.PluginData['TestDrive'].TestDrivePath
+            Remove-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath
         }
         else {
-            Clear-TestDrive -TestDrivePath $Context.Block.PluginData['TestDrive'].TestDrivePath -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent )
+            Clear-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent )
         }
     }
 }
