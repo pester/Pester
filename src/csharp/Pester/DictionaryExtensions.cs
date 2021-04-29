@@ -75,16 +75,17 @@ namespace Pester
                     var i = 0;
                     foreach (var j in v)
                     {
+                        if (j is T)
+                        {
+                            arr[i] = (T) j;
+                        }
+
                         if (j is PSObject || j is PathInfo)
                         {
                             if (typeof(T) == typeof(string))
                             {
                                 arr[i] = (T)Convert.ChangeType(j.ToString(), typeof(string));
-                            }
-                            else
-                            {
-                                arr[i] = (T)j;
-                            }
+                            }                            
                         }
                         i++;
                     }
