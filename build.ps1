@@ -52,7 +52,9 @@ $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
+}
 
+if ($Clean) {
     # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
     # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
     # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
@@ -62,6 +64,7 @@ if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
         throw "build failed!"
     }
 }
+
 function Copy-Content ($Content) {
     foreach ($c in $content) {
         $source, $destination = $c
