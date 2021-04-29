@@ -200,6 +200,38 @@ i -PassThru:$PassThru {
             Verify-Same $path[0] -Actual $config.Run.Path.Value[0]
             Verify-Same $path[1] -Actual $config.Run.Path.Value[1]
         }
+
+        t "StringArrayOption can be assigned an System.Management.Automation.PathInfo" {
+            $config = [PesterConfiguration]::Default
+            $path = Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf) | Resolve-Path
+            $config.Run.Path = $path
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+        }
+
+        t "StringArrayOption can be assigned an System.Management.Automation.PathInfo in object array" {
+            $config = [PesterConfiguration]::Default
+            $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf) | Resolve-Path), (Join-Path (Split-Path $PWD ) (Split-Path $PWD -Leaf) | Resolve-Path)
+            $config.Run.Path = $path
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+            Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
+        }
+
+        t "StringArrayOption can be assigned an PSCustomObject from hashtable" {
+            $path = Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf) | Resolve-Path
+            $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+        }
+
+        t "StringArrayOption can be assigned PSCustomObjects in object array" {
+            $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)), (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)) | Resolve-Path
+            $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+            Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
+        }
     }
 
     b "Cloning" {
