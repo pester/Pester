@@ -135,7 +135,7 @@ foreach ($l in $f) {
         $null = $sbf.AppendLine($l)
     }
 }
-Set-Content -Encoding utf8 -Value $sbf.ToString() -Path $p
+Set-Content -Encoding utf8 -Value $sbf.ToString() -Path $p -NoNewline
 
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
     # Force inlining by env variable, build.ps1 is used in

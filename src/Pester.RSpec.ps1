@@ -682,9 +682,3 @@ function New-PesterContainer {
         }
     }
 }
-
-
-
-
-
-
