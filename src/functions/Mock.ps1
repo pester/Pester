@@ -1555,7 +1555,15 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
     # clean up also in all loaded script modules
     $modules = & $script:SafeCommands['Get-Module']
     foreach ($module in $modules) {
-        if ('Script' -eq $module.ModuleType) {
+        # we cleaned up in module on the start of this method without overhead of moving to module scope
+        if ('pester' -eq $module.Name) {
+            continue
+        }
+
+        # some script modules aparently can have no session state
+        # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
+        # https://github.com/pester/Pester/issues/1921
+        if ('Script' -eq $module.ModuleType -and $null -ne $module.SessionState) {
             & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
         }
     }
