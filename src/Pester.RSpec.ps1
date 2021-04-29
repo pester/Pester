@@ -281,6 +281,117 @@ function New-PesterConfiguration {
     options. The returned [PesterConfiguration] object can be modified to suit your
     requirements.
 
+    Sections and options:
+
+    Run:
+      Path: Directories to be searched for tests, paths directly to test files, or combination of both.
+      Default value: .
+
+      ExcludePath: Directories or files to be excluded from the run.
+      Default value: 
+
+      ScriptBlock: ScriptBlocks containing tests to be executed.
+      Default value: 
+
+      Container: ContainerInfo objects containing tests to be executed.
+      Default value: 
+
+      TestExtension: Filter used to identify test files.
+      Default value: .Tests.ps1
+
+      Exit: Exit with non-zero exit code when the test run fails. When used together with Throw, throwing an exception is preferred.
+      Default value: False
+
+      Throw: Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.
+      Default value: False
+
+      PassThru: Return result object to the pipeline after finishing the test run.
+      Default value: False
+
+      SkipRun: Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.
+      Default value: False
+
+    Filter:
+      Tag: Tags of Describe, Context or It to be run.
+      Default value: 
+
+      ExcludeTag: Tags of Describe, Context or It to be excluded from the run.
+      Default value: 
+
+      Line: Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
+      Default value: 
+
+      FullName: Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
+      Default value: 
+
+    CodeCoverage:
+      Enabled: Enable CodeCoverage.
+      Default value: False
+
+      OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters
+      Default value: JaCoCo
+
+      OutputPath: Path relative to the current directory where code coverage report is saved.
+      Default value: coverage.xml
+
+      OutputEncoding: Encoding of the output file.
+      Default value: UTF8
+
+      Path: Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.
+      Default value: 
+
+      ExcludeTests: Exclude tests from code coverage. This uses the TestFilter from general configuration.
+      Default value: True
+
+      RecursePaths: Will recurse through directories in the Path option.
+      Default value: True
+
+      CoveragePercentTarget: Target percent of code coverage that you want to achieve, default 75%.
+      Default value: 75
+
+      SingleHitBreakpoints: Remove breakpoint when it is hit.
+      Default value: True
+
+    TestResult:
+      Enabled: Enable TestResult.
+      Default value: False
+
+      OutputFormat: Format to use for test result report. Possible values: NUnitXml, NUnit2.5 or JUnitXml
+      Default value: NUnitXml
+
+      OutputPath: Path relative to the current directory where test result report is saved.
+      Default value: testResults.xml
+
+      OutputEncoding: Encoding of the output file.
+      Default value: UTF8
+
+      TestSuiteName: Set the name assigned to the root 'test-suite' element.
+      Default value: Pester
+
+    Should:
+      ErrorAction: Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
+      Default value: Stop
+
+    Debug:
+      ShowFullErrors: Show full errors including Pester internal stack.
+      Default value: False
+
+      WriteDebugMessages: Write Debug messages to screen.
+      Default value: False
+
+      WriteDebugMessagesFrom: Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
+      Default value: Discovery Skip Filter Mock CodeCoverage
+
+      ShowNavigationMarkers: Write paths after every block and test, for easy navigation in VSCode.
+      Default value: False
+
+      ReturnRawResultObject: Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.
+      Default value: False
+
+    Output:
+      Verbosity: The verbosity of output, options are None, Normal, Detailed and Diagnostic.
+      Default value: Normal
+
     .PARAMETER Hashtable
     Override the default values for the options defined in the provided dictionary/hashtable.
     Inspect a default [PesterConfiguration] object to learn about the schema and
@@ -571,3 +682,9 @@ function New-PesterContainer {
         }
     }
 }
+
+
+
+
+
+

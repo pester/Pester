@@ -47,11 +47,95 @@ param (
     [switch] $Inline
 )
 
+
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
+
+    # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
+    # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
+    # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
+    $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/src"
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Debug -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
+    if (0 -ne $LASTEXITCODE) {
+        throw "build failed!"
+    }
 }
+function Copy-Content ($Content) {
+    foreach ($c in $content) {
+        $source, $destination = $c
+
+        $null = New-Item -Force $destination -ItemType Directory
+
+        Get-ChildItem $source -File | Copy-Item -Destination $destination
+    }
+}
+
+$content = @(
+    ,("$PSScriptRoot/src/en-US/*.txt","$PSScriptRoot/bin/en-US/")
+    ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
+    ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
+)
+
+if ($Clean) {
+    $content += @(
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Debug/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Debug/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Debug/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
+        ,("$PSScriptRoot/src/csharp/Pester/bin/Debug/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
+    )
+}
+
+Copy-Content -Content $content
+
+
+# update help for New-PesterConfiguration
+if ($PSVersionTable.PSVersion.Major -gt 5) {
+    Import-Module "$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll"
+}
+else {
+    Import-Module "$PSScriptRoot/bin/bin/net452/Pester.dll"
+}
+
+# generate help for config object and insert it
+$configuration = [PesterConfiguration]::Default
+$generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
+    $section = $configuration.($p)
+    "${p}:"
+    foreach ($r in $section.PSObject.Properties.Name) {
+        $option = $section.$r
+        "  ${r}: $($option.Description)`n  Default value: $(if ($null -eq $option.Default) { '$null' } else { $option.Default })`n"
+    }
+}
+
+$p = "$PSScriptRoot/src/Pester.RSpec.ps1"
+$f = Get-Content $p -Encoding utf8
+$sbf = [System.Text.StringBuilder]""
+$generated = $false
+foreach ($l in $f) {
+    if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
+        $null = $sbf.AppendLine("$l`n")
+        $generated = $true
+        $margin = $matches.margin
+
+        foreach ($l in ($generatedConfig -split "`n")) {
+            $m = if ($l) { $margin } else { $null }
+            $null = $sbf.AppendLine("$m$l")
+        }
+    }
+    elseif ($generated -and ($l -match "^\s*(.PARAMETER|.EXAMPLE).*")) {
+        $generated = $false
+    }
+
+    if (-not $generated) {
+        $null = $sbf.AppendLine($l)
+    }
+}
+Set-Content -Encoding utf8 -Value $sbf.ToString() -Path $p
 
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
     # Force inlining by env variable, build.ps1 is used in
@@ -138,46 +222,6 @@ foreach ($f in $files) {
 }
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
-
-function Copy-Content ($Content) {
-    foreach ($c in $content) {
-        $source, $destination = $c
-
-        $null = New-Item -Force $destination -ItemType Directory
-
-        Get-ChildItem $source -File | Copy-Item -Destination $destination
-    }
-}
-
-$content = @(
-    ,("$PSScriptRoot/src/en-US/*.txt","$PSScriptRoot/bin/en-US/")
-    ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
-)
-
-Copy-Content -Content $content
-
-
-if ($Clean) {
-    # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
-    $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/bin"
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
-    if (0 -ne $LASTEXITCODE) {
-        throw "build failed!"
-    }
-
-    $builtDlls += @(
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
-    )
-
-    Copy-Content -Content $builtDlls
-}
 
 $powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
 
