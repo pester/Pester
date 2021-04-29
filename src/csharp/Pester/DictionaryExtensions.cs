@@ -50,6 +50,7 @@ namespace Pester
         {
             if (!dictionary.Contains(key))
                 return null;
+
             var value = dictionary[key];
 
             if (value.GetType() == typeof(T[]))
@@ -57,11 +58,37 @@ namespace Pester
                 return (T[])value;
             }
 
-            if (value.GetType() == typeof(object[]))
+            if (typeof(T) == typeof(string))
+                if (value is PathInfo o)
+                    return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
+
+            if (typeof(T) == typeof(string))
+                if (dictionary[key] is PSObject o)
+                    return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
+
+            if (value is object[] v)
             {
                 try
                 {
-                    return ((object[])value).Cast<T>().ToArray();
+                    var arr = new T[v.Length];
+
+                    var i = 0;
+                    foreach (var j in v)
+                    {
+                        if (j is PSObject || j is PathInfo)
+                        {
+                            if (typeof(T) == typeof(string))
+                            {
+                                arr[i] = (T)Convert.ChangeType(j.ToString(), typeof(string));
+                            }
+                            else
+                            {
+                                arr[i] = (T)j;
+                            }
+                        }
+                        i++;
+                    }
+                    return arr;
                 }
                 catch { }
             }
