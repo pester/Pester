@@ -97,10 +97,10 @@ Copy-Content -Content $content
 
 # update help for New-PesterConfiguration
 if ($PSVersionTable.PSVersion.Major -gt 5) {
-    Import-Module "$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll"
+    $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll")
 }
 else {
-    Import-Module "$PSScriptRoot/bin/bin/net452/Pester.dll"
+    $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net452/Pester.dll")
 }
 
 function Format-NicelyMini ($value) {
@@ -143,7 +143,8 @@ $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
     "${p}:"
     foreach ($r in $section.PSObject.Properties.Name) {
         $option = $section.$r
-        "  ${r}: $($option.Description)`n  Default value: $(Format-NicelyMini $option.Default)`n"
+        $default = Format-NicelyMini $option.Default
+        "  ${r}: $($option.Description)`n  Default value: $default`n"
     }
 }
 
