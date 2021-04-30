@@ -47,7 +47,7 @@ param (
     [switch] $Inline
 )
 
-"PSVersion: $($PSVersionTable)"
+"PSVersion: $($PSVersionTable.PSVersion)"
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
@@ -138,7 +138,7 @@ foreach ($l in $f) {
         $null = $sbf.AppendLine($l)
     }
 }
-Set-Content -Encoding utf8 -Value $sbf.ToString() -Path $p -NoNewline
+Set-Content -Encoding utf8 -Value $sbf.ToString().TrimEnd() -Path $p
 
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
     # Force inlining by env variable, build.ps1 is used in
