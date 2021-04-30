@@ -47,7 +47,6 @@ param (
     [switch] $Inline
 )
 
-"PSVersion: $($PSVersionTable.PSVersion)"
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
@@ -76,20 +75,20 @@ function Copy-Content ($Content) {
 }
 
 $content = @(
-    ,("$PSScriptRoot/src/en-US/*.txt","$PSScriptRoot/bin/en-US/")
-    ,("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
-    ,("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
+    , ("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
 )
 
 if ($Clean) {
     $content += @(
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll","$PSScriptRoot/bin/bin/net452/")
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb","$PSScriptRoot/bin/bin/net452/")
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll","$PSScriptRoot/bin/bin/netstandard2.0/")
-        ,("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb","$PSScriptRoot/bin/bin/netstandard2.0/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll", "$PSScriptRoot/bin/bin/net452/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb", "$PSScriptRoot/bin/bin/net452/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll", "$PSScriptRoot/bin/bin/netstandard2.0/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb", "$PSScriptRoot/bin/bin/netstandard2.0/")
     )
 }
 
@@ -104,6 +103,39 @@ else {
     Import-Module "$PSScriptRoot/bin/bin/net452/Pester.dll"
 }
 
+function Format-NicelyMini ($value) {
+    if ($value -is [bool]) {
+        if ($value) {
+            '$true'
+        }
+        else {
+            '$false'
+        }
+    }
+
+    if ($value -is [int] -or $value -is [decimal]) {
+        return $value
+    }
+
+    if ($value -is [string]) {
+        if ([String]::IsNullOrEmpty($value)) {
+            return '$null'
+        }
+        else {
+            return "'$value'"
+        }
+    }
+
+    if ($value -is [object[]]) {
+        if (0 -eq $value.Count) {
+            return '@()'
+        }
+        $v = foreach ($i in $value) {
+            Format-NicelyMini $i
+        }
+        return "@($($v -join ', '))"
+    }
+}
 # generate help for config object and insert it
 $configuration = [PesterConfiguration]::Default
 $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
@@ -111,7 +143,7 @@ $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
     "${p}:"
     foreach ($r in $section.PSObject.Properties.Name) {
         $option = $section.$r
-        "  ${r}: $($option.Description)`n  Default value: $(if ($null -eq $option.Default) { '$null' } else { $option.Default })`n"
+        "  ${r}: $($option.Description)`n  Default value: $(Format-NicelyMini $option.Default)`n"
     }
 }
 
