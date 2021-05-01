@@ -379,72 +379,9 @@ function Invoke-Pester {
 
     Invoke-Pester -Configuration <PesterConfiguration> [<CommonParameters>]
 
-    Default is [PesterConfiguration]::Default
+    Default is New-PesterConfiguration.
 
-    ConfigurationProperties include following:
-
-    [PesterConfiguration]::Default.Run
-    ---
-    Run.ExcludePath - Directories or files to be excluded from the run.
-    Run.Exit - Exit with non-zero exit code when the test run fails.
-        Default is: false
-    Run.PassThru - Return result object to the pipeline after finishing the test run.
-        Default is: false
-    Run.Path - Directories to be searched for tests, paths directly to test files, or combination of both.
-        Default is: .
-    Run.ScriptBlock - ScriptBlocks containing tests to be executed.
-    Run.Container - ContainerInfo objects containing tests to be executed.
-    Run.TestExtension - Filter used to identify test files.
-        Default is: *.Tests.ps1*
-
-    [PesterConfiguration]::Default.Output
-    ------------
-    Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
-        Default is: Normal
-
-    [PesterConfiguration]::Default.CodeCoverage
-    ------------
-    CodeCoverage.Enabled - Enable CodeCoverage.
-        Default is: false
-    CodeCoverage.OutputFormat - Format to use for code coverage report. Possible values: JaCoCo
-    CodeCoverage.OutputPath - Path relative to the current directory where code coverage report is saved.
-        Default is: coverage.xml
-    CodeCoverage.OutputEncoding - Encoding of the output file. Currently UTF8
-    CodeCoverage.Path - Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.
-    CodeCoverage.ExcludeTests - Exclude tests from code coverage. This uses the TestFilter from general configuration.
-        Default is: true
-
-    [PesterConfiguration]::Default.TestResult
-    ----------
-    TestResult.Enabled - Enable TestResult.
-    TestResult.OutputFormat - Format to use for test result report. Possible values:  NUnitXml, JUnitXml
-        Default is: NUnitXml
-    TestResult.OutputPath - Path relative to the current directory where test result report is saved.
-        Default is: testResults.xml
-    TestResult.OutputEncoding - Encoding of the output file. Currently UTF8
-    TestResult.TestSuiteName - Set the name assigned to the root 'test-suite' element.
-        Default is: Pester
-
-    [PesterConfiguration]::Default.Filter
-    ------
-    Filter.ExcludeTag - Exclude a tag, accepts wildcards
-    Filter.FullName - Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
-    Filter.Line - Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
-    Filter.Tag - Tags of Describe, Context or It to be run.
-    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
-
-    [PesterConfiguration]::Default.Should
-    ------------
-    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
-        Default is: Stop
-
-    [PesterConfiguration]::Default.Debug
-    -----
-    Debug.ShowFullErrors - Show full errors including Pester internal stack.
-    Debug.ShowNavigationMarkers - Write paths after every block and test, for easy navigation in VSCode.
-    Debug.WriteDebugMessages - Write Debug messages to screen.
-    Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
-        Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+    For help on each option see New-PesterConfiguration, or inspect the object it returns.
 
     .PARAMETER Container
     Specifies one or more ContainerInfo-objects that define containers with tests.
