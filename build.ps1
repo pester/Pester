@@ -126,7 +126,8 @@ function Format-NicelyMini ($value) {
         }
     }
 
-    if ($value -is [object[]]) {
+    # does not work with [object[]] when building for some reason
+    if ($value -is [System.Collections.IEnumerable]) {
         if (0 -eq $value.Count) {
             return '@()'
         }
@@ -136,6 +137,7 @@ function Format-NicelyMini ($value) {
         return "@($($v -join ', '))"
     }
 }
+
 # generate help for config object and insert it
 $configuration = [PesterConfiguration]::Default
 $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
@@ -144,7 +146,7 @@ $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
     foreach ($r in $section.PSObject.Properties.Name) {
         $option = $section.$r
         $default = Format-NicelyMini $option.Default
-        "  ${r}: $($option.Description)`n  Default value: $default`n"
+        "  ${r}: $($option.Description)`n  Default value: ${default}`n"
     }
 }
 
