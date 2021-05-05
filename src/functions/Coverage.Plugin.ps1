@@ -28,8 +28,10 @@ function Get-CoveragePlugin {
 
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger -UseBreakpoints $config.UseBreakpoints -UseSingleHitBreakpoints $config.UseSingleHitBreakpoints
 
+        $coverageDictionary
         $Context.Data.Add('Coverage', @{
             CommandCoverage = $breakpoints
+            CoverageDictionary = $coverageDictionary
             CoverageReport = $null
             Measure = $null
         })

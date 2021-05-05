@@ -50,7 +50,7 @@ $ErrorView = "NormalView"
 
 if (-not $NoBuild) {
     if ($CI) {
-        & "$PSScriptRoot/build.ps1" -Inline
+        & "$PSScriptRoot/build.ps1" # -Inline
     }
     else {
         & "$PSScriptRoot/build.ps1" -Inline:$Inline
@@ -121,11 +121,10 @@ New-Module -Name TestHelpers -ScriptBlock {
 
 $configuration = [PesterConfiguration]::Default
 
-$configuration.Output.Verbosity = "Detailed"
-$configuration.Debug.WriteDebugMessages = $false
-# $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
+$configuration.Output.Verbosity = "Normal"
+$configuration.Debug.WriteDebugMessages = $true
+$configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
-# $configuration.Output.Verbosity = "Detailed"
 $configuration.Debug.ShowFullErrors = $false
 $configuration.Debug.ShowNavigationMarkers = $false
 
