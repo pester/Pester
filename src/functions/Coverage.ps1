@@ -1068,14 +1068,14 @@ function Add-JaCoCoCounter {
 
 
 function Measure-Script ($ScriptBlock) {
-    [Reflection.Assembly]::LoadFrom("C:\p\profiler\csharp\Profiler\bin\Debug\netstandard2.0\Profiler.dll")
-
+    $points = $Context.Data.CoveragePoints
+    $tracer = [Profiler.CodeCoverageTracer]::new($points)
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         # ensure all output to pipeline is dumped
         $null = & {
             try {
-                [Profiler.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI)
+                [Profiler.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
                 Set-PSDebug -Trace 1
                 & $ScriptBlock
             }
@@ -1096,5 +1096,5 @@ function Measure-Script ($ScriptBlock) {
     #     Stopwatch = $sw.Elapsed
     # }
 
-    [Profiler.Tracer]::Hits
+    $tracer.Hits
 }

@@ -2,6 +2,7 @@ function Get-CoveragePlugin {
     New-PluginObject -Name "Coverage" -RunStart {
         param($Context)
 
+        [Reflection.Assembly]::LoadFrom("C:\p\profiler\csharp\Profiler\bin\Debug\netstandard2.0\Profiler.dll")
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $logger = if ($Context.WriteDebugMessages) {
             # return partially apply callback to the logger when the logging is enabled
@@ -28,10 +29,18 @@ function Get-CoveragePlugin {
 
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger -UseBreakpoints $config.UseBreakpoints -UseSingleHitBreakpoints $config.UseSingleHitBreakpoints
 
-        $coverageDictionary
+        if (-not $config.UseBreakpoints) {
+            $l = [Collections.Generic.List[Profiler.CodeCoveragePoint]]@()
+            foreach ($breakpoint in $breakpoints) {
+                $location = $breakpoint.BreakpointLocation
+                $l.Add([Profiler.CodeCoveragePoint]::new($location.Path, $location.Line, $location.Column, ""));
+            }
+
+        }
+
         $Context.Data.Add('Coverage', @{
             CommandCoverage = $breakpoints
-            CoverageDictionary = $coverageDictionary
+            CoveragePoints = $l
             CoverageReport = $null
             Measure = $null
         })
