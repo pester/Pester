@@ -95,7 +95,7 @@ if (-not $SkipPTests) {
 Get-Module Pester | Remove-Module
 
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
-Import-Module $PSScriptRoot/tst/axiom/Axiom.psm1
+Import-Module $PSScriptRoot/tst/axiom/Axiom.psm1 -DisableNameChecking
 
 # reset pester and all preferences
 $PesterPreference = [PesterConfiguration]::Default

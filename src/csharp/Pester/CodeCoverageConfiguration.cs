@@ -29,7 +29,7 @@ namespace Pester
         private BoolOption _excludeTests;
         private BoolOption _recursePaths;
         private BoolOption _useBps;
-        private BoolOption _shBp;
+        private BoolOption _singleHitBreakpoints;
         private DecimalOption _coveragePercentTarget;
 
 
@@ -42,17 +42,15 @@ namespace Pester
         public CodeCoverageConfiguration() : base("CodeCoverage configuration.")
         {
             Enabled = new BoolOption("Enable CodeCoverage.", false);
-            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo", "JaCoCo");
+            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters", "JaCoCo");
             OutputPath = new StringOption("Path relative to the current directory where code coverage report is saved.", "coverage.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
-            CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%", 75m);
-
-            SingleHitBreakpoints = new BoolOption("EXPERIMENTAL: Remove breakpoint when it is hit.", true);
             UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Measure-Script to do CodeCoverage instead of setting breakpoints. This only works in a custom PowerShell build that has this change https://github.com/PowerShell/PowerShell/pull/13673.", true);
-
+            CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%.", 75m);
+            SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit.", true);
         }
 
         public CodeCoverageConfiguration(IDictionary configuration) : this()
@@ -221,16 +219,16 @@ namespace Pester
 
         public BoolOption SingleHitBreakpoints
         {
-            get { return _shBp; }
+            get { return _singleHitBreakpoints; }
             set
             {
-                if (_shBp == null)
+                if (_singleHitBreakpoints == null)
                 {
-                    _shBp = value;
+                    _singleHitBreakpoints = value;
                 }
                 else
                 {
-                    _shBp = new BoolOption(_shBp, value.Value);
+                    _singleHitBreakpoints = new BoolOption(_singleHitBreakpoints, value.Value);
                 }
             }
         }

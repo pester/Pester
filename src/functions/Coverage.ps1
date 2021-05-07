@@ -36,20 +36,21 @@ function Enter-CoverageAnalysis {
             & $logger "Using breakpoints for code coverage. Setting $($breakpoints.Count) breakpoints."
         }
 
-        $action = if ($UseSingleHitBreakpoints) {
-            if ($null -ne $logger) {
-                & $logger "Using single hit breakpoints."
-            }
-
-            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        # remove itself on hit
+        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+    }
+    else {
+        if ($null -ne $logger) {
+            & $logger "Using normal breakpoints."
         }
         else {
             if ($null -ne $logger) {
                 & $logger "Using normal breakpoints."
             }
 
-            {} # empty ScriptBlock
-        }
+        # empty ScriptBlock
+        {}
+    }
 
         foreach ($breakpoint in $breakpoints) {
             $params = $breakpoint.Breakpointlocation
@@ -371,20 +372,23 @@ function New-CoverageBreakpoint {
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
+        # we write the breakpoint later, the action will become empty scriptblock
+        # or scriptblock that removes the breakpoint on hit depending on configuration
         Action = $null
     }
 
     [pscustomobject] @{
-        File               = $Command.Extent.File
-        Class              = Get-ParentClassName -Ast $Command
-        Function           = Get-ParentFunctionName -Ast $Command
-        StartLine          = $Command.Extent.StartLineNumber
-        EndLine            = $Command.Extent.EndLineNumber
-        StartColumn        = $Command.Extent.StartColumnNumber
-        EndColumn          = $Command.Extent.EndColumnNumber
-        Command            = Get-CoverageCommandText -Ast $Command
-        Breakpoint         = $breakpoint
-        BreakpointLocation = $params
+        File                = $Command.Extent.File
+        Class               = Get-ParentClassName -Ast $Command
+        Function            = Get-ParentFunctionName -Ast $Command
+        StartLine           = $Command.Extent.StartLineNumber
+        EndLine             = $Command.Extent.EndLineNumber
+        StartColumn         = $Command.Extent.StartColumnNumber
+        EndColumn           = $Command.Extent.EndColumnNumber
+        Command             = Get-CoverageCommandText -Ast $Command
+        # keep property for breakpoint but we will set it later
+        Breakpoint          = $null
+        BreakpointLocation  = $params
     }
 }
 
@@ -767,6 +771,11 @@ function Get-CoverageReport {
 function Get-CommonParentPath {
     param ([string[]] $Path)
 
+    if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
+        # for coverage gutters the root path is relative to the coverage.xml
+        return (& $SafeCommands['Split-Path'] -Path $PesterPreference.CodeCoverage.OutputPath.Value | Normalize-Path )
+    }
+
     $pathsToTest = @(
         $Path |
         Normalize-Path |
@@ -831,8 +840,11 @@ function Get-JaCoCoReportXml {
         [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
-        [long] $TotalMilliseconds
+        [long] $TotalMilliseconds,
+        [string] $Format
     )
+
+    $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
@@ -954,11 +966,24 @@ function Get-JaCoCoReportXml {
     foreach ($package in $packageList) {
         $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
 
-        if ($null -eq $packageRelativePath) {
-            $packageName = $commonParentLeaf
+        # e.g. "." for gutters, and "package" for non gutters in root
+        # and "sub-dir" for gutters, and "package/sub-dir" for non-gutters
+        $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
+            if ($isGutters) {
+                "."
+            }
+            else {
+                $commonParentLeaf
+            }
         }
         else {
-            $packageName = "{0}/{1}" -f $commonParentLeaf, $($packageRelativePath.Replace("\", "/"))
+            $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
+            if ($isGutters) {
+                $packageRelativePathFormatted
+            }
+            else {
+                "$commonParentLeaf/$packageRelativePathFormatted"
+            }
         }
 
         $packageElement = Add-XmlElement $reportElement "package" @{
@@ -968,11 +993,21 @@ function Get-JaCoCoReportXml {
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $classElementName = "{0}/{1}" -f $commonParentLeaf, $classElementRelativePath
+            $classElementName = if ($isGutters) {
+                    $classElementRelativePath
+                }
+                else {
+                    "$commonParentLeaf/$classElementRelativePath"
+                }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = $classElementRelativePath
+                    sourcefilename = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($function in $class.Methods.Keys) {
@@ -997,7 +1032,12 @@ function Get-JaCoCoReportXml {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
-                    name = $classElementRelativePath
+                    name = if ($isGutters) {
+                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
+                    }
+                    else {
+                        $classElementRelativePath
+                    }
                 })
 
             foreach ($line in $class.Lines.Keys) {

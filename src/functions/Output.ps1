@@ -506,9 +506,24 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
     }
 
-    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-        $p.ContainerDiscoveryEnd = {
-            param ($Context)
+    $p.ContainerDiscoveryEnd = {
+        param ($Context)
+
+        if ("Failed" -eq $Context.Block.Result) {
+            $path = if ("File" -eq $container.Type) {
+                $container.Item.FullName
+            }
+            elseif ("ScriptBlock" -eq $container.Type) {
+                "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
+            }
+            else {
+                throw "Container type '$($container.Type)' is not supported."
+            }
+
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "[-] Discovery in $($path) failed with:"
+            Write-ErrorToScreen $Context.Block.ErrorRecord
+        }
+        elseif ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             # todo: this is very very slow because of View-flat
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
@@ -746,7 +761,8 @@ function Write-ErrorToScreen {
     param (
         [Parameter(Mandatory)]
         $Err,
-        [string] $ErrorMargin
+        [string] $ErrorMargin,
+        [switch] $Throw
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -765,7 +781,12 @@ function Write-ErrorToScreen {
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
-    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+    if ($Throw) {
+        throw $withMargin
+    }
+    else {
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+    }
 }
 
 function Write-BlockToScreen {

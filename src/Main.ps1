@@ -299,12 +299,15 @@ function Invoke-Pester {
 
     .PARAMETER CI
     (Introduced v5)
-    Enable Code Coverage, Test Results and Exit after Run
+    Enable Test Results and Exit after Run.
 
     Replace with ConfigurationProperty
-        CodeCoverage.Enabled = $true
         TestResult.Enabled = $true
         Run.Exit = $true
+
+    Since 5.2.0, this option no longer enables CodeCoverage.
+    To also enable CodeCoverage use this configuration option:
+        CodeCoverage.Enabled = $true
 
     .PARAMETER CodeCoverage
     (Deprecated v4)
@@ -376,72 +379,9 @@ function Invoke-Pester {
 
     Invoke-Pester -Configuration <PesterConfiguration> [<CommonParameters>]
 
-    Default is [PesterConfiguration]::Default
+    Default is New-PesterConfiguration.
 
-    ConfigurationProperties include following:
-
-    [PesterConfiguration]::Default.Run
-    ---
-    Run.ExcludePath - Directories or files to be excluded from the run.
-    Run.Exit - Exit with non-zero exit code when the test run fails.
-        Default is: false
-    Run.PassThru - Return result object to the pipeline after finishing the test run.
-        Default is: false
-    Run.Path - Directories to be searched for tests, paths directly to test files, or combination of both.
-        Default is: .
-    Run.ScriptBlock - ScriptBlocks containing tests to be executed.
-    Run.Container - ContainerInfo objects containing tests to be executed.
-    Run.TestExtension - Filter used to identify test files.
-        Default is: *.Tests.ps1*
-
-    [PesterConfiguration]::Default.Output
-    ------------
-    Output.Verbosity - The verbosity of output, options are None, Normal, Detailed and Diagnostic.
-        Default is: Normal
-
-    [PesterConfiguration]::Default.CodeCoverage
-    ------------
-    CodeCoverage.Enabled - Enable CodeCoverage.
-        Default is: false
-    CodeCoverage.OutputFormat - Format to use for code coverage report. Possible values: JaCoCo
-    CodeCoverage.OutputPath - Path relative to the current directory where code coverage report is saved.
-        Default is: coverage.xml
-    CodeCoverage.OutputEncoding - Encoding of the output file. Currently UTF8
-    CodeCoverage.Path - Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.
-    CodeCoverage.ExcludeTests - Exclude tests from code coverage. This uses the TestFilter from general configuration.
-        Default is: true
-
-    [PesterConfiguration]::Default.TestResult
-    ----------
-    TestResult.Enabled - Enable TestResult.
-    TestResult.OutputFormat - Format to use for test result report. Possible values:  NUnitXml, JUnitXml
-        Default is: NUnitXml
-    TestResult.OutputPath - Path relative to the current directory where test result report is saved.
-        Default is: testResults.xml
-    TestResult.OutputEncoding - Encoding of the output file. Currently UTF8
-    TestResult.TestSuiteName - Set the name assigned to the root 'test-suite' element.
-        Default is: Pester
-
-    [PesterConfiguration]::Default.Filter
-    ------
-    Filter.ExcludeTag - Exclude a tag, accepts wildcards
-    Filter.FullName - Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
-    Filter.Line - Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
-    Filter.Tag - Tags of Describe, Context or It to be run.
-    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
-
-    [PesterConfiguration]::Default.Should
-    ------------
-    Should.ErrorAction - Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
-        Default is: Stop
-
-    [PesterConfiguration]::Default.Debug
-    -----
-    Debug.ShowFullErrors - Show full errors including Pester internal stack.
-    Debug.ShowNavigationMarkers - Write paths after every block and test, for easy navigation in VSCode.
-    Debug.WriteDebugMessages - Write Debug messages to screen.
-    Debug.WriteDebugMessagesFrom - Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
-        Available options: "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+    For help on each option see New-PesterConfiguration, or inspect the object it returns.
 
     .PARAMETER Container
     Specifies one or more ContainerInfo-objects that define containers with tests.
@@ -501,6 +441,9 @@ function Invoke-Pester {
 
     .PARAMETER PesterOption
     (Deprecated v4)
+    This parameter is ignored in v5, and is only present for backwards compatibility
+    when migrating from v4.
+
     Sets advanced options for the test execution. Enter a PesterOption object,
     such as one that you create by using the New-PesterOption cmdlet, or a hash table
     in which the keys are option names and the values are option values.
@@ -691,7 +634,7 @@ function Invoke-Pester {
         # TODO: Remove all references to mock table, there should not be many.
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
-        Remove-MockFunctionsAndAliases
+        Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
     }
 
     end {
@@ -749,7 +692,6 @@ function Invoke-Pester {
                 if ($PSBoundParameters.ContainsKey('CI')) {
                     if ($CI) {
                         $Configuration.Run.Exit = $true
-                        $Configuration.CodeCoverage.Enabled = $true
                         $Configuration.TestResult.Enabled = $true
                     }
 
@@ -1143,11 +1085,53 @@ function Invoke-Pester {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
                 }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
-                $measure = $run.PluginData.Coverage.Measure
-                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
-                $jaCoCoReport = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport
-                $jaCoCoReport | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+
+                $configuration = $run.PluginConfiguration.Coverage
+
+                if ("JaCoCo" -eq $configuration.OutputFormat -or "CoverageGutters" -eq $configuration.OutputFormat) {
+                [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                }
+                else {
+                    throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($configuration.OutputFormat), please review your configuration."
+                }
+
+                $settings = [Xml.XmlWriterSettings] @{
+                    Indent              = $true
+                    NewLineOnAttributes = $false
+                }
+
+
+                $stringWriter = $null
+                $xmlWriter = $null
+                try {
+                    $stringWriter = [Pester.Factory]::CreateStringWriter()
+                    $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
+
+                    $jaCocoReport.WriteContentTo($xmlWriter)
+
+                    $xmlWriter.Flush()
+                    $stringWriter.Flush()
+                }
+                finally {
+                    if ($null -ne $xmlWriter) {
+                        try {
+                            $xmlWriter.Close()
+                        }
+                        catch {
+                        }
+                    }
+                    if ($null -ne $stringWriter) {
+                        try {
+                            $stringWriter.Close()
+                        }
+                        catch {
+                        }
+                    }
+                }
+
+                $stringWriter.ToString() | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }
@@ -1177,27 +1161,36 @@ function Invoke-Pester {
                 $run
             }
 
-            # exit with exit code if we fail and even if we succeed, othwerise we could inherit
-            # exit code of some other app end exit with it's exit code instead with ours
-            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
-            if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
-                # exit with the number of failed tests when there are any
-                # and the exit preference is set. This will fail the run in CI
-                # when any tests failed.
-                exit $failedCount
-            }
-            else {
-                # just set exit code but don't fail when the option is not set
-                # or when there are no failed tests, to ensure that we can run
-                # multiple successful runs of Invoke-Pester in a row.
-                $global:LASTEXITCODE = $failedCount
-            }
         }
         catch {
-            Write-ErrorToScreen $_
+            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }
+        }
+
+        # exit with exit code if we fail and even if we succeed, othwerise we could inherit
+        # exit code of some other app end exit with it's exit code instead with ours
+        $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+        # alwaays set exit code. This both to:
+        # - prevent previous commands failing with non-zero exit code from failing the run
+        # - setting the exit code when there were some failed tests, blocks, or containers
+        $global:LASTEXITCODE = $failedCount
+
+        if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
+            $messages = combineNonNull @(
+                $(if (0 -lt $run.FailedCount) { "$($run.FailedCount) test$(if (1 -lt $run.FailedCount) { "s" }) failed" })
+                $(if (0 -lt $run.FailedBlocksCount) { "$($run.FailedBlocksCount) block$(if (1 -lt $run.FailedBlocksCount) { "s" }) failed" })
+                $(if (0 -lt $run.FailedContainersCount) { "$($run.FailedContainersCount) container$(if (1 -lt $run.FailedContainersCount) { "s" }) failed" })
+            )
+            throw "Pester run failed, because $(Join-And $messages)"
+        }
+
+        if ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount) {
+            # exit with the number of failed tests when there are any
+            # and the exit preference is set. This will fail the run in CI
+            # when any tests failed.
+            exit $failedCount
         }
     }
 }
@@ -1272,6 +1265,8 @@ function New-PesterOption {
     }
 
     return & $script:SafeCommands['New-Object'] psobject -Property @{
+        ReadMe = "New-PesterOption is deprecated and kept only for backwards compatibility when executing Pester v5 using the " +
+        "legacy parameter set. When the object is used with Invoke-Pester -PesterOption it will be ignored."
         IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
         ShowScopeHints      = $ShowScopeHints
