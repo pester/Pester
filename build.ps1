@@ -84,7 +84,7 @@ $script = @(
     "$PSScriptRoot/src/TypeClass.ps1"
     "$PSScriptRoot/src/Format.ps1"
     "$PSScriptRoot/src/Pester.RSpec.ps1"
-    "$PSScriptRoot/src/Pester.ps1"
+    "$PSScriptRoot/src/Main.ps1"
 
     "$PSScriptRoot/src/functions/assertions/*"
     "$PSScriptRoot/src/functions/*"
