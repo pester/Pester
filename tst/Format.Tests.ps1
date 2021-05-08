@@ -219,3 +219,9 @@ Describe "Join-And" {
         Join-And -Items $Items -Threshold $Threshold | Verify-Equal $Expected
     }
 }
+
+Describe "Add-SpaceToNonEmptyString" {
+    It "Formats non-empty string with leading whitespace" {
+        Add-SpaceToNonEmptyString -Value 'message' | Verify-Equal ' message'
+    }
+}
