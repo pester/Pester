@@ -5,6 +5,7 @@
         Used to run the tests locally for Pester development.
 
     .PARAMETER CI
+        Builds the module using the inlined mode.
         Exits after run. Enables test results and code coverage on `/src/*`.
         Enables exit with non-zero exit code if tests don't pass. Forces P Tests
         to fail when `dt` is left in the tests. `dt` only runs the specified test,
@@ -23,6 +24,11 @@
         Pass the file to run Pester (not P) tests from.
         */demo/*, */examples/*, */testProjects/* are excluded from tests.
 
+    .PARAMETER Inline
+        Forces inlining the module into a single file. This is how real build is
+        done, but makes local debugging difficult. When -CI is used, inlining is
+        forced.
+
     .NOTES
         Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
@@ -31,6 +37,7 @@ param (
     [switch] $CI,
     [switch] $SkipPTests,
     [switch] $NoBuild,
+    [switch] $Inline,
     [string[]] $File
 )
 
@@ -41,9 +48,13 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
-
 if (-not $NoBuild) {
-    & "$PSScriptRoot/build.ps1"
+    if ($CI) {
+        & "$PSScriptRoot/build.ps1" -Inline
+    }
+    else {
+        & "$PSScriptRoot/build.ps1" -Inline:$Inline
+    }
 }
 
 # remove pester because we will be reimporting it in multiple other places
@@ -84,6 +95,7 @@ if (-not $SkipPTests) {
 Get-Module Pester | Remove-Module
 
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
+Import-Module $PSScriptRoot/tst/axiom/Axiom.psm1 -DisableNameChecking
 
 # reset pester and all preferences
 $PesterPreference = [PesterConfiguration]::Default
@@ -112,8 +124,9 @@ $configuration = [PesterConfiguration]::Default
 $configuration.Debug.WriteDebugMessages = $false
 # $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
-$configuration.Debug.ShowFullErrors = $true
-$configuration.Debug.ShowNavigationMarkers = $true
+# $configuration.Output.Verbosity = "Detailed"
+$configuration.Debug.ShowFullErrors = $false
+$configuration.Debug.ShowNavigationMarkers = $false
 
 if ($null -ne $File -and 0 -lt @($File).Count) {
     $configuration.Run.Path = $File
@@ -130,13 +143,17 @@ $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
 if ($CI) {
     $configuration.Run.Exit = $true
 
+    # not using code coverage, it is still very slow
     $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
+    $configuration.CodeCoverage.SingleHitBreakpoints = $true
+
 
     $configuration.TestResult.Enabled = $true
 }
 
 $r = Invoke-Pester -Configuration $configuration
+
 if ("Failed" -eq $r.Result) {
     throw "Run failed!"
 }

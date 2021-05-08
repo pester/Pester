@@ -240,8 +240,9 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.message[2] | Should -be 'Strings differ at index 0.'
             $r.Message[3] | Should -be "Expected: 'Two'"
             $r.Message[4] | Should -be "But was:  'One'"
-            $r.Message[5] | Should -match "'One' | Should -be 'Two'"
-            $r.Message.Count | Should -be 6
+            $r.Message[5] | Should -be "           ^"
+            $r.Message[6] | Should -match "'One' | Should -be 'Two'"
+            $r.Message.Count | Should -be 7
         }
 # TODO: should fails with a very weird error, probably has something to do with dynamic params...
 #         Context 'Should fails in file' {
@@ -319,7 +320,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:302"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:303"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -330,7 +331,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:302"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:303"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -391,7 +392,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:368"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:369"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -400,7 +401,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:368"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:369"
                         $r.Trace.Count | Should -be 2
                     }
                 }

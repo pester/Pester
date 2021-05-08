@@ -5,17 +5,18 @@ Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Modu
 Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
 
+& "$PSScriptRoot\..\..\build.ps1"
 Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors         = $true
+        ShowFullErrors         = $false
     }
 }
 
 i -PassThru:$PassThru {
     b "New-Fixture" {
-        t "Generated fixture works" {
+        t "Generated fixture fails as expected" {
             $tempFolder = [IO.Path]::GetTempPath()
             $name = "Fixture$([Guid]::NewGuid().Guid)"
 
@@ -26,7 +27,8 @@ i -PassThru:$PassThru {
                 New-Fixture -Path $tempFolder -Name $name
 
                 $r = Invoke-Pester -Path $testsPath -PassThru
-                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Failed"
+                $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.Exception | Verify-Type ([System.NotImplementedException])
             }
             finally {
                 if (Test-Path $scriptPath) {

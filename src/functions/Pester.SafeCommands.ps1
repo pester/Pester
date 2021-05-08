@@ -12,7 +12,7 @@ $safeCommandLookupParameters = @{
 }
 
 # Suppress from ScriptAnalyzer rule when possible in root of script (future PSSA release?)
-# [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Get-Command', Justification = 'Used to generate SafeCommands list used for AnalyzerRule.')]
+# [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Get-Command', Justification = 'Used to generate SafeCommands list used for AnalyzerRule.')]
 $Get_Command = Get-Command Get-Command -CommandType Cmdlet -ErrorAction 'Stop'
 $script:SafeCommands = @{
     'Get-Command'          = $Get_Command

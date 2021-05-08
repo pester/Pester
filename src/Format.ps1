@@ -1,7 +1,7 @@
-# if -not build
-. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-& $SafeCommands['Import-Module'] "$PSScriptRoot/TypeClass.psm1" -DisableNameChecking
-# endif
+if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+    . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+    . "$PSScriptRoot/TypeClass.ps1"
+} # endif
 
 function Format-Collection ($Value, [switch]$Pretty) {
     $Limit = 10
@@ -189,21 +189,19 @@ function Format-Type ([Type]$Value) {
     [string]$Value
 }
 
-# if -not build
-& $SafeCommands['Export-ModuleMember'] -Function @(
-    'Format-Collection'
-    'Format-Object'
-    'Format-Null'
-    'Format-Boolean'
-    'Format-String'
-    'Format-Date'
-    'Format-ScriptBlock'
-    'Format-Number'
-    'Format-Hashtable'
-    'Format-Dictionary'
-    'Format-Type'
-    'Format-Nicely'
-    'Get-DisplayProperty'
-    'Get-ShortType'
-)
-# endif
+function Join-And ($Items, $Threshold = 2) {
+
+    if ($null -eq $items -or $items.count -lt $Threshold) {
+        $items -join ', '
+    }
+    else {
+        $c = $items.count
+        ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
+    }
+}
+
+function Add-SpaceToNonEmptyString ([string]$Value) {
+    if ($Value) {
+        " $Value"
+    }
+}

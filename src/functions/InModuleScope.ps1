@@ -17,8 +17,12 @@ function InModuleScope {
    PowerShell session.
 .PARAMETER ScriptBlock
    The code to be executed within the script module.
+.PARAMETER Parameters
+   A optional hashtable of parameters to be passed to the scriptblock.
+.PARAMETER ArgumentList
+   A optional list of arguments to be passed to the scriptblock.
 .EXAMPLE
-    ```ps
+    ```powershell
     # The script module:
     function PublicFunction
     {
@@ -49,6 +53,9 @@ function InModuleScope {
     the PowerShell session, because the module only exported
     "PublicFunction".  Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
+
+.LINK
+    https://pester.dev/docs/commands/InModuleScope
 #>
 
     [CmdletBinding()]
@@ -64,7 +71,7 @@ function InModuleScope {
         [HashTable]
         $Parameters,
 
-        $ArgumentList
+        $ArgumentList = @()
     )
 
     $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop

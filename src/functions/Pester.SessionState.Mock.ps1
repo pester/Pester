@@ -49,7 +49,6 @@ function Get-MockPlugin () {
 }
 
 function Mock {
-
     <#
 .SYNOPSIS
 Mocks the behavior of an existing command with an alternate
@@ -113,11 +112,22 @@ is to be mocked.  This should be a module that _calls_ the mocked
 command; it doesn't necessarily have to be the same module which
 originally implemented the command.
 
+.PARAMETER RemoveParameterType
+Optional list of parameter names that should use Object as the parameter
+type instead of the parameter type defined by the function. This relaxes the
+type requirements and allows some strongly typed functions to be mocked
+more easily.
+
+.PARAMETER RemoveParameterValidation
+Optional list of parameter names in the original command
+that should not have any validation rules applied. This relaxes the
+validation requirements, and allows functions that are strict about their
+parameter validation to be mocked more easily.
+
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
-Using this Mock, all calls to Get-ChildItem will return a hashtable with a
-FullName property returning "A_File.TXT"
+Using this Mock, all calls to Get-ChildItem will return a hashtable with a FullName property returning "A_File.TXT"
 
 .EXAMPLE
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
@@ -130,33 +140,41 @@ Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $V
 When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
 .EXAMPLE
+```powershell
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
 Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
+```
 
 Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
 .EXAMPLE
+```powershell
 Mock Get-ChildItem { return @{FullName="B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
 Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
 
 Get-ChildItem $env:temp\me
+```
 
 Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the most recent Mock created.
 
 .EXAMPLE
+```powershell
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem c:\windows
+```
 
 Here, A_File.TXT will be returned. Since no filter was specified, it will apply to any call to Get-ChildItem that does not pass another filter.
 
 .EXAMPLE
+```powershell
 Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
 Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
 Get-ChildItem $env:temp\me
+```
 
 Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardless of their creation order.
 
@@ -167,6 +185,7 @@ Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
 will return a hashtable with a FullName property returning "A_File.TXT"
 
 .EXAMPLE
+```powershell
 Get-Module -Name ModuleMockExample | Remove-Module
 New-Module -Name ModuleMockExample  -ScriptBlock {
     function Hidden { "Internal Module Function" }
@@ -190,18 +209,17 @@ Describe "ModuleMockExample" {
         Exported | Should -Be "Mocked"
     }
 }
+```
 
 This example shows how calls to commands made from inside a module can be
 mocked by using the -ModuleName parameter.
 
+.LINK
+https://pester.dev/docs/commands/Mock
 
 .LINK
-Should
-Describe
-Context
-It
-about_Should
-about_Mocking
+https://pester.dev/docs/usage/mocking
+
 #>
     # Mock
     [CmdletBinding()]
@@ -220,11 +238,17 @@ about_Mocking
         return
     }
 
+    $SessionState = $PSCmdlet.SessionState
+
+    # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
+    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+        $ModuleName = $SessionState.Module.Name
+    }
+
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
 
-    $SessionState = $PSCmdlet.SessionState
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
@@ -261,7 +285,7 @@ about_Mocking
 
     $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { " $($behavior.ModuleName) -"})$($behavior.CommandName)."
+        Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { "$($behavior.ModuleName) - "})$($behavior.CommandName)."
     }
     $behaviors.Add($behavior)
 }
@@ -329,18 +353,7 @@ function Get-AllMockBehaviors {
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value -and $behaviorsInTestCount -eq $behaviors.Count) {
-        Write-PesterDebugMessage -Scope Mock "No behaviors for '$CommandName' were found in this or any parent blocks."
-    }
-
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -LazyMessage {
-            "Found $($behaviors.Count) behaviors for '$CommandName': "
-            foreach ($b in $behaviors) {
-                "    Body: { $($b.ScriptBlock.ToString().Trim()) }"
-                "    Filter: $(if ($b.Filter) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })"
-                "    Verifiable: $($b.Verifiable)"
-            }
-        }
+        Write-PesterDebugMessage -Scope Mock "Found $($behaviors.Count - $behaviorsInTestCount) behaviors in all parent blocks, and $behaviorsInTestCount behaviors in test."
     }
 
     $behaviors
@@ -510,7 +523,7 @@ function Get-AssertMockTable {
         # cases
         $i = $currentBlock
         $level = $scope - 1
-        while ($level -gt 0 -and ($null -ne $i.Parent)) {
+        while ($level -ge 0 -and ($null -ne $i.Parent)) {
             $level--
             $i = $i.Parent
         }
@@ -603,6 +616,9 @@ Checks if all verifiable Mocks has been called at least once.
 
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -InvokeVerifiable INSTEAD.
+
+.LINK
+https://pester.dev/docs/commands/Assert-VerifiableMock
 #>
 
     # Should does not accept a session state, so invoking it directly would
@@ -665,6 +681,9 @@ and throws an exception if it has not.
 
 THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
 USE Should -Invoke INSTEAD.
+
+.LINK
+https://pester.dev/docs/commands/Assert-MockCalled
 #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
@@ -864,6 +883,12 @@ to the original.
         throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
     }
 
+    if (-not $PSBoundParameters.ContainsKey("ModuleName")) {
+        # user did not specify the target module, using the caller session state module name
+        # to ensure we bind to the current module when running in InModuleScope
+        $ModuleName = if ($CallerSessionState.Module) { $CallerSessionState.Module.Name } else { $null }
+    }
+
     if ($PSCmdlet.ParameterSetName -eq 'ExclusiveFilter' -and $Negate) {
         # Using -Not with -ExclusiveFilter makes for a very confusing expectation. For example, given the following mocked function:
         #
@@ -965,8 +990,19 @@ to the original.
     }
 
     $SessionState = $CallerSessionState
+    # This resolve happens only because we need to resolve from an alias to the real command
+    # name, and we cannot know what all aliases are there for a command in the module, easily,
+    # we could short circuit this resolve when we find history, and only resolve if we don't
+    # have any history. We could also keep info about the alias from which we originally
+    # resolved the command, which would give us another piece of info. But without scanning
+    # all the aliases in the module we won't be able to get rid of this, but that would be
+    # cost we would have to pay all the time, instead of just doing extra resolve when we find
+    # no history.
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
-    $resolvedModule = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { $null }
+    if ($null -eq $contextInfo.Hook) {
+        throw "Should -Invoke: Could not find Mock for command $CommandName in $(if ([string]::IsNullOrEmpty($ModuleName)){ "script scope" } else { "module $ModuleName" }). Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?"
+    }
+    $resolvedModule = $contextInfo.TargetModule
     $resolvedCommand = $contextInfo.Command.Name
 
     $mockTable = Get-AssertMockTable -Frame $frame -CommandName $resolvedCommand -ModuleName $resolvedModule
@@ -1060,31 +1096,155 @@ function Invoke-Mock {
     # should implement this (but I keep it separate from the core function so I can
     # test without dependency on scopes)
     $allBehaviors = Get-AllMockBehaviors -CommandName $CommandName
-    if ([string]::IsNullOrWhiteSpace($ModuleName)) {
-        $ModuleName = $null
+
+    # there is some conflict that keeps ModuleName constant without throwing. It is not a problem
+    # because it does not contain whitespace, but if someone mistypes we won't be able to fix it
+    # to be empty string in the below condition.
+    $TargetModule = $ModuleName
+    $targettingAModule = -not [string]::IsNullOrWhiteSpace($TargetModule)
+
+    $getBehaviorMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        # output scriptblock that we can call later
+        {
+            param ($b)
+            "     Target module: $(if ($b.ModuleName) { $b.ModuleName } else { '$null' })`n"
+            "    Body: { $($b.ScriptBlock.ToString().Trim()) }`n"
+            "    Filter: $(if (-not $b.IsDefault) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })`n"
+            "    Default: $(if ($b.IsDefault) { '$true' } else { '$false' })`n"
+            "    Verifiable: $(if ($b.Verifiable) { '$true' } else { '$false' })"
+        }
     }
-    $fromModule = $null -ne $ModuleName
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Mock -Message "Filtering behaviors for command $CommandName, for target module $(if ($targettingAModule) { $TargetModule } else { '$null' }) (Showing all behaviors for this command, actual filtered list is further in the log, look for 'Filtered parametrized behaviors:' and 'Filtered default behaviors:'):"
+    }
+
     $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
+    $moduleDefaultBehavior = $null
     $nonModuleBehaviors = [System.Collections.Generic.List[Object]]@()
+    $nonModuleDefaultBehavior = $null
     foreach ($b in $allBehaviors) {
-        # sort behaviors into behaviors for the selected module
-        # other modules and no-modules
-        # the behaviors for other modules we don't care about so we
-        # don't collect them
-        if ($fromModule) {
-            if ($ModuleName -eq $b.ModuleName) {
-                $moduleBehaviors.Add($b)
+        # sort behaviors into filtered and default behaviors for the targeted module
+        # other modules and no-modules. The behaviors for other modules we don't care about so we
+        # don't collect them. For the behaviors for the target module and no module we split them
+        # to filtered and default. When we target a module mock, we select the filtered + the most recent default, but when
+        # there is no default we take the most recent default from non-module behaviors, to allow fallback to it, because that is
+        # how it was historically done, and makes it a bit more safe.
+        if ($b.IsInModule) {
+            if ($TargetModule -eq $b.ModuleName) {
+                if ($b.IsDefault) {
+                    # keep the first found (the last one defined)
+                    if ($null -eq $moduleDefaultBehavior) {
+                        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                            Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from the target module $TargetModule, saving it:`n$(& $getBehaviorMessage $b)"
+                        }
+                        $moduleDefaultBehavior = $b
+                    }
+                    else {
+                        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                            Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from the target module $TargetModule, but we already have one that was defined more recently it, skipping it:`n$(& $getBehaviorMessage $b)"
+                        }
+                    }
+                }
+                else {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                        Write-PesterDebugMessage -Scope Mock -Message "Behavior is a parametrized behavior from the target module $TargetModule, adding it to parametrized behavior list:`n$(& $getBehaviorMessage $b)"
+                    }
+                    $moduleBehaviors.Add($b)
+                }
+            }
+            else {
+                # not the targetted module, skip it
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targettingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
+                }
             }
         }
+        else {
+            if ($b.IsDefault) {
+                # keep the first found (the last one defined)
+                if ($null -eq $nonModuleDefaultBehavior) {
+                    $nonModuleDefaultBehavior = $b
+                    if ($targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                        Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from script scope, saving it to use as a fallback if default behavior for module $TargetModule is not found:`n$(& $getBehaviorMessage $b)"
+                    }
 
-        if ($null -eq $b.ModuleName) {
-            $nonModuleBehaviors.Add($b)
+                    if (-not $targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                        Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from script scope, saving it:`n$(& $getBehaviorMessage $b)"
+                    }
+                }
+                else {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                        Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from script scope, but we already have one that was defined more recently it, skipping it:`n$(& $getBehaviorMessage $b)"
+                    }
+                }
+            }
+            else {
+                if ($targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is a parametrized behavior from script scope, skipping it. (Parametrized script scope behaviors are not used as fallback for module scoped mocks.):`n$(& $getBehaviorMessage $b)"
+                }
+
+                if (-not $targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is a parametrized behavior from script scope, adding it to non-module parametrized behavior list:`n$(& $getBehaviorMessage $b)"
+                }
+
+                $nonModuleBehaviors.Add($b)
+            }
         }
     }
 
-    # if any behaviors exist for this module, use them. Otherwise use the non module behaviors
-    $detectedModule, $behaviors = if ($null -ne $moduleBehaviors -and 0 -ne $moduleBehaviors.Count) { $ModuleName, $moduleBehaviors } else {$null, $nonModuleBehaviors}
+    # if we are targetting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
+    # do not fallback to non-module filtered behaviors. This is here for safety, and for compatibility when doing Mock Remove-Item {}, and then mocking in module
+    # then the default mock for Remove-Item should be effective.
+    $behaviors = if ($targettingAModule) {
+            # we have default module behavior add it to the filtered behaviors if there are any
+            if ($null -ne $moduleDefaultBehavior) {
+                $moduleBehaviors.Add($moduleDefaultBehavior)
+            }
+            else {
+                # we don't have default module behavior add the default non-module behavior if we have any
+                if ($null -ne $nonModuleDefaultBehavior) {
+                    $moduleBehaviors.Add($nonModuleDefaultBehavior)
+                }
+            }
+
+            $moduleBehaviors
+        }
+        else {
+            # we are not targetting a mock in a module use the non module behaviors
+            if ($null -ne $nonModuleDefaultBehavior) {
+                # add the default non-module behavior if we have any
+                $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
+            }
+
+            $nonModuleBehaviors
+        }
+
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $any = $false
+        $message = foreach ($b in $behaviors) {
+            if (-not $b.IsDefault) {
+                $any = $true
+                & $getBehaviorMessage $b
+            }
+        }
+        if (-not $any) {
+            $message = '$null'
+        }
+        Write-PesterDebugMessage -Scope Mock -Message "Filtered parametrized behaviors:`n$message"
+
+        $default = foreach ($b in $behaviors) {
+            if ($b.IsDefault) {
+                $b
+                break
+            }
+        }
+        $message = if ($null -ne $default) { & $getBehaviorMessage $b } else { '$null' }
+        $fallBack = if ($null -ne $default -and $targettingAModule -and [string]::IsNullOrEmpty($b.ModuleName) ) { " (fallback to script scope default behavior)" } else { $null }
+        Write-PesterDebugMessage -Scope Mock -Message "Filtered default behavior$($fallBack):`n$message"
+    }
 
     Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory
 }
@@ -1099,7 +1259,6 @@ function Assert-RunInProgress {
         throw "$CommandName can run only during Run, but not during Discovery."
     }
 }
-
 
 
 

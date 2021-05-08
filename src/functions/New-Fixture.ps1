@@ -69,13 +69,11 @@ function New-Fixture {
 
     .LINK
     https://pester.dev/docs/commands/Should
-
     #>
-
     param (
-        [String]$Path = $PWD,
         [Parameter(Mandatory = $true)]
-        [String]$Name
+        [String]$Name,
+        [String]$Path = $PWD
     )
 
     $Name = $Name -replace '.ps(m?)1', ''
@@ -86,8 +84,7 @@ function New-Fixture {
 
     #keep this formatted as is. the format is output to the file as is, including indentation
     $scriptCode = "function $Name {
-    #Do something
-    `$true
+    throw [NotImplementedException]'$Name is not implemented.'
 }"
 
     $testCode = 'BeforeAll {
@@ -96,7 +93,7 @@ function New-Fixture {
 
 Describe "#name#" {
     It "Returns expected output" {
-        #name# | Should -Be $true
+        #name# | Should -Be "YOUR_EXPECTED_VALUE"
     }
 }' -replace "#name#", $Name
 
@@ -107,7 +104,7 @@ Describe "#name#" {
 }
 
 function Create-File {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeComands', 'Write-Warning', Justification = 'Mocked in unit test for New-Fixture.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Write-Warning', Justification = 'Mocked in unit test for New-Fixture.')]
     param($Path, $Name, $Content)
     if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
         & $SafeCommands['New-Item'] -ItemType Directory -Path $Path | & $SafeCommands['Out-Null']

@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 BeforeAll {
     Get-Module Axiom, Format | Remove-Module
     Import-Module $PSScriptRoot\axiom\Axiom.psm1 -ErrorAction 'stop' -DisableNameChecking
-    Import-Module $PSScriptRoot\..\src\Format.psm1 -ErrorAction 'stop' -DisableNameChecking
+    . $PSScriptRoot\..\src\Format.ps1
 }
 
 # discovery time setup

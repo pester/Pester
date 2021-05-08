@@ -20,7 +20,7 @@ in this block but are typically nested each in its own It block. Assertions are
 typically performed by the Should command within the It blocks.
 
 .PARAMETER Tag
-Optional parameter containing an array of strings.  When calling Invoke-Pester,
+Optional parameter containing an array of strings. When calling Invoke-Pester,
 it is possible to specify a -Tag parameter which will only execute Describe blocks
 containing the same Tag.
 
@@ -31,6 +31,7 @@ available as $_ in all child blocks. When the array is an array of hashtables, i
 defines each key in the hashatble as variable.
 
 .EXAMPLE
+```powershell
 function Add-Numbers($a, $b) {
     return $a + $b
 }
@@ -56,21 +57,16 @@ Describe "Add-Numbers" {
         $sum | Should -Be "twothree"
     }
 }
+```
 
 .LINK
 https://pester.dev/docs/commands/Describe
 
 .LINK
-https://github.com/pester/Pester/wiki/Describe
+https://pester.dev/docs/usage/test-file-structure
 
 .LINK
-It
-
-.LINK
-Context
-
-.LINK
-Invoke-Pester
+https://pester.dev/docs/usage/mocking
 
 .LINK
 about_Should
@@ -81,6 +77,8 @@ about_Mocking
 .LINK
 about_TestDrive
 
+.LINK
+https://pester.dev/docs/usage/testdrive
 #>
 
     param(
@@ -151,12 +149,16 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         # but make sure we are invoking it in the caller session state, because
         # paths don't stay attached to session state
         $invokePester =  {
-            param($private:Path)
-            Invoke-Pester -Path $Path | & $SafeCommands['Out-Null']
+            param($private:Path, $private:ScriptParameters, $private:Out_Null)
+            $private:c = New-PesterContainer -Path $Path -Data $ScriptParameters
+            Invoke-Pester -Container $c Path | & $Out_Null
         }
 
+        # get PSBoundParameters from caller script to allow interactive execution of parameterized tests.
+        $scriptBoundParameters = $SessionState.PSVariable.GetValue("PSBoundParameters")
+
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
-        & $invokePester $ScriptName
+        & $invokePester $ScriptName $scriptBoundParameters $SafeCommands['Out-Null']
         $script:lastExecutedFile = $ScriptName
         $script:lastExecutedAt = [datetime]::Now
     }

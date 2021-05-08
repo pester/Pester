@@ -5,8 +5,8 @@ $script:ReportStrings = DATA {
         TagMessage        = ' with Tags {0}'
         MessageOfs        = "', '"
 
-        CoverageTitle     = 'Code coverage report:'
-        CoverageMessage   = 'Covered {2:P2} of {3:N0} analyzed {0} in {4:N0} {1}.'
+        CoverageTitle     = 'Code Coverage report:'
+        CoverageMessage   = 'Covered {2:0.##}% / {5:0.##}%. {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
         MissedPlural      = 'Missed commands:'
         CommandSingular   = 'Command'
@@ -298,13 +298,15 @@ function Write-PesterReport {
 function Write-CoverageReport {
     param ([object] $CoverageReport)
 
-    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+    $writeToScreen = $PesterPreference.Output.Verbosity.Value -in 'Normal', 'Detailed', 'Diagnostic'
+    $writeMissedCommands = $PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic'
+    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return
     }
 
     $totalCommandCount = $CoverageReport.NumberOfCommandsAnalyzed
     $fileCount = $CoverageReport.NumberOfFilesAnalyzed
-    $executedPercent = ($CoverageReport.NumberOfCommandsExecuted / $CoverageReport.NumberOfCommandsAnalyzed).ToString("P2")
+    $executedPercent = $CoverageReport.CoveragePercent
 
     $command = if ($totalCommandCount -gt 1) {
         $ReportStrings.CommandPlural
@@ -328,21 +330,37 @@ function Write-CoverageReport {
         'Command'
     )
 
-    & $SafeCommands['Write-Host']
-    & $SafeCommands['Write-Host'] $ReportStrings.CoverageTitle -Foreground $ReportTheme.Coverage
-
     if ($CoverageReport.MissedCommands.Count -gt 0) {
-        & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.CoverageWarn
+        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount, $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
+        $coverageMessage + "`n"
+        $color = if ($writeToScreen -and $CoverageReport.CoveragePercent -ge $PesterPreference.CodeCoverage.CoveragePercentTarget.Value) { $ReportTheme.Pass } else { $ReportTheme.Fail }
+        if ($writeToScreen) {
+            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $color
+        }
         if ($CoverageReport.MissedCommands.Count -eq 1) {
-            & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $ReportTheme.CoverageWarn
+            $ReportStrings.MissedSingular + "`n"
+            if ($writeMissedCommands) {
+                & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $color
+            }
         }
         else {
-            & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $ReportTheme.CoverageWarn
+            $ReportStrings.MissedPlural + "`n"
+            if ($writeMissedCommands) {
+                & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $color
+            }
         }
-        $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-Host']
+        $reportTable = $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-String']
+        $reportTable + "`n"
+        if ($writeMissedCommands) {
+            $reportTable | & $SafeCommands['Write-Host'] -Foreground $ReportTheme.Coverage
+        }
     }
     else {
-        & $SafeCommands['Write-Host'] ($ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount) -Foreground $ReportTheme.Coverage
+        $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount, $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
+        $coverageMessage + "`n"
+        if ($writeToScreen) {
+            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.Pass
+        }
     }
 }
 
@@ -410,6 +428,14 @@ function ConvertTo-FailureLines {
                 [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
                 [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
+
+            if ($true) { # PESTER_BUILD
+                # no code
+                # non inlined scripts will have different paths just omit everything from the src folder
+                $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
+                [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
+                [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
+            } # endif
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
             # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
@@ -485,17 +511,44 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
     }
 
-    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-        $p.ContainerDiscoveryEnd = {
-            param ($Context)
+    $p.ContainerDiscoveryEnd = {
+        param ($Context)
+
+        if ("Failed" -eq $Context.Block.Result) {
+            $path = if ("File" -eq $container.Type) {
+                $container.Item.FullName
+            }
+            elseif ("ScriptBlock" -eq $container.Type) {
+                "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
+            }
+            else {
+                throw "Container type '$($container.Type)' is not supported."
+            }
+
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.FailDetail "[-] Discovery in $($path) failed with:"
+            Write-ErrorToScreen $Context.Block.ErrorRecord
+        }
+        elseif ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             # todo: this is very very slow because of View-flat
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
     }
 
     $p.DiscoveryEnd = {
         param ($Context)
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+
+        # if ($Context.AnyFocusedTests) {
+        #     $focusedTests = $Context.FocusedTests
+        #     & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        # }
+
+        # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+    }
+
+
+    $p.RunStart = {
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Running tests."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
@@ -713,7 +766,8 @@ function Write-ErrorToScreen {
     param (
         [Parameter(Mandatory)]
         $Err,
-        [string] $ErrorMargin
+        [string] $ErrorMargin,
+        [switch] $Throw
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -732,7 +786,12 @@ function Write-ErrorToScreen {
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
-    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+    if ($Throw) {
+        throw $withMargin
+    }
+    else {
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+    }
 }
 
 function Write-BlockToScreen {
