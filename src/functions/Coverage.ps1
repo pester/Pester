@@ -36,21 +36,18 @@ function Enter-CoverageAnalysis {
             & $logger "Using breakpoints for code coverage. Setting $($breakpoints.Count) breakpoints."
         }
 
-        # remove itself on hit
-        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
-    }
-    else {
-        if ($null -ne $logger) {
-            & $logger "Using normal breakpoints."
+        $action = if ($UseSingleHitBreakpoints) {
+            # remove itself on hit
+            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
         }
         else {
             if ($null -ne $logger) {
                 & $logger "Using normal breakpoints."
             }
 
-        # empty ScriptBlock
-        {}
-    }
+            # empty ScriptBlock
+            {}
+        }
 
         foreach ($breakpoint in $breakpoints) {
             $params = $breakpoint.Breakpointlocation
@@ -378,17 +375,17 @@ function New-CoverageBreakpoint {
     }
 
     [pscustomobject] @{
-        File                = $Command.Extent.File
-        Class               = Get-ParentClassName -Ast $Command
-        Function            = Get-ParentFunctionName -Ast $Command
-        StartLine           = $Command.Extent.StartLineNumber
-        EndLine             = $Command.Extent.EndLineNumber
-        StartColumn         = $Command.Extent.StartColumnNumber
-        EndColumn           = $Command.Extent.EndColumnNumber
-        Command             = Get-CoverageCommandText -Ast $Command
+        File               = $Command.Extent.File
+        Class              = Get-ParentClassName -Ast $Command
+        Function           = Get-ParentFunctionName -Ast $Command
+        StartLine          = $Command.Extent.StartLineNumber
+        EndLine            = $Command.Extent.EndLineNumber
+        StartColumn        = $Command.Extent.StartColumnNumber
+        EndColumn          = $Command.Extent.EndColumnNumber
+        Command            = Get-CoverageCommandText -Ast $Command
         # keep property for breakpoint but we will set it later
-        Breakpoint          = $null
-        BreakpointLocation  = $params
+        Breakpoint         = $null
+        BreakpointLocation = $params
     }
 }
 
@@ -657,80 +654,30 @@ function Get-CoverageReport {
 
     # Measure is null when we used Breakpoints to do code coverage, otherwise it is populated with the measure
     if ($null -ne $Measure) {
-        # adapting the measurements to breakpoints type of measuring
-        # by filtering the measures down to the files we are actually interested in and then
-        # ordering them by file, line and column, this could be optimized by using dictionary and TryGetValu
-        # or just using list lookup when there are less than 100 points to search through
-        $hashset = [System.Collections.Generic.HashSet[string]]@()
-        foreach ($c in $CommandCoverage) {
-            $null = $hashset.Add($c.File)
-        }
 
-        # foreach ($f in $hashset) {
-        #     Write-Host "File: $f"
-        # }
+        # re-key the measures to use columns that are corrected for BP placement
+        $bpm = @{}
+        foreach ($path in $Measure.Keys) {
+            $lines = @{}
 
-        $pointsByPath = @{}
-        foreach ($i in $Measure) {
-            # Write-Host "Hit: $($i.Extent.File), $($i.Extent.StartLineNumber), $($i.Extent.StartColumnNumber), $($i.Source)"
-
-
-            $StartColumnNumber = $i.Extent.StartColumnNumber
-
-            # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
-            # but we are getting the whole assignment from profiler
-            if ($i.Source -like "*=*") {
-                $ast = [System.Management.Automation.Language.Parser]::ParseInput($i.Source, [ref]$null, [ref]$null)
-
-                $assignment = $ast.Find( { param ($item) $item -is [System.Management.Automation.Language.AssignmentStatementAst] }, $false)
-                if ($assignment) {
-                    if ($assignment.Right) {
-                        $StartColumnNumber = $i.Extent.StartColumnNumber + $assignment.Right.Extent.StartColumnNumber - 1
-                        # Write-Host "Line $($i.Extent.StartLineNumber) is assignment $($i.Source), using $StartColumnNumber instead of $($i.Extent.StartColumnNumber)"
-                    }
-                }
+            foreach ($line in $Measure[$path].Values) {
+                $lines.Add("$($line.Line):$($line.BpColumn)", $line)
             }
 
-            if ($hashset.Contains($i.Extent.File)) {
-                if (-not $pointsByPath.ContainsKey($i.Extent.File)) {
-
-                    $pointByLine = @{ $i.Extent.StartLineNumber = @{ $StartColumnNumber = $i } }
-                    $pointsByPath.Add($i.Extent.File, $pointByLine)
-                }
-                else {
-                    $pointByLine = $pointsByPath[$i.Extent.File]
-                    if (-not $pointByLine.ContainsKey($i.Extent.StartLineNumber)) {
-                        $pointByLine.Add($i.Extent.StartLineNumber, @{ $StartColumnNumber = $i })
-                    }
-                    else {
-                        $pointByColumn = $pointByLine[$i.Extent.StartLineNumber]
-                        if (-not $pointByColumn.ContainsKey($StartColumnNumber)) {
-                            $pointByColumn.Add($StartColumnNumber, $i)
-                        }
-                        else {
-                            # do nothing, having one hit per point is enough
-                        }
-                    }
-                }
-            }
+            $bpm.Add($path, $lines)
         }
 
-        # Write-Host "points by path $($pointsByPath | fl | out-string )"
-
-        # Write-Host ($CommandCoverage[0] | fl | Out-String)
-
-        # Populate the breakpoint object so the next commands searching for
-        # not-hit breakpoints don't have to change
+        # adapting the data to the breakpoint like api we use for breakpoint based CC
+        # so the rest of our code just works
         foreach ($i in $CommandCoverage) {
             # Write-Host "CC: $($i.File), $($i.StartLine), $($i.StartColumn)"
             $bp = @{ HitCount = 0 }
-            if ($pointsByPath.ContainsKey($i.File)) {
-                $f = $pointsByPath[$i.File]
-                if ($f.ContainsKey($i.StartLine)) {
-                    $l = $f[$i.StartLine]
-                    if ($l.ContainsKey($i.StartColumn)) {
-                        $bp.HitCount = 1
-                    }
+            if ($bpm.ContainsKey($i.File)) {
+                $f = $bpm[$i.File]
+                $key = "$($i.StartLine):$($i.StartColumn)"
+                if ($f.ContainsKey($key)) {
+                    $h = $f[$key]
+                    $bp.HitCount = [int] $h.Hit
                 }
             }
 
@@ -994,11 +941,11 @@ function Get-JaCoCoReportXml {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $classElementName = if ($isGutters) {
-                    $classElementRelativePath
-                }
-                else {
-                    "$commonParentLeaf/$classElementRelativePath"
-                }
+                $classElementRelativePath
+            }
+            else {
+                "$commonParentLeaf/$classElementRelativePath"
+            }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName

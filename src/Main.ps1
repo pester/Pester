@@ -1017,30 +1017,11 @@ function Invoke-Pester {
                 return
             }
 
-            if ($PesterPreference.CodeCoverage.Enabled.Value -and -not $CodeCoverage.UseBreakpoints) {
 
-                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope CodeCoverage "Using Measure-Script for CodeCoverage."
-                }
-                $o = @{ r = $null }
-                $measure = Measure-Script {
-                    $o.r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
-                }
-                $PluginData["Coverage"].Measure = $measure
-                $r = $o.r
-                $o.r = $null
-                $o = $null
-            }
-            else {
-                $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
-            }
+            $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
 
             foreach ($c in $r) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
-            }
-
-            $parameters = @{
-                PSBoundParameters = $PSBoundParameters
             }
 
             $run = [Pester.Run]::Create()
@@ -1085,7 +1066,8 @@ function Invoke-Pester {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
                 }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
-                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints
+                $measure = if (-not $PesterPreference.CodeCoverage.UseBreakpoints.Value) { @($run.PluginData.Coverage.Tracer.Hits) }
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
                 $totalMilliseconds = $run.Duration.TotalMilliseconds
 
                 $configuration = $run.PluginConfiguration.Coverage

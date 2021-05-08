@@ -2,7 +2,6 @@ function Get-CoveragePlugin {
     New-PluginObject -Name "Coverage" -RunStart {
         param($Context)
 
-        [Reflection.Assembly]::LoadFrom("C:\p\profiler\csharp\Profiler\bin\Debug\netstandard2.0\Profiler.dll")
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $logger = if ($Context.WriteDebugMessages) {
             # return partially apply callback to the logger when the logging is enabled
@@ -29,20 +28,45 @@ function Get-CoveragePlugin {
 
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger -UseBreakpoints $config.UseBreakpoints -UseSingleHitBreakpoints $config.UseSingleHitBreakpoints
 
+
+
         if (-not $config.UseBreakpoints) {
-            $l = [Collections.Generic.List[Profiler.CodeCoveragePoint]]@()
+            $points = [Collections.Generic.List[Profiler.CodeCoveragePoint]]@()
             foreach ($breakpoint in $breakpoints) {
                 $location = $breakpoint.BreakpointLocation
-                $l.Add([Profiler.CodeCoveragePoint]::new($location.Path, $location.Line, $location.Column, ""));
+
+                $hitColumn = $location.Column
+
+                # breakpoints for some actions bind to different column than the hits, we need to adjust
+                # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
+                # but we are getting the whole assignment from profiler, so we need to offset it
+                $firstLine, $null = $breakpoint.Command -split "`n",2
+                if ($firstLine -like "*=*") {
+                    $ast = [System.Management.Automation.Language.Parser]::ParseInput($breakpoint.Command, [ref]$null, [ref]$null)
+
+                    $assignment = $ast.Find( { param ($item) $item -is [System.Management.Automation.Language.AssignmentStatementAst] }, $false)
+                    if ($assignment) {
+                        if ($assignment.Right) {
+                            $hitColumn = $location.Column - $assignment.Right.Extent.StartColumnNumber + 1
+                            # Write-Host "Line $($i.Extent.StartLineNumber) is assignment $($i.Source), using $StartColumnNumber instead of $($i.Extent.StartColumnNumber)"
+                        }
+                    }
+                }
+
+
+                $points.Add([Profiler.CodeCoveragePoint]::new($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
             }
 
+            $tracer = [Profiler.CodeCoverageTracer]::new($points)
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            [Profiler.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+            Set-PSDebug -Trace 1
         }
 
         $Context.Data.Add('Coverage', @{
             CommandCoverage = $breakpoints
-            CoveragePoints = $l
+            Tracer = $tracer
             CoverageReport = $null
-            Measure = $null
         })
 
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
@@ -51,13 +75,15 @@ function Get-CoveragePlugin {
     } -End {
         param($Context)
 
+        Set-PSDebug -Trace 0
+        [Profiler.Tracer]::Unpatch()
         if (-not $Context.TestRun.PluginData.ContainsKey("Coverage")) {
             return
         }
 
         $coverageData = $Context.TestRun.PluginData.Coverage
         #TODO: rather check the config to see which mode of coverage we used
-        if ($null -eq $coverageData.Measure) {
+        if ($null -eq $coverageData.Tracer) {
             # we used breakpoints to measure CC, clean them up
             Exit-CoverageAnalysis -CommandCoverage $coverageData.CommandCoverage
         }

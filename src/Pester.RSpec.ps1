@@ -351,6 +351,9 @@ function New-PesterConfiguration {
       CoveragePercentTarget: Target percent of code coverage that you want to achieve, default 75%.
       Default value: 75
 
+      UseBreakpoints: EXPERIMENTAL: When false, use Measure-Script to do CodeCoverage instead of setting breakpoints. This only works in a custom PowerShell build that has this change https://github.com/PowerShell/PowerShell/pull/13673.
+      Default value: $true
+
       SingleHitBreakpoints: Remove breakpoint when it is hit.
       Default value: $true
 
