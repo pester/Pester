@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Management.Automation;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
@@ -59,6 +60,12 @@ namespace Pester
         public static implicit operator StringArrayOption(string value)
         {
             var array = new[] { value };
+            return new StringArrayOption(string.Empty, array, array);
+        }
+
+        public static implicit operator StringArrayOption (PathInfo pathInfo)
+        {
+            var array = new[] { pathInfo?.ToString() };
             return new StringArrayOption(string.Empty, array, array);
         }
     }

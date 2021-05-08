@@ -60,6 +60,7 @@
 
         # config
         'New-PesterContainer'
+        'New-PesterConfiguration'
 
         # legacy
         'Assert-VerifiableMock'
@@ -111,11 +112,14 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.0-alpha3'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.0'
 
             # Prerelease string of this module
-            Prerelease   = 'alpha3'
+            Prerelease   = ''
         }
+
+        # Minimum assembly version required
+        RequiredAssemblyVersion = '5.2.0'
     }
 
     # HelpInfo URI of this module

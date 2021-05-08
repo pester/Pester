@@ -410,7 +410,7 @@ function Invoke-Block ($previousBlock) {
                     $block.OwnPassed = $result.Success
                     $block.StandardOutput = $result.StandardOutput
 
-                    $block.ErrorRecord = $result.ErrorRecord
+                    $block.ErrorRecord.AddRange($result.ErrorRecord)
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Runtime "Finished executing body of block $Name"
                     }
@@ -673,7 +673,7 @@ function Invoke-TestItem {
                 }
 
                 $Test.StandardOutput = $result.StandardOutput
-                $Test.ErrorRecord = $result.ErrorRecord
+                $Test.ErrorRecord.AddRange($result.ErrorRecord)
             }
         }
 
@@ -2277,7 +2277,7 @@ function flattenBlock ($Block, $Accumulator) {
 function New-FilterObject {
     [CmdletBinding()]
     param (
-        [String[][]] $FullName,
+        [String[]] $FullName,
         [String[]] $Tag,
         [String[]] $ExcludeTag,
         [String[]] $Line
@@ -2604,7 +2604,7 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     # correct session state, and then invoke the file. We can also pass a script block tied
     # to the current module to invoke internal function in the newly pushed script scope.
 
-    $Path = "$PSScriptRoot/Script.ps1"
+    $Path = "$PSScriptRoot/Pester.ps1"
     $Data = @{ ScriptBlock = $ScriptBlock }
 
     $wrapper = {

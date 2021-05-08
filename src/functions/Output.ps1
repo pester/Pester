@@ -761,7 +761,8 @@ function Write-ErrorToScreen {
     param (
         [Parameter(Mandatory)]
         $Err,
-        [string] $ErrorMargin
+        [string] $ErrorMargin,
+        [switch] $Throw
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -780,7 +781,12 @@ function Write-ErrorToScreen {
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
-    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+    if ($Throw) {
+        throw $withMargin
+    }
+    else {
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+    }
 }
 
 function Write-BlockToScreen {

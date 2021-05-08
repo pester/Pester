@@ -146,14 +146,6 @@ if ($CI) {
     # not using code coverage, it is still very slow
     $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
-
-    # experimental, will try to write breakpoints close together
-    # not one by one while it is figuring out AST.
-    # this appears to be significantly faster.
-    $configuration.CodeCoverage.DelayWritingBreakpoints = $true
-    # experimental, will delete BP as soon as it is hit
-    # only effective when DelayWritingBreakpoints is $true.
-    # this is me trying out an approach. Not sure about the impact.
     $configuration.CodeCoverage.SingleHitBreakpoints = $true
 
 

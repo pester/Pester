@@ -28,6 +28,7 @@ namespace Pester
         private ContainerInfoArrayOption _container;
         private StringOption _testExtension;
         private BoolOption _exit;
+        private BoolOption _throw;
         private BoolOption _passThru;
         private BoolOption _skipRun;
 
@@ -47,6 +48,7 @@ namespace Pester
                 Container = configuration.GetArrayOrNull<ContainerInfo>(nameof(Container)) ?? Container;
                 TestExtension = configuration.GetObjectOrNull<string>(nameof(TestExtension)) ?? TestExtension;
                 Exit = configuration.GetValueOrNull<bool>(nameof(Exit)) ?? Exit;
+                Throw = configuration.GetValueOrNull<bool>(nameof(Throw)) ?? Throw;
                 PassThru = configuration.GetValueOrNull<bool>(nameof(PassThru)) ?? PassThru;
                 SkipRun = configuration.GetValueOrNull<bool>(nameof(SkipRun)) ?? SkipRun;
             }
@@ -59,7 +61,8 @@ namespace Pester
             ScriptBlock = new ScriptBlockArrayOption("ScriptBlocks containing tests to be executed.", new ScriptBlock[0]);
             Container = new ContainerInfoArrayOption("ContainerInfo objects containing tests to be executed.", new ContainerInfo[0]);
             TestExtension = new StringOption("Filter used to identify test files.", ".Tests.ps1");
-            Exit = new BoolOption("Exit with non-zero exit code when the test run fails.", false);
+            Exit = new BoolOption("Exit with non-zero exit code when the test run fails. When used together with Throw, throwing an exception is preferred.", false);
+            Throw = new BoolOption("Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
         }
@@ -156,6 +159,22 @@ namespace Pester
                 else
                 {
                     _exit = new BoolOption(_exit, value.Value);
+                }
+            }
+        }
+
+        public BoolOption Throw
+        {
+            get { return _throw; }
+            set
+            {
+                if (_throw == null)
+                {
+                    _throw = value;
+                }
+                else
+                {
+                    _throw = new BoolOption(_throw, value.Value);
                 }
             }
         }
