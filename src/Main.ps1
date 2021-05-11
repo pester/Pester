@@ -349,6 +349,7 @@ function Invoke-Pester {
 
     .PARAMETER CodeCoverageOutputFile
     (Deprecated v4)
+    Replace with ConfigurationProperty CodeCoverage.OutputPath
     The path where Invoke-Pester will save formatted code coverage results file.
     The path must include the location and name of the folder and file name with
     a required extension (usually the xml).
