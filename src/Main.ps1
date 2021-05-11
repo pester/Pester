@@ -356,13 +356,13 @@ function Invoke-Pester {
 
     .PARAMETER CodeCoverageOutputFileEncoding
     (Deprecated v4)
-    Replace with ConfigurationProperty CodeCoverage.CodeCoverageOutputFileEncoding
+    Replace with ConfigurationProperty CodeCoverage.OutputEncoding
     Sets the output encoding of CodeCoverageOutputFileFormat
     Default is utf8
 
     .PARAMETER CodeCoverageOutputFileFormat
     (Deprecated v4)
-    Replace with ConfigurationProperty CodeCoverage.CodeCoverageOutputFileFormat
+    Replace with ConfigurationProperty CodeCoverage.OutputFormat
     The name of a code coverage report file format.
     Default value is: JaCoCo.
     Currently supported formats are:
@@ -390,7 +390,7 @@ function Invoke-Pester {
 
     .PARAMETER EnableExit
     (Deprecated v4)
-    Replace with ConfigurationProperty Run.EnableExit
+    Replace with ConfigurationProperty Run.Exit
     Will cause Invoke-Pester to exit with a exit code equal to the number of failed
     tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
@@ -415,7 +415,7 @@ function Invoke-Pester {
 
     .PARAMETER OutputFile
     (Deprecated v4)
-    Replace with ConfigurationProperty TestResult.OutputFile
+    Replace with ConfigurationProperty TestResult.OutputPath
     The path where Invoke-Pester will save formatted test results log file.
     The path must include the location and name of the folder and file name with
     the xml extension.
