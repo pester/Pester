@@ -48,7 +48,7 @@ namespace Pester
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
-            UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Measure-Script to do CodeCoverage instead of setting breakpoints. This only works in a custom PowerShell build that has this change https://github.com/PowerShell/PowerShell/pull/13673.", true);
+            UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", true);
             CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%.", 75m);
             SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit.", true);
         }

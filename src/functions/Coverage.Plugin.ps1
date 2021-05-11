@@ -31,7 +31,7 @@ function Get-CoveragePlugin {
 
 
         if (-not $config.UseBreakpoints) {
-            $points = [Collections.Generic.List[Profiler.CodeCoveragePoint]]@()
+            $points = [Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]@()
             foreach ($breakpoint in $breakpoints) {
                 $location = $breakpoint.BreakpointLocation
 
@@ -54,12 +54,12 @@ function Get-CoveragePlugin {
                 }
 
 
-                $points.Add([Profiler.CodeCoveragePoint]::new($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
+                $points.Add([Pester.Tracing.CodeCoveragePoint]::new($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
             }
 
-            $tracer = [Profiler.CodeCoverageTracer]::new($points)
+            $tracer = [Pester.Tracing.CodeCoverageTracer]::new($points)
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
-            [Profiler.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+            [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
             Set-PSDebug -Trace 1
         }
 
@@ -75,8 +75,11 @@ function Get-CoveragePlugin {
     } -End {
         param($Context)
 
-        Set-PSDebug -Trace 0
-        [Profiler.Tracer]::Unpatch()
+        $config = $Context.Configuration['Coverage']
+        if (-not $config.UseBreakpoints) {
+            Set-PSDebug -Trace 0
+            [Pester.Tracing.Tracer]::Unpatch()
+        }
         if (-not $Context.TestRun.PluginData.ContainsKey("Coverage")) {
             return
         }

@@ -64,7 +64,7 @@ function Enter-CoverageAnalysis {
     }
     else {
         if ($null -ne $logger) {
-            & $logger "Using Measure-Script for code coverage, not setting any breakpoints."
+            & $logger "Using Profiler based tracer for code coverage, not setting any breakpoints."
         }
     }
 
@@ -720,7 +720,8 @@ function Get-CommonParentPath {
 
     if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
         # for coverage gutters the root path is relative to the coverage.xml
-        return (& $SafeCommands['Split-Path'] -Path $PesterPreference.CodeCoverage.OutputPath.Value | Normalize-Path )
+        $fullPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+        return (& $SafeCommands['Split-Path'] -Path $fullPath | Normalize-Path )
     }
 
     $pathsToTest = @(
@@ -1056,19 +1057,19 @@ function Add-JaCoCoCounter {
 
 function Measure-Script ($ScriptBlock) {
     $points = $Context.Data.CoveragePoints
-    $tracer = [Profiler.CodeCoverageTracer]::new($points)
+    $tracer = [Pester.Tracing.CodeCoverageTracer]::new($points)
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         # ensure all output to pipeline is dumped
         $null = & {
             try {
-                [Profiler.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+                [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
                 Set-PSDebug -Trace 1
                 & $ScriptBlock
             }
             finally {
                 Set-PSDebug -Trace 0
-                [Profiler.Tracer]::Unpatch()
+                [Pester.Tracing.Tracer]::Unpatch()
             }
         }
     }
@@ -1076,12 +1077,6 @@ function Measure-Script ($ScriptBlock) {
         $err = $_
     }
     $sw.Stop()
-
-    # $result = @{
-    #     Trace = [Profiler.Tracer]::Hits
-    #     Error = $err
-    #     Stopwatch = $sw.Elapsed
-    # }
 
     $tracer.Hits
 }

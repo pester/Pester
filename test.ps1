@@ -144,17 +144,11 @@ if ($CI) {
     $configuration.Run.Exit = $true
 
     # not using code coverage, it is still very slow
-    $configuration.CodeCoverage.Enabled = $true
+    $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
 
-    # experimental, works only in a custom build of PowerShell that has this change
-    # https://github.com/PowerShell/PowerShell/pull/13673, set to true to use Measure-Script instead of
-    # using breakpoints
+    # experimental, uses the Profiler based tracer to do code coverage without using breakpoints
     $configuration.CodeCoverage.UseBreakpoints = $false
-    # experimental, will delete BP as soon as it is hit
-    # this is me trying out an approach. Not sure about the impact.
-    $configuration.CodeCoverage.SingleHitBreakpoints = $true
-
 
     $configuration.TestResult.Enabled = $true
 }
