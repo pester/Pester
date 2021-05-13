@@ -1891,8 +1891,6 @@ function Invoke-Test {
             ConvertTo-DiscoveredBlockContainer -Block $f
         }
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nTest run was skipped."
-
         return
     }
     # $errs = $SessionState.PSVariable.Get("Error").Value

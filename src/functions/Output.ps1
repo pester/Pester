@@ -539,6 +539,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+
+        if ($PesterPreference.Run.SkipRun.Value) {
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nTest run was skipped."
+        }
     }
 
 
