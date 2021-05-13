@@ -249,16 +249,16 @@ function Format-AsExcerpt {
     $inputLength = $InputObject.Length
     # e.g. <marker><precontext><diffchar><postcontext><marker> ...precontextXpostcontext...
     $minimumLineLength = $ContextLength + $markerLength + 1 +  $markerLength + $ContextLength
-    # if ($LineLength -lt $minimumLineLength -or $inputLength -le $LineLength ) {
-    #     # the available line length is so short that we can't reasonable work with it. Ignore formatting and just print it as is.
-    #     # User will see output with a lot of line breaks, but they probably expect that with having super narrow window.
-    #     # or when input is shorter than available line length,
-    #     # there won't be any cutting
-    #     return @{
-    #         Line = $InputObject
-    #         DifferenceIndex = $DifferenceIndex
-    #     }
-    # }
+    if ($LineLength -lt $minimumLineLength -or $inputLength -le $LineLength ) {
+        # the available line length is so short that we can't reasonable work with it. Ignore formatting and just print it as is.
+        # User will see output with a lot of line breaks, but they probably expect that with having super narrow window.
+        # or when input is shorter than available line length,
+        # there won't be any cutting
+        return @{
+            Line = $InputObject
+            DifferenceIndex = $DifferenceIndex
+        }
+    }
 
     # this will make the whole string shorter as diff index gets closer to the end, so it won't use the whole screen
     # but otherwise we would have to share which operations we did on one string and repeat them on the other
