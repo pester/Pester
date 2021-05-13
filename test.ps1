@@ -50,7 +50,7 @@ $ErrorView = "NormalView"
 
 if (-not $NoBuild) {
     if ($CI) {
-        & "$PSScriptRoot/build.ps1" # -Inline
+        & "$PSScriptRoot/build.ps1" -Inline
     }
     else {
         & "$PSScriptRoot/build.ps1" -Inline:$Inline

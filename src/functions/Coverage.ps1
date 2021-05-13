@@ -1078,10 +1078,10 @@ function Start-TraceScript ($Breakpoints) {
         }
 
 
-        $points.Add([Pester.Tracing.CodeCoveragePoint]::new($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
+        $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
     }
 
-    $tracer = [Pester.Tracing.CodeCoverageTracer]::new($points)
+    $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
     [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
     Set-PSDebug -Trace 1
 

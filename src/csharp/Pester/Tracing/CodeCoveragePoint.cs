@@ -2,6 +2,11 @@
 {
     public struct CodeCoveragePoint
     {
+        public static CodeCoveragePoint Create(string path, int line, int column, int bpColumn, string astText)
+        {
+            return new CodeCoveragePoint(path, line, column, bpColumn, astText);
+        }
+
         public CodeCoveragePoint(string path, int line, int column, int bpColumn, string astText)
         {
             Path = path;

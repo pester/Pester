@@ -6,6 +6,11 @@ namespace Pester.Tracing
 {
     public class CodeCoverageTracer : ITracer
     {
+        public static CodeCoverageTracer Create(List<CodeCoveragePoint> points)
+        {
+            return new CodeCoverageTracer(points);
+        }
+
         public CodeCoverageTracer(List<CodeCoveragePoint> points)
         {
             foreach (var point in points)
@@ -24,7 +29,7 @@ namespace Pester.Tracing
                     hits.Add(key, point);
                     continue;
                 }
-                
+
                 // if the key is there do nothing, we already set it to false
             }
         }
@@ -47,14 +52,14 @@ namespace Pester.Tracing
             if (!lineColumn.ContainsKey(key2))
                 return;
 
-            
+
             var point = lineColumn[key2];
             if (point.Hit == true)
                 return;
 
             point.Hit = true;
             point.Text = extent.Text;
-            
+
             lineColumn[key2] = point;
         }
     }
