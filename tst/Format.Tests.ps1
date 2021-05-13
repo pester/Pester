@@ -199,3 +199,29 @@ Describe "Get-ShortType" {
         Get-ShortType -Value $Value | Verify-Equal $Expected
     }
 }
+
+Describe "Join-And" {
+    It "Given '<items>' and default threshold of 2 it returns the correct joined string '<expected>'" -TestCases @(
+        @{ Items = $null; Expected = [string]::Empty},
+        @{ Items = @('one'); Expected = 'one'},
+        @{ Items = @('one', 'two'); Expected = 'one and two'},
+        @{ Items = @('one', 'two', 'three'); Expected = 'one, two and three'}
+    ) {
+        param($Items, $Expected)
+        Join-And -Items $Items | Verify-Equal $Expected
+    }
+
+    It "Given '<items>' and custom threshold <threshold> it returns the correct joined string '<expected>'" -TestCases @(
+        @{ Items = @('one', 'two', 'three'); Threshold = 3; Expected = 'one, two and three'},
+        @{ Items = @('one', 'two', 'three'); Threshold = 4; Expected = 'one, two, three'}
+    ) {
+        param($Items, $Threshold, $Expected)
+        Join-And -Items $Items -Threshold $Threshold | Verify-Equal $Expected
+    }
+}
+
+Describe "Add-SpaceToNonEmptyString" {
+    It "Formats non-empty string with leading whitespace" {
+        Add-SpaceToNonEmptyString -Value 'message' | Verify-Equal ' message'
+    }
+}
