@@ -50,7 +50,7 @@ namespace Pester.Tracing
 
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
 
-            var uiFieldName = version >= 7 ? "_externalUI" : "externalUI";
+            var uiFieldName = version >= 6 ? "_externalUI" : "externalUI";
             // we get InternalHostUserInterface, grab external ui from that and replace it with ours
             var externalUIField = ui.GetType().GetField(uiFieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             var externalUI = (PSHostUserInterface)externalUIField.GetValue(ui);
@@ -87,7 +87,7 @@ namespace Pester.Tracing
             var stack = callStackField.GetValue(debugger);
             var initialLevel = (int)getCount.Invoke(stack, empty);
 
-            if (version == 3 || version == 4)
+            if (version == 3)
             {
                 // we do the same operation as in the TraceLineAction below, but here 
                 // we resolve the static things like types and properties, and then in the 
