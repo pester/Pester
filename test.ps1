@@ -121,10 +121,10 @@ New-Module -Name TestHelpers -ScriptBlock {
 
 $configuration = [PesterConfiguration]::Default
 
-$configuration.Debug.WriteDebugMessages = $false
-# $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
+$configuration.Output.Verbosity = "Normal"
+$configuration.Debug.WriteDebugMessages = $true
+$configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
-# $configuration.Output.Verbosity = "Detailed"
 $configuration.Debug.ShowFullErrors = $false
 $configuration.Debug.ShowNavigationMarkers = $false
 
@@ -146,8 +146,9 @@ if ($CI) {
     # not using code coverage, it is still very slow
     $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
-    $configuration.CodeCoverage.SingleHitBreakpoints = $true
 
+    # experimental, uses the Profiler based tracer to do code coverage without using breakpoints
+    $configuration.CodeCoverage.UseBreakpoints = $false
 
     $configuration.TestResult.Enabled = $true
 }

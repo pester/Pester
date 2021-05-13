@@ -1028,7 +1028,7 @@ function Run-Test {
             Configuration = $state.PluginConfiguration
             Data          = $state.PluginData
             WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
-            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
         } -ThrowOnFailure
     }
     foreach ($rootBlock in $Block) {

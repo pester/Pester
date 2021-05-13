@@ -4,7 +4,7 @@
     RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '5.2.1'
+    ModuleVersion     = '5.3.0'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -115,11 +115,11 @@
             ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.1'
 
             # Prerelease string of this module
-            Prerelease   = ''
+            Prerelease   = 'alpha1'
         }
 
         # Minimum assembly version required
-        RequiredAssemblyVersion = '5.2.0'
+        RequiredAssemblyVersion = '5.3.0'
     }
 
     # HelpInfo URI of this module
