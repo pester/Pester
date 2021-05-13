@@ -102,7 +102,7 @@ InPesterModuleScope {
 
 '@
             }
-            # Write-Host $($i = 0; (Get-Content $testScriptPath) -split "`n" | foreach  { "$((++$i).ToString("00")) $_`n"})
+
             $null = New-Item -Path $testScript2Path -ItemType File -ErrorAction SilentlyContinue
 
             Set-Content -Path $testScript2Path -Value @'
@@ -131,6 +131,8 @@ InPesterModuleScope {
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path -UseBreakpoints $UseBreakpoints
 
+                @($breakpoints).Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
+
                 $sb = {
                     $null = & $testScriptPath
                     $null = & $testScript2Path
@@ -138,7 +140,7 @@ InPesterModuleScope {
                 }
 
                 if ($UseBreakpoints) {
-                    # Write-Host with breakpoints
+                    # with breakpoints
                     & $sb
                 }
                 else {
