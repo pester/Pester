@@ -1054,29 +1054,41 @@ function Add-JaCoCoCounter {
         })
 }
 
+function Start-TraceScript ($Breakpoints) {
 
-function Measure-Script ($ScriptBlock) {
-    $points = $Context.Data.CoveragePoints
-    $tracer = [Pester.Tracing.CodeCoverageTracer]::new($points)
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    try {
-        # ensure all output to pipeline is dumped
-        $null = & {
-            try {
-                [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
-                Set-PSDebug -Trace 1
-                & $ScriptBlock
-            }
-            finally {
-                Set-PSDebug -Trace 0
-                [Pester.Tracing.Tracer]::Unpatch()
+    $points = [Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]@()
+    foreach ($breakpoint in $breakpoints) {
+        $location = $breakpoint.BreakpointLocation
+
+        $hitColumn = $location.Column
+
+        # breakpoints for some actions bind to different column than the hits, we need to adjust
+        # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
+        # but we are getting the whole assignment from profiler, so we need to offset it
+        $firstLine, $null = $breakpoint.Command -split "`n",2
+        if ($firstLine -like "*=*") {
+            $ast = [System.Management.Automation.Language.Parser]::ParseInput($breakpoint.Command, [ref]$null, [ref]$null)
+
+            $assignment = $ast.Find( { param ($item) $item -is [System.Management.Automation.Language.AssignmentStatementAst] }, $false)
+            if ($assignment) {
+                if ($assignment.Right) {
+                    $hitColumn = $location.Column - $assignment.Right.Extent.StartColumnNumber + 1
+                }
             }
         }
-    }
-    catch {
-        $err = $_
-    }
-    $sw.Stop()
 
-    $tracer.Hits
+
+        $points.Add([Pester.Tracing.CodeCoveragePoint]::new($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
+    }
+
+    $tracer = [Pester.Tracing.CodeCoverageTracer]::new($points)
+    [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+    Set-PSDebug -Trace 1
+
+    $tracer
+}
+
+function Stop-TraceScript {
+    Set-PSDebug -Trace 0
+    [Pester.Tracing.Tracer]::Unpatch()
 }
